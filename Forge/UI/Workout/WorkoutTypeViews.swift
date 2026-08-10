@@ -70,29 +70,10 @@ struct WorkoutTypeLabel: View {
 }
 
 struct WorkoutTypePickerRow: View {
-    @Environment(\.managedObjectContext) private var context
-    @FetchRequest(fetchRequest: WorkoutType.fetchRequestSorted()) private var workoutTypes
     @State private var showingSelection = false
 
     let title: String
     @Binding var selection: WorkoutType?
-
-    private var visibleTypes: [WorkoutType] {
-        workoutTypes.filter { !$0.isArchived || $0.objectID == selection?.objectID }
-    }
-
-    private var selectedObjectID: Binding<NSManagedObjectID?> {
-        Binding(
-            get: { selection?.objectID },
-            set: { objectID in
-                guard let objectID else {
-                    selection = nil
-                    return
-                }
-                selection = (try? context.existingObject(with: objectID)) as? WorkoutType
-            }
-        )
-    }
 
     private var selectedTitle: String {
         selection?.displayTitle ?? "None"
@@ -115,7 +96,7 @@ struct WorkoutTypePickerRow: View {
         .accessibilityAddTraits(.isButton)
         .sheet(isPresented: $showingSelection) {
             NavigationStack {
-                WorkoutTypeSelectionView(title: title, selection: selectedObjectID)
+                WorkoutTypeSelectionView(title: title, selection: $selection)
             }
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
@@ -128,10 +109,10 @@ private struct WorkoutTypeSelectionView: View {
     @FetchRequest(fetchRequest: WorkoutType.fetchRequestSorted()) private var workoutTypes
 
     let title: String
-    @Binding var selection: NSManagedObjectID?
+    @Binding var selection: WorkoutType?
 
     private var visibleTypes: [WorkoutType] {
-        workoutTypes.filter { !$0.isArchived || $0.objectID == selection }
+        workoutTypes.filter { !$0.isArchived || $0.objectID == selection?.objectID }
     }
 
     var body: some View {
@@ -156,7 +137,7 @@ private struct WorkoutTypeSelectionView: View {
 
                 ForEach(visibleTypes, id: \.objectID) { type in
                     Button {
-                        selection = type.objectID
+                        selection = type
                         dismiss()
                     } label: {
                         HStack(spacing: Theme.Spacing.m) {
@@ -164,7 +145,7 @@ private struct WorkoutTypeSelectionView: View {
                             Text(type.displayTitle)
                                 .foregroundColor(.forgeLabel)
                             Spacer()
-                            if selection == type.objectID {
+                            if selection?.objectID == type.objectID {
                                 Image(systemName: "checkmark")
                                     .foregroundColor(.forgeAccent)
                                     .accessibilityLabel("Selected")

@@ -123,6 +123,14 @@ struct WorkoutDetailView : View {
         ]
     }
 
+    private var readSnapshotTypeColor: Color {
+        Color(workoutTypeHex: readSnapshot?.workoutTypeColorHex ?? WorkoutType.fallbackColorHex)
+    }
+
+    private var currentWorkoutTypeColor: Color {
+        Color(workoutTypeHex: workout.workoutType?.displayColorHex ?? WorkoutType.fallbackColorHex)
+    }
+
     private func rebuildReadSnapshot() {
         let exercises = workoutExercises.map { workoutExercise in
             ExerciseReadRow(
@@ -213,10 +221,9 @@ struct WorkoutDetailView : View {
                     BannerView(entries: snapshotBannerEntries)
                         .padding([.top, .bottom])
                         .frame(maxWidth: .infinity)
-                        // A thin white rule under the summary, in place of the old muscle-group color.
                         .overlay(alignment: .bottom) {
                             Capsule()
-                                .fill(Color.forgeLabel)
+                                .fill(readSnapshotTypeColor)
                                 .frame(height: 3)
                                 .padding(.horizontal, Theme.Spacing.m)
                         }
@@ -332,10 +339,9 @@ struct WorkoutDetailView : View {
                 WorkoutDetailBannerView(workout: workout)
                     .padding([.top, .bottom])
                     .frame(maxWidth: .infinity)
-                    // A thin white rule under the summary, in place of the old muscle-group color.
                     .overlay(alignment: .bottom) {
                         Capsule()
-                            .fill(Color.forgeLabel)
+                            .fill(currentWorkoutTypeColor)
                             .frame(height: 3)
                             .padding(.horizontal, Theme.Spacing.m)
                     }
