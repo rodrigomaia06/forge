@@ -106,6 +106,9 @@ jobs:
             only_testing: |
               ForgeUITests/ScreenshotUITests/testSettings
               ForgeUITests/ScreenshotUITests/testLightAppearance
+          - group: workout-types
+            only_testing: |
+              ForgeUITests/ScreenshotUITests/testWorkoutTypes
     steps:
       - name: Checkout
         uses: actions/checkout@v4

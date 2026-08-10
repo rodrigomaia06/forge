@@ -465,6 +465,63 @@ final class ScreenshotUITests: XCTestCase {
         }
     }
 
+    /// The editable workout type list and the picker surfaces that assign a type to workouts and routines.
+    func testWorkoutTypes() throws {
+        launch("workout-types")
+
+        selectTab("Settings")
+        guard tapFirst(in: [app.cells, app.buttons, app.staticTexts], labelled: "Workout types") else {
+            skipped("the Workout types row in Settings")
+            return
+        }
+        shot("settings-list", settle: 1.2)
+        if tapFirst(in: [app.buttons], labelled: "Add workout type") {
+            shot("new-type-added", settle: 1.2)
+        }
+        if tapFirst(in: [app.buttons, app.staticTexts], labelled: "Color") {
+            shot("color-options", settle: 1.2)
+            dismissOverlay()
+        } else {
+            skipped("a workout type color picker")
+        }
+        back()
+
+        selectTab("Workout")
+        if app.buttons["Cancel"].firstMatch.waitForExistence(timeout: 8),
+           tapFirst(in: [app.buttons], labelled: "Edit") {
+            shot("current-workout-edit", settle: 1.2)
+            captureWorkoutTypePicker(label: "Type", prefix: "current-workout")
+            _ = tapFirst(in: [app.buttons], labelled: "Done")
+        } else {
+            skipped("the current workout type picker")
+        }
+
+        discardRunningWorkout()
+        if tapFirst(in: [app.buttons], labelled: "Add") || tapNavigationBarFirstButton(),
+           tapFirst(in: [app.buttons, app.cells, app.staticTexts], labelled: "New routine") {
+            shot("routine-editor", settle: 1.5)
+            captureWorkoutTypePicker(label: "Default type", prefix: "routine")
+            back()
+        } else {
+            skipped("a routine default type picker")
+            dismissOverlay()
+        }
+
+        selectTab("History")
+        if tapRow(at: 0, preferring: [app.cells, app.buttons]) {
+            shot("history-detail", settle: 1.5)
+            if tapFirst(in: [app.buttons], labelled: "Edit") {
+                shot("history-edit", settle: 1.2)
+                captureWorkoutTypePicker(label: "Type", prefix: "history")
+                _ = tapFirst(in: [app.buttons], labelled: "Done")
+            } else {
+                skipped("the history workout Edit button")
+            }
+        } else {
+            skipped("a history workout row")
+        }
+    }
+
     /// The app in light mode. Forge is dark-first, so this is the appearance the reference images
     /// would otherwise never show. Changed through Settings, the way a user would.
     func testLightAppearance() throws {
@@ -645,6 +702,19 @@ final class ScreenshotUITests: XCTestCase {
 
         if tapFirst(in: [app.buttons, app.staticTexts], labelled: "Add set") {
             shot("routine-set-added", settle: 1.2)
+        }
+    }
+
+    private func captureWorkoutTypePicker(label: String, prefix: String) {
+        guard tapFirst(in: [app.buttons, app.cells, app.staticTexts], labelled: label) else {
+            skipped("\(prefix): the \(label) picker")
+            return
+        }
+        shot("\(prefix)-type-picker", settle: 1.2)
+        if !tapFirst(in: [app.buttons], labelled: "Cancel") { dismissOverlay() }
+        if app.staticTexts["Tennis"].firstMatch.exists,
+           app.navigationBars.buttons.element(boundBy: 0).exists {
+            back()
         }
     }
 
