@@ -48,6 +48,23 @@ final class WorkoutTypeTests: XCTestCase {
         XCTAssertTrue(tennis.isArchived)
     }
 
+    func testDefaultTypeSeedingUpdatesOldPresetColorsOnly() throws {
+        let strength = WorkoutType.create(context: context)
+        strength.uuid = WorkoutType.defaultPresets[0].uuid
+        strength.title = "Strength"
+        strength.colorHex = "#3B82F6"
+        let tennis = WorkoutType.create(context: context)
+        tennis.uuid = WorkoutType.defaultPresets[1].uuid
+        tennis.title = "Tennis"
+        tennis.colorHex = "#123456"
+        try context.save()
+
+        try WorkoutType.seedDefaultsIfNeeded(context: context)
+
+        XCTAssertEqual(strength.displayColorHex, WorkoutType.defaultPresets[0].colorHex)
+        XCTAssertEqual(tennis.displayColorHex, "#123456")
+    }
+
     func testArchivedTypeStaysReadableOnOldWorkout() throws {
         try WorkoutType.seedDefaultsIfNeeded(context: context)
         let tennis = try XCTUnwrap(try WorkoutType.find(title: "Tennis", in: context))

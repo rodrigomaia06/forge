@@ -215,7 +215,16 @@ struct CurrentWorkoutView: View {
                 WorkoutTypePickerRow(title: "Type", selection: workoutType)
                     .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
                     .frame(minHeight: Theme.Layout.minTapTarget)
-                if !hasWorkoutName {
+                if editMode == .active {
+                    ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                    ClearableTextField(titleKey: "Name", text: workoutTitle, onCommit: { self.adjustAndSaveWorkoutTitleInput() })
+                        .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                        .frame(minHeight: Theme.Layout.minTapTarget)
+                    ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                    ClearableTextField(titleKey: "Comment", text: workoutComment, onCommit: { self.adjustAndSaveWorkoutCommentInput() })
+                        .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                        .frame(minHeight: Theme.Layout.minTapTarget)
+                } else if !hasWorkoutName {
                     ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
                     ClearableTextField(titleKey: "Name", text: workoutTitle, onCommit: { self.adjustAndSaveWorkoutTitleInput() })
                         .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
@@ -430,114 +439,7 @@ struct CurrentWorkoutView: View {
                 // it from the list below, so there is no boxed-in colored band.
                 TimerBannerView(workout: workout, isEditing: editMode == .active)
                 Divider()
-                if editMode == .active {
-                List {
-                    let _ = HangMonitor.note(.currentWorkoutListBuilt)
-                    // Characteristics. Edit mode always exposes the name and comment. Otherwise a blank
-                    // workout shows a single empty name field, editable directly for quick naming, while
-                    // a workout that already has a name (its own, or a routine's) shows only the comment
-                    // it has; name, comment, and attributes are edited through Edit. Added content still
-                    // appears read-only when present.
-                    let hasName = !(workout.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                        || workout.workoutPlanAndRoutineTitle() != nil
-                    let readComment = (workout.comment ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-                    if editMode == .active {
-                        Section(header: Text("Characteristics")) {
-                            WorkoutTypePickerRow(title: "Type", selection: workoutType)
-                            ClearableTextField(titleKey: "Name", text: workoutTitle, onCommit: { self.adjustAndSaveWorkoutTitleInput() })
-                            ClearableTextField(titleKey: "Comment", text: workoutComment, onCommit: { self.adjustAndSaveWorkoutCommentInput() })
-                        }
-                    } else {
-                        // A blank workout keeps its quick, directly editable name field. A comment shows
-                        // read-only whenever it exists, even on a blank workout, so it never disappears
-                        // after being entered. The name field and the comment can appear together.
-                        Section(header: Text("Characteristics")) {
-                            WorkoutTypePickerRow(title: "Type", selection: workoutType)
-                            if !hasName {
-                                ClearableTextField(titleKey: "Name", text: workoutTitle, onCommit: { self.adjustAndSaveWorkoutTitleInput() })
-                            }
-                            if !readComment.isEmpty {
-                                Text(readComment).foregroundColor(.forgeSecondaryLabel)
-                                    .editModeHint()
-                            }
-                        }
-                    }
-                    // The value of an attribute already present can be filled in directly (like naming a
-                    // blank workout), so routine-seeded fields (location, mood) are quick to set. Adding a
-                    // new attribute still goes through Edit.
-                    CustomAttributesEditor(attributes: workoutCustomAttributes, isEditable: editMode == .active, valuesEditable: true)
-                    // In edit mode the exercises collapse to a plain, reorderable list of names (drag to
-                    // reorder, swipe/– to remove). Otherwise each exercise is a full card with its set
-                    // table inline, so logging never leaves this screen.
-                    if editMode == .active {
-                        Section(header: Text("Reorder exercises".uppercased())) {
-                            ForEach(workoutExercises) { workoutExercise in
-                                reorderRow(workoutExercise)
-                                    // The lifted drag preview has rounded corners; without an explicit row
-                                    // background the corners reveal the black window behind the list.
-                                    .listRowBackground(Color.forgeSurface)
-                            }
-                            .onMove { source, destination in
-                                var exercises = self.workoutExercises
-                                exercises.move(fromOffsets: source, toOffset: destination)
-                                self.workout.workoutExercises = NSOrderedSet(array: exercises)
-                                // A move can pull an exercise out of a superset or split one; restore the
-                                // invariant so a stored group is always a contiguous run of two or more.
-                                self.workout.normalizeSupersets()
-                                self.managedObjectContext.saveOrCrash()
-                            }
-                            .onDelete { offsets in
-                                let exercises = self.workoutExercises
-                                for i in offsets {
-                                    self.managedObjectContext.delete(exercises[i])
-                                    exercises[i].workout?.removeFromWorkoutExercises(exercises[i])
-                                }
-                                // Clear any superset left with a single member after the removal.
-                                self.workout.normalizeSupersets()
-                                self.managedObjectContext.saveOrCrash()
-                            }
-                        }
-                    } else {
-                        // The first card carries the "Exercises" section header, so it renders in the
-                        // same grouped style as the Characteristics and Attributes headers. A superset
-                        // renders as one card holding its members; everything else is a single card.
-                        ForEach(Array(workout.exerciseSlots.enumerated()), id: \.element.id) { index, slot in
-                            switch slot {
-                            case .single(let workoutExercise):
-                                WorkoutExerciseDetailView(
-                                    workoutExercise: workoutExercise,
-                                    embedded: true,
-                                    sectionHeader: index == 0 ? "Exercises" : nil,
-                                    onPresentSheet: present
-                                )
-                            case .superset(_, let exercises):
-                                SupersetCard(
-                                    anchor: exercises[0],
-                                    exercises: exercises,
-                                    sectionHeader: index == 0 ? "Exercises" : nil,
-                                    onPresentSheet: present
-                                )
-                            }
-                        }
-                    }
-
-                    Section {
-                        Button(action: {
-                            HangMonitor.note(.addExerciseSheetOpened)
-                            self.activeSheet = .exerciseSelector
-                        }) {
-                            HStack {
-                                Image(systemName: "plus")
-                                Text("Add exercise")
-                            }
-                        }
-                    }
-                }
-                .listStyleCompat_InsetGroupedListStyle()
-                .environment(\.editMode, $editMode)
-                } else {
-                    liveWorkoutScroll
-                }
+                liveWorkoutScroll
             }
             .background(Color.forgeBackground.ignoresSafeArea())
             .navigationBarTitle(Text(""), displayMode: .inline)

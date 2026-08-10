@@ -245,25 +245,39 @@ struct WorkoutRoutineView: View {
                 VStack(alignment: .leading, spacing: Theme.Spacing.m) {
                     sectionTitle("Characteristics")
                     VStack(spacing: 0) {
-                        LabeledContent("Title") {
-                            Text(workoutRoutine.title ?? "Untitled").foregroundColor(.secondary)
-                        }
-                        .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                        .frame(minHeight: Theme.Layout.minTapTarget)
-                        .editModeHint()
-                        ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                        LabeledContent("Type") {
-                            WorkoutTypeLabel(type: workoutRoutine.defaultWorkoutType)
-                        }
-                        .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                        .frame(minHeight: Theme.Layout.minTapTarget)
-                        .editModeHint()
-                        if let comment = workoutRoutine.comment, !comment.isEmpty {
-                            ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                            LabeledContent("Comment") { Text(comment).foregroundColor(.secondary) }
+                        if editMode?.wrappedValue.isEditing == true {
+                            ClearableTextField(titleKey: "Title", text: workoutRoutineTitle, onCommit: { self.adjustAndSaveWorkoutRoutineTitleInput() })
                                 .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
                                 .frame(minHeight: Theme.Layout.minTapTarget)
-                                .editModeHint()
+                            ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                            WorkoutTypePickerRow(title: "Default type", selection: defaultWorkoutType)
+                                .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                                .frame(minHeight: Theme.Layout.minTapTarget)
+                            ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                            ClearableTextField(titleKey: "Comment", text: workoutRoutineComment, onCommit: { self.adjustAndSaveWorkoutRoutineCommentInput() })
+                                .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                                .frame(minHeight: Theme.Layout.minTapTarget)
+                        } else {
+                            LabeledContent("Title") {
+                                Text(workoutRoutine.title ?? "Untitled").foregroundColor(.secondary)
+                            }
+                            .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                            .frame(minHeight: Theme.Layout.minTapTarget)
+                            .editModeHint()
+                            ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                            LabeledContent("Type") {
+                                WorkoutTypeLabel(type: workoutRoutine.defaultWorkoutType)
+                            }
+                            .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                            .frame(minHeight: Theme.Layout.minTapTarget)
+                            .editModeHint()
+                            if let comment = workoutRoutine.comment, !comment.isEmpty {
+                                ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                                LabeledContent("Comment") { Text(comment).foregroundColor(.secondary) }
+                                    .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                                    .frame(minHeight: Theme.Layout.minTapTarget)
+                                    .editModeHint()
+                            }
                         }
                     }
                     .forgeCard()
@@ -381,13 +395,7 @@ struct WorkoutRoutineView: View {
     }
 
     var body: some View {
-        Group {
-            if editMode?.wrappedValue.isEditing == true {
-                editList
-            } else {
-                routineScroll
-            }
-        }
+        routineScroll
         .sheet(item: $optionsSet) { set in
             RoutineSetOptionsView(workoutRoutineSet: set, onDelete: { deleteRoutineSet(set) })
         }

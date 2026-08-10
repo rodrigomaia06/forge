@@ -41,12 +41,12 @@ extension Color {
 }
 
 private let workoutTypeColorChoices: [(name: String, hex: String)] = [
-    ("Blue", "#3B82F6"),
-    ("Green", "#22C55E"),
-    ("Red", "#EF4444"),
-    ("Orange", "#F97316"),
-    ("Purple", "#A855F7"),
-    ("Gray", "#6B7280")
+    ("Blue", "#7C8CF8"),
+    ("Green", "#6BD48F"),
+    ("Red", "#F27D7D"),
+    ("Orange", "#F4A261"),
+    ("Purple", "#B78AF0"),
+    ("Gray", "#9CA3AF")
 ]
 
 struct WorkoutTypeLabel: View {
@@ -99,21 +99,20 @@ struct WorkoutTypePickerRow: View {
     }
 
     var body: some View {
-        Button {
-            showingSelection = true
-        } label: {
-            HStack {
-                Text(title)
-                    .foregroundColor(.forgeLabel)
-                Spacer()
-                Text(selectedTitle)
-                    .foregroundColor(.forgeSecondaryLabel)
-            }
-            .contentShape(Rectangle())
-            .frame(maxWidth: .infinity, alignment: .leading)
+        HStack {
+            Text(title)
+                .foregroundColor(.forgeLabel)
+            Spacer()
+            Text(selectedTitle)
+                .foregroundColor(.forgeSecondaryLabel)
         }
-        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .onTapGesture {
+            showingSelection = true
+        }
         .accessibilityLabel("\(title), \(selectedTitle)")
+        .accessibilityAddTraits(.isButton)
         .sheet(isPresented: $showingSelection) {
             NavigationStack {
                 WorkoutTypeSelectionView(title: title, selection: selectedObjectID)

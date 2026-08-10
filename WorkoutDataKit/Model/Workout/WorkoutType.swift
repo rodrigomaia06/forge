@@ -14,16 +14,25 @@ public class WorkoutType: NSManagedObject {
     }
 
     public static let defaultPresets: [Preset] = [
-        Preset(uuid: UUID(uuidString: "98F95D3E-D4D2-4EF8-9F1E-7787894D5651")!, title: "Strength", colorHex: "#3B82F6", sortIndex: 0),
-        Preset(uuid: UUID(uuidString: "6DDCA6ED-F11D-4F1A-8EE7-1D5BC7ED4876")!, title: "Tennis", colorHex: "#22C55E", sortIndex: 1),
-        Preset(uuid: UUID(uuidString: "4C32F1E2-C3D9-48E9-9354-740C84062563")!, title: "Martial arts", colorHex: "#EF4444", sortIndex: 2),
-        Preset(uuid: UUID(uuidString: "0BE58C8E-BAE4-4C02-B0C0-C11C81808F24")!, title: "Cardio", colorHex: "#F97316", sortIndex: 3),
-        Preset(uuid: UUID(uuidString: "C3915711-95E9-4A8E-BF6A-562F1F04471E")!, title: "Mobility", colorHex: "#A855F7", sortIndex: 4),
-        Preset(uuid: UUID(uuidString: "11688187-7CF6-4633-8CF2-F7A21FD2808E")!, title: "Other", colorHex: "#6B7280", sortIndex: 5)
+        Preset(uuid: UUID(uuidString: "98F95D3E-D4D2-4EF8-9F1E-7787894D5651")!, title: "Strength", colorHex: "#7C8CF8", sortIndex: 0),
+        Preset(uuid: UUID(uuidString: "6DDCA6ED-F11D-4F1A-8EE7-1D5BC7ED4876")!, title: "Tennis", colorHex: "#6BD48F", sortIndex: 1),
+        Preset(uuid: UUID(uuidString: "4C32F1E2-C3D9-48E9-9354-740C84062563")!, title: "Martial arts", colorHex: "#F27D7D", sortIndex: 2),
+        Preset(uuid: UUID(uuidString: "0BE58C8E-BAE4-4C02-B0C0-C11C81808F24")!, title: "Cardio", colorHex: "#F4A261", sortIndex: 3),
+        Preset(uuid: UUID(uuidString: "C3915711-95E9-4A8E-BF6A-562F1F04471E")!, title: "Mobility", colorHex: "#B78AF0", sortIndex: 4),
+        Preset(uuid: UUID(uuidString: "11688187-7CF6-4633-8CF2-F7A21FD2808E")!, title: "Other", colorHex: "#9CA3AF", sortIndex: 5)
     ]
 
     public static let fallbackTitle = "Strength"
-    public static let fallbackColorHex = "#3B82F6"
+    public static let fallbackColorHex = "#7C8CF8"
+
+    private static let previousPresetColorsByUUID: [UUID: String] = [
+        UUID(uuidString: "98F95D3E-D4D2-4EF8-9F1E-7787894D5651")!: "#3B82F6",
+        UUID(uuidString: "6DDCA6ED-F11D-4F1A-8EE7-1D5BC7ED4876")!: "#22C55E",
+        UUID(uuidString: "4C32F1E2-C3D9-48E9-9354-740C84062563")!: "#EF4444",
+        UUID(uuidString: "0BE58C8E-BAE4-4C02-B0C0-C11C81808F24")!: "#F97316",
+        UUID(uuidString: "C3915711-95E9-4A8E-BF6A-562F1F04471E")!: "#A855F7",
+        UUID(uuidString: "11688187-7CF6-4633-8CF2-F7A21FD2808E")!: "#6B7280"
+    ]
 
     public var id: String { uuid?.uuidString ?? objectID.uriRepresentation().absoluteString }
 
@@ -104,7 +113,9 @@ public class WorkoutType: NSManagedObject {
             }
             if type.uuid == preset.uuid {
                 type.title = type.title ?? preset.title
-                type.colorHex = type.colorHex ?? preset.colorHex
+                if type.colorHex == nil || type.colorHex?.uppercased() == previousPresetColorsByUUID[preset.uuid] {
+                    type.colorHex = preset.colorHex
+                }
                 type.sortIndex = type.sortIndex == 0 ? preset.sortIndex : type.sortIndex
             }
             byUUID[preset.uuid] = type
