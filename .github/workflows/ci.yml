@@ -1,15 +1,14 @@
 name: CI
 
 # Builds, tests and photographs Forge on a GitHub-hosted macOS runner, the only build environment
-# (the maintainer has no Mac). Three jobs, all running in parallel:
+# (the maintainer has no Mac). Jobs run in parallel:
 #
-#   test        unit and integration tests (ForgeTests, minus the capture tests)
-#   screenshots the UI walkthrough that photographs the running app, plus the component captures
-#   ipa         an unsigned .ipa for AltStore / SideStore
+#   test              unit and integration tests (ForgeTests, minus the capture tests)
+#   screenshots       split screenshot captures, each capped at 10 minutes
+#   ipa               an unsigned .ipa for AltStore / SideStore
 #
-# Tests and screenshots used to share one job, so a green build waited on a full UI walkthrough.
-# Split, the wall clock is the slower of the two rather than their sum, and a test failure is
-# reported without the screenshot run having to finish.
+# Screenshot captures used to share one simulator job. Split, one stuck walkthrough costs its
+# own 10 minute job instead of holding the whole workflow for an hour.
 #
 # The .xcodeproj is generated from project.yml each run.
 
@@ -71,10 +70,42 @@ jobs:
           if-no-files-found: ignore
 
   screenshots:
-    name: Screenshots (iOS Simulator)
+    name: Screenshots (${{ matrix.group }})
     runs-on: macos-15
-    # The walkthrough opens every screen, sheet, menu and alert in the app, so it is the long job.
-    timeout-minutes: 60
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: components
+            only_testing: |
+              ForgeTests/ScreenshotTests
+          - group: tabs
+            only_testing: |
+              ForgeUITests/ScreenshotUITests/testTabs
+          - group: home
+            only_testing: |
+              ForgeUITests/ScreenshotUITests/testHome
+          - group: history
+            only_testing: |
+              ForgeUITests/ScreenshotUITests/testHistory
+          - group: running-workout
+            only_testing: |
+              ForgeUITests/ScreenshotUITests/testRunningWorkout
+          - group: value-field-regressions
+            only_testing: |
+              ForgeUITests/ScreenshotUITests/testSetOptionsSurvivesUnderlyingValueCommit
+              ForgeUITests/ScreenshotUITests/testValueFieldTeardownSurvivesSetCompletion
+          - group: workout-plans
+            only_testing: |
+              ForgeUITests/ScreenshotUITests/testWorkoutPlans
+          - group: exercises
+            only_testing: |
+              ForgeUITests/ScreenshotUITests/testExercises
+          - group: settings
+            only_testing: |
+              ForgeUITests/ScreenshotUITests/testSettings
+              ForgeUITests/ScreenshotUITests/testLightAppearance
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -95,11 +126,20 @@ jobs:
         env:
           # Read by ScreenshotTests, which writes each PNG here as well as attaching it.
           # SIMCTL_CHILD_ is what carries a variable into the process running inside the simulator.
-          SIMCTL_CHILD_FORGE_SCREENSHOT_DIR: ${{ github.workspace }}/screenshots
+          SIMCTL_CHILD_FORGE_SCREENSHOT_DIR: ${{ github.workspace }}/screenshots/${{ matrix.group }}
+          SCREENSHOT_ONLY_TESTING: ${{ matrix.only_testing }}
         run: |
           set -euo pipefail
-          echo "Capturing on: $SIMULATOR_NAME"
+          echo "Capturing ${{ matrix.group }} on: $SIMULATOR_NAME"
           mkdir -p "$SIMCTL_CHILD_FORGE_SCREENSHOT_DIR"
+
+          ONLY_TESTING_ARGS=()
+          while IFS= read -r target; do
+            if [[ -n "$target" ]]; then
+              ONLY_TESTING_ARGS+=("-only-testing:$target")
+            fi
+          done <<< "$SCREENSHOT_ONLY_TESTING"
+
           # A capture run should hand back every screen it did reach, so one broken path does not
           # cost the rest. The walkthrough records a skipped step rather than failing the run.
           xcodebuild test \
@@ -107,8 +147,7 @@ jobs:
             -scheme Forge \
             -destination "platform=iOS Simulator,name=$SIMULATOR_NAME,OS=latest" \
             -resultBundlePath ScreenshotResults.xcresult \
-            -only-testing:ForgeUITests \
-            -only-testing:ForgeTests/ScreenshotTests \
+            "${ONLY_TESTING_ARGS[@]}" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO
 
@@ -116,8 +155,8 @@ jobs:
         if: always()
         run: |
           set -euo pipefail
-          DIR="${{ github.workspace }}/screenshots"
-          RAW="${{ github.workspace }}/screenshots-raw"
+          DIR="${{ github.workspace }}/screenshots/${{ matrix.group }}"
+          RAW="${{ github.workspace }}/screenshots-raw/${{ matrix.group }}"
           mkdir -p "$DIR" "$RAW"
           xcrun xcresulttool export attachments \
             --path ScreenshotResults.xcresult \
@@ -137,8 +176,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: screenshots
-          path: ${{ github.workspace }}/screenshots
+          name: screenshots-${{ matrix.group }}
+          path: ${{ github.workspace }}/screenshots/${{ matrix.group }}
           if-no-files-found: warn
 
   ipa:
