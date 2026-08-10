@@ -664,7 +664,7 @@ final class ScreenshotUITests: XCTestCase {
         shot("routine-editor", settle: 1.5)
         let valueTarget = ["Reps", "Minimum reps", "Maximum reps"]
             .lazy
-            .map { app.textFields[$0].firstMatch }
+            .map { self.app.textFields[$0].firstMatch }
             .first { $0.waitForExistence(timeout: 1) && $0.isHittable }
         if let valueTarget {
             valueTarget.tap()
