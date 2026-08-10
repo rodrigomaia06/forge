@@ -485,8 +485,26 @@ private struct RoutineSetRow: View {
     }
 
     private func field(_ text: Binding<String>, placeholder: String, onCommit: @escaping () -> Void) -> some View {
-        RightAlignedNumberField(text: text, placeholder: placeholder, keyboardType: .numberPad, alignment: .center, onCommit: onCommit)
+        RightAlignedNumberField(
+            text: text,
+            placeholder: placeholder,
+            keyboardType: .numberPad,
+            accessibilityLabel: valueFieldLabel(for: placeholder),
+            alignment: .center,
+            onCommit: onCommit
+        )
             .forgeSetValueBox(width: 56)
+    }
+
+    private func valueFieldLabel(for placeholder: String) -> String {
+        switch placeholder {
+        case "min":
+            return "Minimum reps"
+        case "max":
+            return "Maximum reps"
+        default:
+            return "Reps"
+        }
     }
 
     private var hasNote: Bool { !(workoutRoutineSet.comment ?? "").isEmpty }

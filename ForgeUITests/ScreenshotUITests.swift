@@ -662,19 +662,22 @@ final class ScreenshotUITests: XCTestCase {
     /// menu with its nested pickers.
     private func captureRoutineEditor() {
         shot("routine-editor", settle: 1.5)
-        let firstTarget = app.textFields.firstMatch
-        if firstTarget.waitForExistence(timeout: 3), firstTarget.isHittable {
-            firstTarget.tap()
+        let valueTarget = ["Reps", "Minimum reps", "Maximum reps"]
+            .lazy
+            .map { app.textFields[$0].firstMatch }
+            .first { $0.waitForExistence(timeout: 1) && $0.isHittable }
+        if let valueTarget {
+            valueTarget.tap()
             shot("routine-value-field-focused", settle: 0.8)
             // This used to recycle the focused UIKit field inside List and could permanently wedge the
             // main thread. The non-lazy routine stack keeps it mounted until scrolling dismisses focus.
             // Start the vertical gesture on the value box itself. This guards the requirement that the
             // whole card scrolls, rather than only the background around it.
-            let initialY = firstTarget.frame.midY
-            let start = firstTarget.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            let initialY = valueTarget.frame.midY
+            let start = valueTarget.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
             let destination = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.18))
             start.press(forDuration: 0.05, thenDragTo: destination)
-            XCTAssertLessThan(firstTarget.frame.midY, initialY - 20, "Dragging from a routine value box must scroll the card")
+            XCTAssertLessThan(valueTarget.frame.midY, initialY - 20, "Dragging from a routine value box must scroll the card")
             shot("routine-editor-scrolled")
             app.swipeDown(velocity: .slow)
         } else {
