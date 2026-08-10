@@ -186,7 +186,12 @@ struct CurrentWorkoutView: View {
         Binding(
             get: { self.workout.workoutType },
             set: { newValue in
+                let previousTitle = self.workout.workoutType?.displayTitle
                 self.workout.workoutType = newValue
+                if shouldNameEmptyAdHocWorkout(afterSelecting: newValue, previousTitle: previousTitle) {
+                    self.workout.title = newValue?.displayTitle
+                    self.workoutTitleInput = self.workout.title
+                }
                 self.managedObjectContext.saveOrCrash()
             }
         )
@@ -199,8 +204,25 @@ struct CurrentWorkoutView: View {
 
     private var canFinishTimeOnlyWorkout: Bool {
         guard (workout.workoutExercises?.count ?? 0) == 0 else { return false }
-        return !(workout.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            || workout.workoutRoutine != nil
+        return !isStrengthWorkout
+    }
+
+    private var isStrengthWorkout: Bool {
+        guard let type = workout.workoutType else { return true }
+        if type.uuid == WorkoutType.defaultPresets.first?.uuid { return true }
+        return type.displayTitle.caseInsensitiveCompare(WorkoutType.fallbackTitle) == .orderedSame
+    }
+
+    private var isTimeOnlyCurrentWorkout: Bool {
+        !isStrengthWorkout && (workout.workoutExercises?.count ?? 0) == 0
+    }
+
+    private func shouldNameEmptyAdHocWorkout(afterSelecting type: WorkoutType?, previousTitle: String?) -> Bool {
+        guard let type, (workout.workoutExercises?.count ?? 0) == 0, workout.workoutRoutine == nil else { return false }
+        if type.uuid == WorkoutType.defaultPresets.first?.uuid { return false }
+        if type.displayTitle.caseInsensitiveCompare(WorkoutType.fallbackTitle) == .orderedSame { return false }
+        let currentTitle = (workout.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return currentTitle.isEmpty || currentTitle == "Time only" || currentTitle == previousTitle
     }
 
     private var trimmedWorkoutComment: String {
@@ -291,32 +313,34 @@ struct CurrentWorkoutView: View {
                 scrollCharacteristics
                 scrollAttributes
 
-                VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-                    scrollSectionTitle("Exercises")
-                    VStack(spacing: Theme.Spacing.xxl) {
-                        ForEach(Array(workout.exerciseSlots.enumerated()), id: \.element.id) { _, slot in
-                            switch slot {
-                            case .single(let workoutExercise):
-                                WorkoutExerciseDetailView(
-                                    workoutExercise: workoutExercise,
-                                    embedded: true,
-                                    scrollCard: true,
-                                    onPresentSheet: present
-                                )
-                            case .superset(_, let exercises):
-                                SupersetCard(
-                                    anchor: exercises[0],
-                                    exercises: exercises,
-                                    sectionHeader: nil,
-                                    scrollCard: true,
-                                    onPresentSheet: present
-                                )
+                if !isTimeOnlyCurrentWorkout {
+                    VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+                        scrollSectionTitle("Exercises")
+                        VStack(spacing: Theme.Spacing.xxl) {
+                            ForEach(Array(workout.exerciseSlots.enumerated()), id: \.element.id) { _, slot in
+                                switch slot {
+                                case .single(let workoutExercise):
+                                    WorkoutExerciseDetailView(
+                                        workoutExercise: workoutExercise,
+                                        embedded: true,
+                                        scrollCard: true,
+                                        onPresentSheet: present
+                                    )
+                                case .superset(_, let exercises):
+                                    SupersetCard(
+                                        anchor: exercises[0],
+                                        exercises: exercises,
+                                        sectionHeader: nil,
+                                        scrollCard: true,
+                                        onPresentSheet: present
+                                    )
+                                }
                             }
                         }
                     }
-                }
 
-                addExerciseScrollButton
+                    addExerciseScrollButton
+                }
             }
             .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
             .padding(.top, Theme.Spacing.l)
@@ -488,7 +512,7 @@ struct CurrentWorkoutView: View {
         .alert("No completed sets", isPresented: $showingCannotFinish) {
             Button("OK", role: .cancel) { }
         } message: {
-            Text("Complete at least one set, or use Record time only for a workout without exercises.")
+            Text("Strength workouts need at least one completed set. Choose another type to save time only.")
         }
     }
 }
