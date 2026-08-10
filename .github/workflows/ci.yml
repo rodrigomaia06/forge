@@ -4,11 +4,11 @@ name: CI
 # (the maintainer has no Mac). Jobs run in parallel:
 #
 #   test              unit and integration tests (ForgeTests, minus the capture tests)
-#   screenshots       split screenshot captures, each capped at 10 minutes
+#   screenshots       split screenshot captures, each capped at 20 minutes
 #   ipa               an unsigned .ipa for AltStore / SideStore
 #
 # Screenshot captures used to share one simulator job. Split, one stuck walkthrough costs its
-# own 10 minute job instead of holding the whole workflow for an hour.
+# own 20 minute job instead of holding the whole workflow for an hour.
 #
 # The .xcodeproj is generated from project.yml each run.
 
@@ -72,7 +72,7 @@ jobs:
   screenshots:
     name: Screenshots (${{ matrix.group }})
     runs-on: macos-15
-    timeout-minutes: 10
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
