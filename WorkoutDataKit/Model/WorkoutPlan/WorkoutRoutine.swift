@@ -42,6 +42,7 @@ public class WorkoutRoutine: NSManagedObject, Codable {
         let copy = WorkoutRoutine.create(context: context)
         copy.title = title
         copy.comment = comment
+        copy.defaultWorkoutType = defaultWorkoutType
         copy.customAttributes = customAttributes
         // Build the ordered relationships by setting each child's to-one inverse (which appends it in
         // order). Assigning an NSOrderedSet does not maintain the required inverse, so the copy would
@@ -113,6 +114,7 @@ public class WorkoutRoutine: NSManagedObject, Codable {
     public func createWorkout(context: NSManagedObjectContext) -> Workout {
         let workout = Workout.create(context: context)
         workout.comment = self.comment
+        workout.workoutType = defaultWorkoutType ?? WorkoutType.defaultType(in: context)
         // Seed the workout with the routine's custom fields (location, mood, ...) so a plan's defaults
         // carry into the session. The user can still edit them on the live workout.
         workout.customAttributes = self.customAttributes

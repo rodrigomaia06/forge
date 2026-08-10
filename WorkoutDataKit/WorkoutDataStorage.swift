@@ -38,6 +38,7 @@ public class WorkoutDataStorage {
         // The store loads synchronously (shouldAddStoreAsynchronously is false), so it is ready here.
         Self.mergeRenamedExercises(context: persistentContainer.viewContext)
         Self.migrateBodyweightSets(context: persistentContainer.viewContext)
+        Self.seedWorkoutTypes(context: persistentContainer.viewContext)
     }
     
     private func loadPersistentStores(tryToRecoverFromFailedMigration: Bool, completion: @escaping (NSPersistentStoreDescription) -> Void) {
@@ -67,6 +68,16 @@ public class WorkoutDataStorage {
                 completion(storeDescription)
             }
         })
+    }
+}
+
+extension WorkoutDataStorage {
+    static func seedWorkoutTypes(context: NSManagedObjectContext) {
+        do {
+            try WorkoutType.seedDefaultsIfNeeded(context: context)
+        } catch {
+            os_log("Could not seed workout types, will retry next launch: %@", log: .migration, type: .error, error as NSError)
+        }
     }
 }
 

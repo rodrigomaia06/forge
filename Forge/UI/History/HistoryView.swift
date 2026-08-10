@@ -61,6 +61,8 @@ struct HistoryView : View {
         let dateText: String
         let durationText: String?
         let summaryLine: String
+        let workoutTypeTitle: String
+        let workoutTypeColorHex: String
 
         var id: NSManagedObjectID { objectID }
     }
@@ -117,7 +119,9 @@ struct HistoryView : View {
             title: workout.displayTitle(in: exerciseStore.exercises, showPlan: settingsStore.showPlanInWorkoutTitle),
             dateText: Workout.dateFormatter.string(from: workout.start, fallback: "Unknown date"),
             durationText: workout.duration.flatMap { Workout.durationFormatter.string(from: $0) },
-            summaryLine: "\(exercises.count) exercises · \(sets) sets"
+            summaryLine: "\(exercises.count) exercises · \(sets) sets",
+            workoutTypeTitle: workout.workoutType?.displayTitle ?? WorkoutType.fallbackTitle,
+            workoutTypeColorHex: workout.workoutType?.displayColorHex ?? WorkoutType.fallbackColorHex
         )
     }
 
@@ -356,6 +360,7 @@ private struct WorkoutCell: View {
                 Text(workout.dateText)
                     .font(.caption)
                     .foregroundColor(.forgeSecondaryLabel)
+                WorkoutTypeLabel(title: workout.workoutTypeTitle, colorHex: workout.workoutTypeColorHex)
             }
             .layoutPriority(1)
 

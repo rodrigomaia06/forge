@@ -98,6 +98,8 @@ struct WorkoutDetailView : View {
         let completedSetsText: String
         let completedWeightText: String
         let workoutComment: String?
+        let workoutTypeTitle: String
+        let workoutTypeColorHex: String
         let startText: String
         let endText: String
         let exercises: [ExerciseReadRow]
@@ -142,6 +144,8 @@ struct WorkoutDetailView : View {
                 to: settingsStore.weightUnit
             ),
             workoutComment: workout.comment?.isEmpty == false ? workout.comment : nil,
+            workoutTypeTitle: workout.workoutType?.displayTitle ?? WorkoutType.fallbackTitle,
+            workoutTypeColorHex: workout.workoutType?.displayColorHex ?? WorkoutType.fallbackColorHex,
             startText: workout.safeStart.formatted(date: .abbreviated, time: .shortened),
             endText: workout.safeEnd.formatted(date: .abbreviated, time: .shortened),
             exercises: exercises
@@ -150,6 +154,17 @@ struct WorkoutDetailView : View {
 
     private func workoutExercise(for objectID: NSManagedObjectID) -> WorkoutExercise? {
         (try? managedObjectContext.existingObject(with: objectID)) as? WorkoutExercise
+    }
+
+    private var workoutType: Binding<WorkoutType?> {
+        Binding(
+            get: { self.workout.workoutType },
+            set: { newValue in
+                self.workout.workoutType = newValue
+                self.managedObjectContext.saveOrCrash()
+                self.rebuildReadSnapshot()
+            }
+        )
     }
     
     /// The pushed exercise screen. Shared by the row's link and by the edit-mode tap, so both routes
@@ -220,6 +235,21 @@ struct WorkoutDetailView : View {
                 }
 
                 VStack(spacing: 0) {
+                    if let snapshot = readSnapshot {
+                        if editMode.isEditing {
+                            WorkoutTypePickerRow(title: "Type", selection: workoutType)
+                                .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                                .frame(minHeight: Theme.Layout.minTapTarget)
+                        } else {
+                            LabeledContent("Type") {
+                                WorkoutTypeLabel(title: snapshot.workoutTypeTitle, colorHex: snapshot.workoutTypeColorHex)
+                            }
+                            .editModeHint()
+                            .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                            .frame(minHeight: Theme.Layout.minTapTarget)
+                        }
+                        ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                    }
                     LabeledContent("Start") { Text(readSnapshot?.startText ?? "") }
                         .editModeHint()
                         .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
@@ -314,6 +344,7 @@ struct WorkoutDetailView : View {
             Section {
                 ClearableTextField(titleKey: "Title", text: workoutTitle, onCommit: { self.adjustAndSaveWorkoutTitleInput() })
                 ClearableTextField(titleKey: "Comment", text: workoutComment, onCommit: { self.adjustAndSaveWorkoutCommentInput() })
+                WorkoutTypePickerRow(title: "Type", selection: workoutType)
             }
                 
             Section {

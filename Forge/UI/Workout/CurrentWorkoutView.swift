@@ -182,6 +182,16 @@ struct CurrentWorkoutView: View {
         )
     }
 
+    private var workoutType: Binding<WorkoutType?> {
+        Binding(
+            get: { self.workout.workoutType },
+            set: { newValue in
+                self.workout.workoutType = newValue
+                self.managedObjectContext.saveOrCrash()
+            }
+        )
+    }
+
     private var hasWorkoutName: Bool {
         !(workout.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || workout.workoutPlanAndRoutineTitle() != nil
@@ -198,30 +208,32 @@ struct CurrentWorkoutView: View {
             .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
     }
 
-    @ViewBuilder private var scrollCharacteristics: some View {
-        if !hasWorkoutName || !trimmedWorkoutComment.isEmpty {
-            VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-                scrollSectionTitle("Characteristics")
-                VStack(spacing: 0) {
-                    if !hasWorkoutName {
-                        ClearableTextField(titleKey: "Name", text: workoutTitle, onCommit: { self.adjustAndSaveWorkoutTitleInput() })
-                            .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                            .frame(minHeight: Theme.Layout.minTapTarget)
-                    }
-                    if !hasWorkoutName, !trimmedWorkoutComment.isEmpty {
-                        ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                    }
-                    if !trimmedWorkoutComment.isEmpty {
-                        Text(trimmedWorkoutComment)
-                            .foregroundColor(.forgeSecondaryLabel)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                            .frame(minHeight: Theme.Layout.minTapTarget)
-                            .editModeHint()
-                    }
+    private var scrollCharacteristics: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            scrollSectionTitle("Characteristics")
+            VStack(spacing: 0) {
+                WorkoutTypePickerRow(title: "Type", selection: workoutType)
+                    .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                    .frame(minHeight: Theme.Layout.minTapTarget)
+                if !hasWorkoutName {
+                    ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                    ClearableTextField(titleKey: "Name", text: workoutTitle, onCommit: { self.adjustAndSaveWorkoutTitleInput() })
+                        .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                        .frame(minHeight: Theme.Layout.minTapTarget)
                 }
-                .forgeCard()
+                if !hasWorkoutName, !trimmedWorkoutComment.isEmpty {
+                    ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                }
+                if !trimmedWorkoutComment.isEmpty {
+                    Text(trimmedWorkoutComment)
+                        .foregroundColor(.forgeSecondaryLabel)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                        .frame(minHeight: Theme.Layout.minTapTarget)
+                        .editModeHint()
+                }
             }
+            .forgeCard()
         }
     }
 
@@ -431,14 +443,16 @@ struct CurrentWorkoutView: View {
                     let readComment = (workout.comment ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
                     if editMode == .active {
                         Section(header: Text("Characteristics")) {
+                            WorkoutTypePickerRow(title: "Type", selection: workoutType)
                             ClearableTextField(titleKey: "Name", text: workoutTitle, onCommit: { self.adjustAndSaveWorkoutTitleInput() })
                             ClearableTextField(titleKey: "Comment", text: workoutComment, onCommit: { self.adjustAndSaveWorkoutCommentInput() })
                         }
-                    } else if !hasName || !readComment.isEmpty {
+                    } else {
                         // A blank workout keeps its quick, directly editable name field. A comment shows
                         // read-only whenever it exists, even on a blank workout, so it never disappears
                         // after being entered. The name field and the comment can appear together.
                         Section(header: Text("Characteristics")) {
+                            WorkoutTypePickerRow(title: "Type", selection: workoutType)
                             if !hasName {
                                 ClearableTextField(titleKey: "Name", text: workoutTitle, onCommit: { self.adjustAndSaveWorkoutTitleInput() })
                             }

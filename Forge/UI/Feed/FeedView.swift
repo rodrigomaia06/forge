@@ -34,6 +34,9 @@ struct FeedView: View {
     private struct WorkoutActivityInput: Equatable {
         let objectURI: URL
         let start: Date?
+        let workoutTypeURI: URL?
+        let workoutTypeTitle: String
+        let workoutTypeColorHex: String
     }
 
     /// Calendar.current copies the whole calendar on each access, so this is read once per render
@@ -49,14 +52,27 @@ struct FeedView: View {
     /// for the accessibility labels, and again for the list. With `fetchBatchSize = 20`, each of those
     /// passes was also a SQL round trip every twenty rows, so the cost grew with the user's history.
     private struct ActivityIndex {
+        struct TypeSummary: Hashable {
+            let title: String
+            let colorHex: String
+            let count: Int
+        }
+
+        private struct TypeKey: Hashable {
+            let title: String
+            let colorHex: String
+        }
+
         /// Days of the month that have a workout, keyed by `year * 12 + month`.
         private(set) var daysByMonth: [Int: Set<Int>] = [:]
         /// Number of workouts in each month, keyed the same way.
         private(set) var countsByMonth: [Int: Int] = [:]
+        private var typeCountsByDay: [Int: [TypeKey: Int]] = [:]
         private(set) var thisWeek = 0
         private(set) var thisMonth = 0
 
         static func key(year: Int, month: Int) -> Int { year * 12 + month }
+        static func dayKey(year: Int, month: Int, day: Int) -> Int { year * 10_000 + month * 100 + day }
 
         init() { }
 
@@ -66,8 +82,14 @@ struct FeedView: View {
                 let parts = calendar.dateComponents([.year, .month, .day], from: start)
                 guard let year = parts.year, let month = parts.month, let day = parts.day else { continue }
                 let key = Self.key(year: year, month: month)
+                let dayKey = Self.dayKey(year: year, month: month, day: day)
+                let typeKey = TypeKey(
+                    title: workout.workoutType?.displayTitle ?? WorkoutType.fallbackTitle,
+                    colorHex: workout.workoutType?.displayColorHex ?? WorkoutType.fallbackColorHex
+                )
                 daysByMonth[key, default: []].insert(day)
                 countsByMonth[key, default: 0] += 1
+                typeCountsByDay[dayKey, default: [:]][typeKey, default: 0] += 1
                 if calendar.isDate(start, equalTo: now, toGranularity: .weekOfYear) { thisWeek += 1 }
                 if calendar.isDate(start, equalTo: now, toGranularity: .month) { thisMonth += 1 }
             }
@@ -85,6 +107,18 @@ struct FeedView: View {
 
         func days(year: Int, month: Int) -> Set<Int> {
             daysByMonth[Self.key(year: year, month: month)] ?? []
+        }
+
+        func typeSummaries(for date: Date, calendar: Calendar) -> [TypeSummary] {
+            let parts = calendar.dateComponents([.year, .month, .day], from: date)
+            guard let year = parts.year, let month = parts.month, let day = parts.day else { return [] }
+            let counts = typeCountsByDay[Self.dayKey(year: year, month: month, day: day)] ?? [:]
+            return counts
+                .map { TypeSummary(title: $0.key.title, colorHex: $0.key.colorHex, count: $0.value) }
+                .sorted {
+                    if $0.count != $1.count { return $0.count > $1.count }
+                    return $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+                }
         }
     }
 
@@ -135,7 +169,15 @@ struct FeedView: View {
     }
 
     private var workoutActivityInputs: [WorkoutActivityInput] {
-        workouts.map { WorkoutActivityInput(objectURI: $0.objectID.uriRepresentation(), start: $0.start) }
+        workouts.map {
+            WorkoutActivityInput(
+                objectURI: $0.objectID.uriRepresentation(),
+                start: $0.start,
+                workoutTypeURI: $0.workoutType?.objectID.uriRepresentation(),
+                workoutTypeTitle: $0.workoutType?.displayTitle ?? WorkoutType.fallbackTitle,
+                workoutTypeColorHex: $0.workoutType?.displayColorHex ?? WorkoutType.fallbackColorHex
+            )
+        }
     }
 
     private func rebuildActivityIndex(calendar: Calendar) {
@@ -276,7 +318,6 @@ struct FeedView: View {
     private func monthGrid(firstOfMonth: Date, index: ActivityIndex, calendar: Calendar) -> some View {
         let firstWeekday = (calendar.component(.weekday, from: firstOfMonth) - calendar.firstWeekday + 7) % 7
         let daysInMonth = calendar.range(of: .day, in: .month, for: firstOfMonth)?.count ?? 30
-        let active = index.days(inMonthOf: firstOfMonth, calendar: calendar)
         let rows = Int(ceil(Double(firstWeekday + daysInMonth) / 7.0))
 
         return VStack(spacing: Theme.Spacing.xs) {
@@ -289,7 +330,7 @@ struct FeedView: View {
                 HStack(spacing: 0) {
                     ForEach(0..<7, id: \.self) { col in
                         let day = row * 7 + col - firstWeekday + 1
-                        dayCell(day: day, valid: day >= 1 && day <= daysInMonth, active: active.contains(day), firstOfMonth: firstOfMonth, calendar: calendar)
+                        dayCell(day: day, valid: day >= 1 && day <= daysInMonth, firstOfMonth: firstOfMonth, index: index, calendar: calendar)
                     }
                 }
             }
@@ -297,21 +338,34 @@ struct FeedView: View {
     }
 
     @ViewBuilder
-    private func dayCell(day: Int, valid: Bool, active: Bool, firstOfMonth: Date, calendar: Calendar) -> some View {
+    private func dayCell(day: Int, valid: Bool, firstOfMonth: Date, index: ActivityIndex, calendar: Calendar) -> some View {
         if valid, let date = calendar.date(byAdding: .day, value: day - 1, to: firstOfMonth) {
             let isSelected = filter == .day(date)
+            let typeSummaries = index.typeSummaries(for: date, calendar: calendar)
+            let active = !typeSummaries.isEmpty
             Button {
                 toggle(.day(date))
             } label: {
-                Text("\(day)")
-                    .font(.system(size: 13, weight: active || isSelected ? .semibold : .regular))
-                    .foregroundColor(isSelected ? .forgeBackground : (active ? .forgeLabel : .forgeSecondaryLabel))
-                    .frame(width: 34, height: 34)
-                    .background(Circle().fill(isSelected ? Color.forgeAccent : (active ? Color.forgeSurface : Color.clear)))
-                    .frame(maxWidth: .infinity)
+                VStack(spacing: 2) {
+                    Text("\(day)")
+                        .font(.system(size: 13, weight: active || isSelected ? .semibold : .regular))
+                        .foregroundColor(isSelected ? .forgeBackground : (active ? .forgeLabel : .forgeSecondaryLabel))
+                        .frame(height: 18)
+                    HStack(spacing: 2) {
+                        ForEach(Array(typeSummaries.prefix(3)), id: \.self) { summary in
+                            Circle()
+                                .fill(Color(workoutTypeHex: summary.colorHex))
+                                .frame(width: 4, height: 4)
+                        }
+                    }
+                    .frame(height: 5)
+                }
+                .frame(width: 34, height: 34)
+                .background(Circle().fill(isSelected ? Color.forgeAccent : (active ? Color.forgeSurface : Color.clear)))
+                .frame(maxWidth: .infinity)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(dayAccessibilityLabel(date, active: active))
+            .accessibilityLabel(dayAccessibilityLabel(date, typeSummaries: typeSummaries))
             .accessibilityAddTraits(isSelected ? [.isSelected] : [])
         } else {
             Color.clear.frame(height: 34).frame(maxWidth: .infinity)
@@ -319,9 +373,17 @@ struct FeedView: View {
         }
     }
 
-    private func dayAccessibilityLabel(_ date: Date, active: Bool) -> String {
+    private func dayAccessibilityLabel(_ date: Date, typeSummaries: [ActivityIndex.TypeSummary]) -> String {
         let day = Self.fullDayFormatter.string(from: date)
-        return active ? "\(day), workout logged" : "\(day), no workout"
+        guard !typeSummaries.isEmpty else { return "\(day), no workout" }
+        let workoutCount = typeSummaries.reduce(0) { $0 + $1.count }
+        let countText = workoutCount == 1 ? "1 workout" : "\(workoutCount) workouts"
+        let typeText = typeSummaries
+            .map { summary in
+                summary.count == 1 ? summary.title : "\(summary.count) \(summary.title)"
+            }
+            .joined(separator: ", ")
+        return "\(day), \(countText): \(typeText)"
     }
 
     // The full year as smaller, tappable month grids (4 per row).
@@ -454,6 +516,7 @@ struct FeedView: View {
         } label: {
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Text(dateLabel(workout.start)).font(.forgeSectionLabel).tracking(1).foregroundColor(.forgeSecondaryLabel)
+                WorkoutTypeLabel(type: workout.workoutType)
                 Text(workout.displayTitle(in: exerciseStore.exercises, showPlan: settingsStore.showPlanInWorkoutTitle)).font(.forgeHeadline).foregroundColor(.forgeLabel)
                 Text("\(s.exercises) exercises · \(s.sets) sets\(durationSuffix(workout))")
                     .font(.forgeCaption).foregroundColor(.forgeSecondaryLabel)

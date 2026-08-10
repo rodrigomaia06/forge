@@ -17,6 +17,10 @@ struct SettingsView : View {
                 Text("Exercises")
             }
 
+            NavigationLink(destination: WorkoutTypesSettingsView()) {
+                Text("Workout types")
+            }
+
             NavigationLink(destination: GeneralSettingsView(), isActive: $generalSelected) {
                 Text("General")
             }

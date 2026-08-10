@@ -80,6 +80,16 @@ struct WorkoutRoutineView: View {
             }
         )
     }
+
+    private var defaultWorkoutType: Binding<WorkoutType?> {
+        Binding(
+            get: { self.workoutRoutine.defaultWorkoutType },
+            set: { newValue in
+                self.workoutRoutine.defaultWorkoutType = newValue
+                self.managedObjectContext.saveOrCrash()
+            }
+        )
+    }
     private func adjustAndSaveWorkoutRoutineCommentInput() {
         guard let newValue = workoutRoutineCommentInput?.trimmingCharacters(in: .whitespacesAndNewlines) else { return }
         workoutRoutineCommentInput = newValue
@@ -241,6 +251,13 @@ struct WorkoutRoutineView: View {
                         .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
                         .frame(minHeight: Theme.Layout.minTapTarget)
                         .editModeHint()
+                        ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                        LabeledContent("Type") {
+                            WorkoutTypeLabel(type: workoutRoutine.defaultWorkoutType)
+                        }
+                        .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                        .frame(minHeight: Theme.Layout.minTapTarget)
+                        .editModeHint()
                         if let comment = workoutRoutine.comment, !comment.isEmpty {
                             ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
                             LabeledContent("Comment") { Text(comment).foregroundColor(.secondary) }
@@ -291,6 +308,7 @@ struct WorkoutRoutineView: View {
             Section(header: Text("Characteristics")) {
                 ClearableTextField(titleKey: "Title", text: workoutRoutineTitle, onCommit: { self.adjustAndSaveWorkoutRoutineTitleInput() })
                 ClearableTextField(titleKey: "Comment", text: workoutRoutineComment, onCommit: { self.adjustAndSaveWorkoutRoutineCommentInput() })
+                WorkoutTypePickerRow(title: "Default type", selection: defaultWorkoutType)
             }
 
             CustomAttributesEditor(attributes: routineCustomAttributes, isEditable: true)

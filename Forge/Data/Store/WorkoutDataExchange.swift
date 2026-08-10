@@ -70,8 +70,14 @@ enum WorkoutDataExchange {
     struct RoutineDTO: Codable {
         var title: String?
         var comment: String?
+        var workoutType: WorkoutTypeDTO?
         var attributes: [String: String]?
         var exercises: [RoutineExerciseDTO]
+    }
+
+    struct WorkoutTypeDTO: Codable {
+        var title: String
+        var color: String
     }
 
     struct RoutineExerciseDTO: Codable {
@@ -103,6 +109,7 @@ enum WorkoutDataExchange {
         var end: Date?
         // The bodyweight frozen on the workout when it finished, used to weigh its bodyweight sets.
         var bodyweight: Double?
+        var workoutType: WorkoutTypeDTO?
         var attributes: [String: String]?
         var exercises: [WorkoutExerciseDTO]
         // Optional link to a routine (and its plan) imported in the same file. When set and no explicit
@@ -159,6 +166,7 @@ enum WorkoutDataExchange {
         RoutineDTO(
             title: workout.workoutRoutine?.title ?? workout.title,
             comment: workout.comment,
+            workoutType: workout.workoutType.map(typeDTO(from:)),
             attributes: workout.customAttributes.isEmpty ? nil : workout.customAttributes,
             exercises: orderedWorkoutExercises(workout).map { exercise in
                 RoutineExerciseDTO(
@@ -188,6 +196,7 @@ enum WorkoutDataExchange {
         return RoutineDTO(
             title: routine.title,
             comment: routine.comment,
+            workoutType: routine.defaultWorkoutType.map(typeDTO(from:)),
             attributes: routine.customAttributes.isEmpty ? nil : routine.customAttributes,
             exercises: exercises.map { exercise in
                 RoutineExerciseDTO(
@@ -225,6 +234,7 @@ enum WorkoutDataExchange {
             start: workout.start,
             end: workout.end,
             bodyweight: workout.bodyweightValue,
+            workoutType: workout.workoutType.map(typeDTO(from:)),
             attributes: workout.customAttributes.isEmpty ? nil : workout.customAttributes,
             exercises: exercises.map { exercise in
                 WorkoutExerciseDTO(
@@ -250,6 +260,10 @@ enum WorkoutDataExchange {
             plan: workout.workoutRoutine?.workoutPlan?.title,
             routine: workout.workoutRoutine?.title
         )
+    }
+
+    private static func typeDTO(from type: WorkoutType) -> WorkoutTypeDTO {
+        WorkoutTypeDTO(title: type.displayTitle, color: type.displayColorHex)
     }
 
     // MARK: Inspect
@@ -317,6 +331,9 @@ enum WorkoutDataExchange {
         let routine = WorkoutRoutine.create(context: context)
         routine.title = dto.title
         routine.comment = dto.comment
+        if let workoutType = dto.workoutType {
+            routine.defaultWorkoutType = try? findOrCreateWorkoutType(workoutType, in: context)
+        }
         if let attributes = dto.attributes { routine.customAttributes = attributes }
         routine.workoutPlan = plan
         var groupIDs: [Int: UUID] = [:]
@@ -356,6 +373,9 @@ enum WorkoutDataExchange {
         workout.end = dto.end ?? dto.start
         workout.isCurrentWorkout = false
         workout.bodyweightValue = dto.bodyweight
+        if let workoutType = dto.workoutType {
+            workout.workoutType = try? findOrCreateWorkoutType(workoutType, in: context)
+        }
         if let attributes = dto.attributes { workout.customAttributes = attributes }
         var groupIDs: [Int: UUID] = [:]
         for exerciseDTO in dto.exercises {
@@ -402,5 +422,9 @@ enum WorkoutDataExchange {
     }
     private static func orderedWorkoutSets(_ exercise: WorkoutExercise) -> [WorkoutSet] {
         exercise.workoutSets?.array as? [WorkoutSet] ?? []
+    }
+
+    private static func findOrCreateWorkoutType(_ dto: WorkoutTypeDTO, in context: NSManagedObjectContext) throws -> WorkoutType {
+        try WorkoutType.findOrCreate(title: dto.title, colorHex: dto.color, in: context)
     }
 }

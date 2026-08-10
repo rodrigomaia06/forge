@@ -23,6 +23,9 @@ extension Workout {
         // Stamp the start now so the elapsed timer counts up from the moment the workout begins. Leaving
         // it unset until the first set made the stopwatch sit at 00:00:00 during warm-up, which reads as
         // a stopped timer.
+        if workoutType == nil {
+            workoutType = workoutRoutine?.defaultWorkoutType ?? WorkoutType.defaultType(in: context)
+        }
         start = Date()
         isCurrentWorkout = true
         try context.save() // this also checks that there is only one currentWorkout
@@ -83,6 +86,7 @@ extension Workout {
         
         // create the workout
         let newWorkout = Workout.create(context: context)
+        newWorkout.workoutType = workoutType ?? workoutRoutine?.defaultWorkoutType ?? WorkoutType.defaultType(in: context)
         
         if let workoutExercises = workoutExercises?.compactMap({ $0 as? WorkoutExercise }) {
             // copy the exercises
