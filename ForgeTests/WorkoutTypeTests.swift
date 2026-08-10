@@ -91,4 +91,31 @@ final class WorkoutTypeTests: XCTestCase {
         XCTAssertEqual(importedWorkouts.first?.workoutType?.displayTitle, "Martial arts")
         XCTAssertEqual(importedWorkouts.first?.workoutType?.displayColorHex, "#EF4444")
     }
+
+    func testDeletingUnusedCustomTypeRemovesIt() throws {
+        let type = try WorkoutType.findOrCreate(title: "Tennis drills", colorHex: "#22C55E", in: context)
+        try context.save()
+
+        type.deleteOrArchive(in: context)
+        try context.save()
+
+        XCTAssertNil(try WorkoutType.find(title: "Tennis drills", in: context))
+    }
+
+    func testDeletingReferencedTypeArchivesIt() throws {
+        let type = try WorkoutType.findOrCreate(title: "Tennis drills", colorHex: "#22C55E", in: context)
+        let workout = Workout.create(context: context)
+        workout.title = "Serve practice"
+        workout.start = Date(timeIntervalSince1970: 1_700_000_000)
+        workout.end = Date(timeIntervalSince1970: 1_700_003_600)
+        workout.workoutType = type
+        try context.save()
+
+        type.deleteOrArchive(in: context)
+        try context.save()
+
+        XCTAssertEqual(try WorkoutType.find(title: "Tennis drills", in: context)?.objectID, type.objectID)
+        XCTAssertTrue(type.isArchived)
+        XCTAssertEqual(workout.workoutType?.objectID, type.objectID)
+    }
 }

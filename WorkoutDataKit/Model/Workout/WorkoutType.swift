@@ -47,6 +47,23 @@ public class WorkoutType: NSManagedObject {
         return trimmed.isEmpty ? Self.fallbackColorHex : trimmed
     }
 
+    public var isDefaultPreset: Bool {
+        guard let uuid else { return false }
+        return Self.defaultPresets.contains { $0.uuid == uuid }
+    }
+
+    public var hasUserDataReferences: Bool {
+        (workouts?.count ?? 0) > 0 || (defaultRoutines?.count ?? 0) > 0
+    }
+
+    public func deleteOrArchive(in context: NSManagedObjectContext) {
+        if isDefaultPreset || hasUserDataReferences {
+            isArchived = true
+        } else {
+            context.delete(self)
+        }
+    }
+
     public static func fetchRequestSorted(includeArchived: Bool = true) -> NSFetchRequest<WorkoutType> {
         let request: NSFetchRequest<WorkoutType> = WorkoutType.fetchRequest()
         if !includeArchived {

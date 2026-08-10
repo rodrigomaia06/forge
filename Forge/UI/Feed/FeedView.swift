@@ -67,6 +67,9 @@ struct FeedView: View {
         private(set) var daysByMonth: [Int: Set<Int>] = [:]
         /// Number of workouts in each month, keyed the same way.
         private(set) var countsByMonth: [Int: Int] = [:]
+        private(set) var durationsByMonth: [Int: TimeInterval] = [:]
+        private var countsByDay: [Int: Int] = [:]
+        private var durationsByDay: [Int: TimeInterval] = [:]
         private var typeCountsByDay: [Int: [TypeKey: Int]] = [:]
         private(set) var thisWeek = 0
         private(set) var thisMonth = 0
@@ -89,6 +92,11 @@ struct FeedView: View {
                 )
                 daysByMonth[key, default: []].insert(day)
                 countsByMonth[key, default: 0] += 1
+                countsByDay[dayKey, default: 0] += 1
+                if let duration = workout.duration {
+                    durationsByMonth[key, default: 0] += duration
+                    durationsByDay[dayKey, default: 0] += duration
+                }
                 typeCountsByDay[dayKey, default: [:]][typeKey, default: 0] += 1
                 if calendar.isDate(start, equalTo: now, toGranularity: .weekOfYear) { thisWeek += 1 }
                 if calendar.isDate(start, equalTo: now, toGranularity: .month) { thisMonth += 1 }
@@ -103,6 +111,22 @@ struct FeedView: View {
 
         func count(year: Int, month: Int) -> Int {
             countsByMonth[Self.key(year: year, month: month)] ?? 0
+        }
+
+        func duration(year: Int, month: Int) -> TimeInterval {
+            durationsByMonth[Self.key(year: year, month: month)] ?? 0
+        }
+
+        func count(for date: Date, calendar: Calendar) -> Int {
+            let parts = calendar.dateComponents([.year, .month, .day], from: date)
+            guard let year = parts.year, let month = parts.month, let day = parts.day else { return 0 }
+            return countsByDay[Self.dayKey(year: year, month: month, day: day)] ?? 0
+        }
+
+        func duration(for date: Date, calendar: Calendar) -> TimeInterval {
+            let parts = calendar.dateComponents([.year, .month, .day], from: date)
+            guard let year = parts.year, let month = parts.month, let day = parts.day else { return 0 }
+            return durationsByDay[Self.dayKey(year: year, month: month, day: day)] ?? 0
         }
 
         func days(year: Int, month: Int) -> Set<Int> {
@@ -247,6 +271,13 @@ struct FeedView: View {
             } else {
                 monthGrid(firstOfMonth: currentFirstOfMonth, index: index, calendar: calendar)
             }
+
+            if let summary = activitySummaryText(index, calendar: calendar) {
+                Text(summary)
+                    .font(.forgeCaption)
+                    .foregroundColor(.forgeSecondaryLabel)
+                    .padding(.top, Theme.Spacing.xxs)
+            }
         }
     }
 
@@ -304,6 +335,28 @@ struct FeedView: View {
     }
 
     private var yearString: String { String(cal.component(.year, from: Date())) }
+
+    private func activitySummaryText(_ index: ActivityIndex, calendar: Calendar) -> String? {
+        switch filter {
+        case .day(let date):
+            return summaryText(count: index.count(for: date, calendar: calendar), duration: index.duration(for: date, calendar: calendar))
+        case .month(let year, let month):
+            return summaryText(count: index.count(year: year, month: month), duration: index.duration(year: year, month: month))
+        case nil:
+            let parts = calendar.dateComponents([.year, .month], from: Date())
+            guard let year = parts.year, let month = parts.month else { return nil }
+            return summaryText(count: index.count(year: year, month: month), duration: index.duration(year: year, month: month))
+        }
+    }
+
+    private func summaryText(count: Int, duration: TimeInterval) -> String? {
+        guard count > 0 else { return nil }
+        let workoutText = count == 1 ? "1 workout" : "\(count) workouts"
+        guard duration > 0, let durationText = Workout.durationFormatter.string(from: duration) else {
+            return workoutText
+        }
+        return "\(workoutText) · \(durationText)"
+    }
 
     private func weekdaySymbols(_ calendar: Calendar) -> [String] {
         let syms = calendar.veryShortStandaloneWeekdaySymbols
@@ -521,13 +574,20 @@ struct FeedView: View {
             }
             .padding(Theme.Spacing.l)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .forgeCard()
+            .background(
+                RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous)
+                    .fill(Color.forgeSurface)
+            )
             .overlay(alignment: .leading) {
-                Capsule()
+                Rectangle()
                     .fill(Color(workoutTypeHex: workout.workoutType?.displayColorHex ?? WorkoutType.fallbackColorHex))
-                    .frame(width: 4, height: 42)
-                    .padding(.leading, Theme.Spacing.s)
+                    .frame(width: 5)
             }
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous)
+                    .strokeBorder(Color.forgeSeparator, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))
         }
         .buttonStyle(.plain)
     }

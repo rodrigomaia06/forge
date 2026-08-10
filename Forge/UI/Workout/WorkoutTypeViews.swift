@@ -189,6 +189,7 @@ private struct WorkoutTypeSelectionView: View {
 struct WorkoutTypesSettingsView: View {
     @Environment(\.managedObjectContext) private var context
     @FetchRequest(fetchRequest: WorkoutType.fetchRequestSorted()) private var workoutTypes
+    @State private var editMode: EditMode = .inactive
 
     var body: some View {
         List {
@@ -199,13 +200,19 @@ struct WorkoutTypesSettingsView: View {
                     }
                 }
                 .onMove(perform: move)
+                .onDelete(perform: delete)
             } footer: {
-                Text("Archived types stay on old workouts but are hidden from workout pickers.")
+                Text("Types used by workouts are archived when deleted. Unused custom types are removed.")
             }
         }
+        .environment(\.editMode, $editMode)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                EditButton()
+                Button(editMode.isEditing ? "Done" : "Edit") {
+                    withAnimation(.snappy(duration: 0.2)) {
+                        editMode = editMode.isEditing ? .inactive : .active
+                    }
+                }
                 Button {
                     addType()
                 } label: {
@@ -213,6 +220,9 @@ struct WorkoutTypesSettingsView: View {
                 }
                 .accessibilityLabel("Add workout type")
             }
+        }
+        .onDisappear {
+            editMode = .inactive
         }
         .navigationBarTitle("Workout types", displayMode: .inline)
     }
@@ -232,6 +242,21 @@ struct WorkoutTypesSettingsView: View {
             type.sortIndex = Int32(index)
         }
         context.saveOrCrash()
+    }
+
+    private func delete(at offsets: IndexSet) {
+        let ordered = Array(workoutTypes)
+        for index in offsets {
+            ordered[index].deleteOrArchive(in: context)
+        }
+        reindexVisibleTypes()
+        context.saveOrCrash()
+    }
+
+    private func reindexVisibleTypes() {
+        for (index, type) in workoutTypes.filter({ !$0.isDeleted }).enumerated() {
+            type.sortIndex = Int32(index)
+        }
     }
 }
 
@@ -253,6 +278,7 @@ private struct WorkoutTypeSettingsRow: View {
 
 private struct WorkoutTypeEditorView: View {
     @Environment(\.managedObjectContext) private var context
+    @Environment(\.dismiss) private var dismiss
     @ObservedObject var type: WorkoutType
 
     private var selectedColor: Binding<Color> {
@@ -306,6 +332,20 @@ private struct WorkoutTypeEditorView: View {
                 ))
             } footer: {
                 Text("Archived types stay on old workouts but are hidden from workout pickers.")
+            }
+
+            Section {
+                Button(role: .destructive) {
+                    type.deleteOrArchive(in: context)
+                    context.saveOrCrash()
+                    dismiss()
+                } label: {
+                    Text(type.isDefaultPreset || type.hasUserDataReferences ? "Archive type" : "Delete type")
+                }
+            } footer: {
+                if type.isDefaultPreset || type.hasUserDataReferences {
+                    Text("Archived types stay on existing workouts but are hidden from pickers.")
+                }
             }
         }
         .scrollContentBackground(.hidden)
