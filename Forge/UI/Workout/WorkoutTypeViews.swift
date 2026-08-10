@@ -190,10 +190,14 @@ struct WorkoutTypesSettingsView: View {
     @FetchRequest(fetchRequest: WorkoutType.fetchRequestSorted()) private var workoutTypes
     @State private var editMode: EditMode = .inactive
 
+    private var activeTypes: [WorkoutType] {
+        workoutTypes.filter { !$0.isArchived }
+    }
+
     var body: some View {
         List {
             Section {
-                ForEach(workoutTypes, id: \.objectID) { type in
+                ForEach(activeTypes, id: \.objectID) { type in
                     NavigationLink(destination: WorkoutTypeEditorView(type: type)) {
                         WorkoutTypeSettingsRow(type: type)
                     }
@@ -201,7 +205,7 @@ struct WorkoutTypesSettingsView: View {
                 .onMove(perform: move)
                 .onDelete(perform: delete)
             } footer: {
-                Text("Types used by workouts are archived when deleted. Unused custom types are removed.")
+                Text("Deleting a type hides it from new workouts. Used types stay on existing workouts.")
             }
         }
         .environment(\.editMode, $editMode)
@@ -235,7 +239,7 @@ struct WorkoutTypesSettingsView: View {
     }
 
     private func move(from source: IndexSet, to destination: Int) {
-        var ordered = Array(workoutTypes)
+        var ordered = activeTypes
         ordered.move(fromOffsets: source, toOffset: destination)
         for (index, type) in ordered.enumerated() {
             type.sortIndex = Int32(index)
@@ -244,7 +248,7 @@ struct WorkoutTypesSettingsView: View {
     }
 
     private func delete(at offsets: IndexSet) {
-        let ordered = Array(workoutTypes)
+        let ordered = activeTypes
         for index in offsets {
             ordered[index].deleteOrArchive(in: context)
         }
@@ -253,7 +257,7 @@ struct WorkoutTypesSettingsView: View {
     }
 
     private func reindexVisibleTypes() {
-        for (index, type) in workoutTypes.filter({ !$0.isDeleted }).enumerated() {
+        for (index, type) in activeTypes.filter({ !$0.isDeleted }).enumerated() {
             type.sortIndex = Int32(index)
         }
     }
