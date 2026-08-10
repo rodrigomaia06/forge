@@ -92,6 +92,9 @@ jobs:
           - group: running-workout
             only_testing: |
               ForgeUITests/ScreenshotUITests/testRunningWorkout
+          - group: running-workout-menus
+            only_testing: |
+              ForgeUITests/ScreenshotUITests/testRunningWorkoutMenus
           - group: value-field-regressions
             only_testing: |
               ForgeUITests/ScreenshotUITests/testSetOptionsSurvivesUnderlyingValueCommit
