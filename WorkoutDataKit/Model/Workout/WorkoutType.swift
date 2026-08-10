@@ -39,12 +39,12 @@ public class WorkoutType: NSManagedObject {
 
     public var displayTitle: String {
         let trimmed = (title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? fallbackTitle : trimmed
+        return trimmed.isEmpty ? Self.fallbackTitle : trimmed
     }
 
     public var displayColorHex: String {
         let trimmed = (colorHex ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? fallbackColorHex : trimmed
+        return trimmed.isEmpty ? Self.fallbackColorHex : trimmed
     }
 
     public static func fetchRequestSorted(includeArchived: Bool = true) -> NSFetchRequest<WorkoutType> {
