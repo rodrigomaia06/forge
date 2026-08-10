@@ -197,6 +197,12 @@ struct CurrentWorkoutView: View {
             || workout.workoutPlanAndRoutineTitle() != nil
     }
 
+    private var canFinishTimeOnlyWorkout: Bool {
+        guard (workout.workoutExercises?.count ?? 0) == 0 else { return false }
+        return !(workout.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || workout.workoutRoutine != nil
+    }
+
     private var trimmedWorkoutComment: String {
         (workout.comment ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -323,10 +329,11 @@ struct CurrentWorkoutView: View {
     }
 
 
-    /// The finish button routes here: block an empty workout, otherwise confirm before finishing.
+    /// The finish button routes here: block accidental empty strength sessions, but allow named
+    /// time-only workouts and empty routines to record duration without exercise entries.
     private func requestFinish() {
         Haptics.impact(.medium)
-        if workout.hasCompletedSets == true {
+        if workout.hasCompletedSets == true || canFinishTimeOnlyWorkout {
             showingFinishConfirmation = true
         } else {
             showingCannotFinish = true
@@ -481,7 +488,7 @@ struct CurrentWorkoutView: View {
         .alert("No completed sets", isPresented: $showingCannotFinish) {
             Button("OK", role: .cancel) { }
         } message: {
-            Text("Complete at least one set before finishing this workout.")
+            Text("Complete at least one set, or use Record time only for a workout without exercises.")
         }
     }
 }

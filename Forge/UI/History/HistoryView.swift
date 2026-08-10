@@ -119,7 +119,7 @@ struct HistoryView : View {
             title: workout.displayTitle(in: exerciseStore.exercises, showPlan: settingsStore.showPlanInWorkoutTitle),
             dateText: Self.weekdayDateText(workout.start),
             durationText: workout.duration.flatMap { Workout.durationFormatter.string(from: $0) },
-            summaryLine: "\(exercises.count) exercises · \(sets) sets",
+            summaryLine: exercises.isEmpty ? "Time only" : "\(exercises.count) exercises · \(sets) sets",
             workoutTypeTitle: workout.workoutType?.displayTitle ?? WorkoutType.fallbackTitle,
             workoutTypeColorHex: workout.workoutType?.displayColorHex ?? WorkoutType.fallbackColorHex
         )

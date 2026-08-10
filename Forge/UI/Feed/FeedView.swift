@@ -569,7 +569,7 @@ struct FeedView: View {
                     .tracking(1)
                     .foregroundColor(.forgeSecondaryLabel)
                 Text(workout.displayTitle(in: exerciseStore.exercises, showPlan: settingsStore.showPlanInWorkoutTitle)).font(.forgeHeadline).foregroundColor(.forgeLabel)
-                Text("\(s.exercises) exercises · \(s.sets) sets\(durationSuffix(workout))")
+                Text(summaryLine(stats: s, workout: workout))
                     .font(.forgeCaption).foregroundColor(.forgeSecondaryLabel)
             }
             .padding(Theme.Spacing.l)
@@ -597,6 +597,13 @@ struct FeedView: View {
     private func durationSuffix(_ workout: Workout) -> String {
         guard let duration = workout.duration, let text = Workout.durationFormatter.string(from: duration) else { return "" }
         return " · \(text)"
+    }
+
+    private func summaryLine(stats: (exercises: Int, sets: Int), workout: Workout) -> String {
+        if stats.exercises == 0 {
+            return "Time only\(durationSuffix(workout))"
+        }
+        return "\(stats.exercises) exercises · \(stats.sets) sets\(durationSuffix(workout))"
     }
 
     private func stats(_ workout: Workout) -> (exercises: Int, sets: Int) {
