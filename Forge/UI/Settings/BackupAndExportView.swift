@@ -44,25 +44,17 @@ struct BackupAndExportView: View {
     var body: some View {
         Form {
             Section(
-                header: Text("Database"),
-                footer: Text("The database is a standard SQLite file you can open and edit in any SQLite tool. Importing replaces all current data — a safety copy is kept first, and you'll need to reopen Forge afterwards.")
+                header: Text("Backup"),
+                footer: Text("A full backup contains everything in Forge. Restoring a backup replaces the current data. Forge keeps a safety copy first, then you need to reopen the app.")
             ) {
-                Button("Export Database") { exportDatabase() }
-                Button("Import Database") { showImporter = true }
+                Button("Export full backup") { exportDatabase() }
+                Button("Restore from backup") { showImporter = true }
             }
 
-            Section(header: Text("Export")) {
-                Menu("Workout Data") {
-                    Button("Export as JSON") { exportWorkoutData(asJSON: true) }
-                    Button("Export as text") { exportWorkoutData(asJSON: false) }
-                }
-            }
-
-            Section(
-                header: Text("Share"),
-                footer: Text("Import a JSON file someone shared. Plans and routines are added, and any workouts in the file are added to your History. Everything comes in with new identifiers, so it never overwrites what you already have. You'll see what a file contains before it's imported.")
-            ) {
-                Button("Import from file") { showJSONImporter = true }
+            Section(header: Text("Workout data"), footer: Text("JSON files can be imported later or shared with another copy of Forge. Text export is for reading outside the app.")) {
+                Button("Export JSON") { exportWorkoutData(asJSON: true) }
+                Button("Export text") { exportWorkoutData(asJSON: false) }
+                Button("Import JSON") { showJSONImporter = true }
             }
 
             Section(
@@ -76,7 +68,7 @@ struct BackupAndExportView: View {
         .fileImporter(isPresented: $showImporter, allowedContentTypes: Self.databaseTypes) { result in
             switch result {
             case .success(let url): importDatabase(from: url)
-            case .failure(let error): message = Message(title: "Import Failed", text: error.localizedDescription)
+            case .failure(let error): message = Message(title: "Import failed", text: error.localizedDescription)
             }
         }
         .fileImporter(isPresented: $showJSONImporter, allowedContentTypes: [.json]) { result in
@@ -114,7 +106,7 @@ struct BackupAndExportView: View {
             shareFile(url: url)
         } catch {
             os_log("Could not export database: %@", log: .backup, type: .error, error.localizedDescription)
-            message = Message(title: "Could Not Export", text: error.localizedDescription)
+            message = Message(title: "Export failed", text: error.localizedDescription)
         }
     }
 
@@ -130,10 +122,10 @@ struct BackupAndExportView: View {
             try FileManager.default.copyItem(at: url, to: local)
 
             try SQLiteBackup.import(from: local)
-            message = Message(title: "Import Complete", text: "Please reopen Forge to load the imported data.")
+            message = Message(title: "Import complete", text: "Reopen Forge to load the imported data.")
         } catch {
             os_log("Could not import database: %@", log: .backup, type: .error, error.localizedDescription)
-            message = Message(title: "Import Failed", text: error.localizedDescription)
+            message = Message(title: "Import failed", text: error.localizedDescription)
         }
     }
 
@@ -201,7 +193,7 @@ struct BackupAndExportView: View {
         }
     }
 
-    /// "2 plans, 3 routines and 15 workouts" — used in the warning and the result.
+    /// "2 plans, 3 routines and 15 workouts", used in the warning and the result.
     private static func countsPhrase(for r: WorkoutDataExchange.ImportResult) -> String {
         var parts: [String] = []
         if r.plans > 0 { parts.append(r.plans == 1 ? "1 plan" : "\(r.plans) plans") }

@@ -54,6 +54,7 @@ struct WorkoutTypeLabel: View {
 struct WorkoutTypePickerRow: View {
     @Environment(\.managedObjectContext) private var context
     @FetchRequest(fetchRequest: WorkoutType.fetchRequestSorted()) private var workoutTypes
+    @State private var showingSelection = false
 
     let title: String
     @Binding var selection: WorkoutType?
@@ -84,8 +85,8 @@ struct WorkoutTypePickerRow: View {
     }
 
     var body: some View {
-        NavigationLink {
-            WorkoutTypeSelectionView(title: title, selection: selectedObjectID)
+        Button {
+            showingSelection = true
         } label: {
             HStack {
                 Text(title)
@@ -99,6 +100,11 @@ struct WorkoutTypePickerRow: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(title), \(selectedTitle)")
+        .sheet(isPresented: $showingSelection) {
+            NavigationStack {
+                WorkoutTypeSelectionView(title: title, selection: selectedObjectID)
+            }
+        }
     }
 }
 
@@ -139,6 +145,11 @@ private struct WorkoutTypeSelectionView: View {
         }
         .scrollContentBackground(.hidden)
         .navigationBarTitle(title, displayMode: .inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Done") { dismiss() }
+            }
+        }
     }
 }
 

@@ -140,10 +140,6 @@ struct FeedView: View {
     private static let monthDayFormatter: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = "MMMM d"; return f
     }()
-    private static let shortMonthDayFormatter: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = "MMM d"; return f
-    }()
-
     var body: some View {
         let calendar = cal
         let index = activityIndex
@@ -515,8 +511,10 @@ struct FeedView: View {
             sceneState.selectedTab = .history
         } label: {
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                Text(dateLabel(workout.start)).font(.forgeSectionLabel).tracking(1).foregroundColor(.forgeSecondaryLabel)
-                WorkoutTypeLabel(type: workout.workoutType)
+                Text(typeDateLabel(workout))
+                    .font(.forgeSectionLabel)
+                    .tracking(1)
+                    .foregroundColor(.forgeSecondaryLabel)
                 Text(workout.displayTitle(in: exerciseStore.exercises, showPlan: settingsStore.showPlanInWorkoutTitle)).font(.forgeHeadline).foregroundColor(.forgeLabel)
                 Text("\(s.exercises) exercises · \(s.sets) sets\(durationSuffix(workout))")
                     .font(.forgeCaption).foregroundColor(.forgeSecondaryLabel)
@@ -524,6 +522,12 @@ struct FeedView: View {
             .padding(Theme.Spacing.l)
             .frame(maxWidth: .infinity, alignment: .leading)
             .forgeCard()
+            .overlay(alignment: .leading) {
+                Rectangle()
+                    .fill(Color(workoutTypeHex: workout.workoutType?.displayColorHex ?? WorkoutType.fallbackColorHex))
+                    .frame(width: 3)
+                    .padding(.vertical, Theme.Spacing.l)
+            }
         }
         .buttonStyle(.plain)
     }
@@ -543,9 +547,16 @@ struct FeedView: View {
         return (exercises.count, completedSets.count)
     }
 
+    private func typeDateLabel(_ workout: Workout) -> String {
+        let type = workout.workoutType?.displayTitle ?? WorkoutType.fallbackTitle
+        let date = dateLabel(workout.start)
+        guard !date.isEmpty else { return type.uppercased() }
+        return "\(type) · \(date)".uppercased()
+    }
+
     private func dateLabel(_ date: Date?) -> String {
         guard let date = date else { return "" }
-        return Self.shortMonthDayFormatter.string(from: date).uppercased()
+        return date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
     }
 
 }

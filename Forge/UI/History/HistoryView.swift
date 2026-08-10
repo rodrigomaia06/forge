@@ -117,7 +117,7 @@ struct HistoryView : View {
             objectID: workout.objectID,
             start: workout.start,
             title: workout.displayTitle(in: exerciseStore.exercises, showPlan: settingsStore.showPlanInWorkoutTitle),
-            dateText: Workout.dateFormatter.string(from: workout.start, fallback: "Unknown date"),
+            dateText: Self.weekdayDateText(workout.start),
             durationText: workout.duration.flatMap { Workout.durationFormatter.string(from: $0) },
             summaryLine: "\(exercises.count) exercises · \(sets) sets",
             workoutTypeTitle: workout.workoutType?.displayTitle ?? WorkoutType.fallbackTitle,
@@ -127,6 +127,11 @@ struct HistoryView : View {
 
     private func rebuildHistorySections() {
         historySections = makeHistorySections()
+    }
+
+    private static func weekdayDateText(_ date: Date?) -> String {
+        guard let date else { return "Unknown date" }
+        return date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day().hour().minute())
     }
 
     private func workout(for objectID: NSManagedObjectID) -> Workout? {
@@ -293,6 +298,12 @@ struct HistoryView : View {
                 WorkoutCell(workout: row)
                     .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
                     .frame(minHeight: 74)
+                    .overlay(alignment: .leading) {
+                        Rectangle()
+                            .fill(Color(workoutTypeHex: row.workoutTypeColorHex))
+                            .frame(width: 3)
+                            .padding(.vertical, Theme.Spacing.m)
+                    }
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -357,10 +368,9 @@ private struct WorkoutCell: View {
                     .font(.body)
                     .foregroundColor(.forgeLabel)
 
-                Text(workout.dateText)
+                Text("\(workout.workoutTypeTitle) · \(workout.dateText)")
                     .font(.caption)
                     .foregroundColor(.forgeSecondaryLabel)
-                WorkoutTypeLabel(title: workout.workoutTypeTitle, colorHex: workout.workoutTypeColorHex)
             }
             .layoutPriority(1)
 
