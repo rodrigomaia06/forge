@@ -33,27 +33,19 @@ private let workoutTypeColorChoices: [(name: String, hex: String)] = [
 
 struct WorkoutTypeLabel: View {
     let title: String
-    let colorHex: String
 
     init(type: WorkoutType?) {
         self.title = type?.displayTitle ?? WorkoutType.fallbackTitle
-        self.colorHex = type?.displayColorHex ?? WorkoutType.fallbackColorHex
     }
 
     init(title: String, colorHex: String) {
         self.title = title
-        self.colorHex = colorHex
     }
 
     var body: some View {
-        HStack(spacing: Theme.Spacing.xs) {
-            Circle()
-                .fill(Color(workoutTypeHex: colorHex))
-                .frame(width: 8, height: 8)
-            Text(title)
-                .font(.forgeCaption)
-                .foregroundColor(.forgeSecondaryLabel)
-        }
+        Text(title)
+            .font(.forgeCaption)
+            .foregroundColor(.forgeSecondaryLabel)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Workout type: \(title)")
     }
@@ -87,18 +79,66 @@ struct WorkoutTypePickerRow: View {
         )
     }
 
+    private var selectedTitle: String {
+        selection?.displayTitle ?? fallbackType?.displayTitle ?? WorkoutType.fallbackTitle
+    }
+
     var body: some View {
-        Picker(title, selection: selectedObjectID) {
-            ForEach(visibleTypes, id: \.objectID) { type in
-                Label {
-                    Text(type.displayTitle)
-                } icon: {
-                    Circle()
-                        .fill(Color(workoutTypeHex: type.displayColorHex))
+        NavigationLink {
+            WorkoutTypeSelectionView(title: title, selection: selectedObjectID)
+        } label: {
+            HStack {
+                Text(title)
+                    .foregroundColor(.forgeLabel)
+                Spacer()
+                Text(selectedTitle)
+                    .foregroundColor(.forgeSecondaryLabel)
+            }
+            .contentShape(Rectangle())
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(title), \(selectedTitle)")
+    }
+}
+
+private struct WorkoutTypeSelectionView: View {
+    @Environment(\.dismiss) private var dismiss
+    @FetchRequest(fetchRequest: WorkoutType.fetchRequestSorted()) private var workoutTypes
+
+    let title: String
+    @Binding var selection: NSManagedObjectID?
+
+    private var visibleTypes: [WorkoutType] {
+        workoutTypes.filter { !$0.isArchived || $0.objectID == selection }
+    }
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(visibleTypes, id: \.objectID) { type in
+                    Button {
+                        selection = type.objectID
+                        dismiss()
+                    } label: {
+                        HStack(spacing: Theme.Spacing.m) {
+                            colorSwatch(type.displayColorHex)
+                            Text(type.displayTitle)
+                                .foregroundColor(.forgeLabel)
+                            Spacer()
+                            if selection == type.objectID {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.forgeAccent)
+                                    .accessibilityLabel("Selected")
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
                 }
-                .tag(Optional(type.objectID))
             }
         }
+        .scrollContentBackground(.hidden)
+        .navigationBarTitle(title, displayMode: .inline)
     }
 }
 
@@ -110,7 +150,9 @@ struct WorkoutTypesSettingsView: View {
         List {
             Section {
                 ForEach(workoutTypes, id: \.objectID) { type in
-                    WorkoutTypeEditorRow(type: type)
+                    NavigationLink(destination: WorkoutTypeEditorView(type: type)) {
+                        WorkoutTypeSettingsRow(type: type)
+                    }
                 }
                 .onMove(perform: move)
             } footer: {
@@ -149,34 +191,77 @@ struct WorkoutTypesSettingsView: View {
     }
 }
 
-private struct WorkoutTypeEditorRow: View {
+private struct WorkoutTypeSettingsRow: View {
+    @ObservedObject var type: WorkoutType
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.m) {
+            colorSwatch(type.displayColorHex)
+            Text(type.displayTitle)
+            if type.isArchived {
+                Text("Archived")
+                    .font(.forgeCaption)
+                    .foregroundColor(.forgeSecondaryLabel)
+            }
+        }
+    }
+}
+
+private struct WorkoutTypeEditorView: View {
     @Environment(\.managedObjectContext) private var context
     @ObservedObject var type: WorkoutType
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-            TextField("Title", text: Binding(
-                get: { type.title ?? "" },
-                set: { type.title = $0 }
-            ))
-            .onSubmit { context.saveOrCrash() }
+        List {
+            Section {
+                TextField("Title", text: Binding(
+                    get: { type.title ?? "" },
+                    set: { type.title = $0 }
+                ))
+                .onSubmit { context.saveOrCrash() }
+            }
 
-            Picker("Color", selection: Binding(
-                get: { type.displayColorHex },
-                set: { type.colorHex = $0; context.saveOrCrash() }
-            )) {
+            Section(header: Text("Color")) {
                 ForEach(workoutTypeColorChoices, id: \.hex) { choice in
-                    Label(choice.name, systemImage: "circle.fill")
-                        .foregroundColor(Color(workoutTypeHex: choice.hex))
-                        .tag(choice.hex)
+                    Button {
+                        type.colorHex = choice.hex
+                        context.saveOrCrash()
+                    } label: {
+                        HStack(spacing: Theme.Spacing.m) {
+                            colorSwatch(choice.hex)
+                            Text(choice.name)
+                                .foregroundColor(.forgeLabel)
+                            Spacer()
+                            if type.displayColorHex == choice.hex {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.forgeAccent)
+                                    .accessibilityLabel("Selected")
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
                 }
             }
 
-            Toggle("Archived", isOn: Binding(
-                get: { type.isArchived },
-                set: { type.isArchived = $0; context.saveOrCrash() }
-            ))
+            Section {
+                Toggle("Archived", isOn: Binding(
+                    get: { type.isArchived },
+                    set: { type.isArchived = $0; context.saveOrCrash() }
+                ))
+            } footer: {
+                Text("Archived types stay on old workouts but are hidden from workout pickers.")
+            }
         }
+        .scrollContentBackground(.hidden)
         .onDisappear { context.saveOrCrash() }
+        .navigationBarTitle(type.displayTitle, displayMode: .inline)
     }
+}
+
+@ViewBuilder
+private func colorSwatch(_ hex: String) -> some View {
+    Circle()
+        .fill(Color(workoutTypeHex: hex))
+        .frame(width: 14, height: 14)
+        .accessibilityHidden(true)
 }

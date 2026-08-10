@@ -477,12 +477,13 @@ final class ScreenshotUITests: XCTestCase {
         shot("settings-list", settle: 1.2)
         if tapFirst(in: [app.buttons], labelled: "Add workout type") {
             shot("new-type-added", settle: 1.2)
-        }
-        if tapFirst(in: [app.buttons, app.staticTexts], labelled: "Color") {
-            shot("color-options", settle: 1.2)
-            dismissOverlay()
-        } else {
-            skipped("a workout type color picker")
+            if tapFirst(in: [app.cells, app.buttons, app.staticTexts], labelled: "New type") {
+                shot("type-editor", settle: 1.2)
+                shot("color-options", settle: 1.2)
+                back()
+            } else {
+                skipped("the new workout type editor")
+            }
         }
         back()
 
@@ -711,11 +712,7 @@ final class ScreenshotUITests: XCTestCase {
             return
         }
         shot("\(prefix)-type-picker", settle: 1.2)
-        if !tapFirst(in: [app.buttons], labelled: "Cancel") { dismissOverlay() }
-        if app.staticTexts["Tennis"].firstMatch.exists,
-           app.navigationBars.buttons.element(boundBy: 0).exists {
-            back()
-        }
+        back()
     }
 
     // MARK: - Navigation helpers
