@@ -80,20 +80,21 @@ struct WorkoutTypePickerRow: View {
     }
 
     var body: some View {
-        HStack {
-            Text(title)
-                .foregroundColor(.forgeLabel)
-            Spacer()
-            Text(selectedTitle)
-                .foregroundColor(.forgeSecondaryLabel)
-        }
-        .contentShape(Rectangle())
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .onTapGesture {
+        Button {
             showingSelection = true
+        } label: {
+            HStack {
+                Text(title)
+                    .foregroundColor(.forgeLabel)
+                Spacer()
+                Text(selectedTitle)
+                    .foregroundColor(.forgeSecondaryLabel)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .accessibilityLabel("\(title), \(selectedTitle)")
-        .accessibilityAddTraits(.isButton)
         .sheet(isPresented: $showingSelection) {
             NavigationStack {
                 WorkoutTypeSelectionView(title: title, selection: $selection)
@@ -132,6 +133,8 @@ private struct WorkoutTypeSelectionView: View {
                                 .accessibilityLabel("Selected")
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
 
@@ -151,6 +154,8 @@ private struct WorkoutTypeSelectionView: View {
                                     .accessibilityLabel("Selected")
                             }
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
