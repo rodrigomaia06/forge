@@ -54,6 +54,8 @@ final class WorkoutTypeTests: XCTestCase {
         tennis.isArchived = true
 
         let workout = Workout.create(context: context)
+        workout.start = Date(timeIntervalSince1970: 1_700_000_000)
+        workout.end = Date(timeIntervalSince1970: 1_700_003_600)
         workout.workoutType = tennis
         try context.save()
 
