@@ -6,6 +6,7 @@
 import SwiftUI
 import CoreData
 import WorkoutDataKit
+import UIKit
 
 extension Color {
     init(workoutTypeHex hex: String) {
@@ -19,6 +20,23 @@ extension Color {
         let green = Double((value >> 8) & 0xff) / 255
         let blue = Double(value & 0xff) / 255
         self = Color(red: red, green: green, blue: blue)
+    }
+
+    var workoutTypeHex: String {
+        let uiColor = UIColor(self)
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        guard uiColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha) else {
+            return WorkoutType.fallbackColorHex
+        }
+        return String(
+            format: "#%02X%02X%02X",
+            Int(red * 255),
+            Int(green * 255),
+            Int(blue * 255)
+        )
     }
 }
 
@@ -63,13 +81,9 @@ struct WorkoutTypePickerRow: View {
         workoutTypes.filter { !$0.isArchived || $0.objectID == selection?.objectID }
     }
 
-    private var fallbackType: WorkoutType? {
-        workoutTypes.first { $0.displayTitle.caseInsensitiveCompare(WorkoutType.fallbackTitle) == .orderedSame }
-    }
-
     private var selectedObjectID: Binding<NSManagedObjectID?> {
         Binding(
-            get: { selection?.objectID ?? fallbackType?.objectID },
+            get: { selection?.objectID },
             set: { objectID in
                 guard let objectID else {
                     selection = nil
@@ -81,7 +95,7 @@ struct WorkoutTypePickerRow: View {
     }
 
     private var selectedTitle: String {
-        selection?.displayTitle ?? fallbackType?.displayTitle ?? WorkoutType.fallbackTitle
+        selection?.displayTitle ?? "None"
     }
 
     var body: some View {
@@ -104,6 +118,8 @@ struct WorkoutTypePickerRow: View {
             NavigationStack {
                 WorkoutTypeSelectionView(title: title, selection: selectedObjectID)
             }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
     }
 }
@@ -122,6 +138,23 @@ private struct WorkoutTypeSelectionView: View {
     var body: some View {
         List {
             Section {
+                Button {
+                    selection = nil
+                    dismiss()
+                } label: {
+                    HStack {
+                        Text("None")
+                            .foregroundColor(.forgeLabel)
+                        Spacer()
+                        if selection == nil {
+                            Image(systemName: "checkmark")
+                                .foregroundColor(.forgeAccent)
+                                .accessibilityLabel("Selected")
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+
                 ForEach(visibleTypes, id: \.objectID) { type in
                     Button {
                         selection = type.objectID
@@ -222,6 +255,16 @@ private struct WorkoutTypeEditorView: View {
     @Environment(\.managedObjectContext) private var context
     @ObservedObject var type: WorkoutType
 
+    private var selectedColor: Binding<Color> {
+        Binding(
+            get: { Color(workoutTypeHex: type.displayColorHex) },
+            set: {
+                type.colorHex = $0.workoutTypeHex
+                context.saveOrCrash()
+            }
+        )
+    }
+
     var body: some View {
         List {
             Section {
@@ -233,6 +276,8 @@ private struct WorkoutTypeEditorView: View {
             }
 
             Section(header: Text("Color")) {
+                ColorPicker("Custom color", selection: selectedColor, supportsOpacity: false)
+
                 ForEach(workoutTypeColorChoices, id: \.hex) { choice in
                     Button {
                         type.colorHex = choice.hex

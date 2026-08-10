@@ -131,7 +131,7 @@ struct HistoryView : View {
 
     private static func weekdayDateText(_ date: Date?) -> String {
         guard let date else { return "Unknown date" }
-        return date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day().hour().minute())
+        return date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())
     }
 
     private func workout(for objectID: NSManagedObjectID) -> Workout? {
@@ -299,10 +299,10 @@ struct HistoryView : View {
                     .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
                     .frame(minHeight: 74)
                     .overlay(alignment: .leading) {
-                        Rectangle()
+                        Capsule()
                             .fill(Color(workoutTypeHex: row.workoutTypeColorHex))
-                            .frame(width: 3)
-                            .padding(.vertical, Theme.Spacing.m)
+                            .frame(width: 4, height: 34)
+                            .padding(.leading, Theme.Spacing.s)
                     }
                     .contentShape(Rectangle())
             }

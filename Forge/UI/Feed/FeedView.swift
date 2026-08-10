@@ -523,10 +523,10 @@ struct FeedView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .forgeCard()
             .overlay(alignment: .leading) {
-                Rectangle()
+                Capsule()
                     .fill(Color(workoutTypeHex: workout.workoutType?.displayColorHex ?? WorkoutType.fallbackColorHex))
-                    .frame(width: 3)
-                    .padding(.vertical, Theme.Spacing.l)
+                    .frame(width: 4, height: 42)
+                    .padding(.leading, Theme.Spacing.s)
             }
         }
         .buttonStyle(.plain)
