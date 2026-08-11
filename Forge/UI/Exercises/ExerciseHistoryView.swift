@@ -39,7 +39,7 @@ struct ExerciseHistoryView : View {
                             .foregroundColor(.secondary)
                     }
                     ForEach(self.indexedWorkoutSets(for: workoutExercise), id: \.1.id) { index, workoutSet in
-                        WorkoutSetCell(workoutSet: workoutSet, index: index, colorMode: .activated)
+                        WorkoutSetCell(workoutSet: workoutSet, index: index, metric: workoutExercise.storedMetricValue ?? exercise.defaultMetric, colorMode: .activated)
                     }
                 }
             }

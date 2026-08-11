@@ -56,4 +56,28 @@ final class ExerciseCatalogTests: XCTestCase {
             XCTAssertEqual(exercise.muscleGroup, "arms")
         }
     }
+
+    func testActivityCatalogEntriesKeepSharedExerciseIdentityAcrossSections() throws {
+        let exercises = try loadExercises()
+        let jumpRope = try XCTUnwrap(exercises.first { $0.title == "Jump Rope" })
+
+        XCTAssertEqual(exercises.filter { $0.title == "Jump Rope" }.count, 1)
+        XCTAssertEqual(jumpRope.everkineticId, 9111)
+        XCTAssertEqual(jumpRope.uuid, UUID(uuidString: "E95657DA-C588-4417-B7F4-7557E16A1EAA")!)
+        XCTAssertTrue(jumpRope.activityCategories.contains(.cardio))
+        XCTAssertTrue(jumpRope.activityCategories.contains(.martialArts))
+        XCTAssertEqual(jumpRope.defaultMetric, .time)
+
+        let groups = ExerciseStore.splitIntoActivityGroups(exercises: [jumpRope])
+        XCTAssertTrue(groups.first { $0.title == ExerciseActivityCategory.cardio.title }?.exercises.contains(jumpRope) == true)
+        XCTAssertTrue(groups.first { $0.title == ExerciseActivityCategory.martialArts.title }?.exercises.contains(jumpRope) == true)
+        XCTAssertEqual(Set(groups.flatMap(\.exercises).map(\.uuid)).count, 1)
+    }
+
+    func testNewActivityCatalogEntriesAreSearchable() throws {
+        let exercises = try loadExercises()
+        for title in ["Treadmill", "Forehand", "Heavy Bag", "Hip Mobility"] {
+            XCTAssertTrue(ExerciseStore.filter(exercises: exercises, using: title).contains { $0.title == title })
+        }
+    }
 }

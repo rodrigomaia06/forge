@@ -184,6 +184,15 @@ extension ExerciseStore {
         }
         return groups
     }
+
+    public static func splitIntoActivityGroups(exercises: [Exercise]) -> [ExerciseGroup] {
+        ExerciseActivityCategory.allCases.compactMap { category in
+            let groupExercises = exercises
+                .filter { $0.activityCategories.contains(category) }
+                .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+            return groupExercises.isEmpty ? nil : ExerciseGroup(title: category.title, exercises: groupExercises)
+        }
+    }
 }
 
 // MARK: - Find
@@ -269,6 +278,12 @@ extension ExerciseStore {
         entity.primaryMusclesJSON = Self.encodeStrings(primaryMuscle)
         entity.secondaryMusclesJSON = Self.encodeStrings(secondaryMuscle)
         entity.equipmentJSON = Self.encodeStrings(type.equipment.map { [$0] } ?? [])
+        if entity.activityCategoriesJSON == nil {
+            entity.activityCategoriesJSON = Self.encodeCategories([.strength])
+        }
+        if entity.defaultMetric == nil {
+            entity.defaultMetric = ExerciseSetMetric.reps.rawValue
+        }
     }
 
     private func customExerciseEntity(with uuid: UUID, in context: NSManagedObjectContext) -> CustomExercise? {
@@ -315,6 +330,8 @@ extension ExerciseStore {
             everkineticId: Exercise.customEverkineticId,
             title: entity.title ?? "",
             alias: [],
+            activityCategories: decodeCategories(entity.activityCategoriesJSON),
+            defaultMetric: ExerciseSetMetric(rawValue: entity.defaultMetric ?? "") ?? .reps,
             description: entity.exerciseDescription,
             primaryMuscle: decodeStrings(entity.primaryMusclesJSON),
             secondaryMuscle: decodeStrings(entity.secondaryMusclesJSON),
@@ -330,6 +347,18 @@ extension ExerciseStore {
 
     private static func encodeStrings(_ strings: [String]) -> String {
         guard let data = try? JSONEncoder().encode(strings), let string = String(data: data, encoding: .utf8) else { return "[]" }
+        return string
+    }
+
+    private static func decodeCategories(_ json: String?) -> [ExerciseActivityCategory] {
+        guard let data = json?.data(using: .utf8) else { return [.strength] }
+        let categories = (try? JSONDecoder().decode([ExerciseActivityCategory].self, from: data)) ?? [.strength]
+        return categories.isEmpty ? [.strength] : categories
+    }
+
+    private static func encodeCategories(_ categories: [ExerciseActivityCategory]) -> String {
+        let categories = categories.isEmpty ? [.strength] : categories
+        guard let data = try? JSONEncoder().encode(categories), let string = String(data: data, encoding: .utf8) else { return "[\"strength\"]" }
         return string
     }
 }

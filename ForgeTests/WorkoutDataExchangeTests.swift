@@ -41,12 +41,15 @@ final class WorkoutDataExchangeTests: XCTestCase {
         let exerciseUuid = UUID()
         let exercise = WorkoutRoutineExercise.create(context: context)
         exercise.exerciseUuid = exerciseUuid
+        exercise.storedMetricValue = .time
         exercise.assistedValue = true
         exercise.singleRepTargetValue = true
         exercise.workoutRoutine = routine
         let set = WorkoutRoutineSet.create(context: context)
         set.minRepetitionsValue = 6
         set.maxRepetitionsValue = 8
+        set.minTargetDurationValue = 120
+        set.maxTargetDurationValue = 180
         set.tagValue = .dropSet
         set.workoutRoutineExercise = exercise
         try context.save()
@@ -76,6 +79,7 @@ final class WorkoutDataExchangeTests: XCTestCase {
         // The exercise reference is a stable definition id and is preserved.
         XCTAssertEqual(exercises[0].exerciseUuid, exerciseUuid)
         // The bodyweight-assisted and single-rep-target flags survive the round trip.
+        XCTAssertEqual(exercises[0].storedMetricValue, .time)
         XCTAssertTrue(exercises[0].assistedValue)
         XCTAssertTrue(exercises[0].singleRepTargetValue)
 
@@ -83,6 +87,8 @@ final class WorkoutDataExchangeTests: XCTestCase {
         XCTAssertEqual(sets.count, 1)
         XCTAssertEqual(sets[0].minRepetitionsValue, 6)
         XCTAssertEqual(sets[0].maxRepetitionsValue, 8)
+        XCTAssertEqual(sets[0].minTargetDurationValue, 120)
+        XCTAssertEqual(sets[0].maxTargetDurationValue, 180)
         XCTAssertEqual(sets[0].tagValue, .dropSet)
     }
 
@@ -129,10 +135,13 @@ final class WorkoutDataExchangeTests: XCTestCase {
         let exerciseUuid = UUID()
         let exercise = WorkoutExercise.create(context: context)
         exercise.exerciseUuid = exerciseUuid
+        exercise.storedMetricValue = .distance
         exercise.workout = workout
         let set = WorkoutSet.create(context: context)
         set.weightValue = 60
         set.repetitionsValue = 5
+        set.distanceValue = 5
+        set.durationValue = 1_800
         set.isCompleted = true
         set.workoutExercise = exercise
         try context.save()
@@ -153,9 +162,13 @@ final class WorkoutDataExchangeTests: XCTestCase {
 
         let sets = (imported.workoutExercises?.array as? [WorkoutExercise] ?? [])
             .flatMap { $0.workoutSets?.array as? [WorkoutSet] ?? [] }
+        let exercises = imported.workoutExercises?.array as? [WorkoutExercise] ?? []
+        XCTAssertEqual(exercises.first?.storedMetricValue, .distance)
         XCTAssertEqual(sets.count, 1)
         XCTAssertEqual(sets[0].weightValue, 60)
         XCTAssertEqual(sets[0].repetitionsValue, 5)
+        XCTAssertEqual(sets[0].distanceValue, 5)
+        XCTAssertEqual(sets[0].durationValue, 1_800)
         XCTAssertTrue(sets[0].isCompleted)
     }
 

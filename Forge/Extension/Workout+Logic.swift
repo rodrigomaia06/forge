@@ -94,6 +94,7 @@ extension Workout {
                 let newWorkoutExercise = WorkoutExercise.create(context: context)
                 newWorkoutExercise.workout = newWorkout
                 newWorkoutExercise.exerciseUuid = workoutExercise.exerciseUuid
+                newWorkoutExercise.storedMetricValue = workoutExercise.storedMetricValue
                 
                 if let workoutSets = workoutExercise.workoutSets?.compactMap({ $0 as? WorkoutSet }) {
                     // copy the sets
@@ -105,6 +106,9 @@ extension Workout {
                             let repetitions = workoutSet.repetitionsValue
                             newWorkoutSet.minTargetRepetitionsValue = repetitions
                             newWorkoutSet.maxTargetRepetitionsValue = repetitions
+                            newWorkoutSet.minTargetDurationValue = workoutSet.duration
+                            newWorkoutSet.maxTargetDurationValue = workoutSet.duration
+                            newWorkoutSet.targetDistanceValue = workoutSet.distance
                             // don't copy weight, RPE, tag, comment, etc.
                         }
                     }

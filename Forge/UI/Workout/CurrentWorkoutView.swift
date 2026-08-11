@@ -48,6 +48,7 @@ struct CurrentWorkoutView: View {
             return AddExercisesSheet(
                 exercises: exerciseStore.shownExercises,
                 recentExercises: AddExercisesSheet.loadRecentExercises(context: managedObjectContext, exercises: exerciseStore.shownExercises),
+                preferredCategory: ExerciseActivityCategory.category(forWorkoutTypeTitle: workout.workoutType?.displayTitle),
                 onAdd: { selection in self.addExercises(Array(selection), asSuperset: false) },
                 onAddSuperset: { ordered in self.addExercises(ordered, asSuperset: true) }
             ).typeErased
@@ -70,6 +71,7 @@ struct CurrentWorkoutView: View {
             let workoutExercise = WorkoutExercise.create(context: self.managedObjectContext)
             self.workout.addToWorkoutExercises(workoutExercise)
             workoutExercise.exerciseUuid = exercise.uuid
+            workoutExercise.storedMetricValue = exercise.defaultMetric
             workoutExercise.addToWorkoutSets(self.createDefaultWorkoutSets(workoutExercise: workoutExercise))
             added.append(workoutExercise)
         }

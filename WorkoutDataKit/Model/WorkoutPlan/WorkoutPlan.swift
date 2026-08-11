@@ -61,6 +61,7 @@ public class WorkoutPlan: NSManagedObject, Codable {
                             .map { workoutRoutineExercise in
                                 let workoutRoutineExerciseCopy = WorkoutRoutineExercise.create(context: context)
                                 workoutRoutineExerciseCopy.exerciseUuid = workoutRoutineExercise.exerciseUuid
+                                workoutRoutineExerciseCopy.storedMetricValue = workoutRoutineExercise.storedMetricValue
                                 workoutRoutineExerciseCopy.comment = workoutRoutineExercise.comment
                                 workoutRoutineExerciseCopy.supersetComment = workoutRoutineExercise.supersetComment
                                 if let group = workoutRoutineExercise.supersetUUID {
@@ -75,6 +76,9 @@ public class WorkoutPlan: NSManagedObject, Codable {
                                             let workoutRoutineSetCopy  = WorkoutRoutineSet.create(context: context)
                                             workoutRoutineSetCopy.maxRepetitions = workoutRoutineSet.maxRepetitions
                                             workoutRoutineSetCopy.minRepetitions = workoutRoutineSet.minRepetitions
+                                            workoutRoutineSetCopy.maxTargetDurationValue = workoutRoutineSet.maxTargetDurationValue
+                                            workoutRoutineSetCopy.minTargetDurationValue = workoutRoutineSet.minTargetDurationValue
+                                            workoutRoutineSetCopy.targetDistanceValue = workoutRoutineSet.targetDistanceValue
                                             workoutRoutineSetCopy.tagValue = workoutRoutineSet.tagValue
                                             workoutRoutineSetCopy.comment = workoutRoutineSet.comment
                                             return workoutRoutineSetCopy

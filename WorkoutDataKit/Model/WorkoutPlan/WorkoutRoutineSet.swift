@@ -49,6 +49,21 @@ public class WorkoutRoutineSet: NSManagedObject, Codable {
             maxRepetitions = newValue as NSNumber?
         }
     }
+
+    public var minTargetDurationValue: TimeInterval? {
+        get { minTargetDuration?.doubleValue }
+        set { minTargetDuration = newValue.map { NSNumber(value: max(0, min($0, WorkoutSet.MAX_DURATION))) } }
+    }
+
+    public var maxTargetDurationValue: TimeInterval? {
+        get { maxTargetDuration?.doubleValue }
+        set { maxTargetDuration = newValue.map { NSNumber(value: max(0, min($0, WorkoutSet.MAX_DURATION))) } }
+    }
+
+    public var targetDistanceValue: Double? {
+        get { targetDistance?.doubleValue }
+        set { targetDistance = newValue.map { NSNumber(value: max(0, min($0, WorkoutSet.MAX_DISTANCE))) } }
+    }
     
     public var tagValue: WorkoutSetTag? {
         get {
@@ -68,6 +83,9 @@ public class WorkoutRoutineSet: NSManagedObject, Codable {
         case uuid
         case minRepetitions
         case maxRepetitions
+        case minTargetDuration
+        case maxTargetDuration
+        case targetDistance
         case weight
         case rpe
         case tag
@@ -87,6 +105,9 @@ public class WorkoutRoutineSet: NSManagedObject, Codable {
         uuid = try container.decodeIfPresent(UUID.self, forKey: .uuid) ?? UUID() // make sure we always have an UUID
         minRepetitionsValue = try container.decodeIfPresent(Int16.self, forKey: .minRepetitions)
         maxRepetitionsValue = try container.decodeIfPresent(Int16.self, forKey: .maxRepetitions)
+        minTargetDurationValue = try container.decodeIfPresent(Double.self, forKey: .minTargetDuration)
+        maxTargetDurationValue = try container.decodeIfPresent(Double.self, forKey: .maxTargetDuration)
+        targetDistanceValue = try container.decodeIfPresent(Double.self, forKey: .targetDistance)
         tagValue = WorkoutSetTag(rawValue: try container.decodeIfPresent(String.self, forKey: .tag) ?? "")
         comment = try container.decodeIfPresent(String.self, forKey: .comment)
     }
@@ -96,6 +117,9 @@ public class WorkoutRoutineSet: NSManagedObject, Codable {
         try container.encode(uuid ?? UUID(), forKey: .uuid)
         try container.encodeIfPresent(minRepetitionsValue, forKey: .minRepetitions)
         try container.encodeIfPresent(maxRepetitionsValue, forKey: .maxRepetitions)
+        try container.encodeIfPresent(minTargetDurationValue, forKey: .minTargetDuration)
+        try container.encodeIfPresent(maxTargetDurationValue, forKey: .maxTargetDuration)
+        try container.encodeIfPresent(targetDistanceValue, forKey: .targetDistance)
         try container.encodeIfPresent(tagValue?.rawValue, forKey: .tag)
         try container.encodeIfPresent(comment, forKey: .comment)
     }

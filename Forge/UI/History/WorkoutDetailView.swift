@@ -109,6 +109,7 @@ struct WorkoutDetailView : View {
         let objectID: NSManagedObjectID
         let title: String
         let comment: String?
+        let metric: ExerciseSetMetric
         let setLines: [String]
 
         var id: NSManagedObjectID { objectID }
@@ -137,8 +138,9 @@ struct WorkoutDetailView : View {
                 objectID: workoutExercise.objectID,
                 title: workoutExercise.exercise(in: self.exerciseStore.exercises)?.title ?? "",
                 comment: workoutExercise.comment?.isEmpty == false ? workoutExercise.comment : nil,
+                metric: workoutExercise.metricValue(in: self.exerciseStore.exercises),
                 setLines: workoutSets(workoutExercise: workoutExercise).map {
-                    $0.logTitle(weightUnit: self.settingsStore.weightUnit)
+                    $0.logTitle(metric: workoutExercise.metricValue(in: self.exerciseStore.exercises), weightUnit: self.settingsStore.weightUnit)
                 }
             )
         }
@@ -193,7 +195,7 @@ struct WorkoutDetailView : View {
                     .foregroundColor(.secondary)
             }
             ForEach(self.workoutSets(workoutExercise: workoutExercise)) { workoutSet in
-                Text(workoutSet.logTitle(weightUnit: self.settingsStore.weightUnit))
+                Text(workoutSet.logTitle(metric: workoutExercise.metricValue(in: self.exerciseStore.exercises), weightUnit: self.settingsStore.weightUnit))
                     .font(Font.body.monospacedDigit())
                     .foregroundColor(.secondary)
                     .lineLimit(nil)
@@ -486,11 +488,13 @@ struct WorkoutDetailView : View {
             AddExercisesSheet(
                 exercises: self.exerciseStore.shownExercises,
                 recentExercises: AddExercisesSheet.loadRecentExercises(context: self.managedObjectContext, exercises: self.exerciseStore.shownExercises),
+                preferredCategory: ExerciseActivityCategory.category(forWorkoutTypeTitle: workout.workoutType?.displayTitle),
                 onAdd: { selection in
                     for exercise in selection {
                         let workoutExercise = WorkoutExercise.create(context: self.managedObjectContext)
                         self.workout.addToWorkoutExercises(workoutExercise)
                         workoutExercise.exerciseUuid = exercise.uuid
+                        workoutExercise.storedMetricValue = exercise.defaultMetric
                     }
                     self.managedObjectContext.saveOrCrash()
             })

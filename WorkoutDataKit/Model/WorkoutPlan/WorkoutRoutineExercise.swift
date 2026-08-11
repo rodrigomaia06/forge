@@ -67,6 +67,16 @@ public class WorkoutRoutineExercise: NSManagedObject, Codable {
         ExerciseStore.find(in: exercises, with: exerciseUuid)
     }
 
+    public func metricValue(in exercises: [Exercise]) -> ExerciseSetMetric {
+        if let metric = ExerciseSetMetric(rawValue: metric ?? "") { return metric }
+        return exercise(in: exercises)?.defaultMetric ?? .reps
+    }
+
+    public var storedMetricValue: ExerciseSetMetric? {
+        get { ExerciseSetMetric(rawValue: metric ?? "") }
+        set { metric = newValue?.rawValue }
+    }
+
     /// For a bodyweight exercise, whether the routine plans it as assisted rather than weighted. Copied
     /// onto the workout exercise when a workout is started from the routine. Defaults to weighted.
     public var assistedValue: Bool {
@@ -86,6 +96,7 @@ public class WorkoutRoutineExercise: NSManagedObject, Codable {
         case uuid
         case exerciseUuid
         case exerciseName
+        case metric
         case comment
         case supersetUUID
         case supersetComment
@@ -104,6 +115,7 @@ public class WorkoutRoutineExercise: NSManagedObject, Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         uuid = try container.decodeIfPresent(UUID.self, forKey: .uuid) ?? UUID() // make sure we always have an UUID
         exerciseUuid = try container.decodeIfPresent(UUID.self, forKey: .exerciseUuid)
+        storedMetricValue = try container.decodeIfPresent(ExerciseSetMetric.self, forKey: .metric)
         comment = try container.decodeIfPresent(String.self, forKey: .comment)
         // Older exports have no superset id; those exercises decode as ungrouped.
         supersetUUID = try container.decodeIfPresent(UUID.self, forKey: .supersetUUID)
@@ -115,6 +127,7 @@ public class WorkoutRoutineExercise: NSManagedObject, Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(uuid ?? UUID(), forKey: .uuid)
         try container.encodeIfPresent(exerciseUuid, forKey: .exerciseUuid)
+        try container.encodeIfPresent(storedMetricValue, forKey: .metric)
         try container.encodeIfPresent(comment, forKey: .comment)
         try container.encodeIfPresent(supersetUUID, forKey: .supersetUUID)
         try container.encodeIfPresent(supersetComment, forKey: .supersetComment)

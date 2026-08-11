@@ -88,6 +88,7 @@ enum WorkoutDataExchange {
         var supersetGroup: Int?
         // The group's shared note (repeated on each member, as it is stored).
         var supersetComment: String?
+        var metric: ExerciseSetMetric?
         // For a bodyweight exercise, whether it is planned assisted; and whether its sets plan a single rep
         // target rather than a range. Both default off on import when absent.
         var assisted: Bool?
@@ -98,6 +99,9 @@ enum WorkoutDataExchange {
     struct RoutineSetDTO: Codable {
         var minReps: Int16?
         var maxReps: Int16?
+        var minTargetDuration: Double?
+        var maxTargetDuration: Double?
+        var targetDistance: Double?
         var tag: String?
         var comment: String?
     }
@@ -126,6 +130,7 @@ enum WorkoutDataExchange {
         var supersetGroup: Int?
         // The group's shared note (repeated on each member, as it is stored).
         var supersetComment: String?
+        var metric: ExerciseSetMetric?
         var sets: [WorkoutSetDTO]
     }
 
@@ -134,12 +139,17 @@ enum WorkoutDataExchange {
         // The added or assisted weight for a bodyweight set (may be negative). Nil for a normal set.
         var addedWeight: Double?
         var reps: Int16?
+        var duration: Double?
+        var distance: Double?
         var isCompleted: Bool
         var tag: String?
         var rpe: Double?
         var comment: String?
         var minTargetReps: Int16?
         var maxTargetReps: Int16?
+        var minTargetDuration: Double?
+        var maxTargetDuration: Double?
+        var targetDistance: Double?
     }
 
     // MARK: Export
@@ -172,11 +182,18 @@ enum WorkoutDataExchange {
                 RoutineExerciseDTO(
                     exerciseUuid: exercise.exerciseUuid ?? UUID(),
                     comment: exercise.comment,
+                    supersetGroup: nil,
+                    supersetComment: nil,
+                    metric: exercise.storedMetricValue,
                     assisted: exercise.assistedValue,
+                    singleRepTarget: nil,
                     sets: orderedWorkoutSets(exercise).map { set in
                         RoutineSetDTO(
                             minReps: set.minTargetRepetitionsValue ?? set.repetitions?.int16Value,
                             maxReps: set.maxTargetRepetitionsValue ?? set.repetitions?.int16Value,
+                            minTargetDuration: set.minTargetDurationValue ?? set.duration,
+                            maxTargetDuration: set.maxTargetDurationValue ?? set.duration,
+                            targetDistance: set.targetDistanceValue ?? set.distance,
                             tag: set.tagValue?.rawValue,
                             comment: set.comment
                         )
@@ -204,10 +221,19 @@ enum WorkoutDataExchange {
                     comment: exercise.comment,
                     supersetGroup: exercise.supersetUUID.flatMap { groupNumbers[$0] },
                     supersetComment: exercise.supersetComment,
+                    metric: exercise.storedMetricValue,
                     assisted: exercise.assistedValue,
                     singleRepTarget: exercise.singleRepTargetValue,
                     sets: orderedRoutineSets(exercise).map { set in
-                        RoutineSetDTO(minReps: set.minRepetitionsValue, maxReps: set.maxRepetitionsValue, tag: set.tagValue?.rawValue, comment: set.comment)
+                        RoutineSetDTO(
+                            minReps: set.minRepetitionsValue,
+                            maxReps: set.maxRepetitionsValue,
+                            minTargetDuration: set.minTargetDurationValue,
+                            maxTargetDuration: set.maxTargetDurationValue,
+                            targetDistance: set.targetDistanceValue,
+                            tag: set.tagValue?.rawValue,
+                            comment: set.comment
+                        )
                     }
                 )
             }
@@ -242,17 +268,23 @@ enum WorkoutDataExchange {
                     comment: exercise.comment,
                     supersetGroup: exercise.supersetUUID.flatMap { groupNumbers[$0] },
                     supersetComment: exercise.supersetComment,
+                    metric: exercise.storedMetricValue,
                     sets: orderedWorkoutSets(exercise).map { set in
                         WorkoutSetDTO(
                             weight: set.weight?.doubleValue,
                             addedWeight: set.addedWeightValue,
                             reps: set.repetitions?.int16Value,
+                            duration: set.duration?.doubleValue,
+                            distance: set.distance?.doubleValue,
                             isCompleted: set.isCompleted,
                             tag: set.tagValue?.rawValue,
                             rpe: set.rpeValue,
                             comment: set.comment,
                             minTargetReps: set.minTargetRepetitionsValue,
-                            maxTargetReps: set.maxTargetRepetitionsValue
+                            maxTargetReps: set.maxTargetRepetitionsValue,
+                            minTargetDuration: set.minTargetDurationValue,
+                            maxTargetDuration: set.maxTargetDurationValue,
+                            targetDistance: set.targetDistanceValue
                         )
                     }
                 )
@@ -340,6 +372,7 @@ enum WorkoutDataExchange {
         for exerciseDTO in dto.exercises {
             let exercise = WorkoutRoutineExercise.create(context: context)
             exercise.exerciseUuid = exerciseDTO.exerciseUuid
+            exercise.storedMetricValue = exerciseDTO.metric
             exercise.comment = exerciseDTO.comment
             exercise.supersetComment = exerciseDTO.supersetComment
             exercise.assistedValue = exerciseDTO.assisted ?? false
@@ -352,6 +385,9 @@ enum WorkoutDataExchange {
                 let set = WorkoutRoutineSet.create(context: context)
                 set.minRepetitionsValue = setDTO.minReps
                 set.maxRepetitionsValue = setDTO.maxReps
+                set.minTargetDurationValue = setDTO.minTargetDuration
+                set.maxTargetDurationValue = setDTO.maxTargetDuration
+                set.targetDistanceValue = setDTO.targetDistance
                 if let tag = setDTO.tag { set.tagValue = WorkoutSetTag(rawValue: tag) }
                 set.comment = setDTO.comment
                 set.workoutRoutineExercise = exercise
@@ -381,6 +417,7 @@ enum WorkoutDataExchange {
         for exerciseDTO in dto.exercises {
             let exercise = WorkoutExercise.create(context: context)
             exercise.exerciseUuid = exerciseDTO.exerciseUuid
+            exercise.storedMetricValue = exerciseDTO.metric
             exercise.comment = exerciseDTO.comment
             exercise.supersetComment = exerciseDTO.supersetComment
             exercise.workout = workout
@@ -392,12 +429,17 @@ enum WorkoutDataExchange {
                 if let weight = setDTO.weight { set.weightValue = weight }
                 set.addedWeightValue = setDTO.addedWeight
                 if let reps = setDTO.reps { set.repetitionsValue = reps }
+                if let duration = setDTO.duration { set.durationValue = duration }
+                if let distance = setDTO.distance { set.distanceValue = distance }
                 set.isCompleted = setDTO.isCompleted
                 if let tag = setDTO.tag { set.tagValue = WorkoutSetTag(rawValue: tag) }
                 if let rpe = setDTO.rpe { set.rpeValue = rpe }
                 set.comment = setDTO.comment
                 set.minTargetRepetitionsValue = setDTO.minTargetReps
                 set.maxTargetRepetitionsValue = setDTO.maxTargetReps
+                set.minTargetDurationValue = setDTO.minTargetDuration
+                set.maxTargetDurationValue = setDTO.maxTargetDuration
+                set.targetDistanceValue = setDTO.targetDistance
                 set.workoutExercise = exercise
             }
         }

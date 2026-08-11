@@ -16,23 +16,22 @@ struct ExerciseMuscleGroupsView : View {
     // select the all exercises tab by default on iPad
     @State private var allExercisesSelected = UIDevice.current.userInterfaceIdiom == .pad ? true : false
     
-    func exerciseGroupCell(exercises: [Exercise]) -> some View {
-        let muscleGroup = exercises.first?.muscleGroup ?? ""
-        return NavigationLink(destination:
-            ExercisesView(exercises: exercises)
-                .navigationBarTitle(Text(muscleGroup.capitalized), displayMode: .inline)
+    func exerciseGroupCell(_ exerciseGroup: ExerciseGroup) -> some View {
+        NavigationLink(destination:
+            ExercisesView(exercises: exerciseGroup.exercises)
+                .navigationBarTitle(Text(exerciseGroup.title), displayMode: .inline)
         ) {
             HStack {
-                Text(muscleGroup.capitalized)
+                Text(exerciseGroup.title)
                 Spacer()
-                Text("(\(exercises.count))")
+                Text("(\(exerciseGroup.exercises.count))")
                     .foregroundColor(.secondary)
             }
         }
     }
     
     private var exerciseGroups: [ExerciseGroup] {
-        ExerciseStore.splitIntoMuscleGroups(exercises: exerciseStore.shownExercises)
+        ExerciseStore.splitIntoActivityGroups(exercises: exerciseStore.shownExercises)
     }
     
     var body: some View {
@@ -50,7 +49,7 @@ struct ExerciseMuscleGroupsView : View {
                 
                 Section {
                     ForEach(exerciseGroups) { exerciseGroup in
-                        self.exerciseGroupCell(exercises: exerciseGroup.exercises)
+                        self.exerciseGroupCell(exerciseGroup)
                     }
                 }
                 

@@ -16,6 +16,7 @@ struct WorkoutSetCell: View {
 
     @ObservedObject var workoutSet: WorkoutSet
     let index: Int
+    var metric: ExerciseSetMetric = .reps
     var colorMode: ColorMode = .activated
     var isPlaceholder = false
     var showCompleted = false
@@ -125,7 +126,7 @@ struct WorkoutSetCell: View {
                 .font(.forgeValue)
                 .foregroundColor(.forgeSecondaryLabel)
         } else {
-            Text(workoutSet.displayTitle(weightUnit: settingsStore.weightUnit))
+            Text(workoutSet.displayTitle(metric: metric, weightUnit: settingsStore.weightUnit))
                 .font(.forgeValue)
                 .foregroundColor(isMuted ? .forgeSecondaryLabel : .forgeLabel)
                 .background(selectionBorder)

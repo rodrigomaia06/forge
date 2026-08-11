@@ -51,6 +51,7 @@ public class WorkoutRoutine: NSManagedObject, Codable {
         for exercise in (workoutRoutineExercises?.compactMap { $0 as? WorkoutRoutineExercise } ?? []) {
             let exerciseCopy = WorkoutRoutineExercise.create(context: context)
             exerciseCopy.exerciseUuid = exercise.exerciseUuid
+            exerciseCopy.storedMetricValue = exercise.storedMetricValue
             exerciseCopy.comment = exercise.comment
             exerciseCopy.supersetComment = exercise.supersetComment
             exerciseCopy.workoutRoutine = copy
@@ -63,6 +64,9 @@ public class WorkoutRoutine: NSManagedObject, Codable {
                 let setCopy = WorkoutRoutineSet.create(context: context)
                 setCopy.minRepetitions = set.minRepetitions
                 setCopy.maxRepetitions = set.maxRepetitions
+                setCopy.minTargetDurationValue = set.minTargetDurationValue
+                setCopy.maxTargetDurationValue = set.maxTargetDurationValue
+                setCopy.targetDistanceValue = set.targetDistanceValue
                 setCopy.tagValue = set.tagValue
                 setCopy.comment = set.comment
                 setCopy.workoutRoutineExercise = exerciseCopy
@@ -129,6 +133,7 @@ public class WorkoutRoutine: NSManagedObject, Codable {
                 let workoutExercise = WorkoutExercise.create(context: context)
                 workout.addToWorkoutExercises(workoutExercise)
                 workoutExercise.exerciseUuid = workoutRoutineExercise.exerciseUuid
+                workoutExercise.storedMetricValue = workoutRoutineExercise.storedMetricValue
                 workoutExercise.comment = workoutRoutineExercise.comment
                 workoutExercise.assistedValue = workoutRoutineExercise.assistedValue
                 workoutExercise.supersetComment = workoutRoutineExercise.supersetComment
@@ -146,6 +151,9 @@ public class WorkoutRoutine: NSManagedObject, Codable {
                         workoutSet.isCompleted = false
                         workoutSet.maxTargetRepetitions = workoutRoutineSet.maxRepetitions
                         workoutSet.minTargetRepetitions = workoutRoutineSet.minRepetitions
+                        workoutSet.minTargetDurationValue = workoutRoutineSet.minTargetDurationValue
+                        workoutSet.maxTargetDurationValue = workoutRoutineSet.maxTargetDurationValue
+                        workoutSet.targetDistanceValue = workoutRoutineSet.targetDistanceValue
                         workoutSet.tagValue = workoutRoutineSet.tagValue
                         workoutSet.comment = workoutRoutineSet.comment
                     }
@@ -236,6 +244,7 @@ extension WorkoutRoutine {
                 routineExercise.assistedValue = workoutExercise.assistedValue
             }
             routineExercise.exerciseUuid = workoutExercise.exerciseUuid
+            routineExercise.storedMetricValue = workoutExercise.storedMetricValue
             routineExercise.workoutRoutine = self
             // Carry the workout's superset grouping onto the routine, with fresh ids for the routine.
             if let group = workoutExercise.supersetUUID {
@@ -253,6 +262,9 @@ extension WorkoutRoutine {
                 // Keep the planned rep range, falling back to the reps actually done.
                 routineSet.minRepetitionsValue = workoutSet.minTargetRepetitionsValue ?? workoutSet.repetitions?.int16Value
                 routineSet.maxRepetitionsValue = workoutSet.maxTargetRepetitionsValue ?? workoutSet.repetitions?.int16Value
+                routineSet.minTargetDurationValue = workoutSet.minTargetDurationValue
+                routineSet.maxTargetDurationValue = workoutSet.maxTargetDurationValue
+                routineSet.targetDistanceValue = workoutSet.targetDistanceValue
                 routineSet.workoutRoutineExercise = routineExercise
                 updatedSets.append(routineSet)
             }

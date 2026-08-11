@@ -72,6 +72,20 @@ struct WorkoutExerciseDetailView : View {
     /// layout, which owns a single local presenter at its navigation root.
     private let onPresentSheet: ((WorkoutExerciseSheetRoute) -> Void)?
 
+    private var metric: ExerciseSetMetric {
+        workoutExercise.metricValue(in: exerciseStore.exercises)
+    }
+
+    private var metricBinding: Binding<ExerciseSetMetric> {
+        Binding(
+            get: { metric },
+            set: {
+                workoutExercise.storedMetricValue = $0
+                managedObjectContext.saveOrCrash()
+            }
+        )
+    }
+
     /// One exercise's place in a superset: the A / B / C label and where it sits in the round. `isFirst`
     /// drives the extra spacing that separates one member's block from the previous one.
     struct SupersetMember {
@@ -290,7 +304,7 @@ struct WorkoutExerciseDetailView : View {
             Text("Set").frame(width: 36)
             Text("Previous").frame(maxWidth: .infinity, alignment: .center)
             Text(settingsStore.weightUnit.unit.symbol).frame(width: 68)
-            Text("Reps").frame(width: 60)
+            Text(metric == .distance ? metric.valueLabel : metric.valueLabel.capitalized).frame(width: 60)
             // Matches the 44pt complete-set button so the kg and reps headers sit over their boxes.
             if isCurrentWorkout { Color.clear.frame(width: 44, height: 0) }
         }
@@ -305,7 +319,7 @@ struct WorkoutExerciseDetailView : View {
         guard index >= 0,
               let sets = workoutExerciseHistory.first?.workoutSets?.array as? [WorkoutSet],
               index < sets.count else { return nil }
-        return sets[index].displayTitle(weightUnit: settingsStore.weightUnit)
+        return sets[index].displayTitle(metric: metric, weightUnit: settingsStore.weightUnit)
     }
 
     /// The next-time target weight planned on the matching set last session, formatted for the display
@@ -333,6 +347,7 @@ struct WorkoutExerciseDetailView : View {
                 workoutSet: workoutSet,
                 index: index,
                 weightUnit: settingsStore.weightUnit,
+                metric: metric,
                 isCurrentWorkout: isCurrentWorkout,
                 isUpNext: firstUncompletedSet == workoutSet,
                 showRPE: settingsStore.showRPE,
@@ -444,6 +459,15 @@ struct WorkoutExerciseDetailView : View {
     }
 
     @ViewBuilder private var exerciseMenuItems: some View {
+        Menu {
+            Picker("Measure by", selection: metricBinding) {
+                ForEach(ExerciseSetMetric.allCases, id: \.self) { metric in
+                    Text(metric.title).tag(metric)
+                }
+            }
+        } label: {
+            Label("Measure by", systemImage: "ruler")
+        }
         Button {
             HangMonitor.note(.exerciseNoteOpened)
             present(.exerciseNote(workoutExercise))
@@ -849,7 +873,7 @@ private struct WorkoutExerciseHistorySheet: View {
                 .listRowInsets(EdgeInsets(top: Theme.Spacing.s, leading: Theme.Spacing.m, bottom: Theme.Spacing.xxs, trailing: Theme.Spacing.m))
 
                 ForEach(indexedWorkoutSets(for: pastWorkoutExercise), id: \.1.id) { index, workoutSet in
-                    WorkoutSetCell(workoutSet: workoutSet, index: index, colorMode: .disabled)
+                    WorkoutSetCell(workoutSet: workoutSet, index: index, metric: metric, colorMode: .disabled)
                         .listRowInsets(EdgeInsets(top: 2, leading: Theme.Spacing.m, bottom: 2, trailing: Theme.Spacing.m))
                 }
             }
@@ -895,6 +919,7 @@ private struct ActiveSetRow: View {
     @ObservedObject var workoutSet: WorkoutSet
     let index: Int
     let weightUnit: WeightUnit
+    let metric: ExerciseSetMetric
     let isCurrentWorkout: Bool
     let isUpNext: Bool
     let showRPE: Bool
@@ -936,6 +961,8 @@ private struct ActiveSetRow: View {
     // committed to the set on each change and re-read from the set when it changes elsewhere.
     @State private var weightInput = ""
     @State private var repsInput = ""
+    @State private var durationInput = ""
+    @State private var distanceInput = ""
 
     private static let weightFormatter: NumberFormatter = {
         let f = NumberFormatter()
@@ -973,6 +1000,8 @@ private struct ActiveSetRow: View {
             weightInput = workoutSet.weight == nil ? "" : (Self.weightFormatter.string(from: NSNumber(value: WeightUnit.convert(weight: workoutSet.weightValue, from: .metric, to: weightUnit))) ?? "")
         }
         repsInput = workoutSet.repetitions == nil ? "" : "\(workoutSet.repetitionsValue)"
+        durationInput = workoutSet.duration == nil ? "" : Self.compactWeightFormatter.string(from: NSNumber(value: workoutSet.durationValue / 60)) ?? ""
+        distanceInput = workoutSet.distance == nil ? "" : Self.compactWeightFormatter.string(from: NSNumber(value: workoutSet.distanceValue)) ?? ""
     }
 
     private func commitWeight() {
@@ -1006,6 +1035,24 @@ private struct ActiveSetRow: View {
         }
     }
 
+    private func commitDuration() {
+        let trimmed = durationInput.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty {
+            workoutSet.duration = nil
+        } else if let number = Self.weightFormatter.number(from: trimmed) {
+            workoutSet.durationValue = number.doubleValue * 60
+        }
+    }
+
+    private func commitDistance() {
+        let trimmed = distanceInput.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty {
+            workoutSet.distance = nil
+        } else if let number = Self.weightFormatter.number(from: trimmed) {
+            workoutSet.distanceValue = number.doubleValue
+        }
+    }
+
     // The set number sits in a filled chip tinted by the set type (failure, drop set); a dot marks a
     // set that has a note. Tapping the chip opens the options sheet (tag, note, target, RPE).
     private var numberChip: some View {
@@ -1023,6 +1070,15 @@ private struct ActiveSetRow: View {
             minRepetitions: workoutSet.minTargetRepetitionsValue.map(Int.init),
             maxRepetitions: workoutSet.maxTargetRepetitionsValue.map(Int.init)
         )
+    }
+
+    private var targetDurationString: String? {
+        let minMinutes = workoutSet.minTargetDurationValue.map { Int($0 / 60) }
+        let maxMinutes = workoutSet.maxTargetDurationValue.map { Int($0 / 60) }
+        if let minMinutes, let maxMinutes, minMinutes != maxMinutes {
+            return "\(minMinutes)–\(maxMinutes)"
+        }
+        return (minMinutes ?? maxMinutes).map { "\($0)" }
     }
 
     // Briefly outlined in red when the user tries to complete a set with this field empty.
@@ -1056,15 +1112,24 @@ private struct ActiveSetRow: View {
         // The field may still be focused (its onCommit hasn't fired), so persist the typed values first.
         commitWeight()
         commitReps()
+        commitDuration()
+        commitDistance()
         // A bodyweight set needs no weight entry (blank means a pure bodyweight rep); only reps are required.
-        let hasWeight = isBodyweight || !weightInput.trimmingCharacters(in: .whitespaces).isEmpty
-        let hasReps = (Int(repsInput.trimmingCharacters(in: .whitespaces)) ?? 0) > 0
-        guard hasWeight, hasReps else {
+        let hasWeight = metric.usesReps ? (isBodyweight || !weightInput.trimmingCharacters(in: .whitespaces).isEmpty) : true
+        let hasValue: Bool
+        if metric.usesTime {
+            hasValue = workoutSet.durationValue > 0
+        } else if metric.usesDistance {
+            hasValue = workoutSet.distanceValue > 0
+        } else {
+            hasValue = (Int(repsInput.trimmingCharacters(in: .whitespaces)) ?? 0) > 0
+        }
+        guard hasWeight, hasValue else {
             HangMonitor.note(.completeRefused)
             Haptics.error()
             withAnimation(.easeInOut(duration: 0.15)) {
                 weightInvalid = !hasWeight
-                repsInvalid = !hasReps
+                repsInvalid = !hasValue
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -1106,10 +1171,22 @@ private struct ActiveSetRow: View {
 
             if isEditable {
                 setField($weightInput, keyboard: .decimalPad, width: 68, accessibilityLabel: "Set \(index) weight", placeholder: weightPlaceholder, displayText: compactWeightText, invalid: weightInvalid, onCommit: commitWeight)
-                setField($repsInput, keyboard: .numberPad, width: 60, accessibilityLabel: "Set \(index) repetitions", placeholder: targetRepsString ?? "", invalid: repsInvalid, onCommit: commitReps)
+                if metric.usesTime {
+                    setField($durationInput, keyboard: .decimalPad, width: 60, accessibilityLabel: "Set \(index) minutes", placeholder: targetDurationString ?? "", invalid: repsInvalid, onCommit: commitDuration)
+                } else if metric.usesDistance {
+                    setField($distanceInput, keyboard: .decimalPad, width: 60, accessibilityLabel: "Set \(index) distance", placeholder: workoutSet.targetDistanceValue.map { WorkoutSet.distanceString(from: $0) } ?? "", invalid: repsInvalid, onCommit: commitDistance)
+                } else {
+                    setField($repsInput, keyboard: .numberPad, width: 60, accessibilityLabel: "Set \(index) repetitions", placeholder: targetRepsString ?? "", invalid: repsInvalid, onCommit: commitReps)
+                }
             } else {
                 readValue(isBodyweight ? bodyweightReadText : (workoutSet.weight == nil ? "—" : weightText), width: 68)
-                readValue(workoutSet.repetitions == nil ? "—" : "\(workoutSet.repetitionsValue)", width: 60)
+                if metric.usesTime {
+                    readValue(workoutSet.duration == nil ? "—" : WorkoutSet.durationString(from: workoutSet.durationValue), width: 60)
+                } else if metric.usesDistance {
+                    readValue(workoutSet.distance == nil ? "—" : WorkoutSet.distanceString(from: workoutSet.distanceValue), width: 60)
+                } else {
+                    readValue(workoutSet.repetitions == nil ? "—" : "\(workoutSet.repetitionsValue)", width: 60)
+                }
             }
 
             if isCurrentWorkout {

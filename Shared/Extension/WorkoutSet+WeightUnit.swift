@@ -13,8 +13,16 @@ extension WorkoutSet {
     func displayTitle(weightUnit: WeightUnit) -> String {
         displayTitle(unit: weightUnit.unit, formatter: weightUnit.formatter)
     }
+
+    func displayTitle(metric: ExerciseSetMetric, weightUnit: WeightUnit) -> String {
+        displayTitle(metric: metric, unit: weightUnit.unit, formatter: weightUnit.formatter)
+    }
     
     func logTitle(weightUnit: WeightUnit) -> String {
         logTitle(unit: weightUnit.unit, formatter: weightUnit.formatter)
+    }
+
+    func logTitle(metric: ExerciseSetMetric, weightUnit: WeightUnit) -> String {
+        logTitle(metric: metric, unit: weightUnit.unit, formatter: weightUnit.formatter)
     }
 }

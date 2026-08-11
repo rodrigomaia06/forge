@@ -140,7 +140,7 @@ struct WorkoutRoutineView: View {
             ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
             ForEach(indexedRoutineSets(ex), id: \.1.id) { (index, set) in
                 ForgeSwipeToDeleteRow(onDelete: { deleteRoutineSet(set) }) {
-                    RoutineSetRow(workoutRoutineSet: set, index: index, singleTarget: ex.singleRepTargetValue, isEditable: true, onOpenOptions: { optionsSet = set })
+                    RoutineSetRow(workoutRoutineSet: set, index: index, metric: ex.metricValue(in: exerciseStore.exercises), singleTarget: ex.singleRepTargetValue, isEditable: true, onOpenOptions: { optionsSet = set })
                         .padding(.horizontal, Theme.Spacing.m)
                         .padding(.vertical, Theme.Spacing.s)
                         .overlay(alignment: .bottom) {
@@ -160,17 +160,32 @@ struct WorkoutRoutineView: View {
     }
 
     private func exerciseMenu(_ ex: WorkoutRoutineExercise) -> some View {
+        let metric = ex.metricValue(in: exerciseStore.exercises)
         Menu {
             Menu {
-                Picker("Rep target", selection: Binding(
-                    get: { ex.singleRepTargetValue },
-                    set: { ex.singleRepTargetValue = $0; managedObjectContext.saveOrCrash() }
+                Picker("Measure by", selection: Binding(
+                    get: { ex.metricValue(in: exerciseStore.exercises) },
+                    set: { ex.storedMetricValue = $0; managedObjectContext.saveOrCrash() }
                 )) {
-                    Text("Rep range").tag(false)
-                    Text("Single rep target").tag(true)
+                    ForEach(ExerciseSetMetric.allCases, id: \.self) { metric in
+                        Text(metric.title).tag(metric)
+                    }
                 }
             } label: {
-                Label("Rep target", systemImage: "number")
+                Label("Measure by", systemImage: "ruler")
+            }
+            if metric.usesReps {
+                Menu {
+                    Picker("Rep target", selection: Binding(
+                        get: { ex.singleRepTargetValue },
+                        set: { ex.singleRepTargetValue = $0; managedObjectContext.saveOrCrash() }
+                    )) {
+                        Text("Rep range").tag(false)
+                        Text("Single rep target").tag(true)
+                    }
+                } label: {
+                    Label("Rep target", systemImage: "number")
+                }
             }
             if ex.exercise(in: exerciseStore.exercises)?.isBodyweight == true {
                 Menu {
@@ -211,6 +226,7 @@ struct WorkoutRoutineView: View {
         AddExercisesSheet(
             exercises: exerciseStore.shownExercises,
             recentExercises: AddExercisesSheet.loadRecentExercises(context: managedObjectContext, exercises: exerciseStore.shownExercises),
+            preferredCategory: ExerciseActivityCategory.category(forWorkoutTypeTitle: workoutRoutine.defaultWorkoutType?.displayTitle),
             onAdd: { selection in self.addExercises(Array(selection), asSuperset: false) },
             onAddSuperset: { ordered in self.addExercises(ordered, asSuperset: true) }
         )
@@ -224,6 +240,7 @@ struct WorkoutRoutineView: View {
             let workoutRoutineExercise = WorkoutRoutineExercise.create(context: self.managedObjectContext)
             workoutRoutineExercise.workoutRoutine = self.workoutRoutine
             workoutRoutineExercise.exerciseUuid = exercise.uuid
+            workoutRoutineExercise.storedMetricValue = exercise.defaultMetric
             added.append(workoutRoutineExercise)
         }
         if asSuperset {
@@ -449,6 +466,7 @@ struct WorkoutRoutineView: View {
 private struct RoutineSetRow: View {
     @ObservedObject var workoutRoutineSet: WorkoutRoutineSet
     let index: Int
+    let metric: ExerciseSetMetric
     let singleTarget: Bool
     let isEditable: Bool
     /// Opens this set's type and note from the routine-level sheet presenter.
@@ -458,11 +476,34 @@ private struct RoutineSetRow: View {
     @State private var maxInput = ""
 
     private func syncFromModel() {
-        minInput = workoutRoutineSet.minRepetitionsValue.map { "\($0)" } ?? ""
-        maxInput = workoutRoutineSet.maxRepetitionsValue.map { "\($0)" } ?? ""
+        if metric.usesTime {
+            minInput = workoutRoutineSet.minTargetDurationValue.map { "\(Int($0 / 60))" } ?? ""
+            maxInput = workoutRoutineSet.maxTargetDurationValue.map { "\(Int($0 / 60))" } ?? ""
+        } else if metric.usesDistance {
+            minInput = workoutRoutineSet.targetDistanceValue.map { String(format: "%g", $0) } ?? ""
+            maxInput = ""
+        } else {
+            minInput = workoutRoutineSet.minRepetitionsValue.map { "\($0)" } ?? ""
+            maxInput = workoutRoutineSet.maxRepetitionsValue.map { "\($0)" } ?? ""
+        }
     }
 
     private func commitMin() {
+        if metric.usesTime {
+            let value = Double(minInput.trimmingCharacters(in: .whitespaces)).map { $0 * 60 }
+            workoutRoutineSet.minTargetDurationValue = value
+            if metric == .time || singleTarget {
+                workoutRoutineSet.maxTargetDurationValue = value
+                maxInput = value.map { "\(Int($0 / 60))" } ?? ""
+            }
+            workoutRoutineSet.managedObjectContext?.saveOrCrash()
+            return
+        }
+        if metric.usesDistance {
+            workoutRoutineSet.targetDistanceValue = Double(minInput.trimmingCharacters(in: .whitespaces))
+            workoutRoutineSet.managedObjectContext?.saveOrCrash()
+            return
+        }
         let value = Int16(minInput.trimmingCharacters(in: .whitespaces))
         workoutRoutineSet.minRepetitionsValue = value
         if singleTarget {
@@ -473,22 +514,37 @@ private struct RoutineSetRow: View {
     }
 
     private func commitMax() {
+        if metric.usesTime {
+            workoutRoutineSet.maxTargetDurationValue = Double(maxInput.trimmingCharacters(in: .whitespaces)).map { $0 * 60 }
+            workoutRoutineSet.managedObjectContext?.saveOrCrash()
+            return
+        }
+        if metric.usesDistance { return }
         workoutRoutineSet.maxRepetitionsValue = Int16(maxInput.trimmingCharacters(in: .whitespaces))
         workoutRoutineSet.managedObjectContext?.saveOrCrash()
     }
 
     private var readText: String {
+        if metric.usesTime {
+            return WorkoutSet.durationIntervalString(
+                minDuration: workoutRoutineSet.minTargetDurationValue,
+                maxDuration: workoutRoutineSet.maxTargetDurationValue
+            ) ?? "—"
+        }
+        if metric.usesDistance {
+            return workoutRoutineSet.targetDistanceValue.map { WorkoutSet.distanceString(from: $0) } ?? "—"
+        }
         WorkoutRoutineSetCell.repetitionIntervalString(
             minRepetitions: workoutRoutineSet.minRepetitionsValue.map(Int.init),
             maxRepetitions: workoutRoutineSet.maxRepetitionsValue.map(Int.init)
         ) ?? "—"
     }
 
-    private func field(_ text: Binding<String>, placeholder: String, onCommit: @escaping () -> Void) -> some View {
+    private func field(_ text: Binding<String>, placeholder: String, keyboardType: UIKeyboardType = .numberPad, onCommit: @escaping () -> Void) -> some View {
         RightAlignedNumberField(
             text: text,
             placeholder: placeholder,
-            keyboardType: .numberPad,
+            keyboardType: keyboardType,
             accessibilityLabel: valueFieldLabel(for: placeholder),
             alignment: .center,
             onCommit: onCommit
@@ -497,6 +553,12 @@ private struct RoutineSetRow: View {
     }
 
     private func valueFieldLabel(for placeholder: String) -> String {
+        if metric.usesTime {
+            return placeholder == "max" ? "Maximum minutes" : "Minutes"
+        }
+        if metric.usesDistance {
+            return "Distance"
+        }
         switch placeholder {
         case "min":
             return "Minimum reps"
@@ -523,8 +585,8 @@ private struct RoutineSetRow: View {
             .contentShape(Rectangle())
             Spacer()
             if isEditable {
-                if singleTarget {
-                    field($minInput, placeholder: "reps", onCommit: commitMin)
+                if metric == .time || metric == .distance || singleTarget {
+                    field($minInput, placeholder: metric.valueLabel, keyboardType: metric.usesDistance ? .decimalPad : .numberPad, onCommit: commitMin)
                 } else {
                     field($minInput, placeholder: "min", onCommit: commitMin)
                     Text("–").foregroundColor(.forgeSecondaryLabel)
@@ -533,11 +595,13 @@ private struct RoutineSetRow: View {
             } else {
                 Text(readText).font(.forgeValue).foregroundColor(.forgeSecondaryLabel)
             }
-            Text("reps").font(.forgeCaption).foregroundColor(.forgeSecondaryLabel)
+            Text(metric.valueLabel).font(.forgeCaption).foregroundColor(.forgeSecondaryLabel)
         }
         .onAppear { syncFromModel() }
         .onChange(of: singleTarget) { _, _ in syncFromModel() }
+        .onChange(of: metric) { _, _ in syncFromModel() }
     }
+
 }
 
 /// The type and note editor for a routine set. Rep targets remain editable inline in `RoutineSetRow`.

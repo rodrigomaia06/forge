@@ -13,6 +13,8 @@ public struct Exercise: Hashable {
     public let everkineticId: Int // this is the everkinetic exercise id or 10000 if it's a custom exercise
     public let title: String
     public let alias: [String]
+    public let activityCategories: [ExerciseActivityCategory]
+    public let defaultMetric: ExerciseSetMetric
     public let description: String? // primer
     public let primaryMuscle: [String] // primary
     public let secondaryMuscle: [String] // secondary
@@ -20,6 +22,97 @@ public struct Exercise: Hashable {
     public let steps: [String]
     public let tips: [String]
     public let references: [String]
+
+    public init(
+        uuid: UUID,
+        everkineticId: Int,
+        title: String,
+        alias: [String],
+        activityCategories: [ExerciseActivityCategory] = [.strength],
+        defaultMetric: ExerciseSetMetric = .reps,
+        description: String?,
+        primaryMuscle: [String],
+        secondaryMuscle: [String],
+        equipment: [String],
+        steps: [String],
+        tips: [String],
+        references: [String]
+    ) {
+        self.uuid = uuid
+        self.everkineticId = everkineticId
+        self.title = title
+        self.alias = alias
+        self.activityCategories = activityCategories.isEmpty ? [.strength] : activityCategories
+        self.defaultMetric = defaultMetric
+        self.description = description
+        self.primaryMuscle = primaryMuscle
+        self.secondaryMuscle = secondaryMuscle
+        self.equipment = equipment
+        self.steps = steps
+        self.tips = tips
+        self.references = references
+    }
+}
+
+public enum ExerciseActivityCategory: String, CaseIterable, Codable, Hashable {
+    case strength
+    case cardio
+    case tennis
+    case martialArts = "martial_arts"
+    case mobility
+    case other
+
+    public var title: String {
+        switch self {
+        case .strength: return "Strength"
+        case .cardio: return "Cardio"
+        case .tennis: return "Tennis"
+        case .martialArts: return "Martial arts"
+        case .mobility: return "Mobility"
+        case .other: return "Other"
+        }
+    }
+
+    public static func category(forWorkoutTypeTitle title: String?) -> ExerciseActivityCategory {
+        switch (title ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "cardio": return .cardio
+        case "tennis": return .tennis
+        case "martial arts": return .martialArts
+        case "mobility": return .mobility
+        case "other": return .other
+        default: return .strength
+        }
+    }
+}
+
+public enum ExerciseSetMetric: String, CaseIterable, Codable, Hashable {
+    case reps
+    case repRange = "rep_range"
+    case time
+    case timeRange = "time_range"
+    case distance
+
+    public var title: String {
+        switch self {
+        case .reps: return "Reps"
+        case .repRange: return "Rep range"
+        case .time: return "Time"
+        case .timeRange: return "Time range"
+        case .distance: return "Distance"
+        }
+    }
+
+    public var valueLabel: String {
+        switch self {
+        case .reps, .repRange: return "reps"
+        case .time, .timeRange: return "time"
+        case .distance: return "km"
+        }
+    }
+
+    public var usesReps: Bool { self == .reps || self == .repRange }
+    public var usesTime: Bool { self == .time || self == .timeRange }
+    public var usesDistance: Bool { self == .distance }
 }
 
 extension Exercise {
@@ -155,6 +248,8 @@ extension Exercise: Codable {
 //        case name
         case title
         case alias
+        case categories
+        case metric
         case primer
 //        case type
         case primary
@@ -173,6 +268,8 @@ extension Exercise: Codable {
         let id = try container.decode(Int.self, forKey: .id)
         let title = try container.decode(String.self, forKey: .title)
         let alias = try container.decodeIfPresent([String].self, forKey: .alias) ?? []
+        let categories = try container.decodeIfPresent([ExerciseActivityCategory].self, forKey: .categories) ?? [.strength]
+        let metric = try container.decodeIfPresent(ExerciseSetMetric.self, forKey: .metric) ?? .reps
         let primer = try container.decodeIfPresent(String.self, forKey: .primer)
         let primary = try container.decode([String].self, forKey: .primary)
         let secondary = try container.decode([String].self, forKey: .secondary)
@@ -181,7 +278,7 @@ extension Exercise: Codable {
         let tips = try container.decodeIfPresent([String].self, forKey: .tips) ?? []
         let references = try container.decodeIfPresent([String].self, forKey: .references) ?? []
 
-        self.init(uuid: uuid, everkineticId: id, title: title, alias: alias, description: primer, primaryMuscle: primary, secondaryMuscle: secondary, equipment: equipment, steps: steps, tips: tips, references: references)
+        self.init(uuid: uuid, everkineticId: id, title: title, alias: alias, activityCategories: categories, defaultMetric: metric, description: primer, primaryMuscle: primary, secondaryMuscle: secondary, equipment: equipment, steps: steps, tips: tips, references: references)
     }
     
     // MARK: Encodalbe
@@ -191,6 +288,8 @@ extension Exercise: Codable {
         try container.encode(everkineticId, forKey: .id)
         try container.encode(title, forKey: .title)
         try container.encode(alias, forKey: .alias)
+        try container.encode(activityCategories, forKey: .categories)
+        try container.encode(defaultMetric, forKey: .metric)
         try container.encodeIfPresent(description, forKey: .primer)
         try container.encode(primaryMuscle, forKey: .primary)
         try container.encode(secondaryMuscle, forKey: .secondary)
