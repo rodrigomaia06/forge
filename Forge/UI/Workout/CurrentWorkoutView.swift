@@ -213,10 +213,6 @@ struct CurrentWorkoutView: View {
         return type.displayTitle.caseInsensitiveCompare(WorkoutType.fallbackTitle) == .orderedSame
     }
 
-    private var isTimeOnlyCurrentWorkout: Bool {
-        !isStrengthWorkout && (workout.workoutExercises?.count ?? 0) == 0
-    }
-
     private func shouldNameEmptyAdHocWorkout(afterSelecting type: WorkoutType?, previousTitle: String?) -> Bool {
         guard let type, (workout.workoutExercises?.count ?? 0) == 0, workout.workoutRoutine == nil else { return false }
         if type.uuid == WorkoutType.defaultPresets.first?.uuid { return false }
@@ -313,34 +309,32 @@ struct CurrentWorkoutView: View {
                 scrollCharacteristics
                 scrollAttributes
 
-                if !isTimeOnlyCurrentWorkout {
-                    VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-                        scrollSectionTitle("Exercises")
-                        VStack(spacing: Theme.Spacing.xxl) {
-                            ForEach(Array(workout.exerciseSlots.enumerated()), id: \.element.id) { _, slot in
-                                switch slot {
-                                case .single(let workoutExercise):
-                                    WorkoutExerciseDetailView(
-                                        workoutExercise: workoutExercise,
-                                        embedded: true,
-                                        scrollCard: true,
-                                        onPresentSheet: present
-                                    )
-                                case .superset(_, let exercises):
-                                    SupersetCard(
-                                        anchor: exercises[0],
-                                        exercises: exercises,
-                                        sectionHeader: nil,
-                                        scrollCard: true,
-                                        onPresentSheet: present
-                                    )
-                                }
+                VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+                    scrollSectionTitle("Exercises")
+                    VStack(spacing: Theme.Spacing.xxl) {
+                        ForEach(Array(workout.exerciseSlots.enumerated()), id: \.element.id) { _, slot in
+                            switch slot {
+                            case .single(let workoutExercise):
+                                WorkoutExerciseDetailView(
+                                    workoutExercise: workoutExercise,
+                                    embedded: true,
+                                    scrollCard: true,
+                                    onPresentSheet: present
+                                )
+                            case .superset(_, let exercises):
+                                SupersetCard(
+                                    anchor: exercises[0],
+                                    exercises: exercises,
+                                    sectionHeader: nil,
+                                    scrollCard: true,
+                                    onPresentSheet: present
+                                )
                             }
                         }
                     }
-
-                    addExerciseScrollButton
                 }
+
+                addExerciseScrollButton
             }
             .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
             .padding(.top, Theme.Spacing.l)
