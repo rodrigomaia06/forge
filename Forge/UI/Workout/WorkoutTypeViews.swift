@@ -199,15 +199,13 @@ struct WorkoutTypesSettingsView: View {
             }
 
             if !hiddenTypes.isEmpty {
-                Section(header: Text("Hidden")) {
+                Section(header: Text("Hidden"), footer: Text("Open a hidden type and turn off Hide from workout pickers to show it again."), content: {
                     ForEach(hiddenTypes, id: \.objectID) { type in
                         NavigationLink(destination: WorkoutTypeEditorView(type: type)) {
                             WorkoutTypeSettingsRow(type: type)
                         }
                     }
-                } footer: {
-                    Text("Open a hidden type and turn off Hide from workout pickers to show it again.")
-                }
+                })
             }
         }
         .environment(\.editMode, $editMode)
