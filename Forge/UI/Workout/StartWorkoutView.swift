@@ -277,10 +277,12 @@ private struct RoutineMenuRow: View {
             } label: { Label("Delete", systemImage: "trash") }
         } label: {
             HStack(spacing: Theme.Spacing.m) {
-                RoundedRectangle(cornerRadius: 2, style: .continuous)
-                    .fill(Color(workoutTypeHex: routine.defaultWorkoutType?.displayColorHex ?? WorkoutType.fallbackColorHex))
-                    .frame(width: 4, height: 40)
-                    .accessibilityHidden(true)
+                if nested {
+                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                        .fill(Color(workoutTypeHex: routine.defaultWorkoutType?.displayColorHex ?? WorkoutType.fallbackColorHex))
+                        .frame(width: 4, height: 40)
+                        .accessibilityHidden(true)
+                }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(routine.displayTitle).italic()
                     let subtitle = routine.subtitle(in: exerciseStore.exercises)
