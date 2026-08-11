@@ -200,7 +200,7 @@ struct CurrentWorkoutView: View {
     }
 
     private var hasWorkoutName: Bool {
-        !(workout.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !(workoutTitleInput ?? workout.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || workout.workoutPlanAndRoutineTitle() != nil
     }
 
@@ -380,6 +380,9 @@ struct CurrentWorkoutView: View {
     }
 
     private func finishWorkout(updateRoutine: Bool) {
+        adjustAndSaveWorkoutTitleInput()
+        adjustAndSaveWorkoutCommentInput()
+
         // Freeze the current bodyweight onto the workout so its bodyweight-set stats stay fixed even if the
         // setting later changes. Stats read this frozen value; the live setting is only a fallback while a
         // workout is still in progress.
