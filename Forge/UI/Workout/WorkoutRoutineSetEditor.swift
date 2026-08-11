@@ -211,7 +211,7 @@ struct WorkoutRoutineSetEditor: View {
             }
             .padding(6)
         }
-        .accessibilityLabel(useRange ? "Use a single rep target" : "Use a rep range")
+        .accessibilityLabel(useRange ? "Use a single target" : "Use a target range")
     }
 
     private var repetitionsMinDragger: some View {

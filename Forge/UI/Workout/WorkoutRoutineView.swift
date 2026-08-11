@@ -164,10 +164,10 @@ struct WorkoutRoutineView: View {
         return Menu {
             Menu {
                 Picker("Measure by", selection: Binding(
-                    get: { ex.metricValue(in: exerciseStore.exercises) },
+                    get: { ex.metricValue(in: exerciseStore.exercises).selectableValue },
                     set: { ex.storedMetricValue = $0; managedObjectContext.saveOrCrash() }
                 )) {
-                    ForEach(ExerciseSetMetric.allCases, id: \.self) { metric in
+                    ForEach(ExerciseSetMetric.selectableCases, id: \.self) { metric in
                         Text(metric.title).tag(metric)
                     }
                 }
@@ -176,15 +176,15 @@ struct WorkoutRoutineView: View {
             }
             if metric.usesReps {
                 Menu {
-                    Picker("Rep target", selection: Binding(
+                    Picker("Target format", selection: Binding(
                         get: { ex.singleRepTargetValue },
                         set: { ex.singleRepTargetValue = $0; managedObjectContext.saveOrCrash() }
                     )) {
-                        Text("Rep range").tag(false)
-                        Text("Single rep target").tag(true)
+                        Text("Range").tag(false)
+                        Text("Single value").tag(true)
                     }
                 } label: {
-                    Label("Rep target", systemImage: "number")
+                    Label("Target format", systemImage: "number")
                 }
             }
             if ex.exercise(in: exerciseStore.exercises)?.isBodyweight == true {

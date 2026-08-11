@@ -257,7 +257,7 @@ private struct WorkoutTypeSettingsRow: View {
             colorSwatch(type.displayColorHex)
             Text(type.displayTitle)
             if type.isArchived {
-                Text("Archived")
+                Text("Hidden from pickers")
                     .font(.forgeCaption)
                     .foregroundColor(.forgeSecondaryLabel)
             }
@@ -315,12 +315,12 @@ private struct WorkoutTypeEditorView: View {
             }
 
             Section {
-                Toggle("Archived", isOn: Binding(
+                Toggle("Hide from workout pickers", isOn: Binding(
                     get: { type.isArchived },
                     set: { type.isArchived = $0; context.saveOrCrash() }
                 ))
             } footer: {
-                Text("Archived types stay on old workouts but are hidden from workout pickers.")
+                Text("Hidden types stay on existing workouts and routines, but they do not appear when choosing a type for new workouts.")
             }
 
             Section {
@@ -329,11 +329,11 @@ private struct WorkoutTypeEditorView: View {
                     context.saveOrCrash()
                     dismiss()
                 } label: {
-                    Text(type.isDefaultPreset || type.hasUserDataReferences ? "Archive type" : "Delete type")
+                    Text(type.isDefaultPreset || type.hasUserDataReferences ? "Hide type" : "Delete type")
                 }
             } footer: {
                 if type.isDefaultPreset || type.hasUserDataReferences {
-                    Text("Archived types stay on existing workouts but are hidden from pickers.")
+                    Text("This type is used by existing data, so Forge hides it instead of deleting it.")
                 }
             }
         }

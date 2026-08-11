@@ -78,7 +78,7 @@ struct WorkoutExerciseDetailView : View {
 
     private var metricBinding: Binding<ExerciseSetMetric> {
         Binding(
-            get: { metric },
+            get: { metric.selectableValue },
             set: {
                 workoutExercise.storedMetricValue = $0
                 managedObjectContext.saveOrCrash()
@@ -461,7 +461,7 @@ struct WorkoutExerciseDetailView : View {
     @ViewBuilder private var exerciseMenuItems: some View {
         Menu {
             Picker("Measure by", selection: metricBinding) {
-                ForEach(ExerciseSetMetric.allCases, id: \.self) { metric in
+                ForEach(ExerciseSetMetric.selectableCases, id: \.self) { metric in
                     Text(metric.title).tag(metric)
                 }
             }

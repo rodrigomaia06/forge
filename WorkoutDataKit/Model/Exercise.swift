@@ -113,6 +113,12 @@ public enum ExerciseSetMetric: String, CaseIterable, Codable, Hashable {
     public var usesReps: Bool { self == .reps || self == .repRange }
     public var usesTime: Bool { self == .time || self == .timeRange }
     public var usesDistance: Bool { self == .distance }
+
+    public static let selectableCases: [ExerciseSetMetric] = [.reps, .time, .timeRange, .distance]
+
+    public var selectableValue: ExerciseSetMetric {
+        self == .repRange ? .reps : self
+    }
 }
 
 extension Exercise {

@@ -67,9 +67,13 @@ struct ExerciseDetailView : View {
     
     private var descriptionSection: some View {
         Section {
-            Text(self.exercise.description ?? "")
+            Text(exerciseDescription)
                 .lineLimit(nil)
         }
+    }
+
+    private var exerciseDescription: String {
+        exercise.description?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
     
     private var muscleSection: some View {
@@ -160,7 +164,7 @@ struct ExerciseDetailView : View {
         List {
             restTimeSection
 
-            if exercise.description != nil {
+            if !exerciseDescription.isEmpty {
                 descriptionSection
             }
 

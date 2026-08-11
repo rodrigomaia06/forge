@@ -18,7 +18,7 @@ struct ExerciseMuscleGroupsView : View {
     
     func exerciseGroupCell(_ exerciseGroup: ExerciseGroup) -> some View {
         NavigationLink(destination:
-            ExercisesView(exercises: exerciseGroup.exercises)
+            ActivityExerciseListView(exercises: exerciseGroup.exercises)
                 .navigationBarTitle(Text(exerciseGroup.title), displayMode: .inline)
         ) {
             HStack {
@@ -104,6 +104,18 @@ private struct AllExercisesView: View {
             MuscleGroupSectionedExercisesView(exerciseGroups: filter.exerciseGroups)
         }
         .navigationBarTitle(Text("All exercises"), displayMode: .inline)
+    }
+}
+
+private struct ActivityExerciseListView: View {
+    private let exerciseGroups: [ExerciseGroup]
+
+    init(exercises: [Exercise]) {
+        self.exerciseGroups = ExerciseStore.splitIntoMuscleGroups(exercises: exercises)
+    }
+
+    var body: some View {
+        MuscleGroupSectionedExercisesView(exerciseGroups: exerciseGroups)
     }
 }
 
