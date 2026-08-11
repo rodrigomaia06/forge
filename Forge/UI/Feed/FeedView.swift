@@ -557,6 +557,7 @@ struct FeedView: View {
 
     private func workoutCard(_ workout: Workout) -> some View {
         let s = stats(workout)
+        let summary = summaryLine(stats: s, workout: workout)
         // Open the workout in the History tab rather than pushing it inside the dashboard, so a
         // finished workout always lives in one place.
         return Button {
@@ -569,8 +570,10 @@ struct FeedView: View {
                     .tracking(1)
                     .foregroundColor(.forgeSecondaryLabel)
                 Text(workout.displayTitle(in: exerciseStore.exercises, showPlan: settingsStore.showPlanInWorkoutTitle)).font(.forgeHeadline).foregroundColor(.forgeLabel)
-                Text(summaryLine(stats: s, workout: workout))
-                    .font(.forgeCaption).foregroundColor(.forgeSecondaryLabel)
+                if !summary.isEmpty {
+                    Text(summary)
+                        .font(.forgeCaption).foregroundColor(.forgeSecondaryLabel)
+                }
             }
             .padding(Theme.Spacing.l)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -601,9 +604,14 @@ struct FeedView: View {
 
     private func summaryLine(stats: (exercises: Int, sets: Int), workout: Workout) -> String {
         if stats.exercises == 0 {
-            return "Time only\(durationSuffix(workout))"
+            return durationText(workout)
         }
         return "\(stats.exercises) exercises · \(stats.sets) sets\(durationSuffix(workout))"
+    }
+
+    private func durationText(_ workout: Workout) -> String {
+        guard let duration = workout.duration else { return "" }
+        return Workout.durationFormatter.string(from: duration) ?? ""
     }
 
     private func stats(_ workout: Workout) -> (exercises: Int, sets: Int) {

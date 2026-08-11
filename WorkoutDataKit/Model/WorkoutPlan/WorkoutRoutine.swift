@@ -112,7 +112,7 @@ public class WorkoutRoutine: NSManagedObject, Codable {
             .compactMap { $0.exercise(in: exercises)?.title }
             .joined(separator: ", ") ?? ""
         
-        return s.isEmpty ? "Time only" : s
+        return s
     }
     
     public func createWorkout(context: NSManagedObjectContext) -> Workout {

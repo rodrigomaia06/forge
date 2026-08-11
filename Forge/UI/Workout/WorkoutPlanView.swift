@@ -74,10 +74,13 @@ struct WorkoutPlanView: View {
                                 .accessibilityHidden(true)
                             VStack(alignment: .leading) {
                                 Text(workoutRoutine.displayTitle)
-                                Text(workoutRoutine.subtitle(in: self.exerciseStore.exercises))
-                                    .lineLimit(1)
-                                    .foregroundColor(.secondary)
-                                    .font(.caption)
+                                let subtitle = workoutRoutine.subtitle(in: self.exerciseStore.exercises)
+                                if !subtitle.isEmpty {
+                                    Text(subtitle)
+                                        .lineLimit(1)
+                                        .foregroundColor(.secondary)
+                                        .font(.caption)
+                                }
                             }
                         }
                     }

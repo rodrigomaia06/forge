@@ -283,10 +283,13 @@ private struct RoutineMenuRow: View {
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(routine.displayTitle).italic()
-                    Text(routine.subtitle(in: exerciseStore.exercises))
-                        .lineLimit(1)
-                        .foregroundColor(.secondary)
-                        .font(.caption)
+                    let subtitle = routine.subtitle(in: exerciseStore.exercises)
+                    if !subtitle.isEmpty {
+                        Text(subtitle)
+                            .lineLimit(1)
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

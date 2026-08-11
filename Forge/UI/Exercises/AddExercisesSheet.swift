@@ -21,19 +21,16 @@ struct AddExercisesSheet: View {
 
     private let allExercises: [Exercise]
     private let recentExercises: [Exercise]
-    private let preferredCategory: ExerciseActivityCategory
 
     @State private var exerciseSelectorSelection: Set<Exercise> = Set()
     @State private var search = ""
     @State private var equipment: String? = nil
     @State private var bodyPart: String? = nil
-    @State private var category: ExerciseActivityCategory
+    @State private var category: ExerciseActivityCategory? = nil
 
     init(exercises: [Exercise], recentExercises: [Exercise], preferredCategory: ExerciseActivityCategory = .strength, onAdd: @escaping (Set<Exercise>) -> Void, onAddSuperset: (([Exercise]) -> Void)? = nil) {
         self.allExercises = exercises
         self.recentExercises = recentExercises
-        self.preferredCategory = preferredCategory
-        _category = State(initialValue: preferredCategory)
         self.onAdd = onAdd
         self.onAddSuperset = onAddSuperset
     }
@@ -59,11 +56,11 @@ struct AddExercisesSheet: View {
         Array(Set(allExercises.map { $0.muscleGroup })).sorted()
     }
 
-    private var filtersActive: Bool { equipment != nil || bodyPart != nil || category != preferredCategory }
+    private var filtersActive: Bool { equipment != nil || bodyPart != nil || category != nil }
 
     private var exerciseGroups: [ExerciseGroup] {
         var exercises = allExercises
-        if search.isEmpty {
+        if let category {
             exercises = exercises.filter { $0.activityCategories.contains(category) }
         }
         if let equipment { exercises = exercises.filter { $0.equipment.contains { $0.contains(equipment) } } }
@@ -72,8 +69,7 @@ struct AddExercisesSheet: View {
         // Selected exercises live only in the Selected section, so they are not duplicated in the lists
         // below when picked from Recent or a muscle group.
         let unselected = exercises.filter { !exerciseSelectorSelection.contains($0) }
-        let groupsByCategory = categoryGroups(exercises: unselected)
-        var groups = search.isEmpty ? groupsByCategory : ExerciseStore.splitIntoActivityGroups(exercises: unselected)
+        var groups = ExerciseStore.splitIntoMuscleGroups(exercises: unselected)
         // Recent is only meaningful with no search or filters applied.
         if search.isEmpty, !filtersActive {
             let recent = recentExercises.filter { !exerciseSelectorSelection.contains($0) }
@@ -87,11 +83,6 @@ struct AddExercisesSheet: View {
             groups = [ExerciseGroup(title: "Selected", exercises: selected)] + groups
         }
         return groups
-    }
-
-    private func categoryGroups(exercises: [Exercise]) -> [ExerciseGroup] {
-        let sorted = exercises.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
-        return sorted.isEmpty ? [] : [ExerciseGroup(title: category.title, exercises: sorted)]
     }
 
     private func resetAndDismiss() {
@@ -165,6 +156,7 @@ struct AddExercisesSheet: View {
     private var categoryPicker: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Theme.Spacing.s) {
+                categoryButton(nil)
                 ForEach(ExerciseActivityCategory.allCases, id: \.self) { option in
                     categoryButton(option)
                 }
@@ -174,11 +166,11 @@ struct AddExercisesSheet: View {
         .padding(.bottom, Theme.Spacing.s)
     }
 
-    private func categoryButton(_ option: ExerciseActivityCategory) -> some View {
+    private func categoryButton(_ option: ExerciseActivityCategory?) -> some View {
         Button {
             category = option
         } label: {
-            Text(option.title)
+            Text(option?.title ?? "All")
                 .font(.forgeCaption.weight(.semibold))
                 .foregroundColor(category == option ? .forgeBackground : .forgeLabel)
                 .padding(.horizontal, Theme.Spacing.m)
@@ -235,7 +227,7 @@ struct AddExercisesSheet: View {
                 }
             }
             if filtersActive {
-                Button(role: .destructive) { equipment = nil; bodyPart = nil; category = preferredCategory } label: {
+                Button(role: .destructive) { equipment = nil; bodyPart = nil; category = nil } label: {
                     Label("Clear filters", systemImage: "xmark.circle")
                 }
             }

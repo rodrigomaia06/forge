@@ -60,7 +60,7 @@ struct HistoryView : View {
         let title: String
         let dateText: String
         let durationText: String?
-        let summaryLine: String
+        let summaryLine: String?
         let workoutTypeTitle: String
         let workoutTypeColorHex: String
 
@@ -119,7 +119,7 @@ struct HistoryView : View {
             title: workout.displayTitle(in: exerciseStore.exercises, showPlan: settingsStore.showPlanInWorkoutTitle),
             dateText: Self.weekdayDateText(workout.start),
             durationText: workout.duration.flatMap { Workout.durationFormatter.string(from: $0) },
-            summaryLine: exercises.isEmpty ? "Time only" : "\(exercises.count) exercises · \(sets) sets",
+            summaryLine: exercises.isEmpty ? nil : "\(exercises.count) exercises · \(sets) sets",
             workoutTypeTitle: workout.workoutType?.displayTitle ?? WorkoutType.fallbackTitle,
             workoutTypeColorHex: workout.workoutType?.displayColorHex ?? WorkoutType.fallbackColorHex
         )
@@ -378,7 +378,7 @@ private struct WorkoutCell: View {
 
             VStack(alignment: .trailing, spacing: 4) {
                 workout.durationText.map { pill($0) }
-                pill(workout.summaryLine)
+                workout.summaryLine.map { pill($0) }
             }
 
             Image(systemName: "chevron.right")
