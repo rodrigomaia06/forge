@@ -534,7 +534,7 @@ private struct RoutineSetRow: View {
         if metric.usesDistance {
             return workoutRoutineSet.targetDistanceValue.map { WorkoutSet.distanceString(from: $0) } ?? "—"
         }
-        WorkoutRoutineSetCell.repetitionIntervalString(
+        return WorkoutRoutineSetCell.repetitionIntervalString(
             minRepetitions: workoutRoutineSet.minRepetitionsValue.map(Int.init),
             maxRepetitions: workoutRoutineSet.maxRepetitionsValue.map(Int.init)
         ) ?? "—"
