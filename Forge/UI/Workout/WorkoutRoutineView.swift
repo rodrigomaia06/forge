@@ -281,13 +281,14 @@ struct WorkoutRoutineView: View {
                             .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
                             .frame(minHeight: Theme.Layout.minTapTarget)
                             .editModeHint()
-                            ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                            LabeledContent("Type") {
-                                WorkoutTypeLabel(type: workoutRoutine.defaultWorkoutType)
+
+                            if workoutRoutine.defaultWorkoutType == nil {
+                                ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                                WorkoutTypePickerRow(title: "Default type", selection: defaultWorkoutType)
+                                    .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                                    .frame(minHeight: Theme.Layout.minTapTarget)
                             }
-                            .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                            .frame(minHeight: Theme.Layout.minTapTarget)
-                            .editModeHint()
+
                             if let comment = workoutRoutine.comment, !comment.isEmpty {
                                 ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
                                 LabeledContent("Comment") { Text(comment).foregroundColor(.secondary) }
