@@ -191,9 +191,9 @@ enum WorkoutDataExchange {
                         RoutineSetDTO(
                             minReps: set.minTargetRepetitionsValue ?? set.repetitions?.int16Value,
                             maxReps: set.maxTargetRepetitionsValue ?? set.repetitions?.int16Value,
-                            minTargetDuration: set.minTargetDurationValue ?? set.duration,
-                            maxTargetDuration: set.maxTargetDurationValue ?? set.duration,
-                            targetDistance: set.targetDistanceValue ?? set.distance,
+                            minTargetDuration: set.minTargetDurationValue ?? (set.duration == nil ? nil : set.durationValue),
+                            maxTargetDuration: set.maxTargetDurationValue ?? (set.duration == nil ? nil : set.durationValue),
+                            targetDistance: set.targetDistanceValue ?? (set.distance == nil ? nil : set.distanceValue),
                             tag: set.tagValue?.rawValue,
                             comment: set.comment
                         )

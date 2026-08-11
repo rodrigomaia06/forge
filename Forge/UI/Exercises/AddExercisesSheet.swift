@@ -126,39 +126,7 @@ struct AddExercisesSheet: View {
     
     var body: some View {
         NavigationStack {
-            // A pinned search field above the list rather than .searchable: the system search takes over
-            // the nav bar with a Cancel button that hides the filter and lingers after the keyboard is
-            // dismissed. Keeping search in the content leaves the filter always in place.
-            VStack(spacing: 0) {
-                TextField("Search", text: $search)
-                    .textFieldStyle(SearchTextFieldStyle(text: $search))
-                    .padding(.horizontal, Theme.Spacing.l)
-                    .padding(.vertical, Theme.Spacing.s)
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: Theme.Spacing.s) {
-                        ForEach(ExerciseActivityCategory.allCases, id: \.self) { option in
-                            Button {
-                                category = option
-                            } label: {
-                                Text(option.title)
-                                    .font(.forgeCaption.weight(.semibold))
-                                    .foregroundColor(category == option ? .forgeBackground : .forgeLabel)
-                                    .padding(.horizontal, Theme.Spacing.m)
-                                    .frame(minHeight: 34)
-                                    .background(
-                                        Capsule().fill(category == option ? Color.forgeLabel : Color.forgeCardBackground)
-                                    )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.horizontal, Theme.Spacing.l)
-                }
-                .padding(.bottom, Theme.Spacing.s)
-
-                ExerciseMultiSelectionView(exerciseGroups: exerciseGroups, selection: self.$exerciseSelectorSelection)
-            }
+            content
             .background(Color.forgeBackground.ignoresSafeArea())
             .navigationTitle("Add exercises")
             .navigationBarTitleDisplayMode(.inline)
@@ -175,6 +143,49 @@ struct AddExercisesSheet: View {
                 }
             }
         }
+    }
+
+    private var content: some View {
+        VStack(spacing: 0) {
+            searchField
+            categoryPicker
+            ExerciseMultiSelectionView(exerciseGroups: exerciseGroups, selection: self.$exerciseSelectorSelection)
+        }
+    }
+
+    // A pinned search field above the list rather than .searchable: the system search takes over the nav bar
+    // with a Cancel button that hides the filter and lingers after the keyboard is dismissed.
+    private var searchField: some View {
+        TextField("Search", text: $search)
+            .textFieldStyle(SearchTextFieldStyle(text: $search))
+            .padding(.horizontal, Theme.Spacing.l)
+            .padding(.vertical, Theme.Spacing.s)
+    }
+
+    private var categoryPicker: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Theme.Spacing.s) {
+                ForEach(ExerciseActivityCategory.allCases, id: \.self) { option in
+                    categoryButton(option)
+                }
+            }
+            .padding(.horizontal, Theme.Spacing.l)
+        }
+        .padding(.bottom, Theme.Spacing.s)
+    }
+
+    private func categoryButton(_ option: ExerciseActivityCategory) -> some View {
+        Button {
+            category = option
+        } label: {
+            Text(option.title)
+                .font(.forgeCaption.weight(.semibold))
+                .foregroundColor(category == option ? .forgeBackground : .forgeLabel)
+                .padding(.horizontal, Theme.Spacing.m)
+                .frame(minHeight: 34)
+                .background(Capsule().fill(category == option ? Color.forgeLabel : Color.forgeCardBackground))
+        }
+        .buttonStyle(.plain)
     }
 
     private var addBar: some View {

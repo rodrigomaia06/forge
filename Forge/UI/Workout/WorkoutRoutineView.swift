@@ -161,7 +161,7 @@ struct WorkoutRoutineView: View {
 
     private func exerciseMenu(_ ex: WorkoutRoutineExercise) -> some View {
         let metric = ex.metricValue(in: exerciseStore.exercises)
-        Menu {
+        return Menu {
             Menu {
                 Picker("Measure by", selection: Binding(
                     get: { ex.metricValue(in: exerciseStore.exercises) },
