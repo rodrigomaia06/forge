@@ -180,6 +180,10 @@ struct WorkoutTypesSettingsView: View {
         workoutTypes.filter { !$0.isArchived }
     }
 
+    private var hiddenTypes: [WorkoutType] {
+        workoutTypes.filter { $0.isArchived }
+    }
+
     var body: some View {
         List {
             Section {
@@ -192,6 +196,18 @@ struct WorkoutTypesSettingsView: View {
                 .onDelete(perform: delete)
             } footer: {
                 Text("Deleting a type hides it from new workouts. Used types stay on existing workouts.")
+            }
+
+            if !hiddenTypes.isEmpty {
+                Section("Hidden") {
+                    ForEach(hiddenTypes, id: \.objectID) { type in
+                        NavigationLink(destination: WorkoutTypeEditorView(type: type)) {
+                            WorkoutTypeSettingsRow(type: type)
+                        }
+                    }
+                } footer: {
+                    Text("Open a hidden type and turn off Hide from workout pickers to show it again.")
+                }
             }
         }
         .environment(\.editMode, $editMode)
@@ -255,12 +271,8 @@ private struct WorkoutTypeSettingsRow: View {
     var body: some View {
         HStack(spacing: Theme.Spacing.m) {
             colorSwatch(type.displayColorHex)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(type.displayTitle)
-                Text(type.isDefaultPreset ? "Built in" : "User added")
-                    .font(.forgeCaption)
-                    .foregroundColor(.forgeSecondaryLabel)
-            }
+            Text(type.displayTitle)
+            SourceSignalView(isAppProvided: type.isDefaultPreset)
             Spacer()
             if type.isArchived {
                 Text("Hidden")
@@ -297,8 +309,7 @@ private struct WorkoutTypeEditorView: View {
                 HStack {
                     Text("Source")
                     Spacer()
-                    Text(type.isDefaultPreset ? "Built in" : "User added")
-                        .foregroundColor(.forgeSecondaryLabel)
+                    SourceSignalView(isAppProvided: type.isDefaultPreset)
                 }
             }
 

@@ -32,14 +32,23 @@ struct ExerciseSourceRow: View {
     let exercise: Exercise
 
     var body: some View {
-        HStack {
+        HStack(spacing: Theme.Spacing.s) {
             Text(exercise.title)
                 .foregroundColor(.forgeLabel)
             Spacer()
-            Text(exercise.isCustom ? "Custom" : "Built in")
-                .font(.forgeCaption)
-                .foregroundColor(.forgeSecondaryLabel)
+            SourceSignalView(isAppProvided: !exercise.isCustom)
         }
+    }
+}
+
+struct SourceSignalView: View {
+    let isAppProvided: Bool
+
+    var body: some View {
+        Image(systemName: isAppProvided ? "checkmark.seal" : "pencil")
+            .font(.forgeCaption)
+            .foregroundColor(.forgeSecondaryLabel)
+            .accessibilityLabel(isAppProvided ? "Provided by Forge" : "Created by you")
     }
 }
 

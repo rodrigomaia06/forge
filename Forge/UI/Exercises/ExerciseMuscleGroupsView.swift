@@ -24,11 +24,9 @@ struct ExerciseMuscleGroupsView : View {
                 .navigationBarTitle(Text(exerciseGroup.title), displayMode: .inline)
         ) {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: Theme.Spacing.s) {
                     Text(exerciseGroup.title)
-                    Text(type.isDefaultPreset ? "Built in" : "User added")
-                        .font(.forgeCaption)
-                        .foregroundColor(.forgeSecondaryLabel)
+                    SourceSignalView(isAppProvided: type.isDefaultPreset)
                 }
                 Spacer()
                 Text("(\(exerciseGroup.exercises.count))")

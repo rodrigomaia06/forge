@@ -98,13 +98,9 @@ struct EditCustomExerciseView: View {
                                 .fill(Color(workoutTypeHex: type.displayColorHex))
                                 .frame(width: 12, height: 12)
                                 .accessibilityHidden(true)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(type.displayTitle)
-                                    .foregroundColor(.forgeLabel)
-                                Text(type.isDefaultPreset ? "Built in" : "User added")
-                                    .font(.forgeCaption)
-                                    .foregroundColor(.forgeSecondaryLabel)
-                            }
+                            Text(type.displayTitle)
+                                .foregroundColor(.forgeLabel)
+                            SourceSignalView(isAppProvided: type.isDefaultPreset)
                             Spacer()
                             if exerciseValues.activityCategoryIDs.contains(type.exerciseCategoryID) {
                                 Image(systemName: "checkmark")

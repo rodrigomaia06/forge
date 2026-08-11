@@ -104,8 +104,7 @@ struct ExerciseDetailView : View {
             HStack {
                 Text("Source")
                 Spacer()
-                Text(exercise.isCustom ? "Custom" : "Built in")
-                    .foregroundColor(.secondary)
+                SourceSignalView(isAppProvided: !exercise.isCustom)
             }
         }
     }
@@ -116,8 +115,7 @@ struct ExerciseDetailView : View {
                 HStack {
                     Text(type.displayTitle)
                     Spacer()
-                    Text(type.isDefaultPreset ? "Built in" : "User added")
-                        .foregroundColor(.secondary)
+                    SourceSignalView(isAppProvided: type.isDefaultPreset)
                 }
             }
         }
