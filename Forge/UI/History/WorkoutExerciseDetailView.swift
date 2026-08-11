@@ -873,7 +873,7 @@ private struct WorkoutExerciseHistorySheet: View {
                 .listRowInsets(EdgeInsets(top: Theme.Spacing.s, leading: Theme.Spacing.m, bottom: Theme.Spacing.xxs, trailing: Theme.Spacing.m))
 
                 ForEach(indexedWorkoutSets(for: pastWorkoutExercise), id: \.1.id) { index, workoutSet in
-                    WorkoutSetCell(workoutSet: workoutSet, index: index, metric: pastWorkoutExercise.metricValue(in: exerciseStore.exercises), colorMode: .disabled)
+                    WorkoutSetCell(workoutSet: workoutSet, index: index, metric: pastWorkoutExercise.storedMetricValue ?? .reps, colorMode: .disabled)
                         .listRowInsets(EdgeInsets(top: 2, leading: Theme.Spacing.m, bottom: 2, trailing: Theme.Spacing.m))
                 }
             }
