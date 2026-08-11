@@ -50,11 +50,6 @@ struct StartWorkoutView: View {
                 Label("New workout", systemImage: "figure.strengthtraining.traditional")
             }
             Button {
-                self.startTimeOnlyWorkout()
-            } label: {
-                Label("Record time only", systemImage: "timer")
-            }
-            Button {
                 self.newRoutine()
             } label: {
                 Label("New routine", systemImage: "square.stack.3d.up.fill")
@@ -152,16 +147,6 @@ struct StartWorkoutView: View {
         Haptics.impact(.medium)
         withAnimation(.smooth) {
             routine.createWorkout(context: self.managedObjectContext).startOrCrash()
-        }
-    }
-
-    private func startTimeOnlyWorkout() {
-        Haptics.impact(.medium)
-        let workout = Workout.create(context: managedObjectContext)
-        workout.title = "Time only"
-        workout.workoutType = (try? WorkoutType.find(title: "Other", in: managedObjectContext)) ?? WorkoutType.defaultType(in: managedObjectContext)
-        withAnimation(.smooth) {
-            workout.startOrCrash()
         }
     }
 
