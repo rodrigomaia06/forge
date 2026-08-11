@@ -184,21 +184,6 @@ struct CurrentWorkoutView: View {
         )
     }
 
-    private var workoutType: Binding<WorkoutType?> {
-        Binding(
-            get: { self.workout.workoutType },
-            set: { newValue in
-                let previousTitle = self.workout.workoutType?.displayTitle
-                self.workout.workoutType = newValue
-                if shouldNameEmptyAdHocWorkout(afterSelecting: newValue, previousTitle: previousTitle) {
-                    self.workout.title = newValue?.displayTitle
-                    self.workoutTitleInput = self.workout.title
-                }
-                self.managedObjectContext.saveOrCrash()
-            }
-        )
-    }
-
     private var hasWorkoutName: Bool {
         !(workoutTitleInput ?? workout.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || workout.workoutPlanAndRoutineTitle() != nil
@@ -213,14 +198,6 @@ struct CurrentWorkoutView: View {
         guard let type = workout.workoutType else { return true }
         if type.uuid == WorkoutType.defaultPresets.first?.uuid { return true }
         return type.displayTitle.caseInsensitiveCompare(WorkoutType.fallbackTitle) == .orderedSame
-    }
-
-    private func shouldNameEmptyAdHocWorkout(afterSelecting type: WorkoutType?, previousTitle: String?) -> Bool {
-        guard let type, (workout.workoutExercises?.count ?? 0) == 0, workout.workoutRoutine == nil else { return false }
-        if type.uuid == WorkoutType.defaultPresets.first?.uuid { return false }
-        if type.displayTitle.caseInsensitiveCompare(WorkoutType.fallbackTitle) == .orderedSame { return false }
-        let currentTitle = (workout.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        return currentTitle.isEmpty || currentTitle == "Time only" || currentTitle == previousTitle
     }
 
     private var trimmedWorkoutComment: String {
@@ -238,11 +215,7 @@ struct CurrentWorkoutView: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
             scrollSectionTitle("Characteristics")
             VStack(spacing: 0) {
-                WorkoutTypePickerRow(title: "Type", selection: workoutType)
-                    .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                    .frame(minHeight: Theme.Layout.minTapTarget)
                 if editMode == .active {
-                    ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
                     ClearableTextField(titleKey: "Name", text: workoutTitle, onCommit: { self.adjustAndSaveWorkoutTitleInput() })
                         .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
                         .frame(minHeight: Theme.Layout.minTapTarget)
@@ -251,7 +224,6 @@ struct CurrentWorkoutView: View {
                         .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
                         .frame(minHeight: Theme.Layout.minTapTarget)
                 } else if !hasWorkoutName {
-                    ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
                     ClearableTextField(titleKey: "Name", text: workoutTitle, onCommit: { self.adjustAndSaveWorkoutTitleInput() })
                         .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
                         .frame(minHeight: Theme.Layout.minTapTarget)
