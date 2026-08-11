@@ -199,7 +199,7 @@ struct WorkoutTypesSettingsView: View {
             }
 
             if !hiddenTypes.isEmpty {
-                Section("Hidden") {
+                Section(header: Text("Hidden")) {
                     ForEach(hiddenTypes, id: \.objectID) { type in
                         NavigationLink(destination: WorkoutTypeEditorView(type: type)) {
                             WorkoutTypeSettingsRow(type: type)
