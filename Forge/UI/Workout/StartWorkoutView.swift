@@ -293,6 +293,11 @@ private struct RoutineMenuRow: View {
                             .font(.caption)
                     }
                 }
+                .layoutPriority(1)
+
+                if !nested {
+                    workoutTypeBadge
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             // In a plan, each routine is a recessed dark well inside the plan card (no outline), so the
@@ -314,6 +319,22 @@ private struct RoutineMenuRow: View {
         } message: {
             Text("This can't be undone.")
         }
+    }
+
+    private var workoutTypeBadge: some View {
+        let title = routine.defaultWorkoutType?.displayTitle ?? WorkoutType.fallbackTitle
+        let color = Color(workoutTypeHex: routine.defaultWorkoutType?.displayColorHex ?? WorkoutType.fallbackColorHex)
+        return Text(title)
+            .font(.forgeCaption.weight(.semibold))
+            .lineLimit(1)
+            .foregroundColor(color)
+            .padding(.horizontal, Theme.Spacing.s)
+            .frame(minHeight: 28)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(color.opacity(0.14))
+            )
+            .accessibilityLabel("Workout type: \(title)")
     }
 
     private func delete() {
