@@ -106,9 +106,13 @@ extension Workout {
                             let repetitions = workoutSet.repetitionsValue
                             newWorkoutSet.minTargetRepetitionsValue = repetitions
                             newWorkoutSet.maxTargetRepetitionsValue = repetitions
-                            newWorkoutSet.minTargetDurationValue = workoutSet.duration
-                            newWorkoutSet.maxTargetDurationValue = workoutSet.duration
-                            newWorkoutSet.targetDistanceValue = workoutSet.distance
+                            if workoutSet.duration != nil {
+                                newWorkoutSet.minTargetDurationValue = workoutSet.durationValue
+                                newWorkoutSet.maxTargetDurationValue = workoutSet.durationValue
+                            }
+                            if workoutSet.distance != nil {
+                                newWorkoutSet.targetDistanceValue = workoutSet.distanceValue
+                            }
                             // don't copy weight, RPE, tag, comment, etc.
                         }
                     }
