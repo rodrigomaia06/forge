@@ -251,7 +251,7 @@ extension ExerciseStore {
 
 // MARK: - Custom Exercises (Core Data backed)
 extension ExerciseStore {
-    public func createCustomExercise(title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, activityCategoryIDs: [String]) {
+    public func createCustomExercise(title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, activityCategoryIDs: [String] = [ExerciseActivityCategory.strength.rawValue]) {
         let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { return }
         guard !exercises.contains(where: { $0.title == title }) else { return }
@@ -263,7 +263,7 @@ extension ExerciseStore {
         saveAndReload(context)
     }
 
-    public func updateCustomExercise(with uuid: UUID, title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, activityCategoryIDs: [String]) {
+    public func updateCustomExercise(with uuid: UUID, title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, activityCategoryIDs: [String] = [ExerciseActivityCategory.strength.rawValue]) {
         let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { return }
         guard !exercises.contains(where: { $0.title == title && $0.uuid != uuid }) else { return }
