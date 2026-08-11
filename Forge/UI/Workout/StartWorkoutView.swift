@@ -284,7 +284,15 @@ private struct RoutineMenuRow: View {
                         .accessibilityHidden(true)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(routine.displayTitle).italic()
+                    HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.s) {
+                        Text(routine.displayTitle)
+                            .italic()
+                            .lineLimit(1)
+                        Spacer(minLength: Theme.Spacing.s)
+                        if !nested {
+                            workoutTypeBadge
+                        }
+                    }
                     let subtitle = routine.subtitle(in: exerciseStore.exercises)
                     if !subtitle.isEmpty {
                         Text(subtitle)
@@ -294,10 +302,6 @@ private struct RoutineMenuRow: View {
                     }
                 }
                 .layoutPriority(1)
-
-                if !nested {
-                    workoutTypeBadge
-                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             // In a plan, each routine is a recessed dark well inside the plan card (no outline), so the
@@ -330,6 +334,7 @@ private struct RoutineMenuRow: View {
             .foregroundColor(color)
             .padding(.horizontal, Theme.Spacing.s)
             .frame(minHeight: 28)
+            .fixedSize(horizontal: true, vertical: false)
             .background(
                 Capsule(style: .continuous)
                     .fill(color.opacity(0.14))
