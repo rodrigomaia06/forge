@@ -14,6 +14,7 @@ public struct Exercise: Hashable {
     public let title: String
     public let alias: [String]
     public let activityCategories: [ExerciseActivityCategory]
+    public let activityCategoryIDs: [String]
     public let defaultMetric: ExerciseSetMetric
     public let description: String? // primer
     public let primaryMuscle: [String] // primary
@@ -29,6 +30,7 @@ public struct Exercise: Hashable {
         title: String,
         alias: [String],
         activityCategories: [ExerciseActivityCategory] = [.strength],
+        activityCategoryIDs: [String]? = nil,
         defaultMetric: ExerciseSetMetric = .reps,
         description: String?,
         primaryMuscle: [String],
@@ -42,7 +44,10 @@ public struct Exercise: Hashable {
         self.everkineticId = everkineticId
         self.title = title
         self.alias = alias
-        self.activityCategories = activityCategories.isEmpty ? [.strength] : activityCategories
+        let resolvedCategories = activityCategories.isEmpty ? [ExerciseActivityCategory.strength] : activityCategories
+        let resolvedCategoryIDs = activityCategoryIDs ?? resolvedCategories.map(\.rawValue)
+        self.activityCategories = resolvedCategories
+        self.activityCategoryIDs = resolvedCategoryIDs.isEmpty ? [ExerciseActivityCategory.strength.rawValue] : resolvedCategoryIDs
         self.defaultMetric = defaultMetric
         self.description = description
         self.primaryMuscle = primaryMuscle
@@ -82,6 +87,10 @@ public enum ExerciseActivityCategory: String, CaseIterable, Codable, Hashable {
         case "other": return .other
         default: return .strength
         }
+    }
+
+    public static func categoryID(forWorkoutTypeTitle title: String?) -> String {
+        category(forWorkoutTypeTitle: title).rawValue
     }
 }
 
@@ -208,11 +217,11 @@ extension Exercise {
         public var title: String {
             switch self {
             case .barbell:
-                return "barbell based"
+                return "Barbell"
             case .dumbbell:
-                return "dumbbell based"
+                return "Dumbbell"
             case .other:
-                return "other"
+                return "Other"
             }
         }
         

@@ -255,9 +255,15 @@ private struct WorkoutTypeSettingsRow: View {
     var body: some View {
         HStack(spacing: Theme.Spacing.m) {
             colorSwatch(type.displayColorHex)
-            Text(type.displayTitle)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(type.displayTitle)
+                Text(type.isDefaultPreset ? "Built in" : "User added")
+                    .font(.forgeCaption)
+                    .foregroundColor(.forgeSecondaryLabel)
+            }
+            Spacer()
             if type.isArchived {
-                Text("Hidden from pickers")
+                Text("Hidden")
                     .font(.forgeCaption)
                     .foregroundColor(.forgeSecondaryLabel)
             }
@@ -288,6 +294,12 @@ private struct WorkoutTypeEditorView: View {
                     set: { type.title = $0 }
                 ))
                 .onSubmit { context.saveOrCrash() }
+                HStack {
+                    Text("Source")
+                    Spacer()
+                    Text(type.isDefaultPreset ? "Built in" : "User added")
+                        .foregroundColor(.forgeSecondaryLabel)
+                }
             }
 
             Section(header: Text("Color")) {

@@ -7,22 +7,29 @@
 //
 
 import SwiftUI
+import CoreData
 import WorkoutDataKit
 
 struct ExerciseMuscleGroupsView : View {
     @EnvironmentObject var settingsStore: SettingsStore
     @EnvironmentObject var exerciseStore: ExerciseStore
+    @FetchRequest(fetchRequest: WorkoutType.fetchRequestSorted(includeArchived: false)) private var workoutTypes
     
     // select the all exercises tab by default on iPad
     @State private var allExercisesSelected = UIDevice.current.userInterfaceIdiom == .pad ? true : false
     
-    func exerciseGroupCell(_ exerciseGroup: ExerciseGroup) -> some View {
+    func exerciseGroupCell(_ exerciseGroup: ExerciseGroup, type: WorkoutType) -> some View {
         NavigationLink(destination:
             ActivityExerciseListView(exercises: exerciseGroup.exercises)
                 .navigationBarTitle(Text(exerciseGroup.title), displayMode: .inline)
         ) {
             HStack {
-                Text(exerciseGroup.title)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(exerciseGroup.title)
+                    Text(type.isDefaultPreset ? "Built in" : "User added")
+                        .font(.forgeCaption)
+                        .foregroundColor(.forgeSecondaryLabel)
+                }
                 Spacer()
                 Text("(\(exerciseGroup.exercises.count))")
                     .foregroundColor(.secondary)
@@ -30,14 +37,16 @@ struct ExerciseMuscleGroupsView : View {
         }
     }
     
-    private var exerciseGroups: [ExerciseGroup] {
-        ExerciseStore.splitIntoActivityGroups(exercises: exerciseStore.shownExercises)
+    private var activityGroups: [ActivityExerciseGroup] {
+        let types = Array(workoutTypes)
+        let groups = ExerciseStore.splitIntoWorkoutTypeGroups(exercises: exerciseStore.shownExercises, workoutTypes: types)
+        return zip(types, groups).map { ActivityExerciseGroup(type: $0, group: $1) }
     }
     
     var body: some View {
         List {
                 Section {
-                    NavigationLink(destination: AllExercisesView(exerciseGroups: exerciseGroups), isActive: $allExercisesSelected) {
+                    NavigationLink(destination: AllExercisesView(exerciseGroups: activityGroups.map(\.group).filter { !$0.exercises.isEmpty }), isActive: $allExercisesSelected) {
                         HStack {
                             Text("All")
                             Spacer()
@@ -48,8 +57,8 @@ struct ExerciseMuscleGroupsView : View {
                 }
                 
                 Section {
-                    ForEach(exerciseGroups) { exerciseGroup in
-                        self.exerciseGroupCell(exerciseGroup)
+                    ForEach(activityGroups) { item in
+                        self.exerciseGroupCell(item.group, type: item.type)
                     }
                 }
                 
@@ -84,6 +93,13 @@ struct ExerciseMuscleGroupsView : View {
         .listStyleCompat_InsetGroupedListStyle()
         .navigationBarTitle("Exercises")
     }
+}
+
+private struct ActivityExerciseGroup: Identifiable {
+    let type: WorkoutType
+    let group: ExerciseGroup
+
+    var id: NSManagedObjectID { type.objectID }
 }
 
 private struct AllExercisesView: View {

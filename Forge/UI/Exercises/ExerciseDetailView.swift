@@ -7,12 +7,14 @@
 //
 
 import SwiftUI
+import CoreData
 import WorkoutDataKit
 
 struct ExerciseDetailView : View {
     @EnvironmentObject var settingsStore: SettingsStore
     @EnvironmentObject var exerciseStore: ExerciseStore
     @Environment(\.managedObjectContext) var managedObjectContext
+    @FetchRequest(fetchRequest: WorkoutType.fetchRequestSorted()) private var workoutTypes
     var exercise: Exercise
 
 
@@ -96,6 +98,34 @@ struct ExerciseDetailView : View {
             }
         }
     }
+
+    private var sourceSection: some View {
+        Section {
+            HStack {
+                Text("Source")
+                Spacer()
+                Text(exercise.isCustom ? "Custom" : "Built in")
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    private var sectionMembershipSection: some View {
+        Section(header: Text("Sections".uppercased())) {
+            ForEach(sectionMemberships, id: \.objectID) { type in
+                HStack {
+                    Text(type.displayTitle)
+                    Spacer()
+                    Text(type.isDefaultPreset ? "Built in" : "User added")
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+    }
+
+    private var sectionMemberships: [WorkoutType] {
+        workoutTypes.filter { exercise.activityCategoryIDs.contains($0.exerciseCategoryID) }
+    }
     
     private var tipsSection: some View {
         Section(header: Text("Tips".uppercased())) {
@@ -163,6 +193,12 @@ struct ExerciseDetailView : View {
         // exercise illustration, and it made the whole list re-evaluate on every size change.
         List {
             restTimeSection
+
+            sourceSection
+
+            if !sectionMemberships.isEmpty {
+                sectionMembershipSection
+            }
 
             if !exerciseDescription.isEmpty {
                 descriptionSection

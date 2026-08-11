@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import CoreData
 import WorkoutDataKit
 
 struct EditCustomExerciseView: View {
@@ -15,6 +16,7 @@ struct EditCustomExerciseView: View {
         var description: String
         var muscles: Set<ExerciseMuscle>
         var type: Exercise.ExerciseType
+        var activityCategoryIDs: Set<String> = [ExerciseActivityCategory.strength.rawValue]
         var restTime: TimeInterval? = nil
 
         struct ExerciseMuscle: Hashable {
@@ -29,6 +31,7 @@ struct EditCustomExerciseView: View {
     }
     
     @Binding var exerciseValues: ExerciseValues
+    @FetchRequest(fetchRequest: WorkoutType.fetchRequestSorted()) private var workoutTypes
     
     @State private var showingMuscleSelectionSheet = false
     
@@ -44,6 +47,10 @@ struct EditCustomExerciseView: View {
             .map { $0 }
             .sorted { $0.shortDisplayTitle < $1.shortDisplayTitle }
             .filter { $0.type == .secondary }
+    }
+
+    private var visibleWorkoutTypes: [WorkoutType] {
+        workoutTypes.filter { !$0.isArchived || exerciseValues.activityCategoryIDs.contains($0.exerciseCategoryID) }
     }
     
     var body: some View {
@@ -75,9 +82,39 @@ struct EditCustomExerciseView: View {
                 }
             }
             
-            Picker("Type", selection: $exerciseValues.type) {
+            Picker("Equipment", selection: $exerciseValues.type) {
                 ForEach(Exercise.ExerciseType.allCases, id: \.self) {
-                    Text($0.title.capitalized).tag($0)
+                    Text($0.title).tag($0)
+                }
+            }
+
+            Section(header: Text("Sections".uppercased()), footer: Text("Choose where this exercise appears on the Exercises page.")) {
+                ForEach(visibleWorkoutTypes, id: \.objectID) { type in
+                    Button {
+                        toggleCategory(type.exerciseCategoryID)
+                    } label: {
+                        HStack(spacing: Theme.Spacing.m) {
+                            Circle()
+                                .fill(Color(workoutTypeHex: type.displayColorHex))
+                                .frame(width: 12, height: 12)
+                                .accessibilityHidden(true)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(type.displayTitle)
+                                    .foregroundColor(.forgeLabel)
+                                Text(type.isDefaultPreset ? "Built in" : "User added")
+                                    .font(.forgeCaption)
+                                    .foregroundColor(.forgeSecondaryLabel)
+                            }
+                            Spacer()
+                            if exerciseValues.activityCategoryIDs.contains(type.exerciseCategoryID) {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.forgeAccent)
+                                    .accessibilityLabel("Selected")
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
             }
 
@@ -101,6 +138,14 @@ struct EditCustomExerciseView: View {
                         }
                     )
             }
+        }
+    }
+
+    private func toggleCategory(_ id: String) {
+        if exerciseValues.activityCategoryIDs.contains(id), exerciseValues.activityCategoryIDs.count > 1 {
+            exerciseValues.activityCategoryIDs.remove(id)
+        } else {
+            exerciseValues.activityCategoryIDs.insert(id)
         }
     }
 }

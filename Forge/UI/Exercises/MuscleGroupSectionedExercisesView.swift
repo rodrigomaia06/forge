@@ -17,12 +17,29 @@ struct MuscleGroupSectionedExercisesView : View {
             ForEach(exerciseGroups) { exerciseGroup in
                 Section(header: Text(exerciseGroup.title.capitalized)) {
                     ForEach(exerciseGroup.exercises) { exercise in
-                        NavigationLink(exercise.title, destination: ExerciseDetailView(exercise: exercise))
+                        NavigationLink(destination: ExerciseDetailView(exercise: exercise)) {
+                            ExerciseSourceRow(exercise: exercise)
+                        }
                     }
                 }
             }
         }
         .listStyleCompat_InsetGroupedListStyle()
+    }
+}
+
+struct ExerciseSourceRow: View {
+    let exercise: Exercise
+
+    var body: some View {
+        HStack {
+            Text(exercise.title)
+                .foregroundColor(.forgeLabel)
+            Spacer()
+            Text(exercise.isCustom ? "Custom" : "Built in")
+                .font(.forgeCaption)
+                .foregroundColor(.forgeSecondaryLabel)
+        }
     }
 }
 

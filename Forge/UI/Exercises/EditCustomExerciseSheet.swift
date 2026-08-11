@@ -19,7 +19,7 @@ struct EditCustomExerciseSheet: View {
         self.exercise = exercise
         let primaryMuscle = exercise.primaryMuscle.map { EditCustomExerciseView.ExerciseValues.ExerciseMuscle(type: .primary, muscle: $0) }
         let secondaryMuscle = exercise.secondaryMuscle.map { EditCustomExerciseView.ExerciseValues.ExerciseMuscle(type: .secondary, muscle: $0) }
-        _exerciseValues = State(initialValue: .init(title: exercise.title, description: exercise.description ?? "", muscles: Set(primaryMuscle + secondaryMuscle), type: exercise.type, restTime: ExerciseStore.shared.restTime(forExercise: exercise.uuid)))
+        _exerciseValues = State(initialValue: .init(title: exercise.title, description: exercise.description ?? "", muscles: Set(primaryMuscle + secondaryMuscle), type: exercise.type, activityCategoryIDs: Set(exercise.activityCategoryIDs), restTime: ExerciseStore.shared.restTime(forExercise: exercise.uuid)))
     }
     
     private var canSave: Bool {
@@ -27,6 +27,7 @@ struct EditCustomExerciseSheet: View {
         guard !title.isEmpty else { return false }
         guard !exerciseStore.exercises.contains(where: { $0.title == title && $0.uuid != exercise.uuid }) else { return false }
         guard !exerciseValues.muscles.isEmpty else { return false }
+        guard !exerciseValues.activityCategoryIDs.isEmpty else { return false }
         return true
     }
     
@@ -44,7 +45,15 @@ struct EditCustomExerciseSheet: View {
                 .filter { $0.type == .secondary }
                 .sorted { $0.shortDisplayTitle < $1.shortDisplayTitle }
                 .map { $0.muscle }
-            self.exerciseStore.updateCustomExercise(with: self.exercise.uuid, title: title, description: description.isEmpty ? nil : description, primaryMuscle: primaryMuscle, secondaryMuscle: secondaryMuscle, type: self.exerciseValues.type)
+            self.exerciseStore.updateCustomExercise(
+                with: self.exercise.uuid,
+                title: title,
+                description: description.isEmpty ? nil : description,
+                primaryMuscle: primaryMuscle,
+                secondaryMuscle: secondaryMuscle,
+                type: self.exerciseValues.type,
+                activityCategoryIDs: Array(self.exerciseValues.activityCategoryIDs).sorted()
+            )
             ExerciseStore.shared.setRestTime(self.exerciseValues.restTime, forExercise: self.exercise.uuid)
             self.presentationMode.wrappedValue.dismiss()
         }.disabled(!canSave)

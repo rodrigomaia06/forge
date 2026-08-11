@@ -14,7 +14,9 @@ struct ExercisesView : View {
     
     var body: some View {
         List(exercises, id: \.id) { exercise in
-            NavigationLink(exercise.title, destination: ExerciseDetailView(exercise: exercise))
+            NavigationLink(destination: ExerciseDetailView(exercise: exercise)) {
+                ExerciseSourceRow(exercise: exercise)
+            }
         }
         .listStyleCompat_InsetGroupedListStyle()
     }

@@ -19,6 +19,7 @@ struct CreateCustomExerciseSheet: View {
         guard !title.isEmpty else { return false }
         guard !exerciseStore.exercises.contains(where: { $0.title == title }) else { return false }
         guard !exerciseValues.muscles.isEmpty else { return false }
+        guard !exerciseValues.activityCategoryIDs.isEmpty else { return false }
         return true
     }
     
@@ -36,7 +37,14 @@ struct CreateCustomExerciseSheet: View {
                 .filter { $0.type == .secondary }
                 .sorted { $0.shortDisplayTitle < $1.shortDisplayTitle }
                 .map { $0.muscle }
-            self.exerciseStore.createCustomExercise(title: title, description: description.isEmpty ? nil : description, primaryMuscle: primaryMuscle, secondaryMuscle: secondaryMuscle, type: self.exerciseValues.type)
+            self.exerciseStore.createCustomExercise(
+                title: title,
+                description: description.isEmpty ? nil : description,
+                primaryMuscle: primaryMuscle,
+                secondaryMuscle: secondaryMuscle,
+                type: self.exerciseValues.type,
+                activityCategoryIDs: Array(self.exerciseValues.activityCategoryIDs).sorted()
+            )
             if let restTime = self.exerciseValues.restTime,
                let created = self.exerciseStore.customExercises.first(where: { $0.title == title }) {
                 self.exerciseStore.setRestTime(restTime, forExercise: created.uuid)

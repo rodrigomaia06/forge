@@ -193,6 +193,16 @@ extension ExerciseStore {
             return groupExercises.isEmpty ? nil : ExerciseGroup(title: category.title, exercises: groupExercises)
         }
     }
+
+    public static func splitIntoWorkoutTypeGroups(exercises: [Exercise], workoutTypes: [WorkoutType]) -> [ExerciseGroup] {
+        workoutTypes.map { type in
+            let categoryID = type.exerciseCategoryID
+            let groupExercises = exercises
+                .filter { $0.activityCategoryIDs.contains(categoryID) }
+                .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+            return ExerciseGroup(title: type.displayTitle, exercises: groupExercises)
+        }
+    }
 }
 
 // MARK: - Find
@@ -241,7 +251,7 @@ extension ExerciseStore {
 
 // MARK: - Custom Exercises (Core Data backed)
 extension ExerciseStore {
-    public func createCustomExercise(title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType) {
+    public func createCustomExercise(title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, activityCategoryIDs: [String]) {
         let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { return }
         guard !exercises.contains(where: { $0.title == title }) else { return }
@@ -249,17 +259,17 @@ extension ExerciseStore {
 
         let entity = CustomExercise(context: context)
         entity.uuid = UUID()
-        apply(title: title, description: description, primaryMuscle: primaryMuscle, secondaryMuscle: secondaryMuscle, type: type, to: entity)
+        apply(title: title, description: description, primaryMuscle: primaryMuscle, secondaryMuscle: secondaryMuscle, type: type, activityCategoryIDs: activityCategoryIDs, to: entity)
         saveAndReload(context)
     }
 
-    public func updateCustomExercise(with uuid: UUID, title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType) {
+    public func updateCustomExercise(with uuid: UUID, title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, activityCategoryIDs: [String]) {
         let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { return }
         guard !exercises.contains(where: { $0.title == title && $0.uuid != uuid }) else { return }
         guard let context = context, let entity = customExerciseEntity(with: uuid, in: context) else { return }
 
-        apply(title: title, description: description, primaryMuscle: primaryMuscle, secondaryMuscle: secondaryMuscle, type: type, to: entity)
+        apply(title: title, description: description, primaryMuscle: primaryMuscle, secondaryMuscle: secondaryMuscle, type: type, activityCategoryIDs: activityCategoryIDs, to: entity)
         saveAndReload(context)
     }
 
@@ -270,7 +280,7 @@ extension ExerciseStore {
         saveAndReload(context)
     }
 
-    private func apply(title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, to entity: CustomExercise) {
+    private func apply(title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, activityCategoryIDs: [String], to entity: CustomExercise) {
         var description = description?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let d = description, d.isEmpty { description = nil }
         entity.title = title
@@ -278,9 +288,7 @@ extension ExerciseStore {
         entity.primaryMusclesJSON = Self.encodeStrings(primaryMuscle)
         entity.secondaryMusclesJSON = Self.encodeStrings(secondaryMuscle)
         entity.equipmentJSON = Self.encodeStrings(type.equipment.map { [$0] } ?? [])
-        if entity.activityCategoriesJSON == nil {
-            entity.activityCategoriesJSON = Self.encodeCategories([.strength])
-        }
+        entity.activityCategoriesJSON = Self.encodeCategoryIDs(activityCategoryIDs)
         if entity.defaultMetric == nil {
             entity.defaultMetric = ExerciseSetMetric.reps.rawValue
         }
@@ -331,6 +339,7 @@ extension ExerciseStore {
             title: entity.title ?? "",
             alias: [],
             activityCategories: decodeCategories(entity.activityCategoriesJSON),
+            activityCategoryIDs: decodeCategoryIDs(entity.activityCategoriesJSON),
             defaultMetric: ExerciseSetMetric(rawValue: entity.defaultMetric ?? "") ?? .reps,
             description: entity.exerciseDescription,
             primaryMuscle: decodeStrings(entity.primaryMusclesJSON),
@@ -351,14 +360,26 @@ extension ExerciseStore {
     }
 
     private static func decodeCategories(_ json: String?) -> [ExerciseActivityCategory] {
-        guard let data = json?.data(using: .utf8) else { return [.strength] }
-        let categories = (try? JSONDecoder().decode([ExerciseActivityCategory].self, from: data)) ?? [.strength]
+        let categories = decodeCategoryIDs(json).compactMap(ExerciseActivityCategory.init(rawValue:))
         return categories.isEmpty ? [.strength] : categories
     }
 
-    private static func encodeCategories(_ categories: [ExerciseActivityCategory]) -> String {
-        let categories = categories.isEmpty ? [.strength] : categories
-        guard let data = try? JSONEncoder().encode(categories), let string = String(data: data, encoding: .utf8) else { return "[\"strength\"]" }
+    private static func decodeCategoryIDs(_ json: String?) -> [String] {
+        guard let data = json?.data(using: .utf8) else { return [ExerciseActivityCategory.strength.rawValue] }
+        if let ids = try? JSONDecoder().decode([String].self, from: data) {
+            let clean = ids.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }.filter { !$0.isEmpty }
+            return clean.isEmpty ? [ExerciseActivityCategory.strength.rawValue] : clean
+        }
+        if let categories = try? JSONDecoder().decode([ExerciseActivityCategory].self, from: data) {
+            return categories.isEmpty ? [ExerciseActivityCategory.strength.rawValue] : categories.map(\.rawValue)
+        }
+        return [ExerciseActivityCategory.strength.rawValue]
+    }
+
+    private static func encodeCategoryIDs(_ categoryIDs: [String]) -> String {
+        let categoryIDs = categoryIDs.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }.filter { !$0.isEmpty }
+        let ids = categoryIDs.isEmpty ? [ExerciseActivityCategory.strength.rawValue] : categoryIDs
+        guard let data = try? JSONEncoder().encode(ids), let string = String(data: data, encoding: .utf8) else { return "[\"strength\"]" }
         return string
     }
 }

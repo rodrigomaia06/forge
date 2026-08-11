@@ -65,6 +65,13 @@ public class WorkoutType: NSManagedObject {
         (workouts?.count ?? 0) > 0 || (defaultRoutines?.count ?? 0) > 0
     }
 
+    public var exerciseCategoryID: String {
+        if let uuid, let preset = Self.defaultPresets.first(where: { $0.uuid == uuid }) {
+            return ExerciseActivityCategory.categoryID(forWorkoutTypeTitle: preset.title)
+        }
+        return uuid?.uuidString.lowercased() ?? displayTitle.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
     public func deleteOrArchive(in context: NSManagedObjectContext) {
         if isDefaultPreset || hasUserDataReferences {
             isArchived = true
