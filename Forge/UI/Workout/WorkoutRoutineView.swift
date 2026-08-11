@@ -307,10 +307,12 @@ struct WorkoutRoutineView: View {
                     }
                 }
 
-                VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-                    sectionTitle("Exercises")
-                    VStack(spacing: Theme.Spacing.xxl) {
-                        ForEach(workoutRoutineExercises) { exerciseCard($0) }
+                if !workoutRoutineExercises.isEmpty {
+                    VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+                        sectionTitle("Exercises")
+                        VStack(spacing: Theme.Spacing.xxl) {
+                            ForEach(workoutRoutineExercises) { exerciseCard($0) }
+                        }
                     }
                 }
 

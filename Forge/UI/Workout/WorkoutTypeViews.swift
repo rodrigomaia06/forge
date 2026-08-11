@@ -340,6 +340,7 @@ private struct WorkoutTypeEditorView: View {
                     get: { type.isArchived },
                     set: { type.isArchived = $0; context.saveOrCrash() }
                 ))
+                .tint(.forgeSuccess)
             } footer: {
                 Text("Hidden types stay on existing workouts and routines, but they do not appear when choosing a type for new workouts.")
             }

@@ -67,12 +67,18 @@ struct WorkoutPlanView: View {
             Section(header: Text("Routines".uppercased())) {
                 ForEach(workoutRoutines) { workoutRoutine in
                     NavigationLink(destination: WorkoutRoutineView(workoutRoutine: workoutRoutine)) {
-                        VStack(alignment: .leading) {
-                            Text(workoutRoutine.displayTitle)
-                            Text(workoutRoutine.subtitle(in: self.exerciseStore.exercises))
-                                .lineLimit(1)
-                                .foregroundColor(.secondary)
-                                .font(.caption)
+                        HStack(spacing: Theme.Spacing.m) {
+                            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                .fill(Color(workoutTypeHex: workoutRoutine.defaultWorkoutType?.displayColorHex ?? WorkoutType.fallbackColorHex))
+                                .frame(width: 4, height: 40)
+                                .accessibilityHidden(true)
+                            VStack(alignment: .leading) {
+                                Text(workoutRoutine.displayTitle)
+                                Text(workoutRoutine.subtitle(in: self.exerciseStore.exercises))
+                                    .lineLimit(1)
+                                    .foregroundColor(.secondary)
+                                    .font(.caption)
+                            }
                         }
                     }
                 }

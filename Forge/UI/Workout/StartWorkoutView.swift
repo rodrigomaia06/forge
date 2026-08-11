@@ -276,12 +276,18 @@ private struct RoutineMenuRow: View {
                 if (routine.workoutRoutineExercises?.count ?? 0) == 0 { delete() } else { confirmingDelete = true }
             } label: { Label("Delete", systemImage: "trash") }
         } label: {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(routine.displayTitle).italic()
-                Text(routine.subtitle(in: exerciseStore.exercises))
-                    .lineLimit(1)
-                    .foregroundColor(.secondary)
-                    .font(.caption)
+            HStack(spacing: Theme.Spacing.m) {
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                    .fill(Color(workoutTypeHex: routine.defaultWorkoutType?.displayColorHex ?? WorkoutType.fallbackColorHex))
+                    .frame(width: 4, height: 40)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(routine.displayTitle).italic()
+                    Text(routine.subtitle(in: exerciseStore.exercises))
+                        .lineLimit(1)
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             // In a plan, each routine is a recessed dark well inside the plan card (no outline), so the
