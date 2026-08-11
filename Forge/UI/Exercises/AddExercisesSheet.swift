@@ -183,7 +183,7 @@ struct AddExercisesSheet: View {
                 .foregroundColor(category == option ? .forgeBackground : .forgeLabel)
                 .padding(.horizontal, Theme.Spacing.m)
                 .frame(minHeight: 34)
-                .background(Capsule().fill(category == option ? Color.forgeLabel : Color.forgeCardBackground))
+                .background(Capsule().fill(category == option ? Color.forgeLabel : Color.forgeSurface))
         }
         .buttonStyle(.plain)
     }
