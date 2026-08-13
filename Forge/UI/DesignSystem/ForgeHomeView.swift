@@ -4,7 +4,7 @@
 //
 //  Static mock of the Home dashboard for CI screenshots (the live FeedView needs real
 //  data to render): greeting, quick-stat tiles, a full-year activity heat-grid, and
-//  recent-workout cards. Mirrors FeedView's design so we can review the look.
+//  a compact Now panel. Mirrors FeedView's design so we can review the look.
 //
 
 import SwiftUI
@@ -17,7 +17,7 @@ struct ForgeHomeView: View {
             header
             stats
             activity
-            recent
+            now
         }
         .padding(.horizontal, Theme.Spacing.l)
         .padding(.top, Theme.Spacing.xxl)
@@ -81,23 +81,43 @@ struct ForgeHomeView: View {
         }
     }
 
-    private var recent: some View {
+    private var now: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            Text("RECENT").font(.forgeSectionLabel).tracking(2).foregroundColor(.forgeSecondaryLabel)
-            card("MARCH 28", "Chest Day", "5 exercises · 20 sets · 8,040 kg")
-            card("MARCH 26", "Back Day", "6 exercises · 22 sets · 12,410 kg")
+            Text("NOW").font(.forgeSectionLabel).tracking(2).foregroundColor(.forgeSecondaryLabel)
+            card("No active workout", "Start from the Workout tab")
         }
     }
 
-    private func card(_ date: String, _ title: String, _ detail: String) -> some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-            Text(date).font(.forgeSectionLabel).tracking(1).foregroundColor(.forgeSecondaryLabel)
+    private func card(_ title: String, _ detail: String) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
             Text(title).font(.forgeHeadline).foregroundColor(.forgeLabel)
             Text(detail).font(.forgeCaption).foregroundColor(.forgeSecondaryLabel)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Theme.Spacing.s) {
+                    actionLabel("Start workout", systemImage: "plus")
+                    actionLabel("Log time", systemImage: "timer")
+                }
+                VStack(spacing: Theme.Spacing.s) {
+                    actionLabel("Start workout", systemImage: "plus")
+                    actionLabel("Log time", systemImage: "timer")
+                }
+            }
         }
         .padding(Theme.Spacing.l)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous).fill(Color.forgeSurface))
+    }
+
+    private func actionLabel(_ title: String, systemImage: String) -> some View {
+        Label(title, systemImage: systemImage)
+            .font(.forgeCaption.weight(.semibold))
+            .foregroundColor(.forgeLabel)
+            .lineLimit(1)
+            .minimumScaleFactor(0.85)
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: Theme.Layout.minTapTarget)
+            .forgeGlassCapsule()
+            .glassOutline()
     }
 }
 
