@@ -70,10 +70,11 @@ public class Workout: NSManagedObject, Codable {
     }
 
     public func workoutPlanAndRoutineTitle() -> String? {
-        if let workoutRoutineTitle = workoutRoutine?.displayTitle, let workoutPlanTitle = workoutRoutine?.workoutPlan?.displayTitle {
+        guard let workoutRoutineTitle = workoutRoutine?.displayTitle else { return nil }
+        if let workoutPlanTitle = workoutRoutine?.workoutPlan?.displayTitle {
             return workoutPlanTitle + " - " + workoutRoutineTitle
         }
-        return nil
+        return workoutRoutineTitle
     }
 
     /// Fixes the name this workout currently borrows from its routine and plan onto its own title, but

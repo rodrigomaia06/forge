@@ -204,6 +204,10 @@ struct CurrentWorkoutView: View {
         (workout.comment ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private var showsCharacteristics: Bool {
+        editMode == .active || !hasWorkoutName || !trimmedWorkoutComment.isEmpty
+    }
+
     private func scrollSectionTitle(_ title: String) -> some View {
         Text(title)
             .font(.forgeHeadline)
@@ -211,36 +215,38 @@ struct CurrentWorkoutView: View {
             .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
     }
 
-    private var scrollCharacteristics: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            scrollSectionTitle("Characteristics")
-            VStack(spacing: 0) {
-                if editMode == .active {
-                    ClearableTextField(titleKey: "Name", text: workoutTitle, onCommit: { self.adjustAndSaveWorkoutTitleInput() })
-                        .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                        .frame(minHeight: Theme.Layout.minTapTarget)
-                    ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                    ClearableTextField(titleKey: "Comment", text: workoutComment, onCommit: { self.adjustAndSaveWorkoutCommentInput() })
-                        .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                        .frame(minHeight: Theme.Layout.minTapTarget)
-                } else if !hasWorkoutName {
-                    ClearableTextField(titleKey: "Name", text: workoutTitle, onCommit: { self.adjustAndSaveWorkoutTitleInput() })
-                        .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                        .frame(minHeight: Theme.Layout.minTapTarget)
+    @ViewBuilder private var scrollCharacteristics: some View {
+        if showsCharacteristics {
+            VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+                scrollSectionTitle("Characteristics")
+                VStack(spacing: 0) {
+                    if editMode == .active {
+                        ClearableTextField(titleKey: "Name", text: workoutTitle, onCommit: { self.adjustAndSaveWorkoutTitleInput() })
+                            .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                            .frame(minHeight: Theme.Layout.minTapTarget)
+                        ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                        ClearableTextField(titleKey: "Comment", text: workoutComment, onCommit: { self.adjustAndSaveWorkoutCommentInput() })
+                            .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                            .frame(minHeight: Theme.Layout.minTapTarget)
+                    } else if !hasWorkoutName {
+                        ClearableTextField(titleKey: "Name", text: workoutTitle, onCommit: { self.adjustAndSaveWorkoutTitleInput() })
+                            .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                            .frame(minHeight: Theme.Layout.minTapTarget)
+                    }
+                    if editMode != .active, !hasWorkoutName, !trimmedWorkoutComment.isEmpty {
+                        ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                    }
+                    if editMode != .active, !trimmedWorkoutComment.isEmpty {
+                        Text(trimmedWorkoutComment)
+                            .foregroundColor(.forgeSecondaryLabel)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                            .frame(minHeight: Theme.Layout.minTapTarget)
+                            .editModeHint()
+                    }
                 }
-                if editMode != .active, !hasWorkoutName, !trimmedWorkoutComment.isEmpty {
-                    ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                }
-                if editMode != .active, !trimmedWorkoutComment.isEmpty {
-                    Text(trimmedWorkoutComment)
-                        .foregroundColor(.forgeSecondaryLabel)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                        .frame(minHeight: Theme.Layout.minTapTarget)
-                        .editModeHint()
-                }
+                .forgeCard()
             }
-            .forgeCard()
         }
     }
 

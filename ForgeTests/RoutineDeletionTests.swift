@@ -57,6 +57,16 @@ final class RoutineDeletionTests: XCTestCase {
         XCTAssertEqual(workout.optionalDisplayTitle(in: []), "Push pull legs - Push day")
     }
 
+    func testStandaloneRoutineTitleIsBorrowedByStartedWorkout() {
+        let routine = WorkoutRoutine.create(context: context)
+        routine.title = "My Tie"
+        let workout = routine.createWorkout(context: context)
+
+        XCTAssertNil(workout.title)
+        XCTAssertEqual(workout.workoutPlanAndRoutineTitle(), "My Tie")
+        XCTAssertEqual(workout.optionalDisplayTitle(in: []), "My Tie")
+    }
+
     func testCustomTitleIsNotOverwrittenWhenRoutineDeleted() {
         let (_, routine, workout) = makePlanRoutineWorkout(planTitle: "Push pull legs", routineTitle: "Push day")
         workout.title = "Morning session"
