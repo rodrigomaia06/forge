@@ -232,7 +232,22 @@ struct WorkoutDetailView : View {
                 }
                 .forgeCard()
 
-                if let comment = readSnapshot?.workoutComment {
+                if editMode.isEditing {
+                    VStack(spacing: 0) {
+                        ClearableTextField(titleKey: "Title", text: workoutTitle, onCommit: { self.adjustAndSaveWorkoutTitleInput() })
+                            .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                            .frame(minHeight: Theme.Layout.minTapTarget)
+                        ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                        ClearableTextField(titleKey: "Comment", text: workoutComment, onCommit: { self.adjustAndSaveWorkoutCommentInput() })
+                            .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                            .frame(minHeight: Theme.Layout.minTapTarget)
+                        ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                        WorkoutTypePickerRow(title: "Type", selection: workoutType)
+                            .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                            .frame(minHeight: Theme.Layout.minTapTarget)
+                    }
+                    .forgeCard()
+                } else if let comment = readSnapshot?.workoutComment {
                     VStack(spacing: 0) {
                         Text(comment)
                             .editModeHint()
@@ -245,29 +260,41 @@ struct WorkoutDetailView : View {
 
                 VStack(spacing: 0) {
                     if let snapshot = readSnapshot {
-                        if editMode.isEditing {
-                            WorkoutTypePickerRow(title: "Type", selection: workoutType)
-                                .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                                .frame(minHeight: Theme.Layout.minTapTarget)
-                        } else {
+                        if !editMode.isEditing {
                             LabeledContent("Type") {
                                 WorkoutTypeLabel(title: snapshot.workoutTypeTitle, colorHex: snapshot.workoutTypeColorHex)
                             }
                             .editModeHint()
                             .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
                             .frame(minHeight: Theme.Layout.minTapTarget)
+                            ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
                         }
-                        ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
                     }
-                    LabeledContent("Start") { Text(readSnapshot?.startText ?? "") }
-                        .editModeHint()
+                    if editMode.isEditing {
+                        DatePicker(selection: $workout.safeStart, in: ...min(workout.safeEnd, Date())) {
+                            Text("Start")
+                        }
                         .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
                         .frame(minHeight: Theme.Layout.minTapTarget)
+                    } else {
+                        LabeledContent("Start") { Text(readSnapshot?.startText ?? "") }
+                            .editModeHint()
+                            .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                            .frame(minHeight: Theme.Layout.minTapTarget)
+                    }
                     ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                    LabeledContent("End") { Text(readSnapshot?.endText ?? "") }
-                        .editModeHint()
+                    if editMode.isEditing {
+                        DatePicker(selection: $workout.safeEnd, in: workout.safeStart...Date()) {
+                            Text("End")
+                        }
                         .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
                         .frame(minHeight: Theme.Layout.minTapTarget)
+                    } else {
+                        LabeledContent("End") { Text(readSnapshot?.endText ?? "") }
+                            .editModeHint()
+                            .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                            .frame(minHeight: Theme.Layout.minTapTarget)
+                    }
                 }
                 .forgeCard()
 

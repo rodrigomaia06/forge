@@ -172,8 +172,10 @@ private struct EditModeHint: ViewModifier {
                         .padding(.horizontal, Theme.Spacing.s)
                         .padding(.vertical, Theme.Spacing.xxs)
                         .background(Capsule().fill(.ultraThinMaterial))
+                        .lineLimit(1)
                         .transition(.opacity)
                         .allowsHitTesting(false)
+                        .padding(.trailing, Theme.Spacing.s)
                 }
             }
             .onTapGesture {

@@ -228,10 +228,10 @@ struct CurrentWorkoutView: View {
                         .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
                         .frame(minHeight: Theme.Layout.minTapTarget)
                 }
-                if !hasWorkoutName, !trimmedWorkoutComment.isEmpty {
+                if editMode != .active, !hasWorkoutName, !trimmedWorkoutComment.isEmpty {
                     ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
                 }
-                if !trimmedWorkoutComment.isEmpty {
+                if editMode != .active, !trimmedWorkoutComment.isEmpty {
                     Text(trimmedWorkoutComment)
                         .foregroundColor(.forgeSecondaryLabel)
                         .frame(maxWidth: .infinity, alignment: .leading)

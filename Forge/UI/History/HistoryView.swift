@@ -131,7 +131,7 @@ struct HistoryView : View {
 
     private static func weekdayDateText(_ date: Date?) -> String {
         guard let date else { return "Unknown date" }
-        return date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())
+        return date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
     }
 
     private func workout(for objectID: NSManagedObjectID) -> Workout? {
@@ -367,10 +367,14 @@ private struct WorkoutCell: View {
                 Text(workout.title)
                     .font(.body)
                     .foregroundColor(.forgeLabel)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
 
                 Text("\(workout.workoutTypeTitle) · \(workout.dateText)")
                     .font(.caption)
                     .foregroundColor(.forgeSecondaryLabel)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
             .layoutPriority(1)
 
@@ -380,6 +384,7 @@ private struct WorkoutCell: View {
                 workout.durationText.map { pill($0) }
                 workout.summaryLine.map { pill($0) }
             }
+            .layoutPriority(2)
 
             Image(systemName: "chevron.right")
                 .font(.body.weight(.semibold))
