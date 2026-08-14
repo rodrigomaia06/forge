@@ -64,6 +64,11 @@ fastlane/metadata
 
 /local/
 
+# Local Core Data stores copied to the repository root for migration testing.
+/*.sqlite
+/*.sqlite-shm
+/*.sqlite-wal
+
 # Original, uncropped screenshots kept locally as source for the README gallery
 assets/screenshots/IMG_*.PNG
 assets/screenshots/IMG_*.png

@@ -39,6 +39,7 @@ public class WorkoutDataStorage {
         Self.mergeRenamedExercises(context: persistentContainer.viewContext)
         Self.migrateBodyweightSets(context: persistentContainer.viewContext)
         Self.seedWorkoutTypes(context: persistentContainer.viewContext)
+        Self.normalizeWorkoutDataV13(context: persistentContainer.viewContext)
     }
     
     private func loadPersistentStores(tryToRecoverFromFailedMigration: Bool, completion: @escaping (NSPersistentStoreDescription) -> Void) {
@@ -77,6 +78,17 @@ extension WorkoutDataStorage {
             try WorkoutType.seedDefaultsIfNeeded(context: context)
         } catch {
             os_log("Could not seed workout types, will retry next launch: %@", log: .migration, type: .error, error as NSError)
+        }
+    }
+
+    static func normalizeWorkoutDataV13(context: NSManagedObjectContext) {
+        guard context.persistentStoreCoordinator?.managedObjectModel.entitiesByName["ExerciseDefinition"] != nil else {
+            return
+        }
+        do {
+            try WorkoutDataV13Normalization.run(context: context)
+        } catch {
+            os_log("Could not normalize workout data for v13, will retry next launch: %@", log: .migration, type: .error, error as NSError)
         }
     }
 }
