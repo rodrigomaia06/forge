@@ -172,6 +172,92 @@ final class WorkoutDataExchangeTests: XCTestCase {
         XCTAssertTrue(sets[0].isCompleted)
     }
 
+    func testWorkoutJSONExportUsesExchangeEnvelope() throws {
+        let context = container.viewContext
+        let workout = Workout.create(context: context)
+        workout.title = "Morning session"
+        workout.start = Date(timeIntervalSince1970: 1_700_000_000)
+        workout.end = Date(timeIntervalSince1970: 1_700_003_600)
+        try context.save()
+
+        let data = try WorkoutDataExchange.export(workouts: [workout])
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+
+        XCTAssertEqual(object["formatVersion"] as? Int, WorkoutDataExchange.formatVersion)
+        XCTAssertNotNil(object["exportedAt"])
+        XCTAssertNotNil(object["source"])
+        XCTAssertEqual((object["workouts"] as? [[String: Any]])?.count, 1)
+    }
+
+    func testWorkoutTextExportIncludesReadableWorkoutDetails() throws {
+        let context = container.viewContext
+        let exerciseUuid = UUID()
+        let catalog = [
+            Exercise(
+                uuid: exerciseUuid,
+                everkineticId: 10_000,
+                title: "Treadmill",
+                alias: [],
+                activityCategories: [.cardio],
+                defaultMetric: .distance,
+                description: nil,
+                primaryMuscle: ["quadriceps"],
+                secondaryMuscle: [],
+                equipment: ["machine"],
+                steps: [],
+                tips: [],
+                references: []
+            )
+        ]
+
+        let type = WorkoutType.create(context: context)
+        type.title = "Cardio"
+        type.colorHex = "#F4A261"
+
+        let workout = Workout.create(context: context)
+        workout.title = "Easy run"
+        workout.comment = "Felt steady"
+        workout.start = Date(timeIntervalSince1970: 1_700_000_000)
+        workout.end = Date(timeIntervalSince1970: 1_700_003_600)
+        workout.workoutType = type
+        workout.customAttributes = ["Location": "Gym"]
+
+        let workoutExercise = WorkoutExercise.create(context: context)
+        workoutExercise.exerciseUuid = exerciseUuid
+        workoutExercise.storedMetricValue = .distance
+        workoutExercise.comment = "Incline 1%"
+        workoutExercise.workout = workout
+
+        let set = WorkoutSet.create(context: context)
+        set.distanceValue = 5
+        set.durationValue = 1_800
+        set.rpeValue = 7
+        set.comment = "Kept it easy"
+        set.isCompleted = true
+        set.workoutExercise = workoutExercise
+        try context.save()
+
+        let text = WorkoutTextExport.export(
+            workouts: [workout],
+            exercises: catalog,
+            weightUnit: .metric,
+            fallbackBodyweight: 80,
+            showPlanInWorkoutTitle: true
+        )
+
+        XCTAssertTrue(text.contains("Easy run"))
+        XCTAssertTrue(text.contains("Type: Cardio"))
+        XCTAssertTrue(text.contains("Summary: 1 exercise, 1 set"))
+        XCTAssertTrue(text.contains("Location: Gym"))
+        XCTAssertTrue(text.contains("Comment:\nFelt steady"))
+        XCTAssertTrue(text.contains("Treadmill"))
+        XCTAssertTrue(text.contains("Note: Incline 1%"))
+        XCTAssertTrue(text.contains("5 km"))
+        XCTAssertTrue(text.contains("30:00"))
+        XCTAssertTrue(text.contains("RPE 7"))
+        XCTAssertTrue(text.contains("Set note: Kept it easy"))
+    }
+
     func testWorkoutSupersetRoundTrip() throws {
         let context = container.viewContext
 

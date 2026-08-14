@@ -195,15 +195,15 @@ struct BackupAndExportView: View {
         do {
             let url: URL
             if asJSON {
-                let encoder = JSONEncoder()
-                encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
-                encoder.dateEncodingStrategy = .iso8601
-                if let exercisesKey = CodingUserInfoKey.exercisesKey {
-                    encoder.userInfo[exercisesKey] = ExerciseStore.shared.exercises
-                }
-                url = try tempFile(data: try encoder.encode(workouts), name: "workout_data.json")
+                url = try tempFile(data: try WorkoutDataExchange.export(workouts: workouts), name: "workout_data.json")
             } else {
-                let text = workouts.compactMap { $0.logText(in: exerciseStore.exercises, weightUnit: settingsStore.weightUnit, fallbackBodyweight: settingsStore.bodyweight) }.joined(separator: "\n\n\n\n\n")
+                let text = WorkoutTextExport.export(
+                    workouts: workouts,
+                    exercises: exerciseStore.exercises,
+                    weightUnit: settingsStore.weightUnit,
+                    fallbackBodyweight: settingsStore.bodyweight,
+                    showPlanInWorkoutTitle: settingsStore.showPlanInWorkoutTitle
+                )
                 url = try tempFile(data: Data(text.utf8), name: "workout_data.txt")
             }
             shareFile(url: url)

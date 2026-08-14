@@ -41,12 +41,16 @@ enum WorkoutDataExchange {
 
     struct File: Codable {
         var formatVersion: Int
+        var exportedAt: Date?
+        var source: SourceDTO?
         var plans: [PlanDTO]
         var routines: [RoutineDTO]
         var workouts: [WorkoutDTO]
 
-        init(formatVersion: Int, plans: [PlanDTO] = [], routines: [RoutineDTO] = [], workouts: [WorkoutDTO] = []) {
+        init(formatVersion: Int, exportedAt: Date? = Date(), source: SourceDTO? = SourceDTO.current, plans: [PlanDTO] = [], routines: [RoutineDTO] = [], workouts: [WorkoutDTO] = []) {
             self.formatVersion = formatVersion
+            self.exportedAt = exportedAt
+            self.source = source
             self.plans = plans
             self.routines = routines
             self.workouts = workouts
@@ -56,9 +60,28 @@ enum WorkoutDataExchange {
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             formatVersion = try container.decode(Int.self, forKey: .formatVersion)
+            exportedAt = try container.decodeIfPresent(Date.self, forKey: .exportedAt)
+            source = try container.decodeIfPresent(SourceDTO.self, forKey: .source)
             plans = try container.decodeIfPresent([PlanDTO].self, forKey: .plans) ?? []
             routines = try container.decodeIfPresent([RoutineDTO].self, forKey: .routines) ?? []
             workouts = try container.decodeIfPresent([WorkoutDTO].self, forKey: .workouts) ?? []
+        }
+    }
+
+    struct SourceDTO: Codable {
+        var app: String
+        var version: String?
+        var build: String?
+        var commit: String?
+
+        static var current: SourceDTO {
+            let bundle = Bundle.main
+            return SourceDTO(
+                app: bundle.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Forge",
+                version: bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
+                build: bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String,
+                commit: bundle.object(forInfoDictionaryKey: "ForgeGitCommit") as? String
+            )
         }
     }
 
