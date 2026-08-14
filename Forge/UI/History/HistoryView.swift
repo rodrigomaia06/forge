@@ -37,6 +37,7 @@ struct HistoryView : View {
     @State private var editMode: EditMode = .inactive
     @State private var fromDate = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
     @State private var toDate = Date()
+    @State private var filterMode: HistoryFilterMode = .month
     @State private var openedFromHomeDate = false
 
     /// Drives navigation into a workout. A typed path lets both a row tap and a deep-link from another
@@ -66,6 +67,20 @@ struct HistoryView : View {
         let workoutTypeColorHex: String
 
         var id: NSManagedObjectID { objectID }
+    }
+
+    private enum HistoryFilterMode: String, CaseIterable, Identifiable {
+        case month
+        case dates
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .month: return "Month"
+            case .dates: return "Dates"
+            }
+        }
     }
 
     /// The workouts shown, filtered to the selected date range when the filter is on.
@@ -237,6 +252,9 @@ struct HistoryView : View {
                         Haptics.selection()
                         withAnimation {
                             filterActive.toggle()
+                            if filterActive, filterMode == .month {
+                                setFilterToMonth(containing: Date())
+                            }
                             if !filterActive { openedFromHomeDate = false }
                         }
                     } label: {
@@ -259,6 +277,11 @@ struct HistoryView : View {
         .onChange(of: sceneState.historyDateToOpen) { _ in openPendingHistoryDate() }
         .onChange(of: workoutSnapshotInputs) { _, _ in rebuildHistorySections() }
         .onChange(of: filterActive) { _, _ in rebuildHistorySections() }
+        .onChange(of: filterMode) { _, mode in
+            if mode == .month {
+                setFilterToMonth(containing: fromDate)
+            }
+        }
         .onChange(of: fromDate) { _, _ in rebuildHistorySections() }
         .onChange(of: toDate) { _, _ in rebuildHistorySections() }
         .onChange(of: settingsStore.firstWeekday) { _, _ in rebuildHistorySections() }
@@ -275,24 +298,33 @@ struct HistoryView : View {
 
     private var filterSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            monthFilterControls
-
-            VStack(spacing: 0) {
-                DatePicker("From", selection: $fromDate, in: ...toDate, displayedComponents: .date)
-                    .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                    .frame(minHeight: Theme.Layout.minTapTarget)
-                ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                DatePicker("To", selection: $toDate, in: fromDate..., displayedComponents: .date)
-                    .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                    .frame(minHeight: Theme.Layout.minTapTarget)
+            Picker("Filter mode", selection: $filterMode) {
+                ForEach(HistoryFilterMode.allCases) { mode in
+                    Text(mode.title).tag(mode)
+                }
             }
-            .background(Color.forgeSurface)
+            .pickerStyle(.segmented)
 
-            Text("Showing workouts from the first to the second date.")
-                .font(.forgeCaption)
-                .foregroundColor(.forgeSecondaryLabel)
-                .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+            if filterMode == .month {
+                monthFilterControls
+            } else {
+                dateRangeFilterControls
+            }
         }
+    }
+
+    private var dateRangeFilterControls: some View {
+        VStack(spacing: 0) {
+            DatePicker("From", selection: $fromDate, in: ...toDate, displayedComponents: .date)
+                .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                .frame(minHeight: Theme.Layout.minTapTarget)
+            ForgeListSeparator().padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+            DatePicker("To", selection: $toDate, in: fromDate..., displayedComponents: .date)
+                .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                .frame(minHeight: Theme.Layout.minTapTarget)
+        }
+        .forgeCard()
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))
     }
 
     private var monthFilterControls: some View {
@@ -439,6 +471,7 @@ struct HistoryView : View {
         let day = Calendar.current.startOfDay(for: date)
         fromDate = day
         toDate = day
+        filterMode = .dates
         filterActive = true
         openedFromHomeDate = true
         path = []

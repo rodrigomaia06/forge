@@ -556,36 +556,25 @@ struct FeedView: View {
             HStack(alignment: .firstTextBaseline) {
                 panelTitle("By type")
                 Spacer()
-                Text(monthTitle(month))
-                    .font(.forgeCaption)
-                    .foregroundColor(.forgeSecondaryLabel)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-            }
-            mixCard {
-                VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-                    mixStrip(typeSummaries)
-                    if typeSummaries.isEmpty {
-                        Text("No workouts logged")
-                            .font(.forgeCaption)
-                            .foregroundColor(.forgeSecondaryLabel)
-                    } else {
-                        typeBreakdown(typeSummaries)
-                    }
-                    if index.thisWeek > 0 {
-                        ForgeListSeparator()
-                        HStack {
-                            Text("This week")
-                                .font(.forgeCaption)
-                                .foregroundColor(.forgeSecondaryLabel)
-                            Spacer()
-                            Text(index.thisWeek == 1 ? "1 workout" : "\(index.thisWeek) workouts")
-                                .font(.forgeCaption)
-                                .foregroundColor(.forgeSecondaryLabel)
-                        }
-                    }
+                if index.thisWeek > 0 {
+                    Text(index.thisWeek == 1 ? "1 this week" : "\(index.thisWeek) this week")
+                        .font(.forgeCaption)
+                        .foregroundColor(.forgeSecondaryLabel)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 }
             }
+            VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                mixStrip(typeSummaries)
+                if typeSummaries.isEmpty {
+                    Text("No workouts logged")
+                        .font(.forgeCaption)
+                        .foregroundColor(.forgeSecondaryLabel)
+                } else {
+                    typeBreakdown(typeSummaries)
+                }
+            }
+            .padding(.horizontal, Theme.Spacing.s)
         }
     }
 
@@ -615,14 +604,6 @@ struct FeedView: View {
             }
         }
         .frame(height: 7)
-    }
-
-    private func mixCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        content()
-            .padding(.horizontal, Theme.Spacing.m)
-            .padding(.vertical, Theme.Spacing.m)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .forgeCard(radius: Theme.Radius.medium)
     }
 
     private func panelTitle(_ title: String) -> some View {
