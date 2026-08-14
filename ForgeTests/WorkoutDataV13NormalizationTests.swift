@@ -23,7 +23,7 @@ final class WorkoutDataV13NormalizationTests: XCTestCase {
 
     func testNormalizationSeedsExercisesAndWorkoutMeasurements() throws {
         let context = container.viewContext
-        let exercise = try XCTUnwrap(ExerciseStore.shared.exercises.first)
+        let exercise = try XCTUnwrap(ExerciseStore().exercises.first)
         let workout = Workout.create(context: context)
         workout.start = Date()
         workout.end = Date().addingTimeInterval(3_600)
@@ -60,7 +60,7 @@ final class WorkoutDataV13NormalizationTests: XCTestCase {
 
     func testNormalizationCopiesRoutineTargets() throws {
         let context = container.viewContext
-        let exercise = try XCTUnwrap(ExerciseStore.shared.exercises.first)
+        let exercise = try XCTUnwrap(ExerciseStore().exercises.first)
         let routine = WorkoutRoutine.create(context: context)
 
         let routineExercise = WorkoutRoutineExercise.create(context: context)
