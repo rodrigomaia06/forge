@@ -520,8 +520,16 @@ struct FeedView: View {
     private func dashboardPanel(_ index: ActivityIndex, calendar: Calendar) -> some View {
         if let currentWorkout = currentWorkouts.first {
             activeWorkoutPanel(currentWorkout)
+        } else if case .day(let date) = filter {
+            VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                selectedDayPanel(date, index: index, calendar: calendar)
+                monthlyMixPanel(index, calendar: calendar)
+            }
         } else {
-            monthlyMixPanel(index, calendar: calendar)
+            VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                lastWorkoutPanel
+                monthlyMixPanel(index, calendar: calendar)
+            }
         }
     }
 
@@ -576,6 +584,139 @@ struct FeedView: View {
             }
             .padding(.horizontal, Theme.Spacing.s)
         }
+    }
+
+    private func selectedDayPanel(_ date: Date, index: ActivityIndex, calendar: Calendar) -> some View {
+        let dayWorkouts = workouts(on: date, calendar: calendar)
+        return VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            HStack(alignment: .firstTextBaseline) {
+                panelTitle("Selected day")
+                Spacer()
+                Text(Self.fullDayFormatter.string(from: date))
+                    .font(.forgeCaption)
+                    .foregroundColor(.forgeSecondaryLabel)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+
+            if dayWorkouts.isEmpty {
+                panelCard {
+                    VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                        Text("No workout logged")
+                            .font(.forgeHeadline)
+                            .foregroundColor(.forgeLabel)
+                        panelMeta(["Nothing saved for this day"])
+                        dashboardActionButton("Start workout", systemImage: "plus") {
+                            sceneState.selectedTab = .workout
+                        }
+                    }
+                }
+            } else if dayWorkouts.count == 1, let workout = dayWorkouts.first {
+                workoutLinkPanel(workout)
+            } else {
+                let summaries = index.typeSummaries(for: date, calendar: calendar)
+                panelCard {
+                    VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                        Text(dayWorkouts.count == 1 ? "1 workout" : "\(dayWorkouts.count) workouts")
+                            .font(.forgeHeadline)
+                            .foregroundColor(.forgeLabel)
+                        panelMeta([
+                            Workout.durationFormatter.string(from: index.duration(for: date, calendar: calendar)) ?? "",
+                            summaries.map(\.title).prefix(3).joined(separator: " · ")
+                        ])
+                        dashboardActionButton("Open in History", systemImage: "clock.arrow.circlepath") {
+                            openHistoryDate(date)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var lastWorkoutPanel: some View {
+        if let workout = workouts.first {
+            VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+                panelTitle("Last workout")
+                workoutLinkPanel(workout)
+            }
+        }
+    }
+
+    private func workoutLinkPanel(_ workout: Workout) -> some View {
+        Button {
+            Haptics.selection()
+            openHistoryWorkout(workout)
+        } label: {
+            panelCard(colorHex: workout.workoutType?.displayColorHex ?? WorkoutType.fallbackColorHex) {
+                VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                    Text(workout.displayTitle(in: exerciseStore.exercises, showPlan: settingsStore.showPlanInWorkoutTitle))
+                        .font(.forgeHeadline)
+                        .foregroundColor(.forgeLabel)
+                        .lineLimit(2)
+                    panelMeta([
+                        workout.workoutType?.displayTitle ?? WorkoutType.fallbackTitle,
+                        workoutDateText(workout.start),
+                        workout.duration.flatMap { Workout.durationFormatter.string(from: $0) } ?? "",
+                        workoutExerciseSummary(workout)
+                    ])
+                    exerciseBreakdown(workout)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Open workout")
+    }
+
+    private func workouts(on date: Date, calendar: Calendar) -> [Workout] {
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
+        return Array(workouts.filter { workout in
+            guard let workoutStart = workout.start else { return false }
+            return workoutStart >= start && workoutStart < end
+        })
+    }
+
+    private func workoutDateText(_ date: Date?) -> String {
+        guard let date else { return "" }
+        return date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
+    }
+
+    private func workoutExerciseSummary(_ workout: Workout) -> String {
+        let exercises = workout.workoutExercises?.array as? [WorkoutExercise] ?? []
+        guard !exercises.isEmpty else { return "" }
+        let setCount = exercises.reduce(0) { $0 + ($1.workoutSets?.count ?? 0) }
+        let exerciseText = exercises.count == 1 ? "1 exercise" : "\(exercises.count) exercises"
+        let setText = setCount == 1 ? "1 set" : "\(setCount) sets"
+        return "\(exerciseText) · \(setText)"
+    }
+
+    private func exerciseBreakdown(_ workout: Workout) -> some View {
+        let exercises = workout.workoutExercises?.array as? [WorkoutExercise] ?? []
+        return VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
+            ForEach(Array(exercises.prefix(3).enumerated()), id: \.offset) { _, workoutExercise in
+                HStack(spacing: Theme.Spacing.s) {
+                    Text(workoutExercise.exercise(in: exerciseStore.exercises)?.title ?? "Exercise")
+                        .font(.forgeCaption)
+                        .foregroundColor(.forgeSecondaryLabel)
+                        .lineLimit(1)
+                    Spacer(minLength: Theme.Spacing.s)
+                    Text(setCountText(workoutExercise.workoutSets?.count ?? 0))
+                        .font(.forgeCaption)
+                        .foregroundColor(.forgeSecondaryLabel)
+                        .lineLimit(1)
+                }
+            }
+            if exercises.count > 3 {
+                Text("\(exercises.count - 3) more")
+                    .font(.forgeCaption)
+                    .foregroundColor(.forgeSecondaryLabel)
+            }
+        }
+    }
+
+    private func setCountText(_ count: Int) -> String {
+        count == 1 ? "1 set" : "\(count) sets"
     }
 
     private func mixMonth(_ calendar: Calendar) -> MonthRef {
@@ -692,6 +833,11 @@ struct FeedView: View {
 
     private func openHistoryDate(_ date: Date) {
         sceneState.historyDateToOpen = date
+        sceneState.selectedTab = .history
+    }
+
+    private func openHistoryWorkout(_ workout: Workout) {
+        sceneState.historyWorkoutToOpen = workout
         sceneState.selectedTab = .history
     }
 
