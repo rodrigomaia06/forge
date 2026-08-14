@@ -93,21 +93,27 @@ struct StartWorkoutView: View {
                             .onDelete { deleteStandaloneRoutines($0) }
                         }
                     }
-                    ForEach(workoutPlans) { workoutPlan in
-                        Section {
-                            WorkoutPlanCell(workoutPlan: workoutPlan)
-                            WorkoutPlanRoutines(workoutPlan: workoutPlan, allPlans: Array(workoutPlans), onStart: { start(routine: $0) }, onEdit: { routineToEdit = $0 }, onShare: { shareRoutine($0) })
-                                .deleteDisabled(true)
+                    if !workoutPlans.isEmpty {
+                        ForEach(Array(workoutPlans.enumerated()), id: \.element.objectID) { index, workoutPlan in
+                            Section {
+                                WorkoutPlanCell(workoutPlan: workoutPlan)
+                                WorkoutPlanRoutines(workoutPlan: workoutPlan, allPlans: Array(workoutPlans), onStart: { start(routine: $0) }, onEdit: { routineToEdit = $0 }, onShare: { shareRoutine($0) })
+                                    .deleteDisabled(true)
+                            } header: {
+                                if index == 0 {
+                                    Text("Plans")
+                                }
+                            }
+                            // The routine wells carry their own edges, so the list separators between them are
+                            // redundant and read as non-native.
+                            .listRowSeparator(.hidden)
                         }
-                        // The routine wells carry their own edges, so the list separators between them are
-                        // redundant and read as non-native.
-                        .listRowSeparator(.hidden)
-                    }
-                    .onDelete { offsets in
-                        if self.needsConfirmBeforeDelete(offsets: offsets) {
-                            self.offsetsToDelete = offsets
-                        } else {
-                            self.deleteAt(offsets: offsets)
+                        .onDelete { offsets in
+                            if self.needsConfirmBeforeDelete(offsets: offsets) {
+                                self.offsetsToDelete = offsets
+                            } else {
+                                self.deleteAt(offsets: offsets)
+                            }
                         }
                     }
                 }

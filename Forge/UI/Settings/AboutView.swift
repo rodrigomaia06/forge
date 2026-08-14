@@ -57,7 +57,7 @@ struct AboutView: View {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String
         let commit = Bundle.main.infoDictionary?["ForgeGitCommit"] as? String
-        let buildText = [build, commit].compactMap { value -> String? in
+        let buildText = [displayBuild(build), displayCommit(commit)].compactMap { value -> String? in
             guard let value, !value.isEmpty else { return nil }
             return value
         }.joined(separator: ", ")
@@ -67,6 +67,17 @@ struct AboutView: View {
         #else
         return base
         #endif
+    }
+
+    private func displayBuild(_ build: String?) -> String? {
+        guard let build, !build.isEmpty else { return nil }
+        if build == "1" { return nil }
+        return build
+    }
+
+    private func displayCommit(_ commit: String?) -> String? {
+        guard let commit, !commit.isEmpty, commit != "local" else { return nil }
+        return commit
     }
 }
 
