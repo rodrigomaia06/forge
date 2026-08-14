@@ -85,6 +85,7 @@ targets:
       - path: RestTimerWidget
       # The Live Activity attributes are shared with the app (compiled into both targets).
       - Shared/RestTimerActivity.swift
+      - Shared/WidgetKit/DeepLink.swift
 
   ForgeTests:
     type: bundle.unit-test

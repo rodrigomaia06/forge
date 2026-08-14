@@ -157,6 +157,15 @@ extension NotificationManager: UNUserNotificationCenterDelegate {
     }
     
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        if response.notification.request.identifier == NotificationIdentifier.restTimerUp.rawValue,
+           response.actionIdentifier == UNNotificationDefaultActionIdentifier {
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .OpenRestTimer, object: self)
+                completionHandler()
+            }
+            return
+        }
+
         guard let actionIdentifier = NotificationActionIdentifier(rawValue: response.actionIdentifier) else {
             completionHandler()
             return

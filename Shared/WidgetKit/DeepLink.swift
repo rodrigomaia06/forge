@@ -9,6 +9,7 @@
 import Foundation
 
 enum DeepLink: String {
+    case restTimer
     case startWorkout
 }
 

@@ -70,6 +70,7 @@ struct RestTimerLiveActivity: Widget {
             .padding()
             .activityBackgroundTint(Color.black.opacity(0.6))
             .activitySystemActionForegroundColor(.white)
+            .widgetURL(DeepLink.url(for: .restTimer))
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.center) {
@@ -110,6 +111,7 @@ struct RestTimerLiveActivity: Widget {
                     .minimumScaleFactor(0.6)
                     .frame(width: 32)
             }
+            .widgetURL(DeepLink.url(for: .restTimer))
         }
     }
 }

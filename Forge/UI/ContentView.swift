@@ -90,6 +90,9 @@ struct ContentView : View {
                 self.importResult = ImportResult(title: "Import failed", message: (error as? LocalizedError)?.errorDescription ?? "This file could not be read.")
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name.OpenRestTimer)) { _ in
+            sceneState.openRestTimer()
+        }
         .alert(item: $importPreview) { preview in
             Alert(
                 title: Text("Import backup?"),

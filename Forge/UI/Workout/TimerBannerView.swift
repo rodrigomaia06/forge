@@ -13,6 +13,7 @@ import WorkoutDataKit
 struct TimerBannerView: View {
     @EnvironmentObject var restTimerStore: RestTimerStore
     @EnvironmentObject var settingsStore: SettingsStore
+    @EnvironmentObject private var sceneState: SceneState
     
     @ObservedObject var workout: Workout
 
@@ -139,6 +140,10 @@ struct TimerBannerView: View {
             HangMonitor.note(.timerTickBegin)
             self.refresher.refresh()
             HangMonitor.note(.timerTickEnd)
+        }
+        .onChange(of: sceneState.restTimerSheetRequestID) { _, _ in
+            guard settingsStore.showRestTimer else { return }
+            activeSheet = .restTimer
         }
     }
 }

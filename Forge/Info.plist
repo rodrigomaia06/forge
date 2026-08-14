@@ -24,6 +24,17 @@
 	<string>$(FORGE_GIT_COMMIT)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.rodrigomaia.forge.deeplink</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>iron</string>
+			</array>
+		</dict>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>

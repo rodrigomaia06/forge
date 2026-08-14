@@ -11,5 +11,7 @@ import Foundation
 let restoreFromBackupDataUserInfoKey = "restoreFromBackupData"
 
 extension Notification.Name {
+    static let OpenRestTimer = Notification.Name("OpenRestTimer")
     static let RestoreFromBackup = Notification.Name("RestoreFromBackup")
+    static let ResetSwipeActions = Notification.Name("ResetSwipeActions")
 }

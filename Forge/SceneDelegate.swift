@@ -11,6 +11,7 @@ import SwiftUI
 import WorkoutDataKit
 import CoreData
 import os.log
+import UserNotifications
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     
@@ -33,6 +34,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             window.makeKeyAndVisible()
         }
         
+        if let response = connectionOptions.notificationResponse,
+           response.notification.request.identifier == NotificationManager.NotificationIdentifier.restTimerUp.rawValue,
+           response.actionIdentifier == UNNotificationDefaultActionIdentifier {
+            sceneState.openRestTimer()
+        }
+
         urlContexts = connectionOptions.urlContexts // handle later because the view is not ready to handle input yet
     }
     
@@ -60,7 +67,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 }
             }
         } else if let urlContext = urlContexts.first(where: { $0.url.isDeepLinkURL }) {
-            if urlContext.url.host == DeepLink.startWorkout.rawValue {
+            if urlContext.url.host == DeepLink.restTimer.rawValue {
+                sceneState.openRestTimer()
+            } else if urlContext.url.host == DeepLink.startWorkout.rawValue {
                 let context = WorkoutDataStorage.shared.persistentContainer.viewContext
                 do {
                     let count = try context.count(for: Workout.currentWorkoutFetchRequest)
@@ -163,6 +172,7 @@ class SceneState: ObservableObject {
         didSet {
             UserDefaults.standard.set(selectedTabNumber, forKey: SceneState.selectedTabKey)
             HangMonitor.note(.tabChanged)
+            NotificationCenter.default.post(name: .ResetSwipeActions, object: self)
         }
     }
 
@@ -174,6 +184,8 @@ class SceneState: ObservableObject {
     /// A calendar day the History tab should show when another flow needs to open a date range directly.
     @Published var historyDateToOpen: Date?
 
+    @Published var restTimerSheetRequestID = UUID()
+
     var selectedTab: Tab {
         get {
             Tab(rawValue: selectedTabNumber) ?? Tab.feed
@@ -181,6 +193,11 @@ class SceneState: ObservableObject {
         set {
             selectedTabNumber = newValue.rawValue
         }
+    }
+
+    func openRestTimer() {
+        selectedTab = .workout
+        restTimerSheetRequestID = UUID()
     }
     
     enum Tab: Int {

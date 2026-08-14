@@ -148,6 +148,13 @@ struct ForgeSwipeToDeleteRow<Content: View>: View {
         }
     }
 
+    private func resetSwipe() {
+        guard restingOffset != 0 else { return }
+        withAnimation(.interactiveSpring(response: 0.22, dampingFraction: 0.86)) {
+            restingOffset = 0
+        }
+    }
+
     var body: some View {
         ZStack(alignment: .trailing) {
             Button(role: .destructive) {
@@ -194,6 +201,12 @@ struct ForgeSwipeToDeleteRow<Content: View>: View {
         )
         .accessibilityAction(named: deleteAccessibilityLabel) {
             performDelete()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .ResetSwipeActions)) { _ in
+            resetSwipe()
+        }
+        .onDisappear {
+            restingOffset = 0
         }
     }
 }
