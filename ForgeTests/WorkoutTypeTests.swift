@@ -39,13 +39,13 @@ final class WorkoutTypeTests: XCTestCase {
 
     func testDefaultTypeSeedingDoesNotUnarchiveUserArchivedPreset() throws {
         try WorkoutType.seedDefaultsIfNeeded(context: context)
-        let tennis = try XCTUnwrap(try WorkoutType.find(title: "Tennis", in: context))
-        tennis.isArchived = true
+        let courtSports = try XCTUnwrap(try WorkoutType.find(title: "Court sports", in: context))
+        courtSports.isArchived = true
         try context.save()
 
         try WorkoutType.seedDefaultsIfNeeded(context: context)
 
-        XCTAssertTrue(tennis.isArchived)
+        XCTAssertTrue(courtSports.isArchived)
     }
 
     func testDefaultTypeSeedingUpdatesOldPresetColorsOnly() throws {
@@ -53,31 +53,45 @@ final class WorkoutTypeTests: XCTestCase {
         strength.uuid = WorkoutType.defaultPresets[0].uuid
         strength.title = "Strength"
         strength.colorHex = "#3B82F6"
-        let tennis = WorkoutType.create(context: context)
-        tennis.uuid = WorkoutType.defaultPresets[1].uuid
-        tennis.title = "Tennis"
-        tennis.colorHex = "#123456"
+        let courtSports = WorkoutType.create(context: context)
+        courtSports.uuid = WorkoutType.defaultPresets[1].uuid
+        courtSports.title = "Tennis"
+        courtSports.colorHex = "#123456"
         try context.save()
 
         try WorkoutType.seedDefaultsIfNeeded(context: context)
 
         XCTAssertEqual(strength.displayColorHex, WorkoutType.defaultPresets[0].colorHex)
-        XCTAssertEqual(tennis.displayColorHex, "#123456")
+        XCTAssertEqual(courtSports.displayTitle, "Court sports")
+        XCTAssertEqual(courtSports.displayColorHex, "#123456")
+    }
+
+    func testDefaultTypeSeedingKeepsUserRenamedPresetTitle() throws {
+        let type = WorkoutType.create(context: context)
+        type.uuid = WorkoutType.defaultPresets[1].uuid
+        type.title = "Padel"
+        type.colorHex = WorkoutType.defaultPresets[1].colorHex
+        try context.save()
+
+        try WorkoutType.seedDefaultsIfNeeded(context: context)
+
+        XCTAssertEqual(type.displayTitle, "Padel")
+        XCTAssertEqual(type.exerciseCategoryID, "court_sports")
     }
 
     func testArchivedTypeStaysReadableOnOldWorkout() throws {
         try WorkoutType.seedDefaultsIfNeeded(context: context)
-        let tennis = try XCTUnwrap(try WorkoutType.find(title: "Tennis", in: context))
-        tennis.isArchived = true
+        let courtSports = try XCTUnwrap(try WorkoutType.find(title: "Court sports", in: context))
+        courtSports.isArchived = true
 
         let workout = Workout.create(context: context)
         workout.start = Date(timeIntervalSince1970: 1_700_000_000)
         workout.end = Date(timeIntervalSince1970: 1_700_003_600)
-        workout.workoutType = tennis
+        workout.workoutType = courtSports
         try context.save()
 
         XCTAssertTrue(workout.workoutType?.isArchived == true)
-        XCTAssertEqual(workout.workoutType?.displayTitle, "Tennis")
+        XCTAssertEqual(workout.workoutType?.displayTitle, "Court sports")
     }
 
     func testRoutineDefaultTypeCopiesToStartedWorkout() throws {

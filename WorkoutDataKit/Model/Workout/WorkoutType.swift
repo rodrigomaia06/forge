@@ -15,7 +15,7 @@ public class WorkoutType: NSManagedObject {
 
     public static let defaultPresets: [Preset] = [
         Preset(uuid: UUID(uuidString: "98F95D3E-D4D2-4EF8-9F1E-7787894D5651")!, title: "Strength", colorHex: "#7C8CF8", sortIndex: 0),
-        Preset(uuid: UUID(uuidString: "6DDCA6ED-F11D-4F1A-8EE7-1D5BC7ED4876")!, title: "Tennis", colorHex: "#6BD48F", sortIndex: 1),
+        Preset(uuid: UUID(uuidString: "6DDCA6ED-F11D-4F1A-8EE7-1D5BC7ED4876")!, title: "Court sports", colorHex: "#6BD48F", sortIndex: 1),
         Preset(uuid: UUID(uuidString: "4C32F1E2-C3D9-48E9-9354-740C84062563")!, title: "Martial arts", colorHex: "#F27D7D", sortIndex: 2),
         Preset(uuid: UUID(uuidString: "0BE58C8E-BAE4-4C02-B0C0-C11C81808F24")!, title: "Cardio", colorHex: "#F4A261", sortIndex: 3),
         Preset(uuid: UUID(uuidString: "C3915711-95E9-4A8E-BF6A-562F1F04471E")!, title: "Mobility", colorHex: "#B78AF0", sortIndex: 4),
@@ -32,6 +32,10 @@ public class WorkoutType: NSManagedObject {
         UUID(uuidString: "0BE58C8E-BAE4-4C02-B0C0-C11C81808F24")!: "#F97316",
         UUID(uuidString: "C3915711-95E9-4A8E-BF6A-562F1F04471E")!: "#A855F7",
         UUID(uuidString: "11688187-7CF6-4633-8CF2-F7A21FD2808E")!: "#6B7280"
+    ]
+
+    private static let previousPresetTitlesByUUID: [UUID: String] = [
+        UUID(uuidString: "6DDCA6ED-F11D-4F1A-8EE7-1D5BC7ED4876")!: "Tennis"
     ]
 
     public var id: String { uuid?.uuidString ?? objectID.uriRepresentation().absoluteString }
@@ -108,18 +112,24 @@ public class WorkoutType: NSManagedObject {
 
         for preset in defaultPresets {
             let key = preset.title.lowercased()
-            let existingType = byUUID[preset.uuid] ?? byTitle[key]
+            let previousKey = previousPresetTitlesByUUID[preset.uuid]?.lowercased()
+            let existingType = byUUID[preset.uuid] ?? byTitle[key] ?? previousKey.flatMap { byTitle[$0] }
+            let matchesCurrentTitle = byTitle[key]?.objectID == existingType?.objectID
+            let matchesPreviousTitle = previousKey.flatMap { byTitle[$0]?.objectID } == existingType?.objectID
             let type = existingType ?? WorkoutType.create(context: context)
             if existingType == nil {
                 type.uuid = preset.uuid
                 type.title = preset.title
                 type.colorHex = preset.colorHex
                 type.sortIndex = preset.sortIndex
-            } else if byUUID[preset.uuid] == nil, byTitle[key]?.objectID == type.objectID {
+            } else if byUUID[preset.uuid] == nil && (matchesCurrentTitle || matchesPreviousTitle) {
                 type.uuid = preset.uuid
             }
             if type.uuid == preset.uuid {
-                type.title = type.title ?? preset.title
+                let existingTitle = type.displayTitle
+                if type.title == nil || previousPresetTitlesByUUID[preset.uuid]?.caseInsensitiveCompare(existingTitle) == .orderedSame {
+                    type.title = preset.title
+                }
                 if type.colorHex == nil || type.colorHex?.uppercased() == previousPresetColorsByUUID[preset.uuid] {
                     type.colorHex = preset.colorHex
                 }

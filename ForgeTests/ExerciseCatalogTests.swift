@@ -74,6 +74,19 @@ final class ExerciseCatalogTests: XCTestCase {
         XCTAssertEqual(Set(groups.flatMap(\.exercises).map(\.uuid)).count, 1)
     }
 
+    func testCourtSportsCategoryUsesStableIDAndDecodesOldTennisID() throws {
+        let exercises = try loadExercises()
+        let forehand = try XCTUnwrap(exercises.first { $0.title == "Forehand" })
+
+        XCTAssertTrue(forehand.activityCategories.contains(.courtSports))
+        XCTAssertTrue(forehand.activityCategoryIDs.contains("court_sports"))
+        XCTAssertEqual(ExerciseActivityCategory.category(forWorkoutTypeTitle: "Court sports"), .courtSports)
+        XCTAssertEqual(ExerciseActivityCategory.categoryID(forWorkoutTypeTitle: "Tennis"), "court_sports")
+
+        let decoded = try JSONDecoder().decode([ExerciseActivityCategory].self, from: Data(#"["tennis"]"#.utf8))
+        XCTAssertEqual(decoded, [.courtSports])
+    }
+
     func testNewActivityCatalogEntriesAreSearchable() throws {
         let exercises = try loadExercises()
         for title in ["Treadmill", "Forehand", "Heavy Bag", "Hip Mobility"] {

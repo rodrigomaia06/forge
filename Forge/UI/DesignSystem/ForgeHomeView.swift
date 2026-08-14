@@ -83,7 +83,7 @@ struct ForgeHomeView: View {
             .frame(height: 7)
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 mixRow(color: .blue, title: "Strength", value: "8 · 11h 10m")
-                mixRow(color: .green, title: "Tennis", value: "2 · 2h")
+                mixRow(color: .green, title: "Court sports", value: "2 · 2h")
                 mixRow(color: .red, title: "Martial arts", value: "1 · 1h 10m")
             }
             ForgeListSeparator()

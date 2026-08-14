@@ -62,7 +62,7 @@ public struct Exercise: Hashable {
 public enum ExerciseActivityCategory: String, CaseIterable, Codable, Hashable {
     case strength
     case cardio
-    case tennis
+    case courtSports = "court_sports"
     case martialArts = "martial_arts"
     case mobility
     case other
@@ -71,7 +71,7 @@ public enum ExerciseActivityCategory: String, CaseIterable, Codable, Hashable {
         switch self {
         case .strength: return "Strength"
         case .cardio: return "Cardio"
-        case .tennis: return "Tennis"
+        case .courtSports: return "Court sports"
         case .martialArts: return "Martial arts"
         case .mobility: return "Mobility"
         case .other: return "Other"
@@ -81,7 +81,7 @@ public enum ExerciseActivityCategory: String, CaseIterable, Codable, Hashable {
     public static func category(forWorkoutTypeTitle title: String?) -> ExerciseActivityCategory {
         switch (title ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
         case "cardio": return .cardio
-        case "tennis": return .tennis
+        case "court sports", "racket sports", "tennis": return .courtSports
         case "martial arts": return .martialArts
         case "mobility": return .mobility
         case "other": return .other
@@ -91,6 +91,24 @@ public enum ExerciseActivityCategory: String, CaseIterable, Codable, Hashable {
 
     public static func categoryID(forWorkoutTypeTitle title: String?) -> String {
         category(forWorkoutTypeTitle: title).rawValue
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        if rawValue == "tennis" {
+            self = .courtSports
+            return
+        }
+        guard let value = Self(rawValue: rawValue) else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unknown exercise activity category: \(rawValue)")
+        }
+        self = value
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
     }
 }
 
