@@ -288,22 +288,22 @@ struct FeedView: View {
                 monthGrid(firstOfMonth: currentFirstOfMonth, index: index, calendar: calendar)
             }
 
-            HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.m) {
-                activitySummaryItem(
-                    title: daySummaryTitle(calendar: calendar),
-                    value: daySummaryValue(index: index, calendar: calendar)
-                )
-                Spacer(minLength: Theme.Spacing.m)
+            HStack(alignment: .top, spacing: Theme.Spacing.l) {
                 activitySummaryItem(
                     title: "Week",
-                    value: compactSummaryText(count: index.thisWeek, duration: index.thisWeekDuration)
+                    value: compactSummaryText(count: index.thisWeek, duration: index.thisWeekDuration),
+                    alignment: .leading,
+                    frameAlignment: .leading
                 )
-                Spacer(minLength: Theme.Spacing.m)
                 activitySummaryItem(
                     title: "Month",
-                    value: monthSummaryValue(index: index, calendar: calendar)
+                    value: monthSummaryValue(index: index, calendar: calendar),
+                    alignment: .trailing,
+                    frameAlignment: .trailing
                 )
-                Spacer(minLength: Theme.Spacing.s)
+            }
+            .padding(.trailing, filter == nil ? 0 : 28)
+            .overlay(alignment: .trailing) {
                 if filter != nil {
                     Button {
                         withAnimation(.snappy(duration: 0.2)) { filter = nil }
@@ -320,8 +320,8 @@ struct FeedView: View {
         }
     }
 
-    private func activitySummaryItem(title: String, value: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.xxs) {
+    private func activitySummaryItem(title: String, value: String, alignment: HorizontalAlignment, frameAlignment: Alignment) -> some View {
+        VStack(alignment: alignment, spacing: Theme.Spacing.xxs) {
             Text(title)
                 .font(.forgeCaption.weight(.semibold))
                 .foregroundColor(.forgeLabel)
@@ -332,6 +332,7 @@ struct FeedView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
+        .frame(maxWidth: .infinity, alignment: frameAlignment)
     }
 
     @ViewBuilder
@@ -396,23 +397,6 @@ struct FeedView: View {
             return countText
         }
         return "\(countText) · \(durationText)"
-    }
-
-    private func daySummaryTitle(calendar: Calendar) -> String {
-        if case .day(let date) = filter {
-            return calendar.isDateInToday(date) ? "Today" : date.formatted(.dateTime.weekday(.abbreviated).day())
-        }
-        return "Today"
-    }
-
-    private func daySummaryValue(index: ActivityIndex, calendar: Calendar) -> String {
-        let date: Date
-        if case .day(let selectedDate) = filter {
-            date = selectedDate
-        } else {
-            date = Date()
-        }
-        return compactSummaryText(count: index.count(for: date, calendar: calendar), duration: index.duration(for: date, calendar: calendar))
     }
 
     private func monthSummaryValue(index: ActivityIndex, calendar: Calendar) -> String {
