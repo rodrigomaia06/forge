@@ -64,19 +64,17 @@ struct ForgeHomeView: View {
 
     private var trainingMix: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            Text("TRAINING MIX").font(.forgeSectionLabel).tracking(2).foregroundColor(.forgeSecondaryLabel)
+            HStack(alignment: .firstTextBaseline) {
+                Text("BY TYPE").font(.forgeSectionLabel).tracking(2).foregroundColor(.forgeSecondaryLabel)
+                Spacer()
+                Text("March 2026").font(.forgeCaption).foregroundColor(.forgeSecondaryLabel)
+            }
             card
         }
     }
 
     private var card: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                Text("March 2026").font(.forgeHeadline).foregroundColor(.forgeLabel)
-                Text("11 workouts · 14h 20m · 3 this week")
-                    .font(.forgeCaption)
-                    .foregroundColor(.forgeSecondaryLabel)
-            }
+        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
             HStack(spacing: 2) {
                 Capsule(style: .continuous).fill(Color.blue.opacity(0.8)).frame(maxWidth: .infinity)
                 Capsule(style: .continuous).fill(Color.green.opacity(0.8)).frame(maxWidth: 80)
@@ -88,10 +86,17 @@ struct ForgeHomeView: View {
                 mixRow(color: .green, title: "Tennis", value: "2 · 2h")
                 mixRow(color: .red, title: "Martial arts", value: "1 · 1h 10m")
             }
+            ForgeListSeparator()
+            HStack {
+                Text("This week").font(.forgeCaption).foregroundColor(.forgeSecondaryLabel)
+                Spacer()
+                Text("3 workouts").font(.forgeCaption).foregroundColor(.forgeSecondaryLabel)
+            }
         }
-        .padding(Theme.Spacing.l)
+        .padding(.horizontal, Theme.Spacing.m)
+        .padding(.vertical, Theme.Spacing.m)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous).fill(Color.forgeSurface))
+        .background(RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous).fill(Color.forgeSurface))
     }
 
     private func mixRow(color: Color, title: String, value: String) -> some View {

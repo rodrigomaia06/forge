@@ -551,20 +551,19 @@ struct FeedView: View {
 
     private func monthlyMixPanel(_ index: ActivityIndex, calendar: Calendar) -> some View {
         let month = mixMonth(calendar)
-        let count = index.count(year: month.year, month: month.month)
-        let duration = index.duration(year: month.year, month: month.month)
         let typeSummaries = index.typeSummaries(year: month.year, month: month.month)
         return VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            panelTitle("Training mix")
-            panelCard {
-                VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-                    VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                        Text(monthTitle(month))
-                            .font(.forgeHeadline)
-                            .foregroundColor(.forgeLabel)
-                            .lineLimit(1)
-                        panelMeta(monthlyMixMeta(count: count, duration: duration, thisWeek: index.thisWeek))
-                    }
+            HStack(alignment: .firstTextBaseline) {
+                panelTitle("By type")
+                Spacer()
+                Text(monthTitle(month))
+                    .font(.forgeCaption)
+                    .foregroundColor(.forgeSecondaryLabel)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+            mixCard {
+                VStack(alignment: .leading, spacing: Theme.Spacing.s) {
                     mixStrip(typeSummaries)
                     if typeSummaries.isEmpty {
                         Text("No workouts logged")
@@ -572,6 +571,18 @@ struct FeedView: View {
                             .foregroundColor(.forgeSecondaryLabel)
                     } else {
                         typeBreakdown(typeSummaries)
+                    }
+                    if index.thisWeek > 0 {
+                        ForgeListSeparator()
+                        HStack {
+                            Text("This week")
+                                .font(.forgeCaption)
+                                .foregroundColor(.forgeSecondaryLabel)
+                            Spacer()
+                            Text(index.thisWeek == 1 ? "1 workout" : "\(index.thisWeek) workouts")
+                                .font(.forgeCaption)
+                                .foregroundColor(.forgeSecondaryLabel)
+                        }
                     }
                 }
             }
@@ -585,13 +596,6 @@ struct FeedView: View {
         }
         let parts = calendar.dateComponents([.year, .month], from: Date())
         return MonthRef(year: parts.year ?? calendar.component(.year, from: Date()), month: parts.month ?? calendar.component(.month, from: Date()))
-    }
-
-    private func monthlyMixMeta(count: Int, duration: TimeInterval, thisWeek: Int) -> [String] {
-        let workoutText = count == 1 ? "1 workout" : "\(count) workouts"
-        let durationText = duration > 0 ? Workout.durationFormatter.string(from: duration) : nil
-        let weekText = thisWeek == 1 ? "1 this week" : "\(thisWeek) this week"
-        return [workoutText, durationText, weekText].compactMap { $0 }
     }
 
     private func mixStrip(_ summaries: [ActivityIndex.TypeSummary]) -> some View {
@@ -611,6 +615,14 @@ struct FeedView: View {
             }
         }
         .frame(height: 7)
+    }
+
+    private func mixCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .padding(.horizontal, Theme.Spacing.m)
+            .padding(.vertical, Theme.Spacing.m)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .forgeCard(radius: Theme.Radius.medium)
     }
 
     private func panelTitle(_ title: String) -> some View {
