@@ -46,15 +46,17 @@ struct BackupAndExportView: View {
         Form {
             Section(
                 header: Text("Backup"),
-                footer: Text("Includes workouts, routines, plans, custom exercises, workout types, settings, and exercise settings. Restoring replaces current data after making a safety copy.")
+                footer: Text("Full backups include all Forge data. Restore makes a safety copy first.")
             ) {
                 Button("Create backup") { exportDatabase() }
                 Button("Restore backup") { showImporter = true }
             }
 
-            Section(header: Text("Workout data"), footer: Text("JSON import adds new items. It does not overwrite existing data.")) {
+            Section(header: Text("Workout data"), footer: Text("JSON import adds data without overwriting.")) {
                 Button {
-                    showWorkoutExportOptions = true
+                    withAnimation(.snappy(duration: 0.2)) {
+                        showWorkoutExportOptions.toggle()
+                    }
                 } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
@@ -68,29 +70,37 @@ struct BackupAndExportView: View {
                         Image(systemName: "chevron.right")
                             .font(.forgeCaption.weight(.semibold))
                             .foregroundColor(.forgeSecondaryLabel)
+                            .rotationEffect(.degrees(showWorkoutExportOptions ? 90 : 0))
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+
+                if showWorkoutExportOptions {
+                    Button {
+                        exportWorkoutData(asJSON: true)
+                    } label: {
+                        Label("Export JSON", systemImage: "doc.badge.arrow.up")
+                    }
+                    Button {
+                        exportWorkoutData(asJSON: false)
+                    } label: {
+                        Label("Export text", systemImage: "doc.text")
+                    }
+                }
+
                 Button("Import JSON") { showJSONImporter = true }
             }
 
             Section(
                 header: Text("Reset"),
-                footer: Text("Removes all workouts, routines, plans, and custom exercises, returning Forge to a clean state. The built-in exercises remain. Export a backup first if you might want your data later.")
+                footer: Text("Removes your data from this iPhone. Built-in exercises remain.")
             ) {
                 Button("Reset all data", role: .destructive) { showResetConfirm = true }
             }
         }
         .navigationBarTitle("Backup and export", displayMode: .inline)
-        .sheet(isPresented: $showWorkoutExportOptions) {
-            WorkoutDataExportOptionsSheet { asJSON in
-                exportWorkoutData(asJSON: asJSON)
-            }
-            .presentationDetents([.medium])
-            .presentationDragIndicator(.visible)
-        }
         .fileImporter(isPresented: $showImporter, allowedContentTypes: Self.databaseTypes) { result in
             switch result {
             case .success(let url): importDatabase(from: url)
@@ -174,7 +184,14 @@ struct BackupAndExportView: View {
     }
 
     private func exportWorkoutData(asJSON: Bool) {
-        guard let workouts = fetchWorkouts() else { return }
+        guard let workouts = fetchWorkouts() else {
+            message = Message(title: "Export failed", text: "Workout data could not be read.")
+            return
+        }
+        guard !workouts.isEmpty else {
+            message = Message(title: "Nothing to export", text: "There are no saved workouts yet.")
+            return
+        }
         do {
             let url: URL
             if asJSON {
@@ -254,64 +271,6 @@ struct BackupAndExportView: View {
 
     private func shareFile(url: URL) {
         self.activityItems = [url]
-    }
-}
-
-private struct WorkoutDataExportOptionsSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    let onExport: (Bool) -> Void
-
-    var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    exportButton(
-                        title: "Export JSON",
-                        subtitle: "Can be imported back into Forge.",
-                        systemImage: "doc.badge.arrow.up",
-                        asJSON: true
-                    )
-                    exportButton(
-                        title: "Export text",
-                        subtitle: "Readable outside the app.",
-                        systemImage: "doc.text",
-                        asJSON: false
-                    )
-                }
-            }
-            .scrollContentBackground(.hidden)
-            .navigationBarTitle("Export workout data", displayMode: .inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
-                }
-            }
-        }
-    }
-
-    private func exportButton(title: String, subtitle: String, systemImage: String, asJSON: Bool) -> some View {
-        Button {
-            dismiss()
-            DispatchQueue.main.async {
-                onExport(asJSON)
-            }
-        } label: {
-            HStack(spacing: Theme.Spacing.m) {
-                Image(systemName: systemImage)
-                    .frame(width: 24)
-                    .foregroundColor(.forgeAccent)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .foregroundColor(.forgeLabel)
-                    Text(subtitle)
-                        .font(.forgeCaption)
-                        .foregroundColor(.forgeSecondaryLabel)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
     }
 }
 
