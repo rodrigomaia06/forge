@@ -173,21 +173,20 @@ private struct WorkoutTypeSelectionView: View {
 
 struct WorkoutTypesSettingsView: View {
     @Environment(\.managedObjectContext) private var context
-    @FetchRequest(fetchRequest: WorkoutType.fetchRequestSorted()) private var workoutTypes
+    @FetchRequest(fetchRequest: WorkoutType.fetchRequestSorted(includeArchived: false)) private var activeWorkoutTypes
+    @FetchRequest(fetchRequest: hiddenTypesFetchRequest) private var hiddenWorkoutTypes
     @State private var editMode: EditMode = .inactive
 
-    private var activeTypes: [WorkoutType] {
-        workoutTypes.filter { !$0.isArchived }
-    }
-
-    private var hiddenTypes: [WorkoutType] {
-        workoutTypes.filter { $0.isArchived }
+    private static var hiddenTypesFetchRequest: NSFetchRequest<WorkoutType> {
+        let request = WorkoutType.fetchRequestSorted()
+        request.predicate = NSPredicate(format: "\(#keyPath(WorkoutType.isArchived)) == %@", NSNumber(value: true))
+        return request
     }
 
     var body: some View {
         List {
             Section {
-                ForEach(activeTypes, id: \.objectID) { type in
+                ForEach(activeWorkoutTypes, id: \.objectID) { type in
                     NavigationLink(destination: WorkoutTypeEditorView(type: type)) {
                         WorkoutTypeSettingsRow(type: type)
                     }
@@ -198,9 +197,9 @@ struct WorkoutTypesSettingsView: View {
                 Text("Deleting a type hides it from new workouts. Used types stay on existing workouts.")
             }
 
-            if !hiddenTypes.isEmpty {
-                Section(header: Text("Hidden"), footer: Text("Open a hidden type and turn off Hide from workout pickers to show it again."), content: {
-                    ForEach(hiddenTypes, id: \.objectID) { type in
+            if !hiddenWorkoutTypes.isEmpty {
+                Section(header: Text("Hidden"), footer: Text("Open a hidden type to show it in workout pickers again."), content: {
+                    ForEach(hiddenWorkoutTypes, id: \.objectID) { type in
                         NavigationLink(destination: WorkoutTypeEditorView(type: type)) {
                             WorkoutTypeSettingsRow(type: type)
                         }
@@ -234,12 +233,12 @@ struct WorkoutTypesSettingsView: View {
         let type = WorkoutType.create(context: context)
         type.title = "New type"
         type.colorHex = WorkoutType.fallbackColorHex
-        type.sortIndex = ((workoutTypes.map(\.sortIndex).max()) ?? -1) + 1
+        type.sortIndex = (((Array(activeWorkoutTypes) + Array(hiddenWorkoutTypes)).map(\.sortIndex).max()) ?? -1) + 1
         context.saveOrCrash()
     }
 
     private func move(from source: IndexSet, to destination: Int) {
-        var ordered = activeTypes
+        var ordered = Array(activeWorkoutTypes)
         ordered.move(fromOffsets: source, toOffset: destination)
         for (index, type) in ordered.enumerated() {
             type.sortIndex = Int32(index)
@@ -248,7 +247,7 @@ struct WorkoutTypesSettingsView: View {
     }
 
     private func delete(at offsets: IndexSet) {
-        let ordered = activeTypes
+        let ordered = Array(activeWorkoutTypes)
         for index in offsets {
             ordered[index].deleteOrArchive(in: context)
         }
@@ -257,7 +256,7 @@ struct WorkoutTypesSettingsView: View {
     }
 
     private func reindexVisibleTypes() {
-        for (index, type) in activeTypes.filter({ !$0.isDeleted }).enumerated() {
+        for (index, type) in activeWorkoutTypes.filter({ !$0.isDeleted }).enumerated() {
             type.sortIndex = Int32(index)
         }
     }
@@ -346,15 +345,27 @@ private struct WorkoutTypeEditorView: View {
             }
 
             Section {
-                Button(role: .destructive) {
-                    type.deleteOrArchive(in: context)
-                    context.saveOrCrash()
-                    dismiss()
-                } label: {
-                    Text(type.isDefaultPreset || type.hasUserDataReferences ? "Hide type" : "Delete type")
+                if type.isArchived {
+                    Button {
+                        type.isArchived = false
+                        context.saveOrCrash()
+                        dismiss()
+                    } label: {
+                        Text("Unhide type")
+                    }
+                } else {
+                    Button(role: .destructive) {
+                        type.deleteOrArchive(in: context)
+                        context.saveOrCrash()
+                        dismiss()
+                    } label: {
+                        Text(type.isDefaultPreset || type.hasUserDataReferences ? "Hide type" : "Delete type")
+                    }
                 }
             } footer: {
-                if type.isDefaultPreset || type.hasUserDataReferences {
+                if type.isArchived {
+                    Text("This type will appear when choosing a type for new workouts.")
+                } else if type.isDefaultPreset || type.hasUserDataReferences {
                     Text("This type is used by existing data, so Forge hides it instead of deleting it.")
                 }
             }
