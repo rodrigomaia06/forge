@@ -37,6 +37,7 @@ final class WorkoutDataV13NormalizationTests: XCTestCase {
         set.weightValue = 42.5
         set.rpeValue = 8
         set.targetWeightValue = 45
+        set.isCompleted = true
         set.workoutExercise = workoutExercise
 
         try WorkoutDataV13Normalization.run(context: context)
