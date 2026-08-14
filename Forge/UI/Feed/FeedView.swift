@@ -288,17 +288,17 @@ struct FeedView: View {
                 monthGrid(firstOfMonth: currentFirstOfMonth, index: index, calendar: calendar)
             }
 
-            HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.s) {
+            HStack(alignment: .center, spacing: Theme.Spacing.xs) {
                 activitySummaryPhrase(
-                    title: "This week",
+                    title: "Week",
                     value: compactSummaryText(count: index.thisWeek, duration: index.thisWeekDuration)
                 )
-                Capsule(style: .continuous)
-                    .fill(Color.forgeSeparator)
-                    .frame(width: 1, height: 14)
-                    .alignmentGuide(.firstTextBaseline) { dimensions in dimensions[VerticalAlignment.center] }
+                Text("•")
+                    .font(.forgeCaption)
+                    .foregroundColor(.forgeSecondaryLabel)
+                    .frame(width: 12)
                 activitySummaryPhrase(
-                    title: monthSummaryTitle(calendar: calendar),
+                    title: "Month",
                     value: monthSummaryValue(index: index, calendar: calendar)
                 )
                 Spacer(minLength: 0)
@@ -400,11 +400,6 @@ struct FeedView: View {
     private func monthSummaryValue(index: ActivityIndex, calendar: Calendar) -> String {
         let month = mixMonth(calendar)
         return compactSummaryText(count: index.count(year: month.year, month: month.month), duration: index.duration(year: month.year, month: month.month))
-    }
-
-    private func monthSummaryTitle(calendar: Calendar) -> String {
-        let month = mixMonth(calendar)
-        return calendar.standaloneMonthSymbols[month.month - 1]
     }
 
     private func weekdaySymbols(_ calendar: Calendar) -> [String] {
@@ -833,9 +828,9 @@ struct FeedView: View {
 
     private func panelTitle(_ title: String) -> some View {
         Text(title.uppercased())
-            .font(.forgeSectionLabel)
+            .font(.forgeCaption.weight(.bold))
             .tracking(2)
-            .foregroundColor(.forgeSecondaryLabel)
+            .foregroundColor(.forgeLabel.opacity(0.78))
             .lineLimit(2)
     }
 
