@@ -36,6 +36,11 @@ struct FeedView: View {
         let title: String
         let setCount: Int
     }
+    private struct WorkoutMetric: Hashable {
+        let systemImage: String
+        let text: String
+        let colorHex: String?
+    }
     private struct WorkoutActivityInput: Equatable {
         let objectURI: URL
         let start: Date?
@@ -577,15 +582,7 @@ struct FeedView: View {
         let month = mixMonth(calendar)
         let typeSummaries = index.typeSummaries(year: month.year, month: month.month)
         return VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            HStack(alignment: .firstTextBaseline) {
-                panelTitle("By type")
-                Spacer()
-                Text(calendar.standaloneMonthSymbols[month.month - 1])
-                    .font(.forgeCaption)
-                    .foregroundColor(.forgeSecondaryLabel)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-            }
+            panelTitle("By type")
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
                 mixStrip(typeSummaries)
                 if typeSummaries.isEmpty {
@@ -661,33 +658,7 @@ struct FeedView: View {
             Haptics.selection()
             openHistoryWorkout(workout)
         } label: {
-            HStack(alignment: .center, spacing: Theme.Spacing.m) {
-                VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                    Text(workout.displayTitle(in: exerciseStore.exercises, showPlan: settingsStore.showPlanInWorkoutTitle))
-                        .font(.forgeHeadline)
-                        .foregroundColor(.forgeLabel)
-                        .lineLimit(1)
-                    panelMeta([
-                        workout.workoutType?.displayTitle ?? WorkoutType.fallbackTitle,
-                        workoutDateText(workout.start),
-                        workoutDurationText(workout)
-                    ])
-                    let exerciseCount = exerciseCountText(workout)
-                    if !exerciseCount.isEmpty {
-                        panelMeta([exerciseCount])
-                    }
-                    if let exerciseRows = exerciseDetailText(workout) {
-                        exerciseDetails(exerciseRows)
-                    }
-                }
-                .layoutPriority(1)
-
-                Spacer(minLength: Theme.Spacing.s)
-
-                Image(systemName: "chevron.right")
-                    .font(.body.weight(.semibold))
-                    .foregroundColor(.forgeSecondaryLabel)
-            }
+            workoutCardContent(workout)
             .padding(Theme.Spacing.m)
             .padding(.leading, Theme.Spacing.m)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -703,6 +674,30 @@ struct FeedView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Open workout")
+    }
+
+    private func workoutCardContent(_ workout: Workout) -> some View {
+        HStack(alignment: .center, spacing: Theme.Spacing.m) {
+            VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                Text(workout.displayTitle(in: exerciseStore.exercises, showPlan: settingsStore.showPlanInWorkoutTitle))
+                    .font(.forgeHeadline)
+                    .foregroundColor(.forgeLabel)
+                    .lineLimit(2)
+
+                workoutMetrics(workout)
+
+                if let exerciseRows = exerciseDetailText(workout) {
+                    exerciseDetails(exerciseRows)
+                }
+            }
+            .layoutPriority(1)
+
+            Spacer(minLength: Theme.Spacing.s)
+
+            Image(systemName: "chevron.right")
+                .font(.body.weight(.semibold))
+                .foregroundColor(.forgeSecondaryLabel)
+        }
     }
 
     private func workouts(on date: Date, calendar: Calendar) -> [Workout] {
@@ -726,6 +721,56 @@ struct FeedView: View {
     private func workoutDurationText(_ workout: Workout) -> String {
         guard let duration = workout.duration, duration >= 60 else { return "" }
         return Workout.durationFormatter.string(from: duration) ?? ""
+    }
+
+    private func workoutMetrics(_ workout: Workout) -> some View {
+        let metrics = workoutMetricItems(workout)
+        return LazyVGrid(
+            columns: [
+                GridItem(.flexible(), alignment: .leading),
+                GridItem(.flexible(), alignment: .leading)
+            ],
+            alignment: .leading,
+            spacing: Theme.Spacing.xs
+        ) {
+            ForEach(metrics, id: \.self) { metric in
+                HStack(spacing: Theme.Spacing.xs) {
+                    Image(systemName: metric.systemImage)
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(metric.colorHex.map { Color(workoutTypeHex: $0) } ?? .forgeSecondaryLabel)
+                        .frame(width: 16)
+                    Text(metric.text)
+                        .font(.forgeCaption)
+                        .foregroundColor(.forgeSecondaryLabel)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+            }
+        }
+    }
+
+    private func workoutMetricItems(_ workout: Workout) -> [WorkoutMetric] {
+        var items = [
+            WorkoutMetric(
+                systemImage: "tag.fill",
+                text: workout.workoutType?.displayTitle ?? WorkoutType.fallbackTitle,
+                colorHex: workout.workoutType?.displayColorHex ?? WorkoutType.fallbackColorHex
+            )
+        ]
+        if let date = workout.start {
+            items.append(WorkoutMetric(systemImage: "calendar", text: workoutDateText(date), colorHex: nil))
+        }
+        let duration = workoutDurationText(workout)
+        if !duration.isEmpty {
+            items.append(WorkoutMetric(systemImage: "clock", text: duration, colorHex: nil))
+        }
+        if let sets = workout.numberOfCompletedSets, sets > 0 {
+            items.append(WorkoutMetric(systemImage: "chart.bar.fill", text: setCountText(sets), colorHex: nil))
+        }
+        if let volume = workout.totalCompletedWeight(fallbackBodyweight: settingsStore.bodyweight), volume > 0 {
+            items.append(WorkoutMetric(systemImage: "sum", text: WeightUnit.format(weight: volume, from: .metric, to: settingsStore.weightUnit), colorHex: nil))
+        }
+        return items
     }
 
     private func exerciseDetailText(_ workout: Workout) -> [ExerciseRowDetail]? {
@@ -802,21 +847,20 @@ struct FeedView: View {
 
     private func exerciseDetails(_ details: [ExerciseRowDetail]) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
-            ForEach(Array(details.prefix(3)), id: \.self) { detail in
+            ForEach(Array(details.prefix(4)), id: \.self) { detail in
                 HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.s) {
+                    Text("\(detail.setCount) x")
+                        .font(.forgeCaption.weight(.semibold))
+                        .foregroundColor(.forgeLabel)
+                        .monospacedDigit()
+                        .frame(width: 34, alignment: .leading)
                     Text(detail.title)
                         .font(.forgeCaption)
                         .foregroundColor(.forgeSecondaryLabel)
                         .lineLimit(1)
-                    Spacer(minLength: Theme.Spacing.s)
-                    Text("\(detail.setCount)")
-                        .font(.forgeCaption.weight(.semibold))
-                        .foregroundColor(.forgeLabel)
-                        .monospacedDigit()
-                        .lineLimit(1)
                 }
             }
-            let hiddenCount = details.count - 3
+            let hiddenCount = details.count - 4
             if hiddenCount > 0 {
                 Text("+\(hiddenCount) \(hiddenCount == 1 ? "exercise" : "exercises")")
                     .font(.caption.weight(.semibold))
