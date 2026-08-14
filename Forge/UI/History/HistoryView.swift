@@ -416,21 +416,19 @@ struct HistoryView : View {
 
     private func historyRow(_ row: HistoryRow) -> some View {
         ForgeSwipeToDeleteRow(deleteAccessibilityLabel: "Delete workout", onDelete: { requestDelete([row]) }) {
-            Button {
-                path.append(row.objectID)
-            } label: {
-                WorkoutCell(workout: row)
-                    .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-                    .frame(minHeight: 74)
-                    .overlay(alignment: .leading) {
-                        Capsule()
-                            .fill(Color(workoutTypeHex: row.workoutTypeColorHex))
-                            .frame(width: 4, height: 34)
-                            .padding(.leading, Theme.Spacing.s)
-                    }
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
+            WorkoutCell(workout: row)
+                .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                .frame(minHeight: 74)
+                .overlay(alignment: .leading) {
+                    Capsule()
+                        .fill(Color(workoutTypeHex: row.workoutTypeColorHex))
+                        .frame(width: 4, height: 34)
+                        .padding(.leading, Theme.Spacing.s)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    path.append(row.objectID)
+                }
             .background(workoutsToDelete?.contains(where: { $0.objectID == row.objectID }) == true ? Color.forgeDestructive.opacity(0.18) : Color.forgeSurface)
             .contextMenu {
                 // TODO add images when SwiftUI fixes the image size

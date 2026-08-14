@@ -648,21 +648,40 @@ struct FeedView: View {
             Haptics.selection()
             openHistoryWorkout(workout)
         } label: {
-            panelCard(colorHex: workout.workoutType?.displayColorHex ?? WorkoutType.fallbackColorHex) {
-                VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            HStack(alignment: .center, spacing: Theme.Spacing.m) {
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                    .fill(Color(workoutTypeHex: workout.workoutType?.displayColorHex ?? WorkoutType.fallbackColorHex))
+                    .frame(width: 4, height: 44)
+
+                VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                     Text(workout.displayTitle(in: exerciseStore.exercises, showPlan: settingsStore.showPlanInWorkoutTitle))
                         .font(.forgeHeadline)
                         .foregroundColor(.forgeLabel)
-                        .lineLimit(2)
+                        .lineLimit(1)
                     panelMeta([
                         workout.workoutType?.displayTitle ?? WorkoutType.fallbackTitle,
                         workoutDateText(workout.start),
-                        workout.duration.flatMap { Workout.durationFormatter.string(from: $0) } ?? "",
-                        workoutExerciseSummary(workout)
+                        workoutDurationText(workout)
                     ])
-                    exerciseBreakdown(workout)
+                    if let exerciseText = exerciseDetailText(workout) {
+                        Text(exerciseText)
+                            .font(.forgeCaption)
+                            .foregroundColor(.forgeSecondaryLabel)
+                            .lineLimit(1)
+                    }
                 }
+                .layoutPriority(1)
+
+                Spacer(minLength: Theme.Spacing.s)
+
+                Image(systemName: "chevron.right")
+                    .font(.body.weight(.semibold))
+                    .foregroundColor(.forgeSecondaryLabel)
             }
+            .padding(Theme.Spacing.m)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .forgeCard(radius: Theme.Radius.medium)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous))
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Open workout")
@@ -682,37 +701,21 @@ struct FeedView: View {
         return date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
     }
 
-    private func workoutExerciseSummary(_ workout: Workout) -> String {
-        let exercises = workout.workoutExercises?.array as? [WorkoutExercise] ?? []
-        guard !exercises.isEmpty else { return "" }
-        let setCount = exercises.reduce(0) { $0 + ($1.workoutSets?.count ?? 0) }
-        let exerciseText = exercises.count == 1 ? "1 exercise" : "\(exercises.count) exercises"
-        let setText = setCount == 1 ? "1 set" : "\(setCount) sets"
-        return "\(exerciseText) · \(setText)"
+    private func workoutDurationText(_ workout: Workout) -> String {
+        guard let duration = workout.duration, duration >= 60 else { return "" }
+        return Workout.durationFormatter.string(from: duration) ?? ""
     }
 
-    private func exerciseBreakdown(_ workout: Workout) -> some View {
+    private func exerciseDetailText(_ workout: Workout) -> String? {
         let exercises = workout.workoutExercises?.array as? [WorkoutExercise] ?? []
-        return VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
-            ForEach(Array(exercises.prefix(3).enumerated()), id: \.offset) { _, workoutExercise in
-                HStack(spacing: Theme.Spacing.s) {
-                    Text(workoutExercise.exercise(in: exerciseStore.exercises)?.title ?? "Exercise")
-                        .font(.forgeCaption)
-                        .foregroundColor(.forgeSecondaryLabel)
-                        .lineLimit(1)
-                    Spacer(minLength: Theme.Spacing.s)
-                    Text(setCountText(workoutExercise.workoutSets?.count ?? 0))
-                        .font(.forgeCaption)
-                        .foregroundColor(.forgeSecondaryLabel)
-                        .lineLimit(1)
-                }
-            }
-            if exercises.count > 3 {
-                Text("\(exercises.count - 3) more")
-                    .font(.forgeCaption)
-                    .foregroundColor(.forgeSecondaryLabel)
-            }
+        guard let firstExercise = exercises.first else { return nil }
+        let title = firstExercise.exercise(in: exerciseStore.exercises)?.title ?? "Exercise"
+        let firstText = "\(title) · \(setCountText(firstExercise.workoutSets?.count ?? 0))"
+        guard exercises.count > 1 else {
+            return firstText
         }
+        let moreText = exercises.count == 2 ? "1 more exercise" : "\(exercises.count - 1) more exercises"
+        return "\(firstText) · \(moreText)"
     }
 
     private func setCountText(_ count: Int) -> String {
