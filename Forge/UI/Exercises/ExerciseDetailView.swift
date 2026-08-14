@@ -67,17 +67,6 @@ struct ExerciseDetailView : View {
         }
     }
     
-    private var descriptionSection: some View {
-        Section {
-            Text(exerciseDescription)
-                .lineLimit(nil)
-        }
-    }
-
-    private var exerciseDescription: String {
-        exercise.description?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-    }
-    
     private var muscleSection: some View {
         Section(header: Text("Muscles".uppercased())) {
             ForEach(self.exercise.primaryMuscleCommonName, id: \.hashValue) { primaryMuscle in
@@ -95,16 +84,6 @@ struct ExerciseDetailView : View {
                     Text("Secondary")
                         .foregroundColor(.secondary)
                 }
-            }
-        }
-    }
-
-    private var sourceSection: some View {
-        Section {
-            HStack {
-                Text("Source")
-                Spacer()
-                SourceSignalView(isAppProvided: !exercise.isCustom)
             }
         }
     }
@@ -192,14 +171,8 @@ struct ExerciseDetailView : View {
         List {
             restTimeSection
 
-            sourceSection
-
             if !sectionMemberships.isEmpty {
                 sectionMembershipSection
-            }
-
-            if !exerciseDescription.isEmpty {
-                descriptionSection
             }
 
             if !(exercise.primaryMuscleCommonName.isEmpty && exercise.secondaryMuscleCommonName.isEmpty) {

@@ -174,14 +174,8 @@ private struct WorkoutTypeSelectionView: View {
 struct WorkoutTypesSettingsView: View {
     @Environment(\.managedObjectContext) private var context
     @FetchRequest(fetchRequest: WorkoutType.fetchRequestSorted(includeArchived: false)) private var activeWorkoutTypes
-    @FetchRequest(fetchRequest: hiddenTypesFetchRequest) private var hiddenWorkoutTypes
+    @FetchRequest(fetchRequest: hiddenWorkoutTypesFetchRequest()) private var hiddenWorkoutTypes
     @State private var editMode: EditMode = .inactive
-
-    private static var hiddenTypesFetchRequest: NSFetchRequest<WorkoutType> {
-        let request = WorkoutType.fetchRequestSorted()
-        request.predicate = NSPredicate(format: "\(#keyPath(WorkoutType.isArchived)) == %@", NSNumber(value: true))
-        return request
-    }
 
     var body: some View {
         List {
@@ -260,6 +254,12 @@ struct WorkoutTypesSettingsView: View {
             type.sortIndex = Int32(index)
         }
     }
+}
+
+private func hiddenWorkoutTypesFetchRequest() -> NSFetchRequest<WorkoutType> {
+    let request = WorkoutType.fetchRequestSorted()
+    request.predicate = NSPredicate(format: "\(#keyPath(WorkoutType.isArchived)) == %@", NSNumber(value: true))
+    return request
 }
 
 private struct WorkoutTypeSettingsRow: View {
