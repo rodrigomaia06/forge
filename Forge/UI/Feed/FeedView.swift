@@ -39,7 +39,6 @@ struct FeedView: View {
     private struct WorkoutMetric: Hashable {
         let systemImage: String
         let text: String
-        let colorHex: String?
     }
     private struct WorkoutActivityInput: Equatable {
         let objectURI: URL
@@ -289,20 +288,21 @@ struct FeedView: View {
                 monthGrid(firstOfMonth: currentFirstOfMonth, index: index, calendar: calendar)
             }
 
-            HStack(alignment: .top, spacing: Theme.Spacing.s) {
-                VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
-                    if case .day(let date) = filter, let summary = selectedDaySummaryText(date, index: index, calendar: calendar) {
-                        Text(summary)
-                            .font(.forgeCaption)
-                            .foregroundColor(.forgeSecondaryLabel)
-                    }
-                    Text(weekSummaryText(index))
-                        .font(.forgeCaption)
-                        .foregroundColor(.forgeSecondaryLabel)
-                    Text(monthSummaryText(index, calendar: calendar))
-                        .font(.forgeCaption)
-                        .foregroundColor(.forgeSecondaryLabel)
-                }
+            HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.m) {
+                activitySummaryItem(
+                    title: daySummaryTitle(calendar: calendar),
+                    value: daySummaryValue(index: index, calendar: calendar)
+                )
+                Spacer(minLength: Theme.Spacing.m)
+                activitySummaryItem(
+                    title: "Week",
+                    value: compactSummaryText(count: index.thisWeek, duration: index.thisWeekDuration)
+                )
+                Spacer(minLength: Theme.Spacing.m)
+                activitySummaryItem(
+                    title: "Month",
+                    value: monthSummaryValue(index: index, calendar: calendar)
+                )
                 Spacer(minLength: Theme.Spacing.s)
                 if filter != nil {
                     Button {
@@ -317,6 +317,20 @@ struct FeedView: View {
                 }
             }
             .padding(.top, Theme.Spacing.xxs)
+        }
+    }
+
+    private func activitySummaryItem(title: String, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.xxs) {
+            Text(title)
+                .font(.forgeCaption.weight(.semibold))
+                .foregroundColor(.forgeLabel)
+                .lineLimit(1)
+            Text(value)
+                .font(.forgeCaption)
+                .foregroundColor(.forgeSecondaryLabel)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
     }
 
@@ -375,28 +389,35 @@ struct FeedView: View {
 
     private var yearString: String { String(cal.component(.year, from: Date())) }
 
-    private func summaryText(count: Int, duration: TimeInterval) -> String? {
-        guard count > 0 else { return nil }
-        let workoutText = count == 1 ? "1 workout" : "\(count) workouts"
+    private func compactSummaryText(count: Int, duration: TimeInterval) -> String {
+        guard count > 0 else { return "0" }
+        let countText = "\(count)"
         guard duration > 0, let durationText = Workout.durationFormatter.string(from: duration) else {
-            return workoutText
+            return countText
         }
-        return "\(workoutText) · \(durationText)"
+        return "\(countText) · \(durationText)"
     }
 
-    private func selectedDaySummaryText(_ date: Date, index: ActivityIndex, calendar: Calendar) -> String? {
-        guard let summary = summaryText(count: index.count(for: date, calendar: calendar), duration: index.duration(for: date, calendar: calendar)) else { return nil }
-        return "\(date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())): \(summary)"
+    private func daySummaryTitle(calendar: Calendar) -> String {
+        if case .day(let date) = filter {
+            return calendar.isDateInToday(date) ? "Today" : date.formatted(.dateTime.weekday(.abbreviated).day())
+        }
+        return "Today"
     }
 
-    private func weekSummaryText(_ index: ActivityIndex) -> String {
-        "This week: \(summaryText(count: index.thisWeek, duration: index.thisWeekDuration) ?? "No workouts")"
+    private func daySummaryValue(index: ActivityIndex, calendar: Calendar) -> String {
+        let date: Date
+        if case .day(let selectedDate) = filter {
+            date = selectedDate
+        } else {
+            date = Date()
+        }
+        return compactSummaryText(count: index.count(for: date, calendar: calendar), duration: index.duration(for: date, calendar: calendar))
     }
 
-    private func monthSummaryText(_ index: ActivityIndex, calendar: Calendar) -> String {
+    private func monthSummaryValue(index: ActivityIndex, calendar: Calendar) -> String {
         let month = mixMonth(calendar)
-        let title = calendar.standaloneMonthSymbols[month.month - 1]
-        return "\(title): \(summaryText(count: index.count(year: month.year, month: month.month), duration: index.duration(year: month.year, month: month.month)) ?? "No workouts")"
+        return compactSummaryText(count: index.count(year: month.year, month: month.month), duration: index.duration(year: month.year, month: month.month))
     }
 
     private func weekdaySymbols(_ calendar: Calendar) -> [String] {
@@ -737,7 +758,7 @@ struct FeedView: View {
                 HStack(spacing: Theme.Spacing.xs) {
                     Image(systemName: metric.systemImage)
                         .font(.caption.weight(.semibold))
-                        .foregroundColor(metric.colorHex.map { Color(workoutTypeHex: $0) } ?? .forgeSecondaryLabel)
+                        .foregroundColor(.forgeSecondaryLabel)
                         .frame(width: 16)
                     Text(metric.text)
                         .font(.forgeCaption)
@@ -750,25 +771,19 @@ struct FeedView: View {
     }
 
     private func workoutMetricItems(_ workout: Workout) -> [WorkoutMetric] {
-        var items = [
-            WorkoutMetric(
-                systemImage: "tag.fill",
-                text: workout.workoutType?.displayTitle ?? WorkoutType.fallbackTitle,
-                colorHex: workout.workoutType?.displayColorHex ?? WorkoutType.fallbackColorHex
-            )
-        ]
+        var items: [WorkoutMetric] = []
         if let date = workout.start {
-            items.append(WorkoutMetric(systemImage: "calendar", text: workoutDateText(date), colorHex: nil))
+            items.append(WorkoutMetric(systemImage: "calendar", text: workoutDateText(date)))
         }
         let duration = workoutDurationText(workout)
         if !duration.isEmpty {
-            items.append(WorkoutMetric(systemImage: "clock", text: duration, colorHex: nil))
+            items.append(WorkoutMetric(systemImage: "clock", text: duration))
         }
         if let sets = workout.numberOfCompletedSets, sets > 0 {
-            items.append(WorkoutMetric(systemImage: "chart.bar.fill", text: setCountText(sets), colorHex: nil))
+            items.append(WorkoutMetric(systemImage: "chart.bar.fill", text: setCountText(sets)))
         }
         if let volume = workout.totalCompletedWeight(fallbackBodyweight: settingsStore.bodyweight), volume > 0 {
-            items.append(WorkoutMetric(systemImage: "sum", text: WeightUnit.format(weight: volume, from: .metric, to: settingsStore.weightUnit), colorHex: nil))
+            items.append(WorkoutMetric(systemImage: "sum", text: WeightUnit.format(weight: volume, from: .metric, to: settingsStore.weightUnit)))
         }
         return items
     }
