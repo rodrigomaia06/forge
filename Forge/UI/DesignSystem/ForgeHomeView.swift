@@ -3,8 +3,8 @@
 //  Forge
 //
 //  Static mock of the Home dashboard for CI screenshots (the live FeedView needs real
-//  data to render): greeting, quick-stat tiles, a full-year activity heat-grid, and
-//  a compact Now panel. Mirrors FeedView's design so we can review the look.
+//  data to render): greeting, a full-year activity heat-grid, and a monthly training
+//  mix. Mirrors FeedView's design so we can review the look.
 //
 
 import SwiftUI
@@ -15,9 +15,8 @@ struct ForgeHomeView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
             header
-            stats
             activity
-            now
+            trainingMix
         }
         .padding(.horizontal, Theme.Spacing.l)
         .padding(.top, Theme.Spacing.xxl)
@@ -39,24 +38,6 @@ struct ForgeHomeView: View {
                 .frame(width: 44, height: 44)
                 .background(Circle().fill(Color.forgeAccent))
         }
-    }
-
-    private var stats: some View {
-        HStack(spacing: Theme.Spacing.m) {
-            statTile("3", "This week")
-            statTile("11", "This month")
-            statTile("94.2k kg", "Volume")
-        }
-    }
-
-    private func statTile(_ value: String, _ label: String) -> some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
-            Text(value).font(.forgeMetric).foregroundColor(.forgeLabel)
-            Text(label).font(.forgeCaption).foregroundColor(.forgeSecondaryLabel)
-        }
-        .padding(Theme.Spacing.m)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous).fill(Color.forgeSurface))
     }
 
     private var activity: some View {
@@ -81,26 +62,31 @@ struct ForgeHomeView: View {
         }
     }
 
-    private var now: some View {
+    private var trainingMix: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            Text("NOW").font(.forgeSectionLabel).tracking(2).foregroundColor(.forgeSecondaryLabel)
-            card("No active workout", "Start from the Workout tab")
+            Text("TRAINING MIX").font(.forgeSectionLabel).tracking(2).foregroundColor(.forgeSecondaryLabel)
+            card
         }
     }
 
-    private func card(_ title: String, _ detail: String) -> some View {
+    private var card: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            Text(title).font(.forgeHeadline).foregroundColor(.forgeLabel)
-            Text(detail).font(.forgeCaption).foregroundColor(.forgeSecondaryLabel)
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: Theme.Spacing.s) {
-                    actionLabel("Start workout", systemImage: "plus")
-                    actionLabel("Log time", systemImage: "timer")
-                }
-                VStack(spacing: Theme.Spacing.s) {
-                    actionLabel("Start workout", systemImage: "plus")
-                    actionLabel("Log time", systemImage: "timer")
-                }
+            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                Text("March 2026").font(.forgeHeadline).foregroundColor(.forgeLabel)
+                Text("11 workouts · 14h 20m · 3 this week")
+                    .font(.forgeCaption)
+                    .foregroundColor(.forgeSecondaryLabel)
+            }
+            HStack(spacing: 2) {
+                Capsule(style: .continuous).fill(Color.blue.opacity(0.8)).frame(maxWidth: .infinity)
+                Capsule(style: .continuous).fill(Color.green.opacity(0.8)).frame(maxWidth: 80)
+                Capsule(style: .continuous).fill(Color.red.opacity(0.8)).frame(maxWidth: 48)
+            }
+            .frame(height: 7)
+            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                mixRow(color: .blue, title: "Strength", value: "8 · 11h 10m")
+                mixRow(color: .green, title: "Tennis", value: "2 · 2h")
+                mixRow(color: .red, title: "Martial arts", value: "1 · 1h 10m")
             }
         }
         .padding(Theme.Spacing.l)
@@ -108,16 +94,19 @@ struct ForgeHomeView: View {
         .background(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous).fill(Color.forgeSurface))
     }
 
-    private func actionLabel(_ title: String, systemImage: String) -> some View {
-        Label(title, systemImage: systemImage)
-            .font(.forgeCaption.weight(.semibold))
-            .foregroundColor(.forgeLabel)
-            .lineLimit(1)
-            .minimumScaleFactor(0.85)
-            .frame(maxWidth: .infinity)
-            .frame(minHeight: Theme.Layout.minTapTarget)
-            .forgeGlassCapsule()
-            .glassOutline()
+    private func mixRow(color: Color, title: String, value: String) -> some View {
+        HStack(spacing: Theme.Spacing.s) {
+            Circle()
+                .fill(color)
+                .frame(width: 7, height: 7)
+            Text(title)
+                .font(.forgeCaption)
+                .foregroundColor(.forgeLabel)
+            Spacer()
+            Text(value)
+                .font(.forgeCaption)
+                .foregroundColor(.forgeSecondaryLabel)
+        }
     }
 }
 

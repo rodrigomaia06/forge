@@ -54,8 +54,7 @@ final class ScreenshotUITests: XCTestCase {
         }
     }
 
-    /// The dashboard: quick stats, the month grid, the year grid, a zoomed month, and the compact
-    /// Now / selected-day panel under the calendar.
+    /// The dashboard: month grid, year grid, monthly training mix, and the calendar-to-History path.
     func testHome() throws {
         launch("home")
         selectTab("Home")
@@ -64,14 +63,14 @@ final class ScreenshotUITests: XCTestCase {
         // The activity header toggles the month grid into a year of month grids.
         if tapFirst(in: [app.buttons], labelled: "activity") || tapMonthHeader() {
             shot("year-calendar")
-            // A month in the year grid zooms into its own grid and updates the compact panel.
+            // A month in the year grid zooms into its own grid and updates the training mix.
             if let month = app.buttons.allElementsBoundByIndex.first(where: {
                 $0.isHittable && $0.label.localizedCaseInsensitiveContains("workout") && $0.label.count < 40
             }) {
                 month.tap()
                 shot("month-zoomed")
                 app.swipeUp(velocity: .slow)
-                shot("month-summary-panel")
+                shot("month-training-mix")
                 app.swipeDown(velocity: .slow)
                 // The header is a back affordance while zoomed.
                 _ = tapFirst(in: [app.buttons], labelled: "Back to year")
@@ -81,21 +80,28 @@ final class ScreenshotUITests: XCTestCase {
             skipped("the activity calendar header")
         }
 
-        // A day in the month grid updates the selected-day panel.
+        // Collapse back to the month grid before tapping a day.
+        _ = tapFirst(in: [app.buttons], labelled: "activity") || tapMonthHeader()
+
+        // A workout day opens History filtered to that date, with a direct way back to Home.
         if let day = app.buttons.allElementsBoundByIndex.first(where: {
             $0.isHittable && $0.label.localizedCaseInsensitiveContains("workout logged")
         }) {
             day.tap()
-            shot("day-summary-panel")
-            _ = tapFirst(in: [app.buttons], labelled: "Clear filter")
-            shot("filter-cleared")
+            shot("history-day-from-home")
+            if tapFirst(in: [app.buttons], labelled: "Back to Home") {
+                shot("home-after-history-day")
+            } else {
+                selectTab("Home")
+                shot("home-after-history-day-tab")
+            }
         } else {
             skipped("a day with a workout on it")
         }
 
-        // The dashboard should no longer expose a Recent feed. It keeps the action panel instead.
+        // The dashboard should no longer expose a Recent feed. It keeps the training mix instead.
         app.swipeUp(velocity: .slow)
-        shot("now-panel-scrolled")
+        shot("training-mix-scrolled")
     }
 
     /// History: the list, its date filter, the row context menu, edit mode, a workout, an exercise
@@ -107,6 +113,10 @@ final class ScreenshotUITests: XCTestCase {
 
         if tapFirst(in: [app.buttons], labelled: "Filter by date") {
             shot("date-filter")
+            if tapFirst(in: [app.buttons], labelled: "Previous month") {
+                shot("date-filter-previous-month")
+                _ = tapFirst(in: [app.buttons], labelled: "Next month")
+            }
             _ = tapFirst(in: [app.buttons], labelled: "Hide date filter")
         } else {
             skipped("the date filter button")

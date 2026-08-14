@@ -37,6 +37,7 @@ struct HistoryView : View {
     @State private var editMode: EditMode = .inactive
     @State private var fromDate = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
     @State private var toDate = Date()
+    @State private var openedFromHomeDate = false
 
     /// Drives navigation into a workout. A typed path lets both a row tap and a deep-link from another
     /// tab push the same destination.
@@ -80,6 +81,13 @@ struct HistoryView : View {
     }
 
     private static let weekRangeFormatter: DateIntervalFormatter = {
+        let formatter = DateIntervalFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter
+    }()
+
+    private static let monthRangeFormatter: DateIntervalFormatter = {
         let formatter = DateIntervalFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
@@ -215,9 +223,22 @@ struct HistoryView : View {
             }
             .forgeScreenTitle("History") {
                 HStack(spacing: NAVIGATION_BAR_SPACING) {
+                    if openedFromHomeDate {
+                        Button {
+                            Haptics.selection()
+                            openedFromHomeDate = false
+                            sceneState.selectedTab = .feed
+                        } label: {
+                            Image(systemName: "chevron.left")
+                        }
+                        .accessibilityLabel("Back to Home")
+                    }
                     Button {
                         Haptics.selection()
-                        withAnimation { filterActive.toggle() }
+                        withAnimation {
+                            filterActive.toggle()
+                            if !filterActive { openedFromHomeDate = false }
+                        }
                     } label: {
                         Image(systemName: filterActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                     }
@@ -235,6 +256,7 @@ struct HistoryView : View {
         .overlay(ActivitySheet(activityItems: self.$activityItems))
         // A deep-link from another tab (e.g. a past session tapped during a workout) lands here.
         .onChange(of: sceneState.historyWorkoutToOpen) { _ in openPendingHistoryWorkout() }
+        .onChange(of: sceneState.historyDateToOpen) { _ in openPendingHistoryDate() }
         .onChange(of: workoutSnapshotInputs) { _, _ in rebuildHistorySections() }
         .onChange(of: filterActive) { _, _ in rebuildHistorySections() }
         .onChange(of: fromDate) { _, _ in rebuildHistorySections() }
@@ -247,11 +269,14 @@ struct HistoryView : View {
         .onAppear {
             rebuildHistorySections()
             openPendingHistoryWorkout()
+            openPendingHistoryDate()
         }
     }
 
     private var filterSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            monthFilterControls
+
             VStack(spacing: 0) {
                 DatePicker("From", selection: $fromDate, in: ...toDate, displayedComponents: .date)
                     .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
@@ -268,6 +293,73 @@ struct HistoryView : View {
                 .foregroundColor(.forgeSecondaryLabel)
                 .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
         }
+    }
+
+    private var monthFilterControls: some View {
+        HStack(spacing: Theme.Spacing.s) {
+            Button {
+                Haptics.selection()
+                moveFilterMonth(by: -1)
+            } label: {
+                Image(systemName: "chevron.left")
+                    .frame(width: Theme.Layout.minTapTarget, height: Theme.Layout.minTapTarget)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Previous month")
+
+            VStack(spacing: Theme.Spacing.xxs) {
+                Text(filterMonthTitle)
+                    .font(.forgeHeadline)
+                    .foregroundColor(.forgeLabel)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                Text(filterRangeText)
+                    .font(.forgeCaption)
+                    .foregroundColor(.forgeSecondaryLabel)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+            .frame(maxWidth: .infinity)
+
+            Button {
+                Haptics.selection()
+                moveFilterMonth(by: 1)
+            } label: {
+                Image(systemName: "chevron.right")
+                    .frame(width: Theme.Layout.minTapTarget, height: Theme.Layout.minTapTarget)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Next month")
+        }
+        .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+        .padding(.vertical, Theme.Spacing.s)
+        .forgeCard()
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))
+    }
+
+    private var filterMonthTitle: String {
+        let start = Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: fromDate)) ?? fromDate
+        return start.formatted(.dateTime.month(.wide).year())
+    }
+
+    private var filterRangeText: String {
+        Self.monthRangeFormatter.string(from: fromDate, to: toDate)
+    }
+
+    private func moveFilterMonth(by value: Int) {
+        let calendar = Calendar.current
+        let base = calendar.date(from: calendar.dateComponents([.year, .month], from: fromDate)) ?? fromDate
+        let next = calendar.date(byAdding: .month, value: value, to: base) ?? base
+        setFilterToMonth(containing: next)
+    }
+
+    private func setFilterToMonth(containing date: Date) {
+        let calendar = Calendar.current
+        let start = calendar.date(from: calendar.dateComponents([.year, .month], from: date)) ?? calendar.startOfDay(for: date)
+        let endExclusive = calendar.date(byAdding: .month, value: 1, to: start) ?? start
+        let end = calendar.date(byAdding: .day, value: -1, to: endExclusive) ?? start
+        fromDate = start
+        toDate = end
     }
 
     private func historySection(_ section: HistorySection) -> some View {
@@ -340,6 +432,18 @@ struct HistoryView : View {
         guard let workout = sceneState.historyWorkoutToOpen else { return }
         path = [workout.objectID]
         sceneState.historyWorkoutToOpen = nil
+    }
+
+    private func openPendingHistoryDate() {
+        guard let date = sceneState.historyDateToOpen else { return }
+        let day = Calendar.current.startOfDay(for: date)
+        fromDate = day
+        toDate = day
+        filterActive = true
+        openedFromHomeDate = true
+        path = []
+        sceneState.historyDateToOpen = nil
+        rebuildHistorySections()
     }
 }
 
