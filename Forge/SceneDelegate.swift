@@ -171,8 +171,7 @@ class SceneState: ObservableObject {
     /// workout is in progress). HistoryView clears it once it has navigated.
     @Published var historyWorkoutToOpen: Workout?
 
-    /// A calendar day the History tab should show. Used by Home so tapping a workout day opens the
-    /// corresponding date range without losing the Home calendar's position.
+    /// A calendar day the History tab should show when another flow needs to open a date range directly.
     @Published var historyDateToOpen: Date?
 
     var selectedTab: Tab {

@@ -83,18 +83,12 @@ final class ScreenshotUITests: XCTestCase {
         // Collapse back to the month grid before tapping a day.
         _ = tapFirst(in: [app.buttons], labelled: "activity") || tapMonthHeader()
 
-        // A workout day opens History filtered to that date, with a direct way back to Home.
+        // A workout day stays on Home and drives the selected-day panel.
         if let day = app.buttons.allElementsBoundByIndex.first(where: {
             $0.isHittable && $0.label.localizedCaseInsensitiveContains("workout logged")
         }) {
             day.tap()
-            shot("history-day-from-home")
-            if tapFirst(in: [app.buttons], labelled: "Back to Home") {
-                shot("home-after-history-day")
-            } else {
-                selectTab("Home")
-                shot("home-after-history-day-tab")
-            }
+            shot("home-selected-day")
         } else {
             skipped("a day with a workout on it")
         }

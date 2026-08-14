@@ -38,7 +38,6 @@ struct HistoryView : View {
     @State private var fromDate = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
     @State private var toDate = Date()
     @State private var filterMode: HistoryFilterMode = .month
-    @State private var openedFromHomeDate = false
 
     /// Drives navigation into a workout. A typed path lets both a row tap and a deep-link from another
     /// tab push the same destination.
@@ -238,16 +237,6 @@ struct HistoryView : View {
             }
             .forgeScreenTitle("History") {
                 HStack(spacing: NAVIGATION_BAR_SPACING) {
-                    if openedFromHomeDate {
-                        Button {
-                            Haptics.selection()
-                            openedFromHomeDate = false
-                            sceneState.selectedTab = .feed
-                        } label: {
-                            Image(systemName: "chevron.left")
-                        }
-                        .accessibilityLabel("Back to Home")
-                    }
                     Button {
                         Haptics.selection()
                         withAnimation {
@@ -255,7 +244,6 @@ struct HistoryView : View {
                             if filterActive, filterMode == .month {
                                 setFilterToMonth(containing: Date())
                             }
-                            if !filterActive { openedFromHomeDate = false }
                         }
                     } label: {
                         Image(systemName: filterActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
@@ -471,7 +459,6 @@ struct HistoryView : View {
         toDate = day
         filterMode = .dates
         filterActive = true
-        openedFromHomeDate = true
         path = []
         sceneState.historyDateToOpen = nil
         rebuildHistorySections()

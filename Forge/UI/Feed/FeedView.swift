@@ -77,6 +77,7 @@ struct FeedView: View {
         private var typeCountsByMonth: [Int: [TypeKey: Int]] = [:]
         private var typeDurationsByMonth: [Int: [TypeKey: TimeInterval]] = [:]
         private(set) var thisWeek = 0
+        private(set) var thisWeekDuration: TimeInterval = 0
 
         static func key(year: Int, month: Int) -> Int { year * 12 + month }
         static func dayKey(year: Int, month: Int, day: Int) -> Int { year * 10_000 + month * 100 + day }
@@ -105,7 +106,10 @@ struct FeedView: View {
                 }
                 typeCountsByDay[dayKey, default: [:]][typeKey, default: 0] += 1
                 typeCountsByMonth[key, default: [:]][typeKey, default: 0] += 1
-                if calendar.isDate(start, equalTo: now, toGranularity: .weekOfYear) { thisWeek += 1 }
+                if calendar.isDate(start, equalTo: now, toGranularity: .weekOfYear) {
+                    thisWeek += 1
+                    thisWeekDuration += workout.duration ?? 0
+                }
             }
         }
 
@@ -273,26 +277,34 @@ struct FeedView: View {
                 monthGrid(firstOfMonth: currentFirstOfMonth, index: index, calendar: calendar)
             }
 
-            if let summary = activitySummaryText(index, calendar: calendar) {
-                HStack(spacing: Theme.Spacing.s) {
-                    Text(summary)
+            HStack(alignment: .top, spacing: Theme.Spacing.s) {
+                VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
+                    if case .day(let date) = filter, let summary = selectedDaySummaryText(date, index: index, calendar: calendar) {
+                        Text(summary)
+                            .font(.forgeCaption)
+                            .foregroundColor(.forgeSecondaryLabel)
+                    }
+                    Text(weekSummaryText(index))
                         .font(.forgeCaption)
                         .foregroundColor(.forgeSecondaryLabel)
-                    Spacer(minLength: Theme.Spacing.s)
-                    if filter != nil {
-                        Button {
-                            withAnimation(.snappy(duration: 0.2)) { filter = nil }
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.callout)
-                                .foregroundColor(.forgeSecondaryLabel)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Clear filter")
-                    }
+                    Text(monthSummaryText(index, calendar: calendar))
+                        .font(.forgeCaption)
+                        .foregroundColor(.forgeSecondaryLabel)
                 }
-                .padding(.top, Theme.Spacing.xxs)
+                Spacer(minLength: Theme.Spacing.s)
+                if filter != nil {
+                    Button {
+                        withAnimation(.snappy(duration: 0.2)) { filter = nil }
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.callout)
+                            .foregroundColor(.forgeSecondaryLabel)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear selection")
+                }
             }
+            .padding(.top, Theme.Spacing.xxs)
         }
     }
 
@@ -351,17 +363,19 @@ struct FeedView: View {
 
     private var yearString: String { String(cal.component(.year, from: Date())) }
 
-    private func activitySummaryText(_ index: ActivityIndex, calendar: Calendar) -> String? {
-        switch filter {
-        case .day(let date):
-            return summaryText(count: index.count(for: date, calendar: calendar), duration: index.duration(for: date, calendar: calendar))
-        case .month(let year, let month):
-            return summaryText(count: index.count(year: year, month: month), duration: index.duration(year: year, month: month))
-        case nil:
-            let parts = calendar.dateComponents([.year, .month], from: Date())
-            guard let year = parts.year, let month = parts.month else { return nil }
-            return summaryText(count: index.count(year: year, month: month), duration: index.duration(year: year, month: month))
-        }
+    private func selectedDaySummaryText(_ date: Date, index: ActivityIndex, calendar: Calendar) -> String? {
+        guard let summary = summaryText(count: index.count(for: date, calendar: calendar), duration: index.duration(for: date, calendar: calendar)) else { return nil }
+        return "\(date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())): \(summary)"
+    }
+
+    private func weekSummaryText(_ index: ActivityIndex) -> String {
+        "This week: \(summaryText(count: index.thisWeek, duration: index.thisWeekDuration) ?? "No workouts")"
+    }
+
+    private func monthSummaryText(_ index: ActivityIndex, calendar: Calendar) -> String {
+        let month = mixMonth(calendar)
+        let title = calendar.standaloneMonthSymbols[month.month - 1]
+        return "\(title): \(summaryText(count: index.count(year: month.year, month: month.month), duration: index.duration(year: month.year, month: month.month)) ?? "No workouts")"
     }
 
     private func summaryText(count: Int, duration: TimeInterval) -> String? {
@@ -408,12 +422,7 @@ struct FeedView: View {
             let typeSummaries = index.typeSummaries(for: date, calendar: calendar)
             let active = !typeSummaries.isEmpty
             Button {
-                if active {
-                    filter = .day(date)
-                    openHistoryDate(date)
-                } else {
-                    toggle(.day(date))
-                }
+                toggle(.day(date))
             } label: {
                 VStack(spacing: 2) {
                     Text("\(day)")
@@ -564,13 +573,11 @@ struct FeedView: View {
             HStack(alignment: .firstTextBaseline) {
                 panelTitle("By type")
                 Spacer()
-                if index.thisWeek > 0 {
-                    Text(index.thisWeek == 1 ? "1 this week" : "\(index.thisWeek) this week")
-                        .font(.forgeCaption)
-                        .foregroundColor(.forgeSecondaryLabel)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-                }
+                Text(calendar.standaloneMonthSymbols[month.month - 1])
+                    .font(.forgeCaption)
+                    .foregroundColor(.forgeSecondaryLabel)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
                 mixStrip(typeSummaries)
@@ -616,7 +623,7 @@ struct FeedView: View {
             } else {
                 let summaries = index.typeSummaries(for: date, calendar: calendar)
                 panelCard {
-                    VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                    VStack(alignment: .leading, spacing: Theme.Spacing.m) {
                         Text(dayWorkouts.count == 1 ? "1 workout" : "\(dayWorkouts.count) workouts")
                             .font(.forgeHeadline)
                             .foregroundColor(.forgeLabel)
@@ -624,8 +631,10 @@ struct FeedView: View {
                             Workout.durationFormatter.string(from: index.duration(for: date, calendar: calendar)) ?? "",
                             summaries.map(\.title).prefix(3).joined(separator: " · ")
                         ])
-                        dashboardActionButton("Open in History", systemImage: "clock.arrow.circlepath") {
-                            openHistoryDate(date)
+                        VStack(spacing: Theme.Spacing.s) {
+                            ForEach(Array(dayWorkouts.prefix(3)), id: \.objectID) { workout in
+                                compactWorkoutRow(workout)
+                            }
                         }
                     }
                 }
@@ -649,10 +658,6 @@ struct FeedView: View {
             openHistoryWorkout(workout)
         } label: {
             HStack(alignment: .center, spacing: Theme.Spacing.m) {
-                RoundedRectangle(cornerRadius: 2, style: .continuous)
-                    .fill(Color(workoutTypeHex: workout.workoutType?.displayColorHex ?? WorkoutType.fallbackColorHex))
-                    .frame(width: 4, height: 44)
-
                 VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                     Text(workout.displayTitle(in: exerciseStore.exercises, showPlan: settingsStore.showPlanInWorkoutTitle))
                         .font(.forgeHeadline)
@@ -664,10 +669,7 @@ struct FeedView: View {
                         workoutDurationText(workout)
                     ])
                     if let exerciseText = exerciseDetailText(workout) {
-                        Text(exerciseText)
-                            .font(.forgeCaption)
-                            .foregroundColor(.forgeSecondaryLabel)
-                            .lineLimit(1)
+                        exerciseDetails(exerciseText)
                     }
                 }
                 .layoutPriority(1)
@@ -679,8 +681,16 @@ struct FeedView: View {
                     .foregroundColor(.forgeSecondaryLabel)
             }
             .padding(Theme.Spacing.m)
+            .padding(.leading, Theme.Spacing.m)
             .frame(maxWidth: .infinity, alignment: .leading)
             .forgeCard(radius: Theme.Radius.medium)
+            .overlay(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                    .fill(Color(workoutTypeHex: workout.workoutType?.displayColorHex ?? WorkoutType.fallbackColorHex))
+                    .frame(width: 4)
+                    .padding(.leading, Theme.Spacing.s)
+                    .padding(.vertical, Theme.Spacing.m)
+            }
             .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous))
         }
         .buttonStyle(.plain)
@@ -706,20 +716,32 @@ struct FeedView: View {
         return Workout.durationFormatter.string(from: duration) ?? ""
     }
 
-    private func exerciseDetailText(_ workout: Workout) -> String? {
+    private func exerciseDetailText(_ workout: Workout) -> [String]? {
         let exercises = workout.workoutExercises?.array as? [WorkoutExercise] ?? []
-        guard let firstExercise = exercises.first else { return nil }
-        let title = firstExercise.exercise(in: exerciseStore.exercises)?.title ?? "Exercise"
-        let firstText = "\(title) · \(setCountText(firstExercise.workoutSets?.count ?? 0))"
-        guard exercises.count > 1 else {
-            return firstText
+        let details = exercises.compactMap { exercise -> String? in
+            let completedSets = (exercise.workoutSets?.array as? [WorkoutSet] ?? []).filter { $0.isCompleted }
+            guard !completedSets.isEmpty else { return nil }
+            let title = exercise.exercise(in: exerciseStore.exercises)?.title ?? "Exercise"
+            return "\(title) · \(setCountText(completedSets.count))"
         }
-        let moreText = exercises.count == 2 ? "1 more exercise" : "\(exercises.count - 1) more exercises"
-        return "\(firstText) · \(moreText)"
+        return details.isEmpty ? nil : details
     }
 
     private func setCountText(_ count: Int) -> String {
         count == 1 ? "1 set" : "\(count) sets"
+    }
+
+    private func exerciseCountText(_ workout: Workout) -> String {
+        let exercises = workout.workoutExercises?.array as? [WorkoutExercise] ?? []
+        let completedExercises = exercises.filter { exercise in
+            (exercise.workoutSets?.array as? [WorkoutSet] ?? []).contains { $0.isCompleted }
+        }
+        let sets = completedExercises.reduce(0) { count, exercise in
+            count + ((exercise.workoutSets?.array as? [WorkoutSet] ?? []).filter { $0.isCompleted }.count)
+        }
+        guard !completedExercises.isEmpty else { return "" }
+        let exerciseText = completedExercises.count == 1 ? "1 exercise" : "\(completedExercises.count) exercises"
+        return "\(exerciseText) · \(setCountText(sets))"
     }
 
     private func mixMonth(_ calendar: Calendar) -> MonthRef {
@@ -764,6 +786,45 @@ struct FeedView: View {
             .foregroundColor(.forgeSecondaryLabel)
             .lineLimit(2)
             .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func exerciseDetails(_ details: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(details, id: \.self) { detail in
+                Text(detail)
+                    .font(.forgeCaption)
+                    .foregroundColor(.forgeSecondaryLabel)
+                    .lineLimit(1)
+            }
+        }
+    }
+
+    private func compactWorkoutRow(_ workout: Workout) -> some View {
+        Button {
+            Haptics.selection()
+            openHistoryWorkout(workout)
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.s) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(workout.displayTitle(in: exerciseStore.exercises, showPlan: settingsStore.showPlanInWorkoutTitle))
+                        .font(.forgeCaption.weight(.semibold))
+                        .foregroundColor(.forgeLabel)
+                        .lineLimit(1)
+                    panelMeta([
+                        workout.workoutType?.displayTitle ?? WorkoutType.fallbackTitle,
+                        workoutDurationText(workout),
+                        exerciseCountText(workout)
+                    ])
+                }
+                Spacer(minLength: Theme.Spacing.s)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(.forgeSecondaryLabel)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Open workout")
     }
 
     private func panelCard<Content: View>(colorHex: String? = nil, @ViewBuilder content: () -> Content) -> some View {
@@ -832,11 +893,6 @@ struct FeedView: View {
             return countText
         }
         return "\(countText) · \(duration)"
-    }
-
-    private func openHistoryDate(_ date: Date) {
-        sceneState.historyDateToOpen = date
-        sceneState.selectedTab = .history
     }
 
     private func openHistoryWorkout(_ workout: Workout) {
