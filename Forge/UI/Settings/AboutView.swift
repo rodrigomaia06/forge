@@ -55,11 +55,17 @@ struct AboutView: View {
 
     private var versionString: String {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-        #if DEBUG
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String
-        return "\(version ?? "?") (\(build ?? "?")) DEBUG"
+        let commit = Bundle.main.infoDictionary?["ForgeGitCommit"] as? String
+        let buildText = [build, commit].compactMap { value -> String? in
+            guard let value, !value.isEmpty else { return nil }
+            return value
+        }.joined(separator: ", ")
+        let base = buildText.isEmpty ? "\(version ?? "?")" : "\(version ?? "?") (\(buildText))"
+        #if DEBUG
+        return "\(base) DEBUG"
         #else
-        return "\(version ?? "?")"
+        return base
         #endif
     }
 }

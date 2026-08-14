@@ -32,6 +32,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set build version
+        run: |
+          echo "FORGE_BUILD_NUMBER=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
+          echo "FORGE_GIT_COMMIT=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+
       - name: Select newest Xcode
         run: .github/scripts/select-xcode.sh
 
@@ -56,6 +61,8 @@ jobs:
             -resultBundlePath TestResults.xcresult \
             -only-testing:ForgeTests \
             -skip-testing:ForgeTests/ScreenshotTests \
+            CURRENT_PROJECT_VERSION="$FORGE_BUILD_NUMBER" \
+            FORGE_GIT_COMMIT="$FORGE_GIT_COMMIT" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO
 
@@ -118,6 +125,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set build version
+        run: |
+          echo "FORGE_BUILD_NUMBER=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
+          echo "FORGE_GIT_COMMIT=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+
       - name: Select newest Xcode
         run: .github/scripts/select-xcode.sh
 
@@ -156,6 +168,8 @@ jobs:
             -destination "platform=iOS Simulator,name=$SIMULATOR_NAME,OS=latest" \
             -resultBundlePath ScreenshotResults.xcresult \
             "${ONLY_TESTING_ARGS[@]}" \
+            CURRENT_PROJECT_VERSION="$FORGE_BUILD_NUMBER" \
+            FORGE_GIT_COMMIT="$FORGE_GIT_COMMIT" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO
 
@@ -196,6 +210,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set build version
+        run: |
+          echo "FORGE_BUILD_NUMBER=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
+          echo "FORGE_GIT_COMMIT=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+
       - name: Select newest Xcode
         run: .github/scripts/select-xcode.sh
 
@@ -214,6 +233,8 @@ jobs:
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             -derivedDataPath build \
+            CURRENT_PROJECT_VERSION="$FORGE_BUILD_NUMBER" \
+            FORGE_GIT_COMMIT="$FORGE_GIT_COMMIT" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY=""
