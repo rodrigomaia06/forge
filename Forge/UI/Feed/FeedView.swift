@@ -17,20 +17,6 @@ private enum ActivityFilter: Equatable {
     case month(year: Int, month: Int)
 }
 
-private enum DashboardPeriod: CaseIterable, Hashable {
-    case day
-    case week
-    case month
-
-    var title: String {
-        switch self {
-        case .day: return "Day"
-        case .week: return "Week"
-        case .month: return "Month"
-        }
-    }
-}
-
 struct FeedView: View {
     @Environment(\.managedObjectContext) private var context
     @EnvironmentObject private var settingsStore: SettingsStore
@@ -41,7 +27,6 @@ struct FeedView: View {
     @FetchRequest(fetchRequest: Workout.currentWorkoutFetchRequest) private var currentWorkouts: FetchedResults<Workout>
     @State private var calendarExpanded = false
     @State private var filter: ActivityFilter?
-    @State private var dashboardPeriod: DashboardPeriod = .month
     /// When set (from the year view), the calendar drills into this single month's detailed grid.
     @State private var zoomedMonth: MonthRef?
     @State private var activityIndex = ActivityIndex()
@@ -284,11 +269,6 @@ struct FeedView: View {
         Haptics.selection()
         withAnimation(.snappy(duration: 0.2)) {
             filter = (filter == f) ? nil : f
-            if case .day = filter {
-                dashboardPeriod = .day
-            } else if filter == nil {
-                dashboardPeriod = .month
-            }
         }
     }
 
@@ -304,88 +284,35 @@ struct FeedView: View {
                 monthGrid(firstOfMonth: currentFirstOfMonth, index: index, calendar: calendar)
             }
 
-            periodSelector(index: index, calendar: calendar)
+            HStack(alignment: .top, spacing: Theme.Spacing.s) {
+                VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
+                    if case .day(let date) = filter, let summary = selectedDaySummaryText(date, index: index, calendar: calendar) {
+                        Text(summary)
+                            .font(.forgeCaption)
+                            .foregroundColor(.forgeSecondaryLabel)
+                    }
+                    Text(weekSummaryText(index))
+                        .font(.forgeCaption)
+                        .foregroundColor(.forgeSecondaryLabel)
+                    Text(monthSummaryText(index, calendar: calendar))
+                        .font(.forgeCaption)
+                        .foregroundColor(.forgeSecondaryLabel)
+                }
+                Spacer(minLength: Theme.Spacing.s)
+                if filter != nil {
+                    Button {
+                        withAnimation(.snappy(duration: 0.2)) { filter = nil }
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.callout)
+                            .foregroundColor(.forgeSecondaryLabel)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear selection")
+                }
+            }
             .padding(.top, Theme.Spacing.xxs)
         }
-    }
-
-    private func periodSelector(index: ActivityIndex, calendar: Calendar) -> some View {
-        HStack(spacing: Theme.Spacing.xs) {
-            ForEach(DashboardPeriod.allCases, id: \.self) { period in
-                periodSelectorButton(period, index: index, calendar: calendar)
-            }
-
-            if filter != nil {
-                clearPeriodSelectionButton
-            }
-        }
-    }
-
-    private func periodSelectorButton(_ period: DashboardPeriod, index: ActivityIndex, calendar: Calendar) -> some View {
-        let isSelected = dashboardPeriod == period
-        return Button {
-            Haptics.selection()
-            withAnimation(.snappy(duration: 0.2)) {
-                dashboardPeriod = period
-            }
-        } label: {
-            periodSelectorLabel(
-                title: period.title,
-                count: periodCountText(period, index: index, calendar: calendar),
-                duration: periodDurationText(period, index: index, calendar: calendar),
-                isSelected: isSelected
-            )
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(periodAccessibilityLabel(period, index: index, calendar: calendar))
-    }
-
-    private func periodSelectorLabel(title: String, count: String, duration: String, isSelected: Bool) -> some View {
-        let backgroundColor: Color = isSelected ? Color.forgeSurface : Color.clear
-        let borderColor: Color = isSelected ? Color.forgeSeparator : Color.clear
-        return VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundColor(isSelected ? .forgeLabel : .forgeSecondaryLabel)
-            Text(count)
-                .font(.forgeCaption.weight(.semibold))
-                .foregroundColor(.forgeLabel)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-            Text(duration)
-                .font(.caption2)
-                .foregroundColor(.forgeSecondaryLabel)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, Theme.Spacing.s)
-        .padding(.vertical, Theme.Spacing.xs)
-        .background {
-            RoundedRectangle(cornerRadius: Theme.Radius.small, style: .continuous)
-                .fill(backgroundColor)
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: Theme.Radius.small, style: .continuous)
-                .strokeBorder(borderColor, lineWidth: 1)
-        }
-        .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.small, style: .continuous))
-    }
-
-    private var clearPeriodSelectionButton: some View {
-        Button {
-            withAnimation(.snappy(duration: 0.2)) {
-                filter = nil
-                dashboardPeriod = .month
-            }
-        } label: {
-            Image(systemName: "xmark.circle.fill")
-                .font(.callout)
-                .foregroundColor(.forgeSecondaryLabel)
-                .frame(width: Theme.Layout.minTapTarget, height: Theme.Layout.minTapTarget)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Clear selection")
     }
 
     @ViewBuilder
@@ -452,54 +379,19 @@ struct FeedView: View {
         return "\(workoutText) · \(durationText)"
     }
 
-    private func periodCountText(_ period: DashboardPeriod, index: ActivityIndex, calendar: Calendar) -> String {
-        let count = periodCount(period, index: index, calendar: calendar)
-        guard count > 0 else { return "0" }
-        return "\(count)"
+    private func selectedDaySummaryText(_ date: Date, index: ActivityIndex, calendar: Calendar) -> String? {
+        guard let summary = summaryText(count: index.count(for: date, calendar: calendar), duration: index.duration(for: date, calendar: calendar)) else { return nil }
+        return "\(date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())): \(summary)"
     }
 
-    private func periodDurationText(_ period: DashboardPeriod, index: ActivityIndex, calendar: Calendar) -> String {
-        let duration = periodDuration(period, index: index, calendar: calendar)
-        guard duration > 0, let durationText = Workout.durationFormatter.string(from: duration) else {
-            return "No time"
-        }
-        return durationText
+    private func weekSummaryText(_ index: ActivityIndex) -> String {
+        "This week: \(summaryText(count: index.thisWeek, duration: index.thisWeekDuration) ?? "No workouts")"
     }
 
-    private func periodAccessibilityLabel(_ period: DashboardPeriod, index: ActivityIndex, calendar: Calendar) -> String {
-        let count = periodCount(period, index: index, calendar: calendar)
-        let duration = periodDurationText(period, index: index, calendar: calendar)
-        let workoutText = count == 1 ? "1 workout" : "\(count) workouts"
-        return "\(period.title), \(workoutText), \(duration)"
-    }
-
-    private func periodCount(_ period: DashboardPeriod, index: ActivityIndex, calendar: Calendar) -> Int {
-        switch period {
-        case .day:
-            return index.count(for: selectedDashboardDate(calendar), calendar: calendar)
-        case .week:
-            return index.thisWeek
-        case .month:
-            let month = mixMonth(calendar)
-            return index.count(year: month.year, month: month.month)
-        }
-    }
-
-    private func periodDuration(_ period: DashboardPeriod, index: ActivityIndex, calendar: Calendar) -> TimeInterval {
-        switch period {
-        case .day:
-            return index.duration(for: selectedDashboardDate(calendar), calendar: calendar)
-        case .week:
-            return index.thisWeekDuration
-        case .month:
-            let month = mixMonth(calendar)
-            return index.duration(year: month.year, month: month.month)
-        }
-    }
-
-    private func selectedDashboardDate(_ calendar: Calendar) -> Date {
-        if case .day(let date) = filter { return date }
-        return Date()
+    private func monthSummaryText(_ index: ActivityIndex, calendar: Calendar) -> String {
+        let month = mixMonth(calendar)
+        let title = calendar.standaloneMonthSymbols[month.month - 1]
+        return "\(title): \(summaryText(count: index.count(year: month.year, month: month.month), duration: index.duration(year: month.year, month: month.month)) ?? "No workouts")"
     }
 
     private func weekdaySymbols(_ calendar: Calendar) -> [String] {
@@ -590,7 +482,6 @@ struct FeedView: View {
                     withAnimation(.snappy(duration: 0.28)) {
                         zoomedMonth = MonthRef(year: year, month: month)
                         filter = .month(year: year, month: month)
-                        dashboardPeriod = .month
                     }
                 } label: {
                     miniMonth(year: year, month: month, selected: filter == .month(year: year, month: month), index: index, calendar: calendar)
@@ -645,19 +536,14 @@ struct FeedView: View {
     private func dashboardPanel(_ index: ActivityIndex, calendar: Calendar) -> some View {
         if let currentWorkout = currentWorkouts.first {
             activeWorkoutPanel(currentWorkout)
+        } else if case .day(let date) = filter {
+            VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                selectedDayPanel(date, index: index, calendar: calendar)
+                monthlyMixPanel(index, calendar: calendar)
+            }
         } else {
-            switch dashboardPeriod {
-            case .day:
-                VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
-                    selectedDayPanel(selectedDashboardDate(calendar), index: index, calendar: calendar)
-                    monthlyMixPanel(index, calendar: calendar)
-                }
-            case .week:
-                VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
-                    weekPanel(calendar: calendar)
-                    monthlyMixPanel(index, calendar: calendar)
-                }
-            case .month:
+            VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                lastWorkoutPanel
                 monthlyMixPanel(index, calendar: calendar)
             }
         }
@@ -714,46 +600,6 @@ struct FeedView: View {
         }
     }
 
-    private func weekPanel(calendar: Calendar) -> some View {
-        let weekWorkouts = workoutsThisWeek(calendar: calendar)
-        return VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            HStack(alignment: .firstTextBaseline) {
-                panelTitle("This week")
-                Spacer()
-                Text(weekRangeText(calendar: calendar))
-                    .font(.forgeCaption)
-                    .foregroundColor(.forgeSecondaryLabel)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-
-            if weekWorkouts.isEmpty {
-                panelCard {
-                    VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-                        Text("No workouts logged")
-                            .font(.forgeHeadline)
-                            .foregroundColor(.forgeLabel)
-                        panelMeta(["Nothing saved this week"])
-                        dashboardActionButton("Start workout", systemImage: "plus") {
-                            sceneState.selectedTab = .workout
-                        }
-                    }
-                }
-            } else {
-                panelCard {
-                    VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-                        Text(summaryText(count: weekWorkouts.count, duration: weekWorkouts.reduce(0) { $0 + ($1.duration ?? 0) }) ?? "No workouts")
-                            .font(.forgeHeadline)
-                            .foregroundColor(.forgeLabel)
-                        if let latest = weekWorkouts.first {
-                            compactWorkoutRow(latest)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     private func selectedDayPanel(_ date: Date, index: ActivityIndex, calendar: Calendar) -> some View {
         let dayWorkouts = workouts(on: date, calendar: calendar)
         return VStack(alignment: .leading, spacing: Theme.Spacing.m) {
@@ -796,6 +642,16 @@ struct FeedView: View {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var lastWorkoutPanel: some View {
+        if let workout = workouts.first {
+            VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+                panelTitle("Last workout")
+                workoutLinkPanel(workout)
             }
         }
     }
@@ -856,23 +712,6 @@ struct FeedView: View {
             guard let workoutStart = workout.start else { return false }
             return workoutStart >= start && workoutStart < end
         })
-    }
-
-    private func workoutsThisWeek(calendar: Calendar) -> [Workout] {
-        let now = Date()
-        return Array(workouts.filter { workout in
-            guard let workoutStart = workout.start else { return false }
-            return calendar.isDate(workoutStart, equalTo: now, toGranularity: .weekOfYear)
-        })
-    }
-
-    private func weekRangeText(calendar: Calendar) -> String {
-        let now = Date()
-        guard let interval = calendar.dateInterval(of: .weekOfYear, for: now) else {
-            return "Current week"
-        }
-        let end = calendar.date(byAdding: .day, value: -1, to: interval.end) ?? interval.end
-        return "\(interval.start.formatted(.dateTime.month(.abbreviated).day())) to \(end.formatted(.dateTime.month(.abbreviated).day()))"
     }
 
     private func dayTitle(_ date: Date) -> String {
