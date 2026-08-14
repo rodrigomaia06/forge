@@ -288,19 +288,20 @@ struct FeedView: View {
                 monthGrid(firstOfMonth: currentFirstOfMonth, index: index, calendar: calendar)
             }
 
-            HStack(alignment: .top, spacing: Theme.Spacing.l) {
-                activitySummaryItem(
-                    title: "Week",
-                    value: compactSummaryText(count: index.thisWeek, duration: index.thisWeekDuration),
-                    alignment: .leading,
-                    frameAlignment: .leading
+            HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.s) {
+                activitySummaryPhrase(
+                    title: "This week",
+                    value: compactSummaryText(count: index.thisWeek, duration: index.thisWeekDuration)
                 )
-                activitySummaryItem(
-                    title: "Month",
-                    value: monthSummaryValue(index: index, calendar: calendar),
-                    alignment: .trailing,
-                    frameAlignment: .trailing
+                Capsule(style: .continuous)
+                    .fill(Color.forgeSeparator)
+                    .frame(width: 1, height: 14)
+                    .alignmentGuide(.firstTextBaseline) { dimensions in dimensions[VerticalAlignment.center] }
+                activitySummaryPhrase(
+                    title: monthSummaryTitle(calendar: calendar),
+                    value: monthSummaryValue(index: index, calendar: calendar)
                 )
+                Spacer(minLength: 0)
             }
             .padding(.trailing, filter == nil ? 0 : 28)
             .overlay(alignment: .trailing) {
@@ -320,19 +321,16 @@ struct FeedView: View {
         }
     }
 
-    private func activitySummaryItem(title: String, value: String, alignment: HorizontalAlignment, frameAlignment: Alignment) -> some View {
-        VStack(alignment: alignment, spacing: Theme.Spacing.xxs) {
-            Text(title)
-                .font(.forgeCaption.weight(.semibold))
-                .foregroundColor(.forgeLabel)
-                .lineLimit(1)
-            Text(value)
-                .font(.forgeCaption)
-                .foregroundColor(.forgeSecondaryLabel)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-        }
-        .frame(maxWidth: .infinity, alignment: frameAlignment)
+    private func activitySummaryPhrase(title: String, value: String) -> some View {
+        (Text(title)
+            .font(.forgeCaption.weight(.semibold))
+            .foregroundColor(.forgeLabel)
+        + Text(" \(value)")
+            .font(.forgeCaption)
+            .foregroundColor(.forgeSecondaryLabel))
+            .lineLimit(1)
+            .minimumScaleFactor(0.78)
+            .layoutPriority(1)
     }
 
     @ViewBuilder
@@ -402,6 +400,11 @@ struct FeedView: View {
     private func monthSummaryValue(index: ActivityIndex, calendar: Calendar) -> String {
         let month = mixMonth(calendar)
         return compactSummaryText(count: index.count(year: month.year, month: month.month), duration: index.duration(year: month.year, month: month.month))
+    }
+
+    private func monthSummaryTitle(calendar: Calendar) -> String {
+        let month = mixMonth(calendar)
+        return calendar.standaloneMonthSymbols[month.month - 1]
     }
 
     private func weekdaySymbols(_ calendar: Calendar) -> [String] {
