@@ -295,14 +295,11 @@ struct FeedView: View {
                     clearSelectionButton
                 }
 
-                HStack(spacing: 0) {
+                HStack(alignment: .top, spacing: Theme.Spacing.xl) {
                     overviewMetric(
                         title: "Week",
                         value: compactSummaryText(count: index.thisWeek, duration: index.thisWeekDuration)
                     )
-                    Divider()
-                        .overlay(Color.forgeSeparator)
-                        .padding(.vertical, Theme.Spacing.xxs)
                     overviewMetric(
                         title: "Month",
                         value: monthSummaryValue(index: index, calendar: calendar)
@@ -559,8 +556,11 @@ struct FeedView: View {
         if let currentWorkout = currentWorkouts.first {
             activeWorkoutPanel(currentWorkout)
         } else if case .day(let date) = filter {
+            let dayWorkouts = workouts(on: date, calendar: calendar)
             VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
-                selectedDayPanel(date, index: index, calendar: calendar)
+                if !dayWorkouts.isEmpty {
+                    selectedDayPanel(date, dayWorkouts: dayWorkouts, index: index, calendar: calendar)
+                }
                 monthlyMixPanel(index, calendar: calendar)
             }
         } else {
@@ -599,7 +599,7 @@ struct FeedView: View {
         let month = mixMonth(calendar)
         let typeSummaries = index.typeSummaries(year: month.year, month: month.month)
         return VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            panelTitle("Type mix")
+            panelTitle("By type")
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
                 mixStrip(typeSummaries)
                 if typeSummaries.isEmpty {
@@ -614,9 +614,8 @@ struct FeedView: View {
         }
     }
 
-    private func selectedDayPanel(_ date: Date, index: ActivityIndex, calendar: Calendar) -> some View {
-        let dayWorkouts = workouts(on: date, calendar: calendar)
-        return VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+    private func selectedDayPanel(_ date: Date, dayWorkouts: [Workout], index: ActivityIndex, calendar: Calendar) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
             Text(dayTitle(date))
                 .font(.forgeSectionLabel)
                 .tracking(2)
@@ -624,19 +623,7 @@ struct FeedView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
 
-            if dayWorkouts.isEmpty {
-                panelCard {
-                    VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-                        Text("No workout logged")
-                            .font(.forgeHeadline)
-                            .foregroundColor(.forgeLabel)
-                        panelMeta(["Nothing saved for this day"])
-                        dashboardActionButton("Start workout", systemImage: "plus") {
-                            sceneState.selectedTab = .workout
-                        }
-                    }
-                }
-            } else if dayWorkouts.count == 1, let workout = dayWorkouts.first {
+            if dayWorkouts.count == 1, let workout = dayWorkouts.first {
                 workoutLinkPanel(workout)
             } else {
                 let summaries = index.typeSummaries(for: date, calendar: calendar)
@@ -841,10 +828,9 @@ struct FeedView: View {
     }
 
     private func panelTitle(_ title: String) -> some View {
-        Text(title.uppercased())
-            .font(.forgeSectionLabel)
-            .tracking(2)
-            .foregroundColor(.forgeLabel.opacity(0.78))
+        Text(title)
+            .font(.forgeHeadline)
+            .foregroundColor(.forgeSecondaryLabel)
             .lineLimit(2)
     }
 
