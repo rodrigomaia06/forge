@@ -326,21 +326,20 @@ struct FeedView: View {
             totalCount: monthCount,
             totalDuration: monthDuration
         )
-        let monthProgress: CGFloat = monthCount > 0 ? 1 : 0
-
-        return HStack(alignment: .top, spacing: Theme.Spacing.l) {
-            overviewMetric(
-                title: "Week",
-                value: compactSummaryText(count: index.thisWeek, duration: index.thisWeekDuration),
-                progress: weekProgress,
-                barColor: .forgeAccent
-            )
-            overviewMetric(
-                title: "Month",
-                value: compactSummaryText(count: monthCount, duration: monthDuration),
-                progress: monthProgress,
-                barColor: .forgeSecondaryLabel.opacity(0.45)
-            )
+        return VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            HStack(alignment: .top, spacing: Theme.Spacing.l) {
+                overviewMetric(
+                    title: "Week",
+                    value: compactSummaryText(count: index.thisWeek, duration: index.thisWeekDuration)
+                )
+                overviewMetric(
+                    title: "Month",
+                    value: compactSummaryText(count: monthCount, duration: monthDuration)
+                )
+            }
+            if monthCount > 0 {
+                overviewMonthShare(weekProgress)
+            }
         }
         .padding(.horizontal, Theme.Spacing.m)
         .padding(.vertical, Theme.Spacing.s)
@@ -355,7 +354,7 @@ struct FeedView: View {
         return CGFloat(min(1, max(0, Double(count) / Double(totalCount))))
     }
 
-    private func overviewMetric(title: String, value: String, progress: CGFloat, barColor: Color) -> some View {
+    private func overviewMetric(title: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
             Text(title)
                 .font(.caption.weight(.semibold))
@@ -367,19 +366,28 @@ struct FeedView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
                 .monospacedDigit()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func overviewMonthShare(_ progress: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            Text("Week share of month")
+                .font(.caption2.weight(.semibold))
+                .foregroundColor(.forgeSecondaryLabel)
+                .lineLimit(1)
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
                     Capsule(style: .continuous)
                         .fill(Color.forgeSeparator)
                     Capsule(style: .continuous)
-                        .fill(barColor)
+                        .fill(Color.forgeAccent)
                         .frame(width: max(4, proxy.size.width * progress))
                 }
             }
-            .frame(height: 5)
+            .frame(height: 6)
             .accessibilityHidden(true)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
@@ -649,12 +657,15 @@ struct FeedView: View {
 
     private func selectedDayPanel(_ date: Date, dayWorkouts: [Workout], index: ActivityIndex, calendar: Calendar) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            Text(dayTitle(date))
-                .font(.forgeSectionLabel)
-                .tracking(2)
-                .foregroundColor(.forgeSecondaryLabel)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+            HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.s) {
+                panelTitle("Selected day")
+                Spacer(minLength: Theme.Spacing.s)
+                Text(dayTitle(date))
+                    .font(.forgeCaption)
+                    .foregroundColor(.forgeSecondaryLabel)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
 
             if dayWorkouts.count == 1, let workout = dayWorkouts.first {
                 workoutLinkPanel(workout)
