@@ -295,19 +295,7 @@ struct FeedView: View {
                     clearSelectionButton
                 }
 
-                HStack(alignment: .top, spacing: Theme.Spacing.xl) {
-                    overviewMetric(
-                        title: "Week",
-                        value: compactSummaryText(count: index.thisWeek, duration: index.thisWeekDuration)
-                    )
-                    overviewMetric(
-                        title: "Month",
-                        value: monthSummaryValue(index: index, calendar: calendar)
-                    )
-                }
-                .padding(.horizontal, Theme.Spacing.m)
-                .padding(.vertical, Theme.Spacing.s)
-                .forgeCard(radius: Theme.Radius.medium)
+                overviewCard(index, calendar: calendar)
             }
             .padding(.top, Theme.Spacing.xxs)
         }
@@ -328,7 +316,46 @@ struct FeedView: View {
         }
     }
 
-    private func overviewMetric(title: String, value: String) -> some View {
+    private func overviewCard(_ index: ActivityIndex, calendar: Calendar) -> some View {
+        let month = mixMonth(calendar)
+        let monthCount = index.count(year: month.year, month: month.month)
+        let monthDuration = index.duration(year: month.year, month: month.month)
+        let weekProgress = overviewProgress(
+            count: index.thisWeek,
+            duration: index.thisWeekDuration,
+            totalCount: monthCount,
+            totalDuration: monthDuration
+        )
+        let monthProgress: CGFloat = monthCount > 0 ? 1 : 0
+
+        return HStack(alignment: .top, spacing: Theme.Spacing.l) {
+            overviewMetric(
+                title: "Week",
+                value: compactSummaryText(count: index.thisWeek, duration: index.thisWeekDuration),
+                progress: weekProgress,
+                barColor: .forgeAccent
+            )
+            overviewMetric(
+                title: "Month",
+                value: compactSummaryText(count: monthCount, duration: monthDuration),
+                progress: monthProgress,
+                barColor: .forgeSecondaryLabel.opacity(0.45)
+            )
+        }
+        .padding(.horizontal, Theme.Spacing.m)
+        .padding(.vertical, Theme.Spacing.s)
+        .forgeCard(radius: Theme.Radius.medium)
+    }
+
+    private func overviewProgress(count: Int, duration: TimeInterval, totalCount: Int, totalDuration: TimeInterval) -> CGFloat {
+        if totalDuration > 0 {
+            return CGFloat(min(1, max(0, duration / totalDuration)))
+        }
+        guard totalCount > 0 else { return 0 }
+        return CGFloat(min(1, max(0, Double(count) / Double(totalCount))))
+    }
+
+    private func overviewMetric(title: String, value: String, progress: CGFloat, barColor: Color) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
             Text(title)
                 .font(.caption.weight(.semibold))
@@ -340,6 +367,17 @@ struct FeedView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
                 .monospacedDigit()
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule(style: .continuous)
+                        .fill(Color.forgeSeparator)
+                    Capsule(style: .continuous)
+                        .fill(barColor)
+                        .frame(width: max(4, proxy.size.width * progress))
+                }
+            }
+            .frame(height: 5)
+            .accessibilityHidden(true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -406,11 +444,6 @@ struct FeedView: View {
             return countText
         }
         return "\(countText) · \(durationText)"
-    }
-
-    private func monthSummaryValue(index: ActivityIndex, calendar: Calendar) -> String {
-        let month = mixMonth(calendar)
-        return compactSummaryText(count: index.count(year: month.year, month: month.month), duration: index.duration(year: month.year, month: month.month))
     }
 
     private func weekdaySymbols(_ calendar: Calendar) -> [String] {
