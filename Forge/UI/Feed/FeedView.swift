@@ -320,35 +320,46 @@ struct FeedView: View {
         let month = mixMonth(calendar)
         let monthCount = index.count(year: month.year, month: month.month)
         let monthDuration = index.duration(year: month.year, month: month.month)
-        return HStack(alignment: .top, spacing: Theme.Spacing.l) {
-            overviewMetric(
+        return VStack(spacing: 0) {
+            overviewRow(
                 title: "Week",
-                value: compactSummaryText(count: index.thisWeek, duration: index.thisWeekDuration)
+                value: overviewSummaryText(count: index.thisWeek, duration: index.thisWeekDuration)
             )
-            overviewMetric(
+            Divider()
+                .background(Color.forgeSeparator)
+                .padding(.leading, Theme.Spacing.m)
+            overviewRow(
                 title: "Month",
-                value: compactSummaryText(count: monthCount, duration: monthDuration)
+                value: overviewSummaryText(count: monthCount, duration: monthDuration)
             )
         }
-        .padding(.horizontal, Theme.Spacing.m)
-        .padding(.vertical, Theme.Spacing.m)
         .forgeCard(radius: Theme.Radius.medium)
     }
 
-    private func overviewMetric(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+    private func overviewRow(title: String, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.m) {
             Text(title)
-                .font(.forgeCaption.weight(.semibold))
+                .font(.body.weight(.semibold))
                 .foregroundColor(.forgeLabel)
                 .lineLimit(1)
+            Spacer(minLength: Theme.Spacing.s)
             Text(value)
                 .font(.body)
                 .foregroundColor(.forgeSecondaryLabel)
                 .lineLimit(1)
-                .minimumScaleFactor(0.82)
+                .minimumScaleFactor(0.75)
                 .monospacedDigit()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Theme.Spacing.m)
+        .padding(.vertical, Theme.Spacing.s)
+    }
+
+    private func overviewSummaryText(count: Int, duration: TimeInterval) -> String {
+        let workoutText = count == 1 ? "1 workout" : "\(count) workouts"
+        guard duration > 0, let durationText = Workout.durationFormatter.string(from: duration) else {
+            return workoutText
+        }
+        return "\(workoutText) · \(durationText)"
     }
 
     @ViewBuilder
