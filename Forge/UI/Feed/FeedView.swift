@@ -288,49 +288,63 @@ struct FeedView: View {
                 monthGrid(firstOfMonth: currentFirstOfMonth, index: index, calendar: calendar)
             }
 
-            HStack(alignment: .center, spacing: Theme.Spacing.xs) {
-                activitySummaryPhrase(
-                    title: "Week",
-                    value: compactSummaryText(count: index.thisWeek, duration: index.thisWeekDuration)
-                )
-                Text("•")
-                    .font(.forgeCaption)
-                    .foregroundColor(.forgeSecondaryLabel)
-                    .frame(width: 12)
-                activitySummaryPhrase(
-                    title: "Month",
-                    value: monthSummaryValue(index: index, calendar: calendar)
-                )
-                Spacer(minLength: 0)
-            }
-            .padding(.trailing, filter == nil ? 0 : 28)
-            .overlay(alignment: .trailing) {
-                if filter != nil {
-                    Button {
-                        withAnimation(.snappy(duration: 0.2)) { filter = nil }
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.callout)
-                            .foregroundColor(.forgeSecondaryLabel)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Clear selection")
+            VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                HStack(alignment: .center) {
+                    panelTitle("Overview")
+                    Spacer(minLength: Theme.Spacing.s)
+                    clearSelectionButton
                 }
+
+                HStack(spacing: 0) {
+                    overviewMetric(
+                        title: "Week",
+                        value: compactSummaryText(count: index.thisWeek, duration: index.thisWeekDuration)
+                    )
+                    Divider()
+                        .overlay(Color.forgeSeparator)
+                        .padding(.vertical, Theme.Spacing.xxs)
+                    overviewMetric(
+                        title: "Month",
+                        value: monthSummaryValue(index: index, calendar: calendar)
+                    )
+                }
+                .padding(.horizontal, Theme.Spacing.m)
+                .padding(.vertical, Theme.Spacing.s)
+                .forgeCard(radius: Theme.Radius.medium)
             }
             .padding(.top, Theme.Spacing.xxs)
         }
     }
 
-    private func activitySummaryPhrase(title: String, value: String) -> some View {
-        (Text(title)
-            .font(.forgeCaption.weight(.semibold))
-            .foregroundColor(.forgeLabel)
-        + Text(" \(value)")
-            .font(.forgeCaption)
-            .foregroundColor(.forgeSecondaryLabel))
-            .lineLimit(1)
-            .minimumScaleFactor(0.78)
-            .layoutPriority(1)
+    @ViewBuilder
+    private var clearSelectionButton: some View {
+        if filter != nil {
+            Button {
+                withAnimation(.snappy(duration: 0.2)) { filter = nil }
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.callout)
+                    .foregroundColor(.forgeSecondaryLabel)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Clear selection")
+        }
+    }
+
+    private func overviewMetric(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(.forgeLabel)
+                .lineLimit(1)
+            Text(value)
+                .font(.caption)
+                .foregroundColor(.forgeSecondaryLabel)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+                .monospacedDigit()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
@@ -585,7 +599,7 @@ struct FeedView: View {
         let month = mixMonth(calendar)
         let typeSummaries = index.typeSummaries(year: month.year, month: month.month)
         return VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            panelTitle("By type")
+            panelTitle("Type mix")
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
                 mixStrip(typeSummaries)
                 if typeSummaries.isEmpty {
@@ -650,7 +664,7 @@ struct FeedView: View {
     private var lastWorkoutPanel: some View {
         if let workout = workouts.first {
             VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-                panelTitle("Last workout")
+                panelTitle("Latest workout")
                 workoutLinkPanel(workout)
             }
         }
@@ -828,7 +842,7 @@ struct FeedView: View {
 
     private func panelTitle(_ title: String) -> some View {
         Text(title.uppercased())
-            .font(.forgeCaption.weight(.bold))
+            .font(.forgeSectionLabel)
             .tracking(2)
             .foregroundColor(.forgeLabel.opacity(0.78))
             .lineLimit(2)
