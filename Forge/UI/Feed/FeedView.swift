@@ -320,19 +320,17 @@ struct FeedView: View {
         let month = mixMonth(calendar)
         let monthCount = index.count(year: month.year, month: month.month)
         let monthDuration = index.duration(year: month.year, month: month.month)
-        return VStack(spacing: 0) {
+        return VStack(spacing: Theme.Spacing.xxs) {
             overviewRow(
                 title: "Week",
                 value: overviewSummaryText(count: index.thisWeek, duration: index.thisWeekDuration)
             )
-            Divider()
-                .background(Color.forgeSeparator)
-                .padding(.leading, Theme.Spacing.m)
             overviewRow(
                 title: "Month",
                 value: overviewSummaryText(count: monthCount, duration: monthDuration)
             )
         }
+        .padding(.vertical, Theme.Spacing.xxs)
         .forgeCard(radius: Theme.Radius.medium)
     }
 
