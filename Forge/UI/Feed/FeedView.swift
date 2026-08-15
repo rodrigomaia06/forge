@@ -342,7 +342,7 @@ struct FeedView: View {
                 .foregroundColor(.forgeLabel)
                 .lineLimit(1)
             Text(value)
-                .font(.forgeBody)
+                .font(.body)
                 .foregroundColor(.forgeSecondaryLabel)
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
