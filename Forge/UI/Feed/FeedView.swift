@@ -320,74 +320,35 @@ struct FeedView: View {
         let month = mixMonth(calendar)
         let monthCount = index.count(year: month.year, month: month.month)
         let monthDuration = index.duration(year: month.year, month: month.month)
-        let weekProgress = overviewProgress(
-            count: index.thisWeek,
-            duration: index.thisWeekDuration,
-            totalCount: monthCount,
-            totalDuration: monthDuration
-        )
-        return VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-            HStack(alignment: .top, spacing: Theme.Spacing.l) {
-                overviewMetric(
-                    title: "Week",
-                    value: compactSummaryText(count: index.thisWeek, duration: index.thisWeekDuration)
-                )
-                overviewMetric(
-                    title: "Month",
-                    value: compactSummaryText(count: monthCount, duration: monthDuration)
-                )
-            }
-            if monthCount > 0 {
-                overviewMonthShare(weekProgress)
-            }
+        return HStack(alignment: .top, spacing: Theme.Spacing.l) {
+            overviewMetric(
+                title: "Week",
+                value: compactSummaryText(count: index.thisWeek, duration: index.thisWeekDuration)
+            )
+            overviewMetric(
+                title: "Month",
+                value: compactSummaryText(count: monthCount, duration: monthDuration)
+            )
         }
         .padding(.horizontal, Theme.Spacing.m)
-        .padding(.vertical, Theme.Spacing.s)
+        .padding(.vertical, Theme.Spacing.m)
         .forgeCard(radius: Theme.Radius.medium)
     }
 
-    private func overviewProgress(count: Int, duration: TimeInterval, totalCount: Int, totalDuration: TimeInterval) -> CGFloat {
-        if totalDuration > 0 {
-            return CGFloat(min(1, max(0, duration / totalDuration)))
-        }
-        guard totalCount > 0 else { return 0 }
-        return CGFloat(min(1, max(0, Double(count) / Double(totalCount))))
-    }
-
     private func overviewMetric(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
+        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
             Text(title)
-                .font(.caption.weight(.semibold))
+                .font(.forgeCaption.weight(.semibold))
                 .foregroundColor(.forgeLabel)
                 .lineLimit(1)
             Text(value)
-                .font(.caption)
+                .font(.forgeBody)
                 .foregroundColor(.forgeSecondaryLabel)
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
                 .monospacedDigit()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func overviewMonthShare(_ progress: CGFloat) -> some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-            Text("Week share of month")
-                .font(.caption2.weight(.semibold))
-                .foregroundColor(.forgeSecondaryLabel)
-                .lineLimit(1)
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule(style: .continuous)
-                        .fill(Color.forgeSeparator)
-                    Capsule(style: .continuous)
-                        .fill(Color.forgeAccent)
-                        .frame(width: max(4, proxy.size.width * progress))
-                }
-            }
-            .frame(height: 6)
-            .accessibilityHidden(true)
-        }
     }
 
     @ViewBuilder
