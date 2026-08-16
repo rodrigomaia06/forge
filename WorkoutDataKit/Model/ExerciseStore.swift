@@ -203,7 +203,7 @@ extension ExerciseStore {
         // A movement can have several exact variations whose primary muscles differ. Grouping each
         // exact row independently made the same movement appear in multiple picker sections. Keep all
         // variations together and assign the movement to the first stable muscle group only.
-        let movements = Dictionary(grouping: deduplicatedForBrowsing(exercises), by: \.movementID)
+        let movements = Dictionary(grouping: exercises, by: \.movementID)
         var grouped = [String: [Exercise]]()
         for movementExercises in movements.values {
             let sorted = movementExercises.sorted {
