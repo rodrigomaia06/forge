@@ -1,12 +1,12 @@
 # Building Forge
 
-Forge builds on macOS with Xcode. If you do not have a Mac, you can still get a build by
+Forge builds on macOS with Xcode and targets iOS 17.0. If you do not have a Mac, you can still get a build by
 forking the repository and using its CI.
 
 ## On a Mac
 
 The Xcode project is generated with XcodeGen from `project.yml`; the `.xcodeproj` is not
-checked in. You need a recent Xcode and iOS 16 or later.
+checked in. You need a recent Xcode and an iOS 17 SDK.
 
 1. Install XcodeGen (for example, `brew install xcodegen`).
 2. Run `xcodegen generate` in the repository root to create `Forge.xcodeproj`.

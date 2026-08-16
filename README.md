@@ -81,17 +81,17 @@ iOS 16 and later require it for sideloaded apps.
 - The paid Apple Developer Program (99 USD per year) is only needed for TestFlight or the
   App Store, not for sideloading.
 
-## Use of AI
+## Development process
 
-Forge is developed with heavy use of an AI coding assistant (Claude Code). The assistant
-writes and edits the code under human direction. Every change is built on CI
-before it is merged, and the maintainer reviews behaviour and design. Treat the codebase
-as AI-assisted work that is human-reviewed, not unchecked generation.
+Forge is developed with AI-assisted tooling under human direction and review. Changes are checked in CI
+and reviewed for behavior, data safety, accessibility, and design before release.
 
 ## Building
 
 Building needs a Mac with Xcode. Without one, fork the repository and let its CI build the
 app for you on a macOS runner. Both are covered in [docs/BUILDING.md](docs/BUILDING.md).
+
+Project decisions and maintenance rules are documented in the [Forge documentation handbook](docs/README.md).
 
 ## License and attribution
 
