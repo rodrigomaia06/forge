@@ -64,7 +64,7 @@ struct ExerciseBrowserFilter: Equatable {
 
     static func equipmentOptions(from exercises: [Exercise]) -> [(label: String, token: String)] {
         let tokens = Set(exercises.flatMap(\.equipment))
-        let preferred = [
+        let preferred: [(label: String, token: String)] = [
             ("Barbell", "barbell"),
             ("Dumbbell", "dumbbell"),
             ("Cable", "cable"),
