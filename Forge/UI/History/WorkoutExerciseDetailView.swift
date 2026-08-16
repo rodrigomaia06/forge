@@ -547,10 +547,7 @@ struct WorkoutExerciseDetailView : View {
 
     private var scrollCardBody: some View {
         scrollRows
-            .background(
-                RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous)
-                    .fill(Color.forgeSurface)
-            )
+            .forgeCard()
             .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))
     }
 

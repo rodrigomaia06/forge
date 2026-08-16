@@ -94,10 +94,7 @@ struct CustomAttributesEditor: View {
             Group {
                 if standaloneCard {
                     VStack(spacing: 0) { editorRows }
-                        .background(
-                            RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous)
-                                .fill(Color.forgeSurface)
-                        )
+                        .forgeCard()
                         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))
                 } else {
                     Section(header: Text("Attributes"), footer: footer) { editorRows }

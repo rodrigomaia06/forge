@@ -32,6 +32,14 @@ enum Theme {
         static let large: CGFloat = 8
     }
 
+    enum Surface {
+        /// Explicit cards share one geometry and one quiet edge so they remain legible against the
+        /// canvas in both appearances without becoming heavy outlined containers.
+        static let cardRadius = Radius.large
+        static let groupedRadius = Radius.small
+        static let cardEdgeOpacity: CGFloat = 0.65
+    }
+
     enum Layout {
         /// Minimum comfortable one-handed tap target (Apple HIG).
         static let minTapTarget: CGFloat = 44

@@ -299,10 +299,17 @@ struct ForgePrimaryButtonStyle: ButtonStyle {
 
 extension View {
     /// The standard raised-surface card: a filled, rounded background used by tiles and rows.
-    func forgeCard(radius: CGFloat = Theme.Radius.large) -> some View {
+    func forgeCard(radius: CGFloat = Theme.Surface.cardRadius) -> some View {
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+        return background(shape.fill(Color.forgeSurface))
+            .overlay(shape.strokeBorder(Color.forgeSeparator.opacity(Theme.Surface.cardEdgeOpacity), lineWidth: 1))
+    }
+
+    /// A quiet grouping inside a card. It is not a second interactive surface.
+    func forgeGroupedSurface() -> some View {
         background(
-            RoundedRectangle(cornerRadius: radius, style: .continuous)
-                .fill(Color.forgeSurface)
+            RoundedRectangle(cornerRadius: Theme.Surface.groupedRadius, style: .continuous)
+                .fill(Color.forgeBackground)
         )
     }
 
