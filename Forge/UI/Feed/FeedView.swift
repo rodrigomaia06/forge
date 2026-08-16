@@ -674,6 +674,8 @@ struct FeedView: View {
                 }
             }
             .padding(.horizontal, Theme.Spacing.s)
+            .padding(.vertical, Theme.Spacing.s)
+            .forgeCard()
         }
     }
 

@@ -193,6 +193,7 @@ struct GeneralSettingsView: View {
             recordsSection
         }
         .keyboardDoneToolbar()
+        .forgeFormBackground()
         .navigationBarTitle("General", displayMode: .inline)
     }
 }

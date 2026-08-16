@@ -31,6 +31,13 @@ extension View {
 }
 
 extension View {
+    /// Keeps Form screens on Forge's canvas while retaining native grouped rows and separators.
+    /// Forms remain native surfaces; this only removes the platform's opaque scroll background.
+    func forgeFormBackground() -> some View {
+        scrollContentBackground(.hidden)
+            .background(Color.forgeBackground.ignoresSafeArea())
+    }
+
     @ViewBuilder
     func listStyleCompat_InsetGroupedListStyle() -> some View {
         if #available(iOS 16.0, *) {

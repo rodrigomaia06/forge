@@ -310,13 +310,12 @@ private struct RoutineMenuRow: View {
                 .layoutPriority(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            // In a plan, each routine is a recessed dark well inside the plan card (no outline), so the
-            // nesting reads softly instead of as outlined boxes.
+            // A plan is the card; its routines are rows within that card. Use the quiet canvas inset
+            // without introducing a second large rounded card treatment.
             .padding(nested ? Theme.Spacing.m : 0)
             .background {
                 if nested {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color.forgeBackground)
+                    Color.forgeBackground
                 }
             }
             .contentShape(Rectangle())

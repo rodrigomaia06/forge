@@ -136,6 +136,7 @@ struct BackupAndExportView: View {
                 Button("Reset all data", role: .destructive) { showResetConfirm = true }
             }
         }
+        .forgeFormBackground()
         .navigationBarTitle("Backup and export", displayMode: .inline)
         .fileImporter(isPresented: $showImporter, allowedContentTypes: Self.databaseTypes) { result in
             switch result {

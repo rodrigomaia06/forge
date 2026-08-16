@@ -64,7 +64,7 @@ struct SettingsView : View {
                 developerSettings
                 #endif
             }
-            .scrollContentBackground(.hidden)
+            .forgeFormBackground()
             .forgeScreenTitle("Settings")
         }
     }

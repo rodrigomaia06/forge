@@ -8,9 +8,23 @@ Use native `List`, `Form`, `NavigationStack`, sheets, menus, alerts, and system 
 Use grouped sections and alignment to create hierarchy. Do not nest cards inside cards or use large
 rounded surfaces for short lists.
 
-Use 4pt for small grouped surfaces when a stronger separation is needed and 8pt for controls and main
-cards. Keep internal rows unframed. Use capsules only for compact controls, progress indicators, or
-other compact status elements. Let system sheets and navigation surfaces use their platform shape.
+Forge uses one explicit surface language:
+
+| Surface | Use | Treatment |
+| --- | --- | --- |
+| Card | One interactive or informational object in a scroll view | `Color.forgeSurface`, continuous 8pt corners |
+| Grouped surface | A quiet grouping inside a card, never an independent action | `Color.forgeBackground`, 4pt corners |
+| Native row | Short settings, picker, or catalog content | Native `List`/`Form` row; no extra card background |
+| Section | A semantic group of native rows | Native section header/footer and system separators |
+| Sheet/material | Temporary modal or progress state | System sheet shape or system material |
+
+Use the shared `Theme.Radius` and `forgeCard` helpers for explicit cards. Use 4pt for grouped surfaces
+and 8pt for cards and controls. Keep internal rows unframed; separators belong between rows, not around
+every row. Use capsules only for compact controls, progress indicators, or other compact status elements.
+Let system sheets and navigation surfaces use their platform shape.
+
+`List` and `Form` screens keep native row geometry. `forgeFormBackground()` may hide the opaque system
+scroll background so those rows share the Forge canvas, but it must not turn each native row into a card.
 
 ## Content and controls
 
@@ -20,6 +34,10 @@ native menus for option selection and familiar SF Symbols for icon actions. Main
 
 Typography follows Dynamic Type and uses hierarchy rather than oversized text. Spacing should be compact
 enough for scanning during a workout without making rows difficult to tap.
+
+All actionable rows retain a minimum 44-point hit target. A card may contain multiple rows, but the card
+itself is not an additional interactive layer. Color rails, badges, and selection fills support labels or
+icons and never carry meaning alone.
 
 ## Color and materials
 
