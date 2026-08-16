@@ -7,13 +7,26 @@ import SwiftUI
 import WorkoutDataKit
 
 struct ExerciseBrowserFilter: Equatable {
+    enum Source: String, CaseIterable {
+        case native
+        case custom
+
+        var title: String {
+            switch self {
+            case .native: return "Native"
+            case .custom: return "Custom"
+            }
+        }
+    }
+
     var search = ""
     var equipment: String?
     var bodyPart: String?
     var category: ExerciseActivityCategory?
+    var source: Source?
 
     var filtersActive: Bool {
-        equipment != nil || bodyPart != nil || category != nil
+        equipment != nil || bodyPart != nil || category != nil || source != nil
     }
 
     var isActive: Bool {
@@ -24,6 +37,7 @@ struct ExerciseBrowserFilter: Equatable {
         equipment = nil
         bodyPart = nil
         category = nil
+        source = nil
     }
 
     mutating func reset() {
@@ -36,9 +50,18 @@ struct ExerciseBrowserFilter: Equatable {
         if let category {
             result = result.filter { $0.activityCategories.contains(category) }
         }
+        if let source {
+            result = result.filter { exercise in
+                switch source {
+                case .native: return !exercise.isCustom
+                case .custom: return exercise.isCustom
+                }
+            }
+        }
         if let equipment {
             result = result.filter { exercise in
                 exercise.variationTags.contains(equipment.normalizedExerciseFilterToken)
+                    || exercise.equipmentTitle?.normalizedExerciseFilterToken == equipment.normalizedExerciseFilterToken
                     || exercise.equipment.contains { $0.localizedCaseInsensitiveContains(equipment) }
             }
         }
@@ -64,34 +87,35 @@ struct ExerciseBrowserFilter: Equatable {
     }
 
     static func equipmentOptions(from exercises: [Exercise]) -> [(label: String, token: String)] {
-        let tokens = Set(exercises.flatMap(\.equipment))
         let preferred: [(label: String, token: String)] = [
             ("Barbell", "barbell"),
             ("Dumbbell", "dumbbell"),
             ("Cable", "cable"),
             ("Machine", "machine"),
+            ("Smith machine", "smith_machine"),
+            ("EZ curl bar", "ez_curl_bar"),
             ("Kettlebell", "kettlebell"),
-            ("Bodyweight", "body"),
+            ("Bodyweight", "bodyweight"),
         ]
-        var seen = Set<String>()
-        var options: [(label: String, token: String)] = []
-        for option in preferred where tokens.contains(where: { $0.localizedCaseInsensitiveContains(option.token) }) {
-            options.append(option)
-            seen.insert(option.token)
-        }
-        let remaining = tokens
-            .filter { token in
-                !seen.contains(where: { token.localizedCaseInsensitiveContains($0) })
+        return preferred.filter { option in
+            exercises.contains { exercise in
+                exercise.variationTags.contains(option.token)
+                    || exercise.equipmentTitle?.normalizedExerciseFilterToken == option.token
+                    || exercise.equipment.contains {
+                        $0.normalizedExerciseFilterToken == option.token
+                            || (option.token == "bodyweight" && $0 == "body")
+                    }
             }
-            .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
-            .map { (label: $0.replacingOccurrences(of: "-", with: " ").capitalized, token: $0) }
-        return options + remaining
+        }
     }
 }
 
-private extension String {
+extension String {
     var normalizedExerciseFilterToken: String {
-        trimmingCharacters(in: .whitespacesAndNewlines).lowercased().replacingOccurrences(of: " ", with: "_")
+        trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .replacingOccurrences(of: "-", with: "_")
+            .replacingOccurrences(of: " ", with: "_")
     }
 }
 
@@ -99,6 +123,8 @@ struct ExerciseBrowserFilterControls: View {
     @Binding var filter: ExerciseBrowserFilter
     let exercises: [Exercise]
     var showsCategoryPicker = true
+    var showsCategoryChips = true
+    @State private var showingFilters = false
 
     private var bodyPartOptions: [String] {
         ExerciseBrowserFilter.bodyPartOptions(from: exercises)
@@ -113,14 +139,24 @@ struct ExerciseBrowserFilterControls: View {
             HStack(spacing: Theme.Spacing.s) {
                 TextField("Search", text: $filter.search)
                     .textFieldStyle(SearchTextFieldStyle(text: $filter.search))
-                filterMenu
+                filterButton
             }
             .padding(.horizontal, Theme.Spacing.l)
             .padding(.vertical, Theme.Spacing.s)
 
-            if showsCategoryPicker {
+            if showsCategoryPicker && showsCategoryChips {
                 categoryPicker
             }
+        }
+        .sheet(isPresented: $showingFilters) {
+            ExerciseBrowserFilterSheet(
+                filter: $filter,
+                equipmentOptions: equipmentOptions,
+                bodyPartOptions: bodyPartOptions,
+                showsCategoryPicker: showsCategoryPicker
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
         }
     }
 
@@ -146,36 +182,129 @@ struct ExerciseBrowserFilterControls: View {
                 .foregroundColor(filter.category == option ? .forgeBackground : .forgeLabel)
                 .padding(.horizontal, Theme.Spacing.m)
                 .frame(minHeight: 34)
-                .background(Capsule().fill(filter.category == option ? Color.forgeLabel : Color.forgeSurface))
+                .background(Capsule().fill(categoryBackgroundColor(option)))
         }
         .buttonStyle(.plain)
     }
 
-    private var filterMenu: some View {
-        Menu {
-            Picker("Equipment", selection: $filter.equipment) {
-                Text("Any equipment").tag(String?.none)
-                ForEach(equipmentOptions, id: \.token) { option in
-                    Text(option.label).tag(String?.some(option.token))
-                }
-            }
-            Picker("Body part", selection: $filter.bodyPart) {
-                Text("Any body part").tag(String?.none)
-                ForEach(bodyPartOptions, id: \.self) { part in
-                    Text(part.capitalized).tag(String?.some(part))
-                }
-            }
-            if filter.filtersActive {
-                Button(role: .destructive) { filter.clearFilters() } label: {
-                    Label("Clear filters", systemImage: "xmark.circle")
-                }
-            }
+    private func categoryBackgroundColor(_ option: ExerciseActivityCategory?) -> Color {
+        guard filter.category == option else { return .forgeSurface }
+        return option?.color ?? .forgeLabel
+    }
+
+    private var filterButton: some View {
+        Button {
+            showingFilters = true
         } label: {
             Image(systemName: filter.filtersActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .accessibilityLabel("Filter exercises")
+    }
+}
+
+private struct ExerciseBrowserFilterSheet: View {
+    @Binding var filter: ExerciseBrowserFilter
+    let equipmentOptions: [(label: String, token: String)]
+    let bodyPartOptions: [String]
+    let showsCategoryPicker: Bool
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                if showsCategoryPicker {
+                    Section("Workout type") {
+                        filterOption("Any type", isSelected: filter.category == nil) {
+                            filter.category = nil
+                        }
+                        ForEach(ExerciseActivityCategory.allCases, id: \.self) { category in
+                            filterOption(category.title, color: category.color, isSelected: filter.category == category) {
+                                filter.category = category
+                            }
+                        }
+                    }
+                }
+
+                Section("Source") {
+                    filterOption("All sources", isSelected: filter.source == nil) {
+                        filter.source = nil
+                    }
+                    ForEach(ExerciseBrowserFilter.Source.allCases, id: \.self) { source in
+                        filterOption(source.title, isSelected: filter.source == source) {
+                            filter.source = source
+                        }
+                    }
+                }
+
+                Section("Equipment") {
+                    filterOption("Any equipment", isSelected: filter.equipment == nil) {
+                        filter.equipment = nil
+                    }
+                    ForEach(equipmentOptions, id: \.token) { option in
+                        filterOption(option.label, isSelected: filter.equipment == option.token) {
+                            filter.equipment = option.token
+                        }
+                    }
+                }
+
+                Section("Body part") {
+                    filterOption("Any body part", isSelected: filter.bodyPart == nil) {
+                        filter.bodyPart = nil
+                    }
+                    ForEach(bodyPartOptions, id: \.self) { part in
+                        filterOption(part.capitalized, isSelected: filter.bodyPart == part) {
+                            filter.bodyPart = part
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Filters")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Clear") { filter.clearFilters() }
+                        .disabled(!filter.filtersActive)
+                }
+            }
+        }
+    }
+
+    private func filterOption(_ title: String, color: Color? = nil, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: Theme.Spacing.m) {
+                if let color {
+                    Circle()
+                        .fill(color)
+                        .frame(width: 12, height: 12)
+                        .accessibilityHidden(true)
+                }
+                Text(title)
+                    .foregroundColor(.forgeLabel)
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .foregroundColor(color ?? .forgeAccent)
+                        .accessibilityLabel("Selected")
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+extension ExerciseActivityCategory {
+    var color: Color {
+        switch self {
+        case .strength: return Color(workoutTypeHex: "#7C8CF8")
+        case .courtSports: return Color(workoutTypeHex: "#6BD48F")
+        case .martialArts: return Color(workoutTypeHex: "#F27D7D")
+        case .cardio: return Color(workoutTypeHex: "#F4A261")
+        case .mobility: return Color(workoutTypeHex: "#B78AF0")
+        case .other: return Color(workoutTypeHex: "#9CA3AF")
+        }
     }
 }
 

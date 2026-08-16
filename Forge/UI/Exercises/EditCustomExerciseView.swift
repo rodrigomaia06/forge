@@ -65,6 +65,13 @@ struct EditCustomExerciseView: View {
     private var existingMovements: [ExerciseMovement] {
         ExerciseStore.splitIntoMovements(exercises: exerciseStore.exercises)
     }
+
+    private let equipmentOptions = ["Barbell", "Dumbbell", "Cable", "Machine", "Smith machine", "EZ curl bar", "Kettlebell", "Bodyweight"]
+    private let attachmentOptions = ["Rope", "V-bar", "Straight bar", "D-handle", "Ankle strap"]
+    private let setupOptions = ["Incline", "Decline", "Overhead", "Lying", "Seated", "Standing", "Kneeling", "Low pulley", "Bent over", "Chest supported"]
+    private let gripOptions = ["Reverse grip", "Wide grip", "Close grip", "Hammer grip", "Parallel grip", "Overhand grip", "Underhand grip"]
+    private let sideOptions = ["One arm", "Two arm", "Single leg"]
+    private let loadOptions = ["Weighted", "Assisted", "Bodyweight"]
     
     var body: some View {
         Form {
@@ -84,12 +91,12 @@ struct EditCustomExerciseView: View {
                 } label: {
                     Label("Use existing movement", systemImage: "list.bullet")
                 }
-                TextField("Equipment", text: $exerciseValues.equipmentTitle)
-                TextField("Attachment", text: $exerciseValues.attachmentTitle)
-                TextField("Setup", text: $exerciseValues.setupTitle)
-                TextField("Grip", text: $exerciseValues.gripTitle)
-                TextField("Side", text: $exerciseValues.sideTitle)
-                TextField("Load", text: $exerciseValues.loadModeTitle)
+                VariationValueField(title: "Equipment", placeholder: "Cable, dumbbell, bodyweight", text: $exerciseValues.equipmentTitle, options: equipmentOptions)
+                VariationValueField(title: "Attachment", placeholder: "Rope, V-bar, D-handle", text: $exerciseValues.attachmentTitle, options: attachmentOptions)
+                VariationValueField(title: "Setup", placeholder: "Incline, seated, overhead", text: $exerciseValues.setupTitle, options: setupOptions)
+                VariationValueField(title: "Grip", placeholder: "Close grip, hammer grip", text: $exerciseValues.gripTitle, options: gripOptions)
+                VariationValueField(title: "Side", placeholder: "One arm, single leg", text: $exerciseValues.sideTitle, options: sideOptions)
+                VariationValueField(title: "Load", placeholder: "Weighted, assisted", text: $exerciseValues.loadModeTitle, options: loadOptions)
             }
             
             Section(header: Text("Muscles".uppercased()), footer: Text("Select at least one muscle.")) {
@@ -114,7 +121,7 @@ struct EditCustomExerciseView: View {
                 }
             }
             
-            Picker("Equipment", selection: $exerciseValues.type) {
+            Picker("Tracking type", selection: $exerciseValues.type) {
                 ForEach(Exercise.ExerciseType.allCases, id: \.self) {
                     Text($0.title).tag($0)
                 }
@@ -190,6 +197,31 @@ extension EditCustomExerciseView.ExerciseValues.ExerciseMuscle {
             title.append(" (\(muscle))")
         }
         return title.capitalized
+    }
+}
+
+private struct VariationValueField: View {
+    let title: String
+    let placeholder: String
+    @Binding var text: String
+    let options: [String]
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.s) {
+            TextField("\(title) (\(placeholder))", text: $text)
+            Menu {
+                Button("Clear") { text = "" }
+                ForEach(options, id: \.self) { option in
+                    Button(option) { text = option }
+                }
+            } label: {
+                Image(systemName: "chevron.down.circle")
+                    .frame(width: 32, height: 32)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(title) options")
+        }
     }
 }
 
