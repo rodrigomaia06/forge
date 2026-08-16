@@ -42,28 +42,28 @@ struct EditCustomExerciseView: View {
     @EnvironmentObject var exerciseStore: ExerciseStore
     @FetchRequest(fetchRequest: WorkoutType.fetchRequestSorted()) private var workoutTypes
     
-    @State private var showingMuscleSelectionSheet = false
+    @State private var showsAdvancedVariation = false
     
-    private var primaryMuscles: [ExerciseValues.ExerciseMuscle] {
-        exerciseValues.muscles
-            .map { $0 }
-            .sorted { $0.shortDisplayTitle < $1.shortDisplayTitle }
-            .filter { $0.type == .primary }
-    }
-    
-    private var secondaryMuscles: [ExerciseValues.ExerciseMuscle] {
-        exerciseValues.muscles
-            .map { $0 }
-            .sorted { $0.shortDisplayTitle < $1.shortDisplayTitle }
-            .filter { $0.type == .secondary }
-    }
-
     private var visibleWorkoutTypes: [WorkoutType] {
         workoutTypes.filter { !$0.isArchived || exerciseValues.activityCategoryIDs.contains($0.exerciseCategoryID) }
     }
 
     private var existingMovements: [ExerciseMovement] {
         ExerciseStore.splitIntoMovements(exercises: exerciseStore.exercises)
+    }
+
+    private var movementOptions: [String] {
+        existingMovements.map(\.title)
+    }
+
+    private var hasAdvancedVariationValue: Bool {
+        [
+            exerciseValues.attachmentTitle,
+            exerciseValues.setupTitle,
+            exerciseValues.gripTitle,
+            exerciseValues.sideTitle,
+            exerciseValues.loadModeTitle,
+        ].contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     }
 
     private let equipmentOptions = ["Barbell", "Dumbbell", "Cable", "Machine", "Smith machine", "EZ curl bar", "Kettlebell", "Bodyweight"]
@@ -78,78 +78,46 @@ struct EditCustomExerciseView: View {
             Section {
                 TextField("Title", text: $exerciseValues.title)
                 TextField("Description (Optional)", text: $exerciseValues.description)
+                Picker("Tracking type", selection: $exerciseValues.type) {
+                    ForEach(Exercise.ExerciseType.allCases, id: \.self) {
+                        Text($0.title).tag($0)
+                    }
+                }
             }
 
-            Section(header: Text("Variation".uppercased()), footer: Text("Use an existing movement to group related variations.")) {
-                TextField("Movement", text: $exerciseValues.movementTitle)
-                Menu {
-                    ForEach(existingMovements) { movement in
-                        Button(movement.title) {
-                            exerciseValues.movementTitle = movement.title
-                        }
-                    }
+            Section {
+                VariationValueField(title: "Movement", placeholder: "Bench Press", text: $exerciseValues.movementTitle, options: movementOptions)
+                VariationValueField(title: "Equipment", placeholder: "Dumbbell", text: $exerciseValues.equipmentTitle, options: equipmentOptions)
+
+                DisclosureGroup("More variation details", isExpanded: $showsAdvancedVariation) {
+                    VariationValueField(title: "Attachment", placeholder: "Rope", text: $exerciseValues.attachmentTitle, options: attachmentOptions)
+                    VariationValueField(title: "Setup", placeholder: "Incline", text: $exerciseValues.setupTitle, options: setupOptions)
+                    VariationValueField(title: "Grip", placeholder: "Hammer grip", text: $exerciseValues.gripTitle, options: gripOptions)
+                    VariationValueField(title: "Side", placeholder: "One arm", text: $exerciseValues.sideTitle, options: sideOptions)
+                    VariationValueField(title: "Load", placeholder: "Weighted", text: $exerciseValues.loadModeTitle, options: loadOptions)
+                }
+            } header: {
+                Text("Variation")
+            } footer: {
+                Text("Choose an existing movement to add a variation without creating another movement row.")
+            }
+
+            Section("Classification") {
+                NavigationLink {
+                    MuscleSelectionView(muscles: Exercise.muscleNames, selection: $exerciseValues.muscles)
+                        .navigationTitle("Muscles")
+                        .navigationBarTitleDisplayMode(.inline)
                 } label: {
-                    Label("Use existing movement", systemImage: "list.bullet")
+                    LabeledContent("Muscles", value: exerciseValues.muscles.isEmpty ? "None" : "\(exerciseValues.muscles.count) selected")
                 }
-                VariationValueField(title: "Equipment", placeholder: "Cable, dumbbell, bodyweight", text: $exerciseValues.equipmentTitle, options: equipmentOptions)
-                VariationValueField(title: "Attachment", placeholder: "Rope, V-bar, D-handle", text: $exerciseValues.attachmentTitle, options: attachmentOptions)
-                VariationValueField(title: "Setup", placeholder: "Incline, seated, overhead", text: $exerciseValues.setupTitle, options: setupOptions)
-                VariationValueField(title: "Grip", placeholder: "Close grip, hammer grip", text: $exerciseValues.gripTitle, options: gripOptions)
-                VariationValueField(title: "Side", placeholder: "One arm, single leg", text: $exerciseValues.sideTitle, options: sideOptions)
-                VariationValueField(title: "Load", placeholder: "Weighted, assisted", text: $exerciseValues.loadModeTitle, options: loadOptions)
-            }
-            
-            Section(header: Text("Muscles".uppercased()), footer: Text("Select at least one muscle.")) {
-                ForEach(primaryMuscles, id: \.self) { exerciseMuscle in
-                    HStack {
-                        Text(exerciseMuscle.shortDisplayTitle)
-                        Spacer()
-                        Text("Primary")
-                            .foregroundColor(.secondary)
-                    }
-                }
-                ForEach(secondaryMuscles, id: \.self) { exerciseMuscle in
-                    HStack {
-                        Text(exerciseMuscle.shortDisplayTitle)
-                        Spacer()
-                        Text("Secondary")
-                            .foregroundColor(.secondary)
-                    }
-                }
-                Button("Select muscles")  {
-                    self.showingMuscleSelectionSheet = true
-                }
-            }
-            
-            Picker("Tracking type", selection: $exerciseValues.type) {
-                ForEach(Exercise.ExerciseType.allCases, id: \.self) {
-                    Text($0.title).tag($0)
-                }
-            }
 
-            Section(header: Text("Sections".uppercased()), footer: Text("Choose where this exercise appears on the Exercises page.")) {
-                ForEach(visibleWorkoutTypes, id: \.objectID) { type in
-                    Button {
-                        toggleCategory(type.exerciseCategoryID)
-                    } label: {
-                        HStack(spacing: Theme.Spacing.m) {
-                            Circle()
-                                .fill(Color(workoutTypeHex: type.displayColorHex))
-                                .frame(width: 12, height: 12)
-                                .accessibilityHidden(true)
-                            Text(type.displayTitle)
-                                .foregroundColor(.forgeLabel)
-                            SourceSignalView(isAppProvided: type.isDefaultPreset)
-                            Spacer()
-                            if exerciseValues.activityCategoryIDs.contains(type.exerciseCategoryID) {
-                                Image(systemName: "checkmark")
-                                    .foregroundColor(.forgeAccent)
-                                    .accessibilityLabel("Selected")
-                            }
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
+                NavigationLink {
+                    CustomExerciseWorkoutTypeSelectionView(
+                        workoutTypes: visibleWorkoutTypes,
+                        selection: $exerciseValues.activityCategoryIDs
+                    )
+                } label: {
+                    LabeledContent("Workout types", value: "\(exerciseValues.activityCategoryIDs.count) selected")
                 }
             }
 
@@ -163,24 +131,54 @@ struct EditCustomExerciseView: View {
             }
         }
         .keyboardDoneToolbar()
-        .sheet(isPresented: $showingMuscleSelectionSheet) {
-            NavigationStack {
-                MuscleSelectionView(muscles: Exercise.muscleNames, selection: self.$exerciseValues.muscles)
-                    .navigationBarTitle("Select muscles", displayMode: .inline)
-                    .navigationBarItems(trailing:
-                        Button("Done") {
-                            self.showingMuscleSelectionSheet = false
-                        }
-                    )
+        .onAppear {
+            if hasAdvancedVariationValue {
+                showsAdvancedVariation = true
             }
         }
     }
+}
 
-    private func toggleCategory(_ id: String) {
-        if exerciseValues.activityCategoryIDs.contains(id), exerciseValues.activityCategoryIDs.count > 1 {
-            exerciseValues.activityCategoryIDs.remove(id)
+private struct CustomExerciseWorkoutTypeSelectionView: View {
+    let workoutTypes: [WorkoutType]
+    @Binding var selection: Set<String>
+
+    var body: some View {
+        List {
+            ForEach(workoutTypes, id: \.objectID) { type in
+                Button {
+                    toggle(type.exerciseCategoryID)
+                } label: {
+                    HStack(spacing: Theme.Spacing.m) {
+                        Circle()
+                            .fill(Color(workoutTypeHex: type.displayColorHex))
+                            .frame(width: 12, height: 12)
+                            .accessibilityHidden(true)
+                        Text(type.displayTitle)
+                            .foregroundColor(.forgeLabel)
+                        Spacer()
+                        if selection.contains(type.exerciseCategoryID) {
+                            Image(systemName: "checkmark")
+                                .foregroundColor(.forgeAccent)
+                                .accessibilityLabel("Selected")
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .listStyleCompat_InsetGroupedListStyle()
+        .navigationTitle("Workout types")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func toggle(_ id: String) {
+        Haptics.selection()
+        if selection.contains(id), selection.count > 1 {
+            selection.remove(id)
         } else {
-            exerciseValues.activityCategoryIDs.insert(id)
+            selection.insert(id)
         }
     }
 }
@@ -208,15 +206,20 @@ private struct VariationValueField: View {
 
     var body: some View {
         HStack(spacing: Theme.Spacing.s) {
-            TextField("\(title) (\(placeholder))", text: $text)
+            Text(title)
+            Spacer(minLength: Theme.Spacing.m)
+            TextField(placeholder, text: $text)
+                .multilineTextAlignment(.trailing)
             Menu {
                 Button("Clear") { text = "" }
                 ForEach(options, id: \.self) { option in
                     Button(option) { text = option }
                 }
             } label: {
-                Image(systemName: "chevron.down.circle")
-                    .frame(width: 32, height: 32)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(.forgeSecondaryLabel)
+                    .frame(width: 32, height: 44)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)

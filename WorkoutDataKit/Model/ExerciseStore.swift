@@ -91,8 +91,32 @@ public class ExerciseStore: ObservableObject {
                 shown.append(exercise)
             }
         }
-        shownExercises = shown
+        let canonicalBuiltInUUIDs = Set(Self.deduplicatedForBrowsing(builtInExercises).map(\.uuid))
+        shownExercises = shown.filter { $0.isCustom || canonicalBuiltInUUIDs.contains($0.uuid) }
         hiddenExercises = hidden
+    }
+
+    public static func deduplicatedForBrowsing(_ exercises: [Exercise]) -> [Exercise] {
+        var canonicalBuiltIns = [String: Exercise]()
+        for exercise in exercises where !exercise.isCustom {
+            let key = exercise.variationIdentityKey
+            guard let current = canonicalBuiltIns[key] else {
+                canonicalBuiltIns[key] = exercise
+                continue
+            }
+            if browsingMetadataScore(exercise) > browsingMetadataScore(current) {
+                canonicalBuiltIns[key] = exercise
+            }
+        }
+
+        return exercises.filter { exercise in
+            exercise.isCustom || canonicalBuiltIns[exercise.variationIdentityKey]?.uuid == exercise.uuid
+        }
+    }
+
+    private static func browsingMetadataScore(_ exercise: Exercise) -> Int {
+        let hasDescription = exercise.description?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        return (hasDescription ? 100 : 0) + (exercise.steps.isEmpty ? 0 : 10) + exercise.alias.count
     }
 
     private static func loadBuiltInExercises(builtInExercisesURL: URL?) -> [Exercise] {
@@ -256,14 +280,31 @@ extension ExerciseStore {
             $0.equipmentTitle?.normalizedVariationOptionToken == normalizedEquipment
         }
 
+        let loadValues = matchingEquipment.compactMap(\.loadModeTitle)
+            + suggestedLoadModes(for: movement.id, equipmentToken: normalizedEquipment)
+
         return ExerciseVariationOptions(
             equipment: sortedVariationValues(builtIn.compactMap(\.equipmentTitle)),
             attachment: sortedVariationValues(matchingEquipment.compactMap(\.attachmentTitle)),
             setup: sortedVariationValues(matchingEquipment.compactMap(\.setupTitle)),
             grip: sortedVariationValues(matchingEquipment.compactMap(\.gripTitle)),
             side: sortedVariationValues(matchingEquipment.compactMap(\.sideTitle)),
-            load: sortedVariationValues(matchingEquipment.compactMap(\.loadModeTitle))
+            load: sortedVariationValues(loadValues)
         )
+    }
+
+    private static func suggestedLoadModes(for movementID: String, equipmentToken: String?) -> [String] {
+        guard equipmentToken == "bodyweight" else { return [] }
+        switch movementID {
+        case "chin_up", "dips", "pull_up", "push_up":
+            return ["Assisted", "Weighted"]
+        case "handstand_push_up", "muscle_up", "nordic_curl", "pistol_squat":
+            return ["Assisted"]
+        case "inverted_row":
+            return ["Weighted"]
+        default:
+            return []
+        }
     }
 
     private static func sortedVariationValues(_ values: [String]) -> [String] {
@@ -287,7 +328,11 @@ private extension String {
 extension ExerciseStore {
     public func variation(matching selection: ExerciseVariationSelection) -> Exercise? {
         guard !selection.identityKey.isEmpty else { return nil }
-        return exercises.first { $0.variationIdentityKey == selection.identityKey }
+        let matches = exercises.filter { $0.variationIdentityKey == selection.identityKey }
+        if let custom = matches.first(where: \.isCustom) {
+            return custom
+        }
+        return Self.deduplicatedForBrowsing(matches).first
     }
 
     public func resolveOrCreateVariation(_ selection: ExerciseVariationSelection, movementTitle: String) throws -> Exercise {

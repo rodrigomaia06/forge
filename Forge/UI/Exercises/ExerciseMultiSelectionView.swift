@@ -82,10 +82,8 @@ struct ExerciseMultiSelectionView: View {
     }
 
     private func movementSubtitle(_ movement: ExerciseMovement, selectedCount: Int) -> String {
-        let count = movement.variations.count
-        let base = count == 1 ? "1 variation" : "\(count) variations"
-        guard selectedCount > 0 else { return base }
-        return "\(base) · \(selectedCount) selected"
+        guard selectedCount > 0 else { return "Choose variation" }
+        return selectedCount == 1 ? "1 selected" : "\(selectedCount) selected"
     }
 
     private func movementRowContent(title: String, subtitle: String?, selectedCount: Int, showsDisclosure: Bool) -> some View {
@@ -191,6 +189,7 @@ extension Exercise {
 private struct ExerciseMovementSelectionView: View {
     private static let otherValue = "__other__"
 
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var exerciseStore: ExerciseStore
     let movement: ExerciseMovement
     @Binding var selection: Set<Exercise>
@@ -247,13 +246,6 @@ private struct ExerciseMovementSelectionView: View {
         return exerciseStore.variation(matching: variationSelection)
     }
 
-    private var actionTitle: String {
-        if let existingExercise, selection.contains(existingExercise) {
-            return "Remove"
-        }
-        return existingExercise == nil ? "Create and add" : "Add exercise"
-    }
-
     private var hasIncompleteCustomValue: Bool {
         visibleAttributes.contains { attribute in
             choices[attribute] == Self.otherValue && value(for: attribute) == nil
@@ -264,9 +256,9 @@ private struct ExerciseMovementSelectionView: View {
         equipmentTitle != nil && !hasIncompleteCustomValue
     }
 
-    private var resultStatus: String {
-        guard let existingExercise else { return "New variation" }
-        return selection.contains(existingExercise) ? "Selected" : "Existing variation"
+    private var selectionStatus: String {
+        guard let existingExercise else { return "A custom variation will be created." }
+        return selection.contains(existingExercise) ? "This variation is selected." : "This variation is in the catalog."
     }
 
     var body: some View {
@@ -277,12 +269,12 @@ private struct ExerciseMovementSelectionView: View {
                     ForEach(ExerciseStore.variationOptions(for: movement).equipment, id: \.self) { equipment in
                         Text(equipment).tag(equipment)
                     }
-                    Text("Other").tag(Self.otherValue)
+                    Text("Custom value").tag(Self.otherValue)
                 }
                 .pickerStyle(.menu)
 
                 if equipmentChoice == Self.otherValue {
-                    TextField("Equipment", text: $customEquipment)
+                    TextField("Custom equipment", text: $customEquipment)
                         .textInputAutocapitalization(.words)
                 }
 
@@ -292,18 +284,12 @@ private struct ExerciseMovementSelectionView: View {
                     }
                 }
 
+            } footer: {
                 if isSelectionComplete {
-                    LabeledContent("Result") {
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text(movement.title)
-                                .foregroundColor(.forgeLabel)
-                            Text(variationSelection.summaryTitle)
-                                .font(.forgeCaption)
-                                .foregroundColor(.forgeSecondaryLabel)
-                            Text(resultStatus)
-                                .font(.forgeCaption)
-                                .foregroundColor(existingExercise.map { selection.contains($0) } == true ? .forgeAccent : .forgeSecondaryLabel)
-                        }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(variationSelection.summaryTitle)
+                            .foregroundColor(.forgeLabel)
+                        Text(selectionStatus)
                     }
                     .accessibilityElement(children: .combine)
                 }
@@ -312,9 +298,23 @@ private struct ExerciseMovementSelectionView: View {
         .listStyleCompat_InsetGroupedListStyle()
         .navigationTitle(movement.title)
         .navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .bottom) {
-            if equipmentTitle != nil {
-                actionBar
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                if equipmentTitle != nil {
+                    if isExistingSelectionSelected {
+                        Button("Remove", role: .destructive) {
+                            performAction()
+                        }
+                        .disabled(!isSelectionComplete || isSaving)
+                        .accessibilityValue(actionAccessibilityValue)
+                    } else {
+                        Button("Add") {
+                            performAction()
+                        }
+                        .disabled(!isSelectionComplete || isSaving)
+                        .accessibilityValue(actionAccessibilityValue)
+                    }
+                }
             }
         }
         .onChange(of: equipmentChoice) { _, _ in
@@ -337,42 +337,6 @@ private struct ExerciseMovementSelectionView: View {
         return existingExercise.map { selection.contains($0) ? "Selected" : "Not selected" } ?? "New variation"
     }
 
-    private var actionBar: some View {
-        Group {
-            if isExistingSelectionSelected {
-                Button("Remove", role: .destructive) {
-                    performAction()
-                }
-                .buttonStyle(.bordered)
-                .tint(.forgeDestructive)
-            } else {
-                Button {
-                    performAction()
-                } label: {
-                    Group {
-                        if isSaving {
-                            ProgressView()
-                                .tint(.forgeBackground)
-                        } else {
-                            Text(actionTitle)
-                                .foregroundColor(.forgeBackground)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.forgeAccent)
-            }
-        }
-        .controlSize(.large)
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, Theme.Spacing.l)
-        .padding(.vertical, Theme.Spacing.s)
-        .background(.bar)
-        .disabled(!isSelectionComplete || isSaving)
-        .accessibilityValue(actionAccessibilityValue)
-    }
-
     @ViewBuilder
     private func attributePicker(_ attribute: ExerciseVariationAttribute) -> some View {
         Picker(attribute.title, selection: choiceBinding(for: attribute)) {
@@ -380,7 +344,7 @@ private struct ExerciseMovementSelectionView: View {
             ForEach(options.values(for: attribute), id: \.self) { value in
                 Text(value).tag(value)
             }
-            Text("Other").tag(Self.otherValue)
+            Text("Custom value").tag(Self.otherValue)
         }
         .pickerStyle(.menu)
 
@@ -424,6 +388,7 @@ private struct ExerciseMovementSelectionView: View {
                     selection.insert(existingExercise)
                 }
             }
+            dismiss()
             return
         }
 
@@ -435,6 +400,7 @@ private struct ExerciseMovementSelectionView: View {
                 _ = selection.insert(exercise)
             }
             Haptics.success()
+            dismiss()
         } catch {
             showingSaveError = true
         }

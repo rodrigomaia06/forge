@@ -807,10 +807,9 @@
     "movementTitle": "Row",
     "variationTitle": "T-Bar",
     "variationTags": [
-      "machine",
       "t_bar_machine"
     ],
-    "equipmentTitle": "Machine"
+    "equipmentTitle": "T-bar machine"
   },
   {
     "uuid": "C736BCEB-4699-4FFF-BE53-0D56336BA137",
@@ -1427,9 +1426,11 @@
     "variationTags": [
       "bodyweight",
       "body",
-      "parallel_bars"
+      "parallel_bars",
+      "chest_focus"
     ],
-    "equipmentTitle": "Bodyweight"
+    "equipmentTitle": "Bodyweight",
+    "setupTitle": "Chest focus"
   },
   {
     "uuid": "6B09E781-80C2-4116-AB82-C9FC31D49E43",
@@ -3934,9 +3935,11 @@
     "variationTitle": "Bench",
     "variationTags": [
       "bodyweight",
-      "body"
+      "body",
+      "bench"
     ],
-    "equipmentTitle": "Bodyweight"
+    "equipmentTitle": "Bodyweight",
+    "setupTitle": "Bench"
   },
   {
     "uuid": "6F15D017-C423-4BC0-8E39-DD276D34D66B",
@@ -4251,9 +4254,11 @@
     "variationTitle": "Triceps",
     "variationTags": [
       "bodyweight",
-      "body"
+      "body",
+      "triceps_focus"
     ],
-    "equipmentTitle": "Bodyweight"
+    "equipmentTitle": "Bodyweight",
+    "setupTitle": "Triceps focus"
   },
   {
     "uuid": "D31D04AB-ED62-4F03-9D77-16DBF09CB662",
@@ -6168,9 +6173,11 @@
     "variationTitle": "Cross Body",
     "variationTags": [
       "bodyweight",
-      "body"
+      "body",
+      "cross_body"
     ],
-    "equipmentTitle": "Bodyweight"
+    "equipmentTitle": "Bodyweight",
+    "setupTitle": "Cross body"
   },
   {
     "uuid": "5E270934-7A46-445D-8399-487A3C7355ED",

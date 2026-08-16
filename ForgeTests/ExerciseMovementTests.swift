@@ -226,6 +226,48 @@ final class ExerciseMovementTests: XCTestCase {
         XCTAssertTrue(dumbbell.grip.contains("Hammer grip"))
     }
 
+    func testBodyweightMovementOptionsIncludeApplicableLoadModes() throws {
+        let store = ExerciseStore()
+        let movements = ExerciseStore.splitIntoMovements(exercises: store.shownExercises)
+        let chinUp = try XCTUnwrap(movements.first { $0.id == "chin_up" })
+        let dips = try XCTUnwrap(movements.first { $0.id == "dips" })
+        let crunch = try XCTUnwrap(movements.first { $0.id == "crunch" })
+
+        XCTAssertEqual(
+            ExerciseStore.variationOptions(for: chinUp, equipmentTitle: "Bodyweight").load,
+            ["Assisted", "Weighted"]
+        )
+        XCTAssertEqual(
+            ExerciseStore.variationOptions(for: dips, equipmentTitle: "Bodyweight").load,
+            ["Assisted", "Weighted"]
+        )
+        XCTAssertTrue(ExerciseStore.variationOptions(for: crunch, equipmentTitle: "Bodyweight").load.isEmpty)
+    }
+
+    func testBrowsingDeduplicatesBuiltInIdentitiesWithoutRemovingUUIDLookup() throws {
+        let store = ExerciseStore()
+        let builtInIdentityKeys = store.shownExercises.filter { !$0.isCustom }.map(\.variationIdentityKey)
+        let shownFacePull = try XCTUnwrap(store.shownExercises.first { $0.movementID == "face_pull" })
+        let selection = ExerciseVariationSelection(movementID: "face_pull", equipmentTitle: "Cable")
+
+        XCTAssertEqual(Set(builtInIdentityKeys).count, builtInIdentityKeys.count)
+        XCTAssertLessThan(store.shownExercises.count, store.exercises.count)
+        XCTAssertEqual(store.variation(matching: selection)?.uuid, shownFacePull.uuid)
+        XCTAssertNotNil(store.find(with: UUID(uuidString: "802ECEC2-C361-5321-858D-3545251D61DF")!))
+        XCTAssertNotNil(store.find(with: UUID(uuidString: "C4035736-EAF3-4DAD-8B74-BD1537E6B72D")!))
+    }
+
+    func testCatalogVariationsHaveDistinctStructuredIdentities() throws {
+        let store = ExerciseStore()
+        let crossBody = try XCTUnwrap(store.exercises.first { $0.title == "Crunch (Cross Body)" })
+        let dips = store.exercises.filter { $0.movementID == "dips" && $0.equipmentTitle == "Bodyweight" }
+        let tBarRow = try XCTUnwrap(store.exercises.first { $0.title == "Row: T-Bar" })
+
+        XCTAssertEqual(crossBody.setupTitle, "Cross body")
+        XCTAssertEqual(Set(dips.map(\.variationIdentityKey)).count, dips.count)
+        XCTAssertEqual(tBarRow.equipmentTitle, "T-bar machine")
+    }
+
     func testResolveExistingVariationKeepsBuiltInUUID() throws {
         let container = setUpInMemoryNSPersistentContainer()
         let store = ExerciseStore(context: container.viewContext)

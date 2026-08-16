@@ -64,9 +64,6 @@ private struct MovementBrowserRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(movement.title)
                     .foregroundColor(.forgeLabel)
-                Text("\(movement.variations.count) variations")
-                    .font(.forgeCaption)
-                    .foregroundColor(.forgeSecondaryLabel)
             }
             Spacer()
             if let commonSource {

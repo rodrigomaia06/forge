@@ -40,7 +40,9 @@ struct EditCustomExerciseSheet: View {
     private var canSave: Bool {
         let title = exerciseValues.title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { return false }
-        guard !exerciseStore.exercises.contains(where: { $0.title == title && $0.uuid != exercise.uuid }) else { return false }
+        guard !exerciseStore.exercises.contains(where: {
+            $0.uuid != exercise.uuid && $0.title.localizedCaseInsensitiveCompare(title) == .orderedSame
+        }) else { return false }
         guard !exerciseValues.muscles.isEmpty else { return false }
         guard !exerciseValues.activityCategoryIDs.isEmpty else { return false }
         guard duplicateVariation == nil else { return false }
