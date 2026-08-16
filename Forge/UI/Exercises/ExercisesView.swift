@@ -12,7 +12,6 @@ import WorkoutDataKit
 struct ExercisesView : View {
     var exercises: [Exercise]
     @State private var filter = ExerciseBrowserFilter()
-    @State private var expandedMovementIDs = Set<String>()
 
     private var filteredExercises: [Exercise] {
         filter.filteredExercises(from: exercises)
@@ -28,17 +27,8 @@ struct ExercisesView : View {
             } else {
                 List {
                     ExerciseMovementRows(
-                        movements: ExerciseStore.splitIntoMovements(exercises: filteredExercises),
-                        expandedMovementIDs: $expandedMovementIDs
-                    ) { exercise, title in
-                        NavigationLink(destination: ExerciseDetailView(exercise: exercise)) {
-                            if title == exercise.title {
-                                ExerciseSourceRow(exercise: exercise)
-                            } else {
-                                ExerciseSourceRow(exercise: exercise, title: title)
-                            }
-                        }
-                    }
+                        movements: ExerciseStore.splitIntoMovements(exercises: filteredExercises)
+                    )
                 }
                 .listStyleCompat_InsetGroupedListStyle()
             }

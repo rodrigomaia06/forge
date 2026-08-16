@@ -17,7 +17,6 @@ struct CustomExercisesView: View {
     
     @State private var activeSheet: SheetType?
     @State private var filter = ExerciseBrowserFilter()
-    @State private var expandedMovementIDs = Set<String>()
     
     private enum SheetType: Identifiable {
         case createCustomExercise
@@ -60,10 +59,8 @@ struct CustomExercisesView: View {
                 }
                 ExerciseMovementRows(
                     movements: ExerciseStore.splitIntoMovements(exercises: filteredExercises),
-                    expandedMovementIDs: $expandedMovementIDs
-                ) { exercise, title in
-                    exerciseRow(exercise, title: title == exercise.title ? nil : title)
-                }
+                    onDelete: requestDelete
+                )
                 Button(action: {
                     self.activeSheet = .createCustomExercise
                 }) {
@@ -88,20 +85,12 @@ struct CustomExercisesView: View {
         }
     }
 
-    private func exerciseRow(_ exercise: Exercise, title: String? = nil) -> some View {
-        NavigationLink(destination: ExerciseDetailView(exercise: exercise)
-            .environmentObject(self.settingsStore)) {
-            ExerciseSourceRow(exercise: exercise, title: title)
+    private func requestDelete(_ exercise: Exercise) {
+        guard UIDevice.current.userInterfaceIdiom != .pad else {
+            self.delete([exercise])
+            return
         }
-        .swipeActions {
-            Button("Delete", role: .destructive) {
-                guard UIDevice.current.userInterfaceIdiom != .pad else {
-                    self.delete([exercise])
-                    return
-                }
-                self.exercisesToDelete = [exercise]
-            }
-        }
+        self.exercisesToDelete = [exercise]
     }
     
     private func deleteWorkoutExercises(with uuid: UUID) {

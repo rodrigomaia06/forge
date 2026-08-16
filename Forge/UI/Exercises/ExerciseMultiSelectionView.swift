@@ -28,7 +28,7 @@ struct ExerciseMultiSelectionView: View {
             } else {
                 ForEach(exerciseGroups) { exerciseGroup in
                     Section(header: Text(exerciseGroup.title.capitalized)) {
-                        if exerciseGroup.title == "Selected" || showsExactResults {
+                        if exerciseGroup.title == "Selected" || exerciseGroup.title == "Recent" || showsExactResults {
                             ForEach(exerciseGroup.exercises, id: \.self) { exercise in
                                 exactSelectionRow(exercise: exercise)
                             }
@@ -123,14 +123,20 @@ struct ExerciseMultiSelectionView: View {
     }
 
     private func exactSelectionRow(exercise: Exercise) -> some View {
+        let variation = exercise.compactVariationTitle()
         Button {
             toggle(exercise)
         } label: {
             HStack(spacing: Theme.Spacing.m) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(exercise.browsingExerciseTitle)
+                    Text(exercise.movementTitle)
                         .font(.forgeHeadline)
                         .foregroundColor(.forgeLabel)
+                    if variation != "Standard" {
+                        Text(variation)
+                            .font(.forgeCaption)
+                            .foregroundColor(.forgeSecondaryLabel)
+                    }
                 }
                 Spacer()
                 Image(systemName: selection.contains(exercise) ? "checkmark.circle.fill" : "plus.circle")
@@ -194,66 +200,203 @@ extension Exercise {
 }
 
 private struct ExerciseMovementSelectionView: View {
+    private static let otherValue = "__other__"
+
+    @EnvironmentObject private var exerciseStore: ExerciseStore
     let movement: ExerciseMovement
     @Binding var selection: Set<Exercise>
 
-    private let compactRowInsets = EdgeInsets(
-        top: Theme.Spacing.s,
-        leading: Theme.Spacing.l,
-        bottom: Theme.Spacing.s,
-        trailing: Theme.Spacing.m
-    )
+    @State private var equipmentChoice: String
+    @State private var customEquipment = ""
+    @State private var choices = [ExerciseVariationAttribute: String]()
+    @State private var customValues = [ExerciseVariationAttribute: String]()
+    @State private var isSaving = false
+    @State private var showingSaveError = false
+
+    init(movement: ExerciseMovement, selection: Binding<Set<Exercise>>) {
+        self.movement = movement
+        self._selection = selection
+        let equipment = ExerciseStore.variationOptions(for: movement).equipment
+        if equipment.count == 1 {
+            _equipmentChoice = State(initialValue: equipment[0])
+        } else if equipment.isEmpty {
+            _equipmentChoice = State(initialValue: Self.otherValue)
+        } else {
+            _equipmentChoice = State(initialValue: "")
+        }
+    }
+
+    private var equipmentTitle: String? {
+        if equipmentChoice == Self.otherValue {
+            return Exercise.cleanVariationField(customEquipment)
+        }
+        return Exercise.cleanVariationField(equipmentChoice)
+    }
+
+    private var options: ExerciseVariationOptions {
+        ExerciseStore.variationOptions(for: movement, equipmentTitle: equipmentTitle)
+    }
+
+    private var visibleAttributes: [ExerciseVariationAttribute] {
+        ExerciseVariationAttribute.allCases.filter { !options.values(for: $0).isEmpty }
+    }
+
+    private var variationSelection: ExerciseVariationSelection {
+        ExerciseVariationSelection(
+            movementID: movement.id,
+            equipmentTitle: equipmentTitle,
+            attachmentTitle: value(for: .attachment),
+            setupTitle: value(for: .setup),
+            gripTitle: value(for: .grip),
+            sideTitle: value(for: .side),
+            loadModeTitle: value(for: .load)
+        )
+    }
+
+    private var existingExercise: Exercise? {
+        guard equipmentTitle != nil else { return nil }
+        return exerciseStore.variation(matching: variationSelection)
+    }
+
+    private var actionTitle: String {
+        if let existingExercise, selection.contains(existingExercise) {
+            return "Remove"
+        }
+        return existingExercise == nil ? "Create and add" : "Add exercise"
+    }
 
     var body: some View {
-        List {
-            ForEach(ExerciseStore.splitIntoEquipmentGroups(variations: movement.variations)) { group in
-                Section(header: Text(group.title)) {
-                    ForEach(group.exercises, id: \.self) { exercise in
-                        variationRow(exercise, equipmentTitle: group.title)
+        Form {
+            Section {
+                Picker("Equipment", selection: $equipmentChoice) {
+                    Text("Choose equipment").tag("")
+                    ForEach(ExerciseStore.variationOptions(for: movement).equipment, id: \.self) { equipment in
+                        Text(equipment).tag(equipment)
                     }
+                    Text("Other").tag(Self.otherValue)
+                }
+                .pickerStyle(.menu)
+
+                if equipmentChoice == Self.otherValue {
+                    TextField("Equipment", text: $customEquipment)
+                        .textInputAutocapitalization(.words)
+                }
+            }
+
+            if equipmentTitle != nil, !visibleAttributes.isEmpty {
+                Section {
+                    ForEach(visibleAttributes) { attribute in
+                        attributePicker(attribute)
+                    }
+                }
+            }
+
+            if equipmentTitle != nil {
+                Section {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(movement.title)
+                            .font(.forgeHeadline)
+                        Text(variationSelection.summaryTitle)
+                            .font(.forgeCaption)
+                            .foregroundColor(.forgeSecondaryLabel)
+                    }
+                    .accessibilityElement(children: .combine)
                 }
             }
         }
         .listStyleCompat_InsetGroupedListStyle()
-        .environment(\.defaultMinListRowHeight, 54)
         .navigationTitle(movement.title)
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private func variationRow(_ exercise: Exercise, equipmentTitle: String) -> some View {
-        Button {
-            toggle(exercise)
-        } label: {
-            HStack(spacing: Theme.Spacing.m) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(exercise.compactVariationTitle(omittingEquipment: equipmentTitle))
-                        .font(.forgeHeadline)
-                        .foregroundColor(.forgeLabel)
+        .safeAreaInset(edge: .bottom) {
+            if equipmentTitle != nil {
+                Button(actionTitle) {
+                    performAction()
                 }
-                Spacer()
-                Image(systemName: selection.contains(exercise) ? "checkmark.circle.fill" : "plus.circle")
-                    .font(.body)
-                    .foregroundColor(selection.contains(exercise) ? .forgeAccent : .forgeSecondaryLabel)
-                    .accessibilityHidden(true)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, Theme.Spacing.l)
+                .padding(.vertical, Theme.Spacing.s)
+                .background(.bar)
+                .disabled(isSaving)
+                .accessibilityValue(existingExercise.map { selection.contains($0) ? "Selected" : "Not selected" } ?? "New variation")
             }
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .listRowInsets(compactRowInsets)
-        .accessibilityLabel(exercise.title)
-        .accessibilityValue(selection.contains(exercise) ? "Selected" : "Not selected")
+        .onChange(of: equipmentChoice) { _, _ in
+            choices.removeAll()
+            customValues.removeAll()
+        }
+        .alert("Variation not created", isPresented: $showingSaveError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("The variation could not be created. Your exercise selection was not changed.")
+        }
     }
 
-    private func toggle(_ exercise: Exercise) {
-        Haptics.selection()
+    @ViewBuilder
+    private func attributePicker(_ attribute: ExerciseVariationAttribute) -> some View {
+        Picker(attribute.title, selection: choiceBinding(for: attribute)) {
+            Text("Standard").tag("")
+            ForEach(options.values(for: attribute), id: \.self) { value in
+                Text(value).tag(value)
+            }
+            Text("Other").tag(Self.otherValue)
+        }
+        .pickerStyle(.menu)
+
+        if choices[attribute] == Self.otherValue {
+            TextField("Custom \(attribute.title.lowercased())", text: customValueBinding(for: attribute))
+                .textInputAutocapitalization(.words)
+        }
+    }
+
+    private func choiceBinding(for attribute: ExerciseVariationAttribute) -> Binding<String> {
+        Binding(
+            get: { choices[attribute] ?? "" },
+            set: { choices[attribute] = $0 }
+        )
+    }
+
+    private func customValueBinding(for attribute: ExerciseVariationAttribute) -> Binding<String> {
+        Binding(
+            get: { customValues[attribute] ?? "" },
+            set: { customValues[attribute] = $0 }
+        )
+    }
+
+    private func value(for attribute: ExerciseVariationAttribute) -> String? {
+        if choices[attribute] == Self.otherValue {
+            return Exercise.cleanVariationField(customValues[attribute])
+        }
+        return Exercise.cleanVariationField(choices[attribute])
+    }
+
+    private func performAction() {
+        guard equipmentTitle != nil else { return }
         var transaction = Transaction()
         transaction.animation = nil
-        withTransaction(transaction) {
-            if selection.contains(exercise) {
-                selection.remove(exercise)
-            } else {
+        if let existingExercise {
+            Haptics.selection()
+            withTransaction(transaction) {
+                if selection.contains(existingExercise) {
+                    selection.remove(existingExercise)
+                } else {
+                    selection.insert(existingExercise)
+                }
+            }
+            return
+        }
+
+        isSaving = true
+        defer { isSaving = false }
+        do {
+            let exercise = try exerciseStore.resolveOrCreateVariation(variationSelection, movementTitle: movement.title)
+            withTransaction(transaction) {
                 selection.insert(exercise)
             }
+            Haptics.success()
+        } catch {
+            showingSaveError = true
         }
     }
 }

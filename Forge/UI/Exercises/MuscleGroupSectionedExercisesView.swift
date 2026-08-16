@@ -11,7 +11,6 @@ import WorkoutDataKit
 
 struct MuscleGroupSectionedExercisesView : View {
     var exerciseGroups: [ExerciseGroup]
-    @State private var expandedMovementIDs = Set<String>()
     
     var body: some View {
         Group {
@@ -23,17 +22,8 @@ struct MuscleGroupSectionedExercisesView : View {
                     ForEach(exerciseGroups) { exerciseGroup in
                         Section(header: Text(exerciseGroup.title.capitalized)) {
                             ExerciseMovementRows(
-                                movements: ExerciseStore.splitIntoMovements(exercises: exerciseGroup.exercises),
-                                expandedMovementIDs: $expandedMovementIDs
-                            ) { exercise, title in
-                                NavigationLink(destination: ExerciseDetailView(exercise: exercise)) {
-                                    if title == exercise.title {
-                                        ExerciseSourceRow(exercise: exercise)
-                                    } else {
-                                        ExerciseSourceRow(exercise: exercise, title: title)
-                                    }
-                                }
-                            }
+                                movements: ExerciseStore.splitIntoMovements(exercises: exerciseGroup.exercises)
+                            )
                         }
                     }
                 }

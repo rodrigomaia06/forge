@@ -6,33 +6,125 @@
 import SwiftUI
 import WorkoutDataKit
 
-struct ExerciseMovementRows<RowContent: View>: View {
+struct ExerciseMovementRows: View {
     let movements: [ExerciseMovement]
-    @Binding var expandedMovementIDs: Set<String>
-    let rowContent: (Exercise, String) -> RowContent
+    var onDelete: ((Exercise) -> Void)? = nil
 
     var body: some View {
         ForEach(movements) { movement in
             if movement.variations.count == 1, let variation = movement.variations.first {
-                rowContent(variation.exercise, variation.exercise.title)
+                exactExerciseLink(variation.exercise, movementTitle: movement.title)
             } else {
-                DisclosureGroup(isExpanded: Binding(
-                    get: { expandedMovementIDs.contains(movement.id) },
-                    set: { isExpanded in
-                        if isExpanded {
-                            expandedMovementIDs.insert(movement.id)
-                        } else {
-                            expandedMovementIDs.remove(movement.id)
-                        }
-                    }
-                )) {
-                    ForEach(movement.variations) { variation in
-                        rowContent(variation.exercise, variation.exercise.compactVariationTitle())
-                    }
+                NavigationLink {
+                    ExerciseMovementDetailView(movement: movement, onDelete: onDelete)
                 } label: {
-                    Text(movement.title)
+                    MovementBrowserRow(movement: movement)
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func exactExerciseLink(_ exercise: Exercise, movementTitle: String) -> some View {
+        NavigationLink(destination: ExerciseDetailView(exercise: exercise)) {
+            ExactExerciseBrowserRow(
+                exercise: exercise,
+                title: movementTitle,
+                subtitle: compactSubtitle(for: exercise)
+            )
+        }
+        .swipeActions {
+            if let onDelete {
+                Button("Delete", role: .destructive) {
+                    onDelete(exercise)
+                }
+            }
+        }
+    }
+
+    private func compactSubtitle(for exercise: Exercise) -> String? {
+        let title = exercise.compactVariationTitle()
+        return title == "Standard" ? nil : title
+    }
+}
+
+private struct MovementBrowserRow: View {
+    let movement: ExerciseMovement
+
+    private var commonSource: Bool? {
+        let values = Set(movement.variations.map { !$0.exercise.isCustom })
+        return values.count == 1 ? values.first : nil
+    }
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.s) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(movement.title)
+                    .foregroundColor(.forgeLabel)
+                Text("\(movement.variations.count) variations")
+                    .font(.forgeCaption)
+                    .foregroundColor(.forgeSecondaryLabel)
+            }
+            Spacer()
+            if let commonSource {
+                SourceSignalView(isAppProvided: commonSource)
+            }
+        }
+    }
+}
+
+private struct ExerciseMovementDetailView: View {
+    let movement: ExerciseMovement
+    let onDelete: ((Exercise) -> Void)?
+
+    var body: some View {
+        List {
+            ForEach(ExerciseStore.splitIntoEquipmentGroups(variations: movement.variations)) { group in
+                Section(header: Text(group.title)) {
+                    ForEach(group.exercises, id: \.self) { exercise in
+                        NavigationLink(destination: ExerciseDetailView(exercise: exercise)) {
+                            ExactExerciseBrowserRow(
+                                exercise: exercise,
+                                title: exercise.compactVariationTitle(omittingEquipment: group.title),
+                                subtitle: nil
+                            )
+                        }
+                        .swipeActions {
+                            if let onDelete {
+                                Button("Delete", role: .destructive) {
+                                    onDelete(exercise)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .listStyleCompat_InsetGroupedListStyle()
+        .navigationTitle(movement.title)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct ExactExerciseBrowserRow: View {
+    let exercise: Exercise
+    let title: String
+    let subtitle: String?
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.s) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .foregroundColor(.forgeLabel)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.forgeCaption)
+                        .foregroundColor(.forgeSecondaryLabel)
+                }
+            }
+            Spacer()
+            SourceSignalView(isAppProvided: !exercise.isCustom)
+        }
+        .accessibilityElement(children: .combine)
     }
 }

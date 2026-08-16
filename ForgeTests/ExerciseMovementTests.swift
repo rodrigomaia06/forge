@@ -211,6 +211,118 @@ final class ExerciseMovementTests: XCTestCase {
         XCTAssertEqual(duplicate?.title, "Bench Press: Barbell (Incline)")
     }
 
+    func testBicepsCurlOptionsAllowInclineHammerCombination() throws {
+        let store = ExerciseStore()
+        let movement = try XCTUnwrap(
+            ExerciseStore.splitIntoMovements(exercises: store.exercises)
+                .first { $0.id == "biceps_curl" }
+        )
+
+        let equipment = ExerciseStore.variationOptions(for: movement)
+        let dumbbell = ExerciseStore.variationOptions(for: movement, equipmentTitle: "Dumbbell")
+
+        XCTAssertTrue(equipment.equipment.contains("Dumbbell"))
+        XCTAssertTrue(dumbbell.setup.contains("Incline"))
+        XCTAssertTrue(dumbbell.grip.contains("Hammer grip"))
+    }
+
+    func testResolveExistingVariationKeepsBuiltInUUID() throws {
+        let container = setUpInMemoryNSPersistentContainer()
+        let store = ExerciseStore(context: container.viewContext)
+        let expected = try XCTUnwrap(store.exercises.first { $0.title == "Bench Press: Barbell (Incline)" })
+        let selection = ExerciseVariationSelection(
+            movementID: expected.movementID,
+            equipmentTitle: "Barbell",
+            setupTitle: "Incline"
+        )
+
+        let resolved = try store.resolveOrCreateVariation(selection, movementTitle: expected.movementTitle)
+
+        XCTAssertEqual(resolved.uuid, expected.uuid)
+        XCTAssertFalse(resolved.isCustom)
+        XCTAssertTrue(store.customExercises.isEmpty)
+    }
+
+    func testResolveMissingCombinationCreatesAndReusesExactVariation() throws {
+        let container = setUpInMemoryNSPersistentContainer()
+        let store = ExerciseStore(context: container.viewContext)
+        let template = try XCTUnwrap(store.exercises.first { $0.title == "Biceps Curl: Dumbbell" })
+        store.setRestTime(95, forExercise: template.uuid)
+        let selection = ExerciseVariationSelection(
+            movementID: "biceps_curl",
+            equipmentTitle: "Dumbbell",
+            setupTitle: "Incline",
+            gripTitle: "Hammer grip"
+        )
+
+        let created = try store.resolveOrCreateVariation(selection, movementTitle: "Biceps Curl")
+        let resolvedAgain = try store.resolveOrCreateVariation(selection, movementTitle: "Biceps Curl")
+
+        XCTAssertTrue(created.isCustom)
+        XCTAssertEqual(created.uuid, resolvedAgain.uuid)
+        XCTAssertEqual(store.customExercises.count, 1)
+        XCTAssertEqual(created.movementID, "biceps_curl")
+        XCTAssertEqual(created.equipmentTitle, "Dumbbell")
+        XCTAssertEqual(created.setupTitle, "Incline")
+        XCTAssertEqual(created.gripTitle, "Hammer grip")
+        XCTAssertEqual(created.primaryMuscle, template.primaryMuscle)
+        XCTAssertEqual(created.secondaryMuscle, template.secondaryMuscle)
+        XCTAssertEqual(created.defaultMetric, template.defaultMetric)
+        XCTAssertEqual(created.activityCategoryIDs, template.activityCategoryIDs)
+        XCTAssertEqual(store.restTime(forExercise: created.uuid), 95)
+        let reloadedStore = ExerciseStore(context: container.viewContext)
+        XCTAssertEqual(reloadedStore.find(with: created.uuid)?.variationIdentityKey, selection.identityKey)
+    }
+
+    func testMovementSearchMatchesTermsAcrossSeparateVariations() throws {
+        let store = ExerciseStore()
+        let movement = try XCTUnwrap(
+            ExerciseStore.splitIntoMovements(exercises: store.exercises)
+                .first { $0.id == "biceps_curl" }
+        )
+
+        let result = ExerciseStore.filter(movements: [movement], using: "incline hammer")
+
+        XCTAssertEqual(result.map(\.id), ["biceps_curl"])
+    }
+
+    func testCustomManualValueDoesNotBecomeSuggestedOption() throws {
+        let container = setUpInMemoryNSPersistentContainer()
+        let store = ExerciseStore(context: container.viewContext)
+        store.createCustomExercise(
+            title: "Biceps Curl: Dumbbell (Fat Grip)",
+            description: nil,
+            primaryMuscle: ["biceps brachii"],
+            secondaryMuscle: [],
+            type: .dumbbell,
+            movementTitle: "Biceps Curl",
+            equipmentTitle: "Dumbbell",
+            gripTitle: "Fat grip"
+        )
+        let movement = try XCTUnwrap(
+            ExerciseStore.splitIntoMovements(exercises: store.exercises)
+                .first { $0.id == "biceps_curl" }
+        )
+
+        let options = ExerciseStore.variationOptions(for: movement, equipmentTitle: "Dumbbell")
+
+        XCTAssertFalse(options.grip.contains("Fat grip"))
+        XCTAssertTrue(ExerciseStore.filter(exercises: store.exercises, using: "fat grip").contains { $0.isCustom })
+    }
+
+    func testResolverWithoutPersistentStoreDoesNotCreateVariation() {
+        let store = ExerciseStore()
+        let selection = ExerciseVariationSelection(
+            movementID: "biceps_curl",
+            equipmentTitle: "Dumbbell",
+            setupTitle: "Incline",
+            gripTitle: "Hammer grip"
+        )
+
+        XCTAssertThrowsError(try store.resolveOrCreateVariation(selection, movementTitle: "Biceps Curl"))
+        XCTAssertTrue(store.customExercises.isEmpty)
+    }
+
     private func encode<T: Encodable>(_ value: T) throws -> String {
         String(data: try JSONEncoder().encode(value), encoding: .utf8) ?? ""
     }

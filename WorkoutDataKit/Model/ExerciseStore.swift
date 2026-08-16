@@ -10,6 +10,19 @@ import Foundation
 import CoreData
 import os.log
 
+public enum ExerciseVariationResolutionError: LocalizedError {
+    case unavailableStore
+    case missingMovement
+    case saveFailed
+
+    public var errorDescription: String? {
+        switch self {
+        case .unavailableStore, .missingMovement, .saveFailed:
+            return "The variation could not be created. Your exercise selection was not changed."
+        }
+    }
+}
+
 public class ExerciseStore: ObservableObject {
     public static var defaultBuiltInExercisesResourceURL: URL {
         Bundle(for: Self.self).bundleURL.appendingPathComponent("everkinetic-data")
@@ -235,10 +248,162 @@ extension ExerciseStore {
         }
         .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
     }
+
+    public static func variationOptions(for movement: ExerciseMovement, equipmentTitle: String? = nil) -> ExerciseVariationOptions {
+        let builtIn = movement.variations.map(\.exercise).filter { !$0.isCustom }
+        let normalizedEquipment = Exercise.cleanVariationField(equipmentTitle)?.normalizedVariationOptionToken
+        let matchingEquipment = builtIn.filter {
+            $0.equipmentTitle?.normalizedVariationOptionToken == normalizedEquipment
+        }
+
+        return ExerciseVariationOptions(
+            equipment: sortedVariationValues(builtIn.compactMap(\.equipmentTitle)),
+            attachment: sortedVariationValues(matchingEquipment.compactMap(\.attachmentTitle)),
+            setup: sortedVariationValues(matchingEquipment.compactMap(\.setupTitle)),
+            grip: sortedVariationValues(matchingEquipment.compactMap(\.gripTitle)),
+            side: sortedVariationValues(matchingEquipment.compactMap(\.sideTitle)),
+            load: sortedVariationValues(matchingEquipment.compactMap(\.loadModeTitle))
+        )
+    }
+
+    private static func sortedVariationValues(_ values: [String]) -> [String] {
+        var seen = Set<String>()
+        return values
+            .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+            .filter { seen.insert($0.normalizedVariationOptionToken).inserted }
+    }
+}
+
+private extension String {
+    var normalizedVariationOptionToken: String {
+        trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .replacingOccurrences(of: "-", with: "_")
+            .replacingOccurrences(of: " ", with: "_")
+    }
 }
 
 // MARK: - Find
 extension ExerciseStore {
+    public func variation(matching selection: ExerciseVariationSelection) -> Exercise? {
+        guard !selection.identityKey.isEmpty else { return nil }
+        return exercises.first { $0.variationIdentityKey == selection.identityKey }
+    }
+
+    public func resolveOrCreateVariation(_ selection: ExerciseVariationSelection, movementTitle: String) throws -> Exercise {
+        if let existing = variation(matching: selection) {
+            return existing
+        }
+        guard let context else { throw ExerciseVariationResolutionError.unavailableStore }
+
+        let movementExercises = exercises.filter { $0.movementID == selection.movementID }
+        guard let template = closestTemplate(to: selection, in: movementExercises) else {
+            throw ExerciseVariationResolutionError.missingMovement
+        }
+
+        // Recheck immediately before insertion so a repeated action reuses the first record.
+        if let existing = variation(matching: selection) {
+            return existing
+        }
+
+        let uuid = UUID()
+        let entity = CustomExercise(context: context)
+        entity.uuid = uuid
+        let title = uniqueVariationTitle(for: selection, movementTitle: movementTitle)
+        let equipment = rawEquipment(for: selection.equipmentTitle)
+        let variationTitle = selection.summaryTitle
+        apply(
+            title: title,
+            description: template.description,
+            primaryMuscle: template.primaryMuscle,
+            secondaryMuscle: template.secondaryMuscle,
+            type: template.type,
+            activityCategoryIDs: template.activityCategoryIDs,
+            movementTitle: movementTitle,
+            variationTitle: variationTitle.isEmpty ? nil : variationTitle,
+            equipmentTitle: selection.equipmentTitle,
+            attachmentTitle: selection.attachmentTitle,
+            setupTitle: selection.setupTitle,
+            gripTitle: selection.gripTitle,
+            sideTitle: selection.sideTitle,
+            loadModeTitle: selection.loadModeTitle,
+            variationTags: [],
+            to: entity,
+            movementID: selection.movementID,
+            defaultMetric: template.defaultMetric,
+            equipmentOverride: equipment
+        )
+
+        var inheritedSettings: ExerciseSettings?
+        if let restTime = restTime(forExercise: template.uuid) {
+            inheritedSettings = settingsEntity(for: uuid, in: context, createIfNeeded: true)
+            inheritedSettings?.restTime = NSNumber(value: restTime)
+        }
+
+        do {
+            try context.save()
+        } catch {
+            if let inheritedSettings {
+                context.delete(inheritedSettings)
+            }
+            context.delete(entity)
+            context.processPendingChanges()
+            throw ExerciseVariationResolutionError.saveFailed
+        }
+
+        customExercises = Self.loadCustomExercises(context: context)
+        exerciseSettings = Self.loadExerciseSettings(context: context)
+        guard let created = find(with: uuid) else {
+            throw ExerciseVariationResolutionError.saveFailed
+        }
+        return created
+    }
+
+    private func closestTemplate(to selection: ExerciseVariationSelection, in exercises: [Exercise]) -> Exercise? {
+        exercises.sorted { lhs, rhs in
+            let lhsEquipment = lhs.equipmentTitle?.normalizedVariationOptionToken == selection.equipmentTitle?.normalizedVariationOptionToken
+            let rhsEquipment = rhs.equipmentTitle?.normalizedVariationOptionToken == selection.equipmentTitle?.normalizedVariationOptionToken
+            if lhsEquipment != rhsEquipment { return lhsEquipment }
+            if lhs.isCustom != rhs.isCustom { return !lhs.isCustom }
+            let lhsDetails = lhs.variationDisplayFields.count
+            let rhsDetails = rhs.variationDisplayFields.count
+            if lhsDetails != rhsDetails { return lhsDetails < rhsDetails }
+            return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+        }.first
+    }
+
+    private func uniqueVariationTitle(for selection: ExerciseVariationSelection, movementTitle: String) -> String {
+        var title = movementTitle
+        if let equipment = selection.equipmentTitle, equipment.normalizedVariationOptionToken != "bodyweight" {
+            title += ": \(equipment)"
+        }
+        let details = [selection.setupTitle, selection.gripTitle, selection.attachmentTitle, selection.sideTitle, selection.loadModeTitle]
+            .compactMap { $0 }
+        if !details.isEmpty {
+            title += " (\(details.joined(separator: ", ")))"
+        }
+        guard exercises.contains(where: { $0.title.localizedCaseInsensitiveCompare(title) == .orderedSame }) else {
+            return title
+        }
+
+        let customTitle = "\(title) (Custom)"
+        guard exercises.contains(where: { $0.title.localizedCaseInsensitiveCompare(customTitle) == .orderedSame }) else {
+            return customTitle
+        }
+        var index = 2
+        while exercises.contains(where: { $0.title.localizedCaseInsensitiveCompare("\(customTitle) \(index)") == .orderedSame }) {
+            index += 1
+        }
+        return "\(customTitle) \(index)"
+    }
+
+    private func rawEquipment(for equipmentTitle: String?) -> [String] {
+        guard let equipmentTitle else { return [] }
+        let token = equipmentTitle.normalizedVariationOptionToken
+        if token == "bodyweight" { return ["body"] }
+        return [token.replacingOccurrences(of: "_", with: "-")]
+    }
+
     public func find(with uuid: UUID) -> Exercise? {
         exercisesByUuid[uuid]
     }
@@ -276,6 +441,34 @@ extension ExerciseStore {
                 }
             }
             return false
+        }
+    }
+
+    public static func filter(movements: [ExerciseMovement], using filter: String) -> [ExerciseMovement] {
+        let terms = filter
+            .lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .split(whereSeparator: \.isWhitespace)
+        guard !terms.isEmpty else { return movements }
+
+        return movements.filter { movement in
+            let searchable = movement.variations.flatMap { variation -> [String] in
+                let exercise = variation.exercise
+                return [
+                    exercise.title,
+                    exercise.movementTitle,
+                    exercise.variationTitle,
+                    exercise.equipmentTitle,
+                    exercise.attachmentTitle,
+                    exercise.setupTitle,
+                    exercise.gripTitle,
+                    exercise.sideTitle,
+                    exercise.loadModeTitle
+                ].compactMap { $0 } + exercise.alias + exercise.equipment + exercise.variationTags
+            }
+            .joined(separator: " ")
+            .lowercased()
+            return terms.allSatisfy { searchable.contains($0) }
         }
     }
 
@@ -335,14 +528,14 @@ extension ExerciseStore {
         }
     }
 
-    private func apply(title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, activityCategoryIDs: [String], movementTitle: String?, variationTitle: String?, equipmentTitle: String?, attachmentTitle: String?, setupTitle: String?, gripTitle: String?, sideTitle: String?, loadModeTitle: String?, variationTags: [String], to entity: CustomExercise) {
+    private func apply(title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, activityCategoryIDs: [String], movementTitle: String?, variationTitle: String?, equipmentTitle: String?, attachmentTitle: String?, setupTitle: String?, gripTitle: String?, sideTitle: String?, loadModeTitle: String?, variationTags: [String], to entity: CustomExercise, movementID: String? = nil, defaultMetric: ExerciseSetMetric? = nil, equipmentOverride: [String]? = nil) {
         var description = description?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let d = description, d.isEmpty { description = nil }
         let cleanMovementTitle = movementTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
         let hasCustomMovementTitle = cleanMovementTitle?.isEmpty == false
         let resolvedMovementTitle = hasCustomMovementTitle ? cleanMovementTitle! : Exercise.defaultMovementTitle(for: title)
         let cleanVariationTitle = variationTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let equipment = type.equipment.map { [$0] } ?? []
+        let equipment = equipmentOverride ?? type.equipment.map { [$0] } ?? []
         let structured = Exercise.structuredVariationFields(
             title: title,
             variationTitle: cleanVariationTitle,
@@ -361,7 +554,7 @@ extension ExerciseStore {
         entity.secondaryMusclesJSON = Self.encodeStrings(secondaryMuscle)
         entity.equipmentJSON = Self.encodeStrings(equipment)
         entity.activityCategoriesJSON = Self.encodeCategoryIDs(activityCategoryIDs)
-        entity.movementID = hasCustomMovementTitle ? Exercise.defaultMovementID(for: resolvedMovementTitle) : entity.uuid?.uuidString.lowercased()
+        entity.movementID = movementID ?? (hasCustomMovementTitle ? Exercise.defaultMovementID(for: resolvedMovementTitle) : entity.uuid?.uuidString.lowercased())
         entity.movementTitle = resolvedMovementTitle
         entity.variationTitle = cleanVariationTitle?.isEmpty == true ? nil : cleanVariationTitle
         entity.equipmentTitle = structured.equipmentTitle
@@ -371,7 +564,9 @@ extension ExerciseStore {
         entity.sideTitle = structured.sideTitle
         entity.loadModeTitle = structured.loadModeTitle
         entity.variationTagsJSON = Self.encodeStrings(resolvedVariationTags)
-        if entity.defaultMetric == nil {
+        if let defaultMetric {
+            entity.defaultMetric = defaultMetric.rawValue
+        } else if entity.defaultMetric == nil {
             entity.defaultMetric = ExerciseSetMetric.reps.rawValue
         }
     }

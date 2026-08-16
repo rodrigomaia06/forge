@@ -125,6 +125,110 @@ public struct ExerciseVariation: Hashable, Identifiable {
     }
 }
 
+public enum ExerciseVariationAttribute: String, CaseIterable, Hashable, Identifiable {
+    case attachment
+    case setup
+    case grip
+    case side
+    case load
+
+    public var id: String { rawValue }
+
+    public var title: String {
+        switch self {
+        case .attachment: return "Attachment"
+        case .setup: return "Setup"
+        case .grip: return "Grip"
+        case .side: return "Side"
+        case .load: return "Load"
+        }
+    }
+}
+
+public struct ExerciseVariationSelection: Hashable {
+    public let movementID: String
+    public let equipmentTitle: String?
+    public let attachmentTitle: String?
+    public let setupTitle: String?
+    public let gripTitle: String?
+    public let sideTitle: String?
+    public let loadModeTitle: String?
+
+    public init(
+        movementID: String,
+        equipmentTitle: String?,
+        attachmentTitle: String? = nil,
+        setupTitle: String? = nil,
+        gripTitle: String? = nil,
+        sideTitle: String? = nil,
+        loadModeTitle: String? = nil
+    ) {
+        self.movementID = movementID.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.equipmentTitle = Exercise.cleanVariationField(equipmentTitle)
+        self.attachmentTitle = Exercise.cleanVariationField(attachmentTitle)
+        self.setupTitle = Exercise.cleanVariationField(setupTitle)
+        self.gripTitle = Exercise.cleanVariationField(gripTitle)
+        self.sideTitle = Exercise.cleanVariationField(sideTitle)
+        self.loadModeTitle = Exercise.cleanVariationField(loadModeTitle)
+    }
+
+    public var identityKey: String {
+        Exercise.variationIdentityKey(
+            movementID: movementID,
+            equipmentTitle: equipmentTitle,
+            attachmentTitle: attachmentTitle,
+            setupTitle: setupTitle,
+            gripTitle: gripTitle,
+            sideTitle: sideTitle,
+            loadModeTitle: loadModeTitle
+        )
+    }
+
+    public var summaryTitle: String {
+        [equipmentTitle, setupTitle, gripTitle, attachmentTitle, sideTitle, loadModeTitle]
+            .compactMap { $0 }
+            .joined(separator: ", ")
+    }
+
+    public func value(for attribute: ExerciseVariationAttribute) -> String? {
+        switch attribute {
+        case .attachment: return attachmentTitle
+        case .setup: return setupTitle
+        case .grip: return gripTitle
+        case .side: return sideTitle
+        case .load: return loadModeTitle
+        }
+    }
+}
+
+public struct ExerciseVariationOptions: Equatable {
+    public let equipment: [String]
+    public let attachment: [String]
+    public let setup: [String]
+    public let grip: [String]
+    public let side: [String]
+    public let load: [String]
+
+    public init(equipment: [String], attachment: [String], setup: [String], grip: [String], side: [String], load: [String]) {
+        self.equipment = equipment
+        self.attachment = attachment
+        self.setup = setup
+        self.grip = grip
+        self.side = side
+        self.load = load
+    }
+
+    public func values(for attribute: ExerciseVariationAttribute) -> [String] {
+        switch attribute {
+        case .attachment: return attachment
+        case .setup: return setup
+        case .grip: return grip
+        case .side: return side
+        case .load: return load
+        }
+    }
+}
+
 extension Exercise {
     public var variationDisplayTitle: String {
         let fields = variationDisplayFields

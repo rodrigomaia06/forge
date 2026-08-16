@@ -44,11 +44,22 @@ struct AddExercisesSheet: View {
     }
 
     private var exerciseGroups: [ExerciseGroup] {
-        let exercises = filter.filteredExercises(from: allExercises)
+        var nonSearchFilter = filter
+        nonSearchFilter.search = ""
+        var exercises = nonSearchFilter.filteredExercises(from: allExercises)
+        let search = filter.search.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !search.isEmpty {
+            exercises = ExerciseStore.filter(
+                movements: ExerciseStore.splitIntoMovements(exercises: exercises),
+                using: search
+            ).flatMap { $0.variations.map(\.exercise) }
+        }
         var visibleExercises = exercises
-        // Recent is only meaningful with no search or filters applied.
-        if !filter.isActive {
-            let recent = recentExercises
+        // The preferred workout category is an initial scope, not a reason to hide recent exercises.
+        let hasNarrowingBrowserInput = !search.isEmpty || filter.equipment != nil || filter.bodyPart != nil || filter.source != nil
+        if !hasNarrowingBrowserInput {
+            let visibleSet = Set(exercises)
+            let recent = recentExercises.filter { visibleSet.contains($0) }
             if !recent.isEmpty {
                 let recentSet = Set(recent)
                 visibleExercises = exercises.filter { !recentSet.contains($0) }
@@ -115,7 +126,6 @@ struct AddExercisesSheet: View {
             ExerciseBrowserFilterControls(filter: $filter, exercises: allExercises, showsCategoryChips: false)
             ExerciseMultiSelectionView(
                 exerciseGroups: exerciseGroups,
-                showsExactResults: !filter.search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                 selection: self.$exerciseSelectorSelection
             )
         }
