@@ -111,6 +111,32 @@ final class ExerciseMovementTests: XCTestCase {
         XCTAssertEqual(exercise.variationIdentityKey, "triceps_extension|cable|rope|overhead")
     }
 
+    func testBrowsingVariationTitleAvoidsRepeatingBodyweight() {
+        let regular = exercise(
+            title: "Crunch",
+            movementID: "crunch",
+            movementTitle: "Crunch",
+            equipment: ["body"]
+        )
+        let decline = exercise(
+            title: "Crunch (Decline)",
+            movementID: "crunch",
+            movementTitle: "Crunch",
+            equipment: ["body", "bench: decline"]
+        )
+        let cable = exercise(
+            title: "Crunch: Cable",
+            movementID: "crunch",
+            movementTitle: "Crunch",
+            equipment: ["cable"]
+        )
+
+        XCTAssertEqual(regular.browsingVariationTitle, "Crunch")
+        XCTAssertEqual(decline.browsingVariationTitle, "Decline")
+        XCTAssertEqual(cable.browsingVariationTitle, "Cable")
+        XCTAssertEqual(decline.browsingExerciseTitle, "Crunch, Decline")
+    }
+
     func testBrowserFilterUsesNormalizedVariationTags() {
         let exercise = exercise(
             title: "Skull Crusher",

@@ -155,10 +155,8 @@ struct ExerciseBrowserFilterControls: View {
                 bodyPartOptions: bodyPartOptions,
                 showsCategoryPicker: showsCategoryPicker
             )
-            .presentationDetents([.height(360), .medium])
+            .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
-            .presentationBackground(.regularMaterial)
-            .presentationCornerRadius(32)
         }
     }
 
@@ -200,77 +198,72 @@ struct ExerciseBrowserFilterControls: View {
         } label: {
             Image(systemName: filter.filtersActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                 .frame(width: 44, height: 44)
+                .overlay(alignment: .topTrailing) {
+                    if filter.activeFilterCount > 0 {
+                        Text("\(filter.activeFilterCount)")
+                            .font(.caption2.weight(.bold))
+                            .foregroundColor(.forgeBackground)
+                            .frame(minWidth: 16, minHeight: 16)
+                            .background(Circle().fill(Color.forgeAccent))
+                            .accessibilityHidden(true)
+                    }
+                }
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Filter exercises")
+        .accessibilityValue(filter.activeFilterCount > 0 ? "\(filter.activeFilterCount) active" : "No active filters")
     }
 }
 
 private struct ExerciseBrowserFilterSheet: View {
+    @Environment(\.dismiss) private var dismiss
     @Binding var filter: ExerciseBrowserFilter
     let equipmentOptions: [(label: String, token: String)]
     let bodyPartOptions: [String]
     let showsCategoryPicker: Bool
-    private let columns = [
-        GridItem(.adaptive(minimum: 108), spacing: Theme.Spacing.s)
-    ]
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Theme.Spacing.l) {
+            Form {
+                Section {
                     if showsCategoryPicker {
-                        filterSection("Workout type") {
-                            chip("Any type", isSelected: filter.category == nil) {
-                                filter.category = nil
-                            }
+                        Picker("Workout type", selection: categorySelection) {
+                            Text("Any type").tag("")
                             ForEach(ExerciseActivityCategory.allCases, id: \.self) { category in
-                                chip(category.title, color: category.color, isSelected: filter.category == category) {
-                                    filter.category = category
-                                }
+                                Text(category.title).tag(category.rawValue)
                             }
                         }
+                        .pickerStyle(.navigationLink)
                     }
 
-                    filterSection("Source") {
-                        chip("All sources", isSelected: filter.source == nil) {
-                            filter.source = nil
-                        }
+                    Picker("Source", selection: sourceSelection) {
+                        Text("All sources").tag("")
                         ForEach(ExerciseBrowserFilter.Source.allCases, id: \.self) { source in
-                            chip(source.title, isSelected: filter.source == source) {
-                                filter.source = source
-                            }
+                            Text(source.title).tag(source.rawValue)
                         }
                     }
+                    .pickerStyle(.navigationLink)
 
-                    filterSection("Equipment") {
-                        chip("Any equipment", isSelected: filter.equipment == nil) {
-                            filter.equipment = nil
-                        }
+                    Picker("Equipment", selection: equipmentSelection) {
+                        Text("Any equipment").tag("")
                         ForEach(equipmentOptions, id: \.token) { option in
-                            chip(option.label, isSelected: filter.equipment == option.token) {
-                                filter.equipment = option.token
-                            }
+                            Text(option.label).tag(option.token)
                         }
                     }
+                    .pickerStyle(.navigationLink)
 
-                    filterSection("Body part") {
-                        chip("Any body part", isSelected: filter.bodyPart == nil) {
-                            filter.bodyPart = nil
-                        }
+                    Picker("Body part", selection: bodyPartSelection) {
+                        Text("Any body part").tag("")
                         ForEach(bodyPartOptions, id: \.self) { part in
-                            chip(part.capitalized, isSelected: filter.bodyPart == part) {
-                                filter.bodyPart = part
-                            }
+                            Text(part.capitalized).tag(part)
                         }
                     }
+                    .pickerStyle(.navigationLink)
+                } footer: {
+                    Text("Search still checks exercise names, movement names, variations, equipment, and setup tags.")
                 }
-                .padding(.horizontal, Theme.Spacing.l)
-                .padding(.top, Theme.Spacing.s)
-                .padding(.bottom, Theme.Spacing.xl)
             }
-            .background(.regularMaterial)
             .navigationTitle("Filters")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -278,52 +271,54 @@ private struct ExerciseBrowserFilterSheet: View {
                     Button("Clear") { filter.clearFilters() }
                         .disabled(!filter.filtersActive)
                 }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
             }
         }
     }
 
-    private func filterSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-            Text(title)
-                .font(.forgeCaption.weight(.semibold))
-                .foregroundColor(.forgeSecondaryLabel)
-            LazyVGrid(columns: columns, alignment: .leading, spacing: Theme.Spacing.s) {
-                content()
-            }
+    private var categorySelection: Binding<String> {
+        Binding {
+            filter.category?.rawValue ?? ""
+        } set: { value in
+            filter.category = value.isEmpty ? nil : ExerciseActivityCategory(rawValue: value)
         }
     }
 
-    private func chip(_ title: String, color: Color? = nil, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: Theme.Spacing.xs) {
-                if let color {
-                    Circle()
-                        .fill(color)
-                        .frame(width: 9, height: 9)
-                        .accessibilityHidden(true)
-                }
-                Text(title)
-                    .font(.forgeCaption.weight(.semibold))
-                    .foregroundColor(isSelected ? .forgeBackground : .forgeLabel)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
-                if isSelected {
-                    Image(systemName: "checkmark")
-                        .font(.forgeCaption.weight(.bold))
-                        .foregroundColor(.forgeBackground)
-                        .accessibilityLabel("Selected")
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 34)
-            .padding(.horizontal, Theme.Spacing.s)
-            .background(
-                Capsule()
-                    .fill(isSelected ? (color ?? .forgeAccent) : .forgeSurface)
-            )
-            .contentShape(Rectangle())
+    private var sourceSelection: Binding<String> {
+        Binding {
+            filter.source?.rawValue ?? ""
+        } set: { value in
+            filter.source = value.isEmpty ? nil : ExerciseBrowserFilter.Source(rawValue: value)
         }
-        .buttonStyle(.plain)
+    }
+
+    private var equipmentSelection: Binding<String> {
+        Binding {
+            filter.equipment ?? ""
+        } set: { value in
+            filter.equipment = value.isEmpty ? nil : value
+        }
+    }
+
+    private var bodyPartSelection: Binding<String> {
+        Binding {
+            filter.bodyPart ?? ""
+        } set: { value in
+            filter.bodyPart = value.isEmpty ? nil : value
+        }
+    }
+}
+
+private extension ExerciseBrowserFilter {
+    var activeFilterCount: Int {
+        [equipment, bodyPart, category?.rawValue, source?.rawValue]
+            .filter { value in
+                guard let value else { return false }
+                return !value.isEmpty
+            }
+            .count
     }
 }
 

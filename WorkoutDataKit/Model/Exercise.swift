@@ -138,6 +138,37 @@ extension Exercise {
         return values.joined(separator: ", ")
     }
 
+    public var browsingVariationTitle: String {
+        let detailValues = [attachmentTitle, setupTitle, gripTitle, sideTitle, loadModeTitle]
+            .compactMap { value -> String? in
+                guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return nil }
+                return value
+            }
+        let equipment = equipmentTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let isBodyweight = equipment?
+            .lowercased()
+            .replacingOccurrences(of: "-", with: "_")
+            .replacingOccurrences(of: " ", with: "_") == "bodyweight"
+
+        if isBodyweight {
+            return detailValues.isEmpty ? movementTitle : detailValues.joined(separator: ", ")
+        }
+
+        var values = [String]()
+        if let equipment, !equipment.isEmpty {
+            values.append(equipment)
+        }
+        values.append(contentsOf: detailValues)
+        guard !values.isEmpty else { return variationTitle ?? title }
+        return values.joined(separator: ", ")
+    }
+
+    public var browsingExerciseTitle: String {
+        let variation = browsingVariationTitle
+        guard variation != movementTitle else { return movementTitle }
+        return "\(movementTitle), \(variation)"
+    }
+
     public var variationDisplayFields: [(label: String, value: String)] {
         [
             ("Equipment", equipmentTitle),

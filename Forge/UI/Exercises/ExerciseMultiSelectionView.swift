@@ -27,7 +27,7 @@ struct ExerciseMultiSelectionView: View {
                 Section(header: Text(exerciseGroup.title.capitalized)) {
                     if exerciseGroup.title == "Selected" || showsExactResults {
                         ForEach(exerciseGroup.exercises, id: \.self) { exercise in
-                            exactSelectionRow(exercise: exercise, title: exercise.variationSummaryTitle)
+                            exactSelectionRow(exercise: exercise)
                         }
                     } else {
                         ForEach(ExerciseStore.splitIntoMovements(exercises: exerciseGroup.exercises)) { movement in
@@ -37,7 +37,7 @@ struct ExerciseMultiSelectionView: View {
                 }
             }
         }
-        .listStyleCompat_InsetGroupedListStyle()
+        .listStyle(.plain)
         .environment(\.defaultMinListRowHeight, 56)
     }
 
@@ -49,7 +49,7 @@ struct ExerciseMultiSelectionView: View {
                 } label: {
                     movementRowContent(
                         title: movement.title,
-                        subtitle: variation.exercise.variationSummaryTitle == variation.exercise.title ? nil : variation.exercise.variationSummaryTitle,
+                        subtitle: variation.exercise.browsingVariationTitle == variation.exercise.movementTitle ? nil : variation.exercise.browsingVariationTitle,
                         selectedCount: selection.contains(variation.exercise) ? 1 : 0,
                         showsDisclosure: false
                     )
@@ -112,20 +112,15 @@ struct ExerciseMultiSelectionView: View {
         .contentShape(Rectangle())
     }
 
-    private func exactSelectionRow(exercise: Exercise, title: String) -> some View {
+    private func exactSelectionRow(exercise: Exercise) -> some View {
         Button {
             toggle(exercise)
         } label: {
             HStack(spacing: Theme.Spacing.m) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
+                    Text(exercise.browsingExerciseTitle)
                         .font(.forgeHeadline)
                         .foregroundColor(.forgeLabel)
-                    if title != exercise.title {
-                        Text(exercise.title)
-                            .font(.forgeCaption)
-                            .foregroundColor(.forgeSecondaryLabel)
-                    }
                 }
                 Spacer()
                 Image(systemName: selection.contains(exercise) ? "checkmark.circle.fill" : "plus.circle")
@@ -172,7 +167,7 @@ private struct ExerciseMovementSelectionView: View {
                 }
             }
         }
-        .listStyleCompat_InsetGroupedListStyle()
+        .listStyle(.plain)
         .environment(\.defaultMinListRowHeight, 56)
         .navigationTitle(movement.title)
         .navigationBarTitleDisplayMode(.inline)
@@ -184,14 +179,9 @@ private struct ExerciseMovementSelectionView: View {
         } label: {
             HStack(spacing: Theme.Spacing.m) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(exercise.variationSummaryTitle)
+                    Text(exercise.browsingVariationTitle)
                         .font(.forgeHeadline)
                         .foregroundColor(.forgeLabel)
-                    if exercise.variationSummaryTitle != exercise.title {
-                        Text(exercise.title)
-                            .font(.forgeCaption)
-                            .foregroundColor(.forgeSecondaryLabel)
-                    }
                 }
                 Spacer()
                 Image(systemName: selection.contains(exercise) ? "checkmark.circle.fill" : "plus.circle")

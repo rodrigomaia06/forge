@@ -47,13 +47,18 @@ struct ExerciseSourceRow: View {
     let exercise: Exercise
     var title: String? = nil
 
+    private var subtitle: String? {
+        guard let title, title != exercise.title, title != exercise.browsingVariationTitle else { return nil }
+        return exercise.title
+    }
+
     var body: some View {
         HStack(spacing: Theme.Spacing.s) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title ?? exercise.title)
                     .foregroundColor(.forgeLabel)
-                if let title, title != exercise.title {
-                    Text(exercise.title)
+                if let subtitle {
+                    Text(subtitle)
                         .font(.forgeCaption)
                         .foregroundColor(.forgeSecondaryLabel)
                 }

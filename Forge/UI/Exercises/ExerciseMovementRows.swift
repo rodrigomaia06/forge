@@ -27,7 +27,7 @@ struct ExerciseMovementRows<RowContent: View>: View {
                     }
                 )) {
                     ForEach(movement.variations) { variation in
-                        rowContent(variation.exercise, variation.exercise.variationSummaryTitle)
+                        rowContent(variation.exercise, variation.exercise.browsingVariationTitle)
                     }
                 } label: {
                     Text(movement.title)
