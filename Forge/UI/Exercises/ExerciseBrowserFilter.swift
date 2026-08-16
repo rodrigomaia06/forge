@@ -155,8 +155,10 @@ struct ExerciseBrowserFilterControls: View {
                 bodyPartOptions: bodyPartOptions,
                 showsCategoryPicker: showsCategoryPicker
             )
-            .presentationDetents([.medium])
+            .presentationDetents([.height(360), .medium])
             .presentationDragIndicator(.visible)
+            .presentationBackground(.regularMaterial)
+            .presentationCornerRadius(32)
         }
     }
 
@@ -210,56 +212,65 @@ private struct ExerciseBrowserFilterSheet: View {
     let equipmentOptions: [(label: String, token: String)]
     let bodyPartOptions: [String]
     let showsCategoryPicker: Bool
+    private let columns = [
+        GridItem(.adaptive(minimum: 108), spacing: Theme.Spacing.s)
+    ]
 
     var body: some View {
         NavigationStack {
-            Form {
-                if showsCategoryPicker {
-                    Section("Workout type") {
-                        filterOption("Any type", isSelected: filter.category == nil) {
-                            filter.category = nil
+            ScrollView {
+                VStack(alignment: .leading, spacing: Theme.Spacing.l) {
+                    if showsCategoryPicker {
+                        filterSection("Workout type") {
+                            chip("Any type", isSelected: filter.category == nil) {
+                                filter.category = nil
+                            }
+                            ForEach(ExerciseActivityCategory.allCases, id: \.self) { category in
+                                chip(category.title, color: category.color, isSelected: filter.category == category) {
+                                    filter.category = category
+                                }
+                            }
                         }
-                        ForEach(ExerciseActivityCategory.allCases, id: \.self) { category in
-                            filterOption(category.title, color: category.color, isSelected: filter.category == category) {
-                                filter.category = category
+                    }
+
+                    filterSection("Source") {
+                        chip("All sources", isSelected: filter.source == nil) {
+                            filter.source = nil
+                        }
+                        ForEach(ExerciseBrowserFilter.Source.allCases, id: \.self) { source in
+                            chip(source.title, isSelected: filter.source == source) {
+                                filter.source = source
+                            }
+                        }
+                    }
+
+                    filterSection("Equipment") {
+                        chip("Any equipment", isSelected: filter.equipment == nil) {
+                            filter.equipment = nil
+                        }
+                        ForEach(equipmentOptions, id: \.token) { option in
+                            chip(option.label, isSelected: filter.equipment == option.token) {
+                                filter.equipment = option.token
+                            }
+                        }
+                    }
+
+                    filterSection("Body part") {
+                        chip("Any body part", isSelected: filter.bodyPart == nil) {
+                            filter.bodyPart = nil
+                        }
+                        ForEach(bodyPartOptions, id: \.self) { part in
+                            chip(part.capitalized, isSelected: filter.bodyPart == part) {
+                                filter.bodyPart = part
                             }
                         }
                     }
                 }
-
-                Section("Source") {
-                    filterOption("All sources", isSelected: filter.source == nil) {
-                        filter.source = nil
-                    }
-                    ForEach(ExerciseBrowserFilter.Source.allCases, id: \.self) { source in
-                        filterOption(source.title, isSelected: filter.source == source) {
-                            filter.source = source
-                        }
-                    }
-                }
-
-                Section("Equipment") {
-                    filterOption("Any equipment", isSelected: filter.equipment == nil) {
-                        filter.equipment = nil
-                    }
-                    ForEach(equipmentOptions, id: \.token) { option in
-                        filterOption(option.label, isSelected: filter.equipment == option.token) {
-                            filter.equipment = option.token
-                        }
-                    }
-                }
-
-                Section("Body part") {
-                    filterOption("Any body part", isSelected: filter.bodyPart == nil) {
-                        filter.bodyPart = nil
-                    }
-                    ForEach(bodyPartOptions, id: \.self) { part in
-                        filterOption(part.capitalized, isSelected: filter.bodyPart == part) {
-                            filter.bodyPart = part
-                        }
-                    }
-                }
+                .padding(.horizontal, Theme.Spacing.l)
+                .padding(.top, Theme.Spacing.s)
+                .padding(.bottom, Theme.Spacing.xl)
             }
+            .background(.regularMaterial)
             .navigationTitle("Filters")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -271,24 +282,45 @@ private struct ExerciseBrowserFilterSheet: View {
         }
     }
 
-    private func filterOption(_ title: String, color: Color? = nil, isSelected: Bool, action: @escaping () -> Void) -> some View {
+    private func filterSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            Text(title)
+                .font(.forgeCaption.weight(.semibold))
+                .foregroundColor(.forgeSecondaryLabel)
+            LazyVGrid(columns: columns, alignment: .leading, spacing: Theme.Spacing.s) {
+                content()
+            }
+        }
+    }
+
+    private func chip(_ title: String, color: Color? = nil, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: Theme.Spacing.m) {
+            HStack(spacing: Theme.Spacing.xs) {
                 if let color {
                     Circle()
                         .fill(color)
-                        .frame(width: 12, height: 12)
+                        .frame(width: 9, height: 9)
                         .accessibilityHidden(true)
                 }
                 Text(title)
-                    .foregroundColor(.forgeLabel)
-                Spacer()
+                    .font(.forgeCaption.weight(.semibold))
+                    .foregroundColor(isSelected ? .forgeBackground : .forgeLabel)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
                 if isSelected {
                     Image(systemName: "checkmark")
-                        .foregroundColor(color ?? .forgeAccent)
+                        .font(.forgeCaption.weight(.bold))
+                        .foregroundColor(.forgeBackground)
                         .accessibilityLabel("Selected")
                 }
             }
+            .frame(maxWidth: .infinity)
+            .frame(height: 34)
+            .padding(.horizontal, Theme.Spacing.s)
+            .background(
+                Capsule()
+                    .fill(isSelected ? (color ?? .forgeAccent) : .forgeSurface)
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

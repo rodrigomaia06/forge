@@ -146,34 +146,6 @@
       font-size: 20px;
     }
 
-    .chips {
-      display: flex;
-      gap: 8px;
-      overflow: hidden;
-      margin: 0 -18px 18px;
-      padding: 0 18px;
-    }
-
-    .chip {
-      flex: 0 0 auto;
-      min-height: 42px;
-      display: inline-flex;
-      align-items: center;
-      border-radius: 999px;
-      background: var(--surface);
-      padding: 0 16px;
-      font-size: 17px;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-
-    .chip.active { color: #050505; }
-    .strength { background: var(--strength); }
-    .court { background: var(--court); }
-    .martial { background: var(--martial); }
-    .cardio { background: var(--cardio); }
-    .mobility { background: var(--mobility); }
-
     .list {
       border-radius: 24px;
       overflow: hidden;
@@ -181,12 +153,12 @@
     }
 
     .row {
-      min-height: 74px;
+      min-height: 62px;
       display: grid;
       grid-template-columns: 1fr auto;
       gap: 12px;
       align-items: center;
-      padding: 14px 18px;
+      padding: 10px 18px;
       border-bottom: 1px solid var(--line);
     }
 
@@ -256,10 +228,11 @@
       right: 0;
       bottom: 0;
       border-radius: 28px 28px 0 0;
-      background: #1f2024;
+      background: rgba(31,32,36,0.88);
       border-top: 1px solid rgba(255,255,255,0.14);
       padding: 12px 18px 26px;
       box-shadow: 0 -20px 60px rgba(0,0,0,0.5);
+      backdrop-filter: blur(28px);
     }
 
     .grabber {
@@ -343,12 +316,6 @@
             <div class="status"><span>02:22</span><span>5G 79%</span></div>
             <div class="nav"><button class="button">Cancel</button><h2>Add exercises</h2><span></span></div>
             <div class="search-row"><div class="search">⌕ Search</div><button class="icon-button">☰</button></div>
-            <div class="chips">
-              <span class="chip active strength">Strength</span>
-              <span class="chip court">Court sports</span>
-              <span class="chip martial">Martial arts</span>
-              <span class="chip cardio">Cardio</span>
-            </div>
             <div class="list">
               <div class="row"><div><div class="title">Bayesian Curl</div><div class="subtitle">Cable</div></div><div class="symbol">＋</div></div>
               <div class="row"><div><div class="title">Bench Press</div><div class="subtitle">12 variations</div></div><div class="symbol">›</div></div>
@@ -386,11 +353,6 @@
             <div class="status"><span>02:22</span><span>5G 79%</span></div>
             <div class="nav"><button class="button">Cancel</button><h2>Add exercises</h2><span></span></div>
             <div class="search-row"><div class="search">⌕ push</div><button class="icon-button">☰</button></div>
-            <div class="chips">
-              <span class="chip active court">Court sports</span>
-              <span class="chip strength">Strength</span>
-              <span class="chip martial">Martial arts</span>
-            </div>
             <div class="list">
               <div class="row"><div><div class="title">Push Up</div><div class="subtitle">Regular · Bodyweight</div></div><div class="symbol">＋</div></div>
               <div class="row"><div><div class="title">Push Up, close grip</div><div class="subtitle">Push Up (Close)</div></div><div class="symbol selected">✓</div></div>

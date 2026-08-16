@@ -112,7 +112,7 @@ struct AddExercisesSheet: View {
 
     private var content: some View {
         VStack(spacing: 0) {
-            ExerciseBrowserFilterControls(filter: $filter, exercises: allExercises)
+            ExerciseBrowserFilterControls(filter: $filter, exercises: allExercises, showsCategoryChips: false)
             ExerciseMultiSelectionView(
                 exerciseGroups: exerciseGroups,
                 showsExactResults: !filter.search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,

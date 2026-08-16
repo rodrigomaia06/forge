@@ -13,6 +13,13 @@ struct ExerciseMultiSelectionView: View {
     var exerciseGroups: [ExerciseGroup]
     var showsExactResults = false
     @Binding var selection: Set<Exercise>
+
+    private let compactRowInsets = EdgeInsets(
+        top: Theme.Spacing.s,
+        leading: Theme.Spacing.l,
+        bottom: Theme.Spacing.s,
+        trailing: Theme.Spacing.m
+    )
     
     var body: some View {
         List {
@@ -31,6 +38,7 @@ struct ExerciseMultiSelectionView: View {
             }
         }
         .listStyleCompat_InsetGroupedListStyle()
+        .environment(\.defaultMinListRowHeight, 56)
     }
 
     private func movementRow(_ movement: ExerciseMovement) -> some View {
@@ -47,6 +55,7 @@ struct ExerciseMultiSelectionView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .listRowInsets(compactRowInsets)
                 .accessibilityLabel(movement.title)
                 .accessibilityValue(selection.contains(variation.exercise) ? "Selected" : "Not selected")
             )
@@ -64,6 +73,7 @@ struct ExerciseMultiSelectionView: View {
                     showsDisclosure: true
                 )
             }
+            .listRowInsets(compactRowInsets)
         )
     }
 
@@ -78,6 +88,7 @@ struct ExerciseMultiSelectionView: View {
         HStack(spacing: Theme.Spacing.m) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
+                    .font(.forgeHeadline)
                     .foregroundColor(.forgeLabel)
                 if let subtitle {
                     Text(subtitle)
@@ -88,14 +99,12 @@ struct ExerciseMultiSelectionView: View {
             Spacer()
             if selectedCount > 0 {
                 Image(systemName: "checkmark.circle.fill")
+                    .font(.body)
                     .foregroundColor(.forgeAccent)
                     .accessibilityHidden(true)
-            } else if showsDisclosure {
-                Image(systemName: "chevron.right")
-                    .foregroundColor(.forgeSecondaryLabel)
-                    .accessibilityHidden(true)
-            } else {
+            } else if !showsDisclosure {
                 Image(systemName: "plus.circle")
+                    .font(.body)
                     .foregroundColor(.forgeSecondaryLabel)
                     .accessibilityHidden(true)
             }
@@ -110,6 +119,7 @@ struct ExerciseMultiSelectionView: View {
             HStack(spacing: Theme.Spacing.m) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
+                        .font(.forgeHeadline)
                         .foregroundColor(.forgeLabel)
                     if title != exercise.title {
                         Text(exercise.title)
@@ -119,12 +129,14 @@ struct ExerciseMultiSelectionView: View {
                 }
                 Spacer()
                 Image(systemName: selection.contains(exercise) ? "checkmark.circle.fill" : "plus.circle")
+                    .font(.body)
                     .foregroundColor(selection.contains(exercise) ? .forgeAccent : .forgeSecondaryLabel)
                     .accessibilityHidden(true)
             }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .listRowInsets(compactRowInsets)
         .accessibilityLabel(exercise.title)
         .accessibilityValue(selection.contains(exercise) ? "Selected" : "Not selected")
     }
@@ -145,6 +157,12 @@ struct ExerciseMultiSelectionView: View {
 private struct ExerciseMovementSelectionView: View {
     let movement: ExerciseMovement
     @Binding var selection: Set<Exercise>
+    private let compactRowInsets = EdgeInsets(
+        top: Theme.Spacing.s,
+        leading: Theme.Spacing.l,
+        bottom: Theme.Spacing.s,
+        trailing: Theme.Spacing.m
+    )
 
     var body: some View {
         List {
@@ -155,6 +173,7 @@ private struct ExerciseMovementSelectionView: View {
             }
         }
         .listStyleCompat_InsetGroupedListStyle()
+        .environment(\.defaultMinListRowHeight, 56)
         .navigationTitle(movement.title)
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -166,6 +185,7 @@ private struct ExerciseMovementSelectionView: View {
             HStack(spacing: Theme.Spacing.m) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(exercise.variationSummaryTitle)
+                        .font(.forgeHeadline)
                         .foregroundColor(.forgeLabel)
                     if exercise.variationSummaryTitle != exercise.title {
                         Text(exercise.title)
@@ -175,12 +195,14 @@ private struct ExerciseMovementSelectionView: View {
                 }
                 Spacer()
                 Image(systemName: selection.contains(exercise) ? "checkmark.circle.fill" : "plus.circle")
+                    .font(.body)
                     .foregroundColor(selection.contains(exercise) ? .forgeAccent : .forgeSecondaryLabel)
                     .accessibilityHidden(true)
             }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .listRowInsets(compactRowInsets)
         .accessibilityLabel(exercise.title)
         .accessibilityValue(selection.contains(exercise) ? "Selected" : "Not selected")
     }
