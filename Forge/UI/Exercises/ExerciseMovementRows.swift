@@ -64,6 +64,11 @@ private struct MovementBrowserRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(movement.title)
                     .foregroundColor(.forgeLabel)
+                if movement.variations.count > 1 {
+                    Text("Choose variation")
+                        .font(.forgeCaption)
+                        .foregroundColor(.forgeSecondaryLabel)
+                }
             }
             Spacer()
             if let commonSource {
@@ -116,16 +121,20 @@ private struct ExactExerciseBrowserRow: View {
 
     var body: some View {
         HStack(spacing: Theme.Spacing.s) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .foregroundColor(.forgeLabel)
-                if let subtitle {
-                    Text(subtitle)
-                        .font(.forgeCaption)
-                        .foregroundColor(.forgeSecondaryLabel)
-                }
+            Text(title)
+                .foregroundColor(.forgeLabel)
+                .lineLimit(2)
+                .layoutPriority(1)
+            Spacer(minLength: Theme.Spacing.s)
+            if let subtitle {
+                Text(subtitle)
+                    .font(.forgeCaption)
+                    .foregroundColor(.forgeSecondaryLabel)
+                    .multilineTextAlignment(.trailing)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: 150, alignment: .trailing)
             }
-            Spacer()
             SourceSignalView(isAppProvided: !exercise.isCustom)
         }
         .accessibilityElement(children: .combine)

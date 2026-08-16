@@ -32,6 +32,7 @@ struct WorkoutDetailView : View {
     init(workout: Workout, initialEditMode: EditMode = .inactive) {
         self.workout = workout
         _editMode = State(initialValue: initialEditMode)
+        _expanded = State(initialValue: workout.isCalendarDraft)
     }
     // When on, every exercise is shown expanded with its set table inline (like the live workout), instead
     // of a compact list you tap into. A read-only overview of the whole workout in one scroll.
@@ -311,6 +312,18 @@ struct WorkoutDetailView : View {
                         )
                         .environmentObject(self.settingsStore)
                     }
+                    if workout.isCalendarDraft {
+                        Button {
+                            showingExerciseSelectorSheet = true
+                        } label: {
+                            Label("Add exercise", systemImage: "plus")
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                                .frame(minHeight: Theme.Layout.minTapTarget)
+                        }
+                        .buttonStyle(.plain)
+                        .forgeCard(radius: Theme.Radius.medium)
+                    }
                 } else {
                     compactExercisesSection
                 }
@@ -488,12 +501,14 @@ struct WorkoutDetailView : View {
                 // A Menu attached to the button, rather than an action sheet, so the options appear
                 // reliably right under the control.
                 Menu {
-                    Button {
-                        Haptics.selection()
-                        NotificationCenter.default.post(name: .ResetSwipeActions, object: nil)
-                        withAnimation { expanded.toggle() }
-                    } label: {
-                        Label(expanded ? "Compact view" : "Expanded view", systemImage: expanded ? "list.bullet" : "rectangle.grid.1x2")
+                    if !workout.isCalendarDraft {
+                        Button {
+                            Haptics.selection()
+                            NotificationCenter.default.post(name: .ResetSwipeActions, object: nil)
+                            withAnimation { expanded.toggle() }
+                        } label: {
+                            Label(expanded ? "Compact view" : "Expanded view", systemImage: expanded ? "list.bullet" : "rectangle.grid.1x2")
+                        }
                     }
                     Button {
                         guard let logText = self.workout.logText(in: self.exerciseStore.exercises, weightUnit: self.settingsStore.weightUnit, fallbackBodyweight: self.settingsStore.bodyweight) else { return }

@@ -12,59 +12,88 @@ struct SettingsView : View {
     @EnvironmentObject var settingsStore: SettingsStore
     
     private var mainSection: some View {
-        Section {
-            NavigationLink(destination: ExerciseMuscleGroupsView()) {
-                Text("Exercises")
-            }
-
-            NavigationLink(destination: WorkoutTypesSettingsView()) {
-                Text("Workout types")
-            }
-
+        settingsGroup {
+            settingsLink("Exercises", destination: ExerciseMuscleGroupsView())
+            settingsSeparator
+            settingsLink("Workout types", destination: WorkoutTypesSettingsView())
+            settingsSeparator
             NavigationLink(destination: GeneralSettingsView(), isActive: $generalSelected) {
-                Text("General")
+                settingsRow("General")
             }
-
-            NavigationLink(destination: BackupAndExportView()) {
-                Text("Backup & Export")
-            }
+            .buttonStyle(.plain)
+            settingsSeparator
+            settingsLink("Backup & Export", destination: BackupAndExportView())
         }
     }
-    
-    private var aboutSection: some View {
-        Section {
-            NavigationLink(destination: DiagnosticsView()) {
-                Text("Logs")
-            }
 
-            NavigationLink(destination: AboutView()) {
-                Text("About")
-            }
+    private var aboutSection: some View {
+        settingsGroup {
+            settingsLink("Logs", destination: DiagnosticsView())
+            settingsSeparator
+            settingsLink("About", destination: AboutView())
         }
     }
     
     #if DEBUG
     private var developerSettings: some View {
-        Section {
-            NavigationLink(destination: DeveloperSettings()) {
-                Text("Developer")
-            }
+        settingsGroup {
+            settingsLink("Developer", destination: DeveloperSettings())
         }
     }
     #endif
 
+    @ViewBuilder
+    private func settingsGroup<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(spacing: 0, content: content)
+            .background(
+                RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous)
+                    .fill(Color.forgeSurface)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous))
+    }
+
+    private var settingsSeparator: some View {
+        ForgeListSeparator().padding(.leading, Theme.Layout.insetGroupedRowInset)
+    }
+
+    private func settingsLink<Destination: View>(_ title: String, destination: Destination) -> some View {
+        NavigationLink(destination: destination) {
+            settingsRow(title)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func settingsRow(_ title: String) -> some View {
+        HStack(spacing: Theme.Spacing.s) {
+            Text(title)
+                .foregroundColor(.forgeLabel)
+            Spacer(minLength: Theme.Spacing.s)
+            Image(systemName: "chevron.right")
+                .font(.body.weight(.semibold))
+                .foregroundColor(.forgeSecondaryLabel)
+                .accessibilityHidden(true)
+        }
+        .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+        .frame(minHeight: Theme.Layout.minTapTarget)
+        .contentShape(Rectangle())
+    }
+
     var body: some View {
         NavigationStack {
-            Form {
-                mainSection
+            ScrollView {
+                VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                    mainSection
+                    aboutSection
 
-                aboutSection
-
-                #if DEBUG
-                developerSettings
-                #endif
+                    #if DEBUG
+                    developerSettings
+                    #endif
+                }
+                .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+                .padding(.top, Theme.Spacing.m)
+                .padding(.bottom, Theme.Layout.bottomScrollClearance)
             }
-            .scrollContentBackground(.hidden)
+            .background(Color.forgeBackground.ignoresSafeArea())
             .forgeScreenTitle("Settings")
         }
     }
