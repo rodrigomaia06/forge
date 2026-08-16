@@ -11,9 +11,11 @@ rounded surfaces for short lists.
 Use 4pt for small grouped surfaces when a stronger separation is needed and 8pt for controls and main
 cards. Keep internal rows unframed. Use capsules only for compact controls, progress indicators, or
 other compact status elements. Let system sheets and navigation surfaces use their platform shape.
-Settings and workout overview screens use one grouped surface with inset rows. Do not place a second
-rounded surface behind each row. A colored rail, separator, or compact status label may carry hierarchy
-without creating another card.
+Navigation-heavy screens such as Settings, exercise browsing, backup/export, and workout plans are
+background-first and use flat rows with separators. Filled surfaces are reserved for compact grouped
+content, featured summaries, or controls that need stronger separation. Do not place a second rounded
+surface behind each row. A colored rail, separator, or compact status label may carry hierarchy without
+creating another card.
 
 ## Content and controls
 

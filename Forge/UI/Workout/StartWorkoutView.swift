@@ -117,7 +117,9 @@ struct StartWorkoutView: View {
                         }
                     }
                 }
-                .listStyleCompat_InsetGroupedListStyle()
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .listRowBackground(Color.clear)
             }
             .background(Color.forgeBackground.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)

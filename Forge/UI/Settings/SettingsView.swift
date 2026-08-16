@@ -45,11 +45,6 @@ struct SettingsView : View {
     @ViewBuilder
     private func settingsGroup<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         VStack(spacing: 0, content: content)
-            .background(
-                RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous)
-                    .fill(Color.forgeSurface)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous))
     }
 
     private var settingsSeparator: some View {

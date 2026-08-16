@@ -18,21 +18,22 @@ struct ExerciseMuscleGroupsView : View {
     // select the all exercises tab by default on iPad
     @State private var allExercisesSelected = UIDevice.current.userInterfaceIdiom == .pad ? true : false
     
-    func exerciseGroupCell(_ exerciseGroup: ExerciseGroup, type: WorkoutType) -> some View {
+    func exerciseGroupCell(_ exerciseGroup: ExerciseGroup) -> some View {
         NavigationLink(destination:
             ExerciseBrowserGroupedListView(exercises: exerciseGroup.exercises, showsCategoryPicker: false)
                 .navigationBarTitle(Text(exerciseGroup.title), displayMode: .inline)
         ) {
-            HStack {
-                HStack(spacing: Theme.Spacing.s) {
-                    Text(exerciseGroup.title)
-                    SourceSignalView(isAppProvided: type.isDefaultPreset)
-                }
+            HStack(spacing: Theme.Spacing.s) {
+                Text(exerciseGroup.title)
                 Spacer()
-                Text("(\(exerciseGroup.exercises.count))")
-                    .foregroundColor(.secondary)
+                Text("\(exerciseGroup.exercises.count)")
+                    .font(.forgeCaption)
+                    .foregroundColor(.forgeSecondaryLabel)
             }
+            .foregroundColor(.forgeLabel)
+            .frame(minHeight: Theme.Layout.minTapTarget)
         }
+        .buttonStyle(.plain)
     }
     
     private var activityGroups: [ActivityExerciseGroup] {
@@ -42,55 +43,64 @@ struct ExerciseMuscleGroupsView : View {
     }
     
     var body: some View {
-        List {
-                Section {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                exerciseGroup {
                     NavigationLink(destination: ExerciseBrowserGroupedListView(exerciseGroups: activityGroups.map(\.group).filter { !$0.exercises.isEmpty })
                         .navigationBarTitle(Text("All exercises"), displayMode: .inline), isActive: $allExercisesSelected) {
-                        HStack {
-                            Text("All")
-                            Spacer()
-                            Text("(\(exerciseStore.shownExercises.count))")
-                                .foregroundColor(.secondary)
-                        }
+                        categoryRow(title: "All", count: exerciseStore.shownExercises.count)
                     }
+                    .buttonStyle(.plain)
                 }
-                
-                Section {
-                    ForEach(activityGroups) { item in
-                        self.exerciseGroupCell(item.group, type: item.type)
-                    }
-                }
-                
-                Section {
-                    NavigationLink(destination:
-                        CustomExercisesView()
-                            .navigationBarTitle(Text("Custom"), displayMode: .inline)
-                    ) {
-                        HStack {
-                            Text("Custom")
-                            Spacer()
-                            Text("(\(exerciseStore.customExercises.count))")
-                                .foregroundColor(.secondary)
-                        }
-                    }
 
-                    if !exerciseStore.hiddenExercises.isEmpty {
-                        NavigationLink(destination:
-                            ExercisesView(exercises: exerciseStore.hiddenExercises)
-                                .navigationBarTitle(Text("Hidden"), displayMode: .inline)
-                        ) {
-                            HStack {
-                                Text("Hidden")
-                                Spacer()
-                                Text("(\(exerciseStore.hiddenExercises.count))")
-                                    .foregroundColor(.secondary)
-                            }
+                if !activityGroups.isEmpty {
+                    exerciseGroup {
+                        ForEach(Array(activityGroups.enumerated()), id: \.element.id) { index, item in
+                            if index > 0 { ForgeListSeparator().padding(.leading, Theme.Layout.insetGroupedRowInset) }
+                            exerciseGroupCell(item.group)
                         }
+                    }
+                }
+
+                exerciseGroup {
+                    navigationRow(title: "Custom", count: exerciseStore.customExercises.count, destination: CustomExercisesView())
+                    if !exerciseStore.hiddenExercises.isEmpty {
+                        ForgeListSeparator().padding(.leading, Theme.Layout.insetGroupedRowInset)
+                        navigationRow(title: "Hidden", count: exerciseStore.hiddenExercises.count, destination: ExercisesView(exercises: exerciseStore.hiddenExercises))
                     }
                 }
             }
-        .listStyleCompat_InsetGroupedListStyle()
+            .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+            .padding(.top, Theme.Spacing.m)
+            .padding(.bottom, Theme.Layout.bottomScrollClearance)
+        }
+        .background(Color.forgeBackground.ignoresSafeArea())
         .navigationBarTitle("Exercises")
+    }
+
+    @ViewBuilder
+    private func exerciseGroup<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(spacing: 0, content: content)
+    }
+
+    private func categoryRow(title: String, count: Int) -> some View {
+        HStack(spacing: Theme.Spacing.s) {
+            Text(title)
+            Spacer()
+            Text("\(count)")
+                .font(.forgeCaption)
+                .foregroundColor(.forgeSecondaryLabel)
+        }
+        .foregroundColor(.forgeLabel)
+        .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
+        .frame(minHeight: Theme.Layout.minTapTarget)
+    }
+
+    private func navigationRow<Destination: View>(title: String, count: Int, destination: Destination) -> some View {
+        NavigationLink(destination: destination) {
+            categoryRow(title: title, count: count)
+        }
+        .buttonStyle(.plain)
     }
 }
 

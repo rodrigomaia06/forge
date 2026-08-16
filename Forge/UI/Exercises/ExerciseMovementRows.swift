@@ -61,18 +61,17 @@ private struct MovementBrowserRow: View {
 
     var body: some View {
         HStack(spacing: Theme.Spacing.s) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(movement.title)
-                    .foregroundColor(.forgeLabel)
-                if movement.variations.count > 1 {
-                    Text("Choose variation")
-                        .font(.forgeCaption)
-                        .foregroundColor(.forgeSecondaryLabel)
-                }
-            }
+            Text(movement.title)
+                .foregroundColor(.forgeLabel)
             Spacer()
             if let commonSource {
                 SourceSignalView(isAppProvided: commonSource)
+            }
+            if movement.variations.count > 1 {
+                Image(systemName: "square.stack.3d.up")
+                    .font(.body.weight(.semibold))
+                    .foregroundColor(.forgeSecondaryLabel)
+                    .accessibilityLabel("Multiple variations")
             }
         }
     }
@@ -108,7 +107,10 @@ private struct ExerciseMovementDetailView: View {
                 }
             }
         }
-        .listStyleCompat_InsetGroupedListStyle()
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .listRowBackground(Color.clear)
+        .background(Color.forgeBackground)
         .navigationTitle(movement.title)
         .navigationBarTitleDisplayMode(.inline)
     }

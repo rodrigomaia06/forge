@@ -56,7 +56,7 @@ struct BackupAndExportView: View {
     }
 
     var body: some View {
-        Form {
+        List {
             Section(
                 header: Text("Backup"),
                 footer: Text("Full backups include all Forge data. Restore makes a safety copy first.")
@@ -136,6 +136,10 @@ struct BackupAndExportView: View {
                 Button("Reset all data", role: .destructive) { showResetConfirm = true }
             }
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .listRowBackground(Color.clear)
+        .background(Color.forgeBackground)
         .navigationBarTitle("Backup and export", displayMode: .inline)
         .fileImporter(isPresented: $showImporter, allowedContentTypes: Self.databaseTypes) { result in
             switch result {

@@ -30,7 +30,9 @@ struct ExercisesView : View {
                         movements: ExerciseStore.splitIntoMovements(exercises: filteredExercises)
                     )
                 }
-                .listStyleCompat_InsetGroupedListStyle()
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .listRowBackground(Color.clear)
             }
         }
     }
