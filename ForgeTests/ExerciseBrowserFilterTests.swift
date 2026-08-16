@@ -74,9 +74,9 @@ final class ExerciseBrowserFilterTests: XCTestCase {
 
         let options = ExerciseBrowserFilter.equipmentOptions(from: exercises)
 
-        XCTAssertTrue(options.contains { $0.label == "Bodyweight" && $0.token == "body" })
+        XCTAssertTrue(options.contains { $0.label == "Bodyweight" && $0.token == "bodyweight" })
         XCTAssertTrue(options.contains { $0.label == "Cable" && $0.token == "cable" })
-        XCTAssertTrue(options.contains { $0.label == "Bench: Incline" && $0.token == "bench: incline" })
+        XCTAssertFalse(options.contains { $0.token == "bench: incline" })
     }
 
     func testAddExerciseSheetUsesPreferredCategoryAsInitialFilter() {
