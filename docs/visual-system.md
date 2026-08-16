@@ -29,7 +29,8 @@ Let system sheets and navigation surfaces use their platform shape.
 scroll background so those rows share the Forge canvas, but it must not turn each native row into a card.
 Workout plans use a native `List` host for scrolling and deletion, with one explicit card per plan and
 plain separated routine rows inside it. This preserves list behavior while keeping the plan surface aligned
-with Dashboard and History; routines are grouped by spacing and separators, not nested cards.
+with Dashboard and History; routines are grouped by spacing and separators, not nested cards. Standalone
+routines use the same card inset and outer spacing as plan cards, even though their content is a single row.
 
 ## Content and controls
 

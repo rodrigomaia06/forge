@@ -89,11 +89,13 @@ struct StartWorkoutView: View {
                         Section(header: Text("Routines")) {
                             ForEach(standaloneRoutines) { routine in
                                 RoutineMenuRow(routine: routine, allPlans: Array(workoutPlans), onStart: { start(routine: $0) }, onEdit: { routineToEdit = $0 }, onShare: { shareRoutine($0) })
-                                    .padding(.horizontal, Theme.Spacing.s)
-                                    .padding(.vertical, Theme.Spacing.xs)
+                                    .padding(.horizontal, Theme.Surface.cardPadding)
+                                    .padding(.vertical, Theme.Spacing.s)
+                                    .frame(minHeight: Theme.Layout.minTapTarget)
                                     .forgeCard()
                                     .listRowInsets(EdgeInsets())
                                     .listRowBackground(Color.clear)
+                                    .padding(.vertical, Theme.Spacing.s)
                             }
                             .onDelete { deleteStandaloneRoutines($0) }
                         }
