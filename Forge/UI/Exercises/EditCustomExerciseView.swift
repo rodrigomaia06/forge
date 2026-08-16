@@ -57,32 +57,20 @@ struct EditCustomExerciseView: View {
     }
 
     private var hasAdvancedVariationValue: Bool {
-        [
-            exerciseValues.attachmentTitle,
-            exerciseValues.setupTitle,
-            exerciseValues.gripTitle,
-            exerciseValues.sideTitle,
-            exerciseValues.loadModeTitle,
-        ].contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        [exerciseValues.attachmentTitle, exerciseValues.setupTitle, exerciseValues.gripTitle]
+            .contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     }
 
     private let equipmentOptions = ["Barbell", "Dumbbell", "Cable", "Machine", "Smith machine", "EZ curl bar", "Kettlebell", "Bodyweight"]
     private let attachmentOptions = ["Rope", "V-bar", "Straight bar", "D-handle", "Ankle strap"]
     private let setupOptions = ["Incline", "Decline", "Overhead", "Lying", "Seated", "Standing", "Kneeling", "Low pulley", "Bent over", "Chest supported"]
     private let gripOptions = ["Reverse grip", "Wide grip", "Close grip", "Hammer grip", "Parallel grip", "Overhand grip", "Underhand grip"]
-    private let sideOptions = ["One arm", "Two arm", "Single leg"]
-    private let loadOptions = ["Weighted", "Assisted", "Bodyweight"]
     
     var body: some View {
         Form {
             Section {
                 TextField("Title", text: $exerciseValues.title)
                 TextField("Description (Optional)", text: $exerciseValues.description)
-                Picker("Tracking type", selection: $exerciseValues.type) {
-                    ForEach(Exercise.ExerciseType.allCases, id: \.self) {
-                        Text($0.title).tag($0)
-                    }
-                }
             }
 
             Section {
@@ -93,8 +81,6 @@ struct EditCustomExerciseView: View {
                     VariationValueField(title: "Attachment", placeholder: "Rope", text: $exerciseValues.attachmentTitle, options: attachmentOptions)
                     VariationValueField(title: "Setup", placeholder: "Incline", text: $exerciseValues.setupTitle, options: setupOptions)
                     VariationValueField(title: "Grip", placeholder: "Hammer grip", text: $exerciseValues.gripTitle, options: gripOptions)
-                    VariationValueField(title: "Side", placeholder: "One arm", text: $exerciseValues.sideTitle, options: sideOptions)
-                    VariationValueField(title: "Load", placeholder: "Weighted", text: $exerciseValues.loadModeTitle, options: loadOptions)
                 }
             } header: {
                 Text("Variation")

@@ -228,8 +228,8 @@ struct FeedView: View {
             }
         }
         .sheet(item: $workoutDateToLog) { value in
-            LogWorkoutSheet(date: value.date, calendar: calendar) { start, end in
-                logWorkout(start: start, end: end)
+            AddWorkoutSheet(date: value.date, calendar: calendar) { start, end, routine in
+                logWorkout(start: start, end: end, routine: routine)
             }
             .presentationDetents([.medium])
         }
@@ -263,12 +263,19 @@ struct FeedView: View {
         (try? context.existingObject(with: objectID)) as? Workout
     }
 
-    private func logWorkout(start: Date, end: Date) {
-        let workout = Workout.create(context: context)
+    private func logWorkout(start: Date, end: Date, routine: WorkoutRoutine?) {
+        let workout: Workout
+        if let routine {
+            workout = routine.createWorkout(context: context)
+        } else {
+            workout = Workout.create(context: context)
+        }
         workout.start = start
         workout.end = end
         workout.isCurrentWorkout = false
-        workout.workoutType = WorkoutType.defaultType(in: context)
+        if routine == nil {
+            workout.workoutType = WorkoutType.defaultType(in: context)
+        }
         do {
             try context.obtainPermanentIDs(for: [workout])
             try context.save()
@@ -1055,17 +1062,37 @@ struct FeedView: View {
 
 }
 
-private struct LogWorkoutSheet: View {
+private struct AddWorkoutSheet: View {
     @Environment(\.dismiss) private var dismiss
+
+    private enum Source: String, CaseIterable, Hashable {
+        case blank
+        case routine
+
+        var title: String {
+            switch self {
+            case .blank: return "Blank workout"
+            case .routine: return "From routine"
+            }
+        }
+    }
 
     let date: Date
     let calendar: Calendar
-    let onSave: (Date, Date) -> Void
+    let onSave: (Date, Date, WorkoutRoutine?) -> Void
+
+    @FetchRequest(fetchRequest: AddWorkoutSheet.standaloneRoutinesFetchRequest)
+    private var standaloneRoutines: FetchedResults<WorkoutRoutine>
+
+    @FetchRequest(fetchRequest: AddWorkoutSheet.workoutPlansFetchRequest)
+    private var workoutPlans: FetchedResults<WorkoutPlan>
 
     @State private var start: Date
     @State private var end: Date
+    @State private var source: Source = .blank
+    @State private var selectedRoutineID = ""
 
-    init(date: Date, calendar: Calendar, onSave: @escaping (Date, Date) -> Void) {
+    init(date: Date, calendar: Calendar, onSave: @escaping (Date, Date, WorkoutRoutine?) -> Void) {
         self.date = date
         self.calendar = calendar
         self.onSave = onSave
@@ -1076,9 +1103,68 @@ private struct LogWorkoutSheet: View {
         _end = State(initialValue: initialEnd)
     }
 
+    private var routines: [WorkoutRoutine] {
+        let planned = workoutPlans.flatMap { plan in
+            (plan.workoutRoutines?.array as? [WorkoutRoutine]) ?? []
+        }
+        return (Array(standaloneRoutines) + planned)
+            .sorted { $0.displayTitle.localizedCaseInsensitiveCompare($1.displayTitle) == .orderedAscending }
+    }
+
+    private var selectedRoutine: WorkoutRoutine? {
+        routines.first { $0.id == selectedRoutineID }
+    }
+
+    private var canSave: Bool {
+        start <= end && (source == .blank || selectedRoutine != nil)
+    }
+
+    private static var standaloneRoutinesFetchRequest: NSFetchRequest<WorkoutRoutine> {
+        let request = NSFetchRequest<WorkoutRoutine>(entityName: "WorkoutRoutine")
+        request.predicate = NSPredicate(format: "workoutPlan == nil")
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \WorkoutRoutine.title, ascending: true)]
+        return request
+    }
+
+    private static var workoutPlansFetchRequest: NSFetchRequest<WorkoutPlan> {
+        let request: NSFetchRequest<WorkoutPlan> = WorkoutPlan.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \WorkoutPlan.title, ascending: true)]
+        return request
+    }
+
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    Picker("Workout", selection: $source) {
+                        ForEach(Source.allCases, id: \.self) { option in
+                            Text(option.title).tag(option)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    if source == .routine {
+                        if routines.isEmpty {
+                            Text("No routines available")
+                                .foregroundColor(.forgeSecondaryLabel)
+                        } else {
+                            Picker("Routine", selection: $selectedRoutineID) {
+                                Text("Choose a routine").tag("")
+                                ForEach(routines, id: \.id) { routine in
+                                    Text(routine.displayTitle).tag(routine.id)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                        }
+                    }
+                } header: {
+                    Text("Exercises")
+                } footer: {
+                    Text(source == .routine
+                         ? "The routine's exercises and sets will be copied into this workout."
+                         : "Add exercises after saving this empty workout.")
+                }
+
                 Section {
                     DatePicker(
                         "Start",
@@ -1106,10 +1192,10 @@ private struct LogWorkoutSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add") {
-                        onSave(normalized(start), normalized(end))
+                        onSave(normalized(start), normalized(end), selectedRoutine)
                         dismiss()
                     }
-                    .disabled(start > end)
+                    .disabled(!canSave)
                 }
             }
             .onChange(of: start) { _, newValue in

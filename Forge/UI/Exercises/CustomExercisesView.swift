@@ -36,7 +36,7 @@ struct CustomExercisesView: View {
     @State private var exercisesToDelete: [Exercise]?
 
     private var filteredExercises: [Exercise] {
-        filter.filteredExercises(from: exerciseStore.customExercises)
+        filter.filteredExercises(from: ExerciseStore.deduplicatedForBrowsing(exerciseStore.customExercises))
     }
     
     private func delete(_ exercises: [Exercise]) {

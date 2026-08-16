@@ -231,23 +231,21 @@ public struct ExerciseVariationOptions: Equatable {
 
 extension Exercise {
     public var variationDisplayTitle: String {
-        let fields = variationDisplayFields
+        let fields = displayVariationFields
         guard !fields.isEmpty else { return title }
         return fields.map { "\($0.label): \($0.value)" }.joined(separator: "\n")
     }
 
     public var variationSummaryTitle: String {
-        let values = variationDisplayFields.map(\.value)
+        let values = displayVariationFields.map(\.value)
         guard !values.isEmpty else { return variationTitle ?? title }
         return values.joined(separator: ", ")
     }
 
     public var browsingVariationTitle: String {
-        let detailValues = [attachmentTitle, setupTitle, gripTitle, sideTitle, loadModeTitle]
-            .compactMap { value -> String? in
-                guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return nil }
-                return value
-            }
+        let detailValues = displayVariationFields
+            .filter { $0.label != "Equipment" }
+            .map(\.value)
         let equipment = equipmentTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
         let isBodyweight = equipment?
             .lowercased()
@@ -284,6 +282,14 @@ extension Exercise {
         ].compactMap { label, value in
             guard let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
             return (label, value)
+        }
+    }
+
+    /// Presentation-only projection. Structured fields remain intact for identity, search and
+    /// generated combinations, but details that are already part of the movement name add noise.
+    public var displayVariationFields: [(label: String, value: String)] {
+        variationDisplayFields.filter { field in
+            !(movementID == "jump_rope" && field.label == "Attachment" && field.value.caseInsensitiveCompare("Rope") == .orderedSame)
         }
     }
 

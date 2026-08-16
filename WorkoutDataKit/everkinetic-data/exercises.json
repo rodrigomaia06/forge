@@ -8581,10 +8581,8 @@
     "movementID": "jump_rope",
     "movementTitle": "Jump Rope",
     "variationTags": [
-      "rope",
       "other"
-    ],
-    "attachmentTitle": "Rope"
+    ]
   },
   {
     "uuid": "36214296-53F8-4C69-80B8-03E759AF1FB6",

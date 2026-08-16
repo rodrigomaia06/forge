@@ -91,26 +91,28 @@ public class ExerciseStore: ObservableObject {
                 shown.append(exercise)
             }
         }
-        let canonicalBuiltInUUIDs = Set(Self.deduplicatedForBrowsing(builtInExercises).map(\.uuid))
-        shownExercises = shown.filter { $0.isCustom || canonicalBuiltInUUIDs.contains($0.uuid) }
-        hiddenExercises = hidden
+        shownExercises = Self.deduplicatedForBrowsing(shown)
+        hiddenExercises = Self.deduplicatedForBrowsing(hidden)
     }
 
     public static func deduplicatedForBrowsing(_ exercises: [Exercise]) -> [Exercise] {
-        var canonicalBuiltIns = [String: Exercise]()
-        for exercise in exercises where !exercise.isCustom {
+        var canonicalExercises = [String: Exercise]()
+        for exercise in exercises {
             let key = exercise.variationIdentityKey
-            guard let current = canonicalBuiltIns[key] else {
-                canonicalBuiltIns[key] = exercise
+            guard let current = canonicalExercises[key] else {
+                canonicalExercises[key] = exercise
                 continue
             }
-            if browsingMetadataScore(exercise) > browsingMetadataScore(current) {
-                canonicalBuiltIns[key] = exercise
+            let customWins = exercise.isCustom && !current.isCustom
+            let sameSourceHasBetterMetadata = exercise.isCustom == current.isCustom
+                && browsingMetadataScore(exercise) > browsingMetadataScore(current)
+            if customWins || sameSourceHasBetterMetadata {
+                canonicalExercises[key] = exercise
             }
         }
 
         return exercises.filter { exercise in
-            exercise.isCustom || canonicalBuiltIns[exercise.variationIdentityKey]?.uuid == exercise.uuid
+            canonicalExercises[exercise.variationIdentityKey]?.uuid == exercise.uuid
         }
     }
 

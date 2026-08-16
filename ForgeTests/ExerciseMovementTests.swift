@@ -14,6 +14,7 @@ final class ExerciseMovementTests: XCTestCase {
         movementID: String? = nil,
         movementTitle: String? = nil,
         variationTitle: String? = nil,
+        attachmentTitle: String? = nil,
         variationTags: [String] = [],
         equipment: [String]
     ) -> Exercise {
@@ -25,6 +26,7 @@ final class ExerciseMovementTests: XCTestCase {
             movementID: movementID,
             movementTitle: movementTitle,
             variationTitle: variationTitle,
+            attachmentTitle: attachmentTitle,
             variationTags: variationTags,
             description: nil,
             primaryMuscle: ["pectoralis major"],
@@ -135,6 +137,22 @@ final class ExerciseMovementTests: XCTestCase {
         XCTAssertEqual(decline.browsingVariationTitle, "Decline")
         XCTAssertEqual(cable.browsingVariationTitle, "Cable")
         XCTAssertEqual(decline.browsingExerciseTitle, "Crunch, Decline")
+    }
+
+    func testImplicitJumpRopeAttachmentIsHiddenFromBrowsingLabels() {
+        let exercise = exercise(
+            title: "Jump Rope",
+            movementID: "jump_rope",
+            movementTitle: "Jump Rope",
+            variationTitle: nil,
+            attachmentTitle: "Rope",
+            variationTags: ["rope", "other"],
+            equipment: ["other"]
+        )
+
+        XCTAssertEqual(exercise.browsingVariationTitle, "Jump Rope")
+        XCTAssertEqual(exercise.variationSummaryTitle, "Jump Rope")
+        XCTAssertTrue(exercise.variationIdentityKey.contains("rope"))
     }
 
     func testBrowserFilterUsesNormalizedVariationTags() {
