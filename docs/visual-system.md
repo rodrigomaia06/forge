@@ -12,13 +12,15 @@ Forge uses one explicit surface language:
 
 | Surface | Use | Treatment |
 | --- | --- | --- |
-| Card | One interactive or informational object in a scroll view | `Color.forgeSurface`, continuous 8pt corners |
+| Card | One interactive or informational object in a scroll view | `Color.forgeSurface`, continuous 8pt corners, no decorative outline |
 | Grouped surface | A quiet grouping inside a card, never an independent action | `Color.forgeBackground`, 4pt corners |
 | Native row | Short settings, picker, or catalog content | Native `List`/`Form` row; no extra card background |
 | Section | A semantic group of native rows | Native section header/footer and system separators |
 | Sheet/material | Temporary modal or progress state | System sheet shape or system material |
 
-Use the shared `Theme.Radius` and `forgeCard` helpers for explicit cards. Use 4pt for grouped surfaces
+Use the shared `Theme.Radius` and `forgeCard` helpers for explicit cards. Cards do not receive an
+additional decorative outline; use a separator only between rows or a semantic color rail when it adds
+meaning. Use 4pt for grouped surfaces
 and 8pt for cards and controls. Keep internal rows unframed; separators belong between rows, not around
 every row. Use capsules only for compact controls, progress indicators, or other compact status elements.
 Let system sheets and navigation surfaces use their platform shape.

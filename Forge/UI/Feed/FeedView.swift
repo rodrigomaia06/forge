@@ -1004,10 +1004,6 @@ struct FeedView: View {
                         .padding(.vertical, Theme.Spacing.l)
                 }
             }
-            .overlay(
-                RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous)
-                    .strokeBorder(Color.forgeSeparator, lineWidth: 1)
-            )
             .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous))
     }
 
