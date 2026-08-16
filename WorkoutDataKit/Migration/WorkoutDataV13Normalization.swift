@@ -11,6 +11,7 @@ public enum WorkoutDataV13Normalization {
         var caughtError: Error?
         context.performAndWait {
             do {
+                try backfillCustomExerciseMovementMetadata(context: context)
                 try seedExerciseDefinitions(context: context)
                 try linkExerciseDefinitions(entityName: "WorkoutExercise", context: context)
                 try linkExerciseDefinitions(entityName: "WorkoutRoutineExercise", context: context)
@@ -49,10 +50,38 @@ public enum WorkoutDataV13Normalization {
             definition.setValue(encode(exercise.secondaryMuscle), forKey: "secondaryMusclesJSON")
             definition.setValue(encode(exercise.equipment), forKey: "equipmentJSON")
             definition.setValue(encode(exercise.activityCategoryIDs), forKey: "activityCategoriesJSON")
+            if definition.entity.attributesByName["movementID"] != nil {
+                definition.setValue(exercise.movementID, forKey: "movementID")
+                definition.setValue(exercise.movementTitle, forKey: "movementTitle")
+                definition.setValue(exercise.variationTitle, forKey: "variationTitle")
+                definition.setValue(encode(exercise.variationTags), forKey: "variationTagsJSON")
+            }
         }
 
         let categoriesByID = try seedExerciseCategories(context: context)
         try seedCategoryMemberships(exercises: exerciseStore.exercises, definitionsByUUID: definitionsByUUID, categoriesByID: categoriesByID, context: context)
+    }
+
+    private static func backfillCustomExerciseMovementMetadata(context: NSManagedObjectContext) throws {
+        let request = NSFetchRequest<NSManagedObject>(entityName: "CustomExercise")
+        let exercises = try context.fetch(request)
+        for exercise in exercises where exercise.entity.attributesByName["movementID"] != nil {
+            let uuid = exercise.value(forKey: "uuid") as? UUID
+            let title = exercise.value(forKey: "title") as? String ?? ""
+            let equipment = decodeStrings(exercise.value(forKey: "equipmentJSON") as? String)
+            if (exercise.value(forKey: "movementID") as? String)?.isEmpty ?? true {
+                exercise.setValue(uuid?.uuidString.lowercased(), forKey: "movementID")
+            }
+            if (exercise.value(forKey: "movementTitle") as? String)?.isEmpty ?? true {
+                exercise.setValue(Exercise.defaultMovementTitle(for: title), forKey: "movementTitle")
+            }
+            if exercise.value(forKey: "variationTitle") == nil, let variationTitle = variationTitle(for: equipment) {
+                exercise.setValue(variationTitle, forKey: "variationTitle")
+            }
+            if (exercise.value(forKey: "variationTagsJSON") as? String)?.isEmpty ?? true {
+                exercise.setValue(encode(Exercise.normalizedVariationTags(equipment)), forKey: "variationTagsJSON")
+            }
+        }
     }
 
     private static func seedExerciseCategories(context: NSManagedObjectContext) throws -> [String: NSManagedObject] {
@@ -216,5 +245,16 @@ public enum WorkoutDataV13Normalization {
             return "[]"
         }
         return string
+    }
+
+    private static func decodeStrings(_ json: String?) -> [String] {
+        guard let data = json?.data(using: .utf8) else { return [] }
+        return (try? JSONDecoder().decode([String].self, from: data)) ?? []
+    }
+
+    private static func variationTitle(for equipment: [String]) -> String? {
+        if equipment.contains("barbell") { return "Barbell" }
+        if equipment.contains("dumbbell") { return "Dumbbell" }
+        return nil
     }
 }

@@ -93,4 +93,40 @@ final class ExerciseCatalogTests: XCTestCase {
             XCTAssertTrue(ExerciseStore.filter(exercises: exercises, using: title).contains { $0.title == title })
         }
     }
+
+    func testBuiltInCatalogHasMovementMetadata() throws {
+        let exercises = try loadExercises()
+
+        for exercise in exercises {
+            XCTAssertFalse(exercise.movementID.isEmpty, exercise.title)
+            XCTAssertFalse(exercise.movementTitle.isEmpty, exercise.title)
+            XCTAssertFalse(exercise.variationTags.isEmpty, exercise.title)
+        }
+    }
+
+    func testCatalogCleanupGroupsKnownDuplicateTitles() throws {
+        let exercises = try loadExercises()
+
+        let shrugIDs = Set(exercises.filter { $0.title.contains("Shrug") }.map(\.movementID))
+        XCTAssertEqual(shrugIDs, ["shrug"])
+
+        let facePullIDs = Set(exercises.filter { $0.title.contains("Face Pull") }.map(\.movementID))
+        XCTAssertEqual(facePullIDs, ["face_pull"])
+
+        let skullCrusherIDs = Set(exercises.filter { $0.title.contains("Skull") }.map(\.movementID))
+        XCTAssertEqual(skullCrusherIDs, ["skull_crusher"])
+    }
+
+    func testCatalogCleanupNormalizesEquipmentForGrouping() throws {
+        let exercises = try loadExercises()
+
+        let reverseFlyes = try XCTUnwrap(exercises.first { $0.title == "Reverse Flyes: Cable" })
+        XCTAssertEqual(reverseFlyes.equipment, ["cable"])
+        XCTAssertTrue(reverseFlyes.variationTags.contains("cable"))
+
+        for exercise in exercises where exercise.title.contains("EZ Curl Bar") || exercise.title.contains("Skull Crusher") || exercise.title.contains("Skullcrusher") {
+            XCTAssertTrue(exercise.equipment.contains("ez-curl-bar"), exercise.title)
+            XCTAssertTrue(exercise.variationTags.contains("ez-curl-bar"), exercise.title)
+        }
+    }
 }

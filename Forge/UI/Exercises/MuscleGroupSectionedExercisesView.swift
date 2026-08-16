@@ -11,6 +11,7 @@ import WorkoutDataKit
 
 struct MuscleGroupSectionedExercisesView : View {
     var exerciseGroups: [ExerciseGroup]
+    @State private var expandedMovementIDs = Set<String>()
     
     var body: some View {
         Group {
@@ -21,9 +22,30 @@ struct MuscleGroupSectionedExercisesView : View {
                 List {
                     ForEach(exerciseGroups) { exerciseGroup in
                         Section(header: Text(exerciseGroup.title.capitalized)) {
-                            ForEach(exerciseGroup.exercises) { exercise in
-                                NavigationLink(destination: ExerciseDetailView(exercise: exercise)) {
-                                    ExerciseSourceRow(exercise: exercise)
+                            ForEach(ExerciseStore.splitIntoMovements(exercises: exerciseGroup.exercises)) { movement in
+                                if movement.variations.count == 1, let variation = movement.variations.first {
+                                    NavigationLink(destination: ExerciseDetailView(exercise: variation.exercise)) {
+                                        ExerciseSourceRow(exercise: variation.exercise)
+                                    }
+                                } else {
+                                    DisclosureGroup(isExpanded: Binding(
+                                        get: { expandedMovementIDs.contains(movement.id) },
+                                        set: { isExpanded in
+                                            if isExpanded {
+                                                expandedMovementIDs.insert(movement.id)
+                                            } else {
+                                                expandedMovementIDs.remove(movement.id)
+                                            }
+                                        }
+                                    )) {
+                                        ForEach(movement.variations) { variation in
+                                            NavigationLink(destination: ExerciseDetailView(exercise: variation.exercise)) {
+                                                ExerciseSourceRow(exercise: variation.exercise, title: variation.exercise.variationDisplayTitle)
+                                            }
+                                        }
+                                    } label: {
+                                        Text(movement.title)
+                                    }
                                 }
                             }
                         }
@@ -37,11 +59,19 @@ struct MuscleGroupSectionedExercisesView : View {
 
 struct ExerciseSourceRow: View {
     let exercise: Exercise
+    var title: String? = nil
 
     var body: some View {
         HStack(spacing: Theme.Spacing.s) {
-            Text(exercise.title)
-                .foregroundColor(.forgeLabel)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title ?? exercise.title)
+                    .foregroundColor(.forgeLabel)
+                if let title, title != exercise.title {
+                    Text(exercise.title)
+                        .font(.forgeCaption)
+                        .foregroundColor(.forgeSecondaryLabel)
+                }
+            }
             Spacer()
             SourceSignalView(isAppProvided: !exercise.isCustom)
         }

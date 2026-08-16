@@ -38,7 +38,8 @@ struct ExerciseBrowserFilter: Equatable {
         }
         if let equipment {
             result = result.filter { exercise in
-                exercise.equipment.contains { $0.localizedCaseInsensitiveContains(equipment) }
+                exercise.variationTags.contains(equipment.normalizedExerciseFilterToken)
+                    || exercise.equipment.contains { $0.localizedCaseInsensitiveContains(equipment) }
             }
         }
         if let bodyPart {
@@ -85,6 +86,12 @@ struct ExerciseBrowserFilter: Equatable {
             .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
             .map { (label: $0.replacingOccurrences(of: "-", with: " ").capitalized, token: $0) }
         return options + remaining
+    }
+}
+
+private extension String {
+    var normalizedExerciseFilterToken: String {
+        trimmingCharacters(in: .whitespacesAndNewlines).lowercased().replacingOccurrences(of: " ", with: "_")
     }
 }
 

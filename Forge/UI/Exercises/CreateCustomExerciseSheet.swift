@@ -43,7 +43,9 @@ struct CreateCustomExerciseSheet: View {
                 primaryMuscle: primaryMuscle,
                 secondaryMuscle: secondaryMuscle,
                 type: self.exerciseValues.type,
-                activityCategoryIDs: Array(self.exerciseValues.activityCategoryIDs).sorted()
+                activityCategoryIDs: Array(self.exerciseValues.activityCategoryIDs).sorted(),
+                movementTitle: self.exerciseValues.movementTitle,
+                variationTitle: self.exerciseValues.variationTitle
             )
             if let restTime = self.exerciseValues.restTime,
                let created = self.exerciseStore.customExercises.first(where: { $0.title == title }) {

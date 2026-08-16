@@ -17,6 +17,7 @@ struct CustomExercisesView: View {
     
     @State private var activeSheet: SheetType?
     @State private var filter = ExerciseBrowserFilter()
+    @State private var expandedMovementIDs = Set<String>()
     
     private enum SheetType: Identifiable {
         case createCustomExercise
@@ -57,18 +58,27 @@ struct CustomExercisesView: View {
                 if filteredExercises.isEmpty, filter.isActive {
                     ContentUnavailableView("No exercises found", systemImage: "magnifyingglass")
                 }
-                ForEach(filteredExercises, id: \.id) { exercise in
-                    NavigationLink(destination: ExerciseDetailView(exercise: exercise)
-                        .environmentObject(self.settingsStore)) {
-                        ExerciseSourceRow(exercise: exercise)
+                ForEach(ExerciseStore.splitIntoMovements(exercises: filteredExercises)) { movement in
+                    if movement.variations.count == 1, let variation = movement.variations.first {
+                        exerciseRow(variation.exercise)
+                    } else {
+                        DisclosureGroup(isExpanded: Binding(
+                            get: { expandedMovementIDs.contains(movement.id) },
+                            set: { isExpanded in
+                                if isExpanded {
+                                    expandedMovementIDs.insert(movement.id)
+                                } else {
+                                    expandedMovementIDs.remove(movement.id)
+                                }
+                            }
+                        )) {
+                            ForEach(movement.variations) { variation in
+                                exerciseRow(variation.exercise, title: variation.exercise.variationDisplayTitle)
+                            }
+                        } label: {
+                            Text(movement.title)
+                        }
                     }
-                }
-                .onDelete { offsets in
-                    guard UIDevice.current.userInterfaceIdiom != .pad else { // TODO: actionSheet not supported on iPad yet (13.2)
-                        self.delete(offsets.map { filteredExercises[$0] })
-                        return
-                    }
-                    self.exercisesToDelete = offsets.map { filteredExercises[$0] }
                 }
                 Button(action: {
                     self.activeSheet = .createCustomExercise
@@ -81,7 +91,6 @@ struct CustomExercisesView: View {
             }
             .listStyleCompat_InsetGroupedListStyle()
         }
-        .navigationBarItems(trailing: EditButton())
         .sheet(item: $activeSheet, content: { type in
             self.sheetView(type: type)
         })
@@ -92,6 +101,22 @@ struct CustomExercisesView: View {
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("This cannot be undone. Any workout or routine entry using this exercise will be removed.")
+        }
+    }
+
+    private func exerciseRow(_ exercise: Exercise, title: String? = nil) -> some View {
+        NavigationLink(destination: ExerciseDetailView(exercise: exercise)
+            .environmentObject(self.settingsStore)) {
+            ExerciseSourceRow(exercise: exercise, title: title)
+        }
+        .swipeActions {
+            Button("Delete", role: .destructive) {
+                guard UIDevice.current.userInterfaceIdiom != .pad else {
+                    self.delete([exercise])
+                    return
+                }
+                self.exercisesToDelete = [exercise]
+            }
         }
     }
     

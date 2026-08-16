@@ -13,6 +13,10 @@ public struct Exercise: Hashable {
     public let everkineticId: Int // this is the everkinetic exercise id or 10000 if it's a custom exercise
     public let title: String
     public let alias: [String]
+    public let movementID: String
+    public let movementTitle: String
+    public let variationTitle: String?
+    public let variationTags: [String]
     public let activityCategories: [ExerciseActivityCategory]
     public let activityCategoryIDs: [String]
     public let defaultMetric: ExerciseSetMetric
@@ -29,6 +33,10 @@ public struct Exercise: Hashable {
         everkineticId: Int,
         title: String,
         alias: [String],
+        movementID: String? = nil,
+        movementTitle: String? = nil,
+        variationTitle: String? = nil,
+        variationTags: [String] = [],
         activityCategories: [ExerciseActivityCategory] = [.strength],
         activityCategoryIDs: [String]? = nil,
         defaultMetric: ExerciseSetMetric = .reps,
@@ -44,6 +52,13 @@ public struct Exercise: Hashable {
         self.everkineticId = everkineticId
         self.title = title
         self.alias = alias
+        let resolvedMovementTitle = (movementTitle ?? Self.defaultMovementTitle(for: title)).trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedMovementID = (movementID ?? Self.defaultMovementID(for: resolvedMovementTitle)).trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedVariationTitle = variationTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.movementID = resolvedMovementID.isEmpty ? Self.defaultMovementID(for: resolvedMovementTitle) : resolvedMovementID
+        self.movementTitle = resolvedMovementTitle.isEmpty ? title : resolvedMovementTitle
+        self.variationTitle = resolvedVariationTitle?.isEmpty == true ? nil : resolvedVariationTitle
+        self.variationTags = Self.normalizedVariationTags(variationTags.isEmpty ? equipment : variationTags)
         let resolvedCategories = activityCategories.isEmpty ? [ExerciseActivityCategory.strength] : activityCategories
         let resolvedCategoryIDs = activityCategoryIDs ?? resolvedCategories.map(\.rawValue)
         self.activityCategories = resolvedCategories
@@ -56,6 +71,69 @@ public struct Exercise: Hashable {
         self.steps = steps
         self.tips = tips
         self.references = references
+    }
+}
+
+public struct ExerciseMovement: Hashable, Identifiable {
+    public let id: String
+    public let title: String
+    public let variations: [ExerciseVariation]
+
+    public init(id: String, title: String, variations: [ExerciseVariation]) {
+        self.id = id
+        self.title = title
+        self.variations = variations
+    }
+}
+
+public struct ExerciseVariation: Hashable, Identifiable {
+    public var id: UUID { exercise.uuid }
+    public let exercise: Exercise
+
+    public init(exercise: Exercise) {
+        self.exercise = exercise
+    }
+}
+
+extension Exercise {
+    public var variationDisplayTitle: String {
+        variationTitle ?? title
+    }
+
+    public static func defaultMovementTitle(for title: String) -> String {
+        var result = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let colon = result.firstIndex(of: ":") {
+            result = String(result[..<colon])
+        }
+        result = result.replacingOccurrences(of: #" \([^)]*\)"#, with: "", options: .regularExpression)
+        result = result.replacingOccurrences(of: "Skullcrusher", with: "Skull Crusher")
+        result = result.replacingOccurrences(of: "Face Pulls", with: "Face Pull")
+        result = result.replacingOccurrences(of: "Shrugs", with: "Shrug")
+        result = result.replacingOccurrences(of: "Lunges", with: "Lunge")
+        return result.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    public static func defaultMovementID(for title: String) -> String {
+        let allowed = CharacterSet.alphanumerics
+        var result = ""
+        var lastWasSeparator = false
+        for scalar in title.lowercased().unicodeScalars {
+            if allowed.contains(scalar) {
+                result.unicodeScalars.append(scalar)
+                lastWasSeparator = false
+            } else if !lastWasSeparator {
+                result.append("_")
+                lastWasSeparator = true
+            }
+        }
+        return result.trimmingCharacters(in: CharacterSet(charactersIn: "_"))
+    }
+
+    public static func normalizedVariationTags(_ tags: [String]) -> [String] {
+        tags
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().replacingOccurrences(of: " ", with: "_") }
+            .filter { !$0.isEmpty }
+            .uniqed()
     }
 }
 
@@ -281,6 +359,10 @@ extension Exercise: Codable {
 //        case name
         case title
         case alias
+        case movementID
+        case movementTitle
+        case variationTitle
+        case variationTags
         case categories
         case metric
         case primer
@@ -301,6 +383,10 @@ extension Exercise: Codable {
         let id = try container.decode(Int.self, forKey: .id)
         let title = try container.decode(String.self, forKey: .title)
         let alias = try container.decodeIfPresent([String].self, forKey: .alias) ?? []
+        let movementID = try container.decodeIfPresent(String.self, forKey: .movementID)
+        let movementTitle = try container.decodeIfPresent(String.self, forKey: .movementTitle)
+        let variationTitle = try container.decodeIfPresent(String.self, forKey: .variationTitle)
+        let variationTags = try container.decodeIfPresent([String].self, forKey: .variationTags) ?? []
         let categories = try container.decodeIfPresent([ExerciseActivityCategory].self, forKey: .categories) ?? [.strength]
         let metric = try container.decodeIfPresent(ExerciseSetMetric.self, forKey: .metric) ?? .reps
         let primer = try container.decodeIfPresent(String.self, forKey: .primer)
@@ -311,7 +397,7 @@ extension Exercise: Codable {
         let tips = try container.decodeIfPresent([String].self, forKey: .tips) ?? []
         let references = try container.decodeIfPresent([String].self, forKey: .references) ?? []
 
-        self.init(uuid: uuid, everkineticId: id, title: title, alias: alias, activityCategories: categories, defaultMetric: metric, description: primer, primaryMuscle: primary, secondaryMuscle: secondary, equipment: equipment, steps: steps, tips: tips, references: references)
+        self.init(uuid: uuid, everkineticId: id, title: title, alias: alias, movementID: movementID, movementTitle: movementTitle, variationTitle: variationTitle, variationTags: variationTags, activityCategories: categories, defaultMetric: metric, description: primer, primaryMuscle: primary, secondaryMuscle: secondary, equipment: equipment, steps: steps, tips: tips, references: references)
     }
     
     // MARK: Encodalbe
@@ -321,6 +407,10 @@ extension Exercise: Codable {
         try container.encode(everkineticId, forKey: .id)
         try container.encode(title, forKey: .title)
         try container.encode(alias, forKey: .alias)
+        try container.encode(movementID, forKey: .movementID)
+        try container.encode(movementTitle, forKey: .movementTitle)
+        try container.encodeIfPresent(variationTitle, forKey: .variationTitle)
+        try container.encode(variationTags, forKey: .variationTags)
         try container.encode(activityCategories, forKey: .categories)
         try container.encode(defaultMetric, forKey: .metric)
         try container.encodeIfPresent(description, forKey: .primer)

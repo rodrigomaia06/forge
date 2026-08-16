@@ -203,6 +203,22 @@ extension ExerciseStore {
             return ExerciseGroup(title: type.displayTitle, exercises: groupExercises)
         }
     }
+
+    public static func splitIntoMovements(exercises: [Exercise]) -> [ExerciseMovement] {
+        let grouped = Dictionary(grouping: exercises, by: \.movementID)
+        return grouped.map { movementID, exercises in
+            let sortedExercises = exercises.sorted {
+                let titleCompare = $0.variationDisplayTitle.localizedCaseInsensitiveCompare($1.variationDisplayTitle)
+                if titleCompare == .orderedSame {
+                    return $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+                }
+                return titleCompare == .orderedAscending
+            }
+            let movementTitle = sortedExercises.first?.movementTitle ?? movementID
+            return ExerciseMovement(id: movementID, title: movementTitle, variations: sortedExercises.map(ExerciseVariation.init))
+        }
+        .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+    }
 }
 
 // MARK: - Find
@@ -233,7 +249,12 @@ extension ExerciseStore {
         guard !filter.isEmpty else { return exercises }
 
         return exercises.filter { exercise in
-            for title in [exercise.title] + exercise.alias {
+            let searchableTitles = [exercise.title, exercise.movementTitle, exercise.variationTitle]
+                .compactMap { $0 }
+                + exercise.alias
+                + exercise.equipment
+                + exercise.variationTags
+            for title in searchableTitles {
                 if titleMatchesFilter(title: title, filter: filter) {
                     return true
                 }
@@ -251,7 +272,7 @@ extension ExerciseStore {
 
 // MARK: - Custom Exercises (Core Data backed)
 extension ExerciseStore {
-    public func createCustomExercise(title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, activityCategoryIDs: [String] = [ExerciseActivityCategory.strength.rawValue]) {
+    public func createCustomExercise(title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, activityCategoryIDs: [String] = [ExerciseActivityCategory.strength.rawValue], movementTitle: String? = nil, variationTitle: String? = nil, variationTags: [String] = []) {
         let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { return }
         guard !exercises.contains(where: { $0.title == title }) else { return }
@@ -259,17 +280,17 @@ extension ExerciseStore {
 
         let entity = CustomExercise(context: context)
         entity.uuid = UUID()
-        apply(title: title, description: description, primaryMuscle: primaryMuscle, secondaryMuscle: secondaryMuscle, type: type, activityCategoryIDs: activityCategoryIDs, to: entity)
+        apply(title: title, description: description, primaryMuscle: primaryMuscle, secondaryMuscle: secondaryMuscle, type: type, activityCategoryIDs: activityCategoryIDs, movementTitle: movementTitle, variationTitle: variationTitle, variationTags: variationTags, to: entity)
         saveAndReload(context)
     }
 
-    public func updateCustomExercise(with uuid: UUID, title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, activityCategoryIDs: [String] = [ExerciseActivityCategory.strength.rawValue]) {
+    public func updateCustomExercise(with uuid: UUID, title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, activityCategoryIDs: [String] = [ExerciseActivityCategory.strength.rawValue], movementTitle: String? = nil, variationTitle: String? = nil, variationTags: [String] = []) {
         let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { return }
         guard !exercises.contains(where: { $0.title == title && $0.uuid != uuid }) else { return }
         guard let context = context, let entity = customExerciseEntity(with: uuid, in: context) else { return }
 
-        apply(title: title, description: description, primaryMuscle: primaryMuscle, secondaryMuscle: secondaryMuscle, type: type, activityCategoryIDs: activityCategoryIDs, to: entity)
+        apply(title: title, description: description, primaryMuscle: primaryMuscle, secondaryMuscle: secondaryMuscle, type: type, activityCategoryIDs: activityCategoryIDs, movementTitle: movementTitle, variationTitle: variationTitle, variationTags: variationTags, to: entity)
         saveAndReload(context)
     }
 
@@ -280,15 +301,25 @@ extension ExerciseStore {
         saveAndReload(context)
     }
 
-    private func apply(title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, activityCategoryIDs: [String], to entity: CustomExercise) {
+    private func apply(title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, activityCategoryIDs: [String], movementTitle: String?, variationTitle: String?, variationTags: [String], to entity: CustomExercise) {
         var description = description?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let d = description, d.isEmpty { description = nil }
+        let cleanMovementTitle = movementTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let hasCustomMovementTitle = cleanMovementTitle?.isEmpty == false
+        let resolvedMovementTitle = hasCustomMovementTitle ? cleanMovementTitle! : Exercise.defaultMovementTitle(for: title)
+        let cleanVariationTitle = variationTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let equipment = type.equipment.map { [$0] } ?? []
+        let resolvedVariationTags = Exercise.normalizedVariationTags(variationTags.isEmpty ? equipment : variationTags)
         entity.title = title
         entity.exerciseDescription = description
         entity.primaryMusclesJSON = Self.encodeStrings(primaryMuscle)
         entity.secondaryMusclesJSON = Self.encodeStrings(secondaryMuscle)
-        entity.equipmentJSON = Self.encodeStrings(type.equipment.map { [$0] } ?? [])
+        entity.equipmentJSON = Self.encodeStrings(equipment)
         entity.activityCategoriesJSON = Self.encodeCategoryIDs(activityCategoryIDs)
+        entity.movementID = hasCustomMovementTitle ? Exercise.defaultMovementID(for: resolvedMovementTitle) : entity.uuid?.uuidString.lowercased()
+        entity.movementTitle = resolvedMovementTitle
+        entity.variationTitle = cleanVariationTitle?.isEmpty == true ? nil : cleanVariationTitle
+        entity.variationTagsJSON = Self.encodeStrings(resolvedVariationTags)
         if entity.defaultMetric == nil {
             entity.defaultMetric = ExerciseSetMetric.reps.rawValue
         }
@@ -338,6 +369,10 @@ extension ExerciseStore {
             everkineticId: Exercise.customEverkineticId,
             title: entity.title ?? "",
             alias: [],
+            movementID: entity.movementID ?? uuid.uuidString.lowercased(),
+            movementTitle: entity.movementTitle ?? entity.title ?? "",
+            variationTitle: entity.variationTitle,
+            variationTags: decodeStrings(entity.variationTagsJSON),
             activityCategories: decodeCategories(entity.activityCategoriesJSON),
             activityCategoryIDs: decodeCategoryIDs(entity.activityCategoriesJSON),
             defaultMetric: ExerciseSetMetric(rawValue: entity.defaultMetric ?? "") ?? .reps,

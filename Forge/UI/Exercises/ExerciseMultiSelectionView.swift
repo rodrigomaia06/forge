@@ -12,19 +12,74 @@ import WorkoutDataKit
 struct ExerciseMultiSelectionView: View {
     var exerciseGroups: [ExerciseGroup]
     @Binding var selection: Set<Exercise>
+    @State private var expandedMovementIDs = Set<String>()
     
     var body: some View {
-        List(selection: $selection) {
+        List {
             ForEach(exerciseGroups) { exerciseGroup in
                 Section(header: Text(exerciseGroup.title.capitalized)) {
-                    ForEach(exerciseGroup.exercises, id: \.self) { exercise in
-                        Text(exercise.title)
+                    if exerciseGroup.title == "Selected" {
+                        ForEach(exerciseGroup.exercises, id: \.self) { exercise in
+                            selectionRow(exercise: exercise, title: exercise.title)
+                        }
+                    } else {
+                        ForEach(ExerciseStore.splitIntoMovements(exercises: exerciseGroup.exercises)) { movement in
+                            if movement.variations.count == 1, let variation = movement.variations.first {
+                                selectionRow(exercise: variation.exercise, title: variation.exercise.title)
+                            } else {
+                                DisclosureGroup(isExpanded: Binding(
+                                    get: { expandedMovementIDs.contains(movement.id) },
+                                    set: { isExpanded in
+                                        if isExpanded {
+                                            expandedMovementIDs.insert(movement.id)
+                                        } else {
+                                            expandedMovementIDs.remove(movement.id)
+                                        }
+                                    }
+                                )) {
+                                    ForEach(movement.variations) { variation in
+                                        selectionRow(exercise: variation.exercise, title: variation.exercise.variationDisplayTitle)
+                                    }
+                                } label: {
+                                    Text(movement.title)
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
         .listStyleCompat_InsetGroupedListStyle()
-        .environment(\.editMode, .constant(.active))
+    }
+
+    private func selectionRow(exercise: Exercise, title: String) -> some View {
+        Button {
+            if selection.contains(exercise) {
+                selection.remove(exercise)
+            } else {
+                selection.insert(exercise)
+            }
+        } label: {
+            HStack(spacing: Theme.Spacing.m) {
+                Image(systemName: selection.contains(exercise) ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(selection.contains(exercise) ? .forgeAccent : .forgeSecondaryLabel)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .foregroundColor(.forgeLabel)
+                    if title != exercise.title {
+                        Text(exercise.title)
+                            .font(.forgeCaption)
+                            .foregroundColor(.forgeSecondaryLabel)
+                    }
+                }
+                Spacer()
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(exercise.title)
+        .accessibilityValue(selection.contains(exercise) ? "Selected" : "Not selected")
     }
 }
 

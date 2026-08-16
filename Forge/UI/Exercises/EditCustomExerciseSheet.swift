@@ -19,7 +19,7 @@ struct EditCustomExerciseSheet: View {
         self.exercise = exercise
         let primaryMuscle = exercise.primaryMuscle.map { EditCustomExerciseView.ExerciseValues.ExerciseMuscle(type: .primary, muscle: $0) }
         let secondaryMuscle = exercise.secondaryMuscle.map { EditCustomExerciseView.ExerciseValues.ExerciseMuscle(type: .secondary, muscle: $0) }
-        _exerciseValues = State(initialValue: .init(title: exercise.title, description: exercise.description ?? "", muscles: Set(primaryMuscle + secondaryMuscle), type: exercise.type, activityCategoryIDs: Set(exercise.activityCategoryIDs), restTime: ExerciseStore.shared.restTime(forExercise: exercise.uuid)))
+        _exerciseValues = State(initialValue: .init(title: exercise.title, description: exercise.description ?? "", movementTitle: exercise.movementTitle, variationTitle: exercise.variationTitle ?? "", muscles: Set(primaryMuscle + secondaryMuscle), type: exercise.type, activityCategoryIDs: Set(exercise.activityCategoryIDs), restTime: ExerciseStore.shared.restTime(forExercise: exercise.uuid)))
     }
     
     private var canSave: Bool {
@@ -52,7 +52,9 @@ struct EditCustomExerciseSheet: View {
                 primaryMuscle: primaryMuscle,
                 secondaryMuscle: secondaryMuscle,
                 type: self.exerciseValues.type,
-                activityCategoryIDs: Array(self.exerciseValues.activityCategoryIDs).sorted()
+                activityCategoryIDs: Array(self.exerciseValues.activityCategoryIDs).sorted(),
+                movementTitle: self.exerciseValues.movementTitle,
+                variationTitle: self.exerciseValues.variationTitle
             )
             ExerciseStore.shared.setRestTime(self.exerciseValues.restTime, forExercise: self.exercise.uuid)
             self.presentationMode.wrappedValue.dismiss()

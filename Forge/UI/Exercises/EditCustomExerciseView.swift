@@ -14,6 +14,8 @@ struct EditCustomExerciseView: View {
     struct ExerciseValues {
         var title: String
         var description: String
+        var movementTitle: String = ""
+        var variationTitle: String = ""
         var muscles: Set<ExerciseMuscle>
         var type: Exercise.ExerciseType
         var activityCategoryIDs: Set<String> = [ExerciseActivityCategory.strength.rawValue]
@@ -58,6 +60,11 @@ struct EditCustomExerciseView: View {
             Section {
                 TextField("Title", text: $exerciseValues.title)
                 TextField("Description (Optional)", text: $exerciseValues.description)
+            }
+
+            Section(header: Text("Variation".uppercased()), footer: Text("Use the same movement name to group related exercise variations.")) {
+                TextField("Movement", text: $exerciseValues.movementTitle)
+                TextField("Variation", text: $exerciseValues.variationTitle)
             }
             
             Section(header: Text("Muscles".uppercased()), footer: Text("Select at least one muscle.")) {
