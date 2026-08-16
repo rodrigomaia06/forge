@@ -391,7 +391,7 @@ struct FeedView: View {
     private func overviewRow(title: String, value: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.m) {
             Text(title)
-                .font(.body.weight(.semibold))
+                .font(.forgeCardTitle)
                 .foregroundColor(.forgeLabel)
                 .lineLimit(1)
             Spacer(minLength: Theme.Spacing.s)
@@ -642,7 +642,7 @@ struct FeedView: View {
                     let elapsed = max(0, context.date.timeIntervalSince(workout.safeStart))
                     VStack(alignment: .leading, spacing: Theme.Spacing.s) {
                         Text(workout.displayTitle(in: exerciseStore.exercises, showPlan: settingsStore.showPlanInWorkoutTitle))
-                            .font(.forgeHeadline)
+                            .font(.forgeCardTitle)
                             .foregroundColor(.forgeLabel)
                             .lineLimit(2)
                         panelMeta([
@@ -768,7 +768,7 @@ struct FeedView: View {
         HStack(alignment: .center, spacing: Theme.Spacing.m) {
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
                 Text(workout.displayTitle(in: exerciseStore.exercises, showPlan: settingsStore.showPlanInWorkoutTitle))
-                    .font(.forgeHeadline)
+                    .font(.forgeCardTitle)
                     .foregroundColor(.forgeLabel)
                     .lineLimit(2)
 
@@ -924,7 +924,7 @@ struct FeedView: View {
 
     private func panelTitle(_ title: String) -> some View {
         Text(title)
-            .font(.forgeHeadline)
+            .font(.forgeSectionTitle)
             .foregroundColor(.forgeSecondaryLabel)
             .lineLimit(2)
     }

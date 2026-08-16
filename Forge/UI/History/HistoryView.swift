@@ -385,7 +385,7 @@ struct HistoryView : View {
     private func historySection(_ section: HistorySection) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
             Text(section.title)
-                .font(.title3.weight(.semibold))
+                .font(.forgeSectionTitle)
                 .foregroundColor(.forgeSecondaryLabel)
                 .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
 
@@ -487,13 +487,13 @@ private struct WorkoutCell: View {
         HStack(alignment: .center, spacing: Theme.Spacing.s) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(workout.title)
-                    .font(.body)
+                    .font(.forgeCardTitle)
                     .foregroundColor(.forgeLabel)
                     .lineLimit(1)
                     .truncationMode(.tail)
 
                 Text("\(workout.workoutTypeTitle) · \(workout.dateText)")
-                    .font(.caption)
+                    .font(.forgeCaption)
                     .foregroundColor(.forgeSecondaryLabel)
                     .lineLimit(1)
                     .truncationMode(.tail)

@@ -130,6 +130,12 @@ extension Font {
     /// Section titles / row headlines.
     static var forgeHeadline: Font { .headline }
 
+    /// Shared section heading used above dashboard, history, and workout groups.
+    static var forgeSectionTitle: Font { .title3.weight(.semibold) }
+
+    /// Primary title inside a card or content row.
+    static var forgeCardTitle: Font { .body.weight(.semibold) }
+
     /// Supporting captions and secondary metadata.
     static var forgeCaption: Font { .subheadline }
 

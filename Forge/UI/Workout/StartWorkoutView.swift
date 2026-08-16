@@ -86,7 +86,7 @@ struct StartWorkoutView: View {
 
                 List {
                     if !standaloneRoutines.isEmpty {
-                        Section(header: Text("Routines")) {
+                        Section {
                             ForEach(standaloneRoutines) { routine in
                                 RoutineMenuRow(routine: routine, allPlans: Array(workoutPlans), onStart: { start(routine: $0) }, onEdit: { routineToEdit = $0 }, onShare: { shareRoutine($0) })
                                     .padding(.horizontal, Theme.Surface.cardPadding)
@@ -98,13 +98,17 @@ struct StartWorkoutView: View {
                                     .padding(.vertical, Theme.Spacing.s)
                             }
                             .onDelete { deleteStandaloneRoutines($0) }
+                        } header: {
+                            Text("Routines")
+                                .font(.forgeSectionTitle)
+                                .foregroundColor(.forgeSecondaryLabel)
                         }
                     }
                     if !workoutPlans.isEmpty {
                         ForEach(Array(workoutPlans.enumerated()), id: \.element.objectID) { index, workoutPlan in
                             if index == 0 {
                                 Text("Plans")
-                                    .font(.forgeHeadline)
+                                    .font(.forgeSectionTitle)
                                     .foregroundColor(.forgeSecondaryLabel)
                                     .listRowInsets(EdgeInsets(top: Theme.Spacing.m, leading: Theme.Spacing.l, bottom: Theme.Spacing.s, trailing: Theme.Spacing.l))
                                     .listRowBackground(Color.clear)
@@ -215,7 +219,7 @@ private struct WorkoutPlanCell: View {
     var body: some View {
         NavigationLink(destination: WorkoutPlanView(workoutPlan: workoutPlan)) {
             Text(workoutPlan.displayTitle)
-                .font(.headline)
+                .font(.forgeCardTitle)
             .contextMenu {
                 Button(action: {
                     _ = self.workoutPlan.duplicate(context: self.managedObjectContext)
@@ -322,6 +326,7 @@ private struct RoutineMenuRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.s) {
                         Text(routine.displayTitle)
+                            .font(.forgeCardTitle)
                             .italic()
                             .lineLimit(1)
                         Spacer(minLength: Theme.Spacing.s)
@@ -334,7 +339,7 @@ private struct RoutineMenuRow: View {
                         Text(subtitle)
                             .lineLimit(1)
                             .foregroundColor(.secondary)
-                            .font(.caption)
+                            .font(.forgeCaption)
                     }
                 }
                 .layoutPriority(1)

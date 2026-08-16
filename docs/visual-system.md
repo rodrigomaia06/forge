@@ -41,6 +41,10 @@ native menus for option selection and familiar SF Symbols for icon actions. Main
 Typography follows Dynamic Type and uses hierarchy rather than oversized text. Spacing should be compact
 enough for scanning during a workout without making rows difficult to tap.
 
+Equivalent roles use the same semantic styles: `forgeSectionTitle` for group headings, `forgeCardTitle`
+for primary card and row titles, and `forgeCaption` for supporting subtitles and metadata. This keeps
+Dashboard, History, and Workout aligned while preserving Dynamic Type scaling.
+
 All actionable rows retain a minimum 44-point hit target. A card may contain multiple rows, but the card
 itself is not an additional interactive layer. Color rails, badges, and selection fills support labels or
 icons and never carry meaning alone.
