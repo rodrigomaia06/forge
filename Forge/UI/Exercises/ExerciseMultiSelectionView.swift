@@ -22,23 +22,67 @@ struct ExerciseMultiSelectionView: View {
     )
     
     var body: some View {
-        List {
-            ForEach(exerciseGroups) { exerciseGroup in
-                Section(header: Text(exerciseGroup.title.capitalized)) {
-                    if exerciseGroup.title == "Selected" || showsExactResults {
-                        ForEach(exerciseGroup.exercises, id: \.self) { exercise in
-                            exactSelectionRow(exercise: exercise)
+        Group {
+            if exerciseGroups.isEmpty {
+                ContentUnavailableView("No exercises found", systemImage: "magnifyingglass")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.forgeBackground)
+            } else {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                        ForEach(exerciseGroups) { exerciseGroup in
+                            exerciseSection(exerciseGroup)
                         }
-                    } else {
-                        ForEach(ExerciseStore.splitIntoMovements(exercises: exerciseGroup.exercises)) { movement in
-                            movementRow(movement)
-                        }
+                    }
+                    .padding(.horizontal, Theme.Spacing.l)
+                    .padding(.top, Theme.Spacing.m)
+                    .padding(.bottom, Theme.Spacing.xl)
+                }
+                .background(Color.forgeBackground)
+            }
+        }
+    }
+
+    private func exerciseSection(_ exerciseGroup: ExerciseGroup) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            Text(exerciseGroup.title.capitalized)
+                .font(.forgeHeadline)
+                .foregroundColor(.forgeSecondaryLabel)
+                .padding(.horizontal, Theme.Spacing.m)
+
+            VStack(spacing: 0) {
+                if exerciseGroup.title == "Selected" || showsExactResults {
+                    let exercises = exerciseGroup.exercises
+                    ForEach(Array(exercises.enumerated()), id: \.element) { index, exercise in
+                        exactSelectionRow(exercise: exercise)
+                        rowDivider(isLast: index == exercises.count - 1)
+                    }
+                } else {
+                    let movements = ExerciseStore.splitIntoMovements(exercises: exerciseGroup.exercises)
+                    ForEach(Array(movements.enumerated()), id: \.element.id) { index, movement in
+                        movementRow(movement)
+                        rowDivider(isLast: index == movements.count - 1)
                     }
                 }
             }
+            .background(
+                RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous)
+                    .fill(Color.forgeSurface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous)
+                    .strokeBorder(Color.forgeSeparator, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))
         }
-        .listStyleCompat_InsetGroupedListStyle()
-        .environment(\.defaultMinListRowHeight, 56)
+    }
+
+    @ViewBuilder
+    private func rowDivider(isLast: Bool) -> some View {
+        if !isLast {
+            Divider()
+                .padding(.leading, Theme.Spacing.l)
+        }
     }
 
     private func movementRow(_ movement: ExerciseMovement) -> some View {
@@ -55,7 +99,7 @@ struct ExerciseMultiSelectionView: View {
                     )
                 }
                 .buttonStyle(.plain)
-                .listRowInsets(compactRowInsets)
+                .padding(compactRowInsets)
                 .accessibilityLabel(movement.title)
                 .accessibilityValue(selection.contains(variation.exercise) ? "Selected" : "Not selected")
             )
@@ -73,7 +117,7 @@ struct ExerciseMultiSelectionView: View {
                     showsDisclosure: true
                 )
             }
-            .listRowInsets(compactRowInsets)
+            .padding(compactRowInsets)
         )
     }
 
@@ -101,6 +145,12 @@ struct ExerciseMultiSelectionView: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.body)
                     .foregroundColor(.forgeAccent)
+                    .accessibilityHidden(true)
+            }
+            if showsDisclosure {
+                Image(systemName: "chevron.right")
+                    .font(.body.weight(.semibold))
+                    .foregroundColor(.forgeSecondaryLabel)
                     .accessibilityHidden(true)
             } else if !showsDisclosure {
                 Image(systemName: "plus.circle")
@@ -131,7 +181,7 @@ struct ExerciseMultiSelectionView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .listRowInsets(compactRowInsets)
+        .padding(compactRowInsets)
         .accessibilityLabel(exercise.title)
         .accessibilityValue(selection.contains(exercise) ? "Selected" : "Not selected")
     }
@@ -153,6 +203,8 @@ struct ExerciseMultiSelectionView: View {
 private struct ExerciseMovementSelectionView: View {
     let movement: ExerciseMovement
     @Binding var selection: Set<Exercise>
+    @State private var selectedValues: [VariationField: String] = [:]
+
     private let compactRowInsets = EdgeInsets(
         top: Theme.Spacing.s,
         leading: Theme.Spacing.l,
@@ -161,17 +213,161 @@ private struct ExerciseMovementSelectionView: View {
     )
 
     var body: some View {
-        List {
-            Section {
-                ForEach(movement.variations) { variation in
-                    variationRow(variation.exercise)
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+                if !availableFields.isEmpty {
+                    VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+                        ForEach(availableFields) { field in
+                            fieldChooser(field)
+                        }
+                    }
+                    .padding(Theme.Spacing.l)
+                    .background(
+                        RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous)
+                            .fill(Color.forgeSurface)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous)
+                            .strokeBorder(Color.forgeSeparator, lineWidth: 1)
+                    )
+                }
+
+                VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+                    Text(matchSectionTitle)
+                        .font(.forgeHeadline)
+                        .foregroundColor(.forgeSecondaryLabel)
+                        .padding(.horizontal, Theme.Spacing.m)
+
+                    if shouldShowMatches {
+                        if matchingVariations.isEmpty {
+                            Text("No variations match these options.")
+                                .font(.forgeCaption)
+                                .foregroundColor(.forgeSecondaryLabel)
+                                .padding(Theme.Spacing.l)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous)
+                                        .fill(Color.forgeSurface)
+                                )
+                        } else {
+                            VStack(spacing: 0) {
+                                ForEach(Array(matchingVariations.enumerated()), id: \.element.id) { index, variation in
+                                    variationRow(variation.exercise)
+                                    rowDivider(isLast: index == matchingVariations.count - 1)
+                                }
+                            }
+                            .background(
+                                RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous)
+                                    .fill(Color.forgeSurface)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous)
+                                    .strokeBorder(Color.forgeSeparator, lineWidth: 1)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))
+                        }
+                    } else {
+                        Text("Choose equipment, setup, grip, or another option to narrow the variations.")
+                            .font(.forgeCaption)
+                            .foregroundColor(.forgeSecondaryLabel)
+                            .padding(Theme.Spacing.l)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous)
+                                    .fill(Color.forgeSurface)
+                            )
+                    }
+                }
+            }
+            .padding(.horizontal, Theme.Spacing.l)
+            .padding(.top, Theme.Spacing.m)
+            .padding(.bottom, Theme.Spacing.xl)
+        }
+        .background(Color.forgeBackground)
+        .navigationTitle(movement.title)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var availableFields: [VariationField] {
+        VariationField.allCases.filter { values(for: $0).count > 1 }
+    }
+
+    private var matchingVariations: [ExerciseVariation] {
+        movement.variations.filter { variation in
+            selectedValues.allSatisfy { field, value in
+                field.value(for: variation.exercise) == value
+            }
+        }
+    }
+
+    private var shouldShowMatches: Bool {
+        matchingVariations.count <= 8 || !selectedValues.isEmpty || availableFields.isEmpty
+    }
+
+    private var matchSectionTitle: String {
+        let count = matchingVariations.count
+        if count == 1 {
+            return "1 match"
+        }
+        return "\(count) matches"
+    }
+
+    private func values(for field: VariationField) -> [String] {
+        Array(Set(movement.variations.compactMap { variation in
+            field.value(for: variation.exercise)
+        }))
+        .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+
+    private func fieldChooser(_ field: VariationField) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
+            HStack {
+                Text(field.title)
+                    .font(.forgeCaption.weight(.semibold))
+                    .foregroundColor(.forgeSecondaryLabel)
+                Spacer()
+                if selectedValues[field] != nil {
+                    Button("Clear") {
+                        Haptics.selection()
+                        selectedValues[field] = nil
+                    }
+                    .font(.forgeCaption)
+                    .foregroundColor(.forgeSecondaryLabel)
+                }
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Theme.Spacing.s) {
+                    ForEach(values(for: field), id: \.self) { value in
+                        fieldChip(field: field, value: value)
+                    }
                 }
             }
         }
-        .listStyleCompat_InsetGroupedListStyle()
-        .environment(\.defaultMinListRowHeight, 56)
-        .navigationTitle(movement.title)
-        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func fieldChip(field: VariationField, value: String) -> some View {
+        let isSelected = selectedValues[field] == value
+        return Button {
+            Haptics.selection()
+            selectedValues[field] = isSelected ? nil : value
+        } label: {
+            Text(value)
+                .font(.forgeCaption.weight(.semibold))
+                .foregroundColor(isSelected ? .forgeBackground : .forgeLabel)
+                .padding(.horizontal, Theme.Spacing.m)
+                .frame(minHeight: 34)
+                .background(Capsule().fill(isSelected ? Color.forgeAccent : Color.forgeBackground))
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func rowDivider(isLast: Bool) -> some View {
+        if !isLast {
+            Divider()
+                .padding(.leading, Theme.Spacing.l)
+        }
     }
 
     private func variationRow(_ exercise: Exercise) -> some View {
@@ -193,7 +389,7 @@ private struct ExerciseMovementSelectionView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .listRowInsets(compactRowInsets)
+        .padding(compactRowInsets)
         .accessibilityLabel(exercise.title)
         .accessibilityValue(selection.contains(exercise) ? "Selected" : "Not selected")
     }
@@ -209,6 +405,44 @@ private struct ExerciseMovementSelectionView: View {
                 selection.insert(exercise)
             }
         }
+    }
+}
+
+private enum VariationField: String, CaseIterable, Identifiable {
+    case equipment
+    case attachment
+    case setup
+    case grip
+    case side
+    case load
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .equipment: return "Equipment"
+        case .attachment: return "Attachment"
+        case .setup: return "Setup"
+        case .grip: return "Grip"
+        case .side: return "Side"
+        case .load: return "Load"
+        }
+    }
+
+    func value(for exercise: Exercise) -> String? {
+        let value: String?
+        switch self {
+        case .equipment: value = exercise.equipmentTitle
+        case .attachment: value = exercise.attachmentTitle
+        case .setup: value = exercise.setupTitle
+        case .grip: value = exercise.gripTitle
+        case .side: value = exercise.sideTitle
+        case .load: value = exercise.loadModeTitle
+        }
+        guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {
+            return nil
+        }
+        return value
     }
 }
 

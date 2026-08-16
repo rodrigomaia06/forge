@@ -48,7 +48,7 @@ struct ExerciseSourceRow: View {
     var title: String? = nil
 
     private var subtitle: String? {
-        guard let title, title != exercise.title, title != exercise.browsingVariationTitle else { return nil }
+        guard let title, title != exercise.title else { return nil }
         return exercise.title
     }
 
