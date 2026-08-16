@@ -51,7 +51,11 @@ struct CustomExercisesView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            ExerciseBrowserFilterControls(filter: $filter, exercises: exerciseStore.customExercises)
+            ExerciseBrowserFilterControls(
+                filter: $filter,
+                exercises: exerciseStore.customExercises,
+                showsCategoryChips: false
+            )
             Divider()
             List {
                 if filteredExercises.isEmpty, filter.isActive {

@@ -35,9 +35,12 @@ struct ExerciseMovementRows: View {
         }
         .swipeActions {
             if let onDelete {
-                Button("Delete", role: .destructive) {
+                Button(role: .destructive) {
                     onDelete(exercise)
+                } label: {
+                    Label("Delete", systemImage: "trash")
                 }
+                .tint(.forgeDestructive)
             }
         }
     }
@@ -91,9 +94,12 @@ private struct ExerciseMovementDetailView: View {
                         }
                         .swipeActions {
                             if let onDelete {
-                                Button("Delete", role: .destructive) {
+                                Button(role: .destructive) {
                                     onDelete(exercise)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
                                 }
+                                .tint(.forgeDestructive)
                             }
                         }
                     }

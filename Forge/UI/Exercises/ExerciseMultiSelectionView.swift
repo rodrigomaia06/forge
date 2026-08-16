@@ -101,21 +101,10 @@ struct ExerciseMultiSelectionView: View {
                 }
             }
             Spacer()
-            if selectedCount > 0 {
-                Image(systemName: "checkmark.circle.fill")
+            if !showsDisclosure {
+                Image(systemName: selectedCount > 0 ? "checkmark.circle.fill" : "plus.circle")
                     .font(.body)
-                    .foregroundColor(.forgeAccent)
-                    .accessibilityHidden(true)
-            }
-            if showsDisclosure {
-                Image(systemName: "chevron.right")
-                    .font(.body.weight(.semibold))
-                    .foregroundColor(.forgeSecondaryLabel)
-                    .accessibilityHidden(true)
-            } else if !showsDisclosure {
-                Image(systemName: "plus.circle")
-                    .font(.body)
-                    .foregroundColor(.forgeSecondaryLabel)
+                    .foregroundColor(selectedCount > 0 ? .forgeAccent : .forgeSecondaryLabel)
                     .accessibilityHidden(true)
             }
         }
@@ -265,6 +254,21 @@ private struct ExerciseMovementSelectionView: View {
         return existingExercise == nil ? "Create and add" : "Add exercise"
     }
 
+    private var hasIncompleteCustomValue: Bool {
+        visibleAttributes.contains { attribute in
+            choices[attribute] == Self.otherValue && value(for: attribute) == nil
+        }
+    }
+
+    private var isSelectionComplete: Bool {
+        equipmentTitle != nil && !hasIncompleteCustomValue
+    }
+
+    private var resultStatus: String {
+        guard let existingExercise else { return "New variation" }
+        return selection.contains(existingExercise) ? "Selected" : "Existing variation"
+    }
+
     var body: some View {
         Form {
             Section {
@@ -281,24 +285,25 @@ private struct ExerciseMovementSelectionView: View {
                     TextField("Equipment", text: $customEquipment)
                         .textInputAutocapitalization(.words)
                 }
-            }
 
-            if equipmentTitle != nil, !visibleAttributes.isEmpty {
-                Section {
+                if equipmentTitle != nil {
                     ForEach(visibleAttributes) { attribute in
                         attributePicker(attribute)
                     }
                 }
-            }
 
-            if equipmentTitle != nil {
-                Section {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(movement.title)
-                            .font(.forgeHeadline)
-                        Text(variationSelection.summaryTitle)
-                            .font(.forgeCaption)
-                            .foregroundColor(.forgeSecondaryLabel)
+                if isSelectionComplete {
+                    LabeledContent("Result") {
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text(movement.title)
+                                .foregroundColor(.forgeLabel)
+                            Text(variationSelection.summaryTitle)
+                                .font(.forgeCaption)
+                                .foregroundColor(.forgeSecondaryLabel)
+                            Text(resultStatus)
+                                .font(.forgeCaption)
+                                .foregroundColor(existingExercise.map { selection.contains($0) } == true ? .forgeAccent : .forgeSecondaryLabel)
+                        }
                     }
                     .accessibilityElement(children: .combine)
                 }
@@ -309,17 +314,7 @@ private struct ExerciseMovementSelectionView: View {
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) {
             if equipmentTitle != nil {
-                Button(actionTitle) {
-                    performAction()
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, Theme.Spacing.l)
-                .padding(.vertical, Theme.Spacing.s)
-                .background(.bar)
-                .disabled(isSaving)
-                .accessibilityValue(existingExercise.map { selection.contains($0) ? "Selected" : "Not selected" } ?? "New variation")
+                actionBar
             }
         }
         .onChange(of: equipmentChoice) { _, _ in
@@ -331,6 +326,51 @@ private struct ExerciseMovementSelectionView: View {
         } message: {
             Text("The variation could not be created. Your exercise selection was not changed.")
         }
+    }
+
+    private var isExistingSelectionSelected: Bool {
+        existingExercise.map { selection.contains($0) } == true
+    }
+
+    private var actionAccessibilityValue: String {
+        guard isSelectionComplete else { return "Complete the variation first" }
+        return existingExercise.map { selection.contains($0) ? "Selected" : "Not selected" } ?? "New variation"
+    }
+
+    private var actionBar: some View {
+        Group {
+            if isExistingSelectionSelected {
+                Button("Remove", role: .destructive) {
+                    performAction()
+                }
+                .buttonStyle(.bordered)
+                .tint(.forgeDestructive)
+            } else {
+                Button {
+                    performAction()
+                } label: {
+                    Group {
+                        if isSaving {
+                            ProgressView()
+                                .tint(.forgeBackground)
+                        } else {
+                            Text(actionTitle)
+                                .foregroundColor(.forgeBackground)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.forgeAccent)
+            }
+        }
+        .controlSize(.large)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, Theme.Spacing.l)
+        .padding(.vertical, Theme.Spacing.s)
+        .background(.bar)
+        .disabled(!isSelectionComplete || isSaving)
+        .accessibilityValue(actionAccessibilityValue)
     }
 
     @ViewBuilder
@@ -372,7 +412,7 @@ private struct ExerciseMovementSelectionView: View {
     }
 
     private func performAction() {
-        guard equipmentTitle != nil else { return }
+        guard isSelectionComplete else { return }
         var transaction = Transaction()
         transaction.animation = nil
         if let existingExercise {
