@@ -61,17 +61,13 @@ private struct MovementBrowserRow: View {
 
     var body: some View {
         HStack(spacing: Theme.Spacing.s) {
-            Text(movement.title)
-                .foregroundColor(.forgeLabel)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(movement.title)
+                    .foregroundColor(.forgeLabel)
+            }
             Spacer()
             if let commonSource {
                 SourceSignalView(isAppProvided: commonSource)
-            }
-            if movement.variations.count > 1 {
-                Image(systemName: "square.stack.3d.up")
-                    .font(.body.weight(.semibold))
-                    .foregroundColor(.forgeSecondaryLabel)
-                    .accessibilityLabel("Multiple variations")
             }
         }
     }
@@ -107,10 +103,7 @@ private struct ExerciseMovementDetailView: View {
                 }
             }
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .listRowBackground(Color.clear)
-        .background(Color.forgeBackground)
+        .listStyleCompat_InsetGroupedListStyle()
         .navigationTitle(movement.title)
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -123,20 +116,16 @@ private struct ExactExerciseBrowserRow: View {
 
     var body: some View {
         HStack(spacing: Theme.Spacing.s) {
-            Text(title)
-                .foregroundColor(.forgeLabel)
-                .lineLimit(2)
-                .layoutPriority(1)
-            Spacer(minLength: Theme.Spacing.s)
-            if let subtitle {
-                Text(subtitle)
-                    .font(.forgeCaption)
-                    .foregroundColor(.forgeSecondaryLabel)
-                    .multilineTextAlignment(.trailing)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: 150, alignment: .trailing)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .foregroundColor(.forgeLabel)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.forgeCaption)
+                        .foregroundColor(.forgeSecondaryLabel)
+                }
             }
+            Spacer()
             SourceSignalView(isAppProvided: !exercise.isCustom)
         }
         .accessibilityElement(children: .combine)

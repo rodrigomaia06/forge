@@ -117,9 +117,7 @@ struct StartWorkoutView: View {
                         }
                     }
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .listRowBackground(Color.clear)
+                .listStyleCompat_InsetGroupedListStyle()
             }
             .background(Color.forgeBackground.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
@@ -241,8 +239,10 @@ private struct WorkoutPlanRoutines: View {
     var body: some View {
         ForEach(workoutRoutines) { workoutRoutine in
             RoutineMenuRow(routine: workoutRoutine, allPlans: allPlans, nested: true, onStart: onStart, onEdit: onEdit, onShare: onShare)
-                .listRowInsets(EdgeInsets(top: 0, leading: Theme.Spacing.m, bottom: 0, trailing: Theme.Spacing.m))
-                .listRowSeparator(.visible)
+                // A touch more vertical room so the wells breathe and the last one clears the plan card's
+                // rounded bottom corners instead of sitting flush against them.
+                .listRowInsets(EdgeInsets(top: 5, leading: Theme.Spacing.m, bottom: 6, trailing: Theme.Spacing.m))
+                .listRowSeparator(.hidden)
         }
     }
 }
@@ -310,7 +310,15 @@ private struct RoutineMenuRow: View {
                 .layoutPriority(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, nested ? Theme.Spacing.xs : 0)
+            // In a plan, each routine is a recessed dark well inside the plan card (no outline), so the
+            // nesting reads softly instead of as outlined boxes.
+            .padding(nested ? Theme.Spacing.m : 0)
+            .background {
+                if nested {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color.forgeBackground)
+                }
+            }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

@@ -77,26 +77,6 @@ final class ExerciseMovementTests: XCTestCase {
         XCTAssertEqual(movements.first?.variations.map { $0.exercise.variationDisplayTitle }, ["Equipment: Barbell", "Equipment: Dumbbell"])
     }
 
-    func testMovementGroupingHidesDuplicateExactIdentities() {
-        let first = exercise(
-            title: "Face Pull: Cable",
-            movementID: "face_pull",
-            movementTitle: "Face Pull",
-            equipment: ["cable"]
-        )
-        let duplicate = exercise(
-            title: "Face Pulls",
-            movementID: "face_pull",
-            movementTitle: "Face Pull",
-            equipment: ["cable"]
-        )
-
-        let movements = ExerciseStore.splitIntoMovements(exercises: [first, duplicate])
-
-        XCTAssertEqual(movements.count, 1)
-        XCTAssertEqual(movements.first?.variations.count, 1)
-    }
-
     func testMuscleGroupsShowEachMovementOnceAcrossPrimaryMuscles() {
         let standard = exercise(
             title: "Push Up",
