@@ -37,7 +37,7 @@ struct ExerciseMultiSelectionView: View {
                 }
             }
         }
-        .listStyle(.plain)
+        .listStyleCompat_InsetGroupedListStyle()
         .environment(\.defaultMinListRowHeight, 56)
     }
 
@@ -137,6 +137,7 @@ struct ExerciseMultiSelectionView: View {
     }
 
     private func toggle(_ exercise: Exercise) {
+        Haptics.selection()
         var transaction = Transaction()
         transaction.animation = nil
         withTransaction(transaction) {
@@ -167,7 +168,7 @@ private struct ExerciseMovementSelectionView: View {
                 }
             }
         }
-        .listStyle(.plain)
+        .listStyleCompat_InsetGroupedListStyle()
         .environment(\.defaultMinListRowHeight, 56)
         .navigationTitle(movement.title)
         .navigationBarTitleDisplayMode(.inline)
@@ -198,6 +199,7 @@ private struct ExerciseMovementSelectionView: View {
     }
 
     private func toggle(_ exercise: Exercise) {
+        Haptics.selection()
         var transaction = Transaction()
         transaction.animation = nil
         withTransaction(transaction) {

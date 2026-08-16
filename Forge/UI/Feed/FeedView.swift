@@ -30,8 +30,14 @@ struct FeedView: View {
     /// When set (from the year view), the calendar drills into this single month's detailed grid.
     @State private var zoomedMonth: MonthRef?
     @State private var activityIndex = ActivityIndex()
+    @State private var path: [NSManagedObjectID] = []
+    @State private var workoutDateToLog: DateToLog?
 
     private struct MonthRef: Equatable { let year: Int; let month: Int }
+    private struct DateToLog: Identifiable {
+        let date: Date
+        var id: Date { date }
+    }
     private struct ExerciseRowDetail: Hashable {
         let title: String
         let setCount: Int
@@ -198,7 +204,7 @@ struct FeedView: View {
     var body: some View {
         let calendar = cal
         let index = activityIndex
-        return NavigationStack {
+        return NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
                     header
@@ -212,6 +218,20 @@ struct FeedView: View {
             .background(Color.forgeBackground.ignoresSafeArea())
             // Keep the custom greeting header; the nav bar only appears on pushed detail screens.
             .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: NSManagedObjectID.self) { objectID in
+                if let workout = workout(for: objectID) {
+                    WorkoutDetailView(workout: workout, initialEditMode: .active)
+                        .environmentObject(settingsStore)
+                } else {
+                    ContentUnavailableView("Workout unavailable", systemImage: "exclamationmark.circle", description: Text("This workout could not be opened."))
+                }
+            }
+        }
+        .sheet(item: $workoutDateToLog) { value in
+            LogWorkoutSheet(date: value.date, calendar: calendar) { start, end in
+                logWorkout(start: start, end: end)
+            }
+            .presentationDetents([.medium])
         }
         .onAppear { rebuildActivityIndex(calendar: calendar) }
         .onChange(of: workoutActivityInputs) { _, _ in rebuildActivityIndex(calendar: calendar) }
@@ -237,6 +257,31 @@ struct FeedView: View {
             calendar: calendar,
             now: Date()
         )
+    }
+
+    private func workout(for objectID: NSManagedObjectID) -> Workout? {
+        (try? context.existingObject(with: objectID)) as? Workout
+    }
+
+    private func logWorkout(start: Date, end: Date) {
+        let workout = Workout.create(context: context)
+        workout.start = start
+        workout.end = end
+        workout.isCurrentWorkout = false
+        workout.workoutType = WorkoutType.defaultType(in: context)
+        do {
+            try context.obtainPermanentIDs(for: [workout])
+            try context.save()
+            Haptics.success()
+            path.append(workout.objectID)
+        } catch {
+            context.rollback()
+            Haptics.error()
+            AppErrorPresenter.shared.present(
+                title: "Couldn't add workout",
+                message: "Something went wrong, so your workout history was not changed. Please try again."
+            )
+        }
     }
 
     // MARK: Header
@@ -569,9 +614,7 @@ struct FeedView: View {
         } else if case .day(let date) = filter {
             let dayWorkouts = workouts(on: date, calendar: calendar)
             VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
-                if !dayWorkouts.isEmpty {
-                    selectedDayPanel(date, dayWorkouts: dayWorkouts, index: index, calendar: calendar)
-                }
+                selectedDayPanel(date, dayWorkouts: dayWorkouts, index: index, calendar: calendar)
                 monthlyMixPanel(index, calendar: calendar)
             }
         } else {
@@ -639,7 +682,7 @@ struct FeedView: View {
 
             if dayWorkouts.count == 1, let workout = dayWorkouts.first {
                 workoutLinkPanel(workout)
-            } else {
+            } else if !dayWorkouts.isEmpty {
                 let summaries = index.typeSummaries(for: date, calendar: calendar)
                 panelCard {
                     VStack(alignment: .leading, spacing: Theme.Spacing.m) {
@@ -656,6 +699,23 @@ struct FeedView: View {
                             }
                         }
                     }
+                }
+            } else {
+                panelCard {
+                    VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+                        Text("No workout logged")
+                            .font(.forgeHeadline)
+                            .foregroundColor(.forgeLabel)
+                        Text(emptyDayMessage(for: date, calendar: calendar))
+                            .font(.forgeCaption)
+                            .foregroundColor(.forgeSecondaryLabel)
+                    }
+                }
+            }
+
+            if canLogWorkout(on: date, calendar: calendar) {
+                dashboardActionButton("Add workout", systemImage: "plus") {
+                    workoutDateToLog = DateToLog(date: date)
                 }
             }
         }
@@ -729,6 +789,17 @@ struct FeedView: View {
 
     private func dayTitle(_ date: Date) -> String {
         Self.dashboardDayFormatter.string(from: date)
+    }
+
+    private func emptyDayMessage(for date: Date, calendar: Calendar) -> String {
+        if !canLogWorkout(on: date, calendar: calendar) {
+            return "Future days stay empty until you train."
+        }
+        return "Add a finished workout for this date."
+    }
+
+    private func canLogWorkout(on date: Date, calendar: Calendar) -> Bool {
+        calendar.startOfDay(for: date) <= calendar.startOfDay(for: Date())
     }
 
     private func workoutDateText(_ date: Date?) -> String {
@@ -982,6 +1053,123 @@ struct FeedView: View {
         sceneState.selectedTab = .history
     }
 
+}
+
+private struct LogWorkoutSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let date: Date
+    let calendar: Calendar
+    let onSave: (Date, Date) -> Void
+
+    @State private var start: Date
+    @State private var end: Date
+
+    init(date: Date, calendar: Calendar, onSave: @escaping (Date, Date) -> Void) {
+        self.date = date
+        self.calendar = calendar
+        self.onSave = onSave
+
+        let initialEnd = Self.defaultEnd(for: date, calendar: calendar)
+        let initialStart = Self.defaultStart(for: date, end: initialEnd, calendar: calendar)
+        _start = State(initialValue: initialStart)
+        _end = State(initialValue: initialEnd)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    DatePicker(
+                        "Start",
+                        selection: $start,
+                        in: dayStart...maxEnd,
+                        displayedComponents: [.hourAndMinute]
+                    )
+                    DatePicker(
+                        "End",
+                        selection: $end,
+                        in: start...maxEnd,
+                        displayedComponents: [.hourAndMinute]
+                    )
+                } header: {
+                    Text(date.formatted(.dateTime.weekday(.wide).month(.wide).day()))
+                } footer: {
+                    Text("Choose the time this finished workout started and ended.")
+                }
+            }
+            .navigationTitle("Add workout")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") {
+                        onSave(normalized(start), normalized(end))
+                        dismiss()
+                    }
+                    .disabled(start > end)
+                }
+            }
+            .onChange(of: start) { _, newValue in
+                let clamped = min(max(newValue, dayStart), maxEnd)
+                if clamped != newValue {
+                    start = clamped
+                }
+                if end < clamped {
+                    end = clamped
+                }
+            }
+            .onChange(of: end) { _, newValue in
+                let clamped = min(max(newValue, start), maxEnd)
+                if clamped != newValue {
+                    end = clamped
+                }
+            }
+        }
+    }
+
+    private var dayStart: Date {
+        calendar.startOfDay(for: date)
+    }
+
+    private var dayEnd: Date {
+        calendar.date(byAdding: DateComponents(day: 1, second: -1), to: dayStart) ?? dayStart
+    }
+
+    private var maxEnd: Date {
+        min(dayEnd, Date())
+    }
+
+    private func normalized(_ value: Date) -> Date {
+        let time = calendar.dateComponents([.hour, .minute], from: value)
+        return calendar.date(
+            bySettingHour: time.hour ?? 0,
+            minute: time.minute ?? 0,
+            second: 0,
+            of: dayStart
+        ) ?? value
+    }
+
+    private static func defaultEnd(for date: Date, calendar: Calendar) -> Date {
+        let dayStart = calendar.startOfDay(for: date)
+        let todayStart = calendar.startOfDay(for: Date())
+        if dayStart == todayStart {
+            return Date()
+        }
+        return calendar.date(bySettingHour: 19, minute: 0, second: 0, of: dayStart) ?? dayStart
+    }
+
+    private static func defaultStart(for date: Date, end: Date, calendar: Calendar) -> Date {
+        let dayStart = calendar.startOfDay(for: date)
+        let todayStart = calendar.startOfDay(for: Date())
+        if dayStart == todayStart {
+            let oneHourBeforeEnd = calendar.date(byAdding: .hour, value: -1, to: end) ?? dayStart
+            return max(dayStart, oneHourBeforeEnd)
+        }
+        return calendar.date(bySettingHour: 18, minute: 0, second: 0, of: dayStart) ?? dayStart
+    }
 }
 
 #if DEBUG

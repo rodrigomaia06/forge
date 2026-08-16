@@ -140,13 +140,17 @@ struct BackupAndExportView: View {
         .fileImporter(isPresented: $showImporter, allowedContentTypes: Self.databaseTypes) { result in
             switch result {
             case .success(let url): importDatabase(from: url)
-            case .failure(let error): message = Message(title: "Import failed", text: error.localizedDescription)
+            case .failure(let error):
+                Haptics.error()
+                message = Message(title: "Import failed", text: error.localizedDescription)
             }
         }
         .fileImporter(isPresented: $showJSONImporter, allowedContentTypes: [.json]) { result in
             switch result {
             case .success(let url): prepareJSONImport(from: url)
-            case .failure(let error): message = Message(title: "Import failed", text: error.localizedDescription)
+            case .failure(let error):
+                Haptics.error()
+                message = Message(title: "Import failed", text: error.localizedDescription)
             }
         }
         .alert("Import this file?", isPresented: Binding(get: { pendingJSONImport != nil }, set: { if !$0 { pendingJSONImport = nil } }), presenting: pendingJSONImport) { pending in
@@ -192,10 +196,12 @@ struct BackupAndExportView: View {
                     return url
                 }.value
                 backupOperation = nil
+                Haptics.success()
                 shareFile(url: url)
             } catch {
                 os_log("Could not export database: %@", log: .backup, type: .error, error.localizedDescription)
                 backupOperation = nil
+                Haptics.error()
                 message = Message(title: "Export failed", text: error.localizedDescription)
             }
         }
@@ -218,11 +224,13 @@ struct BackupAndExportView: View {
                 }.value
                 if scoped { url.stopAccessingSecurityScopedResource() }
                 backupOperation = nil
+                Haptics.success()
                 message = Message(title: "Import complete", text: "Reopen Forge to load the imported data.")
             } catch {
                 if scoped { url.stopAccessingSecurityScopedResource() }
                 os_log("Could not import database: %@", log: .backup, type: .error, error.localizedDescription)
                 backupOperation = nil
+                Haptics.error()
                 message = Message(title: "Import failed", text: error.localizedDescription)
             }
         }
@@ -239,19 +247,23 @@ struct BackupAndExportView: View {
         }
         do {
             try managedObjectContext.save()
+            Haptics.warning()
             message = Message(title: "Data reset", text: "All workouts, routines, plans, and custom exercises were removed.")
         } catch {
             os_log("Could not reset data: %@", log: .backup, type: .error, error.localizedDescription)
+            Haptics.error()
             message = Message(title: "Reset failed", text: error.localizedDescription)
         }
     }
 
     private func exportWorkoutData(asJSON: Bool) {
         guard let workouts = fetchWorkouts() else {
+            Haptics.error()
             message = Message(title: "Export failed", text: "Workout data could not be read.")
             return
         }
         guard !workouts.isEmpty else {
+            Haptics.warning()
             message = Message(title: "Nothing to export", text: "There are no saved workouts yet.")
             return
         }
@@ -269,8 +281,10 @@ struct BackupAndExportView: View {
                 )
                 url = try tempFile(data: Data(text.utf8), name: "workout_data.txt")
             }
+            Haptics.success()
             shareFile(url: url)
         } catch {
+            Haptics.error()
             message = Message(title: "Export failed", text: error.localizedDescription)
         }
     }
@@ -282,9 +296,11 @@ struct BackupAndExportView: View {
         do {
             let data = try Data(contentsOf: url)
             let summary = try WorkoutDataExchange.summary(data)
+            Haptics.selection()
             pendingJSONImport = PendingJSONImport(data: data, summary: summary)
         } catch {
             os_log("Could not read JSON import: %@", log: .backup, type: .error, error.localizedDescription)
+            Haptics.error()
             message = Message(title: "Import failed", text: (error as? LocalizedError)?.errorDescription ?? "This file could not be read.")
         }
     }
@@ -292,9 +308,11 @@ struct BackupAndExportView: View {
     private func confirmJSONImport(_ pending: PendingJSONImport) {
         do {
             let result = try WorkoutDataExchange.import(pending.data, into: managedObjectContext, includeWorkouts: true)
+            Haptics.success()
             message = Message(title: "Import complete", text: "Added \(Self.countsPhrase(for: result)).")
         } catch {
             os_log("Could not import JSON: %@", log: .backup, type: .error, error.localizedDescription)
+            Haptics.error()
             message = Message(title: "Import failed", text: (error as? LocalizedError)?.errorDescription ?? "This file could not be imported.")
         }
     }

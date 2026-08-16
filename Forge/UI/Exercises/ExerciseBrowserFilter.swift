@@ -155,7 +155,7 @@ struct ExerciseBrowserFilterControls: View {
                 bodyPartOptions: bodyPartOptions,
                 showsCategoryPicker: showsCategoryPicker
             )
-            .presentationDetents([.medium, .large])
+            .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
         }
     }
@@ -175,6 +175,7 @@ struct ExerciseBrowserFilterControls: View {
 
     private func categoryButton(_ option: ExerciseActivityCategory?) -> some View {
         Button {
+            Haptics.selection()
             filter.category = option
         } label: {
             Text(option?.title ?? "All")
@@ -194,6 +195,7 @@ struct ExerciseBrowserFilterControls: View {
 
     private var filterButton: some View {
         Button {
+            Haptics.selection()
             showingFilters = true
         } label: {
             Image(systemName: filter.filtersActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
@@ -234,7 +236,7 @@ private struct ExerciseBrowserFilterSheet: View {
                                 Text(category.title).tag(category.rawValue)
                             }
                         }
-                        .pickerStyle(.navigationLink)
+                        .pickerStyle(.menu)
                     }
 
                     Picker("Source", selection: sourceSelection) {
@@ -243,7 +245,7 @@ private struct ExerciseBrowserFilterSheet: View {
                             Text(source.title).tag(source.rawValue)
                         }
                     }
-                    .pickerStyle(.navigationLink)
+                    .pickerStyle(.menu)
 
                     Picker("Equipment", selection: equipmentSelection) {
                         Text("Any equipment").tag("")
@@ -251,7 +253,7 @@ private struct ExerciseBrowserFilterSheet: View {
                             Text(option.label).tag(option.token)
                         }
                     }
-                    .pickerStyle(.navigationLink)
+                    .pickerStyle(.menu)
 
                     Picker("Body part", selection: bodyPartSelection) {
                         Text("Any body part").tag("")
@@ -259,7 +261,7 @@ private struct ExerciseBrowserFilterSheet: View {
                             Text(part.capitalized).tag(part)
                         }
                     }
-                    .pickerStyle(.navigationLink)
+                    .pickerStyle(.menu)
                 } footer: {
                     Text("Search still checks exercise names, movement names, variations, equipment, and setup tags.")
                 }
@@ -282,6 +284,7 @@ private struct ExerciseBrowserFilterSheet: View {
         Binding {
             filter.category?.rawValue ?? ""
         } set: { value in
+            Haptics.selection()
             filter.category = value.isEmpty ? nil : ExerciseActivityCategory(rawValue: value)
         }
     }
@@ -290,6 +293,7 @@ private struct ExerciseBrowserFilterSheet: View {
         Binding {
             filter.source?.rawValue ?? ""
         } set: { value in
+            Haptics.selection()
             filter.source = value.isEmpty ? nil : ExerciseBrowserFilter.Source(rawValue: value)
         }
     }
@@ -298,6 +302,7 @@ private struct ExerciseBrowserFilterSheet: View {
         Binding {
             filter.equipment ?? ""
         } set: { value in
+            Haptics.selection()
             filter.equipment = value.isEmpty ? nil : value
         }
     }
@@ -306,6 +311,7 @@ private struct ExerciseBrowserFilterSheet: View {
         Binding {
             filter.bodyPart ?? ""
         } set: { value in
+            Haptics.selection()
             filter.bodyPart = value.isEmpty ? nil : value
         }
     }
