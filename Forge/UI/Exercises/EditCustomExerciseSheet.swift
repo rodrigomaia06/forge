@@ -19,7 +19,22 @@ struct EditCustomExerciseSheet: View {
         self.exercise = exercise
         let primaryMuscle = exercise.primaryMuscle.map { EditCustomExerciseView.ExerciseValues.ExerciseMuscle(type: .primary, muscle: $0) }
         let secondaryMuscle = exercise.secondaryMuscle.map { EditCustomExerciseView.ExerciseValues.ExerciseMuscle(type: .secondary, muscle: $0) }
-        _exerciseValues = State(initialValue: .init(title: exercise.title, description: exercise.description ?? "", movementTitle: exercise.movementTitle, variationTitle: exercise.variationTitle ?? "", muscles: Set(primaryMuscle + secondaryMuscle), type: exercise.type, activityCategoryIDs: Set(exercise.activityCategoryIDs), restTime: ExerciseStore.shared.restTime(forExercise: exercise.uuid)))
+        _exerciseValues = State(initialValue: .init(
+            title: exercise.title,
+            description: exercise.description ?? "",
+            movementTitle: exercise.movementTitle,
+            variationTitle: exercise.variationTitle ?? "",
+            equipmentTitle: exercise.equipmentTitle ?? "",
+            attachmentTitle: exercise.attachmentTitle ?? "",
+            setupTitle: exercise.setupTitle ?? "",
+            gripTitle: exercise.gripTitle ?? "",
+            sideTitle: exercise.sideTitle ?? "",
+            loadModeTitle: exercise.loadModeTitle ?? "",
+            muscles: Set(primaryMuscle + secondaryMuscle),
+            type: exercise.type,
+            activityCategoryIDs: Set(exercise.activityCategoryIDs),
+            restTime: ExerciseStore.shared.restTime(forExercise: exercise.uuid)
+        ))
     }
     
     private var canSave: Bool {
@@ -28,7 +43,21 @@ struct EditCustomExerciseSheet: View {
         guard !exerciseStore.exercises.contains(where: { $0.title == title && $0.uuid != exercise.uuid }) else { return false }
         guard !exerciseValues.muscles.isEmpty else { return false }
         guard !exerciseValues.activityCategoryIDs.isEmpty else { return false }
+        guard duplicateVariation == nil else { return false }
         return true
+    }
+
+    private var duplicateVariation: Exercise? {
+        exerciseStore.duplicateVariation(
+            movementTitle: exerciseValues.movementTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? exerciseValues.title : exerciseValues.movementTitle,
+            equipmentTitle: exerciseValues.equipmentTitle,
+            attachmentTitle: exerciseValues.attachmentTitle,
+            setupTitle: exerciseValues.setupTitle,
+            gripTitle: exerciseValues.gripTitle,
+            sideTitle: exerciseValues.sideTitle,
+            loadModeTitle: exerciseValues.loadModeTitle,
+            excluding: exercise.uuid
+        )
     }
     
     private var saveButton: some View {
@@ -54,7 +83,13 @@ struct EditCustomExerciseSheet: View {
                 type: self.exerciseValues.type,
                 activityCategoryIDs: Array(self.exerciseValues.activityCategoryIDs).sorted(),
                 movementTitle: self.exerciseValues.movementTitle,
-                variationTitle: self.exerciseValues.variationTitle
+                variationTitle: self.exerciseValues.variationTitle,
+                equipmentTitle: self.exerciseValues.equipmentTitle,
+                attachmentTitle: self.exerciseValues.attachmentTitle,
+                setupTitle: self.exerciseValues.setupTitle,
+                gripTitle: self.exerciseValues.gripTitle,
+                sideTitle: self.exerciseValues.sideTitle,
+                loadModeTitle: self.exerciseValues.loadModeTitle
             )
             ExerciseStore.shared.setRestTime(self.exerciseValues.restTime, forExercise: self.exercise.uuid)
             self.presentationMode.wrappedValue.dismiss()
@@ -72,6 +107,16 @@ struct EditCustomExerciseSheet: View {
                     },
                     trailing: saveButton
                 )
+                .safeAreaInset(edge: .bottom) {
+                    if let duplicateVariation {
+                        Text("This matches \(duplicateVariation.title). Edit that variation instead.")
+                            .font(.forgeCaption)
+                            .foregroundColor(.forgeSecondaryLabel)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(Theme.Spacing.m)
+                            .background(.bar)
+                    }
+                }
         }
     }
 }

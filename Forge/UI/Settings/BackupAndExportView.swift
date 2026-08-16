@@ -24,6 +24,19 @@ struct BackupAndExportView: View {
     @State private var pendingJSONImport: PendingJSONImport?
     @State private var activityItems: [Any]?
     @State private var message: Message?
+    @State private var backupOperation: BackupOperation?
+
+    private enum BackupOperation: String {
+        case exporting
+        case importing
+
+        var label: String {
+            switch self {
+            case .exporting: return "Creating backup"
+            case .importing: return "Restoring backup"
+            }
+        }
+    }
 
     /// A validated JSON file awaiting the user's confirmation to import.
     private struct PendingJSONImport: Identifiable {
@@ -48,8 +61,31 @@ struct BackupAndExportView: View {
                 header: Text("Backup"),
                 footer: Text("Full backups include all Forge data. Restore makes a safety copy first.")
             ) {
-                Button("Create backup") { exportDatabase() }
-                Button("Restore backup") { showImporter = true }
+                Button {
+                    exportDatabase()
+                } label: {
+                    HStack {
+                        Text("Create backup")
+                        Spacer()
+                        if backupOperation == .exporting {
+                            ProgressView()
+                        }
+                    }
+                }
+                .disabled(backupOperation != nil)
+
+                Button {
+                    showImporter = true
+                } label: {
+                    HStack {
+                        Text("Restore backup")
+                        Spacer()
+                        if backupOperation == .importing {
+                            ProgressView()
+                        }
+                    }
+                }
+                .disabled(backupOperation != nil)
             }
 
             Section(header: Text("Workout data"), footer: Text("JSON import adds data without overwriting.")) {
@@ -132,36 +168,63 @@ struct BackupAndExportView: View {
             Alert(title: Text(message.title), message: Text(message.text))
         }
         .overlay(ActivitySheet(activityItems: $activityItems))
-    }
-
-    private func exportDatabase() {
-        do {
-            os_log("Exporting database", log: .backup, type: .default)
-            let url = FileManager.default.temporaryDirectory.appendingPathComponent(SQLiteBackup.suggestedExportName())
-            try SQLiteBackup.export(to: url)
-            shareFile(url: url)
-        } catch {
-            os_log("Could not export database: %@", log: .backup, type: .error, error.localizedDescription)
-            message = Message(title: "Export failed", text: error.localizedDescription)
+        .overlay {
+            if let backupOperation {
+                ZStack {
+                    Color.black.opacity(0.001)
+                    ProgressView(backupOperation.label)
+                        .padding(Theme.Spacing.m)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))
+                }
+            }
         }
     }
 
-    private func importDatabase(from url: URL) {
-        let scoped = url.startAccessingSecurityScopedResource()
-        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-        do {
-            // Copy to a location we own before replacing the store.
-            let local = FileManager.default.temporaryDirectory
-                .appendingPathComponent(UUID().uuidString)
-                .appendingPathExtension(SQLiteBackup.fileExtension)
-            try? FileManager.default.removeItem(at: local)
-            try FileManager.default.copyItem(at: url, to: local)
+    @MainActor private func exportDatabase() {
+        guard backupOperation == nil else { return }
+        backupOperation = .exporting
+        Task {
+            do {
+                os_log("Exporting database", log: .backup, type: .default)
+                let url = try await Task.detached(priority: .userInitiated) {
+                    let url = FileManager.default.temporaryDirectory.appendingPathComponent(SQLiteBackup.suggestedExportName())
+                    try SQLiteBackup.export(to: url)
+                    return url
+                }.value
+                backupOperation = nil
+                shareFile(url: url)
+            } catch {
+                os_log("Could not export database: %@", log: .backup, type: .error, error.localizedDescription)
+                backupOperation = nil
+                message = Message(title: "Export failed", text: error.localizedDescription)
+            }
+        }
+    }
 
-            try SQLiteBackup.import(from: local)
-            message = Message(title: "Import complete", text: "Reopen Forge to load the imported data.")
-        } catch {
-            os_log("Could not import database: %@", log: .backup, type: .error, error.localizedDescription)
-            message = Message(title: "Import failed", text: error.localizedDescription)
+    @MainActor private func importDatabase(from url: URL) {
+        guard backupOperation == nil else { return }
+        backupOperation = .importing
+        let scoped = url.startAccessingSecurityScopedResource()
+        Task {
+            do {
+                // Copy to a location we own before replacing the store.
+                let local = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString)
+                    .appendingPathExtension(SQLiteBackup.fileExtension)
+                try await Task.detached(priority: .userInitiated) {
+                    try? FileManager.default.removeItem(at: local)
+                    try FileManager.default.copyItem(at: url, to: local)
+                    try SQLiteBackup.import(from: local)
+                }.value
+                if scoped { url.stopAccessingSecurityScopedResource() }
+                backupOperation = nil
+                message = Message(title: "Import complete", text: "Reopen Forge to load the imported data.")
+            } catch {
+                if scoped { url.stopAccessingSecurityScopedResource() }
+                os_log("Could not import database: %@", log: .backup, type: .error, error.localizedDescription)
+                backupOperation = nil
+                message = Message(title: "Import failed", text: error.localizedDescription)
+            }
         }
     }
 

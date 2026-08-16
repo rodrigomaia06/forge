@@ -16,6 +16,12 @@ public struct Exercise: Hashable {
     public let movementID: String
     public let movementTitle: String
     public let variationTitle: String?
+    public let equipmentTitle: String?
+    public let attachmentTitle: String?
+    public let setupTitle: String?
+    public let gripTitle: String?
+    public let sideTitle: String?
+    public let loadModeTitle: String?
     public let variationTags: [String]
     public let activityCategories: [ExerciseActivityCategory]
     public let activityCategoryIDs: [String]
@@ -36,6 +42,12 @@ public struct Exercise: Hashable {
         movementID: String? = nil,
         movementTitle: String? = nil,
         variationTitle: String? = nil,
+        equipmentTitle: String? = nil,
+        attachmentTitle: String? = nil,
+        setupTitle: String? = nil,
+        gripTitle: String? = nil,
+        sideTitle: String? = nil,
+        loadModeTitle: String? = nil,
         variationTags: [String] = [],
         activityCategories: [ExerciseActivityCategory] = [.strength],
         activityCategoryIDs: [String]? = nil,
@@ -55,10 +67,28 @@ public struct Exercise: Hashable {
         let resolvedMovementTitle = (movementTitle ?? Self.defaultMovementTitle(for: title)).trimmingCharacters(in: .whitespacesAndNewlines)
         let resolvedMovementID = (movementID ?? Self.defaultMovementID(for: resolvedMovementTitle)).trimmingCharacters(in: .whitespacesAndNewlines)
         let resolvedVariationTitle = variationTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let structured = Self.structuredVariationFields(
+            title: title,
+            variationTitle: resolvedVariationTitle,
+            equipment: equipment,
+            equipmentTitle: equipmentTitle,
+            attachmentTitle: attachmentTitle,
+            setupTitle: setupTitle,
+            gripTitle: gripTitle,
+            sideTitle: sideTitle,
+            loadModeTitle: loadModeTitle
+        )
         self.movementID = resolvedMovementID.isEmpty ? Self.defaultMovementID(for: resolvedMovementTitle) : resolvedMovementID
         self.movementTitle = resolvedMovementTitle.isEmpty ? title : resolvedMovementTitle
         self.variationTitle = resolvedVariationTitle?.isEmpty == true ? nil : resolvedVariationTitle
-        self.variationTags = Self.normalizedVariationTags(variationTags.isEmpty ? equipment : variationTags)
+        self.equipmentTitle = structured.equipmentTitle
+        self.attachmentTitle = structured.attachmentTitle
+        self.setupTitle = structured.setupTitle
+        self.gripTitle = structured.gripTitle
+        self.sideTitle = structured.sideTitle
+        self.loadModeTitle = structured.loadModeTitle
+        let structuredTags = structured.tags + equipment
+        self.variationTags = Self.normalizedVariationTags(variationTags.isEmpty ? structuredTags : variationTags)
         let resolvedCategories = activityCategories.isEmpty ? [ExerciseActivityCategory.strength] : activityCategories
         let resolvedCategoryIDs = activityCategoryIDs ?? resolvedCategories.map(\.rawValue)
         self.activityCategories = resolvedCategories
@@ -97,7 +127,41 @@ public struct ExerciseVariation: Hashable, Identifiable {
 
 extension Exercise {
     public var variationDisplayTitle: String {
-        variationTitle ?? title
+        let fields = variationDisplayFields
+        guard !fields.isEmpty else { return title }
+        return fields.map { "\($0.label): \($0.value)" }.joined(separator: "\n")
+    }
+
+    public var variationSummaryTitle: String {
+        let values = variationDisplayFields.map(\.value)
+        guard !values.isEmpty else { return variationTitle ?? title }
+        return values.joined(separator: ", ")
+    }
+
+    public var variationDisplayFields: [(label: String, value: String)] {
+        [
+            ("Equipment", equipmentTitle),
+            ("Attachment", attachmentTitle),
+            ("Setup", setupTitle),
+            ("Grip", gripTitle),
+            ("Side", sideTitle),
+            ("Load", loadModeTitle)
+        ].compactMap { label, value in
+            guard let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+            return (label, value)
+        }
+    }
+
+    public var variationIdentityKey: String {
+        Self.variationIdentityKey(
+            movementID: movementID,
+            equipmentTitle: equipmentTitle,
+            attachmentTitle: attachmentTitle,
+            setupTitle: setupTitle,
+            gripTitle: gripTitle,
+            sideTitle: sideTitle,
+            loadModeTitle: loadModeTitle
+        )
     }
 
     public static func defaultMovementTitle(for title: String) -> String {
@@ -134,6 +198,224 @@ extension Exercise {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().replacingOccurrences(of: " ", with: "_") }
             .filter { !$0.isEmpty }
             .uniqed()
+    }
+
+    public static func variationIdentityKey(
+        movementID: String?,
+        equipmentTitle: String?,
+        attachmentTitle: String?,
+        setupTitle: String?,
+        gripTitle: String?,
+        sideTitle: String?,
+        loadModeTitle: String?
+    ) -> String {
+        [
+            movementID,
+            equipmentTitle,
+            attachmentTitle,
+            setupTitle,
+            gripTitle,
+            sideTitle,
+            loadModeTitle
+        ]
+            .compactMap { $0?.normalizedVariationIdentityToken }
+            .joined(separator: "|")
+    }
+
+    public static func structuredVariationFields(
+        title: String,
+        variationTitle: String?,
+        equipment: [String],
+        equipmentTitle: String? = nil,
+        attachmentTitle: String? = nil,
+        setupTitle: String? = nil,
+        gripTitle: String? = nil,
+        sideTitle: String? = nil,
+        loadModeTitle: String? = nil
+    ) -> (equipmentTitle: String?, attachmentTitle: String?, setupTitle: String?, gripTitle: String?, sideTitle: String?, loadModeTitle: String?, tags: [String]) {
+        var resolvedEquipment = cleanVariationField(equipmentTitle) ?? equipmentDisplayTitle(for: equipment)
+        var resolvedAttachment = cleanVariationField(attachmentTitle)
+        var resolvedSetup = cleanVariationField(setupTitle)
+        var resolvedGrip = cleanVariationField(gripTitle)
+        var resolvedSide = cleanVariationField(sideTitle)
+        var resolvedLoadMode = cleanVariationField(loadModeTitle)
+
+        let source = [title, variationTitle].compactMap { $0 }.joined(separator: " ").lowercased()
+        let parts = variationTitle?
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) } ?? []
+
+        for part in parts {
+            let normalized = part.lowercased()
+            if resolvedEquipment == nil, let value = equipmentField(for: normalized) {
+                resolvedEquipment = value
+            } else if resolvedAttachment == nil, let value = attachmentField(for: normalized) {
+                resolvedAttachment = value
+            } else if resolvedSetup == nil, let value = setupField(for: normalized) {
+                resolvedSetup = value
+            } else if resolvedGrip == nil, let value = gripField(for: normalized) {
+                resolvedGrip = value
+            } else if resolvedSide == nil, let value = sideField(for: normalized) {
+                resolvedSide = value
+            } else if let value = loadModeField(for: normalized), resolvedLoadMode == nil || (resolvedLoadMode == "Bodyweight" && value != "Bodyweight") {
+                resolvedLoadMode = value
+            }
+        }
+
+        if resolvedAttachment == nil { resolvedAttachment = attachmentField(in: source) }
+        if resolvedSetup == nil { resolvedSetup = setupField(in: source) }
+        if resolvedGrip == nil { resolvedGrip = gripField(in: source) }
+        if resolvedSide == nil { resolvedSide = sideField(in: source) }
+        if source.contains("weighted") {
+            resolvedLoadMode = "Weighted"
+        } else if source.contains("assisted") {
+            resolvedLoadMode = "Assisted"
+        } else if resolvedLoadMode == nil {
+            resolvedLoadMode = loadModeField(in: source)
+        }
+
+        let tags = [resolvedEquipment, resolvedAttachment, resolvedSetup, resolvedGrip, resolvedSide, resolvedLoadMode]
+            .compactMap { $0?.normalizedVariationIdentityToken }
+        return (resolvedEquipment, resolvedAttachment, resolvedSetup, resolvedGrip, resolvedSide, resolvedLoadMode, tags)
+    }
+
+    public static func cleanVariationField(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed?.isEmpty == false ? trimmed : nil
+    }
+
+    private static func equipmentDisplayTitle(for equipment: [String]) -> String? {
+        let tokens = equipment.map { $0.lowercased() }
+        if tokens.contains("cable") { return "Cable" }
+        if tokens.contains("barbell") { return "Barbell" }
+        if tokens.contains("dumbbell") { return "Dumbbell" }
+        if tokens.contains("ez-curl-bar") { return "EZ curl bar" }
+        if tokens.contains("smith machine") { return "Smith machine" }
+        if tokens.contains("kettlebell") { return "Kettlebell" }
+        if tokens.contains(where: { $0.contains("machine") || $0.contains("chest machine") }) { return "Machine" }
+        if tokens.contains("body") { return "Bodyweight" }
+        return nil
+    }
+
+    private static func equipmentField(for value: String) -> String? {
+        switch value {
+        case "cable": return "Cable"
+        case "barbell": return "Barbell"
+        case "dumbbell": return "Dumbbell"
+        case "ez curl bar", "ez-curl-bar": return "EZ curl bar"
+        case "smith machine": return "Smith machine"
+        case "machine", "leg press", "t-bar": return value == "leg press" ? "Leg press" : value == "t-bar" ? "T-bar" : "Machine"
+        case "kettlebell": return "Kettlebell"
+        case "bodyweight": return "Bodyweight"
+        default: return nil
+        }
+    }
+
+    private static func attachmentField(for value: String) -> String? {
+        switch value {
+        case "rope": return "Rope"
+        case "v-bar", "v bar": return "V-bar"
+        case "straight bar": return "Straight bar"
+        case "d-handle", "d handle": return "D-handle"
+        case "ankle strap": return "Ankle strap"
+        default: return nil
+        }
+    }
+
+    private static func attachmentField(in source: String) -> String? {
+        for token in ["rope", "v-bar", "v bar", "straight bar", "d-handle", "d handle", "ankle strap"] {
+            if source.contains(token) { return attachmentField(for: token) }
+        }
+        return nil
+    }
+
+    private static func setupField(for value: String) -> String? {
+        switch value {
+        case "incline": return "Incline"
+        case "decline": return "Decline"
+        case "overhead", "behind the head": return "Overhead"
+        case "lying": return "Lying"
+        case "seated": return "Seated"
+        case "standing": return "Standing"
+        case "kneeling": return "Kneeling"
+        case "low", "low-pulley", "low pulley": return "Low pulley"
+        case "bent over": return "Bent over"
+        case "chest supported": return "Chest supported"
+        case "wide stance": return "Wide stance"
+        case "narrow stance", "narrow": return "Narrow stance"
+        case "walking": return "Walking"
+        default: return nil
+        }
+    }
+
+    private static func setupField(in source: String) -> String? {
+        for token in ["incline", "decline", "behind the head", "overhead", "lying", "seated", "standing", "kneeling", "low-pulley", "low pulley", "bent over", "chest supported", "wide stance", "narrow stance", "walking"] {
+            if source.contains(token) { return setupField(for: token) }
+        }
+        return nil
+    }
+
+    private static func gripField(for value: String) -> String? {
+        switch value {
+        case "reverse", "reverse grip": return "Reverse grip"
+        case "wide", "wide grip": return "Wide grip"
+        case "close", "close grip": return "Close grip"
+        case "hammer", "hammer grip": return "Hammer grip"
+        case "parallel grip", "narrow parallel grip": return "Parallel grip"
+        case "overhand": return "Overhand grip"
+        case "underhand": return "Underhand grip"
+        default: return nil
+        }
+    }
+
+    private static func gripField(in source: String) -> String? {
+        for token in ["narrow parallel grip", "parallel grip", "reverse grip", "reverse", "wide grip", "close grip", "hammer grip", "hammer", "overhand", "underhand"] {
+            if source.contains(token) { return gripField(for: token) }
+        }
+        return nil
+    }
+
+    private static func sideField(for value: String) -> String? {
+        switch value {
+        case "one arm", "one-arm": return "One arm"
+        case "two arm", "two-arm": return "Two arm"
+        case "single leg", "single-leg": return "Single leg"
+        default: return nil
+        }
+    }
+
+    private static func sideField(in source: String) -> String? {
+        for token in ["one arm", "one-arm", "two arm", "two-arm", "single leg", "single-leg"] {
+            if source.contains(token) { return sideField(for: token) }
+        }
+        return nil
+    }
+
+    private static func loadModeField(for value: String) -> String? {
+        switch value {
+        case "weighted": return "Weighted"
+        case "assisted": return "Assisted"
+        case "bodyweight": return "Bodyweight"
+        default: return nil
+        }
+    }
+
+    private static func loadModeField(in source: String) -> String? {
+        for token in ["weighted", "assisted", "bodyweight"] {
+            if source.contains(token) { return loadModeField(for: token) }
+        }
+        return nil
+    }
+}
+
+private extension String {
+    var normalizedVariationIdentityToken: String {
+        trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .replacingOccurrences(of: "-", with: " ")
+            .replacingOccurrences(of: "_", with: " ")
+            .split(separator: " ")
+            .joined(separator: "_")
     }
 }
 
@@ -362,6 +644,12 @@ extension Exercise: Codable {
         case movementID
         case movementTitle
         case variationTitle
+        case equipmentTitle
+        case attachmentTitle
+        case setupTitle
+        case gripTitle
+        case sideTitle
+        case loadModeTitle
         case variationTags
         case categories
         case metric
@@ -386,6 +674,12 @@ extension Exercise: Codable {
         let movementID = try container.decodeIfPresent(String.self, forKey: .movementID)
         let movementTitle = try container.decodeIfPresent(String.self, forKey: .movementTitle)
         let variationTitle = try container.decodeIfPresent(String.self, forKey: .variationTitle)
+        let equipmentTitle = try container.decodeIfPresent(String.self, forKey: .equipmentTitle)
+        let attachmentTitle = try container.decodeIfPresent(String.self, forKey: .attachmentTitle)
+        let setupTitle = try container.decodeIfPresent(String.self, forKey: .setupTitle)
+        let gripTitle = try container.decodeIfPresent(String.self, forKey: .gripTitle)
+        let sideTitle = try container.decodeIfPresent(String.self, forKey: .sideTitle)
+        let loadModeTitle = try container.decodeIfPresent(String.self, forKey: .loadModeTitle)
         let variationTags = try container.decodeIfPresent([String].self, forKey: .variationTags) ?? []
         let categories = try container.decodeIfPresent([ExerciseActivityCategory].self, forKey: .categories) ?? [.strength]
         let metric = try container.decodeIfPresent(ExerciseSetMetric.self, forKey: .metric) ?? .reps
@@ -397,7 +691,7 @@ extension Exercise: Codable {
         let tips = try container.decodeIfPresent([String].self, forKey: .tips) ?? []
         let references = try container.decodeIfPresent([String].self, forKey: .references) ?? []
 
-        self.init(uuid: uuid, everkineticId: id, title: title, alias: alias, movementID: movementID, movementTitle: movementTitle, variationTitle: variationTitle, variationTags: variationTags, activityCategories: categories, defaultMetric: metric, description: primer, primaryMuscle: primary, secondaryMuscle: secondary, equipment: equipment, steps: steps, tips: tips, references: references)
+        self.init(uuid: uuid, everkineticId: id, title: title, alias: alias, movementID: movementID, movementTitle: movementTitle, variationTitle: variationTitle, equipmentTitle: equipmentTitle, attachmentTitle: attachmentTitle, setupTitle: setupTitle, gripTitle: gripTitle, sideTitle: sideTitle, loadModeTitle: loadModeTitle, variationTags: variationTags, activityCategories: categories, defaultMetric: metric, description: primer, primaryMuscle: primary, secondaryMuscle: secondary, equipment: equipment, steps: steps, tips: tips, references: references)
     }
     
     // MARK: Encodalbe
@@ -410,6 +704,12 @@ extension Exercise: Codable {
         try container.encode(movementID, forKey: .movementID)
         try container.encode(movementTitle, forKey: .movementTitle)
         try container.encodeIfPresent(variationTitle, forKey: .variationTitle)
+        try container.encodeIfPresent(equipmentTitle, forKey: .equipmentTitle)
+        try container.encodeIfPresent(attachmentTitle, forKey: .attachmentTitle)
+        try container.encodeIfPresent(setupTitle, forKey: .setupTitle)
+        try container.encodeIfPresent(gripTitle, forKey: .gripTitle)
+        try container.encodeIfPresent(sideTitle, forKey: .sideTitle)
+        try container.encodeIfPresent(loadModeTitle, forKey: .loadModeTitle)
         try container.encode(variationTags, forKey: .variationTags)
         try container.encode(activityCategories, forKey: .categories)
         try container.encode(defaultMetric, forKey: .metric)

@@ -56,6 +56,7 @@ public enum WorkoutDataV13Normalization {
                 definition.setValue(exercise.variationTitle, forKey: "variationTitle")
                 definition.setValue(encode(exercise.variationTags), forKey: "variationTagsJSON")
             }
+            setStructuredVariationFields(from: exercise, on: definition)
         }
 
         let categoriesByID = try seedExerciseCategories(context: context)
@@ -78,10 +79,36 @@ public enum WorkoutDataV13Normalization {
             if exercise.value(forKey: "variationTitle") == nil, let variationTitle = variationTitle(for: equipment) {
                 exercise.setValue(variationTitle, forKey: "variationTitle")
             }
+            let variationTitle = exercise.value(forKey: "variationTitle") as? String
+            let structured = Exercise.structuredVariationFields(
+                title: title,
+                variationTitle: variationTitle,
+                equipment: equipment
+            )
+            setIfAttributeExists("equipmentTitle", structured.equipmentTitle, on: exercise)
+            setIfAttributeExists("attachmentTitle", structured.attachmentTitle, on: exercise)
+            setIfAttributeExists("setupTitle", structured.setupTitle, on: exercise)
+            setIfAttributeExists("gripTitle", structured.gripTitle, on: exercise)
+            setIfAttributeExists("sideTitle", structured.sideTitle, on: exercise)
+            setIfAttributeExists("loadModeTitle", structured.loadModeTitle, on: exercise)
             if (exercise.value(forKey: "variationTagsJSON") as? String)?.isEmpty ?? true {
-                exercise.setValue(encode(Exercise.normalizedVariationTags(equipment)), forKey: "variationTagsJSON")
+                exercise.setValue(encode(Exercise.normalizedVariationTags(structured.tags + equipment)), forKey: "variationTagsJSON")
             }
         }
+    }
+
+    private static func setStructuredVariationFields(from exercise: Exercise, on object: NSManagedObject) {
+        setIfAttributeExists("equipmentTitle", exercise.equipmentTitle, on: object)
+        setIfAttributeExists("attachmentTitle", exercise.attachmentTitle, on: object)
+        setIfAttributeExists("setupTitle", exercise.setupTitle, on: object)
+        setIfAttributeExists("gripTitle", exercise.gripTitle, on: object)
+        setIfAttributeExists("sideTitle", exercise.sideTitle, on: object)
+        setIfAttributeExists("loadModeTitle", exercise.loadModeTitle, on: object)
+    }
+
+    private static func setIfAttributeExists(_ key: String, _ value: Any?, on object: NSManagedObject) {
+        guard object.entity.attributesByName[key] != nil else { return }
+        object.setValue(value, forKey: key)
     }
 
     private static func seedExerciseCategories(context: NSManagedObjectContext) throws -> [String: NSManagedObject] {

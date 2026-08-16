@@ -456,6 +456,7 @@ struct WorkoutDetailView : View {
         // Commit the title and comment when Edit is turned off, so tapping Done saves even if the field
         // never lost focus (the text field's own onCommit does not fire when it is removed).
         .onChange(of: editMode.isEditing) { isEditing in
+            NotificationCenter.default.post(name: .ResetSwipeActions, object: nil)
             if !isEditing {
                 adjustAndSaveWorkoutTitleInput()
                 adjustAndSaveWorkoutCommentInput()
@@ -474,6 +475,7 @@ struct WorkoutDetailView : View {
                 Menu {
                     Button {
                         Haptics.selection()
+                        NotificationCenter.default.post(name: .ResetSwipeActions, object: nil)
                         withAnimation { expanded.toggle() }
                     } label: {
                         Label(expanded ? "Compact view" : "Expanded view", systemImage: expanded ? "list.bullet" : "rectangle.grid.1x2")
@@ -530,7 +532,13 @@ struct WorkoutDetailView : View {
             WorkoutExerciseSheetContent(route: route) { activeExerciseSheet = nil }
         }
         .overlay(ActivitySheet(activityItems: $activityItems))
-        .onAppear { rebuildReadSnapshot() }
+        .onAppear {
+            NotificationCenter.default.post(name: .ResetSwipeActions, object: nil)
+            rebuildReadSnapshot()
+        }
+        .onDisappear {
+            NotificationCenter.default.post(name: .ResetSwipeActions, object: nil)
+        }
         .onChange(of: settingsStore.weightUnit) { _, _ in rebuildReadSnapshot() }
         .onChange(of: settingsStore.bodyweight) { _, _ in rebuildReadSnapshot() }
         .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: managedObjectContext)) { _ in

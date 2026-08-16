@@ -57,6 +57,8 @@ final class ExerciseMovementTests: XCTestCase {
         XCTAssertEqual(exercise.movementID, "bench_press")
         XCTAssertEqual(exercise.movementTitle, "Bench Press")
         XCTAssertNil(exercise.variationTitle)
+        XCTAssertEqual(exercise.equipmentTitle, "Dumbbell")
+        XCTAssertEqual(exercise.setupTitle, "Incline")
         XCTAssertTrue(exercise.variationTags.contains("dumbbell"))
     }
 
@@ -68,7 +70,17 @@ final class ExerciseMovementTests: XCTestCase {
         let movements = ExerciseStore.splitIntoMovements(exercises: [dumbbell, row, barbell])
 
         XCTAssertEqual(movements.map(\.title), ["Bench press", "Row"])
-        XCTAssertEqual(movements.first?.variations.map { $0.exercise.variationDisplayTitle }, ["Barbell", "Dumbbell"])
+        XCTAssertEqual(movements.first?.variations.map { $0.exercise.variationDisplayTitle }, ["Equipment: Barbell", "Equipment: Dumbbell"])
+    }
+
+    func testEquipmentGroupingSortsExactVariationsWithinEquipment() {
+        let rope = exercise(title: "Biceps Curl: Cable (Rope)", movementID: "biceps_curl", movementTitle: "Biceps curl", variationTitle: "Cable, rope", equipment: ["cable"])
+        let overhead = exercise(title: "Biceps Curl: Cable (Overhead)", movementID: "biceps_curl", movementTitle: "Biceps curl", variationTitle: "Cable, overhead", equipment: ["cable"])
+
+        let groups = ExerciseStore.splitIntoEquipmentGroups(variations: [ExerciseVariation(exercise: rope), ExerciseVariation(exercise: overhead)])
+
+        XCTAssertEqual(groups.map(\.title), ["Cable"])
+        XCTAssertEqual(groups.first?.exercises.map(\.variationSummaryTitle), ["Cable, Overhead", "Cable, Rope"])
     }
 
     func testSearchMatchesMovementVariationAndTags() {
@@ -84,6 +96,19 @@ final class ExerciseMovementTests: XCTestCase {
         XCTAssertTrue(ExerciseStore.filter(exercises: [exercise], using: "bench").contains(exercise))
         XCTAssertTrue(ExerciseStore.filter(exercises: [exercise], using: "incline").contains(exercise))
         XCTAssertTrue(ExerciseStore.filter(exercises: [exercise], using: "dumbbell").contains(exercise))
+    }
+
+    func testStructuredVariationDisplayTitleUsesCategoryLabels() {
+        let exercise = exercise(
+            title: "Triceps Extension: Cable (Overhead, Rope)",
+            movementID: "triceps_extension",
+            movementTitle: "Triceps extension",
+            variationTitle: "Cable, overhead, rope",
+            equipment: ["cable"]
+        )
+
+        XCTAssertEqual(exercise.variationDisplayTitle, "Equipment: Cable\nAttachment: Rope\nSetup: Overhead")
+        XCTAssertEqual(exercise.variationIdentityKey, "triceps_extension|cable|rope|overhead")
     }
 
     func testBrowserFilterUsesNormalizedVariationTags() {
@@ -116,6 +141,9 @@ final class ExerciseMovementTests: XCTestCase {
             XCTAssertEqual(definition.value(forKey: "movementID") as? String, exercise.movementID)
             XCTAssertEqual(definition.value(forKey: "movementTitle") as? String, exercise.movementTitle)
             XCTAssertEqual(definition.value(forKey: "variationTagsJSON") as? String, try encode(exercise.variationTags))
+            if definition.entity.attributesByName["equipmentTitle"] != nil {
+                XCTAssertEqual(definition.value(forKey: "equipmentTitle") as? String, exercise.equipmentTitle)
+            }
         }
     }
 
@@ -134,8 +162,27 @@ final class ExerciseMovementTests: XCTestCase {
             XCTAssertEqual(custom.value(forKey: "movementID") as? String, uuid.uuidString.lowercased())
             XCTAssertEqual(custom.value(forKey: "movementTitle") as? String, "Cable wrist thing")
             XCTAssertEqual(custom.value(forKey: "variationTitle") as? String, "Dumbbell")
+            if custom.entity.attributesByName["equipmentTitle"] != nil {
+                XCTAssertEqual(custom.value(forKey: "equipmentTitle") as? String, "Dumbbell")
+            }
             XCTAssertEqual(custom.value(forKey: "variationTagsJSON") as? String, "[\"dumbbell\"]")
         }
+    }
+
+    func testDuplicateVariationMatchesStructuredIdentity() {
+        let store = ExerciseStore()
+
+        let duplicate = store.duplicateVariation(
+            movementTitle: "Bench Press",
+            equipmentTitle: "Barbell",
+            attachmentTitle: nil,
+            setupTitle: "Incline",
+            gripTitle: nil,
+            sideTitle: nil,
+            loadModeTitle: nil
+        )
+
+        XCTAssertEqual(duplicate?.title, "Bench Press: Barbell (Incline)")
     }
 
     private func encode<T: Encodable>(_ value: T) throws -> String {

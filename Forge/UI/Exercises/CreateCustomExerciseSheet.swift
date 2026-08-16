@@ -20,7 +20,20 @@ struct CreateCustomExerciseSheet: View {
         guard !exerciseStore.exercises.contains(where: { $0.title == title }) else { return false }
         guard !exerciseValues.muscles.isEmpty else { return false }
         guard !exerciseValues.activityCategoryIDs.isEmpty else { return false }
+        guard duplicateVariation == nil else { return false }
         return true
+    }
+
+    private var duplicateVariation: Exercise? {
+        exerciseStore.duplicateVariation(
+            movementTitle: exerciseValues.movementTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? exerciseValues.title : exerciseValues.movementTitle,
+            equipmentTitle: exerciseValues.equipmentTitle,
+            attachmentTitle: exerciseValues.attachmentTitle,
+            setupTitle: exerciseValues.setupTitle,
+            gripTitle: exerciseValues.gripTitle,
+            sideTitle: exerciseValues.sideTitle,
+            loadModeTitle: exerciseValues.loadModeTitle
+        )
     }
     
     private var saveButton: some View {
@@ -45,7 +58,13 @@ struct CreateCustomExerciseSheet: View {
                 type: self.exerciseValues.type,
                 activityCategoryIDs: Array(self.exerciseValues.activityCategoryIDs).sorted(),
                 movementTitle: self.exerciseValues.movementTitle,
-                variationTitle: self.exerciseValues.variationTitle
+                variationTitle: self.exerciseValues.variationTitle,
+                equipmentTitle: self.exerciseValues.equipmentTitle,
+                attachmentTitle: self.exerciseValues.attachmentTitle,
+                setupTitle: self.exerciseValues.setupTitle,
+                gripTitle: self.exerciseValues.gripTitle,
+                sideTitle: self.exerciseValues.sideTitle,
+                loadModeTitle: self.exerciseValues.loadModeTitle
             )
             if let restTime = self.exerciseValues.restTime,
                let created = self.exerciseStore.customExercises.first(where: { $0.title == title }) {
@@ -68,6 +87,16 @@ struct CreateCustomExerciseSheet: View {
                     },
                     trailing: saveButton
                 )
+                .safeAreaInset(edge: .bottom) {
+                    if let duplicateVariation {
+                        Text("This matches \(duplicateVariation.title). Edit that variation instead.")
+                            .font(.forgeCaption)
+                            .foregroundColor(.forgeSecondaryLabel)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(Theme.Spacing.m)
+                            .background(.bar)
+                    }
+                }
         }
     }
 }

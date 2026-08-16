@@ -208,7 +208,7 @@ extension ExerciseStore {
         let grouped = Dictionary(grouping: exercises, by: \.movementID)
         return grouped.map { movementID, exercises in
             let sortedExercises = exercises.sorted {
-                let titleCompare = $0.variationDisplayTitle.localizedCaseInsensitiveCompare($1.variationDisplayTitle)
+                let titleCompare = $0.variationSummaryTitle.localizedCaseInsensitiveCompare($1.variationSummaryTitle)
                 if titleCompare == .orderedSame {
                     return $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
                 }
@@ -216,6 +216,22 @@ extension ExerciseStore {
             }
             let movementTitle = sortedExercises.first?.movementTitle ?? movementID
             return ExerciseMovement(id: movementID, title: movementTitle, variations: sortedExercises.map(ExerciseVariation.init))
+        }
+        .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+    }
+
+    public static func splitIntoEquipmentGroups(variations: [ExerciseVariation]) -> [ExerciseGroup] {
+        let grouped = Dictionary(grouping: variations.map(\.exercise)) { exercise in
+            exercise.equipmentTitle ?? "Other"
+        }
+        return grouped.map { title, exercises in
+            ExerciseGroup(title: title, exercises: exercises.sorted {
+                let titleCompare = $0.variationSummaryTitle.localizedCaseInsensitiveCompare($1.variationSummaryTitle)
+                if titleCompare == .orderedSame {
+                    return $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+                }
+                return titleCompare == .orderedAscending
+            })
         }
         .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
     }
@@ -249,7 +265,7 @@ extension ExerciseStore {
         guard !filter.isEmpty else { return exercises }
 
         return exercises.filter { exercise in
-            let searchableTitles = [exercise.title, exercise.movementTitle, exercise.variationTitle]
+            let searchableTitles = [exercise.title, exercise.movementTitle, exercise.variationTitle, exercise.equipmentTitle, exercise.attachmentTitle, exercise.setupTitle, exercise.gripTitle, exercise.sideTitle, exercise.loadModeTitle]
                 .compactMap { $0 }
                 + exercise.alias
                 + exercise.equipment
@@ -272,7 +288,7 @@ extension ExerciseStore {
 
 // MARK: - Custom Exercises (Core Data backed)
 extension ExerciseStore {
-    public func createCustomExercise(title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, activityCategoryIDs: [String] = [ExerciseActivityCategory.strength.rawValue], movementTitle: String? = nil, variationTitle: String? = nil, variationTags: [String] = []) {
+    public func createCustomExercise(title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, activityCategoryIDs: [String] = [ExerciseActivityCategory.strength.rawValue], movementTitle: String? = nil, variationTitle: String? = nil, equipmentTitle: String? = nil, attachmentTitle: String? = nil, setupTitle: String? = nil, gripTitle: String? = nil, sideTitle: String? = nil, loadModeTitle: String? = nil, variationTags: [String] = []) {
         let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { return }
         guard !exercises.contains(where: { $0.title == title }) else { return }
@@ -280,17 +296,17 @@ extension ExerciseStore {
 
         let entity = CustomExercise(context: context)
         entity.uuid = UUID()
-        apply(title: title, description: description, primaryMuscle: primaryMuscle, secondaryMuscle: secondaryMuscle, type: type, activityCategoryIDs: activityCategoryIDs, movementTitle: movementTitle, variationTitle: variationTitle, variationTags: variationTags, to: entity)
+        apply(title: title, description: description, primaryMuscle: primaryMuscle, secondaryMuscle: secondaryMuscle, type: type, activityCategoryIDs: activityCategoryIDs, movementTitle: movementTitle, variationTitle: variationTitle, equipmentTitle: equipmentTitle, attachmentTitle: attachmentTitle, setupTitle: setupTitle, gripTitle: gripTitle, sideTitle: sideTitle, loadModeTitle: loadModeTitle, variationTags: variationTags, to: entity)
         saveAndReload(context)
     }
 
-    public func updateCustomExercise(with uuid: UUID, title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, activityCategoryIDs: [String] = [ExerciseActivityCategory.strength.rawValue], movementTitle: String? = nil, variationTitle: String? = nil, variationTags: [String] = []) {
+    public func updateCustomExercise(with uuid: UUID, title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, activityCategoryIDs: [String] = [ExerciseActivityCategory.strength.rawValue], movementTitle: String? = nil, variationTitle: String? = nil, equipmentTitle: String? = nil, attachmentTitle: String? = nil, setupTitle: String? = nil, gripTitle: String? = nil, sideTitle: String? = nil, loadModeTitle: String? = nil, variationTags: [String] = []) {
         let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { return }
         guard !exercises.contains(where: { $0.title == title && $0.uuid != uuid }) else { return }
         guard let context = context, let entity = customExerciseEntity(with: uuid, in: context) else { return }
 
-        apply(title: title, description: description, primaryMuscle: primaryMuscle, secondaryMuscle: secondaryMuscle, type: type, activityCategoryIDs: activityCategoryIDs, movementTitle: movementTitle, variationTitle: variationTitle, variationTags: variationTags, to: entity)
+        apply(title: title, description: description, primaryMuscle: primaryMuscle, secondaryMuscle: secondaryMuscle, type: type, activityCategoryIDs: activityCategoryIDs, movementTitle: movementTitle, variationTitle: variationTitle, equipmentTitle: equipmentTitle, attachmentTitle: attachmentTitle, setupTitle: setupTitle, gripTitle: gripTitle, sideTitle: sideTitle, loadModeTitle: loadModeTitle, variationTags: variationTags, to: entity)
         saveAndReload(context)
     }
 
@@ -301,7 +317,25 @@ extension ExerciseStore {
         saveAndReload(context)
     }
 
-    private func apply(title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, activityCategoryIDs: [String], movementTitle: String?, variationTitle: String?, variationTags: [String], to entity: CustomExercise) {
+    public func duplicateVariation(movementTitle: String?, equipmentTitle: String?, attachmentTitle: String?, setupTitle: String?, gripTitle: String?, sideTitle: String?, loadModeTitle: String?, excluding uuid: UUID? = nil) -> Exercise? {
+        let movement = Exercise.cleanVariationField(movementTitle)
+        let movementID = movement.map { Exercise.defaultMovementID(for: $0) }
+        let probe = Exercise.variationIdentityKey(
+            movementID: movementID,
+            equipmentTitle: equipmentTitle,
+            attachmentTitle: attachmentTitle,
+            setupTitle: setupTitle,
+            gripTitle: gripTitle,
+            sideTitle: sideTitle,
+            loadModeTitle: loadModeTitle
+        )
+        guard !probe.isEmpty else { return nil }
+        return exercises.first { exercise in
+            exercise.uuid != uuid && exercise.variationIdentityKey == probe
+        }
+    }
+
+    private func apply(title: String, description: String?, primaryMuscle: [String], secondaryMuscle: [String], type: Exercise.ExerciseType, activityCategoryIDs: [String], movementTitle: String?, variationTitle: String?, equipmentTitle: String?, attachmentTitle: String?, setupTitle: String?, gripTitle: String?, sideTitle: String?, loadModeTitle: String?, variationTags: [String], to entity: CustomExercise) {
         var description = description?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let d = description, d.isEmpty { description = nil }
         let cleanMovementTitle = movementTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -309,7 +343,18 @@ extension ExerciseStore {
         let resolvedMovementTitle = hasCustomMovementTitle ? cleanMovementTitle! : Exercise.defaultMovementTitle(for: title)
         let cleanVariationTitle = variationTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
         let equipment = type.equipment.map { [$0] } ?? []
-        let resolvedVariationTags = Exercise.normalizedVariationTags(variationTags.isEmpty ? equipment : variationTags)
+        let structured = Exercise.structuredVariationFields(
+            title: title,
+            variationTitle: cleanVariationTitle,
+            equipment: equipment,
+            equipmentTitle: equipmentTitle,
+            attachmentTitle: attachmentTitle,
+            setupTitle: setupTitle,
+            gripTitle: gripTitle,
+            sideTitle: sideTitle,
+            loadModeTitle: loadModeTitle
+        )
+        let resolvedVariationTags = Exercise.normalizedVariationTags(variationTags.isEmpty ? structured.tags + equipment : variationTags)
         entity.title = title
         entity.exerciseDescription = description
         entity.primaryMusclesJSON = Self.encodeStrings(primaryMuscle)
@@ -319,6 +364,12 @@ extension ExerciseStore {
         entity.movementID = hasCustomMovementTitle ? Exercise.defaultMovementID(for: resolvedMovementTitle) : entity.uuid?.uuidString.lowercased()
         entity.movementTitle = resolvedMovementTitle
         entity.variationTitle = cleanVariationTitle?.isEmpty == true ? nil : cleanVariationTitle
+        entity.equipmentTitle = structured.equipmentTitle
+        entity.attachmentTitle = structured.attachmentTitle
+        entity.setupTitle = structured.setupTitle
+        entity.gripTitle = structured.gripTitle
+        entity.sideTitle = structured.sideTitle
+        entity.loadModeTitle = structured.loadModeTitle
         entity.variationTagsJSON = Self.encodeStrings(resolvedVariationTags)
         if entity.defaultMetric == nil {
             entity.defaultMetric = ExerciseSetMetric.reps.rawValue
@@ -372,6 +423,12 @@ extension ExerciseStore {
             movementID: entity.movementID ?? uuid.uuidString.lowercased(),
             movementTitle: entity.movementTitle ?? entity.title ?? "",
             variationTitle: entity.variationTitle,
+            equipmentTitle: entity.equipmentTitle,
+            attachmentTitle: entity.attachmentTitle,
+            setupTitle: entity.setupTitle,
+            gripTitle: entity.gripTitle,
+            sideTitle: entity.sideTitle,
+            loadModeTitle: entity.loadModeTitle,
             variationTags: decodeStrings(entity.variationTagsJSON),
             activityCategories: decodeCategories(entity.activityCategoriesJSON),
             activityCategoryIDs: decodeCategoryIDs(entity.activityCategoriesJSON),

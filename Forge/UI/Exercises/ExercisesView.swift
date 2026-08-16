@@ -13,6 +13,7 @@ struct ExercisesView : View {
     var exercises: [Exercise]
     @State private var filter = ExerciseBrowserFilter()
     @State private var expandedMovementIDs = Set<String>()
+    @State private var expandedEquipmentGroupIDs = Set<String>()
 
     private var filteredExercises: [Exercise] {
         filter.filteredExercises(from: exercises)
@@ -27,29 +28,16 @@ struct ExercisesView : View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
-                    ForEach(ExerciseStore.splitIntoMovements(exercises: filteredExercises)) { movement in
-                        if movement.variations.count == 1, let variation = movement.variations.first {
-                            NavigationLink(destination: ExerciseDetailView(exercise: variation.exercise)) {
-                                ExerciseSourceRow(exercise: variation.exercise)
-                            }
-                        } else {
-                            DisclosureGroup(isExpanded: Binding(
-                                get: { expandedMovementIDs.contains(movement.id) },
-                                set: { isExpanded in
-                                    if isExpanded {
-                                        expandedMovementIDs.insert(movement.id)
-                                    } else {
-                                        expandedMovementIDs.remove(movement.id)
-                                    }
-                                }
-                            )) {
-                                ForEach(movement.variations) { variation in
-                                    NavigationLink(destination: ExerciseDetailView(exercise: variation.exercise)) {
-                                        ExerciseSourceRow(exercise: variation.exercise, title: variation.exercise.variationDisplayTitle)
-                                    }
-                                }
-                            } label: {
-                                Text(movement.title)
+                    ExerciseMovementRows(
+                        movements: ExerciseStore.splitIntoMovements(exercises: filteredExercises),
+                        expandedMovementIDs: $expandedMovementIDs,
+                        expandedEquipmentGroupIDs: $expandedEquipmentGroupIDs
+                    ) { exercise, title in
+                        NavigationLink(destination: ExerciseDetailView(exercise: exercise)) {
+                            if title == exercise.title {
+                                ExerciseSourceRow(exercise: exercise)
+                            } else {
+                                ExerciseSourceRow(exercise: exercise, title: title)
                             }
                         }
                     }

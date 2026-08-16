@@ -104,6 +104,38 @@ final class ExerciseCatalogTests: XCTestCase {
         }
     }
 
+    func testBuiltInCatalogHasStructuredVariationMetadataForRepresentativeFamilies() throws {
+        let exercises = try loadExercises()
+
+        let cableRopeCurl = try XCTUnwrap(exercises.first { $0.title == "Biceps Curl: Cable (Rope)" })
+        XCTAssertEqual(cableRopeCurl.equipmentTitle, "Cable")
+        XCTAssertEqual(cableRopeCurl.attachmentTitle, "Rope")
+
+        let cableOverheadCurl = try XCTUnwrap(exercises.first { $0.title == "Biceps Curl: Cable (Overhead)" })
+        XCTAssertEqual(cableOverheadCurl.equipmentTitle, "Cable")
+        XCTAssertEqual(cableOverheadCurl.setupTitle, "Overhead")
+
+        let inclineBench = try XCTUnwrap(exercises.first { $0.title == "Bench Press: Barbell (Incline)" })
+        XCTAssertEqual(inclineBench.movementID, "bench_press")
+        XCTAssertEqual(inclineBench.equipmentTitle, "Barbell")
+        XCTAssertEqual(inclineBench.setupTitle, "Incline")
+
+        let closeGripBench = try XCTUnwrap(exercises.first { $0.title == "Bench Press: Barbell (Close Grip)" })
+        XCTAssertEqual(closeGripBench.gripTitle, "Close grip")
+
+        let wideSquat = try XCTUnwrap(exercises.first { $0.title == "Squat: Barbell (Wide Stance)" })
+        XCTAssertEqual(wideSquat.setupTitle, "Wide stance")
+
+        let weightedPullUp = try XCTUnwrap(exercises.first { $0.title == "Pull Up: Weighted" })
+        XCTAssertEqual(weightedPullUp.movementID, "pull_up")
+        XCTAssertEqual(weightedPullUp.loadModeTitle, "Weighted")
+
+        let assistedPullUp = try XCTUnwrap(exercises.first { $0.title == "Pull Up: Assisted" })
+        XCTAssertEqual(assistedPullUp.movementID, "pull_up")
+        XCTAssertEqual(assistedPullUp.loadModeTitle, "Assisted")
+        XCTAssertNotEqual(weightedPullUp.uuid, assistedPullUp.uuid)
+    }
+
     func testCatalogCleanupGroupsKnownDuplicateTitles() throws {
         let exercises = try loadExercises()
 

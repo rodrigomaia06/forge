@@ -16,6 +16,12 @@ struct EditCustomExerciseView: View {
         var description: String
         var movementTitle: String = ""
         var variationTitle: String = ""
+        var equipmentTitle: String = ""
+        var attachmentTitle: String = ""
+        var setupTitle: String = ""
+        var gripTitle: String = ""
+        var sideTitle: String = ""
+        var loadModeTitle: String = ""
         var muscles: Set<ExerciseMuscle>
         var type: Exercise.ExerciseType
         var activityCategoryIDs: Set<String> = [ExerciseActivityCategory.strength.rawValue]
@@ -33,6 +39,7 @@ struct EditCustomExerciseView: View {
     }
     
     @Binding var exerciseValues: ExerciseValues
+    @EnvironmentObject var exerciseStore: ExerciseStore
     @FetchRequest(fetchRequest: WorkoutType.fetchRequestSorted()) private var workoutTypes
     
     @State private var showingMuscleSelectionSheet = false
@@ -54,6 +61,10 @@ struct EditCustomExerciseView: View {
     private var visibleWorkoutTypes: [WorkoutType] {
         workoutTypes.filter { !$0.isArchived || exerciseValues.activityCategoryIDs.contains($0.exerciseCategoryID) }
     }
+
+    private var existingMovements: [ExerciseMovement] {
+        ExerciseStore.splitIntoMovements(exercises: exerciseStore.exercises)
+    }
     
     var body: some View {
         Form {
@@ -62,9 +73,23 @@ struct EditCustomExerciseView: View {
                 TextField("Description (Optional)", text: $exerciseValues.description)
             }
 
-            Section(header: Text("Variation".uppercased()), footer: Text("Use the same movement name to group related exercise variations.")) {
+            Section(header: Text("Variation".uppercased()), footer: Text("Use an existing movement to group related variations.")) {
                 TextField("Movement", text: $exerciseValues.movementTitle)
-                TextField("Variation", text: $exerciseValues.variationTitle)
+                Menu {
+                    ForEach(existingMovements) { movement in
+                        Button(movement.title) {
+                            exerciseValues.movementTitle = movement.title
+                        }
+                    }
+                } label: {
+                    Label("Use existing movement", systemImage: "list.bullet")
+                }
+                TextField("Equipment", text: $exerciseValues.equipmentTitle)
+                TextField("Attachment", text: $exerciseValues.attachmentTitle)
+                TextField("Setup", text: $exerciseValues.setupTitle)
+                TextField("Grip", text: $exerciseValues.gripTitle)
+                TextField("Side", text: $exerciseValues.sideTitle)
+                TextField("Load", text: $exerciseValues.loadModeTitle)
             }
             
             Section(header: Text("Muscles".uppercased()), footer: Text("Select at least one muscle.")) {

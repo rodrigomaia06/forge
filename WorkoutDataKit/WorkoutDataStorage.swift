@@ -109,7 +109,7 @@ extension WorkoutDataStorage {
             ("1A12F0A7-AE90-5E85-8B5B-D5DD918328ED", "2BBF9DB2-8BD8-456E-A0CB-749D19E5FA26"), // Close Grip Push Up -> Push Up (Close)
             ("2EB4B804-B446-58F3-B623-12B55DD5AD3A", "37DF9EB1-8E5F-404E-91B2-36210D356F95"), // Romanian Deadlift: Barbell -> Romanian Deadlift
             ("36681BE9-7C80-53B9-BE63-E6536686169A", "8B3DE466-1552-4978-A378-55F64E8CA66B"), // Leg Press (Machine) -> Leg Press
-            ("32D30AE5-552D-57E2-BB14-068443BB351A", "59185216-6167-4427-AC10-38A3FDA17572"), // Pull Up (Weighted) -> Pull Up
+            ("32D30AE5-552D-57E2-BB14-068443BB351A", "0458E9AE-45D4-4C34-8EBF-7EE4B329BA69"), // Pull Up (Weighted) -> Pull Up: Weighted
             ("FFDFB5BE-FA4A-50D5-9DB1-60125041B95C", "8CD1F963-7570-467A-A15E-FAAFFEBF2546"), // Leg Curl (Seated, Machine) -> Leg Curl (Seated)
         ]
         return Dictionary(uniqueKeysWithValues: pairs.compactMap { pair in

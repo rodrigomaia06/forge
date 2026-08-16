@@ -39,7 +39,9 @@
       "machine",
       "seated",
       "overhead"
-    ]
+    ],
+    "equipmentTitle": "Machine",
+    "setupTitle": "Seated"
   },
   {
     "uuid": "2234A906-76BD-491C-B8D1-D6FC60CCB4F8",
@@ -82,10 +84,12 @@
     "variationTitle": "Barbell, Seated",
     "variationTags": [
       "barbell",
-      "bench",
       "seated",
+      "bench",
       "overhead"
-    ]
+    ],
+    "equipmentTitle": "Barbell",
+    "setupTitle": "Seated"
   },
   {
     "uuid": "242C1F11-54FE-4EB9-B350-3ED2814E9E2D",
@@ -122,7 +126,8 @@
     "variationTitle": "Dumbbell",
     "variationTags": [
       "dumbbell"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell"
   },
   {
     "uuid": "3641964C-08E0-40CB-B07E-4FE0F22FB556",
@@ -162,7 +167,8 @@
     "movementTitle": "Arnold Press",
     "variationTags": [
       "dumbbell"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell"
   },
   {
     "uuid": "D00DE650-3FA1-4A3E-87F7-E512820EB2FE",
@@ -202,7 +208,8 @@
     "variationTitle": "Barbell",
     "variationTags": [
       "barbell"
-    ]
+    ],
+    "equipmentTitle": "Barbell"
   },
   {
     "uuid": "5CF92AB3-67F6-444C-A9B3-D4812B6CB06E",
@@ -244,7 +251,8 @@
     "variationTitle": "Cable",
     "variationTags": [
       "cable"
-    ]
+    ],
+    "equipmentTitle": "Cable"
   },
   {
     "uuid": "BDD44C1A-EDC3-48AE-89BC-DE1CB540BBFD",
@@ -283,7 +291,8 @@
     "variationTitle": "Cable",
     "variationTags": [
       "cable"
-    ]
+    ],
+    "equipmentTitle": "Cable"
   },
   {
     "uuid": "2E087495-346B-4824-96BB-9CD854029E87",
@@ -325,7 +334,8 @@
     "variationTitle": "Dumbbell",
     "variationTags": [
       "dumbbell"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell"
   },
   {
     "uuid": "6C214811-961A-408A-8ABA-365F4F35A7FD",
@@ -368,8 +378,11 @@
     "movementTitle": "Lateral Raise",
     "variationTitle": "Cable, Bent Over",
     "variationTags": [
-      "cable"
-    ]
+      "cable",
+      "bent_over"
+    ],
+    "equipmentTitle": "Cable",
+    "setupTitle": "Bent over"
   },
   {
     "uuid": "92D5B230-A226-45DD-8AA1-D3271EC24AF8",
@@ -411,7 +424,8 @@
     "variationTitle": "Dumbbell",
     "variationTags": [
       "dumbbell"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell"
   },
   {
     "uuid": "19D4F31D-AA33-4013-83DF-342DD6305AD5",
@@ -454,8 +468,11 @@
     "variationTitle": "Cable",
     "variationTags": [
       "cable",
+      "reverse_grip",
       "reverse"
-    ]
+    ],
+    "equipmentTitle": "Cable",
+    "gripTitle": "Reverse grip"
   },
   {
     "uuid": "09F6FB3A-A7E9-4E08-8BA2-5F1CE7FDE93F",
@@ -491,8 +508,10 @@
     "movementID": "leg_raises",
     "movementTitle": "Leg Raises",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "0926F2D0-B09A-4D74-9EDF-3654D79A4CDF",
@@ -534,7 +553,8 @@
     "variationTitle": "Smith Machine",
     "variationTags": [
       "smith_machine"
-    ]
+    ],
+    "equipmentTitle": "Smith machine"
   },
   {
     "uuid": "E905CE43-2692-44C4-8E98-6657CAEAA3D4",
@@ -570,10 +590,12 @@
     "movementTitle": "Rear Deltoid Raise",
     "variationTitle": "Lying",
     "variationTags": [
-      "flat_bench",
       "dumbbell",
-      "lying"
-    ]
+      "lying",
+      "flat_bench"
+    ],
+    "equipmentTitle": "Dumbbell",
+    "setupTitle": "Lying"
   },
   {
     "uuid": "1C18115B-4985-4CAE-BA7E-FBD86827C6FF",
@@ -616,7 +638,9 @@
     "variationTags": [
       "dumbbell",
       "one_arm"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell",
+    "sideTitle": "One arm"
   },
   {
     "uuid": "C30BC020-CD01-4DC6-BACD-BAB8C88D208F",
@@ -657,7 +681,9 @@
     "variationTags": [
       "cable",
       "seated"
-    ]
+    ],
+    "equipmentTitle": "Cable",
+    "setupTitle": "Seated"
   },
   {
     "uuid": "794F1BDB-9F8C-487E-866D-D6E54E28A522",
@@ -696,8 +722,13 @@
     "variationTitle": "Barbell, Bent Over, Reverse",
     "variationTags": [
       "barbell",
+      "bent_over",
+      "reverse_grip",
       "reverse"
-    ]
+    ],
+    "equipmentTitle": "Barbell",
+    "setupTitle": "Bent over",
+    "gripTitle": "Reverse grip"
   },
   {
     "uuid": "D39C7398-C0DB-4501-95A3-67E8B27C7921",
@@ -735,7 +766,8 @@
     "variationTitle": "Barbell",
     "variationTags": [
       "barbell"
-    ]
+    ],
+    "equipmentTitle": "Barbell"
   },
   {
     "uuid": "44694EFA-7D2E-4C7F-AB7D-DC4F66CAFB60",
@@ -775,8 +807,10 @@
     "movementTitle": "Row",
     "variationTitle": "T-Bar",
     "variationTags": [
-      "t-bar_machine"
-    ]
+      "machine",
+      "t_bar_machine"
+    ],
+    "equipmentTitle": "Machine"
   },
   {
     "uuid": "C736BCEB-4699-4FFF-BE53-0D56336BA137",
@@ -814,7 +848,51 @@
     "variationTitle": "Barbell",
     "variationTags": [
       "barbell"
-    ]
+    ],
+    "equipmentTitle": "Barbell"
+  },
+  {
+    "uuid": "C04B1262-EF69-449E-963F-282D34A0AA8D",
+    "id": 31,
+    "name": "dumbbell-incline-bench-press",
+    "title": "Bench Press: Dumbbell (Incline)",
+    "alias": [],
+    "primer": "This is an advanced exercise for building and sculpting the chest as well as your triceps and shoulders.",
+    "type": "isolation",
+    "primary": [
+      "pectoralis major"
+    ],
+    "secondary": [
+      "triceps brachii",
+      "deltoid"
+    ],
+    "equipment": [
+      "dumbbell",
+      "bench: incline"
+    ],
+    "steps": [
+      "Lie on an incline bench which has been set to an incline of 45 degrees.",
+      "Start with the dumbbells at shoulder height, your arms wide and elbows pointing down to the floor.",
+      "Grasp the dumbbells with a grip so your palms face each other.",
+      "Raise your arms up over your chest bringing the dumbbells closer together as they meet over your chest, as if you were clapping.",
+      "Slowly return the dumbbells to starting position."
+    ],
+    "tips": [],
+    "references": [],
+    "png": [
+      "png/0031-relaxation.png",
+      "png/0031-tension.png"
+    ],
+    "movementID": "bench_press",
+    "movementTitle": "Bench Press",
+    "variationTitle": "Dumbbell, Incline",
+    "variationTags": [
+      "dumbbell",
+      "incline",
+      "bench:_incline"
+    ],
+    "equipmentTitle": "Dumbbell",
+    "setupTitle": "Incline"
   },
   {
     "uuid": "95A2FF8B-332D-427A-9EBD-7CE3151D5F4A",
@@ -850,8 +928,11 @@
     "movementTitle": "Rear Deltoid Raise",
     "variationTitle": "Bent Over",
     "variationTags": [
-      "dumbbell"
-    ]
+      "dumbbell",
+      "bent_over"
+    ],
+    "equipmentTitle": "Dumbbell",
+    "setupTitle": "Bent over"
   },
   {
     "uuid": "9C3417E1-2B6F-4E2D-9F49-0BF256CCC88D",
@@ -884,7 +965,8 @@
     "variationTitle": "Dumbbell",
     "variationTags": [
       "dumbbell"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell"
   },
   {
     "uuid": "B346DE7B-2E5C-4509-83AF-B5E58BA065E1",
@@ -922,7 +1004,8 @@
     "movementTitle": "Internal Cable Rotation",
     "variationTags": [
       "cable"
-    ]
+    ],
+    "equipmentTitle": "Cable"
   },
   {
     "uuid": "9A268413-B96A-4943-94BC-C36FC0C91E07",
@@ -957,7 +1040,8 @@
     "variationTitle": "Smith Machine",
     "variationTags": [
       "smith_machine"
-    ]
+    ],
+    "equipmentTitle": "Smith machine"
   },
   {
     "uuid": "C0D3C3CD-9F1F-4A89-B845-DAB5923B22A7",
@@ -998,9 +1082,10 @@
     "movementTitle": "Bench Press",
     "variationTitle": "Barbell",
     "variationTags": [
-      "bench",
-      "barbell"
-    ]
+      "barbell",
+      "bench"
+    ],
+    "equipmentTitle": "Barbell"
   },
   {
     "uuid": "D2B09DAE-2E3B-4A7A-95F8-811E5E41B433",
@@ -1040,10 +1125,12 @@
     "movementTitle": "Bench Press",
     "variationTitle": "Barbell, Incline",
     "variationTags": [
-      "bench:_incline",
       "barbell",
-      "incline"
-    ]
+      "incline",
+      "bench:_incline"
+    ],
+    "equipmentTitle": "Barbell",
+    "setupTitle": "Incline"
   },
   {
     "uuid": "6C2203F8-7DD8-4B18-A6A0-46B17B44F9E5",
@@ -1082,8 +1169,10 @@
     "movementTitle": "Flyes",
     "variationTitle": "Machine",
     "variationTags": [
+      "machine",
       "machine:_butterfly"
-    ]
+    ],
+    "equipmentTitle": "Machine"
   },
   {
     "uuid": "CAEA1591-7DA3-4607-915A-04CFADA7E461",
@@ -1123,7 +1212,8 @@
     "variationTitle": "Cable",
     "variationTags": [
       "cable"
-    ]
+    ],
+    "equipmentTitle": "Cable"
   },
   {
     "uuid": "7F521D26-66F9-40F5-B50A-044AAC0803FE",
@@ -1163,7 +1253,9 @@
     "variationTags": [
       "barbell",
       "close_grip"
-    ]
+    ],
+    "equipmentTitle": "Barbell",
+    "gripTitle": "Close grip"
   },
   {
     "uuid": "A7AF0DB8-C0B1-44BA-ADB2-6C08E03CB2CC",
@@ -1202,10 +1294,12 @@
     "movementTitle": "Bench Press",
     "variationTitle": "Barbell, Decline",
     "variationTags": [
-      "bench:_decline",
       "barbell",
-      "decline"
-    ]
+      "decline",
+      "bench:_decline"
+    ],
+    "equipmentTitle": "Barbell",
+    "setupTitle": "Decline"
   },
   {
     "uuid": "A541E362-0EAD-42DA-B109-D452312BA2CA",
@@ -1243,9 +1337,11 @@
     "variationTitle": "Dumbbell, Decline",
     "variationTags": [
       "dumbbell",
-      "bench:_decline",
-      "decline"
-    ]
+      "decline",
+      "bench:_decline"
+    ],
+    "equipmentTitle": "Dumbbell",
+    "setupTitle": "Decline"
   },
   {
     "uuid": "0DB5A1D0-91D7-4A7E-8537-8F1199B3FC0A",
@@ -1285,9 +1381,11 @@
     "variationTitle": "Dumbbell, Decline",
     "variationTags": [
       "dumbbell",
-      "bench:_decline",
-      "decline"
-    ]
+      "decline",
+      "bench:_decline"
+    ],
+    "equipmentTitle": "Dumbbell",
+    "setupTitle": "Decline"
   },
   {
     "uuid": "AC43FDDC-D3C7-438D-A925-D4EF0F3CE290",
@@ -1327,9 +1425,11 @@
     "movementTitle": "Dips",
     "variationTitle": "Chest",
     "variationTags": [
+      "bodyweight",
       "body",
       "parallel_bars"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "6B09E781-80C2-4116-AB82-C9FC31D49E43",
@@ -1372,7 +1472,8 @@
     "variationTags": [
       "dumbbell",
       "flat_bench"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell"
   },
   {
     "uuid": "C28FA94C-D311-450F-B208-6366A2992837",
@@ -1414,9 +1515,10 @@
     "movementTitle": "Flyes",
     "variationTitle": "Dumbbell",
     "variationTags": [
-      "flat_bench",
-      "dumbbell"
-    ]
+      "dumbbell",
+      "flat_bench"
+    ],
+    "equipmentTitle": "Dumbbell"
   },
   {
     "uuid": "61C900C2-8920-47BC-91E4-DC249F5C6127",
@@ -1455,10 +1557,12 @@
     "movementTitle": "Flyes",
     "variationTitle": "Cable, Lying",
     "variationTags": [
-      "flat_bench",
       "cable",
-      "lying"
-    ]
+      "lying",
+      "flat_bench"
+    ],
+    "equipmentTitle": "Cable",
+    "setupTitle": "Lying"
   },
   {
     "uuid": "670F794D-3D03-4DC9-AC69-68D06CB784D4",
@@ -1496,7 +1600,8 @@
     "variationTags": [
       "barbell",
       "flat_bench"
-    ]
+    ],
+    "equipmentTitle": "Barbell"
   },
   {
     "uuid": "5999199F-0BC8-414A-96FD-FA3377AFA5EF",
@@ -1535,10 +1640,13 @@
     "variationTitle": "Dumbbell, Incline, Hammer Grip",
     "variationTags": [
       "dumbbell",
-      "bench:_incline",
       "incline",
-      "hammer_grip"
-    ]
+      "hammer_grip",
+      "bench:_incline"
+    ],
+    "equipmentTitle": "Dumbbell",
+    "setupTitle": "Incline",
+    "gripTitle": "Hammer grip"
   },
   {
     "uuid": "721F71AE-879A-4F6A-87DB-09C7A6906D60",
@@ -1578,51 +1686,12 @@
     "movementTitle": "Flyes",
     "variationTitle": "Cable, Incline",
     "variationTags": [
-      "bench:_incline",
       "cable",
-      "incline"
-    ]
-  },
-  {
-    "uuid": "C04B1262-EF69-449E-963F-282D34A0AA8D",
-    "id": 31,
-    "name": "dumbbell-incline-bench-press",
-    "title": "Bench Press: Dumbbell (Incline)",
-    "alias": [],
-    "primer": "This is an advanced exercise for building and sculpting the chest as well as your triceps and shoulders.",
-    "type": "isolation",
-    "primary": [
-      "pectoralis major"
+      "incline",
+      "bench:_incline"
     ],
-    "secondary": [
-      "triceps brachii",
-      "deltoid"
-    ],
-    "equipment": [
-      "dumbbell",
-      "bench: incline"
-    ],
-    "steps": [
-      "Lie on an incline bench which has been set to an incline of 45 degrees.",
-      "Start with the dumbbells at shoulder height, your arms wide and elbows pointing down to the floor.",
-      "Grasp the dumbbells with a grip so your palms face each other.",
-      "Raise your arms up over your chest bringing the dumbbells closer together as they meet over your chest, as if you were clapping.",
-      "Slowly return the dumbbells to starting position."
-    ],
-    "tips": [],
-    "references": [],
-    "png": [
-      "png/0031-relaxation.png",
-      "png/0031-tension.png"
-    ],
-    "movementID": "bench_press",
-    "movementTitle": "Bench Press",
-    "variationTitle": "Dumbbell, Incline",
-    "variationTags": [
-      "dumbbell",
-      "bench:_incline",
-      "incline"
-    ]
+    "equipmentTitle": "Cable",
+    "setupTitle": "Incline"
   },
   {
     "uuid": "635746F0-1E44-4DAA-B2FA-81D1933F3EB3",
@@ -1662,10 +1731,12 @@
     "movementTitle": "Flyes",
     "variationTitle": "Dumbbell, Incline",
     "variationTags": [
-      "bench:_incline",
       "dumbbell",
-      "incline"
-    ]
+      "incline",
+      "bench:_incline"
+    ],
+    "equipmentTitle": "Dumbbell",
+    "setupTitle": "Incline"
   },
   {
     "uuid": "74D42B22-1842-4B9F-B6A7-83B90472CB43",
@@ -1703,8 +1774,10 @@
     "movementTitle": "Bench Press",
     "variationTitle": "Machine",
     "variationTags": [
+      "machine",
       "machine:_bench_press"
-    ]
+    ],
+    "equipmentTitle": "Machine"
   },
   {
     "uuid": "3B32B927-5C1D-4518-8CA0-C33921837F5A",
@@ -1742,10 +1815,13 @@
     "movementTitle": "Push Up",
     "variationTitle": "Decline",
     "variationTags": [
+      "bodyweight",
+      "decline",
       "body",
-      "bench",
-      "decline"
-    ]
+      "bench"
+    ],
+    "equipmentTitle": "Bodyweight",
+    "setupTitle": "Decline"
   },
   {
     "uuid": "77C531EB-3CAD-4773-9F18-1A230B1FF7E5",
@@ -1783,8 +1859,10 @@
     "movementID": "push_up",
     "movementTitle": "Push Up",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "AA58E724-D2BC-43BC-9AF5-BED923FF67D9",
@@ -1824,9 +1902,10 @@
     "movementTitle": "Bench Press",
     "variationTitle": "Smith Machine",
     "variationTags": [
-      "flat_bench",
-      "smith_machine"
-    ]
+      "smith_machine",
+      "flat_bench"
+    ],
+    "equipmentTitle": "Smith machine"
   },
   {
     "uuid": "A367C0FE-49B8-484A-B296-6D5EB723E0B2",
@@ -1867,9 +1946,11 @@
     "variationTitle": "Smith Machine, Incline",
     "variationTags": [
       "smith_machine",
-      "bench:_incline",
-      "incline"
-    ]
+      "incline",
+      "bench:_incline"
+    ],
+    "equipmentTitle": "Smith machine",
+    "setupTitle": "Incline"
   },
   {
     "uuid": "039D6D33-98FD-4CC7-A7AD-C96FAA0135AE",
@@ -1910,10 +1991,12 @@
     "movementTitle": "Bench Press",
     "variationTitle": "Barbell, Wide Grip",
     "variationTags": [
-      "flat_bench",
       "barbell",
-      "wide_grip"
-    ]
+      "wide_grip",
+      "flat_bench"
+    ],
+    "equipmentTitle": "Barbell",
+    "gripTitle": "Wide grip"
   },
   {
     "uuid": "0E2E4708-35DC-4128-8B32-718FF68B5491",
@@ -1953,10 +2036,13 @@
     "variationTitle": "Barbell, Decline, Wide Grip",
     "variationTags": [
       "barbell",
-      "bench:_decline",
       "decline",
-      "wide_grip"
-    ]
+      "wide_grip",
+      "bench:_decline"
+    ],
+    "equipmentTitle": "Barbell",
+    "setupTitle": "Decline",
+    "gripTitle": "Wide grip"
   },
   {
     "uuid": "98D2649B-4616-455B-A0FA-481ECD780035",
@@ -1993,9 +2079,12 @@
     "movementTitle": "Bench Press",
     "variationTitle": "Machine, Incline",
     "variationTags": [
-      "chest_machine",
-      "incline"
-    ]
+      "machine",
+      "incline",
+      "chest_machine"
+    ],
+    "equipmentTitle": "Machine",
+    "setupTitle": "Incline"
   },
   {
     "uuid": "41CA09C9-E88C-42DF-997E-7D6FEA4A765E",
@@ -2032,9 +2121,12 @@
     "movementTitle": "Bench Press",
     "variationTitle": "Machine, Decline",
     "variationTags": [
-      "machine:_chest",
-      "decline"
-    ]
+      "machine",
+      "decline",
+      "machine:_chest"
+    ],
+    "equipmentTitle": "Machine",
+    "setupTitle": "Decline"
   },
   {
     "uuid": "7E117B7F-114F-415E-A646-780D9C744ED2",
@@ -2073,9 +2165,11 @@
     "movementID": "inverted_row",
     "movementTitle": "Inverted Row",
     "variationTags": [
+      "bodyweight",
       "body",
       "bar"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "59185216-6167-4427-AC10-38A3FDA17572",
@@ -2112,9 +2206,11 @@
     "movementID": "pull_up",
     "movementTitle": "Pull Up",
     "variationTags": [
+      "bodyweight",
       "body",
       "bar"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "CF8EA748-48F2-4170-AE64-E206069D8836",
@@ -2150,9 +2246,11 @@
     "movementID": "chin_up",
     "movementTitle": "Chin Up",
     "variationTags": [
+      "bodyweight",
       "body",
       "bar"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "3B1EE73B-7ADA-40EA-96E7-2228883D9FD8",
@@ -2192,10 +2290,14 @@
     "movementTitle": "Chin Up",
     "variationTitle": "Narrow Parallel Grip",
     "variationTags": [
+      "bodyweight",
+      "parallel_grip",
       "bar",
       "body",
       "narrow_stance"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight",
+    "gripTitle": "Parallel grip"
   },
   {
     "uuid": "6346EEFD-83B0-4E7D-83A3-7BA003637AA8",
@@ -2233,7 +2335,8 @@
     "movementTitle": "Straight Arm Pulldown",
     "variationTags": [
       "cable"
-    ]
+    ],
+    "equipmentTitle": "Cable"
   },
   {
     "uuid": "A7E6CAE5-2000-4E57-8704-D6B867A57439",
@@ -2270,8 +2373,11 @@
     "movementTitle": "Pulldown",
     "variationTitle": "Underhand",
     "variationTags": [
-      "cable"
-    ]
+      "cable",
+      "underhand_grip"
+    ],
+    "equipmentTitle": "Cable",
+    "gripTitle": "Underhand grip"
   },
   {
     "uuid": "BBD6B085-D50C-4BA5-88FA-AAD4A3737F0B",
@@ -2308,8 +2414,11 @@
     "movementTitle": "Pulldown",
     "variationTitle": "Overhand",
     "variationTags": [
-      "cable"
-    ]
+      "cable",
+      "overhand_grip"
+    ],
+    "equipmentTitle": "Cable",
+    "gripTitle": "Overhand grip"
   },
   {
     "uuid": "FD99103C-B691-4DD3-A40A-8CCEF23FBEC5",
@@ -2349,7 +2458,9 @@
     "variationTags": [
       "cable",
       "v_bar"
-    ]
+    ],
+    "equipmentTitle": "Cable",
+    "attachmentTitle": "V-bar"
   },
   {
     "uuid": "91F466BA-1D91-459A-8C5B-81E0B46C54AC",
@@ -2392,9 +2503,11 @@
     "variationTitle": "Wide Grip",
     "variationTags": [
       "cable",
-      "wide_bar",
-      "wide_grip"
-    ]
+      "wide_grip",
+      "wide_bar"
+    ],
+    "equipmentTitle": "Cable",
+    "gripTitle": "Wide grip"
   },
   {
     "uuid": "E301F9A9-9516-47E3-9E77-D2C7E50B4D7A",
@@ -2437,7 +2550,8 @@
     "variationTitle": "Barbell",
     "variationTags": [
       "barbell"
-    ]
+    ],
+    "equipmentTitle": "Barbell"
   },
   {
     "uuid": "734F6CD7-9787-45BF-91B2-EB61A9C05575",
@@ -2476,7 +2590,8 @@
     "variationTitle": "Smith Machine",
     "variationTags": [
       "smith_machine"
-    ]
+    ],
+    "equipmentTitle": "Smith machine"
   },
   {
     "uuid": "3391381C-A3C2-4105-B9A9-9610FFF1912D",
@@ -2512,7 +2627,8 @@
     "variationTitle": "Barbell",
     "variationTags": [
       "barbell"
-    ]
+    ],
+    "equipmentTitle": "Barbell"
   },
   {
     "uuid": "2F3CB755-027C-4E47-9C6D-DFD4ACB52B77",
@@ -2548,7 +2664,8 @@
     "variationTitle": "Smith Machine",
     "variationTags": [
       "smith_machine"
-    ]
+    ],
+    "equipmentTitle": "Smith machine"
   },
   {
     "uuid": "DEB57677-680C-442E-AA95-7162C6126B18",
@@ -2620,8 +2737,10 @@
     "movementID": "supermans",
     "movementTitle": "Supermans",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "7B27C3C2-B4C0-423E-8472-90DAFA53B5FB",
@@ -2664,7 +2783,8 @@
     "variationTitle": "Dumbbell",
     "variationTags": [
       "dumbbell"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell"
   },
   {
     "uuid": "82008701-4189-4693-9B68-00E32C78AB92",
@@ -2694,8 +2814,10 @@
     "movementID": "plank",
     "movementTitle": "Plank",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "B6223C8A-502E-4AA8-B9C5-AEB8CB301759",
@@ -2728,8 +2850,10 @@
     "movementID": "bridge",
     "movementTitle": "Bridge",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "6B849257-F025-473C-BB69-232E58DD7F66",
@@ -2766,7 +2890,8 @@
     "movementTitle": "Cable Kickback",
     "variationTags": [
       "cable"
-    ]
+    ],
+    "equipmentTitle": "Cable"
   },
   {
     "uuid": "E76C6B6E-758D-43A1-A04D-618DC7D5D2C7",
@@ -2797,8 +2922,10 @@
     "movementID": "side_plank",
     "movementTitle": "Side Plank",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "D645140E-5761-4096-AD31-8E66A8D6A562",
@@ -2841,7 +2968,8 @@
     "variationTitle": "Barbell",
     "variationTags": [
       "barbell"
-    ]
+    ],
+    "equipmentTitle": "Barbell"
   },
   {
     "uuid": "D3BE22C1-9276-4EF9-9888-2E98D76DC618",
@@ -2884,7 +3012,8 @@
     "variationTitle": "Dumbbell",
     "variationTags": [
       "dumbbell"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell"
   },
   {
     "uuid": "62B9751E-0E1B-4F91-926F-A0A599096DDE",
@@ -2955,7 +3084,9 @@
     "variationTags": [
       "machine",
       "lying"
-    ]
+    ],
+    "equipmentTitle": "Machine",
+    "setupTitle": "Lying"
   },
   {
     "uuid": "37DF9EB1-8E5F-404E-91B2-36210D356F95",
@@ -2995,7 +3126,8 @@
     "movementTitle": "Romanian Deadlift",
     "variationTags": [
       "barbell"
-    ]
+    ],
+    "equipmentTitle": "Barbell"
   },
   {
     "uuid": "8CD1F963-7570-467A-A15E-FAAFFEBF2546",
@@ -3030,7 +3162,9 @@
     "variationTags": [
       "machine",
       "seated"
-    ]
+    ],
+    "equipmentTitle": "Machine",
+    "setupTitle": "Seated"
   },
   {
     "uuid": "C6B9548C-B1ED-4A85-A200-331D1E08BE33",
@@ -3065,7 +3199,9 @@
     "variationTags": [
       "machine",
       "standing"
-    ]
+    ],
+    "equipmentTitle": "Machine",
+    "setupTitle": "Standing"
   },
   {
     "uuid": "E8763784-DDCF-4A7B-9321-189C1E93A1B7",
@@ -3111,7 +3247,9 @@
     "variationTags": [
       "dumbbell",
       "walking"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell",
+    "setupTitle": "Walking"
   },
   {
     "uuid": "2339F5BD-2E8C-4446-B1A5-6156B1192229",
@@ -3150,7 +3288,8 @@
     "variationTitle": "Barbell",
     "variationTags": [
       "barbell"
-    ]
+    ],
+    "equipmentTitle": "Barbell"
   },
   {
     "uuid": "60790477-29FD-4139-B89E-FE583BBFF658",
@@ -3191,7 +3330,8 @@
     "variationTitle": "Machine",
     "variationTags": [
       "machine"
-    ]
+    ],
+    "equipmentTitle": "Machine"
   },
   {
     "uuid": "9D96C412-5D6C-4FDD-9781-1B89AF31EE3D",
@@ -3233,7 +3373,8 @@
     "variationTitle": "Smith Machine",
     "variationTags": [
       "smith_machine"
-    ]
+    ],
+    "equipmentTitle": "Smith machine"
   },
   {
     "uuid": "7DE5B1E4-9748-459E-9B79-DB02A72B89EF",
@@ -3271,7 +3412,8 @@
     "variationTitle": "Barbell",
     "variationTags": [
       "barbell"
-    ]
+    ],
+    "equipmentTitle": "Barbell"
   },
   {
     "uuid": "4C200AB4-2298-4879-A059-46BB1536DF4D",
@@ -3312,7 +3454,8 @@
     "variationTitle": "Smith Machine",
     "variationTags": [
       "smith_machine"
-    ]
+    ],
+    "equipmentTitle": "Smith machine"
   },
   {
     "uuid": "8B3DE466-1552-4978-A378-55F64E8CA66B",
@@ -3350,7 +3493,8 @@
     "movementTitle": "Leg Press",
     "variationTags": [
       "machine"
-    ]
+    ],
+    "equipmentTitle": "Machine"
   },
   {
     "uuid": "B7ACD3EA-57FE-437F-9286-A03A3C58AAD7",
@@ -3391,7 +3535,8 @@
     "variationTitle": "Dumbbell",
     "variationTags": [
       "dumbbell"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell"
   },
   {
     "uuid": "52977031-70A7-4E08-98A1-4871B614B9FB",
@@ -3426,7 +3571,8 @@
     "movementTitle": "Cable Hip Adduction",
     "variationTags": [
       "cable"
-    ]
+    ],
+    "equipmentTitle": "Cable"
   },
   {
     "uuid": "0EE3033B-5E17-4F16-B8C4-85569F0C1C14",
@@ -3466,7 +3612,8 @@
     "variationTitle": "Barbell",
     "variationTags": [
       "barbell"
-    ]
+    ],
+    "equipmentTitle": "Barbell"
   },
   {
     "uuid": "62ABB8D5-C8AC-49C8-B870-1A38F731B4CF",
@@ -3500,7 +3647,8 @@
     "movementTitle": "Leg Extension",
     "variationTags": [
       "machine"
-    ]
+    ],
+    "equipmentTitle": "Machine"
   },
   {
     "uuid": "5DC1047E-AFF0-4717-B9BD-6225B1D39AF5",
@@ -3541,7 +3689,9 @@
     "variationTags": [
       "machine",
       "narrow_stance"
-    ]
+    ],
+    "equipmentTitle": "Machine",
+    "setupTitle": "Narrow stance"
   },
   {
     "uuid": "2C0880E2-B58A-4178-B6E3-0B4E1455726C",
@@ -3583,7 +3733,9 @@
     "variationTags": [
       "machine",
       "narrow_stance"
-    ]
+    ],
+    "equipmentTitle": "Machine",
+    "setupTitle": "Narrow stance"
   },
   {
     "uuid": "9ED2222B-7AF0-493F-ABAE-181DEB8A167A",
@@ -3626,7 +3778,9 @@
     "variationTags": [
       "barbell",
       "narrow_stance"
-    ]
+    ],
+    "equipmentTitle": "Barbell",
+    "setupTitle": "Narrow stance"
   },
   {
     "uuid": "3DBA09C5-B563-412D-B5DA-ECF33C131986",
@@ -3661,7 +3815,8 @@
     "movementTitle": "Thigh Abductor",
     "variationTags": [
       "machine"
-    ]
+    ],
+    "equipmentTitle": "Machine"
   },
   {
     "uuid": "989BDD5D-1186-4634-A95E-E9BD3DE6C01A",
@@ -3696,7 +3851,8 @@
     "movementTitle": "Thigh Adductor",
     "variationTags": [
       "machine"
-    ]
+    ],
+    "equipmentTitle": "Machine"
   },
   {
     "uuid": "3B587709-4111-495D-BC4C-0658BCEE4145",
@@ -3735,8 +3891,11 @@
     "movementTitle": "Squat",
     "variationTitle": "Barbell, Wide Stance",
     "variationTags": [
-      "barbell"
-    ]
+      "barbell",
+      "wide_stance"
+    ],
+    "equipmentTitle": "Barbell",
+    "setupTitle": "Wide stance"
   },
   {
     "uuid": "FB545B25-89D7-4806-ACF0-B3399DFDE3A9",
@@ -3774,8 +3933,10 @@
     "movementTitle": "Dips",
     "variationTitle": "Bench",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "6F15D017-C423-4BC0-8E39-DD276D34D66B",
@@ -3818,7 +3979,9 @@
     "variationTags": [
       "cable",
       "incline"
-    ]
+    ],
+    "equipmentTitle": "Cable",
+    "setupTitle": "Incline"
   },
   {
     "uuid": "CA532615-1A4D-4895-AFFF-2CAAF90C2ECD",
@@ -3855,7 +4018,9 @@
     "variationTags": [
       "cable",
       "incline"
-    ]
+    ],
+    "equipmentTitle": "Cable",
+    "setupTitle": "Incline"
   },
   {
     "uuid": "741A75F7-F59A-46D7-9673-89C3A7BD7975",
@@ -3893,7 +4058,9 @@
     "variationTags": [
       "cable",
       "lying"
-    ]
+    ],
+    "equipmentTitle": "Cable",
+    "setupTitle": "Lying"
   },
   {
     "uuid": "1B9ACD34-B41B-48C1-A28E-F576484D8944",
@@ -3933,10 +4100,13 @@
     "movementTitle": "Skull Crusher",
     "variationTitle": "Decline, Close Grip",
     "variationTags": [
-      "ez-curl-bar",
+      "ez_curl_bar",
       "decline",
       "close_grip"
-    ]
+    ],
+    "equipmentTitle": "EZ curl bar",
+    "setupTitle": "Decline",
+    "gripTitle": "Close grip"
   },
   {
     "uuid": "4DF42F35-1A7C-4B3B-BCC5-6503231F540B",
@@ -3970,7 +4140,9 @@
     "variationTags": [
       "dumbbell",
       "decline"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell",
+    "setupTitle": "Decline"
   },
   {
     "uuid": "5222009B-95E5-4A40-BB40-004B24E89BAE",
@@ -4002,9 +4174,11 @@
     "movementTitle": "Triceps Extension",
     "variationTitle": "EZ Curl Bar, Decline",
     "variationTags": [
-      "ez-curl-bar",
+      "ez_curl_bar",
       "decline"
-    ]
+    ],
+    "equipmentTitle": "EZ curl bar",
+    "setupTitle": "Decline"
   },
   {
     "uuid": "51C45857-F388-4538-A542-7703EDD5D7A4",
@@ -4039,7 +4213,8 @@
     "variationTitle": "Machine",
     "variationTags": [
       "machine"
-    ]
+    ],
+    "equipmentTitle": "Machine"
   },
   {
     "uuid": "971C7298-186F-4D2E-A79C-E4E3CC30277F",
@@ -4075,8 +4250,10 @@
     "movementTitle": "Dips",
     "variationTitle": "Triceps",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "D31D04AB-ED62-4F03-9D77-16DBF09CB662",
@@ -4111,7 +4288,9 @@
     "variationTags": [
       "dumbbell",
       "one_arm"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell",
+    "sideTitle": "One arm"
   },
   {
     "uuid": "B0D44296-A4D5-49D9-8494-99A3F76543E4",
@@ -4144,9 +4323,11 @@
     "movementTitle": "Triceps Extension",
     "variationTitle": "EZ Curl Bar, Incline",
     "variationTags": [
-      "ez-curl-bar",
+      "ez_curl_bar",
       "incline"
-    ]
+    ],
+    "equipmentTitle": "EZ curl bar",
+    "setupTitle": "Incline"
   },
   {
     "uuid": "B118B527-D740-4A0A-B914-E29DA4835C41",
@@ -4182,7 +4363,9 @@
     "variationTags": [
       "cable",
       "kneeling"
-    ]
+    ],
+    "equipmentTitle": "Cable",
+    "setupTitle": "Kneeling"
   },
   {
     "uuid": "43DA125B-379C-4471-A0CC-2C23DA882E12",
@@ -4216,8 +4399,11 @@
     "movementTitle": "Triceps Extension",
     "variationTitle": "Cable, Low",
     "variationTags": [
-      "cable"
-    ]
+      "cable",
+      "low_pulley"
+    ],
+    "equipmentTitle": "Cable",
+    "setupTitle": "Low pulley"
   },
   {
     "uuid": "B0958E4A-4C6E-405D-B89A-31528ED773E0",
@@ -4251,10 +4437,13 @@
     "movementTitle": "Triceps Extension",
     "variationTitle": "EZ Curl Bar, Lying, Close Grip, Behind the Head",
     "variationTags": [
-      "ez-curl-bar",
-      "close_grip",
-      "lying"
-    ]
+      "ez_curl_bar",
+      "lying",
+      "close_grip"
+    ],
+    "equipmentTitle": "EZ curl bar",
+    "setupTitle": "Lying",
+    "gripTitle": "Close grip"
   },
   {
     "uuid": "599F78F6-12A3-40D9-8E64-DB407FA47F11",
@@ -4292,9 +4481,11 @@
     "movementTitle": "Skull Crusher",
     "variationTitle": "Close Grip",
     "variationTags": [
-      "ez-curl-bar",
+      "ez_curl_bar",
       "close_grip"
-    ]
+    ],
+    "equipmentTitle": "EZ curl bar",
+    "gripTitle": "Close grip"
   },
   {
     "uuid": "2EBDAA0F-620B-4774-BAD8-E6F3FDE75AA9",
@@ -4330,7 +4521,9 @@
     "variationTags": [
       "dumbbell",
       "lying"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell",
+    "setupTitle": "Lying"
   },
   {
     "uuid": "7210F17F-91F7-401F-89CF-271332113319",
@@ -4369,8 +4562,9 @@
     "movementID": "skull_crusher",
     "movementTitle": "Skull Crusher",
     "variationTags": [
-      "ez-curl-bar"
-    ]
+      "ez_curl_bar"
+    ],
+    "equipmentTitle": "EZ curl bar"
   },
   {
     "uuid": "2BBF9DB2-8BD8-456E-A0CB-749D19E5FA26",
@@ -4406,8 +4600,12 @@
     "movementTitle": "Push Up",
     "variationTitle": "Close",
     "variationTags": [
+      "bodyweight",
+      "close_grip",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight",
+    "gripTitle": "Close grip"
   },
   {
     "uuid": "CDD01DA1-B5EF-44BD-BAE4-9A76EAC19078",
@@ -4442,8 +4640,11 @@
     "variationTitle": "Cable, Reverse",
     "variationTags": [
       "cable",
+      "reverse_grip",
       "reverse"
-    ]
+    ],
+    "equipmentTitle": "Cable",
+    "gripTitle": "Reverse grip"
   },
   {
     "uuid": "8F2612C6-DC64-482C-A024-8EB103E8DF51",
@@ -4479,8 +4680,11 @@
     "variationTitle": "Barbell, Reverse, Triceps",
     "variationTags": [
       "barbell",
+      "reverse_grip",
       "reverse"
-    ]
+    ],
+    "equipmentTitle": "Barbell",
+    "gripTitle": "Reverse grip"
   },
   {
     "uuid": "C199BB33-F9DC-4F85-A05F-3BAA740AC4AE",
@@ -4513,10 +4717,12 @@
     "movementTitle": "Triceps Extension",
     "variationTitle": "EZ Curl Bar, Seated, Overhead",
     "variationTags": [
-      "ez-curl-bar",
+      "ez_curl_bar",
       "seated",
       "overhead"
-    ]
+    ],
+    "equipmentTitle": "EZ curl bar",
+    "setupTitle": "Seated"
   },
   {
     "uuid": "E420336A-82DA-4EB8-B821-9F29BB1A8D28",
@@ -4552,7 +4758,9 @@
     "variationTags": [
       "smith_machine",
       "close_grip"
-    ]
+    ],
+    "equipmentTitle": "Smith machine",
+    "gripTitle": "Close grip"
   },
   {
     "uuid": "8861DB5C-A9F3-463E-9396-DB5FA6FC25F2",
@@ -4589,7 +4797,9 @@
     "variationTags": [
       "dumbbell",
       "standing"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell",
+    "setupTitle": "Standing"
   },
   {
     "uuid": "408857B5-7B7D-4284-9602-8C8D546849BD",
@@ -4625,8 +4835,12 @@
     "variationTitle": "Cable, One Arm, Low-Pulley",
     "variationTags": [
       "cable",
+      "low_pulley",
       "one_arm"
-    ]
+    ],
+    "equipmentTitle": "Cable",
+    "setupTitle": "Low pulley",
+    "sideTitle": "One arm"
   },
   {
     "uuid": "215417E8-F482-48A6-83AB-C0EB1E428217",
@@ -4664,7 +4878,10 @@
       "dumbbell",
       "standing",
       "one_arm"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell",
+    "setupTitle": "Standing",
+    "sideTitle": "One arm"
   },
   {
     "uuid": "40070A2D-E1D4-4B16-967F-C0739F9DF0BC",
@@ -4698,10 +4915,12 @@
     "movementTitle": "Triceps Extension",
     "variationTitle": "EZ Curl Bar, Standing, Overhead",
     "variationTags": [
-      "ez-curl-bar",
+      "ez_curl_bar",
       "standing",
       "overhead"
-    ]
+    ],
+    "equipmentTitle": "EZ curl bar",
+    "setupTitle": "Standing"
   },
   {
     "uuid": "8E9F7A47-5A01-4043-B055-D80F1954B1A7",
@@ -4736,7 +4955,8 @@
     "movementTitle": "Triceps Kickback with Dumbbell",
     "variationTags": [
       "dumbbell"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell"
   },
   {
     "uuid": "7A74EBE7-512E-4846-BEF1-C5C4794B53F3",
@@ -4772,7 +4992,8 @@
     "variationTitle": "Cable",
     "variationTags": [
       "cable"
-    ]
+    ],
+    "equipmentTitle": "Cable"
   },
   {
     "uuid": "FDEC211B-2157-4232-8E25-F796F067D37D",
@@ -4809,7 +5030,9 @@
     "variationTags": [
       "cable",
       "rope"
-    ]
+    ],
+    "equipmentTitle": "Cable",
+    "attachmentTitle": "Rope"
   },
   {
     "uuid": "5FF607FC-1A9D-48D5-AC1A-F813249C0D1A",
@@ -4848,9 +5071,10 @@
     "variationTitle": "Cable, V-Bar",
     "variationTags": [
       "cable",
-      "v-bar",
       "v_bar"
-    ]
+    ],
+    "equipmentTitle": "Cable",
+    "attachmentTitle": "V-bar"
   },
   {
     "uuid": "36E7BDFE-64BB-4A9B-BEA2-A80B3144F0B5",
@@ -4887,7 +5111,9 @@
     "variationTags": [
       "dumbbell",
       "incline"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell",
+    "setupTitle": "Incline"
   },
   {
     "uuid": "AA02F3FC-AE87-4C44-BAF6-E6AD2FB46015",
@@ -4920,45 +5146,8 @@
     "variationTitle": "Machine",
     "variationTags": [
       "machine"
-    ]
-  },
-  {
-    "uuid": "405E1A53-1383-4DF9-9368-86E3CCF38012",
-    "id": 218,
-    "name": "biceps-curls-ez-curl-bar",
-    "title": "Biceps Curl: EZ Curl Bar",
-    "alias": [],
-    "primer": "This is a basic exercise for the biceps.",
-    "type": "isolation",
-    "primary": [
-      "biceps brachii"
     ],
-    "secondary": [
-      "deltoid",
-      "forearm"
-    ],
-    "equipment": [
-      "ez-curl-bar"
-    ],
-    "steps": [
-      "Stand with your feet shoulder width apart, your knees slightly bent and your abs drawn in.",
-      "Grasp an EZ curl bar with your palms facing up, approximately shoulder width apart.",
-      "Lower your arms fully to above your thighs and bending only your elbows, raise the bar to your upper chest.",
-      "Pause for a moment and then return to the starting position.",
-      "Note:\u00a0Do not swing your hips or back during this exercise."
-    ],
-    "tips": [],
-    "references": [],
-    "png": [
-      "png/0218-relaxation.png",
-      "png/0218-tension.png"
-    ],
-    "movementID": "biceps_curl",
-    "movementTitle": "Biceps Curl",
-    "variationTitle": "EZ Curl Bar",
-    "variationTags": [
-      "ez-curl-bar"
-    ]
+    "equipmentTitle": "Machine"
   },
   {
     "uuid": "EEBD10DB-1C6D-44CE-BB9A-EBC981CF95EB",
@@ -4997,7 +5186,8 @@
     "variationTitle": "Cable",
     "variationTags": [
       "cable"
-    ]
+    ],
+    "equipmentTitle": "Cable"
   },
   {
     "uuid": "C0A5BF3D-3D68-4000-BC0F-9E44E2AF8862",
@@ -5031,7 +5221,9 @@
     "variationTags": [
       "cable",
       "rope"
-    ]
+    ],
+    "equipmentTitle": "Cable",
+    "attachmentTitle": "Rope"
   },
   {
     "uuid": "8284C02D-73C8-4040-8F11-52162F3B9D5B",
@@ -5071,7 +5263,47 @@
     "variationTitle": "Cable",
     "variationTags": [
       "cable"
-    ]
+    ],
+    "equipmentTitle": "Cable"
+  },
+  {
+    "uuid": "405E1A53-1383-4DF9-9368-86E3CCF38012",
+    "id": 218,
+    "name": "biceps-curls-ez-curl-bar",
+    "title": "Biceps Curl: EZ Curl Bar",
+    "alias": [],
+    "primer": "This is a basic exercise for the biceps.",
+    "type": "isolation",
+    "primary": [
+      "biceps brachii"
+    ],
+    "secondary": [
+      "deltoid",
+      "forearm"
+    ],
+    "equipment": [
+      "ez-curl-bar"
+    ],
+    "steps": [
+      "Stand with your feet shoulder width apart, your knees slightly bent and your abs drawn in.",
+      "Grasp an EZ curl bar with your palms facing up, approximately shoulder width apart.",
+      "Lower your arms fully to above your thighs and bending only your elbows, raise the bar to your upper chest.",
+      "Pause for a moment and then return to the starting position.",
+      "Note:\u00a0Do not swing your hips or back during this exercise."
+    ],
+    "tips": [],
+    "references": [],
+    "png": [
+      "png/0218-relaxation.png",
+      "png/0218-tension.png"
+    ],
+    "movementID": "biceps_curl",
+    "movementTitle": "Biceps Curl",
+    "variationTitle": "EZ Curl Bar",
+    "variationTags": [
+      "ez_curl_bar"
+    ],
+    "equipmentTitle": "EZ curl bar"
   },
   {
     "uuid": "1C61F93B-5E6B-4517-9378-2F250EA6D28F",
@@ -5111,7 +5343,8 @@
     "variationTitle": "Dumbbell",
     "variationTags": [
       "dumbbell"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell"
   },
   {
     "uuid": "5AE0607D-88F0-4EF5-BB7B-878322FCBA9B",
@@ -5148,8 +5381,9 @@
     "movementTitle": "Drag Curl",
     "variationTitle": "EZ Curl Bar",
     "variationTags": [
-      "ez-curl-bar"
-    ]
+      "ez_curl_bar"
+    ],
+    "equipmentTitle": "EZ curl bar"
   },
   {
     "uuid": "154B1CB5-38B3-426D-B729-FF92A53D22A4",
@@ -5187,7 +5421,8 @@
     "variationTitle": "Dumbbell",
     "variationTags": [
       "dumbbell"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell"
   },
   {
     "uuid": "1A3DFD15-984D-4EDE-BD34-B4DA7129B9B6",
@@ -5225,7 +5460,9 @@
     "variationTags": [
       "dumbbell",
       "hammer_grip"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell",
+    "gripTitle": "Hammer grip"
   },
   {
     "uuid": "B93DE2B4-8BB7-48F7-A166-33B5DD363D1B",
@@ -5260,7 +5497,9 @@
     "variationTags": [
       "dumbbell",
       "incline"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell",
+    "setupTitle": "Incline"
   },
   {
     "uuid": "0C6E6F9F-B09E-4640-8FE6-4AD1374FA0C7",
@@ -5297,7 +5536,8 @@
     "variationTitle": "Machine",
     "variationTags": [
       "machine"
-    ]
+    ],
+    "equipmentTitle": "Machine"
   },
   {
     "uuid": "C920C06E-AD01-49FC-BEB3-3AA065C001E3",
@@ -5340,7 +5580,9 @@
     "variationTags": [
       "dumbbell",
       "one_arm"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell",
+    "sideTitle": "One arm"
   },
   {
     "uuid": "42ED76CF-ABF6-42CD-8D2E-B9DDCED4AEC6",
@@ -5378,7 +5620,9 @@
     "variationTags": [
       "cable",
       "overhead"
-    ]
+    ],
+    "equipmentTitle": "Cable",
+    "setupTitle": "Overhead"
   },
   {
     "uuid": "F2F17343-0B1C-46AA-8DDA-C6D4E14F3280",
@@ -5418,8 +5662,9 @@
     "movementTitle": "Preacher Curl",
     "variationTitle": "EZ Curl Bar",
     "variationTags": [
-      "ez-curl-bar"
-    ]
+      "ez_curl_bar"
+    ],
+    "equipmentTitle": "EZ curl bar"
   },
   {
     "uuid": "50EEDCAE-392D-419C-A09A-541D9CEB0B11",
@@ -5457,7 +5702,9 @@
     "variationTags": [
       "dumbbell",
       "hammer_grip"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell",
+    "gripTitle": "Hammer grip"
   },
   {
     "uuid": "1E56859E-F4E2-42E0-B09E-767424F71AD0",
@@ -5499,7 +5746,9 @@
     "variationTags": [
       "dumbbell",
       "two_arm"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell",
+    "sideTitle": "Two arm"
   },
   {
     "uuid": "83021373-8846-4BE0-97AD-83371064DA5F",
@@ -5538,7 +5787,8 @@
     "variationTitle": "Dumbbell, Zottman",
     "variationTags": [
       "dumbbell"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell"
   },
   {
     "uuid": "3FF4777D-42CE-4B76-B86E-3077165985BA",
@@ -5574,7 +5824,8 @@
     "variationTitle": "Machine",
     "variationTags": [
       "machine"
-    ]
+    ],
+    "equipmentTitle": "Machine"
   },
   {
     "uuid": "A3A3B3C0-DBD1-4FAD-832A-04BF13B8D723",
@@ -5610,8 +5861,11 @@
     "variationTitle": "Dumbbell, Reverse",
     "variationTags": [
       "dumbbell",
+      "reverse_grip",
       "reverse"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell",
+    "gripTitle": "Reverse grip"
   },
   {
     "uuid": "FD79404B-8BB5-4971-864E-BF28B1E507A2",
@@ -5648,7 +5902,8 @@
     "variationTitle": "Leg Machine",
     "variationTags": [
       "machine"
-    ]
+    ],
+    "equipmentTitle": "Machine"
   },
   {
     "uuid": "E24A1E1E-D71C-40F5-8296-9B85E758337D",
@@ -5686,7 +5941,9 @@
     "variationTags": [
       "machine",
       "seated"
-    ]
+    ],
+    "equipmentTitle": "Machine",
+    "setupTitle": "Seated"
   },
   {
     "uuid": "68296D9A-DEAE-4B36-B16B-55F036CE52C0",
@@ -5721,7 +5978,8 @@
     "variationTitle": "Barbell",
     "variationTags": [
       "barbell"
-    ]
+    ],
+    "equipmentTitle": "Barbell"
   },
   {
     "uuid": "4A5CE1F5-EF10-436C-8ACB-1D6D5928AEC3",
@@ -5757,7 +6015,9 @@
     "variationTags": [
       "machine",
       "standing"
-    ]
+    ],
+    "equipmentTitle": "Machine",
+    "setupTitle": "Standing"
   },
   {
     "uuid": "0405BCFA-2660-4984-A3A4-3E79F972573F",
@@ -5792,7 +6052,8 @@
     "variationTitle": "Dumbbell",
     "variationTags": [
       "dumbbell"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell"
   },
   {
     "uuid": "CDA8DA22-C98C-49DC-8157-6950AFE53184",
@@ -5828,8 +6089,10 @@
     "movementID": "air_bike",
     "movementTitle": "Air Bike",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "D56A7119-1885-47C6-99AC-D0501F62944E",
@@ -5867,7 +6130,8 @@
     "variationTitle": "Cable",
     "variationTags": [
       "cable"
-    ]
+    ],
+    "equipmentTitle": "Cable"
   },
   {
     "uuid": "61601FE7-2DBE-4EBA-B909-12EE8F588B88",
@@ -5903,8 +6167,10 @@
     "movementTitle": "Crunch",
     "variationTitle": "Cross Body",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "5E270934-7A46-445D-8399-487A3C7355ED",
@@ -5940,8 +6206,10 @@
     "movementID": "crunch",
     "movementTitle": "Crunch",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "A06460D0-17BA-4B5D-8241-D94329141399",
@@ -5978,9 +6246,12 @@
     "movementTitle": "Crunch",
     "variationTitle": "Decline",
     "variationTags": [
-      "body",
-      "decline"
-    ]
+      "bodyweight",
+      "decline",
+      "body"
+    ],
+    "equipmentTitle": "Bodyweight",
+    "setupTitle": "Decline"
   },
   {
     "uuid": "B5D0B023-27D0-4516-AFA1-BE0B735FA600",
@@ -6015,7 +6286,8 @@
     "variationTitle": "Dumbbell",
     "variationTags": [
       "dumbbell"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell"
   },
   {
     "uuid": "6F618906-444F-444C-8AA1-D272623B28D7",
@@ -6048,8 +6320,10 @@
     "movementID": "exercise_ball_pull_in",
     "movementTitle": "Exercise Ball Pull In",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "6EB5B9C9-C953-459E-AFDE-2D31B1BEFAE0",
@@ -6087,8 +6361,1132 @@
     "movementTitle": "Row",
     "variationTitle": "Barbell, Bent Over",
     "variationTags": [
+      "barbell",
+      "bent_over"
+    ],
+    "equipmentTitle": "Barbell",
+    "setupTitle": "Bent over"
+  },
+  {
+    "uuid": "850D8977-98B0-5C4D-8898-413377FD829B",
+    "id": 6001,
+    "title": "Chest Press: Machine",
+    "alias": [],
+    "primary": [
+      "pectoralis major"
+    ],
+    "secondary": [
+      "triceps brachii",
+      "deltoid"
+    ],
+    "equipment": [
+      "machine"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "chest_press",
+    "movementTitle": "Chest Press",
+    "variationTitle": "Machine",
+    "variationTags": [
+      "machine"
+    ],
+    "equipmentTitle": "Machine"
+  },
+  {
+    "uuid": "D2345A42-C08B-59D6-B9E7-4271166C1524",
+    "id": 6002,
+    "title": "Chest Press: Machine (Incline)",
+    "alias": [],
+    "primary": [
+      "pectoralis major"
+    ],
+    "secondary": [
+      "triceps brachii",
+      "deltoid"
+    ],
+    "equipment": [
+      "machine"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "chest_press",
+    "movementTitle": "Chest Press",
+    "variationTitle": "Machine, Incline",
+    "variationTags": [
+      "machine",
+      "incline"
+    ],
+    "equipmentTitle": "Machine",
+    "setupTitle": "Incline"
+  },
+  {
+    "uuid": "BCAF1E6B-5619-5A0E-9BCD-0690126FE633",
+    "id": 6003,
+    "title": "Cable Crossover",
+    "alias": [],
+    "primary": [
+      "pectoralis major"
+    ],
+    "secondary": [
+      "deltoid"
+    ],
+    "equipment": [
+      "cable"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "cable_crossover",
+    "movementTitle": "Cable Crossover",
+    "variationTags": [
+      "cable"
+    ],
+    "equipmentTitle": "Cable"
+  },
+  {
+    "uuid": "E7873829-35C2-5305-8280-EC50BF729044",
+    "id": 6004,
+    "title": "Pec Deck",
+    "alias": [],
+    "primary": [
+      "pectoralis major"
+    ],
+    "secondary": [
+      "deltoid"
+    ],
+    "equipment": [
+      "machine"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "pec_deck",
+    "movementTitle": "Pec Deck",
+    "variationTags": [
+      "machine"
+    ],
+    "equipmentTitle": "Machine"
+  },
+  {
+    "uuid": "8FE43FAF-C7CB-539E-992F-E5600060BB46",
+    "id": 6005,
+    "title": "Svend Press",
+    "alias": [],
+    "primary": [
+      "pectoralis major"
+    ],
+    "secondary": [],
+    "equipment": [
+      "dumbbell"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "svend_press",
+    "movementTitle": "Svend Press",
+    "variationTags": [
+      "dumbbell"
+    ],
+    "equipmentTitle": "Dumbbell"
+  },
+  {
+    "uuid": "F26F249F-5BC8-59B4-9EEA-2A67E2F6F5DC",
+    "id": 6007,
+    "title": "Lat Pulldown",
+    "alias": [],
+    "primary": [
+      "latissimus dorsi"
+    ],
+    "secondary": [
+      "biceps brachii"
+    ],
+    "equipment": [
+      "cable"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "lat_pulldown",
+    "movementTitle": "Lat Pulldown",
+    "variationTags": [
+      "cable"
+    ],
+    "equipmentTitle": "Cable"
+  },
+  {
+    "uuid": "D6ED5F13-1D08-5504-B119-062D67C84C4D",
+    "id": 6008,
+    "title": "Lat Pulldown (Close Grip)",
+    "alias": [],
+    "primary": [
+      "latissimus dorsi"
+    ],
+    "secondary": [
+      "biceps brachii"
+    ],
+    "equipment": [
+      "cable"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "lat_pulldown",
+    "movementTitle": "Lat Pulldown",
+    "variationTitle": "Close Grip",
+    "variationTags": [
+      "cable",
+      "close_grip"
+    ],
+    "equipmentTitle": "Cable",
+    "gripTitle": "Close grip"
+  },
+  {
+    "uuid": "DDC41CFC-DB6B-5C21-B7A4-FF5F8017E0B7",
+    "id": 6009,
+    "title": "Row: Machine",
+    "alias": [],
+    "primary": [
+      "latissimus dorsi"
+    ],
+    "secondary": [
+      "biceps brachii",
+      "trapezius"
+    ],
+    "equipment": [
+      "machine"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "row",
+    "movementTitle": "Row",
+    "variationTitle": "Machine",
+    "variationTags": [
+      "machine"
+    ],
+    "equipmentTitle": "Machine"
+  },
+  {
+    "uuid": "D1038F27-5BE6-51C8-8E2E-2E80A8BC2321",
+    "id": 6010,
+    "title": "Row: Dumbbell (Chest Supported)",
+    "alias": [],
+    "primary": [
+      "latissimus dorsi"
+    ],
+    "secondary": [
+      "biceps brachii",
+      "trapezius"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "row",
+    "movementTitle": "Row",
+    "variationTitle": "Dumbbell, Chest Supported",
+    "variationTags": [
+      "dumbbell",
+      "chest_supported"
+    ],
+    "equipmentTitle": "Dumbbell",
+    "setupTitle": "Chest supported"
+  },
+  {
+    "uuid": "197E68DD-49E1-50A0-A516-EF58C7C10CB2",
+    "id": 6011,
+    "title": "Renegade Row: Dumbbell",
+    "alias": [],
+    "primary": [
+      "latissimus dorsi"
+    ],
+    "secondary": [
+      "biceps brachii",
+      "abdominals"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "renegade_row",
+    "movementTitle": "Renegade Row",
+    "variationTitle": "Dumbbell",
+    "variationTags": [
+      "dumbbell"
+    ],
+    "equipmentTitle": "Dumbbell"
+  },
+  {
+    "uuid": "33EA2AE8-ED87-5FE3-870E-4327FAB12074",
+    "id": 6012,
+    "title": "Pendlay Row: Barbell",
+    "alias": [],
+    "primary": [
+      "latissimus dorsi"
+    ],
+    "secondary": [
+      "biceps brachii",
+      "trapezius"
+    ],
+    "equipment": [
       "barbell"
-    ]
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "pendlay_row",
+    "movementTitle": "Pendlay Row",
+    "variationTitle": "Barbell",
+    "variationTags": [
+      "barbell"
+    ],
+    "equipmentTitle": "Barbell"
+  },
+  {
+    "uuid": "9C494677-80C0-549E-9172-0C62EBFDC291",
+    "id": 6014,
+    "title": "Romanian Deadlift: Dumbbell",
+    "alias": [],
+    "primary": [
+      "ischiocrural muscles"
+    ],
+    "secondary": [
+      "glutaeus maximus",
+      "erector spinae"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "romanian_deadlift",
+    "movementTitle": "Romanian Deadlift",
+    "variationTitle": "Dumbbell",
+    "variationTags": [
+      "dumbbell"
+    ],
+    "equipmentTitle": "Dumbbell"
+  },
+  {
+    "uuid": "B47D13B6-F0A1-54CC-BE4A-FEF8A6FBEA3B",
+    "id": 6015,
+    "title": "Rack Pull: Barbell",
+    "alias": [],
+    "primary": [
+      "erector spinae"
+    ],
+    "secondary": [
+      "trapezius",
+      "glutaeus maximus"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "rack_pull",
+    "movementTitle": "Rack Pull",
+    "variationTitle": "Barbell",
+    "variationTags": [
+      "barbell"
+    ],
+    "equipmentTitle": "Barbell"
+  },
+  {
+    "uuid": "8C18D5C7-31D6-56AA-9F60-6A29B0784E0C",
+    "id": 6016,
+    "title": "Shrug: Barbell",
+    "alias": [],
+    "primary": [
+      "trapezius"
+    ],
+    "secondary": [],
+    "equipment": [
+      "barbell"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "shrug",
+    "movementTitle": "Shrug",
+    "variationTitle": "Barbell",
+    "variationTags": [
+      "barbell"
+    ],
+    "equipmentTitle": "Barbell"
+  },
+  {
+    "uuid": "174FD111-FA37-59AA-990D-3ED63ED018C5",
+    "id": 6017,
+    "title": "Shrug: Dumbbell",
+    "alias": [],
+    "primary": [
+      "trapezius"
+    ],
+    "secondary": [],
+    "equipment": [
+      "dumbbell"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "shrug",
+    "movementTitle": "Shrug",
+    "variationTitle": "Dumbbell",
+    "variationTags": [
+      "dumbbell"
+    ],
+    "equipmentTitle": "Dumbbell"
+  },
+  {
+    "uuid": "9437BE8E-F1BC-576A-8FBA-E2BE9E60FB8B",
+    "id": 6018,
+    "title": "Lateral Raise: Cable",
+    "alias": [],
+    "primary": [
+      "deltoid"
+    ],
+    "secondary": [],
+    "equipment": [
+      "cable"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "lateral_raise",
+    "movementTitle": "Lateral Raise",
+    "variationTitle": "Cable",
+    "variationTags": [
+      "cable"
+    ],
+    "equipmentTitle": "Cable"
+  },
+  {
+    "uuid": "D27E58A5-3444-5524-B6F3-86729BE8014F",
+    "id": 6019,
+    "title": "Lateral Raise: Machine",
+    "alias": [],
+    "primary": [
+      "deltoid"
+    ],
+    "secondary": [],
+    "equipment": [
+      "machine"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "lateral_raise",
+    "movementTitle": "Lateral Raise",
+    "variationTitle": "Machine",
+    "variationTags": [
+      "machine"
+    ],
+    "equipmentTitle": "Machine"
+  },
+  {
+    "uuid": "05416F1E-BA31-5863-8487-5176DE1A0524",
+    "id": 6020,
+    "title": "Reverse Fly: Dumbbell (Incline)",
+    "alias": [],
+    "primary": [
+      "deltoid"
+    ],
+    "secondary": [
+      "trapezius"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "reverse_fly",
+    "movementTitle": "Reverse Fly",
+    "variationTitle": "Dumbbell, Incline",
+    "variationTags": [
+      "dumbbell",
+      "incline",
+      "reverse_grip",
+      "reverse"
+    ],
+    "equipmentTitle": "Dumbbell",
+    "setupTitle": "Incline",
+    "gripTitle": "Reverse grip"
+  },
+  {
+    "uuid": "4B0ACBBD-CBC5-5EC3-8DA2-830917D13D68",
+    "id": 6021,
+    "title": "Reverse Pec Deck",
+    "alias": [],
+    "primary": [
+      "deltoid"
+    ],
+    "secondary": [
+      "trapezius"
+    ],
+    "equipment": [
+      "machine"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "reverse_pec_deck",
+    "movementTitle": "Reverse Pec Deck",
+    "variationTags": [
+      "machine",
+      "reverse_grip",
+      "reverse"
+    ],
+    "equipmentTitle": "Machine",
+    "gripTitle": "Reverse grip"
+  },
+  {
+    "uuid": "802ECEC2-C361-5321-858D-3545251D61DF",
+    "id": 6022,
+    "title": "Face Pull: Cable",
+    "alias": [],
+    "primary": [
+      "deltoid"
+    ],
+    "secondary": [
+      "trapezius"
+    ],
+    "equipment": [
+      "cable"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "face_pull",
+    "movementTitle": "Face Pull",
+    "variationTitle": "Cable",
+    "variationTags": [
+      "cable"
+    ],
+    "equipmentTitle": "Cable"
+  },
+  {
+    "uuid": "C115E558-06B5-575D-A792-175A92C9B657",
+    "id": 6023,
+    "title": "Overhead Press: Dumbbell (Seated)",
+    "alias": [],
+    "primary": [
+      "deltoid"
+    ],
+    "secondary": [
+      "triceps brachii"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "overhead_press",
+    "movementTitle": "Overhead Press",
+    "variationTitle": "Dumbbell, Seated",
+    "variationTags": [
+      "dumbbell",
+      "seated",
+      "overhead"
+    ],
+    "equipmentTitle": "Dumbbell",
+    "setupTitle": "Seated"
+  },
+  {
+    "uuid": "9A93E466-D1CB-5A26-A462-ECCD626D42C3",
+    "id": 6025,
+    "title": "Upright Row: Cable",
+    "alias": [],
+    "primary": [
+      "deltoid"
+    ],
+    "secondary": [
+      "trapezius",
+      "biceps brachii"
+    ],
+    "equipment": [
+      "cable"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "upright_row",
+    "movementTitle": "Upright Row",
+    "variationTitle": "Cable",
+    "variationTags": [
+      "cable"
+    ],
+    "equipmentTitle": "Cable"
+  },
+  {
+    "uuid": "F8B2F73A-65F7-5588-BD47-BB8C84CEB575",
+    "id": 6026,
+    "title": "Kettlebell Press",
+    "alias": [],
+    "primary": [
+      "deltoid"
+    ],
+    "secondary": [
+      "triceps brachii"
+    ],
+    "equipment": [
+      "kettlebell"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "kettlebell_press",
+    "movementTitle": "Kettlebell Press",
+    "variationTags": [
+      "kettlebell"
+    ],
+    "equipmentTitle": "Kettlebell"
+  },
+  {
+    "uuid": "F6CE82F7-3F5A-5107-A9A6-4B8B8C104D9D",
+    "id": 6027,
+    "title": "Biceps Curl: Barbell",
+    "alias": [],
+    "primary": [
+      "biceps brachii"
+    ],
+    "secondary": [],
+    "equipment": [
+      "barbell"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "biceps_curl",
+    "movementTitle": "Biceps Curl",
+    "variationTitle": "Barbell",
+    "variationTags": [
+      "barbell"
+    ],
+    "equipmentTitle": "Barbell"
+  },
+  {
+    "uuid": "638C0D3A-4D99-569D-8885-6B834E8E6104",
+    "id": 6028,
+    "title": "Biceps Curl: EZ Curl Bar (Wide)",
+    "alias": [],
+    "primary": [
+      "biceps brachii"
+    ],
+    "secondary": [],
+    "equipment": [
+      "ez-curl-bar"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "biceps_curl",
+    "movementTitle": "Biceps Curl",
+    "variationTitle": "EZ Curl Bar, Wide",
+    "variationTags": [
+      "ez_curl_bar",
+      "wide_grip"
+    ],
+    "equipmentTitle": "EZ curl bar",
+    "gripTitle": "Wide grip"
+  },
+  {
+    "uuid": "9D95483F-10CC-577F-B53F-F2AA1C8DD363",
+    "id": 6029,
+    "title": "Bayesian Curl: Cable",
+    "alias": [],
+    "primary": [
+      "biceps brachii"
+    ],
+    "secondary": [],
+    "equipment": [
+      "cable"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "bayesian_curl",
+    "movementTitle": "Bayesian Curl",
+    "variationTitle": "Cable",
+    "variationTags": [
+      "cable"
+    ],
+    "equipmentTitle": "Cable"
+  },
+  {
+    "uuid": "CDC48B5B-2D5D-5942-9D04-D91E7BAC842C",
+    "id": 6030,
+    "title": "Spider Curl: Dumbbell",
+    "alias": [],
+    "primary": [
+      "biceps brachii"
+    ],
+    "secondary": [],
+    "equipment": [
+      "dumbbell"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "spider_curl",
+    "movementTitle": "Spider Curl",
+    "variationTitle": "Dumbbell",
+    "variationTags": [
+      "dumbbell"
+    ],
+    "equipmentTitle": "Dumbbell"
+  },
+  {
+    "uuid": "E56CB967-1FC1-5821-A566-BD1AE7DAEDB5",
+    "id": 6031,
+    "title": "Triceps Extension: Cable (Overhead)",
+    "alias": [],
+    "primary": [
+      "triceps brachii"
+    ],
+    "secondary": [],
+    "equipment": [
+      "cable"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "triceps_extension",
+    "movementTitle": "Triceps Extension",
+    "variationTitle": "Cable, Overhead",
+    "variationTags": [
+      "cable",
+      "overhead"
+    ],
+    "equipmentTitle": "Cable",
+    "setupTitle": "Overhead"
+  },
+  {
+    "uuid": "3CEC9CD6-6F83-5D5E-A20A-89F5236E6AD9",
+    "id": 6032,
+    "title": "Skullcrusher: EZ Curl Bar",
+    "alias": [],
+    "primary": [
+      "triceps brachii"
+    ],
+    "secondary": [],
+    "equipment": [
+      "ez-curl-bar"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "skull_crusher",
+    "movementTitle": "Skull Crusher",
+    "variationTitle": "EZ Curl Bar",
+    "variationTags": [
+      "ez_curl_bar"
+    ],
+    "equipmentTitle": "EZ curl bar"
+  },
+  {
+    "uuid": "49BAF818-60DA-555F-B54F-6F72194AAFFA",
+    "id": 6035,
+    "title": "Pendulum Squat",
+    "alias": [],
+    "primary": [
+      "quadriceps"
+    ],
+    "secondary": [
+      "glutaeus maximus"
+    ],
+    "equipment": [
+      "machine"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "pendulum_squat",
+    "movementTitle": "Pendulum Squat",
+    "variationTags": [
+      "machine"
+    ],
+    "equipmentTitle": "Machine"
+  },
+  {
+    "uuid": "4EB23E5F-9725-5AB3-9AFA-12B457AFAD74",
+    "id": 6036,
+    "title": "Goblet Squat: Dumbbell",
+    "alias": [],
+    "primary": [
+      "quadriceps"
+    ],
+    "secondary": [
+      "glutaeus maximus"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "goblet_squat",
+    "movementTitle": "Goblet Squat",
+    "variationTitle": "Dumbbell",
+    "variationTags": [
+      "dumbbell"
+    ],
+    "equipmentTitle": "Dumbbell"
+  },
+  {
+    "uuid": "0B994FEB-F9FC-5A50-AB6C-9377F974F5E3",
+    "id": 6037,
+    "title": "Bulgarian Split Squat: Dumbbell",
+    "alias": [],
+    "primary": [
+      "quadriceps"
+    ],
+    "secondary": [
+      "glutaeus maximus",
+      "ischiocrural muscles"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "bulgarian_split_squat",
+    "movementTitle": "Bulgarian Split Squat",
+    "variationTitle": "Dumbbell",
+    "variationTags": [
+      "dumbbell"
+    ],
+    "equipmentTitle": "Dumbbell"
+  },
+  {
+    "uuid": "1BABD751-507B-5DB5-B6FA-BC825BAEA883",
+    "id": 6038,
+    "title": "Lunge: Dumbbell",
+    "alias": [],
+    "primary": [
+      "quadriceps"
+    ],
+    "secondary": [
+      "glutaeus maximus",
+      "ischiocrural muscles"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "lunge",
+    "movementTitle": "Lunge",
+    "variationTitle": "Dumbbell",
+    "variationTags": [
+      "dumbbell"
+    ],
+    "equipmentTitle": "Dumbbell"
+  },
+  {
+    "uuid": "490F3FE8-2353-504D-BB55-32A91ADDD40D",
+    "id": 6040,
+    "title": "Hip Thrust: Barbell",
+    "alias": [],
+    "primary": [
+      "glutaeus maximus"
+    ],
+    "secondary": [
+      "ischiocrural muscles"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "hip_thrust",
+    "movementTitle": "Hip Thrust",
+    "variationTitle": "Barbell",
+    "variationTags": [
+      "barbell"
+    ],
+    "equipmentTitle": "Barbell"
+  },
+  {
+    "uuid": "B764DDBC-02A9-5B16-A512-23335EDA63C6",
+    "id": 6041,
+    "title": "Glute Kickback: Cable",
+    "alias": [],
+    "primary": [
+      "glutaeus maximus"
+    ],
+    "secondary": [
+      "ischiocrural muscles"
+    ],
+    "equipment": [
+      "cable"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "glute_kickback",
+    "movementTitle": "Glute Kickback",
+    "variationTitle": "Cable",
+    "variationTags": [
+      "cable"
+    ],
+    "equipmentTitle": "Cable"
+  },
+  {
+    "uuid": "7CBEB539-8BE9-55B8-B539-1E236A6BBEE3",
+    "id": 6043,
+    "title": "Nordic Curl",
+    "alias": [],
+    "primary": [
+      "ischiocrural muscles"
+    ],
+    "secondary": [
+      "glutaeus maximus"
+    ],
+    "equipment": [
+      "body"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "nordic_curl",
+    "movementTitle": "Nordic Curl",
+    "variationTags": [
+      "bodyweight",
+      "body"
+    ],
+    "equipmentTitle": "Bodyweight"
+  },
+  {
+    "uuid": "7F8A5C50-42EE-578B-9137-580EED4AACAA",
+    "id": 6044,
+    "title": "Calf Raise: Leg Press",
+    "alias": [],
+    "primary": [
+      "gastrocnemius"
+    ],
+    "secondary": [
+      "soleus"
+    ],
+    "equipment": [
+      "machine"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "calf_raise",
+    "movementTitle": "Calf Raise",
+    "variationTitle": "Leg Press",
+    "variationTags": [
+      "machine"
+    ],
+    "equipmentTitle": "Machine"
+  },
+  {
+    "uuid": "F97D8662-8BCC-5356-A241-4CE0751174E8",
+    "id": 6046,
+    "title": "Kettlebell Swing",
+    "alias": [],
+    "primary": [
+      "glutaeus maximus"
+    ],
+    "secondary": [
+      "ischiocrural muscles",
+      "erector spinae"
+    ],
+    "equipment": [
+      "kettlebell"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "kettlebell_swing",
+    "movementTitle": "Kettlebell Swing",
+    "variationTags": [
+      "kettlebell"
+    ],
+    "equipmentTitle": "Kettlebell"
+  },
+  {
+    "uuid": "79967CE0-A190-5555-B024-819A94E8EFE1",
+    "id": 6047,
+    "title": "Goblet Squat: Kettlebell",
+    "alias": [],
+    "primary": [
+      "quadriceps"
+    ],
+    "secondary": [
+      "glutaeus maximus"
+    ],
+    "equipment": [
+      "kettlebell"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "goblet_squat",
+    "movementTitle": "Goblet Squat",
+    "variationTitle": "Kettlebell",
+    "variationTags": [
+      "kettlebell"
+    ],
+    "equipmentTitle": "Kettlebell"
+  },
+  {
+    "uuid": "D8CBE2E8-56C9-50F9-855D-F58C91561E73",
+    "id": 6050,
+    "title": "Hanging Leg Raise",
+    "alias": [],
+    "primary": [
+      "abdominals"
+    ],
+    "secondary": [
+      "obliques"
+    ],
+    "equipment": [
+      "body"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "hanging_leg_raise",
+    "movementTitle": "Hanging Leg Raise",
+    "variationTags": [
+      "bodyweight",
+      "body"
+    ],
+    "equipmentTitle": "Bodyweight"
+  },
+  {
+    "uuid": "8B861CF5-9B1E-5110-8051-A743EA7FB724",
+    "id": 6051,
+    "title": "Russian Twist",
+    "alias": [],
+    "primary": [
+      "obliques"
+    ],
+    "secondary": [
+      "abdominals"
+    ],
+    "equipment": [
+      "body"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "russian_twist",
+    "movementTitle": "Russian Twist",
+    "variationTags": [
+      "bodyweight",
+      "body"
+    ],
+    "equipmentTitle": "Bodyweight"
+  },
+  {
+    "uuid": "57E956D4-BBF7-5899-A842-4AC9BD3C5471",
+    "id": 6052,
+    "title": "Ab Wheel Rollout",
+    "alias": [],
+    "primary": [
+      "abdominals"
+    ],
+    "secondary": [
+      "obliques"
+    ],
+    "equipment": [
+      "body"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "ab_wheel_rollout",
+    "movementTitle": "Ab Wheel Rollout",
+    "variationTags": [
+      "bodyweight",
+      "body"
+    ],
+    "equipmentTitle": "Bodyweight"
+  },
+  {
+    "uuid": "C307E035-C166-5D0A-817A-3F5BD62F6758",
+    "id": 6053,
+    "title": "Pallof Press: Cable",
+    "alias": [],
+    "primary": [
+      "obliques"
+    ],
+    "secondary": [
+      "abdominals"
+    ],
+    "equipment": [
+      "cable"
+    ],
+    "steps": [],
+    "tips": [],
+    "references": [],
+    "png": [],
+    "movementID": "pallof_press",
+    "movementTitle": "Pallof Press",
+    "variationTitle": "Cable",
+    "variationTags": [
+      "cable"
+    ],
+    "equipmentTitle": "Cable"
   },
   {
     "uuid": "3D405857-F1A8-4F85-858C-231F0CEF653A",
@@ -6132,7 +7530,9 @@
     "variationTags": [
       "barbell",
       "overhead"
-    ]
+    ],
+    "equipmentTitle": "Barbell",
+    "setupTitle": "Overhead"
   },
   {
     "uuid": "C4035736-EAF3-4DAD-8B74-BD1537E6B72D",
@@ -6163,1069 +7563,8 @@
     "movementTitle": "Face Pull",
     "variationTags": [
       "cable"
-    ]
-  },
-  {
-    "uuid": "850D8977-98B0-5C4D-8898-413377FD829B",
-    "id": 6001,
-    "title": "Chest Press: Machine",
-    "alias": [],
-    "primary": [
-      "pectoralis major"
     ],
-    "secondary": [
-      "triceps brachii",
-      "deltoid"
-    ],
-    "equipment": [
-      "machine"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "chest_press",
-    "movementTitle": "Chest Press",
-    "variationTitle": "Machine",
-    "variationTags": [
-      "machine"
-    ]
-  },
-  {
-    "uuid": "D2345A42-C08B-59D6-B9E7-4271166C1524",
-    "id": 6002,
-    "title": "Chest Press: Machine (Incline)",
-    "alias": [],
-    "primary": [
-      "pectoralis major"
-    ],
-    "secondary": [
-      "triceps brachii",
-      "deltoid"
-    ],
-    "equipment": [
-      "machine"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "chest_press",
-    "movementTitle": "Chest Press",
-    "variationTitle": "Machine, Incline",
-    "variationTags": [
-      "machine",
-      "incline"
-    ]
-  },
-  {
-    "uuid": "BCAF1E6B-5619-5A0E-9BCD-0690126FE633",
-    "id": 6003,
-    "title": "Cable Crossover",
-    "alias": [],
-    "primary": [
-      "pectoralis major"
-    ],
-    "secondary": [
-      "deltoid"
-    ],
-    "equipment": [
-      "cable"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "cable_crossover",
-    "movementTitle": "Cable Crossover",
-    "variationTags": [
-      "cable"
-    ]
-  },
-  {
-    "uuid": "E7873829-35C2-5305-8280-EC50BF729044",
-    "id": 6004,
-    "title": "Pec Deck",
-    "alias": [],
-    "primary": [
-      "pectoralis major"
-    ],
-    "secondary": [
-      "deltoid"
-    ],
-    "equipment": [
-      "machine"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "pec_deck",
-    "movementTitle": "Pec Deck",
-    "variationTags": [
-      "machine"
-    ]
-  },
-  {
-    "uuid": "8FE43FAF-C7CB-539E-992F-E5600060BB46",
-    "id": 6005,
-    "title": "Svend Press",
-    "alias": [],
-    "primary": [
-      "pectoralis major"
-    ],
-    "secondary": [],
-    "equipment": [
-      "dumbbell"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "svend_press",
-    "movementTitle": "Svend Press",
-    "variationTags": [
-      "dumbbell"
-    ]
-  },
-  {
-    "uuid": "F26F249F-5BC8-59B4-9EEA-2A67E2F6F5DC",
-    "id": 6007,
-    "title": "Lat Pulldown",
-    "alias": [],
-    "primary": [
-      "latissimus dorsi"
-    ],
-    "secondary": [
-      "biceps brachii"
-    ],
-    "equipment": [
-      "cable"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "lat_pulldown",
-    "movementTitle": "Lat Pulldown",
-    "variationTags": [
-      "cable"
-    ]
-  },
-  {
-    "uuid": "D6ED5F13-1D08-5504-B119-062D67C84C4D",
-    "id": 6008,
-    "title": "Lat Pulldown (Close Grip)",
-    "alias": [],
-    "primary": [
-      "latissimus dorsi"
-    ],
-    "secondary": [
-      "biceps brachii"
-    ],
-    "equipment": [
-      "cable"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "lat_pulldown",
-    "movementTitle": "Lat Pulldown",
-    "variationTitle": "Close Grip",
-    "variationTags": [
-      "cable",
-      "close_grip"
-    ]
-  },
-  {
-    "uuid": "DDC41CFC-DB6B-5C21-B7A4-FF5F8017E0B7",
-    "id": 6009,
-    "title": "Row: Machine",
-    "alias": [],
-    "primary": [
-      "latissimus dorsi"
-    ],
-    "secondary": [
-      "biceps brachii",
-      "trapezius"
-    ],
-    "equipment": [
-      "machine"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "row",
-    "movementTitle": "Row",
-    "variationTitle": "Machine",
-    "variationTags": [
-      "machine"
-    ]
-  },
-  {
-    "uuid": "D1038F27-5BE6-51C8-8E2E-2E80A8BC2321",
-    "id": 6010,
-    "title": "Row: Dumbbell (Chest Supported)",
-    "alias": [],
-    "primary": [
-      "latissimus dorsi"
-    ],
-    "secondary": [
-      "biceps brachii",
-      "trapezius"
-    ],
-    "equipment": [
-      "dumbbell"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "row",
-    "movementTitle": "Row",
-    "variationTitle": "Dumbbell, Chest Supported",
-    "variationTags": [
-      "dumbbell",
-      "chest_supported"
-    ]
-  },
-  {
-    "uuid": "197E68DD-49E1-50A0-A516-EF58C7C10CB2",
-    "id": 6011,
-    "title": "Renegade Row: Dumbbell",
-    "alias": [],
-    "primary": [
-      "latissimus dorsi"
-    ],
-    "secondary": [
-      "biceps brachii",
-      "abdominals"
-    ],
-    "equipment": [
-      "dumbbell"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "renegade_row",
-    "movementTitle": "Renegade Row",
-    "variationTitle": "Dumbbell",
-    "variationTags": [
-      "dumbbell"
-    ]
-  },
-  {
-    "uuid": "33EA2AE8-ED87-5FE3-870E-4327FAB12074",
-    "id": 6012,
-    "title": "Pendlay Row: Barbell",
-    "alias": [],
-    "primary": [
-      "latissimus dorsi"
-    ],
-    "secondary": [
-      "biceps brachii",
-      "trapezius"
-    ],
-    "equipment": [
-      "barbell"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "pendlay_row",
-    "movementTitle": "Pendlay Row",
-    "variationTitle": "Barbell",
-    "variationTags": [
-      "barbell"
-    ]
-  },
-  {
-    "uuid": "9C494677-80C0-549E-9172-0C62EBFDC291",
-    "id": 6014,
-    "title": "Romanian Deadlift: Dumbbell",
-    "alias": [],
-    "primary": [
-      "ischiocrural muscles"
-    ],
-    "secondary": [
-      "glutaeus maximus",
-      "erector spinae"
-    ],
-    "equipment": [
-      "dumbbell"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "romanian_deadlift",
-    "movementTitle": "Romanian Deadlift",
-    "variationTitle": "Dumbbell",
-    "variationTags": [
-      "dumbbell"
-    ]
-  },
-  {
-    "uuid": "B47D13B6-F0A1-54CC-BE4A-FEF8A6FBEA3B",
-    "id": 6015,
-    "title": "Rack Pull: Barbell",
-    "alias": [],
-    "primary": [
-      "erector spinae"
-    ],
-    "secondary": [
-      "trapezius",
-      "glutaeus maximus"
-    ],
-    "equipment": [
-      "barbell"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "rack_pull",
-    "movementTitle": "Rack Pull",
-    "variationTitle": "Barbell",
-    "variationTags": [
-      "barbell"
-    ]
-  },
-  {
-    "uuid": "8C18D5C7-31D6-56AA-9F60-6A29B0784E0C",
-    "id": 6016,
-    "title": "Shrug: Barbell",
-    "alias": [],
-    "primary": [
-      "trapezius"
-    ],
-    "secondary": [],
-    "equipment": [
-      "barbell"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "shrug",
-    "movementTitle": "Shrug",
-    "variationTitle": "Barbell",
-    "variationTags": [
-      "barbell"
-    ]
-  },
-  {
-    "uuid": "174FD111-FA37-59AA-990D-3ED63ED018C5",
-    "id": 6017,
-    "title": "Shrug: Dumbbell",
-    "alias": [],
-    "primary": [
-      "trapezius"
-    ],
-    "secondary": [],
-    "equipment": [
-      "dumbbell"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "shrug",
-    "movementTitle": "Shrug",
-    "variationTitle": "Dumbbell",
-    "variationTags": [
-      "dumbbell"
-    ]
-  },
-  {
-    "uuid": "9437BE8E-F1BC-576A-8FBA-E2BE9E60FB8B",
-    "id": 6018,
-    "title": "Lateral Raise: Cable",
-    "alias": [],
-    "primary": [
-      "deltoid"
-    ],
-    "secondary": [],
-    "equipment": [
-      "cable"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "lateral_raise",
-    "movementTitle": "Lateral Raise",
-    "variationTitle": "Cable",
-    "variationTags": [
-      "cable"
-    ]
-  },
-  {
-    "uuid": "D27E58A5-3444-5524-B6F3-86729BE8014F",
-    "id": 6019,
-    "title": "Lateral Raise: Machine",
-    "alias": [],
-    "primary": [
-      "deltoid"
-    ],
-    "secondary": [],
-    "equipment": [
-      "machine"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "lateral_raise",
-    "movementTitle": "Lateral Raise",
-    "variationTitle": "Machine",
-    "variationTags": [
-      "machine"
-    ]
-  },
-  {
-    "uuid": "05416F1E-BA31-5863-8487-5176DE1A0524",
-    "id": 6020,
-    "title": "Reverse Fly: Dumbbell (Incline)",
-    "alias": [],
-    "primary": [
-      "deltoid"
-    ],
-    "secondary": [
-      "trapezius"
-    ],
-    "equipment": [
-      "dumbbell"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "reverse_fly",
-    "movementTitle": "Reverse Fly",
-    "variationTitle": "Dumbbell, Incline",
-    "variationTags": [
-      "dumbbell",
-      "incline",
-      "reverse"
-    ]
-  },
-  {
-    "uuid": "4B0ACBBD-CBC5-5EC3-8DA2-830917D13D68",
-    "id": 6021,
-    "title": "Reverse Pec Deck",
-    "alias": [],
-    "primary": [
-      "deltoid"
-    ],
-    "secondary": [
-      "trapezius"
-    ],
-    "equipment": [
-      "machine"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "reverse_pec_deck",
-    "movementTitle": "Reverse Pec Deck",
-    "variationTags": [
-      "machine",
-      "reverse"
-    ]
-  },
-  {
-    "uuid": "802ECEC2-C361-5321-858D-3545251D61DF",
-    "id": 6022,
-    "title": "Face Pull: Cable",
-    "alias": [],
-    "primary": [
-      "deltoid"
-    ],
-    "secondary": [
-      "trapezius"
-    ],
-    "equipment": [
-      "cable"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "face_pull",
-    "movementTitle": "Face Pull",
-    "variationTitle": "Cable",
-    "variationTags": [
-      "cable"
-    ]
-  },
-  {
-    "uuid": "C115E558-06B5-575D-A792-175A92C9B657",
-    "id": 6023,
-    "title": "Overhead Press: Dumbbell (Seated)",
-    "alias": [],
-    "primary": [
-      "deltoid"
-    ],
-    "secondary": [
-      "triceps brachii"
-    ],
-    "equipment": [
-      "dumbbell"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "overhead_press",
-    "movementTitle": "Overhead Press",
-    "variationTitle": "Dumbbell, Seated",
-    "variationTags": [
-      "dumbbell",
-      "seated",
-      "overhead"
-    ]
-  },
-  {
-    "uuid": "9A93E466-D1CB-5A26-A462-ECCD626D42C3",
-    "id": 6025,
-    "title": "Upright Row: Cable",
-    "alias": [],
-    "primary": [
-      "deltoid"
-    ],
-    "secondary": [
-      "trapezius",
-      "biceps brachii"
-    ],
-    "equipment": [
-      "cable"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "upright_row",
-    "movementTitle": "Upright Row",
-    "variationTitle": "Cable",
-    "variationTags": [
-      "cable"
-    ]
-  },
-  {
-    "uuid": "F8B2F73A-65F7-5588-BD47-BB8C84CEB575",
-    "id": 6026,
-    "title": "Kettlebell Press",
-    "alias": [],
-    "primary": [
-      "deltoid"
-    ],
-    "secondary": [
-      "triceps brachii"
-    ],
-    "equipment": [
-      "kettlebell"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "kettlebell_press",
-    "movementTitle": "Kettlebell Press",
-    "variationTags": [
-      "kettlebell"
-    ]
-  },
-  {
-    "uuid": "F6CE82F7-3F5A-5107-A9A6-4B8B8C104D9D",
-    "id": 6027,
-    "title": "Biceps Curl: Barbell",
-    "alias": [],
-    "primary": [
-      "biceps brachii"
-    ],
-    "secondary": [],
-    "equipment": [
-      "barbell"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "biceps_curl",
-    "movementTitle": "Biceps Curl",
-    "variationTitle": "Barbell",
-    "variationTags": [
-      "barbell"
-    ]
-  },
-  {
-    "uuid": "638C0D3A-4D99-569D-8885-6B834E8E6104",
-    "id": 6028,
-    "title": "Biceps Curl: EZ Curl Bar (Wide)",
-    "alias": [],
-    "primary": [
-      "biceps brachii"
-    ],
-    "secondary": [],
-    "equipment": [
-      "ez-curl-bar"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "biceps_curl",
-    "movementTitle": "Biceps Curl",
-    "variationTitle": "EZ Curl Bar, Wide",
-    "variationTags": [
-      "ez-curl-bar"
-    ]
-  },
-  {
-    "uuid": "9D95483F-10CC-577F-B53F-F2AA1C8DD363",
-    "id": 6029,
-    "title": "Bayesian Curl: Cable",
-    "alias": [],
-    "primary": [
-      "biceps brachii"
-    ],
-    "secondary": [],
-    "equipment": [
-      "cable"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "bayesian_curl",
-    "movementTitle": "Bayesian Curl",
-    "variationTitle": "Cable",
-    "variationTags": [
-      "cable"
-    ]
-  },
-  {
-    "uuid": "CDC48B5B-2D5D-5942-9D04-D91E7BAC842C",
-    "id": 6030,
-    "title": "Spider Curl: Dumbbell",
-    "alias": [],
-    "primary": [
-      "biceps brachii"
-    ],
-    "secondary": [],
-    "equipment": [
-      "dumbbell"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "spider_curl",
-    "movementTitle": "Spider Curl",
-    "variationTitle": "Dumbbell",
-    "variationTags": [
-      "dumbbell"
-    ]
-  },
-  {
-    "uuid": "E56CB967-1FC1-5821-A566-BD1AE7DAEDB5",
-    "id": 6031,
-    "title": "Triceps Extension: Cable (Overhead)",
-    "alias": [],
-    "primary": [
-      "triceps brachii"
-    ],
-    "secondary": [],
-    "equipment": [
-      "cable"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "triceps_extension",
-    "movementTitle": "Triceps Extension",
-    "variationTitle": "Cable, Overhead",
-    "variationTags": [
-      "cable",
-      "overhead"
-    ]
-  },
-  {
-    "uuid": "3CEC9CD6-6F83-5D5E-A20A-89F5236E6AD9",
-    "id": 6032,
-    "title": "Skullcrusher: EZ Curl Bar",
-    "alias": [],
-    "primary": [
-      "triceps brachii"
-    ],
-    "secondary": [],
-    "equipment": [
-      "ez-curl-bar"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "skull_crusher",
-    "movementTitle": "Skull Crusher",
-    "variationTitle": "EZ Curl Bar",
-    "variationTags": [
-      "ez-curl-bar"
-    ]
-  },
-  {
-    "uuid": "49BAF818-60DA-555F-B54F-6F72194AAFFA",
-    "id": 6035,
-    "title": "Pendulum Squat",
-    "alias": [],
-    "primary": [
-      "quadriceps"
-    ],
-    "secondary": [
-      "glutaeus maximus"
-    ],
-    "equipment": [
-      "machine"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "pendulum_squat",
-    "movementTitle": "Pendulum Squat",
-    "variationTags": [
-      "machine"
-    ]
-  },
-  {
-    "uuid": "4EB23E5F-9725-5AB3-9AFA-12B457AFAD74",
-    "id": 6036,
-    "title": "Goblet Squat: Dumbbell",
-    "alias": [],
-    "primary": [
-      "quadriceps"
-    ],
-    "secondary": [
-      "glutaeus maximus"
-    ],
-    "equipment": [
-      "dumbbell"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "goblet_squat",
-    "movementTitle": "Goblet Squat",
-    "variationTitle": "Dumbbell",
-    "variationTags": [
-      "dumbbell"
-    ]
-  },
-  {
-    "uuid": "0B994FEB-F9FC-5A50-AB6C-9377F974F5E3",
-    "id": 6037,
-    "title": "Bulgarian Split Squat: Dumbbell",
-    "alias": [],
-    "primary": [
-      "quadriceps"
-    ],
-    "secondary": [
-      "glutaeus maximus",
-      "ischiocrural muscles"
-    ],
-    "equipment": [
-      "dumbbell"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "bulgarian_split_squat",
-    "movementTitle": "Bulgarian Split Squat",
-    "variationTitle": "Dumbbell",
-    "variationTags": [
-      "dumbbell"
-    ]
-  },
-  {
-    "uuid": "1BABD751-507B-5DB5-B6FA-BC825BAEA883",
-    "id": 6038,
-    "title": "Lunge: Dumbbell",
-    "alias": [],
-    "primary": [
-      "quadriceps"
-    ],
-    "secondary": [
-      "glutaeus maximus",
-      "ischiocrural muscles"
-    ],
-    "equipment": [
-      "dumbbell"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "lunge",
-    "movementTitle": "Lunge",
-    "variationTitle": "Dumbbell",
-    "variationTags": [
-      "dumbbell"
-    ]
-  },
-  {
-    "uuid": "490F3FE8-2353-504D-BB55-32A91ADDD40D",
-    "id": 6040,
-    "title": "Hip Thrust: Barbell",
-    "alias": [],
-    "primary": [
-      "glutaeus maximus"
-    ],
-    "secondary": [
-      "ischiocrural muscles"
-    ],
-    "equipment": [
-      "barbell"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "hip_thrust",
-    "movementTitle": "Hip Thrust",
-    "variationTitle": "Barbell",
-    "variationTags": [
-      "barbell"
-    ]
-  },
-  {
-    "uuid": "B764DDBC-02A9-5B16-A512-23335EDA63C6",
-    "id": 6041,
-    "title": "Glute Kickback: Cable",
-    "alias": [],
-    "primary": [
-      "glutaeus maximus"
-    ],
-    "secondary": [
-      "ischiocrural muscles"
-    ],
-    "equipment": [
-      "cable"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "glute_kickback",
-    "movementTitle": "Glute Kickback",
-    "variationTitle": "Cable",
-    "variationTags": [
-      "cable"
-    ]
-  },
-  {
-    "uuid": "7CBEB539-8BE9-55B8-B539-1E236A6BBEE3",
-    "id": 6043,
-    "title": "Nordic Curl",
-    "alias": [],
-    "primary": [
-      "ischiocrural muscles"
-    ],
-    "secondary": [
-      "glutaeus maximus"
-    ],
-    "equipment": [
-      "body"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "nordic_curl",
-    "movementTitle": "Nordic Curl",
-    "variationTags": [
-      "body"
-    ]
-  },
-  {
-    "uuid": "7F8A5C50-42EE-578B-9137-580EED4AACAA",
-    "id": 6044,
-    "title": "Calf Raise: Leg Press",
-    "alias": [],
-    "primary": [
-      "gastrocnemius"
-    ],
-    "secondary": [
-      "soleus"
-    ],
-    "equipment": [
-      "machine"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "calf_raise",
-    "movementTitle": "Calf Raise",
-    "variationTitle": "Leg Press",
-    "variationTags": [
-      "machine"
-    ]
-  },
-  {
-    "uuid": "F97D8662-8BCC-5356-A241-4CE0751174E8",
-    "id": 6046,
-    "title": "Kettlebell Swing",
-    "alias": [],
-    "primary": [
-      "glutaeus maximus"
-    ],
-    "secondary": [
-      "ischiocrural muscles",
-      "erector spinae"
-    ],
-    "equipment": [
-      "kettlebell"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "kettlebell_swing",
-    "movementTitle": "Kettlebell Swing",
-    "variationTags": [
-      "kettlebell"
-    ]
-  },
-  {
-    "uuid": "79967CE0-A190-5555-B024-819A94E8EFE1",
-    "id": 6047,
-    "title": "Goblet Squat: Kettlebell",
-    "alias": [],
-    "primary": [
-      "quadriceps"
-    ],
-    "secondary": [
-      "glutaeus maximus"
-    ],
-    "equipment": [
-      "kettlebell"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "goblet_squat",
-    "movementTitle": "Goblet Squat",
-    "variationTitle": "Kettlebell",
-    "variationTags": [
-      "kettlebell"
-    ]
-  },
-  {
-    "uuid": "D8CBE2E8-56C9-50F9-855D-F58C91561E73",
-    "id": 6050,
-    "title": "Hanging Leg Raise",
-    "alias": [],
-    "primary": [
-      "abdominals"
-    ],
-    "secondary": [
-      "obliques"
-    ],
-    "equipment": [
-      "body"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "hanging_leg_raise",
-    "movementTitle": "Hanging Leg Raise",
-    "variationTags": [
-      "body"
-    ]
-  },
-  {
-    "uuid": "8B861CF5-9B1E-5110-8051-A743EA7FB724",
-    "id": 6051,
-    "title": "Russian Twist",
-    "alias": [],
-    "primary": [
-      "obliques"
-    ],
-    "secondary": [
-      "abdominals"
-    ],
-    "equipment": [
-      "body"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "russian_twist",
-    "movementTitle": "Russian Twist",
-    "variationTags": [
-      "body"
-    ]
-  },
-  {
-    "uuid": "57E956D4-BBF7-5899-A842-4AC9BD3C5471",
-    "id": 6052,
-    "title": "Ab Wheel Rollout",
-    "alias": [],
-    "primary": [
-      "abdominals"
-    ],
-    "secondary": [
-      "obliques"
-    ],
-    "equipment": [
-      "body"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "ab_wheel_rollout",
-    "movementTitle": "Ab Wheel Rollout",
-    "variationTags": [
-      "body"
-    ]
-  },
-  {
-    "uuid": "C307E035-C166-5D0A-817A-3F5BD62F6758",
-    "id": 6053,
-    "title": "Pallof Press: Cable",
-    "alias": [],
-    "primary": [
-      "obliques"
-    ],
-    "secondary": [
-      "abdominals"
-    ],
-    "equipment": [
-      "cable"
-    ],
-    "steps": [],
-    "tips": [],
-    "references": [],
-    "png": [],
-    "movementID": "pallof_press",
-    "movementTitle": "Pallof Press",
-    "variationTitle": "Cable",
-    "variationTags": [
-      "cable"
-    ]
+    "equipmentTitle": "Cable"
   },
   {
     "uuid": "826EA07F-603C-448C-84E1-5870BFA172A2",
@@ -7252,9 +7591,11 @@
     "movementID": "dead_hang",
     "movementTitle": "Dead Hang",
     "variationTags": [
+      "bodyweight",
       "body",
       "bar"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "2B4BBC41-7E15-45C5-980D-E470FDC85917",
@@ -7283,9 +7624,11 @@
     "movementID": "muscle_up",
     "movementTitle": "Muscle Up",
     "variationTags": [
+      "bodyweight",
       "body",
       "bar"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "CF639B6A-48BE-48AC-9A42-5707F444F27E",
@@ -7311,8 +7654,10 @@
     "movementID": "pistol_squat",
     "movementTitle": "Pistol Squat",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "1C59D4C5-F64D-41EC-9E20-EFD3123926BE",
@@ -7338,8 +7683,10 @@
     "movementID": "l_sit",
     "movementTitle": "L-Sit",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "C8A3AB20-F0A0-47D5-848E-7351D8BAE8A3",
@@ -7365,8 +7712,10 @@
     "movementID": "handstand_push_up",
     "movementTitle": "Handstand Push Up",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "5D08DB29-B23F-40BA-B188-974BE6107109",
@@ -7394,7 +7743,8 @@
     "variationTitle": "Dumbbell",
     "variationTags": [
       "dumbbell"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell"
   },
   {
     "uuid": "6B6ABB98-3344-4738-B6EC-E4C9C5C0CE58",
@@ -7421,8 +7771,10 @@
     "movementID": "burpee",
     "movementTitle": "Burpee",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "7A3E6A8B-EB16-4FBA-A115-AFDC6FB1EFFD",
@@ -7448,8 +7800,10 @@
     "movementID": "mountain_climber",
     "movementTitle": "Mountain Climber",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "BF9A4FB0-9AEF-43DF-A647-1299E7BBBA28",
@@ -7477,7 +7831,8 @@
     "variationTitle": "Dumbbell",
     "variationTags": [
       "dumbbell"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell"
   },
   {
     "uuid": "FF8B4EE7-DCDD-4489-8C77-3F94196D9DDB",
@@ -7503,8 +7858,10 @@
     "movementID": "wall_sit",
     "movementTitle": "Wall Sit",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "5B660E68-4DB2-416C-ABE6-144DEE6F3CBF",
@@ -7530,8 +7887,10 @@
     "movementID": "hollow_hold",
     "movementTitle": "Hollow Hold",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "7C287AB0-5A11-4314-B5EC-3BB5EC360A24",
@@ -7555,9 +7914,13 @@
     "movementID": "reverse_nordic_curl",
     "movementTitle": "Reverse Nordic Curl",
     "variationTags": [
+      "bodyweight",
+      "reverse_grip",
       "body",
       "reverse"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight",
+    "gripTitle": "Reverse grip"
   },
   {
     "uuid": "5899CECC-AEC2-4C3B-9A29-357F1B7BA37A",
@@ -7583,8 +7946,10 @@
     "movementID": "copenhagen_plank",
     "movementTitle": "Copenhagen Plank",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "D4B6713A-A9A4-4F18-9507-5699B35283A8",
@@ -7611,7 +7976,8 @@
     "movementTitle": "Jefferson Curl",
     "variationTags": [
       "dumbbell"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell"
   },
   {
     "uuid": "3B22E3C5-192D-49B4-953A-E0A8DD5E2333",
@@ -7638,9 +8004,12 @@
     "movementTitle": "Calf Raise",
     "variationTitle": "Standing",
     "variationTags": [
-      "body",
-      "standing"
-    ]
+      "bodyweight",
+      "standing",
+      "body"
+    ],
+    "equipmentTitle": "Bodyweight",
+    "setupTitle": "Standing"
   },
   {
     "uuid": "6C96A29A-1AD0-47BF-9F67-8976987C5309",
@@ -7668,7 +8037,8 @@
     "variationTitle": "Dumbbell",
     "variationTags": [
       "dumbbell"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell"
   },
   {
     "uuid": "918EDDBA-FB24-4AD2-962C-C3E07218E96C",
@@ -7696,7 +8066,8 @@
     "variationTitle": "Barbell",
     "variationTags": [
       "barbell"
-    ]
+    ],
+    "equipmentTitle": "Barbell"
   },
   {
     "uuid": "DD67B0B5-0F56-451A-9CB1-7D1997CCFBC0",
@@ -7724,8 +8095,11 @@
     "variationTitle": "Dumbbell",
     "variationTags": [
       "dumbbell",
+      "reverse_grip",
       "reverse"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell",
+    "gripTitle": "Reverse grip"
   },
   {
     "uuid": "24526C9E-BDDC-487B-BA1A-E479C34D2261",
@@ -7753,8 +8127,11 @@
     "variationTitle": "Barbell",
     "variationTags": [
       "barbell",
+      "reverse_grip",
       "reverse"
-    ]
+    ],
+    "equipmentTitle": "Barbell",
+    "gripTitle": "Reverse grip"
   },
   {
     "uuid": "B5B02CC4-431D-4B04-9F5D-C01746C26381",
@@ -7812,7 +8189,8 @@
     "variationTitle": "Dumbbell",
     "variationTags": [
       "dumbbell"
-    ]
+    ],
+    "equipmentTitle": "Dumbbell"
   },
   {
     "uuid": "0D82E16D-36B8-4D21-BF6C-AFB6FC6B4A01",
@@ -7846,7 +8224,8 @@
     "movementTitle": "Treadmill",
     "variationTags": [
       "machine"
-    ]
+    ],
+    "equipmentTitle": "Machine"
   },
   {
     "uuid": "DDF142D1-EE95-4826-8F28-F2CB842F4A11",
@@ -7879,8 +8258,10 @@
     "movementID": "outdoor_run",
     "movementTitle": "Outdoor Run",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "653B5A2F-49EC-40EE-8398-9E6E39E1A672",
@@ -7913,9 +8294,12 @@
     "movementID": "walking",
     "movementTitle": "Walking",
     "variationTags": [
-      "body",
-      "walking"
-    ]
+      "bodyweight",
+      "walking",
+      "body"
+    ],
+    "equipmentTitle": "Bodyweight",
+    "setupTitle": "Walking"
   },
   {
     "uuid": "4BB6C9B8-9452-4641-BA52-042CB88B8C80",
@@ -7950,7 +8334,8 @@
     "movementTitle": "Stair Climber",
     "variationTags": [
       "machine"
-    ]
+    ],
+    "equipmentTitle": "Machine"
   },
   {
     "uuid": "7F98199C-225D-44C5-8A80-58F98EF0F074",
@@ -7983,7 +8368,8 @@
     "movementTitle": "Stationary Bike",
     "variationTags": [
       "machine"
-    ]
+    ],
+    "equipmentTitle": "Machine"
   },
   {
     "uuid": "C1F1B8EE-4A58-4C2D-AF65-E6B6A5519E55",
@@ -8016,7 +8402,8 @@
     "movementTitle": "Spin Bike",
     "variationTags": [
       "machine"
-    ]
+    ],
+    "equipmentTitle": "Machine"
   },
   {
     "uuid": "AB52B448-50F4-4417-A01E-898577E91F25",
@@ -8047,7 +8434,8 @@
     "movementTitle": "Recumbent Bike",
     "variationTags": [
       "machine"
-    ]
+    ],
+    "equipmentTitle": "Machine"
   },
   {
     "uuid": "1E8470B2-A9D0-4E48-BD8E-D0153108CF2C",
@@ -8082,7 +8470,8 @@
     "movementTitle": "Rowing Machine",
     "variationTags": [
       "machine"
-    ]
+    ],
+    "equipmentTitle": "Machine"
   },
   {
     "uuid": "C0790492-6A82-460A-8F27-2C10DA96D790",
@@ -8115,7 +8504,8 @@
     "movementTitle": "Elliptical",
     "variationTags": [
       "machine"
-    ]
+    ],
+    "equipmentTitle": "Machine"
   },
   {
     "uuid": "04EFCE38-C537-4DFC-9DD2-0125539ED505",
@@ -8149,7 +8539,8 @@
     "movementTitle": "SkiErg",
     "variationTags": [
       "machine"
-    ]
+    ],
+    "equipmentTitle": "Machine"
   },
   {
     "uuid": "E95657DA-C588-4417-B7F4-7557E16A1EAA",
@@ -8183,9 +8574,10 @@
     "movementID": "jump_rope",
     "movementTitle": "Jump Rope",
     "variationTags": [
-      "other",
-      "rope"
-    ]
+      "rope",
+      "other"
+    ],
+    "attachmentTitle": "Rope"
   },
   {
     "uuid": "36214296-53F8-4C69-80B8-03E759AF1FB6",
@@ -8219,8 +8611,10 @@
     "movementID": "swimming",
     "movementTitle": "Swimming",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "788413D7-9D1C-4088-97B3-B1325209EC71",
@@ -8421,9 +8815,10 @@
     "movementID": "overhead_smash",
     "movementTitle": "Overhead Smash",
     "variationTags": [
-      "other",
-      "overhead"
-    ]
+      "overhead",
+      "other"
+    ],
+    "setupTitle": "Overhead"
   },
   {
     "uuid": "A9CC6768-83C5-4B63-9E51-2E5E96B2D87D",
@@ -8456,8 +8851,10 @@
     "movementID": "tennis_footwork",
     "movementTitle": "Tennis Footwork",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "28954B92-6022-4BD6-A7F7-8A91F85C7209",
@@ -8657,8 +9054,10 @@
     "movementID": "shadowboxing",
     "movementTitle": "Shadowboxing",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "39B94422-11FA-44D3-8524-7570030115BF",
@@ -8758,8 +9157,10 @@
     "movementID": "sparring",
     "movementTitle": "Sparring",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "14895E38-AC2B-48DC-8C80-FAFF8EBE8EC2",
@@ -8791,8 +9192,10 @@
     "movementID": "technical_sparring",
     "movementTitle": "Technical Sparring",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "D9A5E738-096E-4053-9ED5-857B55D65FDE",
@@ -8825,8 +9228,10 @@
     "movementID": "clinch_work",
     "movementTitle": "Clinch Work",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "BD218289-30DF-4891-8C62-B85683B57B00",
@@ -8858,8 +9263,10 @@
     "movementID": "martial_arts_footwork",
     "movementTitle": "Martial Arts Footwork",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "3350D094-8F7F-4DBA-88D7-B18E9D7D43B7",
@@ -8892,8 +9299,10 @@
     "movementID": "roadwork",
     "movementTitle": "Roadwork",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "9C43DB4E-99F0-43BF-B24F-48B7D49911A1",
@@ -8926,8 +9335,10 @@
     "movementID": "kicks",
     "movementTitle": "Kicks",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "4655BC59-0ED6-4456-B5E0-C9B2DE42555D",
@@ -8959,8 +9370,10 @@
     "movementID": "knees",
     "movementTitle": "Knees",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "63574193-EED8-499B-B912-CBE29839E219",
@@ -8992,8 +9405,10 @@
     "movementID": "teeps",
     "movementTitle": "Teeps",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "D1EB327D-6FC5-4F11-8917-1194C6AE3B7B",
@@ -9025,8 +9440,10 @@
     "movementID": "defense_drills",
     "movementTitle": "Defense Drills",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "E606D3BE-0299-48FA-B0C5-CF57C0119312",
@@ -9060,8 +9477,10 @@
     "movementID": "fight_conditioning",
     "movementTitle": "Fight Conditioning",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "02DE3E21-C871-41D3-8502-08A5C5272B58",
@@ -9089,8 +9508,10 @@
     "movementID": "stretching",
     "movementTitle": "Stretching",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "5DA68454-8254-47F0-98E2-22230AC7BB67",
@@ -9120,8 +9541,10 @@
     "movementID": "hip_mobility",
     "movementTitle": "Hip Mobility",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "720D9AB9-BA71-4877-A6AF-D5DC8B2A3763",
@@ -9151,8 +9574,10 @@
     "movementID": "shoulder_mobility",
     "movementTitle": "Shoulder Mobility",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "387E20D1-920A-4E7B-B791-E412992FC508",
@@ -9182,8 +9607,10 @@
     "movementID": "ankle_mobility",
     "movementTitle": "Ankle Mobility",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "89986F89-45D7-48FA-BCE5-DF4152CC9321",
@@ -9211,8 +9638,10 @@
     "movementID": "wrist_mobility",
     "movementTitle": "Wrist Mobility",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "34345361-B042-4E02-B791-D3248B6297F9",
@@ -9244,8 +9673,10 @@
     "movementID": "thoracic_rotation",
     "movementTitle": "Thoracic Rotation",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "AC5C550F-0157-4632-8558-46E8D893EC9F",
@@ -9277,8 +9708,10 @@
     "movementID": "cat_cow",
     "movementTitle": "Cat Cow",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "8AB8D9F4-F950-424F-BD5E-5734222E8272",
@@ -9310,8 +9743,10 @@
     "movementID": "90_90_hip_switch",
     "movementTitle": "90/90 Hip Switch",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "A7F79DE5-9408-4F2B-881E-E4D0EE1A4356",
@@ -9339,8 +9774,10 @@
     "movementID": "pigeon_stretch",
     "movementTitle": "Pigeon Stretch",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "02B2AAB3-72DF-4A5A-BC05-5B7542E6DD62",
@@ -9368,8 +9805,10 @@
     "movementID": "couch_stretch",
     "movementTitle": "Couch Stretch",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "1D128462-69F1-40BC-A87F-60BB82D5AE84",
@@ -9397,8 +9836,10 @@
     "movementID": "hamstring_stretch",
     "movementTitle": "Hamstring Stretch",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "0396B3C5-B1DA-425C-A3A0-5FC350575B3F",
@@ -9428,8 +9869,10 @@
     "movementID": "calf_stretch",
     "movementTitle": "Calf Stretch",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
   },
   {
     "uuid": "0570E7D6-6D67-4D58-8BD3-011786305B7A",
@@ -9492,7 +9935,97 @@
     "movementID": "yoga_flow",
     "movementTitle": "Yoga Flow",
     "variationTags": [
+      "bodyweight",
       "body"
-    ]
+    ],
+    "equipmentTitle": "Bodyweight"
+  },
+  {
+    "uuid": "0458E9AE-45D4-4C34-8EBF-7EE4B329BA69",
+    "id": 9414,
+    "name": "pull-ups",
+    "title": "Pull Up: Weighted",
+    "alias": [],
+    "primer": "This is an exercise in lats, biceps and middle back strengthening.",
+    "type": "isolation",
+    "primary": [
+      "latissimus dorsi"
+    ],
+    "secondary": [
+      "biceps brachii"
+    ],
+    "equipment": [
+      "body",
+      "bar"
+    ],
+    "steps": [
+      "Grab the pull-up bar with the palms facing forward using the prescribed grip.",
+      "As you have both arms extended in front of you holding the bar at the chosen grip width, bring your torso back around 30 degrees or so while creating a curvature on your lower back and sticking your chest out. This is your starting position.",
+      "Pull your torso up until the bar touches your upper chest by drawing the shoulders and the upper arms down and back. Exhale as you perform this portion of the movement.",
+      "After a second on the contracted position, start to inhale and slowly lower your torso back to the starting position when your arms are fully extended and the lats are fully stretched.",
+      "Repeat this motion.",
+      "Tip: Concentrate on squeezing the back muscles once you reach the full contracted position. The upper torso should remain stationary as it moves through space and only the arms should move. The forearms should do no other work other than hold the bar."
+    ],
+    "tips": [],
+    "references": [],
+    "png": [
+      "png/0087-relaxation.png",
+      "png/0087-tension.png"
+    ],
+    "movementID": "pull_up",
+    "movementTitle": "Pull Up",
+    "variationTags": [
+      "bodyweight",
+      "body",
+      "bar",
+      "weighted"
+    ],
+    "variationTitle": "Bodyweight, Weighted",
+    "equipmentTitle": "Bodyweight",
+    "loadModeTitle": "Weighted"
+  },
+  {
+    "uuid": "A04FC31B-A6A7-4C2F-99AF-B592D1460384",
+    "id": 9415,
+    "name": "pull-ups",
+    "title": "Pull Up: Assisted",
+    "alias": [],
+    "primer": "This is an exercise in lats, biceps and middle back strengthening.",
+    "type": "isolation",
+    "primary": [
+      "latissimus dorsi"
+    ],
+    "secondary": [
+      "biceps brachii"
+    ],
+    "equipment": [
+      "body",
+      "bar"
+    ],
+    "steps": [
+      "Grab the pull-up bar with the palms facing forward using the prescribed grip.",
+      "As you have both arms extended in front of you holding the bar at the chosen grip width, bring your torso back around 30 degrees or so while creating a curvature on your lower back and sticking your chest out. This is your starting position.",
+      "Pull your torso up until the bar touches your upper chest by drawing the shoulders and the upper arms down and back. Exhale as you perform this portion of the movement.",
+      "After a second on the contracted position, start to inhale and slowly lower your torso back to the starting position when your arms are fully extended and the lats are fully stretched.",
+      "Repeat this motion.",
+      "Tip: Concentrate on squeezing the back muscles once you reach the full contracted position. The upper torso should remain stationary as it moves through space and only the arms should move. The forearms should do no other work other than hold the bar."
+    ],
+    "tips": [],
+    "references": [],
+    "png": [
+      "png/0087-relaxation.png",
+      "png/0087-tension.png"
+    ],
+    "movementID": "pull_up",
+    "movementTitle": "Pull Up",
+    "variationTags": [
+      "bodyweight",
+      "body",
+      "bar",
+      "assisted"
+    ],
+    "variationTitle": "Bodyweight, Assisted",
+    "equipmentTitle": "Bodyweight",
+    "loadModeTitle": "Assisted"
   }
 ]

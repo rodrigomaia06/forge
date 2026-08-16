@@ -13,9 +13,9 @@ import WorkoutDataKit
 @testable import Forge
 
 final class ExerciseMergeTests: XCTestCase {
-    // Pull Up (Weighted), removed, merged into Pull Up.
+    // Pull Up (Weighted), removed, now mapped to the exact weighted Pull Up variation.
     private let removed = UUID(uuidString: "32D30AE5-552D-57E2-BB14-068443BB351A")!
-    private let kept = UUID(uuidString: "59185216-6167-4427-AC10-38A3FDA17572")!
+    private let kept = UUID(uuidString: "0458E9AE-45D4-4C34-8EBF-7EE4B329BA69")!
 
     func testRemapsRemovedReferencesAndLeavesOthersAlone() throws {
         let context = setUpInMemoryNSPersistentContainer().viewContext

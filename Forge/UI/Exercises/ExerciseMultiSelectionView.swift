@@ -13,6 +13,7 @@ struct ExerciseMultiSelectionView: View {
     var exerciseGroups: [ExerciseGroup]
     @Binding var selection: Set<Exercise>
     @State private var expandedMovementIDs = Set<String>()
+    @State private var expandedEquipmentGroupIDs = Set<String>()
     
     var body: some View {
         List {
@@ -23,27 +24,12 @@ struct ExerciseMultiSelectionView: View {
                             selectionRow(exercise: exercise, title: exercise.title)
                         }
                     } else {
-                        ForEach(ExerciseStore.splitIntoMovements(exercises: exerciseGroup.exercises)) { movement in
-                            if movement.variations.count == 1, let variation = movement.variations.first {
-                                selectionRow(exercise: variation.exercise, title: variation.exercise.title)
-                            } else {
-                                DisclosureGroup(isExpanded: Binding(
-                                    get: { expandedMovementIDs.contains(movement.id) },
-                                    set: { isExpanded in
-                                        if isExpanded {
-                                            expandedMovementIDs.insert(movement.id)
-                                        } else {
-                                            expandedMovementIDs.remove(movement.id)
-                                        }
-                                    }
-                                )) {
-                                    ForEach(movement.variations) { variation in
-                                        selectionRow(exercise: variation.exercise, title: variation.exercise.variationDisplayTitle)
-                                    }
-                                } label: {
-                                    Text(movement.title)
-                                }
-                            }
+                        ExerciseMovementRows(
+                            movements: ExerciseStore.splitIntoMovements(exercises: exerciseGroup.exercises),
+                            expandedMovementIDs: $expandedMovementIDs,
+                            expandedEquipmentGroupIDs: $expandedEquipmentGroupIDs
+                        ) { exercise, title in
+                            selectionRow(exercise: exercise, title: title)
                         }
                     }
                 }

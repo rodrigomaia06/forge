@@ -439,6 +439,7 @@ struct WorkoutRoutineView: View {
         // Commit the title and comment when Edit is turned off, so tapping Done saves even if the field
         // never lost focus (the text field's own onEditingChanged does not fire when it is removed).
         .onChange(of: editMode?.wrappedValue.isEditing) { isEditing in
+            NotificationCenter.default.post(name: .ResetSwipeActions, object: nil)
             if isEditing == false {
                 adjustAndSaveWorkoutRoutineTitleInput()
                 adjustAndSaveWorkoutRoutineCommentInput()
@@ -460,6 +461,12 @@ struct WorkoutRoutineView: View {
                     }
             }
             .presentationDetents([.medium])
+        }
+        .onAppear {
+            NotificationCenter.default.post(name: .ResetSwipeActions, object: nil)
+        }
+        .onDisappear {
+            NotificationCenter.default.post(name: .ResetSwipeActions, object: nil)
         }
     }
 }

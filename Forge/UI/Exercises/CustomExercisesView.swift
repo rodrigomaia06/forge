@@ -18,6 +18,7 @@ struct CustomExercisesView: View {
     @State private var activeSheet: SheetType?
     @State private var filter = ExerciseBrowserFilter()
     @State private var expandedMovementIDs = Set<String>()
+    @State private var expandedEquipmentGroupIDs = Set<String>()
     
     private enum SheetType: Identifiable {
         case createCustomExercise
@@ -58,27 +59,12 @@ struct CustomExercisesView: View {
                 if filteredExercises.isEmpty, filter.isActive {
                     ContentUnavailableView("No exercises found", systemImage: "magnifyingglass")
                 }
-                ForEach(ExerciseStore.splitIntoMovements(exercises: filteredExercises)) { movement in
-                    if movement.variations.count == 1, let variation = movement.variations.first {
-                        exerciseRow(variation.exercise)
-                    } else {
-                        DisclosureGroup(isExpanded: Binding(
-                            get: { expandedMovementIDs.contains(movement.id) },
-                            set: { isExpanded in
-                                if isExpanded {
-                                    expandedMovementIDs.insert(movement.id)
-                                } else {
-                                    expandedMovementIDs.remove(movement.id)
-                                }
-                            }
-                        )) {
-                            ForEach(movement.variations) { variation in
-                                exerciseRow(variation.exercise, title: variation.exercise.variationDisplayTitle)
-                            }
-                        } label: {
-                            Text(movement.title)
-                        }
-                    }
+                ExerciseMovementRows(
+                    movements: ExerciseStore.splitIntoMovements(exercises: filteredExercises),
+                    expandedMovementIDs: $expandedMovementIDs,
+                    expandedEquipmentGroupIDs: $expandedEquipmentGroupIDs
+                ) { exercise, title in
+                    exerciseRow(exercise, title: title == exercise.title ? nil : title)
                 }
                 Button(action: {
                     self.activeSheet = .createCustomExercise

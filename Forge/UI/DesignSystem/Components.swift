@@ -148,10 +148,17 @@ struct ForgeSwipeToDeleteRow<Content: View>: View {
         }
     }
 
-    private func resetSwipe() {
+    private func resetSwipe(animated: Bool = true) {
         guard restingOffset != 0 else { return }
-        withAnimation(.interactiveSpring(response: 0.22, dampingFraction: 0.86)) {
+        let reset = {
             restingOffset = 0
+        }
+        if animated {
+            withAnimation(.interactiveSpring(response: 0.22, dampingFraction: 0.86)) {
+                reset()
+            }
+        } else {
+            reset()
         }
     }
 
@@ -170,6 +177,7 @@ struct ForgeSwipeToDeleteRow<Content: View>: View {
             .buttonStyle(.plain)
             .frame(width: actionWidth)
             .background(Color.forgeDestructive)
+            .opacity(visibleOffset < -1 ? 1 : 0)
             .accessibilityLabel(deleteAccessibilityLabel)
 
             content
@@ -203,7 +211,7 @@ struct ForgeSwipeToDeleteRow<Content: View>: View {
             performDelete()
         }
         .onReceive(NotificationCenter.default.publisher(for: .ResetSwipeActions)) { _ in
-            resetSwipe()
+            resetSwipe(animated: false)
         }
         .onDisappear {
             restingOffset = 0
