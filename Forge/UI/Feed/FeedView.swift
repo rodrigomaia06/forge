@@ -385,7 +385,7 @@ struct FeedView: View {
             )
         }
         .padding(.vertical, Theme.Spacing.xxs)
-        .forgeCard(radius: Theme.Radius.medium)
+        .forgeCard()
     }
 
     private func overviewRow(title: String, value: String) -> some View {
@@ -751,7 +751,7 @@ struct FeedView: View {
             .padding(Theme.Spacing.m)
             .padding(.leading, Theme.Spacing.m)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .forgeCard(radius: Theme.Radius.medium)
+            .forgeCard()
             .overlay(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 2, style: .continuous)
                     .fill(Color(workoutTypeHex: workout.workoutType?.displayColorHex ?? WorkoutType.fallbackColorHex))
@@ -759,7 +759,7 @@ struct FeedView: View {
                     .padding(.leading, Theme.Spacing.s)
                     .padding(.vertical, Theme.Spacing.m)
             }
-            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Surface.cardRadius, style: .continuous))
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Open workout")
@@ -995,7 +995,7 @@ struct FeedView: View {
         content()
             .padding(Theme.Spacing.l)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .forgeCard(radius: Theme.Radius.medium)
+            .forgeCard()
             .overlay(alignment: .leading) {
                 if let colorHex {
                     RoundedRectangle(cornerRadius: 2, style: .continuous)
@@ -1004,7 +1004,7 @@ struct FeedView: View {
                         .padding(.vertical, Theme.Spacing.l)
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Surface.cardRadius, style: .continuous))
     }
 
     private func dashboardActionButton(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {

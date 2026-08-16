@@ -35,8 +35,8 @@ enum Theme {
     enum Surface {
         /// Explicit cards share one geometry and one quiet edge so they remain legible against the
         /// canvas in both appearances without becoming heavy outlined containers.
-        static let cardRadius = Radius.large
-        static let groupedRadius = Radius.small
+        static let cardRadius: CGFloat = 16
+        static let groupedRadius: CGFloat = 8
         static let cardEdgeOpacity: CGFloat = 0.65
     }
 

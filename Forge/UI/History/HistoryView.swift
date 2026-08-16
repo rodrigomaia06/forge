@@ -312,7 +312,7 @@ struct HistoryView : View {
                 .frame(minHeight: Theme.Layout.minTapTarget)
         }
         .forgeCard()
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Surface.cardRadius, style: .continuous))
     }
 
     private var monthFilterControls: some View {
@@ -354,7 +354,7 @@ struct HistoryView : View {
         .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
         .padding(.vertical, Theme.Spacing.s)
         .forgeCard()
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Surface.cardRadius, style: .continuous))
     }
 
     private var filterMonthTitle: String {
@@ -398,7 +398,7 @@ struct HistoryView : View {
                 }
             }
             .forgeCard()
-            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Surface.cardRadius, style: .continuous))
         }
     }
 

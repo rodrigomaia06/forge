@@ -536,7 +536,7 @@ private struct SupersetCard: View {
                 members
             }
             .forgeCard()
-            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Surface.cardRadius, style: .continuous))
         } else {
             Section {
                 supersetHeader

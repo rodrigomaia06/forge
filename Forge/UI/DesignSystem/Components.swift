@@ -303,6 +303,7 @@ extension View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         return background(shape.fill(Color.forgeSurface))
             .overlay(shape.strokeBorder(Color.forgeSeparator.opacity(Theme.Surface.cardEdgeOpacity), lineWidth: 1))
+            .clipShape(shape)
     }
 
     /// A quiet grouping inside a card. It is not a second interactive surface.

@@ -548,7 +548,7 @@ struct WorkoutExerciseDetailView : View {
     private var scrollCardBody: some View {
         scrollRows
             .forgeCard()
-            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Surface.cardRadius, style: .continuous))
     }
 
     private var standaloneSessionCard: some View {
@@ -571,7 +571,7 @@ struct WorkoutExerciseDetailView : View {
             }
         }
         .forgeCard()
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Surface.cardRadius, style: .continuous))
     }
 
     /// The pushed, full-screen layout used when viewing an exercise from history. Read-only until Edit.

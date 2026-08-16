@@ -156,7 +156,7 @@ struct WorkoutRoutineView: View {
             .frame(minHeight: routineCardRowHeight)
         }
         .forgeCard()
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Surface.cardRadius, style: .continuous))
     }
 
     private func exerciseMenu(_ ex: WorkoutRoutineExercise) -> some View {

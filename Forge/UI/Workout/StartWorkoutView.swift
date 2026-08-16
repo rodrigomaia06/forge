@@ -310,13 +310,12 @@ private struct RoutineMenuRow: View {
                 .layoutPriority(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            // A plan is the card; its routines are rows within that card. Use the quiet canvas inset
-            // without introducing a second large rounded card treatment.
+            // A plan is the card; its routines are compact grouped surfaces within that card.
             .padding(nested ? Theme.Spacing.m : 0)
-            .background {
-                if nested {
-                    Color.forgeBackground
-                }
+            .modifier(if: nested) { content in
+                content
+                    .forgeGroupedSurface()
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.Surface.groupedRadius, style: .continuous))
             }
             .contentShape(Rectangle())
         }
