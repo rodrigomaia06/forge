@@ -124,7 +124,7 @@ struct ExerciseMultiSelectionView: View {
 
     private func exactSelectionRow(exercise: Exercise) -> some View {
         let variation = exercise.compactVariationTitle()
-        Button {
+        return Button {
             toggle(exercise)
         } label: {
             HStack(spacing: Theme.Spacing.m) {
@@ -392,7 +392,7 @@ private struct ExerciseMovementSelectionView: View {
         do {
             let exercise = try exerciseStore.resolveOrCreateVariation(variationSelection, movementTitle: movement.title)
             withTransaction(transaction) {
-                selection.insert(exercise)
+                _ = selection.insert(exercise)
             }
             Haptics.success()
         } catch {
