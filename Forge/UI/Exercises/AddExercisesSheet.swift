@@ -37,36 +37,27 @@ struct AddExercisesSheet: View {
         ExerciseBrowserFilter(category: preferredCategory)
     }
 
-    /// The current selection in the order the exercises appear in the list (Recent counts once), so a
-    /// superset is created in a sensible, stable order that the user can still change later in Edit.
+    /// The current selection in catalog order, so a superset is created in a stable order that the user
+    /// can still change later in Edit.
     private var orderedSelection: [Exercise] {
-        var seen = Set<Exercise>()
-        var ordered: [Exercise] = []
-        for exercise in exerciseGroups.flatMap({ $0.exercises }) where exerciseSelectorSelection.contains(exercise) {
-            if seen.insert(exercise).inserted { ordered.append(exercise) }
-        }
-        return ordered
+        allExercises.filter { exerciseSelectorSelection.contains($0) }
     }
 
     private var exerciseGroups: [ExerciseGroup] {
         let exercises = filter.filteredExercises(from: allExercises)
-        // Selected exercises live only in the Selected section, so they are not duplicated in the lists
-        // below when picked from Recent or a muscle group.
-        let unselected = exercises.filter { !exerciseSelectorSelection.contains($0) }
-        var groups = ExerciseStore.splitIntoMuscleGroups(exercises: unselected)
+        var visibleExercises = exercises
         // Recent is only meaningful with no search or filters applied.
         if !filter.isActive {
-            let recent = recentExercises.filter { !exerciseSelectorSelection.contains($0) }
+            let recent = recentExercises
             if !recent.isEmpty {
+                let recentSet = Set(recent)
+                visibleExercises = exercises.filter { !recentSet.contains($0) }
+                var groups = ExerciseStore.splitIntoMuscleGroups(exercises: visibleExercises)
                 groups = [ExerciseGroup(title: "Recent", exercises: recent)] + groups
+                return groups
             }
         }
-        // Selected first, so what you have picked stays visible at the top, even while searching.
-        if !exerciseSelectorSelection.isEmpty {
-            let selected = allExercises.filter { exerciseSelectorSelection.contains($0) }
-            groups = [ExerciseGroup(title: "Selected", exercises: selected)] + groups
-        }
-        return groups
+        return ExerciseStore.splitIntoMuscleGroups(exercises: visibleExercises)
     }
 
     private func resetAndDismiss() {

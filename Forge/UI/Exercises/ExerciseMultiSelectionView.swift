@@ -38,10 +38,14 @@ struct ExerciseMultiSelectionView: View {
 
     private func selectionRow(exercise: Exercise, title: String) -> some View {
         Button {
-            if selection.contains(exercise) {
-                selection.remove(exercise)
-            } else {
-                selection.insert(exercise)
+            var transaction = Transaction()
+            transaction.animation = nil
+            withTransaction(transaction) {
+                if selection.contains(exercise) {
+                    selection.remove(exercise)
+                } else {
+                    selection.insert(exercise)
+                }
             }
         } label: {
             HStack(spacing: Theme.Spacing.m) {
