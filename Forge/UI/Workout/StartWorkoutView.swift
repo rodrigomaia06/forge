@@ -89,24 +89,35 @@ struct StartWorkoutView: View {
                         Section(header: Text("Routines")) {
                             ForEach(standaloneRoutines) { routine in
                                 RoutineMenuRow(routine: routine, allPlans: Array(workoutPlans), onStart: { start(routine: $0) }, onEdit: { routineToEdit = $0 }, onShare: { shareRoutine($0) })
+                                    .padding(.horizontal, Theme.Spacing.s)
+                                    .padding(.vertical, Theme.Spacing.xs)
+                                    .forgeCard()
+                                    .listRowInsets(EdgeInsets())
+                                    .listRowBackground(Color.clear)
                             }
                             .onDelete { deleteStandaloneRoutines($0) }
                         }
                     }
                     if !workoutPlans.isEmpty {
                         ForEach(Array(workoutPlans.enumerated()), id: \.element.objectID) { index, workoutPlan in
-                            Section {
-                                WorkoutPlanCell(workoutPlan: workoutPlan)
-                                WorkoutPlanRoutines(workoutPlan: workoutPlan, allPlans: Array(workoutPlans), onStart: { start(routine: $0) }, onEdit: { routineToEdit = $0 }, onShare: { shareRoutine($0) })
-                                    .deleteDisabled(true)
-                            } header: {
-                                if index == 0 {
-                                    Text("Plans")
-                                }
+                            if index == 0 {
+                                Text("Plans")
+                                    .font(.forgeHeadline)
+                                    .foregroundColor(.forgeSecondaryLabel)
+                                    .listRowInsets(EdgeInsets(top: Theme.Spacing.m, leading: Theme.Spacing.l, bottom: Theme.Spacing.s, trailing: Theme.Spacing.l))
+                                    .listRowBackground(Color.clear)
                             }
-                            // The routine wells carry their own edges, so the list separators between them are
-                            // redundant and read as non-native.
+                            WorkoutPlanCard(
+                                workoutPlan: workoutPlan,
+                                allPlans: Array(workoutPlans),
+                                onStart: { start(routine: $0) },
+                                onEdit: { routineToEdit = $0 },
+                                onShare: { shareRoutine($0) }
+                            )
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
+                            .padding(.vertical, Theme.Spacing.s)
                         }
                         .onDelete { offsets in
                             if self.needsConfirmBeforeDelete(offsets: offsets) {
@@ -223,7 +234,7 @@ private struct WorkoutPlanCell: View {
     }
 }
 
-private struct WorkoutPlanRoutines: View {
+private struct WorkoutPlanCard: View {
     @ObservedObject var workoutPlan: WorkoutPlan
 
     /// All plans, so a routine can be moved to another one.
@@ -237,13 +248,30 @@ private struct WorkoutPlanRoutines: View {
     }
 
     var body: some View {
-        ForEach(workoutRoutines) { workoutRoutine in
-            RoutineMenuRow(routine: workoutRoutine, allPlans: allPlans, nested: true, onStart: onStart, onEdit: onEdit, onShare: onShare)
-                // Keep plan routines as native grouped-list rows. Indentation communicates hierarchy;
-                // a second rounded surface would make the list look like a card inside a card.
-                .listRowInsets(EdgeInsets(top: 0, leading: Theme.Spacing.xl, bottom: 0, trailing: Theme.Spacing.m))
-                .listRowSeparator(.hidden)
+        VStack(spacing: 0) {
+            WorkoutPlanCell(workoutPlan: workoutPlan)
+                .padding(.horizontal, Theme.Surface.cardPadding)
+                .frame(minHeight: Theme.Layout.minTapTarget)
+
+            ForEach(Array(workoutRoutines.enumerated()), id: \.element.objectID) { index, workoutRoutine in
+                ForgeListSeparator()
+                    .padding(.horizontal, Theme.Surface.cardPadding)
+                    .opacity(index == 0 ? 0.0 : 1.0)
+
+                RoutineMenuRow(
+                    routine: workoutRoutine,
+                    allPlans: allPlans,
+                    nested: true,
+                    onStart: onStart,
+                    onEdit: onEdit,
+                    onShare: onShare
+                )
+                .padding(.horizontal, Theme.Surface.cardPadding)
+                .padding(.vertical, Theme.Spacing.s)
+                .frame(minHeight: Theme.Layout.minTapTarget)
+            }
         }
+        .forgeCard()
     }
 }
 
