@@ -289,8 +289,15 @@ extension Exercise {
     /// generated combinations, but details that are already part of the movement name add noise.
     public var displayVariationFields: [(label: String, value: String)] {
         variationDisplayFields.filter { field in
-            !(movementID == "jump_rope" && field.label == "Attachment" && field.value.caseInsensitiveCompare("Rope") == .orderedSame)
+            !isImplicitDisplayField(field.value)
         }
+    }
+
+    private func isImplicitDisplayField(_ value: String) -> Bool {
+        let normalizedMovement = movementTitle.normalizedDisplayText
+        let normalizedValue = value.normalizedDisplayText
+        guard normalizedValue.count >= 4 else { return false }
+        return normalizedMovement.contains(normalizedValue) || normalizedValue == "lowpulley"
     }
 
     public var variationIdentityKey: String {
@@ -546,6 +553,15 @@ extension Exercise {
             if source.contains(token) { return loadModeField(for: token) }
         }
         return nil
+    }
+}
+
+private extension String {
+    var normalizedDisplayText: String {
+        lowercased().unicodeScalars
+            .filter { CharacterSet.alphanumerics.contains($0) }
+            .map(String.init)
+            .joined()
     }
 }
 

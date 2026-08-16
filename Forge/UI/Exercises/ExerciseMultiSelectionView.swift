@@ -156,7 +156,7 @@ struct ExerciseMultiSelectionView: View {
 extension Exercise {
     func compactVariationTitle(omittingEquipment equipmentTitleToOmit: String? = nil) -> String {
         let omittedEquipment = equipmentTitleToOmit?.normalizedExerciseFilterToken
-        let fields = variationDisplayFields.compactMap { field -> String? in
+        let fields = displayVariationFields.compactMap { field -> String? in
             if field.label == "Equipment", field.value.normalizedExerciseFilterToken == omittedEquipment {
                 return nil
             }

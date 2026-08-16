@@ -15,6 +15,7 @@ final class ExerciseMovementTests: XCTestCase {
         movementTitle: String? = nil,
         variationTitle: String? = nil,
         attachmentTitle: String? = nil,
+        setupTitle: String? = nil,
         variationTags: [String] = [],
         equipment: [String]
     ) -> Exercise {
@@ -27,6 +28,7 @@ final class ExerciseMovementTests: XCTestCase {
             movementTitle: movementTitle,
             variationTitle: variationTitle,
             attachmentTitle: attachmentTitle,
+            setupTitle: setupTitle,
             variationTags: variationTags,
             description: nil,
             primaryMuscle: ["pectoralis major"],
@@ -153,6 +155,34 @@ final class ExerciseMovementTests: XCTestCase {
         XCTAssertEqual(exercise.browsingVariationTitle, "Jump Rope")
         XCTAssertEqual(exercise.variationSummaryTitle, "Jump Rope")
         XCTAssertTrue(exercise.variationIdentityKey.contains("rope"))
+    }
+
+    func testImplicitMovementDetailsAreHiddenAcrossBrowsingLabels() {
+        let walking = exercise(
+            title: "Walking",
+            movementID: "walking",
+            movementTitle: "Walking",
+            setupTitle: "Walking",
+            equipment: ["body"]
+        )
+        let overhead = exercise(
+            title: "Overhead Smash",
+            movementID: "overhead_smash",
+            movementTitle: "Overhead Smash",
+            setupTitle: "Overhead",
+            equipment: ["other"]
+        )
+        let lowPulley = exercise(
+            title: "Triceps Extension: Cable (Low)",
+            movementID: "triceps_extension",
+            movementTitle: "Triceps Extension",
+            setupTitle: "Low pulley",
+            equipment: ["cable"]
+        )
+
+        XCTAssertEqual(walking.browsingVariationTitle, "Walking")
+        XCTAssertEqual(overhead.browsingVariationTitle, "Overhead Smash")
+        XCTAssertEqual(lowPulley.browsingVariationTitle, "Cable")
     }
 
     func testBrowserFilterUsesNormalizedVariationTags() {
