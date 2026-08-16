@@ -17,6 +17,10 @@ content, featured summaries, or controls that need stronger separation. Do not p
 surface behind each row. A colored rail, separator, or compact status label may carry hierarchy without
 creating another card.
 
+Catalog index screens use compact native navigation bars, plain background-first lists, native section
+headers, consistent leading symbols, and quiet trailing counts. Workout-type color may tint a semantic
+icon, but color is never the only indicator of meaning.
+
 ## Content and controls
 
 Use a clear title, a short supporting line only when it adds information, and one obvious primary action.

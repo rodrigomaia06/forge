@@ -11,30 +11,8 @@ import CoreData
 import WorkoutDataKit
 
 struct ExerciseMuscleGroupsView : View {
-    @EnvironmentObject var settingsStore: SettingsStore
     @EnvironmentObject var exerciseStore: ExerciseStore
     @FetchRequest(fetchRequest: WorkoutType.fetchRequestSorted(includeArchived: false)) private var workoutTypes
-    
-    // select the all exercises tab by default on iPad
-    @State private var allExercisesSelected = UIDevice.current.userInterfaceIdiom == .pad ? true : false
-    
-    func exerciseGroupCell(_ exerciseGroup: ExerciseGroup) -> some View {
-        NavigationLink(destination:
-            ExerciseBrowserGroupedListView(exercises: exerciseGroup.exercises, showsCategoryPicker: false)
-                .navigationBarTitle(Text(exerciseGroup.title), displayMode: .inline)
-        ) {
-            HStack(spacing: Theme.Spacing.s) {
-                Text(exerciseGroup.title)
-                Spacer()
-                Text("\(exerciseGroup.exercises.count)")
-                    .font(.forgeCaption)
-                    .foregroundColor(.forgeSecondaryLabel)
-            }
-            .foregroundColor(.forgeLabel)
-            .frame(minHeight: Theme.Layout.minTapTarget)
-        }
-        .buttonStyle(.plain)
-    }
     
     private var activityGroups: [ActivityExerciseGroup] {
         let types = Array(workoutTypes)
@@ -43,64 +21,89 @@ struct ExerciseMuscleGroupsView : View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Theme.Spacing.xl) {
-                exerciseGroup {
-                    NavigationLink(destination: ExerciseBrowserGroupedListView(exerciseGroups: activityGroups.map(\.group).filter { !$0.exercises.isEmpty })
-                        .navigationBarTitle(Text("All exercises"), displayMode: .inline), isActive: $allExercisesSelected) {
-                        categoryRow(title: "All", count: exerciseStore.shownExercises.count)
-                    }
-                    .buttonStyle(.plain)
-                }
+        List {
+            Section {
+                catalogRow(
+                    title: "All",
+                    count: exerciseStore.shownExercises.count,
+                    systemImage: "square.grid.2x2",
+                    tint: .forgeSecondaryLabel,
+                    destination: ExerciseBrowserGroupedListView(
+                        exerciseGroups: activityGroups.map(\.group).filter { !$0.exercises.isEmpty }
+                    )
+                )
+            }
 
-                if !activityGroups.isEmpty {
-                    exerciseGroup {
-                        ForEach(Array(activityGroups.enumerated()), id: \.element.id) { index, item in
-                            if index > 0 { ForgeListSeparator().padding(.leading, Theme.Layout.insetGroupedRowInset) }
-                            exerciseGroupCell(item.group)
-                        }
-                    }
-                }
-
-                exerciseGroup {
-                    navigationRow(title: "Custom", count: exerciseStore.customExercises.count, destination: CustomExercisesView())
-                    if !exerciseStore.hiddenExercises.isEmpty {
-                        ForgeListSeparator().padding(.leading, Theme.Layout.insetGroupedRowInset)
-                        navigationRow(title: "Hidden", count: exerciseStore.hiddenExercises.count, destination: ExercisesView(exercises: exerciseStore.hiddenExercises))
-                    }
+            Section("Workout types") {
+                ForEach(activityGroups) { item in
+                    catalogRow(
+                        title: item.group.title,
+                        count: item.group.exercises.count,
+                        systemImage: item.type.catalogSymbol,
+                        tint: Color(workoutTypeHex: item.type.displayColorHex),
+                        destination: ExerciseBrowserGroupedListView(
+                            exercises: item.group.exercises,
+                            showsCategoryPicker: false
+                        )
+                    )
                 }
             }
-            .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-            .padding(.top, Theme.Spacing.m)
-            .padding(.bottom, Theme.Layout.bottomScrollClearance)
+
+            Section("My exercises") {
+                catalogRow(
+                    title: "Custom",
+                    count: exerciseStore.customExercises.count,
+                    systemImage: "person.badge.plus",
+                    tint: .forgeSecondaryLabel,
+                    destination: CustomExercisesView()
+                )
+
+                if !exerciseStore.hiddenExercises.isEmpty {
+                    catalogRow(
+                        title: "Hidden",
+                        count: exerciseStore.hiddenExercises.count,
+                        systemImage: "eye.slash",
+                        tint: .forgeSecondaryLabel,
+                        destination: ExercisesView(exercises: exerciseStore.hiddenExercises)
+                    )
+                }
+            }
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
         .background(Color.forgeBackground.ignoresSafeArea())
-        .navigationBarTitle("Exercises")
+        .navigationTitle("Exercises")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
-    @ViewBuilder
-    private func exerciseGroup<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        VStack(spacing: 0, content: content)
-    }
-
-    private func categoryRow(title: String, count: Int) -> some View {
-        HStack(spacing: Theme.Spacing.s) {
-            Text(title)
-            Spacer()
-            Text("\(count)")
-                .font(.forgeCaption)
-                .foregroundColor(.forgeSecondaryLabel)
-        }
-        .foregroundColor(.forgeLabel)
-        .padding(.horizontal, Theme.Layout.insetGroupedRowInset)
-        .frame(minHeight: Theme.Layout.minTapTarget)
-    }
-
-    private func navigationRow<Destination: View>(title: String, count: Int, destination: Destination) -> some View {
+    private func catalogRow<Destination: View>(
+        title: String,
+        count: Int,
+        systemImage: String,
+        tint: Color,
+        destination: Destination
+    ) -> some View {
         NavigationLink(destination: destination) {
-            categoryRow(title: title, count: count)
+            HStack(spacing: Theme.Spacing.m) {
+                Image(systemName: systemImage)
+                    .font(.body.weight(.semibold))
+                    .foregroundColor(tint)
+                    .frame(width: 28)
+                    .accessibilityHidden(true)
+
+                Text(title)
+                    .foregroundColor(.forgeLabel)
+
+                Spacer(minLength: Theme.Spacing.s)
+
+                Text("\(count)")
+                    .font(.forgeValue)
+                    .foregroundColor(.forgeSecondaryLabel)
+            }
+            .frame(minHeight: Theme.Layout.minTapTarget)
+            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .accessibilityLabel("\(title), \(count) exercises")
     }
 }
 
@@ -109,6 +112,19 @@ private struct ActivityExerciseGroup: Identifiable {
     let group: ExerciseGroup
 
     var id: NSManagedObjectID { type.objectID }
+}
+
+private extension WorkoutType {
+    var catalogSymbol: String {
+        switch displayTitle.lowercased() {
+        case "strength": return "dumbbell"
+        case "court sports": return "figure.tennis"
+        case "martial arts": return "figure.martial.arts"
+        case "cardio": return "figure.run"
+        case "mobility": return "figure.cooldown"
+        default: return "square.grid.2x2"
+        }
+    }
 }
 
 #if DEBUG
