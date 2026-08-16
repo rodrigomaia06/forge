@@ -20,7 +20,7 @@ struct ExerciseMuscleGroupsView : View {
     
     func exerciseGroupCell(_ exerciseGroup: ExerciseGroup, type: WorkoutType) -> some View {
         NavigationLink(destination:
-            ActivityExerciseListView(exercises: exerciseGroup.exercises)
+            ExerciseBrowserGroupedListView(exercises: exerciseGroup.exercises, showsCategoryPicker: false)
                 .navigationBarTitle(Text(exerciseGroup.title), displayMode: .inline)
         ) {
             HStack {
@@ -44,7 +44,8 @@ struct ExerciseMuscleGroupsView : View {
     var body: some View {
         List {
                 Section {
-                    NavigationLink(destination: AllExercisesView(exerciseGroups: activityGroups.map(\.group).filter { !$0.exercises.isEmpty }), isActive: $allExercisesSelected) {
+                    NavigationLink(destination: ExerciseBrowserGroupedListView(exerciseGroups: activityGroups.map(\.group).filter { !$0.exercises.isEmpty })
+                        .navigationBarTitle(Text("All exercises"), displayMode: .inline), isActive: $allExercisesSelected) {
                         HStack {
                             Text("All")
                             Spacer()
@@ -98,39 +99,6 @@ private struct ActivityExerciseGroup: Identifiable {
     let group: ExerciseGroup
 
     var id: NSManagedObjectID { type.objectID }
-}
-
-private struct AllExercisesView: View {
-    @ObservedObject private var filter: ExerciseGroupFilter
-    
-    init(exerciseGroups: [ExerciseGroup]) {
-        self.filter = ExerciseGroupFilter(exerciseGroups: exerciseGroups)
-    }
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            TextField("Search", text: $filter.filter)
-                .textFieldStyle(SearchTextFieldStyle(text: $filter.filter))
-                .padding()
-            
-            Divider()
-            
-            MuscleGroupSectionedExercisesView(exerciseGroups: filter.exerciseGroups)
-        }
-        .navigationBarTitle(Text("All exercises"), displayMode: .inline)
-    }
-}
-
-private struct ActivityExerciseListView: View {
-    private let exerciseGroups: [ExerciseGroup]
-
-    init(exercises: [Exercise]) {
-        self.exerciseGroups = ExerciseStore.splitIntoMuscleGroups(exercises: exercises)
-    }
-
-    var body: some View {
-        MuscleGroupSectionedExercisesView(exerciseGroups: exerciseGroups)
-    }
 }
 
 #if DEBUG

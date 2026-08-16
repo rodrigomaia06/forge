@@ -23,16 +23,18 @@ struct AddExercisesSheet: View {
     private let recentExercises: [Exercise]
 
     @State private var exerciseSelectorSelection: Set<Exercise> = Set()
-    @State private var search = ""
-    @State private var equipment: String? = nil
-    @State private var bodyPart: String? = nil
-    @State private var category: ExerciseActivityCategory? = nil
+    @State private var filter: ExerciseBrowserFilter
 
     init(exercises: [Exercise], recentExercises: [Exercise], preferredCategory: ExerciseActivityCategory = .strength, onAdd: @escaping (Set<Exercise>) -> Void, onAddSuperset: (([Exercise]) -> Void)? = nil) {
         self.allExercises = exercises
         self.recentExercises = recentExercises
         self.onAdd = onAdd
         self.onAddSuperset = onAddSuperset
+        _filter = State(initialValue: Self.initialFilter(preferredCategory: preferredCategory))
+    }
+
+    static func initialFilter(preferredCategory: ExerciseActivityCategory) -> ExerciseBrowserFilter {
+        ExerciseBrowserFilter(category: preferredCategory)
     }
 
     /// The current selection in the order the exercises appear in the list (Recent counts once), so a
@@ -46,32 +48,14 @@ struct AddExercisesSheet: View {
         return ordered
     }
 
-    // Equipment filters, shown as a submenu. The token is matched against each exercise's equipment.
-    private static let equipmentFilters: [(label: String, token: String)] = [
-        ("Barbell", "barbell"), ("Dumbbell", "dumbbell"), ("Cable", "cable"),
-        ("Machine", "machine"), ("Kettlebell", "kettlebell"), ("Bodyweight", "body"),
-    ]
-
-    private var bodyPartOptions: [String] {
-        Array(Set(allExercises.map { $0.muscleGroup })).sorted()
-    }
-
-    private var filtersActive: Bool { equipment != nil || bodyPart != nil || category != nil }
-
     private var exerciseGroups: [ExerciseGroup] {
-        var exercises = allExercises
-        if let category {
-            exercises = exercises.filter { $0.activityCategories.contains(category) }
-        }
-        if let equipment { exercises = exercises.filter { $0.equipment.contains { $0.contains(equipment) } } }
-        if let bodyPart { exercises = exercises.filter { $0.muscleGroup == bodyPart } }
-        if !search.isEmpty { exercises = ExerciseStore.filter(exercises: exercises, using: search) }
+        let exercises = filter.filteredExercises(from: allExercises)
         // Selected exercises live only in the Selected section, so they are not duplicated in the lists
         // below when picked from Recent or a muscle group.
         let unselected = exercises.filter { !exerciseSelectorSelection.contains($0) }
         var groups = ExerciseStore.splitIntoMuscleGroups(exercises: unselected)
         // Recent is only meaningful with no search or filters applied.
-        if search.isEmpty, !filtersActive {
+        if !filter.isActive {
             let recent = recentExercises.filter { !exerciseSelectorSelection.contains($0) }
             if !recent.isEmpty {
                 groups = [ExerciseGroup(title: "Recent", exercises: recent)] + groups
@@ -88,7 +72,7 @@ struct AddExercisesSheet: View {
     private func resetAndDismiss() {
         self.presentationMode.wrappedValue.dismiss()
         self.exerciseSelectorSelection.removeAll()
-        self.search = ""
+        self.filter.search = ""
     }
     
     static func loadRecentExercises(context: NSManagedObjectContext, exercises: [Exercise], maxCount: Int = 7) -> [Exercise] {
@@ -125,7 +109,6 @@ struct AddExercisesSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { self.resetAndDismiss() }
                 }
-                ToolbarItem(placement: .topBarTrailing) { filterMenu }
             }
             // Add lives in a bottom bar, not the nav bar, so focusing the search field cannot hide it.
             .safeAreaInset(edge: .bottom) {
@@ -138,46 +121,9 @@ struct AddExercisesSheet: View {
 
     private var content: some View {
         VStack(spacing: 0) {
-            searchField
-            categoryPicker
+            ExerciseBrowserFilterControls(filter: $filter, exercises: allExercises)
             ExerciseMultiSelectionView(exerciseGroups: exerciseGroups, selection: self.$exerciseSelectorSelection)
         }
-    }
-
-    // A pinned search field above the list rather than .searchable: the system search takes over the nav bar
-    // with a Cancel button that hides the filter and lingers after the keyboard is dismissed.
-    private var searchField: some View {
-        TextField("Search", text: $search)
-            .textFieldStyle(SearchTextFieldStyle(text: $search))
-            .padding(.horizontal, Theme.Spacing.l)
-            .padding(.vertical, Theme.Spacing.s)
-    }
-
-    private var categoryPicker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Theme.Spacing.s) {
-                categoryButton(nil)
-                ForEach(ExerciseActivityCategory.allCases, id: \.self) { option in
-                    categoryButton(option)
-                }
-            }
-            .padding(.horizontal, Theme.Spacing.l)
-        }
-        .padding(.bottom, Theme.Spacing.s)
-    }
-
-    private func categoryButton(_ option: ExerciseActivityCategory?) -> some View {
-        Button {
-            category = option
-        } label: {
-            Text(option?.title ?? "All")
-                .font(.forgeCaption.weight(.semibold))
-                .foregroundColor(category == option ? .forgeBackground : .forgeLabel)
-                .padding(.horizontal, Theme.Spacing.m)
-                .frame(minHeight: 34)
-                .background(Capsule().fill(category == option ? Color.forgeLabel : Color.forgeSurface))
-        }
-        .buttonStyle(.plain)
     }
 
     private var addBar: some View {
@@ -212,30 +158,6 @@ struct AddExercisesSheet: View {
         .background(.bar)
     }
 
-    private var filterMenu: some View {
-        Menu {
-            Picker("Equipment", selection: $equipment) {
-                Text("Any equipment").tag(String?.none)
-                ForEach(Self.equipmentFilters, id: \.token) { filter in
-                    Text(filter.label).tag(String?.some(filter.token))
-                }
-            }
-            Picker("Body part", selection: $bodyPart) {
-                Text("Any body part").tag(String?.none)
-                ForEach(bodyPartOptions, id: \.self) { part in
-                    Text(part.capitalized).tag(String?.some(part))
-                }
-            }
-            if filtersActive {
-                Button(role: .destructive) { equipment = nil; bodyPart = nil; category = nil } label: {
-                    Label("Clear filters", systemImage: "xmark.circle")
-                }
-            }
-        } label: {
-            Image(systemName: filtersActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
-        }
-        .accessibilityLabel("Filter exercises")
-    }
 }
 
 struct AddExercisesSheet_Previews: PreviewProvider {

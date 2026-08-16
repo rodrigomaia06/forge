@@ -11,14 +11,28 @@ import WorkoutDataKit
 
 struct ExercisesView : View {
     var exercises: [Exercise]
+    @State private var filter = ExerciseBrowserFilter()
+
+    private var filteredExercises: [Exercise] {
+        filter.filteredExercises(from: exercises)
+    }
     
     var body: some View {
-        List(exercises, id: \.id) { exercise in
-            NavigationLink(destination: ExerciseDetailView(exercise: exercise)) {
-                ExerciseSourceRow(exercise: exercise)
+        VStack(spacing: 0) {
+            ExerciseBrowserFilterControls(filter: $filter, exercises: exercises)
+            Divider()
+            if filteredExercises.isEmpty {
+                ContentUnavailableView("No exercises found", systemImage: "magnifyingglass")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List(filteredExercises, id: \.id) { exercise in
+                    NavigationLink(destination: ExerciseDetailView(exercise: exercise)) {
+                        ExerciseSourceRow(exercise: exercise)
+                    }
+                }
+                .listStyleCompat_InsetGroupedListStyle()
             }
         }
-        .listStyleCompat_InsetGroupedListStyle()
     }
 }
 

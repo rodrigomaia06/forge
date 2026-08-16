@@ -16,6 +16,7 @@ struct CustomExercisesView: View {
     @EnvironmentObject var exerciseStore: ExerciseStore
     
     @State private var activeSheet: SheetType?
+    @State private var filter = ExerciseBrowserFilter()
     
     private enum SheetType: Identifiable {
         case createCustomExercise
@@ -32,12 +33,16 @@ struct CustomExercisesView: View {
         }
     }
     
-    @State private var offsetsToDelete: IndexSet?
+    @State private var exercisesToDelete: [Exercise]?
+
+    private var filteredExercises: [Exercise] {
+        filter.filteredExercises(from: exerciseStore.customExercises)
+    }
     
-    private func deleteAtOffsets(offsets: IndexSet) {
-        for i in offsets {
-            assert(self.exerciseStore.customExercises[i].isCustom)
-            let uuid = self.exerciseStore.customExercises[i].uuid
+    private func delete(_ exercises: [Exercise]) {
+        for exercise in exercises {
+            assert(exercise.isCustom)
+            let uuid = exercise.uuid
             self.deleteWorkoutExercises(with: uuid)
             self.exerciseStore.deleteCustomExercise(with: uuid)
         }
@@ -45,35 +50,44 @@ struct CustomExercisesView: View {
     }
     
     var body: some View {
-        List {
-            ForEach(exerciseStore.customExercises, id: \.id) { exercise in
-                NavigationLink(exercise.title, destination: ExerciseDetailView(exercise: exercise)
-                    .environmentObject(self.settingsStore))
-            }
-            .onDelete { offsets in
-                guard UIDevice.current.userInterfaceIdiom != .pad else { // TODO: actionSheet not supported on iPad yet (13.2)
-                    self.deleteAtOffsets(offsets: offsets)
-                    return
+        VStack(spacing: 0) {
+            ExerciseBrowserFilterControls(filter: $filter, exercises: exerciseStore.customExercises)
+            Divider()
+            List {
+                if filteredExercises.isEmpty, filter.isActive {
+                    ContentUnavailableView("No exercises found", systemImage: "magnifyingglass")
                 }
-                self.offsetsToDelete = offsets
-            }
-            Button(action: {
-                self.activeSheet = .createCustomExercise
-            }) {
-                HStack {
-                    Image(systemName: "plus")
-                    Text("Create exercise")
+                ForEach(filteredExercises, id: \.id) { exercise in
+                    NavigationLink(destination: ExerciseDetailView(exercise: exercise)
+                        .environmentObject(self.settingsStore)) {
+                        ExerciseSourceRow(exercise: exercise)
+                    }
+                }
+                .onDelete { offsets in
+                    guard UIDevice.current.userInterfaceIdiom != .pad else { // TODO: actionSheet not supported on iPad yet (13.2)
+                        self.delete(offsets.map { filteredExercises[$0] })
+                        return
+                    }
+                    self.exercisesToDelete = offsets.map { filteredExercises[$0] }
+                }
+                Button(action: {
+                    self.activeSheet = .createCustomExercise
+                }) {
+                    HStack {
+                        Image(systemName: "plus")
+                        Text("Create exercise")
+                    }
                 }
             }
+            .listStyleCompat_InsetGroupedListStyle()
         }
-        .listStyleCompat_InsetGroupedListStyle()
         .navigationBarItems(trailing: EditButton())
         .sheet(item: $activeSheet, content: { type in
             self.sheetView(type: type)
         })
-        .alert("Delete exercise?", isPresented: Binding(get: { offsetsToDelete != nil }, set: { if !$0 { offsetsToDelete = nil } })) {
+        .alert("Delete exercise?", isPresented: Binding(get: { exercisesToDelete != nil }, set: { if !$0 { exercisesToDelete = nil } })) {
             Button("Delete", role: .destructive) {
-                if let offsets = offsetsToDelete { self.deleteAtOffsets(offsets: offsets) }
+                self.delete(exercisesToDelete ?? [])
             }
             Button("Cancel", role: .cancel) { }
         } message: {

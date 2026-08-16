@@ -13,18 +13,25 @@ struct MuscleGroupSectionedExercisesView : View {
     var exerciseGroups: [ExerciseGroup]
     
     var body: some View {
-        List {
-            ForEach(exerciseGroups) { exerciseGroup in
-                Section(header: Text(exerciseGroup.title.capitalized)) {
-                    ForEach(exerciseGroup.exercises) { exercise in
-                        NavigationLink(destination: ExerciseDetailView(exercise: exercise)) {
-                            ExerciseSourceRow(exercise: exercise)
+        Group {
+            if exerciseGroups.isEmpty {
+                ContentUnavailableView("No exercises found", systemImage: "magnifyingglass")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List {
+                    ForEach(exerciseGroups) { exerciseGroup in
+                        Section(header: Text(exerciseGroup.title.capitalized)) {
+                            ForEach(exerciseGroup.exercises) { exercise in
+                                NavigationLink(destination: ExerciseDetailView(exercise: exercise)) {
+                                    ExerciseSourceRow(exercise: exercise)
+                                }
+                            }
                         }
                     }
                 }
+                .listStyleCompat_InsetGroupedListStyle()
             }
         }
-        .listStyleCompat_InsetGroupedListStyle()
     }
 }
 
