@@ -18,7 +18,6 @@ struct CustomExercisesView: View {
     @State private var activeSheet: SheetType?
     @State private var filter = ExerciseBrowserFilter()
     @State private var expandedMovementIDs = Set<String>()
-    @State private var expandedEquipmentGroupIDs = Set<String>()
     
     private enum SheetType: Identifiable {
         case createCustomExercise
@@ -61,8 +60,7 @@ struct CustomExercisesView: View {
                 }
                 ExerciseMovementRows(
                     movements: ExerciseStore.splitIntoMovements(exercises: filteredExercises),
-                    expandedMovementIDs: $expandedMovementIDs,
-                    expandedEquipmentGroupIDs: $expandedEquipmentGroupIDs
+                    expandedMovementIDs: $expandedMovementIDs
                 ) { exercise, title in
                     exerciseRow(exercise, title: title == exercise.title ? nil : title)
                 }

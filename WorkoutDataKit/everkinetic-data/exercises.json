@@ -4100,7 +4100,7 @@
     "movementTitle": "Skull Crusher",
     "variationTitle": "Decline, Close Grip",
     "variationTags": [
-      "ez_curl_bar",
+      "ez-curl-bar",
       "decline",
       "close_grip"
     ],
@@ -4174,7 +4174,7 @@
     "movementTitle": "Triceps Extension",
     "variationTitle": "EZ Curl Bar, Decline",
     "variationTags": [
-      "ez_curl_bar",
+      "ez-curl-bar",
       "decline"
     ],
     "equipmentTitle": "EZ curl bar",
@@ -4323,7 +4323,7 @@
     "movementTitle": "Triceps Extension",
     "variationTitle": "EZ Curl Bar, Incline",
     "variationTags": [
-      "ez_curl_bar",
+      "ez-curl-bar",
       "incline"
     ],
     "equipmentTitle": "EZ curl bar",
@@ -4437,7 +4437,7 @@
     "movementTitle": "Triceps Extension",
     "variationTitle": "EZ Curl Bar, Lying, Close Grip, Behind the Head",
     "variationTags": [
-      "ez_curl_bar",
+      "ez-curl-bar",
       "lying",
       "close_grip"
     ],
@@ -4481,7 +4481,7 @@
     "movementTitle": "Skull Crusher",
     "variationTitle": "Close Grip",
     "variationTags": [
-      "ez_curl_bar",
+      "ez-curl-bar",
       "close_grip"
     ],
     "equipmentTitle": "EZ curl bar",
@@ -4562,7 +4562,7 @@
     "movementID": "skull_crusher",
     "movementTitle": "Skull Crusher",
     "variationTags": [
-      "ez_curl_bar"
+      "ez-curl-bar"
     ],
     "equipmentTitle": "EZ curl bar"
   },
@@ -4717,7 +4717,7 @@
     "movementTitle": "Triceps Extension",
     "variationTitle": "EZ Curl Bar, Seated, Overhead",
     "variationTags": [
-      "ez_curl_bar",
+      "ez-curl-bar",
       "seated",
       "overhead"
     ],
@@ -4915,7 +4915,7 @@
     "movementTitle": "Triceps Extension",
     "variationTitle": "EZ Curl Bar, Standing, Overhead",
     "variationTags": [
-      "ez_curl_bar",
+      "ez-curl-bar",
       "standing",
       "overhead"
     ],
@@ -5301,7 +5301,7 @@
     "movementTitle": "Biceps Curl",
     "variationTitle": "EZ Curl Bar",
     "variationTags": [
-      "ez_curl_bar"
+      "ez-curl-bar"
     ],
     "equipmentTitle": "EZ curl bar"
   },
@@ -5381,7 +5381,7 @@
     "movementTitle": "Drag Curl",
     "variationTitle": "EZ Curl Bar",
     "variationTags": [
-      "ez_curl_bar"
+      "ez-curl-bar"
     ],
     "equipmentTitle": "EZ curl bar"
   },
@@ -5662,7 +5662,7 @@
     "movementTitle": "Preacher Curl",
     "variationTitle": "EZ Curl Bar",
     "variationTags": [
-      "ez_curl_bar"
+      "ez-curl-bar"
     ],
     "equipmentTitle": "EZ curl bar"
   },
@@ -7019,7 +7019,7 @@
     "movementTitle": "Biceps Curl",
     "variationTitle": "EZ Curl Bar, Wide",
     "variationTags": [
-      "ez_curl_bar",
+      "ez-curl-bar",
       "wide_grip"
     ],
     "equipmentTitle": "EZ curl bar",
@@ -7119,7 +7119,7 @@
     "movementTitle": "Skull Crusher",
     "variationTitle": "EZ Curl Bar",
     "variationTags": [
-      "ez_curl_bar"
+      "ez-curl-bar"
     ],
     "equipmentTitle": "EZ curl bar"
   },

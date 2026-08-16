@@ -13,7 +13,6 @@ struct ExercisesView : View {
     var exercises: [Exercise]
     @State private var filter = ExerciseBrowserFilter()
     @State private var expandedMovementIDs = Set<String>()
-    @State private var expandedEquipmentGroupIDs = Set<String>()
 
     private var filteredExercises: [Exercise] {
         filter.filteredExercises(from: exercises)
@@ -30,8 +29,7 @@ struct ExercisesView : View {
                 List {
                     ExerciseMovementRows(
                         movements: ExerciseStore.splitIntoMovements(exercises: filteredExercises),
-                        expandedMovementIDs: $expandedMovementIDs,
-                        expandedEquipmentGroupIDs: $expandedEquipmentGroupIDs
+                        expandedMovementIDs: $expandedMovementIDs
                     ) { exercise, title in
                         NavigationLink(destination: ExerciseDetailView(exercise: exercise)) {
                             if title == exercise.title {

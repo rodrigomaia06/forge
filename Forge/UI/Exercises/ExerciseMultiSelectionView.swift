@@ -13,7 +13,6 @@ struct ExerciseMultiSelectionView: View {
     var exerciseGroups: [ExerciseGroup]
     @Binding var selection: Set<Exercise>
     @State private var expandedMovementIDs = Set<String>()
-    @State private var expandedEquipmentGroupIDs = Set<String>()
     
     var body: some View {
         List {
@@ -26,8 +25,7 @@ struct ExerciseMultiSelectionView: View {
                     } else {
                         ExerciseMovementRows(
                             movements: ExerciseStore.splitIntoMovements(exercises: exerciseGroup.exercises),
-                            expandedMovementIDs: $expandedMovementIDs,
-                            expandedEquipmentGroupIDs: $expandedEquipmentGroupIDs
+                            expandedMovementIDs: $expandedMovementIDs
                         ) { exercise, title in
                             selectionRow(exercise: exercise, title: title)
                         }
