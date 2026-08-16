@@ -21,7 +21,8 @@ The current app is mid-transition toward these boundaries:
 - Core Data is versioned, with normalization and migration code handling older stores.
 - Some SwiftUI screens still coordinate persistence and navigation directly.
 - Workout sets support optional measurement fields for the different tracking metrics.
-- Calendar entry currently creates completed current or past workouts; future scheduling is not implemented.
+- Calendar entry creates dated drafts for current or past days; a draft is finalized explicitly and future
+  scheduling is not implemented.
 
 Treat this section as a snapshot. Verify the source and tests before relying on a detail that may have changed.
 

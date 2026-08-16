@@ -77,6 +77,29 @@ final class ExerciseMovementTests: XCTestCase {
         XCTAssertEqual(movements.first?.variations.map { $0.exercise.variationDisplayTitle }, ["Equipment: Barbell", "Equipment: Dumbbell"])
     }
 
+    func testMuscleGroupsShowEachMovementOnceAcrossPrimaryMuscles() {
+        let standard = exercise(
+            title: "Push Up",
+            movementID: "push_up",
+            movementTitle: "Push Up",
+            variationTitle: nil,
+            equipment: ["body"]
+        )
+        let closeGrip = exercise(
+            title: "Push Up (Close Grip)",
+            movementID: "push_up",
+            movementTitle: "Push Up",
+            variationTitle: "Close grip",
+            equipment: ["body"]
+        )
+
+        let groups = ExerciseStore.splitIntoMuscleGroups(exercises: [standard, closeGrip])
+
+        XCTAssertEqual(groups.flatMap(\.exercises).map(\.movementID), ["push_up", "push_up"])
+        XCTAssertEqual(groups.flatMap(\.exercises).count, 2)
+        XCTAssertEqual(Set(groups.flatMap(\.exercises).map(\.movementID)).count, 1)
+    }
+
     func testEquipmentGroupingSortsExactVariationsWithinEquipment() {
         let rope = exercise(title: "Biceps Curl: Cable (Rope)", movementID: "biceps_curl", movementTitle: "Biceps curl", variationTitle: "Cable, rope", equipment: ["cable"])
         let overhead = exercise(title: "Biceps Curl: Cable (Overhead)", movementID: "biceps_curl", movementTitle: "Biceps curl", variationTitle: "Cable, overhead", equipment: ["cable"])

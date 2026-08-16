@@ -22,4 +22,5 @@ maintainers. Future proposals are labeled as proposals and must not be described
 ## Maintenance
 
 Update the relevant handbook page in the same change when a cross-screen decision changes. Keep
-current behavior, audits, and future proposals clearly distinguished.
+current behavior, audits, and future proposals clearly distinguished. Let the updater know what changes were
+made.

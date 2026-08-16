@@ -231,7 +231,7 @@ struct FeedView: View {
             AddWorkoutSheet(date: value.date, calendar: calendar) { start, end, routine in
                 logWorkout(start: start, end: end, routine: routine)
             }
-            .presentationDetents([.medium])
+            .presentationDetents([.medium, .large])
         }
         .onAppear { rebuildActivityIndex(calendar: calendar) }
         .onChange(of: workoutActivityInputs) { _, _ in rebuildActivityIndex(calendar: calendar) }
@@ -272,7 +272,9 @@ struct FeedView: View {
         }
         workout.start = start
         workout.end = end
-        workout.isCurrentWorkout = false
+        // Keep the dated entry as a draft until the user has added or edited exercises and taps Finish
+        // in the workout detail screen. The fixed end date keeps it out of the live stopwatch view.
+        workout.isCurrentWorkout = true
         if routine == nil {
             workout.workoutType = WorkoutType.defaultType(in: context)
         }
@@ -991,7 +993,7 @@ struct FeedView: View {
         content()
             .padding(Theme.Spacing.l)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .forgeCard()
+            .forgeCard(radius: Theme.Radius.medium)
             .overlay(alignment: .leading) {
                 if let colorHex {
                     RoundedRectangle(cornerRadius: 2, style: .continuous)
@@ -1001,10 +1003,10 @@ struct FeedView: View {
                 }
             }
             .overlay(
-                RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous)
+                RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous)
                     .strokeBorder(Color.forgeSeparator, lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous))
     }
 
     private func dashboardActionButton(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {
@@ -1019,8 +1021,14 @@ struct FeedView: View {
                 .minimumScaleFactor(0.85)
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: Theme.Layout.minTapTarget)
-                .forgeGlassCapsule()
-                .glassOutline()
+                .background(
+                    RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous)
+                        .fill(Color.forgeSurface)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous)
+                        .strokeBorder(Color.forgeSeparator, lineWidth: 1)
+                )
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
@@ -1162,7 +1170,7 @@ private struct AddWorkoutSheet: View {
                 } footer: {
                     Text(source == .routine
                          ? "The routine's exercises and sets will be copied into this workout."
-                         : "Add exercises after saving this empty workout.")
+                         : "Choose exercises in the workout editor before finishing.")
                 }
 
                 Section {

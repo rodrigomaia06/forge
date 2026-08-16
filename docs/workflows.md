@@ -16,9 +16,10 @@ rewriting the routine.
 
 Selecting today or a past day opens `Add workout` with two paths: `From routine` or `Blank workout`. A
 routine path copies exercises and sets into an editable workout. A blank path starts without exercises.
-The user sets start and end times manually, then saves a completed workout. Calendar-created workouts do
-not activate the current-workout flag, timer, or stopwatch. Canceling discards the draft. Future workout
-scheduling is not supported yet.
+The user sets start and end times manually, then opens the workout editor as a draft. The draft keeps
+incomplete routine sets valid while exercises are added or edited, stays out of the live stopwatch view,
+and becomes a completed history entry only when `Finish` is tapped. Future workout scheduling is not
+supported yet.
 
 ## History
 

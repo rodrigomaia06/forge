@@ -200,28 +200,33 @@ extension ExerciseStore {
 // MARK: - Split
 extension ExerciseStore {
     public static func splitIntoMuscleGroups(exercises: [Exercise]) -> [ExerciseGroup] {
-        var groups = [ExerciseGroup]()
-        var nextIndex = 0
-        let exercises = exercises.sorted { (a, b) -> Bool in
-            a.muscleGroup < b.muscleGroup
+        // A movement can have several exact variations whose primary muscles differ. Grouping each
+        // exact row independently made the same movement appear in multiple picker sections. Keep all
+        // variations together and assign the movement to the first stable muscle group only.
+        let movements = Dictionary(grouping: exercises, by: \.movementID)
+        var grouped = [String: [Exercise]]()
+        for movementExercises in movements.values {
+            let sorted = movementExercises.sorted {
+                if $0.muscleGroup != $1.muscleGroup {
+                    return $0.muscleGroup.localizedCaseInsensitiveCompare($1.muscleGroup) == .orderedAscending
+                }
+                return $0.variationSummaryTitle.localizedCaseInsensitiveCompare($1.variationSummaryTitle) == .orderedAscending
+            }
+            guard let first = sorted.first else { continue }
+            grouped[first.muscleGroup, default: []].append(contentsOf: sorted)
         }
-        while (exercises.count > nextIndex) {
-            let groupName = exercises[nextIndex].muscleGroup
-            var muscleGroup = exercises.filter({ (exercise) -> Bool in
-                exercise.muscleGroup == groupName
-            })
 
-            nextIndex = exercises.firstIndex(where: { (exercise) -> Bool in
-                exercise.uuid == muscleGroup.last!.uuid
-            })! + 1
-
-            // do this after nextIndex is set
-            muscleGroup = muscleGroup.sorted(by: { (a, b) -> Bool in
-                a.title < b.title
-            })
-            groups.append(ExerciseGroup(title: groupName, exercises: muscleGroup))
+        return grouped.keys.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }.map { groupName in
+            ExerciseGroup(
+                title: groupName,
+                exercises: (grouped[groupName] ?? []).sorted {
+                    if $0.movementID != $1.movementID {
+                        return $0.movementTitle.localizedCaseInsensitiveCompare($1.movementTitle) == .orderedAscending
+                    }
+                    return $0.variationSummaryTitle.localizedCaseInsensitiveCompare($1.variationSummaryTitle) == .orderedAscending
+                }
+            )
         }
-        return groups
     }
 
     public static func splitIntoActivityGroups(exercises: [Exercise]) -> [ExerciseGroup] {

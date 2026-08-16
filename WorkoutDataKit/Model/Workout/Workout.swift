@@ -24,7 +24,12 @@ extension Workout {
 public class Workout: NSManagedObject, Codable {
     public static var currentWorkoutFetchRequest: NSFetchRequest<Workout> {
         let request: NSFetchRequest<Workout> = Workout.fetchRequest()
-        request.predicate = NSPredicate(format: "\(#keyPath(Workout.isCurrentWorkout)) == %@", NSNumber(booleanLiteral: true))
+        // Calendar entries use the current flag while they are drafts, but already have fixed start and
+        // end dates. They must not appear as the live stopwatch workout.
+        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "\(#keyPath(Workout.isCurrentWorkout)) == %@", NSNumber(booleanLiteral: true)),
+            NSPredicate(format: "\(#keyPath(Workout.end)) == nil")
+        ])
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Workout.start, ascending: false)]
         return request
     }
@@ -57,6 +62,13 @@ public class Workout: NSManagedObject, Codable {
         return !workoutExercises
             .compactMap { $0 as? WorkoutExercise }
             .contains { !($0.isCompleted ?? false) }
+    }
+
+    /// A manually dated calendar entry that is still being assembled. This uses the existing current
+    /// flag so incomplete routine sets remain valid without a Core Data migration, while the fixed end
+    /// date keeps it out of the live stopwatch fetch.
+    public var isCalendarDraft: Bool {
+        isCurrentWorkout && start != nil && end != nil
     }
     
     public var hasCompletedSets: Bool? {

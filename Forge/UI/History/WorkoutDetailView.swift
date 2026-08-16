@@ -442,6 +442,21 @@ struct WorkoutDetailView : View {
         .environment(\.editMode, $editMode)
     }
 
+    private func finishCalendarDraft() {
+        do {
+            try workout.finish()
+            editMode = .inactive
+            Haptics.success()
+        } catch {
+            managedObjectContext.rollback()
+            Haptics.error()
+            AppErrorPresenter.shared.present(
+                title: "Couldn't finish workout",
+                message: "Your workout is still open and no changes were lost. Please try again."
+            )
+        }
+    }
+
     var body: some View {
         Group {
             if editMode.isEditing && !expanded {
@@ -505,11 +520,18 @@ struct WorkoutDetailView : View {
                     Image(systemName: "ellipsis")
                         .imageScale(.large)
                 }
-                // A plain text button, not the system EditButton, whose "Done" checkmark overlapped the
-                // "Edit" label inside the nav glass group.
-                Button(editMode.isEditing ? "Done" : "Edit") {
-                    Haptics.selection()
-                    withAnimation { editMode = editMode.isEditing ? .inactive : .active }
+                if workout.isCalendarDraft {
+                    Button("Finish") {
+                        Haptics.selection()
+                        finishCalendarDraft()
+                    }
+                } else {
+                    // A plain text button, not the system EditButton, whose "Done" checkmark overlapped
+                    // the "Edit" label inside the nav glass group.
+                    Button(editMode.isEditing ? "Done" : "Edit") {
+                        Haptics.selection()
+                        withAnimation { editMode = editMode.isEditing ? .inactive : .active }
+                    }
                 }
             }
         }
