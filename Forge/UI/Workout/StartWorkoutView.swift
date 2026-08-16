@@ -239,9 +239,9 @@ private struct WorkoutPlanRoutines: View {
     var body: some View {
         ForEach(workoutRoutines) { workoutRoutine in
             RoutineMenuRow(routine: workoutRoutine, allPlans: allPlans, nested: true, onStart: onStart, onEdit: onEdit, onShare: onShare)
-                // A touch more vertical room so the wells breathe and the last one clears the plan card's
-                // rounded bottom corners instead of sitting flush against them.
-                .listRowInsets(EdgeInsets(top: 5, leading: Theme.Spacing.m, bottom: 6, trailing: Theme.Spacing.m))
+                // Keep plan routines as native grouped-list rows. Indentation communicates hierarchy;
+                // a second rounded surface would make the list look like a card inside a card.
+                .listRowInsets(EdgeInsets(top: 0, leading: Theme.Spacing.xl, bottom: 0, trailing: Theme.Spacing.m))
                 .listRowSeparator(.hidden)
         }
     }
@@ -310,13 +310,6 @@ private struct RoutineMenuRow: View {
                 .layoutPriority(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            // A plan is the card; its routines are compact grouped surfaces within that card.
-            .padding(nested ? Theme.Spacing.m : 0)
-            .modifier(if: nested) { content in
-                content
-                    .forgeGroupedSurface()
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.Surface.groupedRadius, style: .continuous))
-            }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

@@ -12,7 +12,7 @@ Forge uses one explicit surface language:
 
 | Surface | Use | Treatment |
 | --- | --- | --- |
-| Card | One interactive or informational object in a scroll view | `Color.forgeSurface`, continuous 16pt corners, subtle semantic edge |
+| Card | One interactive or informational object in a scroll view | `Color.forgeSurface`, continuous 16pt corners, 16pt content inset, subtle semantic edge |
 | Grouped surface | A quiet grouping inside a card, never an independent action | `Color.forgeBackground`, continuous 8pt corners |
 | Native row | Short settings, picker, or catalog content | Native `List`/`Form` row; no extra card background |
 | Section | A semantic group of native rows | Native section header/footer and system separators |
@@ -27,6 +27,9 @@ Let system sheets and navigation surfaces use their platform shape.
 
 `List` and `Form` screens keep native row geometry. `forgeFormBackground()` may hide the opaque system
 scroll background so those rows share the Forge canvas, but it must not turn each native row into a card.
+Hierarchical text-heavy screens, such as Workout plans, stay native grouped lists: use indentation,
+section spacing, and disclosure affordances to show ownership instead of placing rounded surfaces inside
+other rounded surfaces.
 
 ## Content and controls
 

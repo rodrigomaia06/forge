@@ -37,6 +37,7 @@ enum Theme {
         /// canvas in both appearances without becoming heavy outlined containers.
         static let cardRadius: CGFloat = 16
         static let groupedRadius: CGFloat = 8
+        static let cardPadding = Spacing.l
         static let cardEdgeOpacity: CGFloat = 0.65
     }
 

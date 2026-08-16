@@ -402,7 +402,7 @@ struct FeedView: View {
                 .minimumScaleFactor(0.75)
                 .monospacedDigit()
         }
-        .padding(.horizontal, Theme.Spacing.m)
+        .padding(.horizontal, Theme.Surface.cardPadding)
         .padding(.vertical, Theme.Spacing.s)
     }
 
@@ -673,8 +673,7 @@ struct FeedView: View {
                     typeBreakdown(typeSummaries)
                 }
             }
-            .padding(.horizontal, Theme.Spacing.s)
-            .padding(.vertical, Theme.Spacing.s)
+            .padding(Theme.Surface.cardPadding)
             .forgeCard()
         }
     }
@@ -748,8 +747,8 @@ struct FeedView: View {
             openHistoryWorkout(workout)
         } label: {
             workoutCardContent(workout)
-            .padding(Theme.Spacing.m)
-            .padding(.leading, Theme.Spacing.m)
+            .padding(Theme.Surface.cardPadding)
+            .padding(.leading, Theme.Spacing.s)
             .frame(maxWidth: .infinity, alignment: .leading)
             .forgeCard()
             .overlay(alignment: .leading) {
@@ -1019,14 +1018,8 @@ struct FeedView: View {
                 .minimumScaleFactor(0.85)
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: Theme.Layout.minTapTarget)
-                .background(
-                    RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous)
-                        .fill(Color.forgeSurface)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous)
-                        .strokeBorder(Color.forgeSeparator, lineWidth: 1)
-                )
+                .padding(.horizontal, Theme.Surface.cardPadding)
+                .forgeCard()
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
