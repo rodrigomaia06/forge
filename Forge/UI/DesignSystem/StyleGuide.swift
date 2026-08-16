@@ -91,8 +91,8 @@ struct StyleGuide: View {
         section("Corner radius") {
             HStack(spacing: Theme.Spacing.m) {
                 radiusTile("small", Theme.Radius.small)
-                radiusTile("medium", Theme.Radius.medium)
-                radiusTile("large", Theme.Radius.large)
+                radiusTile("grouped", Theme.Surface.groupedRadius)
+                radiusTile("card", Theme.Surface.cardRadius)
             }
         }
     }

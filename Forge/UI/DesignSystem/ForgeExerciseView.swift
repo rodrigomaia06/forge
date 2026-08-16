@@ -40,7 +40,7 @@ struct ForgeExerciseView: View {
             divider
             addSetRow
         }
-        .background(RoundedRectangle(cornerRadius: Theme.Radius.large, style: .continuous).fill(Color.forgeSurface))
+        .forgeCard()
     }
 
     private func row<Content: View>(_ content: Content) -> some View {

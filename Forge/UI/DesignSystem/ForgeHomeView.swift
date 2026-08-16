@@ -96,7 +96,7 @@ struct ForgeHomeView: View {
         .padding(.horizontal, Theme.Spacing.m)
         .padding(.vertical, Theme.Spacing.m)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: Theme.Radius.medium, style: .continuous).fill(Color.forgeSurface))
+        .forgeCard()
     }
 
     private func mixRow(color: Color, title: String, value: String) -> some View {

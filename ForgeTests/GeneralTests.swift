@@ -37,12 +37,22 @@ class GeneralTests: XCTestCase {
     func testEverkineticGrouping() {
         let exercises = loadExercises()
         let groups = ExerciseStore.splitIntoMuscleGroups(exercises: exercises)
+        let movements = Dictionary(grouping: exercises, by: \.movementID)
+        let canonicalGroupByMovement = movements.reduce(into: [String: String]()) { result, entry in
+            let canonical = entry.value.sorted {
+                if $0.muscleGroup != $1.muscleGroup {
+                    return $0.muscleGroup.localizedCaseInsensitiveCompare($1.muscleGroup) == .orderedAscending
+                }
+                return $0.variationSummaryTitle.localizedCaseInsensitiveCompare($1.variationSummaryTitle) == .orderedAscending
+            }.first?.muscleGroup
+            if let canonical { result[entry.key] = canonical }
+        }
         var totalCount = 0
         for group in groups {
             totalCount += group.exercises.count
 
             for exercise in group.exercises {
-                XCTAssert(exercise.muscleGroup == group.title)
+                XCTAssertEqual(canonicalGroupByMovement[exercise.movementID], group.title)
             }
         }
         XCTAssert(totalCount == exercises.count)
