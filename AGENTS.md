@@ -1,6 +1,6 @@
 # Project guidance
 
-Read this file and the documents in `docs/` before making product, UX, visual, or implementation decisions.
+Read this file and the documents in `docs/` before making product, UX, visual, copy, or implementation decisions. Read `docs/anti-ai-patterns.md` before generating or reviewing UI or product language.
 
 ## Product status
 
@@ -29,4 +29,4 @@ Discovery and design definition come before implementation. The Dashboard is the
 - Verify changes in proportion to their risk.
 - Commit meaningful checkpoints frequently with clear messages. Keep discovery, design-system, screen, and implementation milestones reviewable separately.
 - Do not silently change the agreed information architecture or active-workout data boundaries. Raise a decision when a change is genuinely necessary.
-
+- Reject generic generated UI and copy by default; use `docs/anti-ai-patterns.md` as a review checklist.
