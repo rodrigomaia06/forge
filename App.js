@@ -49,15 +49,16 @@ const workoutsByDate = {
 const monthDays = Array.from({ length: 31 }, (_, index) => index + 1);
 const leadingEmptyDays = 0;
 
-function IconButton({ name, label, onPress, filled = false }) {
+function IconButton({ name, label, onPress, filled = false, title }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      style={({ pressed }) => [styles.iconButton, filled && styles.iconButtonFilled, pressed && styles.pressed]}
+      style={({ pressed }) => [title ? styles.actionButton : styles.iconButton, filled && styles.iconButtonFilled, pressed && styles.pressed]}
     >
       <Ionicons name={name} size={20} color={filled ? colors.surface : colors.ink} />
+      {title && <Text style={styles.actionButtonText}>{title}</Text>}
     </Pressable>
   );
 }
@@ -93,7 +94,7 @@ function Calendar({ selectedDay, setSelectedDay }) {
       <View style={styles.calendarHeader}>
         <View>
           <Text style={styles.monthTitle}>August 2026</Text>
-          <Text style={styles.monthSubtitle}>Training archive</Text>
+          <Text style={styles.monthSubtitle}>7 workout days · 8 workouts</Text>
         </View>
         <View style={styles.monthControls}>
           <IconButton name="chevron-back" label="Previous month" />
@@ -164,7 +165,7 @@ function BottomNavigation() {
 export default function App() {
   const [selectedDay, setSelectedDay] = useState(24);
   const selectedWorkouts = workoutsByDate[selectedDay] || [];
-  const selectedDateLabel = `Monday, August ${selectedDay}`;
+  const selectedDateLabel = `August ${selectedDay}, 2026`;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -172,25 +173,15 @@ export default function App() {
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.topBar}>
             <View>
-              <Text style={styles.eyebrow}>YOUR TRAINING</Text>
               <Text style={styles.screenTitle}>Dashboard</Text>
             </View>
-            <IconButton name="add" label="Start or add workout" filled />
-          </View>
-
-          <View style={styles.archiveSummary}>
-            <View>
-              <Text style={styles.archiveKicker}>AUGUST AT A GLANCE</Text>
-              <Text style={styles.archiveTitle}>7 training days</Text>
-            </View>
-            <Text style={styles.archiveDetail}>8 workouts recorded</Text>
+            <IconButton name="add" label="Start workout" title="Start" filled />
           </View>
 
           <Calendar selectedDay={selectedDay} setSelectedDay={setSelectedDay} />
 
           <View style={styles.selectedDayHeader}>
             <View>
-              <Text style={styles.sectionEyebrow}>SELECTED DAY</Text>
               <Text style={styles.selectedDate}>{selectedDateLabel}</Text>
             </View>
             <Text style={styles.dayCount}>{selectedWorkouts.length} {selectedWorkouts.length === 1 ? 'workout' : 'workouts'}</Text>
@@ -244,15 +235,12 @@ const styles = StyleSheet.create({
   appShell: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 24 },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, paddingBottom: 24 },
-  eyebrow: { color: colors.muted, fontSize: 11, fontWeight: '700', letterSpacing: 1.5, marginBottom: 5 },
   screenTitle: { color: colors.ink, fontSize: 30, fontWeight: '700', letterSpacing: -0.6 },
   iconButton: { alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 14, backgroundColor: colors.surfaceMuted },
+  actionButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, minWidth: 92, height: 44, paddingHorizontal: 14, borderRadius: 12 },
+  actionButtonText: { color: colors.surface, fontSize: 14, fontWeight: '600' },
   iconButtonFilled: { backgroundColor: colors.inkInteractive },
   pressed: { opacity: 0.65 },
-  archiveSummary: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingBottom: 17, borderBottomWidth: 1, borderBottomColor: colors.divider },
-  archiveKicker: { color: colors.muted, fontSize: 10, fontWeight: '700', letterSpacing: 1.3, marginBottom: 5 },
-  archiveTitle: { color: colors.ink, fontSize: 18, fontWeight: '600' },
-  archiveDetail: { color: colors.slate, fontSize: 13, paddingBottom: 1 },
   calendar: { paddingTop: 20, paddingBottom: 22, borderBottomWidth: 1, borderBottomColor: colors.divider },
   calendarHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
   monthTitle: { color: colors.ink, fontSize: 20, fontWeight: '600', letterSpacing: -0.2 },
@@ -269,7 +257,6 @@ const styles = StyleSheet.create({
   dayMarker: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.inkInteractive },
   dayMarkerSelected: { backgroundColor: colors.surface },
   selectedDayHeader: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingTop: 25, paddingBottom: 12 },
-  sectionEyebrow: { color: colors.muted, fontSize: 10, fontWeight: '700', letterSpacing: 1.3, marginBottom: 5 },
   selectedDate: { color: colors.ink, fontSize: 19, fontWeight: '600', letterSpacing: -0.2 },
   dayCount: { color: colors.slate, fontSize: 13, paddingBottom: 2 },
   workoutList: { borderTopWidth: 1, borderTopColor: colors.divider },
@@ -289,7 +276,7 @@ const styles = StyleSheet.create({
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 13 },
   sectionTitle: { color: colors.ink, fontSize: 16, fontWeight: '600' },
   sectionMeta: { color: colors.muted, fontSize: 12 },
-  contextRow: { flexDirection: 'row', alignItems: 'stretch', paddingVertical: 16, paddingHorizontal: 15, backgroundColor: colors.surface, borderRadius: 15 },
+  contextRow: { flexDirection: 'row', alignItems: 'stretch', paddingVertical: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.divider },
   contextValue: { color: colors.ink, fontSize: 20, fontWeight: '600', letterSpacing: -0.3 },
   contextLabel: { color: colors.slate, fontSize: 11, marginTop: 4, maxWidth: 80, lineHeight: 15 },
   contextDivider: { width: 1, backgroundColor: colors.divider, marginHorizontal: 14 },
