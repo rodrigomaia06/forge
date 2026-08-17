@@ -1,6 +1,6 @@
 # Project guidance
 
-Read this file and the documents in `docs/` before making product, UX, visual, copy, or implementation decisions. Read `docs/anti-ai-patterns.md` before generating or reviewing UI or product language.
+Read this file and the documents in `docs/` before making product, UX, visual, copy, or implementation decisions. Read `docs/anti-ai-patterns.md` before generating or reviewing UI or product language, and check `docs/memory.md` for temporary decisions and known shortcuts.
 
 ## Product status
 
@@ -30,3 +30,13 @@ Discovery and design definition come before implementation. The Dashboard is the
 - Commit meaningful checkpoints frequently with clear messages. Keep discovery, design-system, screen, and implementation milestones reviewable separately.
 - Do not silently change the agreed information architecture or active-workout data boundaries. Raise a decision when a change is genuinely necessary.
 - Reject generic generated UI and copy by default; use `docs/anti-ai-patterns.md` as a review checklist.
+
+## Code structure
+
+- Keep `App.js` as a thin application entry point. It should compose providers/navigation and render the active screen, not contain the whole product.
+- Organize code by feature and responsibility: screens, reusable components, design tokens, data/domain logic, persistence, and platform adapters should have clear homes.
+- Split a screen when it contains multiple meaningful regions, repeated UI, or independent interaction logic. Do not grow one monolithic screen file to avoid creating a small number of well-named files.
+- Prefer simple, explicit modules over premature frameworks, speculative abstractions, wrapper components, or dependency-heavy solutions.
+- Reuse shared tokens and components; do not duplicate styles or business rules across screens.
+- Keep mock data, domain models, and persistence separate from presentation.
+- Every new file must have a clear reason to exist. Delete dead code, placeholder abstractions, unused dependencies, and generated artifacts rather than accumulating project clutter.
