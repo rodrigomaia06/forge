@@ -6,7 +6,7 @@ These documents capture the product decisions made during discovery and are the 
 - [Information architecture](information-architecture.md) — primary navigation, Dashboard, Plans, History, More, calendar, and active-workout boundaries.
 - [Interaction principles](interaction-principles.md) — live workout behavior, persistence, timers, editing, accessibility, and feedback.
 - [Design system direction](design-system.md) — visual identity, typography, color semantics, density, surfaces, controls, and states.
-- [Dashboard prototype](dashboard-prototype.md) — scope and review status of the first visual implementation.
+- [Dashboard prototype](memory/dashboard-prototype.md) — temporary scope and review status of the first visual implementation.
 - [Anti-AI patterns](anti-ai-patterns.md) — UI, language, data, and implementation patterns to reject by default.
 - [Project memory](memory/README.md) — temporary choices, known shortcuts, open questions, and revisit items.
 

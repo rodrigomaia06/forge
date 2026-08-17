@@ -5,4 +5,4 @@ This folder records temporary implementation choices, shortcuts, open questions,
 Before implementation work, check the relevant files here and remove or update entries when they stop being temporary.
 
 - [Temporary decisions and revisit items](temporary.md)
-
+- [Dashboard prototype](dashboard-prototype.md) — temporary visual implementation notes.
