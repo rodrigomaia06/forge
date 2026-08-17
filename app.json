@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Forge",
+    "slug": "forge",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#F6F7F8"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.forge.training"
+    },
+    "android": {
+      "package": "com.forge.training"
+    },
+    "plugins": [
+      "expo-asset"
+    ]
+  }
+}
