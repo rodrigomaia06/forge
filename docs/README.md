@@ -1,0 +1,11 @@
+# Product documentation
+
+These documents capture the product decisions made during discovery and are the working source of truth for the project.
+
+- [Product discovery](product-discovery.md) — purpose, users, problem, product personality, and non-goals.
+- [Information architecture](information-architecture.md) — primary navigation, Dashboard, Plans, History, More, calendar, and active-workout boundaries.
+- [Interaction principles](interaction-principles.md) — live workout behavior, persistence, timers, editing, accessibility, and feedback.
+- [Design system direction](design-system.md) — visual identity, typography, color semantics, density, surfaces, controls, and states.
+
+The next design task is the Dashboard: a polished training archive with a prominent monthly calendar, inline selected-day details, and clear start/resume actions.
+
