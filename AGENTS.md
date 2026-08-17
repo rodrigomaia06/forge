@@ -1,6 +1,6 @@
 # Project guidance
 
-Read this file and the documents in `docs/` before making product, UX, visual, copy, or implementation decisions. Read `docs/anti-ai-patterns.md` before generating or reviewing UI or product language, and check `docs/memory.md` for temporary decisions and known shortcuts.
+Read this file and the documents in `docs/` before making product, UX, visual, copy, or implementation decisions. Read `docs/anti-ai-patterns.md` before generating or reviewing UI or product language, and check `docs/memory/` for temporary decisions and known shortcuts.
 
 ## Product status
 

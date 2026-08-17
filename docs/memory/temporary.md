@@ -1,10 +1,6 @@
-# Project memory
+# Temporary decisions and revisit items
 
-This file records temporary implementation choices, shortcuts, open questions, and items that must be revisited. It is not a source of permanent product truth.
-
-Before implementation work, check this file and remove or update entries when they stop being temporary.
-
-## Temporary prototype state
+## Prototype state
 
 - `App.js` currently contains the first visual Dashboard prototype with mock data. It is not the final application architecture.
 - The prototype is intentionally limited to Dashboard rendering and basic calendar day selection.
@@ -15,7 +11,7 @@ Before implementation work, check this file and remove or update entries when th
 ## Tooling
 
 - The project currently uses Expo SDK 54 so it can run in the current Expo Go release.
-- The environment used for verification reports a Node `20.19.2` version while some SDK 54 packages request `20.19.4+`; the iOS export currently succeeds, but the runtime version should be aligned before release work.
+- The environment used for verification reports Node `20.19.2` while some SDK 54 packages request `20.19.4+`; the iOS export currently succeeds, but the runtime version should be aligned before release work.
 - `npm audit` currently reports transitive dependency advisories from the Expo toolchain. Do not run broad automatic fixes without reviewing compatibility.
 
 ## Revisit before production implementation
