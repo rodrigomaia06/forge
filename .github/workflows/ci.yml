@@ -1,16 +1,15 @@
 name: CI
 
 # Builds and tests Forge on a GitHub-hosted macOS runner, the only build environment
-# (the maintainer has no Mac). The screenshot matrix is kept here but disabled for now.
+# (the maintainer has no Mac). The screenshot matrix runs on macOS CI and is the visual source of truth.
 #
 # Jobs run in parallel:
 #
 #   test              unit and integration tests (ForgeTests, minus the capture tests)
 #   ipa               an unsigned .ipa for AltStore / SideStore
-#   screenshots       disabled split screenshot captures
+#   screenshots       split screenshot captures for the UI baseline
 #
-# Tests and the .ipa run first. Screenshots can be re-enabled later without changing the test or
-# packaging jobs.
+# Tests and the .ipa run first. Screenshot artifacts are consumed as the React Native visual reference.
 #
 # The .xcodeproj is generated from project.yml each run.
 
@@ -80,10 +79,8 @@ jobs:
 
   screenshots:
     name: Screenshots (${{ matrix.group }})
-    if: ${{ false }}
     needs: [test, ipa]
     runs-on: macos-15
-    continue-on-error: true
     timeout-minutes: 20
     strategy:
       fail-fast: false
