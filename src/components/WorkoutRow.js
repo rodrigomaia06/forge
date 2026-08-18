@@ -1,0 +1,36 @@
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+import { colors } from '../theme/tokens';
+
+export function WorkoutRow({ workout }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${workout.name}, ${workout.duration}, ${workout.summary}`}
+      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+    >
+      <View style={styles.mark} />
+      <View style={styles.copy}>
+        <View style={styles.titleRow}>
+          <Text style={styles.name}>{workout.name}</Text>
+          <Text style={styles.duration}>{workout.duration}</Text>
+        </View>
+        <Text style={styles.meta}>{workout.type} · {workout.summary}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={17} color={colors.muted} />
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'center', minHeight: 74, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.divider },
+  mark: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.inkInteractive, marginRight: 13 },
+  copy: { flex: 1 },
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 },
+  name: { flex: 1, color: colors.ink, fontSize: 16, fontWeight: '600' },
+  duration: { color: colors.slate, fontSize: 12 },
+  meta: { color: colors.slate, fontSize: 12, marginTop: 6 },
+  pressed: { opacity: 0.65 },
+});
