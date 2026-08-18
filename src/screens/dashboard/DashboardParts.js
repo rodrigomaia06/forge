@@ -31,12 +31,12 @@ export function DashboardShell({ children, theme, floatingDock = false }) {
         </View>
         {children}
         <View style={floatingDock ? styles.floatingDock : null}>
-          {floatingDock && (
+          {floatingDock && Platform.OS !== 'web' && (
             <BlurView
               pointerEvents="none"
               intensity={22}
               tint="light"
-              style={StyleSheet.absoluteFill}
+              style={[StyleSheet.absoluteFill, styles.dockBlur]}
             />
           )}
           <BottomNavigation theme={theme} />
@@ -104,7 +104,7 @@ export function DashboardContextCard({ theme, icons = false, inline = false }) {
 }
 
 export function DashboardScroll({ children, style }) {
-  return <ScrollView contentContainerStyle={[styles.scrollContent, style]} showsVerticalScrollIndicator={false}>{children}</ScrollView>;
+  return <ScrollView style={styles.scrollView} contentContainerStyle={[styles.scrollContent, style]} showsVerticalScrollIndicator={false}>{children}</ScrollView>;
 }
 
 const styles = StyleSheet.create({
@@ -114,6 +114,7 @@ const styles = StyleSheet.create({
   topBar: { height: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.screen },
   titleGroup: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   screenTitle: { fontFamily: typography.bold, fontSize: 29, fontWeight: '700', letterSpacing: -0.9 },
+  scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: spacing.screen, paddingTop: 64, paddingBottom: 116, gap: 14 },
   calendarCard: { paddingHorizontal: 14, borderWidth: 1, overflow: 'hidden' },
   dayCard: { borderWidth: 1, overflow: 'hidden' },
@@ -140,6 +141,7 @@ const styles = StyleSheet.create({
     width: '82%',
     maxWidth: 360,
     alignSelf: 'center',
+    marginTop: 12,
     marginBottom: 8,
     overflow: 'hidden',
     borderRadius: 1000,
@@ -154,4 +156,5 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 3,
   },
+  dockBlur: { borderRadius: 1000, overflow: 'hidden' },
 });
