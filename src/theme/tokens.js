@@ -23,8 +23,8 @@ export const spacing = {
 };
 
 export const typography = {
-  regular: 'OpenSans_400Regular',
-  medium: 'OpenSans_500Medium',
-  semibold: 'OpenSans_600SemiBold',
-  bold: 'OpenSans_700Bold',
+  regular: 'Manrope_400Regular',
+  medium: 'Manrope_500Medium',
+  semibold: 'Manrope_600SemiBold',
+  bold: 'Manrope_700Bold',
 };

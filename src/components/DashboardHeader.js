@@ -44,8 +44,8 @@ function getHeaderAction(variant) {
     accessibilityLabel: 'Start workout',
     variant: 'secondary',
     icon: 'add',
-    iconSize: 25,
-    iconWeight: 'bold',
+    iconSize: 22,
+    iconWeight: 'regular',
     style: 'headerIconButton',
   };
 }

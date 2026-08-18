@@ -1,21 +1,21 @@
 import React from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
-  OpenSans_400Regular,
-  OpenSans_500Medium,
-  OpenSans_600SemiBold,
-  OpenSans_700Bold,
+  Manrope_400Regular,
+  Manrope_500Medium,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
   useFonts,
-} from '@expo-google-fonts/open-sans';
+} from '@expo-google-fonts/manrope';
 
 import { DashboardScreen } from './src/screens/DashboardScreen';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
-    OpenSans_400Regular,
-    OpenSans_500Medium,
-    OpenSans_600SemiBold,
-    OpenSans_700Bold,
+    Manrope_400Regular,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
   });
 
   if (!fontsLoaded) return null;

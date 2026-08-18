@@ -34,7 +34,7 @@ export function DashboardShell({ children, theme }) {
             testID="dashboard-dock-cylinder"
             style={[styles.dockCylinder, { backgroundColor: theme.dockSurface, borderColor: theme.dockBorder }]}
           >
-            <BlurView testID="dashboard-dock-blur" tint="light" intensity={62} style={styles.dockBlur} />
+            <BlurView testID="dashboard-dock-blur" tint="light" intensity={18} style={styles.dockBlur} />
             <BottomNavigation theme={{ ...theme, surface: theme.surface }} />
           </View>
           <View
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: spacing.screen, paddingTop: 0, paddingBottom: 132, gap: 14 },
   scrollHeader: { marginHorizontal: -spacing.screen },
-  calendarCard: { paddingHorizontal: 10, borderWidth: 0, overflow: 'hidden' },
+  calendarCard: { position: 'relative', zIndex: 10, marginHorizontal: 0, paddingHorizontal: 0, borderWidth: 0, overflow: 'visible' },
   todayRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingHorizontal: 4 },
   todayTitle: { fontFamily: typography.semibold, fontSize: 17, fontWeight: '600' },
   todayCount: { fontFamily: typography.medium, fontSize: 12 },
@@ -202,10 +202,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 6,
     shadowColor: '#172431',
-    shadowOpacity: 0.14,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
+    shadowOpacity: 0.1,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
   },
-  dockBlur: { ...StyleSheet.absoluteFillObject, borderRadius: 1000 },
+  dockBlur: { ...StyleSheet.absoluteFillObject, borderRadius: 1000, opacity: 0 },
 });
