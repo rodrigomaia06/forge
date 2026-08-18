@@ -11,11 +11,11 @@ const items = [
   ['ellipsis-horizontal', 'More', false],
 ];
 
-export function BottomNavigation() {
+export function BottomNavigation({ theme = colors }) {
   return (
-    <View style={styles.navigation}>
+    <View style={[styles.navigation, { backgroundColor: theme.navigation, borderTopColor: theme.divider }]}>
       {items.map(([icon, label, active]) => (
-        <NavigationItem key={label} icon={icon} label={label} active={active} />
+        <NavigationItem key={label} icon={icon} label={label} active={active} theme={theme} />
       ))}
     </View>
   );

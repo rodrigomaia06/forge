@@ -4,22 +4,22 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { colors } from '../theme/tokens';
 
-export function WorkoutRow({ workout }) {
+export function WorkoutRow({ workout, theme = colors }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${workout.name}, ${workout.duration}, ${workout.summary}`}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.row, { borderBottomColor: theme.divider }, pressed && styles.pressed]}
     >
-      <View style={styles.mark} />
+      <View style={[styles.mark, { backgroundColor: theme.accent }]} />
       <View style={styles.copy}>
         <View style={styles.titleRow}>
-          <Text style={styles.name}>{workout.name}</Text>
-          <Text style={styles.duration}>{workout.duration}</Text>
+          <Text style={[styles.name, { color: theme.ink }]}>{workout.name}</Text>
+          <Text style={[styles.duration, { color: theme.slate }]}>{workout.duration}</Text>
         </View>
-        <Text style={styles.meta}>{workout.type} · {workout.summary}</Text>
+        <Text style={[styles.meta, { color: theme.slate }]}>{workout.type} · {workout.summary}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={17} color={colors.muted} />
+      <Ionicons name="chevron-forward" size={17} color={theme.muted} />
     </Pressable>
   );
 }

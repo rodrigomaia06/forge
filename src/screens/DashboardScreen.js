@@ -6,67 +6,94 @@ import { Calendar } from '../components/Calendar';
 import { WorkoutRow } from '../components/WorkoutRow';
 import { AppScreen, Button, SectionHeader } from '../components/ui';
 import { workoutsByDate } from '../data/mockWorkouts';
-import { colors, spacing } from '../theme/tokens';
+import { dashboardDirections } from '../theme/dashboardDirections';
+import { spacing } from '../theme/tokens';
 
-export function DashboardScreen() {
+export function DashboardScreen({ direction = 'ink' }) {
+  const theme = dashboardDirections[direction] || dashboardDirections.ink;
   const [selectedDay, setSelectedDay] = useState(24);
   const selectedWorkouts = workoutsByDate[selectedDay] || [];
 
   return (
-    <AppScreen>
+    <AppScreen backgroundColor={theme.background}>
       <View style={styles.appShell}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.topBar}>
-            <Text style={styles.screenTitle}>Dashboard</Text>
-            <Button label="Start" accessibilityLabel="Start workout" icon="add" onPress={() => {}} />
-          </View>
-          <Calendar selectedDay={selectedDay} setSelectedDay={setSelectedDay} />
-          <View style={styles.selectedDayHeader}>
-            <Text style={styles.selectedDate}>August {selectedDay}, 2026</Text>
-            <Text style={styles.dayCount}>{selectedWorkouts.length} {selectedWorkouts.length === 1 ? 'workout' : 'workouts'}</Text>
-          </View>
-          {selectedWorkouts.length > 0 ? (
-            <View style={styles.workoutList}>{selectedWorkouts.map((workout) => <WorkoutRow key={`${selectedDay}-${workout.name}`} workout={workout} />)}</View>
-          ) : (
-            <View style={styles.emptyDay}>
-              <Text style={styles.emptyTitle}>No workouts recorded</Text>
-              <Text style={styles.emptyCopy}>Add a workout from this date to keep your archive complete.</Text>
-              <Button label="Add historical workout" variant="secondary" onPress={() => {}} style={styles.secondaryAction} />
+            <View>
+              <Text style={[styles.eyebrow, { color: theme.accent }]}>Training archive</Text>
+              <Text style={[styles.screenTitle, { color: theme.ink }]}>Dashboard</Text>
             </View>
-          )}
-          <View style={styles.contextSection}>
-            <SectionHeader title="Recent context" meta="This month" />
-            <View style={styles.contextRow}>
-              <View><Text style={styles.contextValue}>3</Text><Text style={styles.contextLabel}>workouts this week</Text></View>
-              <View style={styles.contextDivider} />
-              <View><Text style={styles.contextValue}>8</Text><Text style={styles.contextLabel}>workouts this month</Text></View>
-              <View style={styles.contextDivider} />
-              <View><Text style={styles.contextValue}>8 h 06</Text><Text style={styles.contextLabel}>training time</Text></View>
+            <Button label="Start" accessibilityLabel="Start workout" icon="add" onPress={() => {}} theme={theme} />
+          </View>
+
+          <View style={[styles.calendarCard, { backgroundColor: theme.surface, borderColor: theme.divider, borderRadius: theme.cardRadius }]}>
+            <Calendar selectedDay={selectedDay} setSelectedDay={setSelectedDay} theme={theme} />
+          </View>
+
+          <View style={[styles.dayCard, { backgroundColor: theme.surface, borderColor: theme.divider, borderRadius: theme.cardRadius }]}>
+            <View style={styles.cardHeader}>
+              <Text style={[styles.selectedDate, { color: theme.ink }]}>August {selectedDay}, 2026</Text>
+              <Text style={[styles.dayCount, { color: theme.slate }]}>{selectedWorkouts.length} {selectedWorkouts.length === 1 ? 'workout' : 'workouts'}</Text>
+            </View>
+            {selectedWorkouts.length > 0 ? (
+              <View style={[styles.workoutList, { borderTopColor: theme.divider }]}>
+                {selectedWorkouts.map((workout) => <WorkoutRow key={`${selectedDay}-${workout.name}`} workout={workout} theme={theme} />)}
+              </View>
+            ) : (
+              <View style={[styles.emptyDay, { borderTopColor: theme.divider }]}>
+                <Text style={[styles.emptyTitle, { color: theme.ink }]}>No workouts recorded</Text>
+                <Text style={[styles.emptyCopy, { color: theme.slate }]}>Add a workout from this date to keep your archive complete.</Text>
+                <Button label="Add historical workout" variant="secondary" onPress={() => {}} style={styles.secondaryAction} theme={theme} />
+              </View>
+            )}
+          </View>
+
+          <View style={[styles.contextCard, { backgroundColor: theme.surfaceMuted, borderRadius: theme.cardRadius }]}>
+            <SectionHeader title="Recent context" meta="This month" theme={theme} />
+            <View style={[styles.contextRow, { borderColor: theme.divider }]}>
+              <Metric value="3" label="workouts this week" theme={theme} />
+              <View style={[styles.contextDivider, { backgroundColor: theme.divider }]} />
+              <Metric value="8" label="workouts this month" theme={theme} />
+              <View style={[styles.contextDivider, { backgroundColor: theme.divider }]} />
+              <Metric value="8 h 06" label="training time" theme={theme} />
             </View>
           </View>
         </ScrollView>
-        <BottomNavigation />
+        <BottomNavigation theme={theme} />
       </View>
     </AppScreen>
   );
 }
 
+function Metric({ value, label, theme }) {
+  return (
+    <View style={styles.metric}>
+      <Text style={[styles.contextValue, { color: theme.ink }]}>{value}</Text>
+      <Text style={[styles.contextLabel, { color: theme.slate }]}>{label}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   appShell: { flex: 1 },
-  scrollContent: { paddingHorizontal: spacing.screen, paddingBottom: 24 },
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, paddingBottom: 24 },
-  screenTitle: { color: colors.ink, fontSize: 30, fontWeight: '700', letterSpacing: -0.6 },
-  selectedDayHeader: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingTop: 25, paddingBottom: 12 },
-  selectedDate: { color: colors.ink, fontSize: 19, fontWeight: '600', letterSpacing: -0.2 },
-  dayCount: { color: colors.slate, fontSize: 13, paddingBottom: 2 },
-  workoutList: { borderTopWidth: 1, borderTopColor: colors.divider },
-  emptyDay: { paddingVertical: 21, paddingHorizontal: 2, borderTopWidth: 1, borderTopColor: colors.divider },
-  emptyTitle: { color: colors.ink, fontSize: 15, fontWeight: '600' },
-  emptyCopy: { color: colors.slate, fontSize: 13, lineHeight: 19, marginTop: 6, maxWidth: 300 },
+  scrollContent: { paddingHorizontal: spacing.screen, paddingBottom: 24, gap: 14 },
+  topBar: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingTop: 10, paddingBottom: 8 },
+  eyebrow: { fontSize: 11, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 5 },
+  screenTitle: { fontSize: 30, fontWeight: '700', letterSpacing: -0.7 },
+  calendarCard: { paddingHorizontal: 14, borderWidth: 1, overflow: 'hidden' },
+  dayCard: { borderWidth: 1, overflow: 'hidden' },
+  cardHeader: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 },
+  selectedDate: { fontSize: 18, fontWeight: '700', letterSpacing: -0.2 },
+  dayCount: { fontSize: 12, paddingBottom: 2 },
+  workoutList: { borderTopWidth: 1, paddingHorizontal: 16 },
+  emptyDay: { padding: 16, borderTopWidth: 1 },
+  emptyTitle: { fontSize: 15, fontWeight: '600' },
+  emptyCopy: { fontSize: 13, lineHeight: 19, marginTop: 6, maxWidth: 300 },
   secondaryAction: { alignSelf: 'flex-start', marginTop: 14 },
-  contextSection: { paddingTop: spacing.section, paddingBottom: 24 },
-  contextRow: { flexDirection: 'row', alignItems: 'stretch', paddingVertical: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.divider },
-  contextValue: { color: colors.ink, fontSize: 20, fontWeight: '600', letterSpacing: -0.3 },
-  contextLabel: { color: colors.slate, fontSize: 11, marginTop: 4, maxWidth: 80, lineHeight: 15 },
-  contextDivider: { width: 1, backgroundColor: colors.divider, marginHorizontal: 14 },
+  contextCard: { padding: 16 },
+  contextRow: { flexDirection: 'row', alignItems: 'stretch', paddingTop: 14, borderTopWidth: 1 },
+  metric: { flex: 1 },
+  contextValue: { fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
+  contextLabel: { fontSize: 11, marginTop: 4, maxWidth: 80, lineHeight: 15 },
+  contextDivider: { width: 1, marginHorizontal: 12 },
 });

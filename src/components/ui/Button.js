@@ -4,9 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { colors, radii } from '../../theme/tokens';
 
-export function Button({ label, accessibilityLabel, onPress, variant = 'primary', icon, loading = false, disabled = false, style }) {
+export function Button({ label, accessibilityLabel, onPress, variant = 'primary', icon, loading = false, disabled = false, style, theme = colors }) {
   const isPrimary = variant === 'primary';
-  const textColor = isPrimary ? colors.surface : colors.inkInteractive;
+  const textColor = isPrimary ? theme.surface : theme.accent;
 
   return (
     <Pressable
@@ -17,7 +17,8 @@ export function Button({ label, accessibilityLabel, onPress, variant = 'primary'
       onPress={onPress}
       style={({ pressed }) => [
         styles.base,
-        isPrimary ? styles.primary : styles.secondary,
+        isPrimary && styles.primary,
+        isPrimary ? { backgroundColor: theme.accent } : { borderColor: theme.divider, backgroundColor: theme.surface },
         disabled && styles.disabled,
         pressed && styles.pressed,
         style,
@@ -31,8 +32,7 @@ export function Button({ label, accessibilityLabel, onPress, variant = 'primary'
 
 const styles = StyleSheet.create({
   base: { minHeight: 44, minWidth: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 14, borderRadius: radii.control },
-  primary: { minWidth: 92, backgroundColor: colors.inkInteractive },
-  secondary: { borderWidth: 1, borderColor: colors.divider, backgroundColor: colors.surface },
+  primary: { minWidth: 92 },
   label: { fontSize: 14, fontWeight: '600' },
   disabled: { opacity: 0.45 },
   pressed: { opacity: 0.65 },

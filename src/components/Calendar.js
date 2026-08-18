@@ -5,21 +5,21 @@ import { IconButton } from './IconButton';
 import { monthDays, workoutsByDate } from '../data/mockWorkouts';
 import { colors, radii } from '../theme/tokens';
 
-export function Calendar({ selectedDay, setSelectedDay }) {
+export function Calendar({ selectedDay, setSelectedDay, theme = colors }) {
   return (
-    <View style={styles.calendar}>
+    <View style={[styles.calendar, { borderBottomColor: theme.divider }]}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.monthTitle}>August 2026</Text>
-          <Text style={styles.monthSubtitle}>7 workout days · 8 workouts</Text>
+          <Text style={[styles.monthTitle, { color: theme.ink }]}>August 2026</Text>
+          <Text style={[styles.monthSubtitle, { color: theme.muted }]}>7 workout days · 8 workouts</Text>
         </View>
         <View style={styles.monthControls}>
-          <IconButton name="chevron-back" label="Previous month" />
-          <IconButton name="chevron-forward" label="Next month" />
+          <IconButton name="chevron-back" label="Previous month" theme={theme} />
+          <IconButton name="chevron-forward" label="Next month" theme={theme} />
         </View>
       </View>
       <View style={styles.weekHeader}>
-        {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => <Text key={`${day}-${index}`} style={styles.weekLabel}>{day}</Text>)}
+        {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => <Text key={`${day}-${index}`} style={[styles.weekLabel, { color: theme.muted }]}>{day}</Text>)}
       </View>
       <View style={styles.grid}>
         {monthDays.map((day) => {
@@ -32,10 +32,10 @@ export function Calendar({ selectedDay, setSelectedDay }) {
               accessibilityLabel={`${day} August 2026${dayWorkouts ? ', workout recorded' : ''}`}
               accessibilityState={{ selected: isSelected }}
               onPress={() => setSelectedDay(day)}
-              style={({ pressed }) => [styles.dayCell, isSelected && styles.selectedDay, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.dayCell, { backgroundColor: isSelected ? theme.selected : 'transparent' }, pressed && styles.pressed]}
             >
-              <Text style={[styles.dayText, isSelected && styles.selectedDayText]}>{day}</Text>
-              {dayWorkouts && <View style={styles.markers}>{dayWorkouts.slice(0, 2).map((_, markerIndex) => <View key={markerIndex} style={[styles.marker, isSelected && styles.selectedMarker]} />)}</View>}
+              <Text style={[styles.dayText, { color: isSelected ? theme.selectedText : theme.ink }]}>{day}</Text>
+              {dayWorkouts && <View style={styles.markers}>{dayWorkouts.slice(0, 2).map((_, markerIndex) => <View key={markerIndex} style={[styles.marker, { backgroundColor: isSelected ? theme.selectedText : theme.marker }]} />)}</View>}
             </Pressable>
           );
         })}
@@ -54,11 +54,7 @@ const styles = StyleSheet.create({
   weekLabel: { flex: 1, textAlign: 'center', color: colors.muted, fontSize: 11, fontWeight: '700' },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   dayCell: { width: '14.2857%', height: 45, alignItems: 'center', justifyContent: 'center', borderRadius: radii.selectedDay, position: 'relative' },
-  selectedDay: { backgroundColor: colors.ink },
-  dayText: { color: colors.ink, fontSize: 14, fontWeight: '500' },
-  selectedDayText: { color: colors.surface, fontWeight: '700' },
+  dayText: { fontSize: 14, fontWeight: '500' },
   markers: { position: 'absolute', bottom: 5, flexDirection: 'row', gap: 3 },
-  marker: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.inkInteractive },
-  selectedMarker: { backgroundColor: colors.surface },
   pressed: { opacity: 0.65 },
 });

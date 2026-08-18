@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { colors, radii } from '../theme/tokens';
 
-export function IconButton({ name, label, onPress, filled = false, title }) {
+export function IconButton({ name, label, onPress, filled = false, title, theme = colors }) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -12,7 +12,7 @@ export function IconButton({ name, label, onPress, filled = false, title }) {
       onPress={onPress}
       style={({ pressed }) => [styles.base, title ? styles.action : styles.icon, filled && styles.filled, pressed && styles.pressed]}
     >
-      <Ionicons name={name} size={20} color={filled ? colors.surface : colors.ink} />
+      <Ionicons name={name} size={20} color={filled ? theme.surface : theme.ink} />
       {title && <Text style={styles.actionText}>{title}</Text>}
     </Pressable>
   );

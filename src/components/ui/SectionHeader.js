@@ -3,11 +3,11 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '../../theme/tokens';
 
-export function SectionHeader({ title, meta }) {
+export function SectionHeader({ title, meta, theme = colors }) {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
-      {meta && <Text style={styles.meta}>{meta}</Text>}
+      <Text style={[styles.title, { color: theme.ink }]}>{title}</Text>
+      {meta && <Text style={[styles.meta, { color: theme.muted }]}>{meta}</Text>}
     </View>
   );
 }
