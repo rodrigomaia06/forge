@@ -4,7 +4,7 @@
 
 - The first visual Dashboard prototype is split into `src/screens/`, `src/components/`, `src/data/`, and `src/theme/`. It remains a prototype and is not the final application architecture.
 - The prototype is intentionally limited to Dashboard rendering and basic calendar day selection.
-- Dashboard discovery options are available on web with `?option=1`, `?option=2`, and `?option=3`. They share the ink accent, Open Sans, semantic colors, and workout data while exploring dock treatment, card geometry, grouping, and colorful functional icons. Option 3 is now the native and default web fallback; options 1 and 2 remain available explicitly.
+- The Dashboard direction is now consolidated into the former option 3 composition. The temporary option 1 and option 2 branches were removed after visual review.
 - Plans, History, More, Active Workout, persistence, real navigation, themes, and historical entry are not implemented yet.
 - Mock workouts exist only to make the visual hierarchy reviewable. They must not become the domain model by accident.
 - The supplied logo and the Forge name remain provisional.
@@ -16,7 +16,7 @@
 - `npm audit` currently reports transitive dependency advisories from the Expo toolchain. Do not run broad automatic fixes without reviewing compatibility.
 - Browser visual checks use Expo's static web export plus a local Python server under Playwright's `webServer`, with Playwright's iPhone device emulation defining the viewport. The interactive `npx expo start --web` path remains available for normal development.
 - Playwright's local preview/test server is standardized on port `9021`.
-- The prototype now uses Phosphor React Native through `src/components/ui/Icon.js` as its single icon-family boundary. The family can be replaced later without changing feature components.
+- The prototype now trials Iconoir through `src/components/ui/Icon.js` as its single icon-family boundary. The family can be replaced later without changing feature components.
 - Generated Playwright results live in `tests/results/`. Visual baselines remain beside their spec, currently under `tests/dashboard.spec.js-snapshots/`.
 
 ## Revisit before production implementation

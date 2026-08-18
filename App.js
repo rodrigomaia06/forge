@@ -10,12 +10,6 @@ import {
 
 import { DashboardScreen } from './src/screens/DashboardScreen';
 
-function getDashboardOption() {
-  if (typeof window === 'undefined' || !window.location) return 3;
-  const option = Number(new URLSearchParams(window.location.search).get('option'));
-  return [1, 2, 3].includes(option) ? option : 3;
-}
-
 export default function App() {
   const [fontsLoaded] = useFonts({
     OpenSans_400Regular,
@@ -28,7 +22,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <DashboardScreen option={getDashboardOption()} />
+      <DashboardScreen />
     </SafeAreaProvider>
   );
 }
