@@ -10,7 +10,7 @@ const VIEWS = ['year', 'month', 'week'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
-export function Calendar({ selectedDay, setSelectedDay, theme = colors }) {
+export function Calendar({ selectedDay, setSelectedDay, theme = colors, workoutMap = workoutsByDate }) {
   const [view, setView] = useState('month');
   const [menuOpen, setMenuOpen] = useState(false);
   const [month, setMonth] = useState(8);
@@ -33,7 +33,7 @@ export function Calendar({ selectedDay, setSelectedDay, theme = colors }) {
           </Pressable>
         </View>
         {menuOpen && <CalendarViewMenu view={view} theme={theme} onSelect={selectView} />}
-        <CalendarContent view={view} selectedDay={selectedDay} setSelectedDay={setSelectedDay} theme={theme} month={month} setMonth={setMonth} />
+        <CalendarContent view={view} selectedDay={selectedDay} setSelectedDay={setSelectedDay} theme={theme} month={month} setMonth={setMonth} workoutMap={workoutMap} />
       </View>
     </View>
   );
@@ -51,37 +51,37 @@ function triggerLightHaptic() {
   if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 }
 
-function CalendarContent({ view, selectedDay, setSelectedDay, theme, month, setMonth }) {
+function CalendarContent({ view, selectedDay, setSelectedDay, theme, month, setMonth, workoutMap }) {
   const progress = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     progress.setValue(0);
     Animated.timing(progress, { toValue: 1, duration: 180, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
   }, [view, progress]);
-  return <Animated.View style={{ opacity: progress, transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [5, 0] }) }] }}>{view === 'year' && <YearView theme={theme} onSelectMonth={(selectedMonth) => { setMonth(selectedMonth); }} />}{view === 'month' && <MonthView selectedDay={selectedDay} setSelectedDay={setSelectedDay} theme={theme} month={month} />}{view === 'week' && <WeekView selectedDay={selectedDay} setSelectedDay={setSelectedDay} theme={theme} />}</Animated.View>;
+  return <Animated.View style={{ opacity: progress, transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [5, 0] }) }] }}>{view === 'year' && <YearView theme={theme} onSelectMonth={(selectedMonth) => { setMonth(selectedMonth); }} workoutMap={workoutMap} />}{view === 'month' && <MonthView selectedDay={selectedDay} setSelectedDay={setSelectedDay} theme={theme} month={month} workoutMap={workoutMap} />}{view === 'week' && <WeekView selectedDay={selectedDay} setSelectedDay={setSelectedDay} theme={theme} workoutMap={workoutMap} />}</Animated.View>;
 }
 
-function MonthView({ selectedDay, setSelectedDay, theme, month }) {
+function MonthView({ selectedDay, setSelectedDay, theme, month, workoutMap }) {
   const leadingBlanks = month === 8 ? 5 : 0;
-  return <><View style={styles.weekHeader}>{WEEKDAYS.map((day, index) => <Text key={`${day}-${index}`} style={[styles.weekLabel, { color: theme.muted }]}>{day}</Text>)}</View><View style={styles.grid}>{Array.from({ length: leadingBlanks }, (_, index) => <View key={`blank-${index}`} style={styles.dayCell} />)}{monthDays.map((day) => <DayCell key={day} day={day} selectedDay={selectedDay} setSelectedDay={setSelectedDay} theme={theme} />)}</View></>;
+  return <><View style={styles.weekHeader}>{WEEKDAYS.map((day, index) => <Text key={`${day}-${index}`} style={[styles.weekLabel, { color: theme.muted }]}>{day}</Text>)}</View><View style={styles.grid}>{Array.from({ length: leadingBlanks }, (_, index) => <View key={`blank-${index}`} style={styles.dayCell} />)}{monthDays.map((day) => <DayCell key={day} day={day} selectedDay={selectedDay} setSelectedDay={setSelectedDay} theme={theme} workoutMap={workoutMap} />)}</View></>;
 }
 
-function WeekView({ selectedDay, setSelectedDay, theme }) {
+function WeekView({ selectedDay, setSelectedDay, theme, workoutMap }) {
   const days = [24, 25, 26, 27, 28, 29, 30];
-  return <><View style={styles.weekHeader}>{WEEKDAYS.map((day, index) => <Text key={`${day}-${index}`} style={[styles.weekLabel, { color: theme.muted }]}>{day}</Text>)}</View><View style={styles.grid}>{days.map((day) => <DayCell key={day} day={day} selectedDay={selectedDay} setSelectedDay={setSelectedDay} theme={theme} />)}</View></>;
+  return <><View style={styles.weekHeader}>{WEEKDAYS.map((day, index) => <Text key={`${day}-${index}`} style={[styles.weekLabel, { color: theme.muted }]}>{day}</Text>)}</View><View style={styles.grid}>{days.map((day) => <DayCell key={day} day={day} selectedDay={selectedDay} setSelectedDay={setSelectedDay} theme={theme} workoutMap={workoutMap} />)}</View></>;
 }
 
-function YearView({ theme, onSelectMonth }) {
-  return <View style={styles.yearGrid}>{MONTHS.map((month, index) => <Pressable key={month} accessibilityRole="button" accessibilityLabel={`Show ${month} 2026`} onPress={() => onSelectMonth(index + 1)} style={styles.yearMonth}><Text style={[styles.yearMonthTitle, { color: theme.slate }]}>{month.slice(0, 3)}</Text><MiniMonth month={index + 1} theme={theme} /></Pressable>)}</View>;
+function YearView({ theme, onSelectMonth, workoutMap }) {
+  return <View style={styles.yearGrid}>{MONTHS.map((month, index) => <Pressable key={month} accessibilityRole="button" accessibilityLabel={`Show ${month} 2026`} onPress={() => onSelectMonth(index + 1)} style={styles.yearMonth}><Text style={[styles.yearMonthTitle, { color: theme.slate }]}>{month.slice(0, 3)}</Text><MiniMonth month={index + 1} theme={theme} workoutMap={workoutMap} /></Pressable>)}</View>;
 }
 
-function MiniMonth({ month, theme }) {
+function MiniMonth({ month, theme, workoutMap }) {
   const leadingBlanks = (new Date(2026, month - 1, 1).getDay() + 6) % 7;
   const totalDays = new Date(2026, month, 0).getDate();
-  return <View style={styles.miniGrid}>{Array.from({ length: leadingBlanks }, (_, index) => <View key={`blank-${index}`} style={styles.miniDay} />)}{Array.from({ length: totalDays }, (_, index) => { const day = index + 1; const active = month === 8 && Boolean(workoutsByDate[day]); return <View key={day} style={[styles.miniDay, { backgroundColor: active ? theme.marker : theme.divider }]} />; })}</View>;
+  return <View style={styles.miniGrid}>{Array.from({ length: leadingBlanks }, (_, index) => <View key={`blank-${index}`} style={styles.miniDay} />)}{Array.from({ length: totalDays }, (_, index) => { const day = index + 1; const active = month === 8 && Boolean(workoutMap[day]); return <View key={day} style={[styles.miniDay, { backgroundColor: active ? theme.marker : theme.divider }]} />; })}</View>;
 }
 
-function DayCell({ day, selectedDay, setSelectedDay, theme }) {
-  const dayWorkouts = workoutsByDate[day];
+function DayCell({ day, selectedDay, setSelectedDay, theme, workoutMap }) {
+  const dayWorkouts = workoutMap[day];
   const isSelected = day === selectedDay;
   const hasWorkout = Boolean(dayWorkouts);
   const selectionProgress = useRef(new Animated.Value(isSelected ? 1 : 0)).current;

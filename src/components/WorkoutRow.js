@@ -4,7 +4,9 @@ import { Icon } from './ui';
 import { colors, typography } from '../theme/tokens';
 
 export function WorkoutRow({ workout, theme = colors }) {
-  const summaryItems = workout.summary.split(' · ');
+  const summary = workout.summary || `${workout.exercises?.length || 0} exercises · ${workout.exercises?.reduce((total, exercise) => total + exercise.sets.length, 0) || 0} sets`;
+  const summaryItems = summary.split(' · ');
+  const duration = workout.duration || formatDuration(workout.durationSeconds);
   const presentation = workout.type === 'Strength'
     ? { icon: 'fitness-outline', color: theme.iconStrength || theme.accent, background: 'rgba(111,127,242,0.14)' }
     : workout.type === 'Court sport'
@@ -15,7 +17,7 @@ export function WorkoutRow({ workout, theme = colors }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${workout.name}, ${workout.type}, ${workout.duration}, ${workout.summary}`}
+      accessibilityLabel={`${workout.name}, ${workout.type}, ${duration}, ${summary}`}
       style={({ pressed }) => [styles.row, { borderBottomColor: theme.divider }, pressed && styles.pressed]}
     >
       <View style={[styles.typeIcon, { backgroundColor: presentation.background }]}>
@@ -26,7 +28,7 @@ export function WorkoutRow({ workout, theme = colors }) {
           <Text style={[styles.name, { color: theme.ink }]}>{workout.name}</Text>
         </View>
         <Text style={[styles.meta, { color: theme.ink }]}>
-          {summaryItems.concat(workout.duration).join('  ·  ')}
+          {summaryItems.concat(duration).join('  ·  ')}
         </Text>
       </View>
       <Icon name="chevron-forward" size={17} color={theme.slate} />
@@ -43,3 +45,8 @@ const styles = StyleSheet.create({
   meta: { color: colors.slate, fontFamily: typography.regular, fontSize: 13, marginTop: 7 },
   pressed: { opacity: 0.65 },
 });
+
+function formatDuration(seconds = 0) {
+  const minutes = Math.max(1, Math.round(seconds / 60));
+  return minutes >= 60 ? `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, '0')} min` : `${minutes} min`;
+}

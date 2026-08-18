@@ -33,14 +33,14 @@ test.describe('Dashboard dock geometry', () => {
     expect(header.y).toBe(scroll.y);
     expect(header.y).toBeGreaterThanOrEqual(shell.y);
     await expect(page.getByTestId('dashboard-header')).toHaveCSS('position', 'relative');
-    await expect(page.getByTestId('dashboard-dock-blur')).toBeVisible();
     await expect(page.getByTestId('dashboard-dock-vignette')).toBeVisible();
     await expect(page.getByTestId('dashboard-dock-home-indicator')).toBeVisible();
     await expect(page.getByTestId('dashboard-header-title')).toBeVisible();
     await expect(page.locator('[data-testid^="dashboard-nav-label-"]')).toHaveCount(0);
     await expect(page.getByTestId('dashboard-nav-history')).toBeVisible();
-    await expect(page.getByTestId('dashboard-nav-workout')).toBeVisible();
     await expect(page.getByTestId('dashboard-nav-plans')).toBeVisible();
+    await expect(page.getByTestId('dashboard-nav-more')).toBeVisible();
+    await expect(page.getByTestId('dashboard-nav-workout')).toHaveCount(0);
   });
 
   test('captures the dock as a single bounded surface', async ({ page }) => {

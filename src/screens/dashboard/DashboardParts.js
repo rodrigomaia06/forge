@@ -1,23 +1,33 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { useNavigation } from '@react-navigation/native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { DashboardHeader } from '../../components/DashboardHeader';
-import { BottomNavigation } from '../../components/BottomNavigation';
+import { DockSurface } from '../../components/DockSurface';
 import { Calendar } from '../../components/Calendar';
 import { WorkoutRow } from '../../components/WorkoutRow';
 import { workoutsByDate } from '../../data/mockWorkouts';
 import { AppScreen, Button } from '../../components/ui';
 import { typography, spacing } from '../../theme/tokens';
 import { useLayoutProbe } from '../../debug/layoutProbe';
+import { useWorkouts } from '../../state/WorkoutContext';
 
 export function DashboardShell({ children, theme }) {
+  const navigation = useNavigation();
+  const { activeWorkout, startWorkout } = useWorkouts();
+  const openWorkout = () => {
+    if (!activeWorkout) startWorkout();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    navigation.navigate('ActiveWorkout');
+  };
   const shellProbe = useLayoutProbe('dashboard-shell', { background: theme.background });
   const dockSlotProbe = useLayoutProbe('dashboard-dock-slot', { background: 'transparent' });
   const dockCylinderProbe = useLayoutProbe('dashboard-dock-cylinder', { background: theme.dockSurface });
   return (
     <AppScreen testID="dashboard-app-screen" backgroundColor={theme.background}>
       <View ref={shellProbe.ref} onLayout={shellProbe.onLayout} testID="dashboard-shell" style={styles.appShell}>
-        <View style={styles.body}>{React.cloneElement(children, { header: <DashboardHeader theme={theme} variant={theme.headerVariant} /> })}</View>
+        <View style={styles.body}>{React.cloneElement(children, { header: <DashboardHeader theme={theme} variant={theme.headerVariant} onStart={openWorkout} /> })}</View>
         <View pointerEvents="box-none" ref={dockSlotProbe.ref} onLayout={dockSlotProbe.onLayout} testID="dashboard-dock-slot" style={styles.dockSlot}>
           <Svg pointerEvents="none" testID="dashboard-dock-vignette" style={styles.dockVignette}>
             <Defs>
@@ -30,14 +40,7 @@ export function DashboardShell({ children, theme }) {
             </Defs>
             <Rect x="0" y="0" width="100%" height="100%" fill="url(#forgeDockBottomFade)" />
           </Svg>
-          <View
-            ref={dockCylinderProbe.ref}
-            onLayout={dockCylinderProbe.onLayout}
-            testID="dashboard-dock-cylinder"
-            style={[styles.dockCylinder, { backgroundColor: theme.dockSurface, borderColor: theme.dockBorder }]}
-          >
-            <BottomNavigation theme={{ ...theme, surface: theme.surface }} />
-          </View>
+          <DockSurface theme={theme} dockRef={dockCylinderProbe.ref} onLayout={dockCylinderProbe.onLayout} testID="dashboard-dock-cylinder" />
           <View
             testID="dashboard-dock-home-indicator"
             accessibilityLabel="Home indicator"
@@ -49,10 +52,10 @@ export function DashboardShell({ children, theme }) {
   );
 }
 
-export function DashboardCalendar({ selectedDay, setSelectedDay, theme }) {
+export function DashboardCalendar({ selectedDay, setSelectedDay, theme, workoutMap }) {
   return (
     <View style={[styles.calendarCard, { backgroundColor: 'transparent', borderRadius: theme.cardRadius }]}>
-      <Calendar selectedDay={selectedDay} setSelectedDay={setSelectedDay} theme={theme} />
+      <Calendar selectedDay={selectedDay} setSelectedDay={setSelectedDay} theme={theme} workoutMap={workoutMap} />
     </View>
   );
 }
@@ -226,19 +229,5 @@ const styles = StyleSheet.create({
     borderRadius: 1000,
     opacity: 0.72,
     zIndex: 12,
-  },
-  dockCylinder: {
-    width: '88%',
-    maxWidth: 390,
-    alignSelf: 'center',
-    overflow: 'hidden',
-    borderRadius: 1000,
-    borderWidth: 1,
-    paddingHorizontal: 6,
-    shadowColor: '#172431',
-    shadowOpacity: 0.1,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
   },
 });

@@ -10,7 +10,7 @@ export const HEADER_VARIANTS = {
   month: 'month',
 };
 
-export function DashboardHeader({ theme, variant = HEADER_VARIANTS.greeting, style }) {
+export function DashboardHeader({ theme, variant = HEADER_VARIANTS.greeting, style, onStart }) {
   const content = getHeaderContent(variant);
   const action = getHeaderAction(theme.startButtonVariant);
 
@@ -21,7 +21,7 @@ export function DashboardHeader({ theme, variant = HEADER_VARIANTS.greeting, sty
         {content.subtitle && <Text style={[styles.subtitle, { color: theme.slate }]}>{content.subtitle}</Text>}
       </View>
       <View style={styles.actions}>
-        <Button accessibilityLabel={action.accessibilityLabel} icon={action.icon} iconSize={action.iconSize} iconWeight={action.iconWeight} variant="secondary" onPress={() => {}} style={styles.headerIconButton} theme={theme} />
+        <Button accessibilityLabel={action.accessibilityLabel} icon={action.icon} iconSize={action.iconSize} iconWeight={action.iconWeight} variant="secondary" onPress={onStart} style={styles.headerIconButton} theme={theme} />
       </View>
     </View>
   );

@@ -13,6 +13,7 @@ import {
   Book,
   Basketball,
   Activity,
+  Check,
   Play,
   Plus,
   QuestionMark,
@@ -50,6 +51,7 @@ const iconMap = {
   'tennis-ball': TennisBall,
   stopwatch: Timer,
   'stopwatch-outline': Timer,
+  check: Check,
 };
 
 export function Icon({ name, size = 20, color, weight = 'regular', ...props }) {

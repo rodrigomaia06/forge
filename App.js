@@ -8,7 +8,8 @@ import {
   useFonts,
 } from '@expo-google-fonts/manrope';
 
-import { DashboardScreen } from './src/screens/DashboardScreen';
+import { AppNavigator } from './src/navigation/AppNavigator';
+import { WorkoutProvider } from './src/state/WorkoutContext';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -22,7 +23,9 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <DashboardScreen />
+      <WorkoutProvider>
+        <AppNavigator />
+      </WorkoutProvider>
     </SafeAreaProvider>
   );
 }
