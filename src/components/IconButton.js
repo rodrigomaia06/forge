@@ -1,7 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-
+import { Icon } from './ui';
 import { colors, radii, typography } from '../theme/tokens';
 
 export function IconButton({ name, label, onPress, filled = false, title, theme = colors }) {
@@ -12,7 +11,7 @@ export function IconButton({ name, label, onPress, filled = false, title, theme 
       onPress={onPress}
       style={({ pressed }) => [styles.base, title ? styles.action : styles.icon, filled && styles.filled, pressed && styles.pressed]}
     >
-      <Ionicons name={name} size={20} color={filled ? theme.surface : theme.ink} />
+      <Icon name={name} size={20} color={filled ? theme.surface : theme.ink} />
       {title && <Text style={styles.actionText}>{title}</Text>}
     </Pressable>
   );

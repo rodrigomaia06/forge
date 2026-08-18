@@ -1,7 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-
+import { Icon } from './Icon';
 import { colors, typography } from '../../theme/tokens';
 
 export function NavigationItem({ icon, label, active = false, onPress, theme = colors }) {
@@ -13,7 +12,7 @@ export function NavigationItem({ icon, label, active = false, onPress, theme = c
       onPress={onPress}
       style={({ pressed }) => [styles.item, pressed && styles.pressed]}
     >
-      <Ionicons name={active ? icon.replace('-outline', '') : icon} size={22} color={active ? theme.accent : theme.slate} />
+      <Icon name={active ? icon.replace('-outline', '') : icon} size={22} color={active ? theme.accent : theme.slate} weight={active ? 'fill' : 'regular'} />
       <Text style={[styles.label, { color: theme.slate }, active && { color: theme.accent }]}>{label}</Text>
     </Pressable>
   );

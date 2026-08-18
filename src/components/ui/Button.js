@@ -1,7 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-
+import { Icon } from './Icon';
 import { colors, radii, typography } from '../../theme/tokens';
 
 export function Button({ label, accessibilityLabel, onPress, variant = 'primary', icon, loading = false, disabled = false, style, theme = colors }) {
@@ -24,7 +23,7 @@ export function Button({ label, accessibilityLabel, onPress, variant = 'primary'
         style,
       ]}
     >
-      {loading ? <ActivityIndicator color={textColor} /> : icon && <Ionicons name={icon} size={20} color={textColor} />}
+      {loading ? <ActivityIndicator color={textColor} /> : icon && <Icon name={icon} size={20} color={textColor} />}
       {!loading && <Text style={[styles.label, { color: textColor }]}>{label}</Text>}
     </Pressable>
   );

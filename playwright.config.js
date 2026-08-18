@@ -11,12 +11,12 @@ module.exports = defineConfig({
     },
   ],
   use: {
-    baseURL: 'http://127.0.0.1:8081',
+    baseURL: 'http://127.0.0.1:9021',
     trace: 'on-first-retry',
   },
   webServer: {
-    command: 'npm run web:export && python3 -m http.server 8081 --directory dist',
-    url: 'http://127.0.0.1:8081',
+    command: 'npm run web:export && python3 -m http.server 9021 --directory dist',
+    url: 'http://127.0.0.1:9021',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },

@@ -15,6 +15,8 @@
 - The environment used for verification reports Node `20.19.2` while some SDK 54 packages request `20.19.4+`; the iOS export currently succeeds, but the runtime version should be aligned before release work.
 - `npm audit` currently reports transitive dependency advisories from the Expo toolchain. Do not run broad automatic fixes without reviewing compatibility.
 - Browser visual checks use Expo's static web export plus a local Python server under Playwright's `webServer`, with Playwright's iPhone device emulation defining the viewport. The interactive `npx expo start --web` path remains available for normal development.
+- Playwright's local preview/test server is standardized on port `9021`.
+- The prototype now uses Phosphor React Native through `src/components/ui/Icon.js` as its single icon-family boundary. The family can be replaced later without changing feature components.
 - Generated Playwright results live in `tests/results/`. Visual baselines remain beside their spec, currently under `tests/dashboard.spec.js-snapshots/`.
 
 ## Revisit before production implementation

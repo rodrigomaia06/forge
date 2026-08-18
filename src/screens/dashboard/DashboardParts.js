@@ -1,11 +1,9 @@
 import React from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-
 import { BottomNavigation } from '../../components/BottomNavigation';
 import { Calendar } from '../../components/Calendar';
 import { WorkoutRow } from '../../components/WorkoutRow';
-import { AppScreen, Button, SectionHeader } from '../../components/ui';
+import { AppScreen, Button, Icon, SectionHeader } from '../../components/ui';
 import { typography, spacing } from '../../theme/tokens';
 
 export function DashboardShell({ children, theme, floatingDock = false }) {
@@ -39,7 +37,7 @@ export function DashboardWorkoutCard({ selectedDay, selectedWorkouts, theme, rai
   return (
     <View style={[styles.dayCard, compact && styles.compactDayCard, { backgroundColor: theme.surface, borderColor: theme.divider, borderRadius: theme.cardRadius }, rail && { borderLeftColor: theme.accent, borderLeftWidth: 4 }]}>
       <View style={styles.cardHeader}>
-        {icon && <Ionicons name="calendar-clear-outline" size={19} color={theme.iconCalendar} />}
+        {icon && <Icon name="calendar-clear-outline" size={19} color={theme.iconCalendar} />}
         <Text style={[styles.selectedDate, { color: theme.ink }, icon && styles.headerWithIcon]}>August {selectedDay}, 2026</Text>
         <Text style={[styles.dayCount, { color: theme.slate }]}>{selectedWorkouts.length} {selectedWorkouts.length === 1 ? 'workout' : 'workouts'}</Text>
       </View>
@@ -61,8 +59,8 @@ export function DashboardWorkoutCard({ selectedDay, selectedWorkouts, theme, rai
 export function DashboardContextCard({ theme, icons = false, inline = false }) {
   const metrics = [
     ['3', 'workouts this week', theme.iconCalendar, 'calendar-outline'],
-    ['8', 'workouts this month', theme.iconTime, 'time-outline'],
-    ['8 h 06', 'training time', theme.iconVolume, 'bar-chart-outline'],
+    ['8', 'workouts this month', theme.iconStrength, 'fitness-outline'],
+    ['8 h 06', 'training time', theme.iconTime, 'stopwatch-outline'],
   ];
 
   return (
@@ -72,7 +70,7 @@ export function DashboardContextCard({ theme, icons = false, inline = false }) {
         {metrics.map(([value, label, iconColor, iconName], index) => (
           <React.Fragment key={label}>
             <View style={styles.metric}>
-              {icons && <Ionicons name={iconName} size={19} color={iconColor} style={styles.metricIcon} />}
+              {icons && <Icon name={iconName} size={19} color={iconColor} style={styles.metricIcon} />}
               <Text style={[styles.contextValue, { color: theme.ink }]}>{value}</Text>
               <Text style={[styles.contextLabel, { color: theme.slate }]}>{label}</Text>
             </View>

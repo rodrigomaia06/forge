@@ -1,7 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-
+import { Icon } from './ui';
 import { colors, typography } from '../theme/tokens';
 
 export function WorkoutRow({ workout, theme = colors }) {
@@ -19,7 +18,7 @@ export function WorkoutRow({ workout, theme = colors }) {
         </View>
         <Text style={[styles.meta, { color: theme.slate }]}>{workout.type} · {workout.summary}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={17} color={theme.muted} />
+      <Icon name="chevron-forward" size={17} color={theme.muted} />
     </Pressable>
   );
 }

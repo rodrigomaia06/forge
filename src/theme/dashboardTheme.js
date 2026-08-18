@@ -14,6 +14,6 @@ export const dashboardTheme = {
   cardRadius: 18,
   topBar: true,
   iconCalendar: '#284C68',
-  iconTime: '#775A91',
-  iconVolume: '#4D7B67',
+  iconStrength: '#A36A3D',
+  iconTime: '#4D7B67',
 };
