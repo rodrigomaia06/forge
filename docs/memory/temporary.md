@@ -4,7 +4,7 @@
 
 - The first visual Dashboard prototype is split into `src/screens/`, `src/components/`, `src/data/`, and `src/theme/`. It remains a prototype and is not the final application architecture.
 - The prototype is intentionally limited to Dashboard rendering and basic calendar day selection.
-- Dashboard discovery options are available on web with `?option=1`, `?option=2`, and `?option=3`. They share the ink accent, Open Sans, semantic colors, and workout data while exploring dock treatment, card geometry, grouping, and colorful functional icons. Option 1 is the native/default fallback.
+- Dashboard discovery options are available on web with `?option=1`, `?option=2`, and `?option=3`. They share the ink accent, Open Sans, semantic colors, and workout data while exploring dock treatment, card geometry, grouping, and colorful functional icons. Option 3 is now the native and default web fallback; options 1 and 2 remain available explicitly.
 - Plans, History, More, Active Workout, persistence, real navigation, themes, and historical entry are not implemented yet.
 - Mock workouts exist only to make the visual hierarchy reviewable. They must not become the domain model by accident.
 - The supplied logo and the Forge name remain provisional.
