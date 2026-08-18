@@ -18,6 +18,7 @@
 - Playwright's local preview/test server is standardized on port `9021`.
 - The prototype now trials Iconoir through `src/components/ui/Icon.js` as its single icon-family boundary. The family can be replaced later without changing feature components.
 - Iconoir strokes are intentionally slightly heavier for mobile legibility. The Dashboard dock now follows the useful structural pattern found in Stack Wallet's public `WalletNavigationBar`: a narrower floating container, large radius, internal padding, and evenly distributed items.
+- The fixed Dashboard header and floating dock use Expo Blur for a subtle native blur, with translucent surfaces and the same layout on web. The dock sits lower with a smaller bottom margin so the background remains visible around it.
 - Generated Playwright results live in `tests/results/`. Visual baselines remain beside their spec, currently under `tests/dashboard.spec.js-snapshots/`.
 
 ## Revisit before production implementation

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BottomNavigation } from '../../components/BottomNavigation';
 import { Calendar } from '../../components/Calendar';
 import { WorkoutRow } from '../../components/WorkoutRow';
@@ -10,9 +11,21 @@ export function DashboardShell({ children, theme, floatingDock = false }) {
   return (
     <AppScreen backgroundColor={theme.background}>
       <View style={styles.appShell}>
-        <View style={[styles.topBarShell, { backgroundColor: `${theme.background}E8` }, theme.topBar && styles.blurredTopBar]}>
+        <View style={styles.topBarShell}>
+          {theme.topBar && (
+            <BlurView
+              pointerEvents="none"
+              intensity={18}
+              tint="light"
+              style={StyleSheet.absoluteFill}
+            />
+          )}
+          <View style={[styles.topBarTint, { backgroundColor: `${theme.background}C8` }]} />
           <View style={styles.topBar}>
-            <Text style={[styles.screenTitle, { color: theme.ink }]}>Dashboard</Text>
+            <View style={styles.titleGroup}>
+              <Icon name="calendar-outline" size={22} color={theme.accent} />
+              <Text style={[styles.screenTitle, { color: theme.ink }]}>Dashboard</Text>
+            </View>
             <Button label="Start" accessibilityLabel="Start workout" icon="add" onPress={() => {}} theme={theme} />
           </View>
         </View>
@@ -89,8 +102,9 @@ export function DashboardScroll({ children, style }) {
 const styles = StyleSheet.create({
   appShell: { flex: 1 },
   topBarShell: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 2, borderBottomWidth: 1, borderBottomColor: 'transparent' },
-  blurredTopBar: Platform.OS === 'web' ? { backdropFilter: 'blur(16px)' } : {},
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.screen, paddingTop: 10, paddingBottom: 12 },
+  topBarTint: { ...StyleSheet.absoluteFillObject },
+  topBar: { height: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.screen },
+  titleGroup: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   screenTitle: { fontFamily: typography.bold, fontSize: 29, fontWeight: '700', letterSpacing: -0.9 },
   scrollContent: { paddingHorizontal: spacing.screen, paddingTop: 64, paddingBottom: 24, gap: 14 },
   calendarCard: { paddingHorizontal: 14, borderWidth: 1, overflow: 'hidden' },
@@ -118,13 +132,13 @@ const styles = StyleSheet.create({
     width: '82%',
     maxWidth: 360,
     alignSelf: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
     overflow: 'hidden',
     borderRadius: 1000,
     borderWidth: 1,
     borderColor: '#DCE2E6',
     paddingHorizontal: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.72)',
     shadowColor: '#172431',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.08,
