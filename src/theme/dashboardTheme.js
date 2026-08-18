@@ -18,7 +18,7 @@ export const dashboardTheme = {
   dockBorder: '#FFFFFF',
   dockForeground: '#172431',
   dockMuted: 'rgba(23, 36, 49, 0.68)',
-  cardRadius: 18,
+  cardRadius: 24,
   topBar: true,
   headerVariant: 'greeting',
   startButtonVariant: 'outline-compact',

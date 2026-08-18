@@ -1,12 +1,12 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { BlurView } from 'expo-blur';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { DashboardHeader } from '../../components/DashboardHeader';
 import { BottomNavigation } from '../../components/BottomNavigation';
 import { Calendar } from '../../components/Calendar';
 import { WorkoutRow } from '../../components/WorkoutRow';
-import { AppScreen, Button, Icon, SectionHeader } from '../../components/ui';
+import { workoutsByDate } from '../../data/mockWorkouts';
+import { AppScreen, Button } from '../../components/ui';
 import { typography, spacing } from '../../theme/tokens';
 import { useLayoutProbe } from '../../debug/layoutProbe';
 
@@ -22,8 +22,10 @@ export function DashboardShell({ children, theme }) {
           <Svg pointerEvents="none" testID="dashboard-dock-vignette" style={styles.dockVignette}>
             <Defs>
               <LinearGradient id="forgeDockBottomFade" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor={theme.background} stopOpacity="0" />
-                <Stop offset="1" stopColor={theme.background} stopOpacity="0.9" />
+              <Stop offset="0" stopColor={theme.background} stopOpacity="0" />
+                <Stop offset="0.3" stopColor={theme.background} stopOpacity="0.42" />
+                <Stop offset="0.56" stopColor={theme.background} stopOpacity="0.82" />
+                <Stop offset="1" stopColor={theme.background} stopOpacity="1" />
               </LinearGradient>
             </Defs>
             <Rect x="0" y="0" width="100%" height="100%" fill="url(#forgeDockBottomFade)" />
@@ -34,7 +36,6 @@ export function DashboardShell({ children, theme }) {
             testID="dashboard-dock-cylinder"
             style={[styles.dockCylinder, { backgroundColor: theme.dockSurface, borderColor: theme.dockBorder }]}
           >
-            <BlurView testID="dashboard-dock-blur" tint="light" intensity={18} style={styles.dockBlur} />
             <BottomNavigation theme={{ ...theme, surface: theme.surface }} />
           </View>
           <View
@@ -48,23 +49,23 @@ export function DashboardShell({ children, theme }) {
   );
 }
 
-export function DashboardCalendar({ selectedDay, setSelectedDay, theme, style }) {
+export function DashboardCalendar({ selectedDay, setSelectedDay, theme }) {
   return (
-    <View style={[styles.calendarCard, { backgroundColor: 'transparent', borderRadius: theme.cardRadius }, style]}>
+    <View style={[styles.calendarCard, { backgroundColor: 'transparent', borderRadius: theme.cardRadius }]}>
       <Calendar selectedDay={selectedDay} setSelectedDay={setSelectedDay} theme={theme} />
     </View>
   );
 }
 
-export function DashboardWorkoutCard({ selectedDay, selectedWorkouts, theme, rail = false, compact = false }) {
+export function DashboardWorkoutCard({ selectedDay, selectedWorkouts, theme }) {
   return (
-    <View style={[styles.dayCard, compact && styles.compactDayCard, { backgroundColor: theme.calendarSurface || theme.surface, borderRadius: theme.cardRadius }, rail && { borderLeftColor: theme.accent, borderLeftWidth: 3 }]}>
+    <View style={[styles.dayCard, { backgroundColor: theme.calendarSurface || theme.surface, borderRadius: theme.cardRadius }]}>
       <View style={styles.cardHeader}>
         <Text style={[styles.selectedDate, { color: theme.ink }]}>August {selectedDay}, 2026</Text>
         <Text style={[styles.dayCount, { color: theme.ink }]}>{selectedWorkouts.length} {selectedWorkouts.length === 1 ? 'workout' : 'workouts'}</Text>
       </View>
       {selectedWorkouts.length > 0 ? (
-        <View style={[styles.workoutList, compact && styles.compactWorkoutList, { borderTopColor: theme.divider }]}>
+        <View style={[styles.workoutList, { borderTopColor: theme.divider }]}>
           {selectedWorkouts.map((workout) => <WorkoutRow key={`${selectedDay}-${workout.name}`} workout={workout} theme={theme} />)}
         </View>
       ) : (
@@ -78,12 +79,13 @@ export function DashboardWorkoutCard({ selectedDay, selectedWorkouts, theme, rai
   );
 }
 
-export function DashboardContextCard({ theme, icons = false, inline = false, compact = false }) {
-  const contextProbe = useLayoutProbe('dashboard-context-card', { background: theme.surfaceMuted });
+export function DashboardContextCard({ theme, compact = false }) {
+  const contextProbe = useLayoutProbe('dashboard-context-card', { background: theme.calendarSurface });
+  const typeSummary = summarizeWorkoutTypes();
   const metrics = [
-    ['3', 'workouts this week', theme.iconCalendar, 'calendar-outline'],
-    ['8', 'workouts this month', theme.iconStrength, 'fitness-outline'],
-    ['8 h 06', 'training time', theme.iconTime, 'stopwatch-outline'],
+    ['3', 'workouts this week'],
+    ['8', 'workouts this month'],
+    ['8 h 06', 'training time'],
   ];
 
   return (
@@ -91,25 +93,66 @@ export function DashboardContextCard({ theme, icons = false, inline = false, com
       ref={contextProbe.ref}
       onLayout={contextProbe.onLayout}
       testID="dashboard-context-card"
-      style={[styles.contextCard, compact && styles.compactContextCard, inline && styles.inlineContextCard, { backgroundColor: theme.surfaceMuted, borderRadius: theme.cardRadius }]}
+      style={[styles.contextCard, compact && styles.compactContextCard, { backgroundColor: theme.calendarSurface || theme.surface, borderRadius: theme.cardRadius }]}
     >
-      <SectionHeader title="Recent context" meta="This month" theme={theme} />
+      <Text style={[styles.contextTitle, { color: theme.ink }]}>Recent context</Text>
       <View
         style={[styles.contextRow, compact && styles.compactContextRow, { borderColor: theme.divider }]}
       >
-        {metrics.map(([value, label, iconColor, iconName], index) => (
+        {metrics.map(([value, label], index) => (
           <React.Fragment key={label}>
             <View style={styles.metric}>
-              {icons && <Icon name={iconName} size={compact ? 16 : 19} color={iconColor} style={[styles.metricIcon, compact && styles.compactMetricIcon]} />}
               <Text style={[styles.contextValue, compact && styles.compactContextValue, { color: theme.ink }]}>{value}</Text>
-              <Text style={[styles.contextLabel, compact && styles.compactContextLabel, { color: theme.muted }]}>{label}</Text>
+              <Text style={[styles.contextLabel, compact && styles.compactContextLabel, { color: theme.ink }]}>{label}</Text>
             </View>
             {index < metrics.length - 1 && <View style={[styles.contextDivider, { backgroundColor: theme.divider }]} />}
           </React.Fragment>
         ))}
       </View>
+      <View style={[styles.typeSection, { borderTopColor: theme.divider }]}>
+        <Text style={[styles.typeTitle, { color: theme.ink }]}>By type</Text>
+        <View style={styles.typeBar}>
+          {typeSummary.map((item) => <View key={item.type} style={[styles.typeBarSegment, { backgroundColor: item.color, flex: item.count }]} />)}
+        </View>
+        {typeSummary.map((item) => (
+          <View key={item.type} style={styles.typeRow}>
+            <View style={styles.typeLabelWrap}>
+              <View style={[styles.typeDot, { backgroundColor: item.color }]} />
+              <Text style={[styles.typeLabel, { color: theme.ink }]}>{item.type}</Text>
+            </View>
+            <Text style={[styles.typeValue, { color: theme.ink }]}>{item.count} · {item.duration}</Text>
+          </View>
+        ))}
+      </View>
     </View>
   );
+}
+
+function summarizeWorkoutTypes() {
+  const summary = {};
+  Object.values(workoutsByDate).flat().forEach((workout) => {
+    const minutes = parseDuration(workout.duration);
+    if (!summary[workout.type]) summary[workout.type] = { type: workout.type, count: 0, minutes };
+    else summary[workout.type].minutes += minutes;
+    summary[workout.type].count += 1;
+  });
+  return Object.values(summary).map((item) => ({
+    ...item,
+    duration: formatDuration(item.minutes),
+    color: item.type === 'Strength' ? '#8290F4' : '#ED7C82',
+  }));
+}
+
+function parseDuration(value) {
+  const hours = Number(value.match(/(\d+)\s*h/)?.[1] || 0);
+  const minutes = Number(value.match(/(\d+)\s*min/)?.[1] || 0);
+  return hours * 60 + minutes;
+}
+
+function formatDuration(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return hours ? `${hours}h ${String(remainder).padStart(2, '0')}m` : `${remainder}m`;
 }
 
 export function DashboardScroll({ children, style, header }) {
@@ -128,29 +171,34 @@ const styles = StyleSheet.create({
   scrollHeader: { marginHorizontal: -spacing.screen },
   calendarCard: { position: 'relative', zIndex: 10, marginHorizontal: 0, paddingHorizontal: 0, borderWidth: 0, overflow: 'visible' },
   dayCard: { borderWidth: 0, overflow: 'hidden' },
-  compactDayCard: { borderRadius: 12 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 },
   selectedDate: { flex: 1, fontFamily: typography.bold, fontSize: 18, fontWeight: '700', letterSpacing: -0.2 },
   dayCount: { fontFamily: typography.regular, fontSize: 12, paddingBottom: 2 },
   workoutList: { borderTopWidth: 1, paddingHorizontal: 16 },
-  compactWorkoutList: { paddingHorizontal: 12 },
   emptyDay: { padding: 16, borderTopWidth: 1 },
   emptyTitle: { fontFamily: typography.semibold, fontSize: 15, fontWeight: '600' },
   emptyCopy: { fontFamily: typography.regular, fontSize: 13, lineHeight: 19, marginTop: 6, maxWidth: 300 },
   secondaryAction: { alignSelf: 'flex-start', marginTop: 14 },
   contextCard: { padding: 16 },
-  compactContextCard: { padding: 8 },
-  inlineContextCard: { paddingVertical: 13 },
+  compactContextCard: { paddingVertical: 8, paddingHorizontal: 16 },
+  contextTitle: { alignSelf: 'flex-start', fontFamily: typography.semibold, fontSize: 18, fontWeight: '600', marginBottom: 15 },
   contextRow: { flexDirection: 'row', alignItems: 'stretch', paddingTop: 14, borderTopWidth: 1 },
   compactContextRow: { paddingTop: 6 },
   metric: { flex: 1 },
-  metricIcon: { marginBottom: 8, opacity: 0.72 },
-  compactMetricIcon: { marginBottom: 2 },
-  contextValue: { fontFamily: typography.bold, fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
-  compactContextValue: { fontSize: 18 },
-  contextLabel: { fontFamily: typography.medium, fontSize: 11.5, marginTop: 4, maxWidth: 86, lineHeight: 16 },
+  contextValue: { fontFamily: typography.bold, fontSize: 28, fontWeight: '700', letterSpacing: -0.5, textAlign: 'center' },
+  compactContextValue: { fontSize: 25 },
+  contextLabel: { alignSelf: 'center', fontFamily: typography.medium, fontSize: 11.5, marginTop: 5, maxWidth: 86, lineHeight: 16, textAlign: 'center' },
   compactContextLabel: { fontSize: 11, marginTop: 2, lineHeight: 14 },
   contextDivider: { width: 1, marginHorizontal: 12 },
+  typeSection: { borderTopWidth: 1, marginTop: 16, paddingTop: 10 },
+  typeTitle: { fontFamily: typography.medium, fontSize: 13, fontWeight: '500', letterSpacing: 0.2, marginBottom: 8 },
+  typeBar: { flexDirection: 'row', gap: 4, height: 7, marginBottom: 4 },
+  typeBarSegment: { borderRadius: 1000 },
+  typeRow: { minHeight: 28, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  typeLabelWrap: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  typeDot: { width: 9, height: 9, borderRadius: 4.5 },
+  typeLabel: { fontFamily: typography.regular, fontSize: 14 },
+  typeValue: { fontFamily: typography.regular, fontSize: 13 },
   dockSlot: {
     position: 'absolute',
     left: 0,
@@ -167,7 +215,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: 20,
+    height: 68,
     zIndex: 0,
   },
   dockHomeIndicator: {
@@ -193,5 +241,4 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 4,
   },
-  dockBlur: { ...StyleSheet.absoluteFillObject, borderRadius: 1000, opacity: 0 },
 });

@@ -8,6 +8,17 @@ async function captureDiagnostic(page, name, mutate) {
 }
 
 test.describe('Dashboard dock diagnostics', () => {
+  test('captures the Recent context card at readable scale', async ({ page }) => {
+    await page.goto('/');
+    const contextCard = page.getByTestId('dashboard-context-card');
+    await expect(contextCard).toBeVisible();
+    await contextCard.scrollIntoViewIfNeeded();
+    await page.getByTestId('dashboard-dock-slot').evaluate((element) => {
+      element.style.display = 'none';
+    });
+    await contextCard.screenshot({ path: 'tests/results/diagnostics/dashboard-context-card.png' });
+  });
+
   test('captures each suspected layer in isolation', async ({ page }) => {
     await captureDiagnostic(page, 'base', async () => {});
 
