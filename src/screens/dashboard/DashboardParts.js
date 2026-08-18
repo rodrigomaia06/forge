@@ -18,7 +18,7 @@ export function DashboardShell({ children, theme }) {
           <Button label="Start" accessibilityLabel="Start workout" icon="add" onPress={() => {}} theme={theme} />
         </View>
         <View style={styles.body}>{children}</View>
-        <View style={[styles.dockSlot, { backgroundColor: theme.background }]}>
+        <View style={styles.dockSlot}>
           <View style={[styles.dockCylinder, { backgroundColor: theme.ink, borderColor: theme.slate }]}>
             <BottomNavigation theme={{ ...theme, surface: theme.surface }} />
           </View>
