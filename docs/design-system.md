@@ -54,6 +54,20 @@ Use one medium-weight cross-platform line icon family. Filled variants are accep
 
 Use a solid accent-filled control only for the single most important action in a context. Secondary controls are neutral fills, subtle borders, or text/icon actions. Destructive controls use their own semantic styling.
 
+## Cross-platform component contract
+
+The product owns its reusable interface primitives in `src/components/ui/`. These components are built from React Native primitives and shared semantic tokens, so the visual identity does not depend on iOS-only controls or platform-default styling.
+
+The initial foundation includes:
+
+- `AppScreen` for safe-area-aware screen composition.
+- `Button` for primary and secondary actions.
+- `NavigationItem` for persistent destination navigation.
+- `SectionHeader` for compact section hierarchy.
+- `Divider` for quiet structural separation.
+
+Platform-specific behavior remains appropriate for system integration such as safe areas, keyboards, accessibility services, haptics, and system permissions. It should not define the product’s core shapes, colors, spacing, or interaction language.
+
 ## Calendar language
 
 The month grid is a meaningful product surface, not a decorative widget. Completed days use small accent markers or compact indicators. Multiple workouts can use multiple marks or a count. The selected date receives the strongest treatment through background, outline, or both, while trained days remain quiet enough to preserve scanability.
@@ -61,4 +75,3 @@ The month grid is a meaningful product surface, not a decorative widget. Complet
 ## Motion and feedback
 
 Use smooth, restrained motion only to communicate a state change: completion, timer start/stop, expansion, navigation, addition, or error. Set completion should be clearly satisfying but stable: visible state update plus subtle haptic, with no celebration, screen movement, or gamification.
-
