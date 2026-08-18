@@ -2,6 +2,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { DashboardHeader } from '../../components/DashboardHeader';
 import { BottomNavigation } from '../../components/BottomNavigation';
 import { Calendar } from '../../components/Calendar';
 import { WorkoutRow } from '../../components/WorkoutRow';
@@ -13,18 +14,10 @@ export function DashboardShell({ children, theme }) {
   const shellProbe = useLayoutProbe('dashboard-shell', { background: theme.background });
   const dockSlotProbe = useLayoutProbe('dashboard-dock-slot', { background: 'transparent' });
   const dockCylinderProbe = useLayoutProbe('dashboard-dock-cylinder', { background: theme.dockSurface });
-
   return (
     <AppScreen testID="dashboard-app-screen" backgroundColor={theme.background}>
       <View ref={shellProbe.ref} onLayout={shellProbe.onLayout} testID="dashboard-shell" style={styles.appShell}>
-        <View testID="dashboard-header" style={[styles.topBar, { backgroundColor: theme.background }]}>
-          <View style={styles.titleGroup}>
-            <Icon name="calendar-outline" size={22} color={theme.accent} />
-            <Text style={[styles.screenTitle, { color: theme.ink }]}>Dashboard</Text>
-          </View>
-          <Button label="Start" accessibilityLabel="Start workout" icon="add" onPress={() => {}} theme={theme} />
-        </View>
-        <View style={styles.body}>{children}</View>
+        <View style={styles.body}>{React.cloneElement(children, { header: <DashboardHeader theme={theme} variant={theme.headerVariant} /> })}</View>
         <View pointerEvents="box-none" ref={dockSlotProbe.ref} onLayout={dockSlotProbe.onLayout} testID="dashboard-dock-slot" style={styles.dockSlot}>
           <Svg pointerEvents="none" testID="dashboard-dock-vignette" style={styles.dockVignette}>
             <Defs>
@@ -57,8 +50,17 @@ export function DashboardShell({ children, theme }) {
 
 export function DashboardCalendar({ selectedDay, setSelectedDay, theme, style }) {
   return (
-    <View style={[styles.calendarCard, { backgroundColor: theme.surface, borderColor: theme.divider, borderRadius: theme.cardRadius }, style]}>
+    <View style={[styles.calendarCard, { backgroundColor: 'transparent', borderRadius: theme.cardRadius }, style]}>
       <Calendar selectedDay={selectedDay} setSelectedDay={setSelectedDay} theme={theme} />
+    </View>
+  );
+}
+
+export function DashboardTodaySection({ count, theme }) {
+  return (
+    <View style={styles.todayRow}>
+      <Text style={[styles.todayTitle, { color: theme.ink }]}>Today</Text>
+      <Text style={[styles.todayCount, { color: theme.slate }]}>{count} {count === 1 ? 'workout' : 'workouts'}</Text>
     </View>
   );
 }
@@ -120,20 +122,24 @@ export function DashboardContextCard({ theme, icons = false, inline = false, com
   );
 }
 
-export function DashboardScroll({ children, style }) {
+export function DashboardScroll({ children, style, header }) {
   const scrollProbe = useLayoutProbe('dashboard-scroll');
-  return <ScrollView ref={scrollProbe.ref} onLayout={scrollProbe.onLayout} testID="dashboard-scroll" style={styles.scrollView} contentContainerStyle={[styles.scrollContent, style]} showsVerticalScrollIndicator={false}>{children}</ScrollView>;
+  return <ScrollView ref={scrollProbe.ref} onLayout={scrollProbe.onLayout} testID="dashboard-scroll" style={styles.scrollView} contentContainerStyle={[styles.scrollContent, style]} showsVerticalScrollIndicator={false}>
+    {header && React.cloneElement(header, { style: styles.scrollHeader })}
+    {children}
+  </ScrollView>;
 }
 
 const styles = StyleSheet.create({
   appShell: { flex: 1 },
-  topBar: { height: 64, flexShrink: 0, zIndex: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.screen },
-  titleGroup: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  screenTitle: { fontFamily: typography.bold, fontSize: 29, fontWeight: '700', letterSpacing: -0.9 },
   body: { flex: 1, minHeight: 0 },
   scrollView: { flex: 1 },
-  scrollContent: { paddingHorizontal: spacing.screen, paddingTop: 16, paddingBottom: 132, gap: 14 },
-  calendarCard: { paddingHorizontal: 14, borderWidth: 1, overflow: 'hidden' },
+  scrollContent: { paddingHorizontal: spacing.screen, paddingTop: 0, paddingBottom: 132, gap: 14 },
+  scrollHeader: { marginHorizontal: -spacing.screen },
+  calendarCard: { paddingHorizontal: 10, borderWidth: 0, overflow: 'hidden' },
+  todayRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingHorizontal: 4 },
+  todayTitle: { fontFamily: typography.semibold, fontSize: 17, fontWeight: '600' },
+  todayCount: { fontFamily: typography.medium, fontSize: 12 },
   dayCard: { borderWidth: 1, overflow: 'hidden' },
   compactDayCard: { borderRadius: 12 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 },
@@ -156,8 +162,8 @@ const styles = StyleSheet.create({
   compactMetricIcon: { marginBottom: 2 },
   contextValue: { fontFamily: typography.bold, fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
   compactContextValue: { fontSize: 18 },
-  contextLabel: { fontFamily: typography.regular, fontSize: 11, marginTop: 4, maxWidth: 80, lineHeight: 15 },
-  compactContextLabel: { fontSize: 10, marginTop: 2, lineHeight: 13 },
+  contextLabel: { fontFamily: typography.medium, fontSize: 12, marginTop: 4, maxWidth: 86, lineHeight: 16 },
+  compactContextLabel: { fontSize: 11, marginTop: 2, lineHeight: 14 },
   contextDivider: { width: 1, marginHorizontal: 12 },
   dockSlot: {
     position: 'absolute',

@@ -25,4 +25,4 @@ The prototype should be judged visually and interactively first. Product and imp
 
 ## Anti-AI review pass
 
-The current prototype avoids generic generated patterns by using direct labels, a labeled `Start` action, a calendar-led composition, flat workout rows, restrained markers, and separated training context instead of a metrics card. It intentionally has no gradients, glass, decorative hero, repeated card grid, motivational copy, streaks, badges, or celebration animation.
+The current prototype avoids generic generated patterns by using direct labels, an icon-only accessible `Start workout` action, a calendar-led composition, selectable Year/Month/Week views, completed-day overlays with restrained dots, flat workout rows, and separated training context instead of a metrics card. It intentionally has no gradients, glass, decorative hero, repeated card grid, motivational copy, streaks, badges, or celebration animation.

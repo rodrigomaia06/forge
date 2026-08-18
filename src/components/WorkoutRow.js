@@ -18,7 +18,7 @@ export function WorkoutRow({ workout, theme = colors }) {
         </View>
         <Text style={[styles.meta, { color: theme.slate }]}>{workout.type} · {workout.summary}</Text>
       </View>
-      <Icon name="chevron-forward" size={17} color={theme.muted} />
+      <Icon name="chevron-forward" size={17} color={theme.slate} />
     </Pressable>
   );
 }
@@ -30,6 +30,6 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 },
   name: { flex: 1, color: colors.ink, fontFamily: typography.semibold, fontSize: 16, fontWeight: '600' },
   duration: { color: colors.slate, fontFamily: typography.regular, fontSize: 12 },
-  meta: { color: colors.slate, fontFamily: typography.regular, fontSize: 12, marginTop: 6 },
+  meta: { color: colors.slate, fontFamily: typography.regular, fontSize: 13, marginTop: 6 },
   pressed: { opacity: 0.65 },
 });

@@ -5,11 +5,11 @@ import { NavigationItem } from './ui';
 import { colors } from '../theme/tokens';
 
 const items = [
-  ['calendar-outline', 'Dashboard', true, false],
+  ['home-outline', 'Dashboard', true, false],
   ['time-outline', 'History', false, false],
-  ['fitness-outline', 'Workout', false, true],
-  ['layers-outline', 'Plans', false, false],
-  ['ellipsis-horizontal', 'More', false, false],
+  ['play', 'Workout', false, true],
+  ['book', 'Plans', false, false],
+  ['menu', 'More', false, false],
 ];
 
 export function BottomNavigation({ theme = colors }) {

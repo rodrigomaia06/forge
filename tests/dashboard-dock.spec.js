@@ -30,11 +30,13 @@ test.describe('Dashboard dock geometry', () => {
     const scroll = await page.getByTestId('dashboard-scroll').boundingBox();
     expect(header).not.toBeNull();
     expect(scroll).not.toBeNull();
-    expect(header.y).toBe(shell.y);
-    expect(scroll.y).toBeGreaterThanOrEqual(header.y + header.height);
+    expect(header.y).toBe(scroll.y);
+    expect(header.y).toBeGreaterThanOrEqual(shell.y);
+    await expect(page.getByTestId('dashboard-header')).toHaveCSS('position', 'relative');
     await expect(page.getByTestId('dashboard-dock-blur')).toBeVisible();
     await expect(page.getByTestId('dashboard-dock-vignette')).toBeVisible();
     await expect(page.getByTestId('dashboard-dock-home-indicator')).toBeVisible();
+    await expect(page.getByTestId('dashboard-header-title')).toBeVisible();
     await expect(page.locator('[data-testid^="dashboard-nav-label-"]')).toHaveCount(0);
     await expect(page.getByTestId('dashboard-nav-history')).toBeVisible();
     await expect(page.getByTestId('dashboard-nav-workout')).toBeVisible();
