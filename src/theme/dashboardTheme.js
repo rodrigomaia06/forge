@@ -13,4 +13,7 @@ export const dashboardTheme = {
   navigation: '#FFFFFF',
   cardRadius: 18,
   topBar: true,
+  iconCalendar: '#284C68',
+  iconTime: '#775A91',
+  iconVolume: '#4D7B67',
 };

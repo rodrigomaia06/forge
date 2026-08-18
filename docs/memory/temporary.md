@@ -4,7 +4,7 @@
 
 - The first visual Dashboard prototype is split into `src/screens/`, `src/components/`, `src/data/`, and `src/theme/`. It remains a prototype and is not the final application architecture.
 - The prototype is intentionally limited to Dashboard rendering and basic calendar day selection.
-- The Dashboard now has one active visual direction: ink accent, Open Sans, card-based archive, and a restrained translucent top-bar overlay inspired by the reference site. The blur is limited to app chrome and should not spread into content surfaces.
+- Dashboard discovery options are available on web with `?option=1`, `?option=2`, and `?option=3`. They share the ink accent, Open Sans, semantic colors, and workout data while exploring dock treatment, card geometry, grouping, and colorful functional icons. Option 1 is the native/default fallback.
 - Plans, History, More, Active Workout, persistence, real navigation, themes, and historical entry are not implemented yet.
 - Mock workouts exist only to make the visual hierarchy reviewable. They must not become the domain model by accident.
 - The supplied logo and the Forge name remain provisional.
