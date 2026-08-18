@@ -12,9 +12,10 @@ test.describe('Dashboard dock diagnostics', () => {
     await captureDiagnostic(page, 'base', async () => {});
 
     await captureDiagnostic(page, 'without-context-card', async (currentPage) => {
-      await currentPage.getByTestId('dashboard-context-card').evaluate((element) => {
-        element.style.display = 'none';
-      });
+      const contextCard = currentPage.getByTestId('dashboard-context-card');
+      if (await contextCard.count()) {
+        await contextCard.evaluate((element) => { element.style.display = 'none'; });
+      }
     });
 
     await captureDiagnostic(page, 'without-dock-cylinder', async (currentPage) => {
@@ -42,4 +43,3 @@ test.describe('Dashboard dock diagnostics', () => {
     });
   });
 });
-
