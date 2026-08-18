@@ -39,7 +39,6 @@ export function DashboardShell({ children, theme, floatingDock = false }) {
               style={StyleSheet.absoluteFill}
             />
           )}
-          {floatingDock && <View style={styles.dockTint} />}
           <BottomNavigation theme={theme} />
         </View>
       </View>
@@ -147,7 +146,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#DCE2E6',
     paddingHorizontal: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.48)',
+    backgroundColor: 'rgba(255, 255, 255, 0.64)',
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(14px)' } : {}),
     shadowColor: '#172431',
     shadowOffset: { width: 0, height: 3 },
@@ -155,5 +154,4 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 3,
   },
-  dockTint: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255, 255, 255, 0.42)' },
 });
