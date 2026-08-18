@@ -21,3 +21,10 @@ export const spacing = {
   screen: 20,
   section: 28,
 };
+
+export const typography = {
+  regular: 'OpenSans_400Regular',
+  medium: 'OpenSans_500Medium',
+  semibold: 'OpenSans_600SemiBold',
+  bold: 'OpenSans_700Bold',
+};
