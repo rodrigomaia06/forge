@@ -9,7 +9,7 @@ import { useLayoutProbe } from '../../debug/layoutProbe';
 
 export function DashboardShell({ children, theme }) {
   const shellProbe = useLayoutProbe('dashboard-shell', { background: theme.background });
-  const dockSlotProbe = useLayoutProbe('dashboard-dock-slot', { background: theme.dockBackdrop });
+  const dockSlotProbe = useLayoutProbe('dashboard-dock-slot', { background: 'transparent' });
   const dockCylinderProbe = useLayoutProbe('dashboard-dock-cylinder', { background: theme.dockSurface });
 
   return (
@@ -23,7 +23,7 @@ export function DashboardShell({ children, theme }) {
           <Button label="Start" accessibilityLabel="Start workout" icon="add" onPress={() => {}} theme={theme} />
         </View>
         <View style={styles.body}>{children}</View>
-        <View ref={dockSlotProbe.ref} onLayout={dockSlotProbe.onLayout} testID="dashboard-dock-slot" style={[styles.dockSlot, { backgroundColor: theme.dockBackdrop }]}>
+        <View ref={dockSlotProbe.ref} onLayout={dockSlotProbe.onLayout} testID="dashboard-dock-slot" style={styles.dockSlot}>
           <View
             ref={dockCylinderProbe.ref}
             onLayout={dockCylinderProbe.onLayout}
@@ -155,5 +155,10 @@ const styles = StyleSheet.create({
     borderRadius: 1000,
     borderWidth: 1,
     paddingHorizontal: 8,
+    shadowColor: '#172431',
+    shadowOpacity: 0.14,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
   },
 });
