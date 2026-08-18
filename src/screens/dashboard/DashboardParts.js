@@ -56,22 +56,12 @@ export function DashboardCalendar({ selectedDay, setSelectedDay, theme, style })
   );
 }
 
-export function DashboardTodaySection({ count, theme }) {
+export function DashboardWorkoutCard({ selectedDay, selectedWorkouts, theme, rail = false, compact = false }) {
   return (
-    <View style={styles.todayRow}>
-      <Text style={[styles.todayTitle, { color: theme.ink }]}>Today</Text>
-      <Text style={[styles.todayCount, { color: theme.slate }]}>{count} {count === 1 ? 'workout' : 'workouts'}</Text>
-    </View>
-  );
-}
-
-export function DashboardWorkoutCard({ selectedDay, selectedWorkouts, theme, rail = false, compact = false, icon = false }) {
-  return (
-    <View style={[styles.dayCard, compact && styles.compactDayCard, { backgroundColor: theme.surface, borderColor: theme.divider, borderRadius: theme.cardRadius }, rail && { borderLeftColor: theme.accent, borderLeftWidth: 4 }]}>
+    <View style={[styles.dayCard, compact && styles.compactDayCard, { backgroundColor: theme.calendarSurface || theme.surface, borderRadius: theme.cardRadius }, rail && { borderLeftColor: theme.accent, borderLeftWidth: 3 }]}>
       <View style={styles.cardHeader}>
-        {icon && <Icon name="calendar-clear-outline" size={19} color={theme.iconCalendar} />}
-        <Text style={[styles.selectedDate, { color: theme.ink }, icon && styles.headerWithIcon]}>August {selectedDay}, 2026</Text>
-        <Text style={[styles.dayCount, { color: theme.slate }]}>{selectedWorkouts.length} {selectedWorkouts.length === 1 ? 'workout' : 'workouts'}</Text>
+        <Text style={[styles.selectedDate, { color: theme.ink }]}>August {selectedDay}, 2026</Text>
+        <Text style={[styles.dayCount, { color: theme.ink }]}>{selectedWorkouts.length} {selectedWorkouts.length === 1 ? 'workout' : 'workouts'}</Text>
       </View>
       {selectedWorkouts.length > 0 ? (
         <View style={[styles.workoutList, compact && styles.compactWorkoutList, { borderTopColor: theme.divider }]}>
@@ -80,7 +70,7 @@ export function DashboardWorkoutCard({ selectedDay, selectedWorkouts, theme, rai
       ) : (
         <View style={[styles.emptyDay, { borderTopColor: theme.divider }]}>
           <Text style={[styles.emptyTitle, { color: theme.ink }]}>No workouts recorded</Text>
-          <Text style={[styles.emptyCopy, { color: theme.slate }]}>Add a workout from this date to keep your archive complete.</Text>
+          <Text style={[styles.emptyCopy, { color: theme.muted }]}>Add a workout from this date to keep your archive complete.</Text>
           <Button label="Add historical workout" variant="secondary" onPress={() => {}} style={styles.secondaryAction} theme={theme} />
         </View>
       )}
@@ -112,7 +102,7 @@ export function DashboardContextCard({ theme, icons = false, inline = false, com
             <View style={styles.metric}>
               {icons && <Icon name={iconName} size={compact ? 16 : 19} color={iconColor} style={[styles.metricIcon, compact && styles.compactMetricIcon]} />}
               <Text style={[styles.contextValue, compact && styles.compactContextValue, { color: theme.ink }]}>{value}</Text>
-              <Text style={[styles.contextLabel, compact && styles.compactContextLabel, { color: theme.slate }]}>{label}</Text>
+              <Text style={[styles.contextLabel, compact && styles.compactContextLabel, { color: theme.muted }]}>{label}</Text>
             </View>
             {index < metrics.length - 1 && <View style={[styles.contextDivider, { backgroundColor: theme.divider }]} />}
           </React.Fragment>
@@ -137,14 +127,10 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: spacing.screen, paddingTop: 0, paddingBottom: 132, gap: 14 },
   scrollHeader: { marginHorizontal: -spacing.screen },
   calendarCard: { position: 'relative', zIndex: 10, marginHorizontal: 0, paddingHorizontal: 0, borderWidth: 0, overflow: 'visible' },
-  todayRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingHorizontal: 4 },
-  todayTitle: { fontFamily: typography.semibold, fontSize: 17, fontWeight: '600' },
-  todayCount: { fontFamily: typography.medium, fontSize: 12 },
-  dayCard: { borderWidth: 1, overflow: 'hidden' },
+  dayCard: { borderWidth: 0, overflow: 'hidden' },
   compactDayCard: { borderRadius: 12 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 },
   selectedDate: { flex: 1, fontFamily: typography.bold, fontSize: 18, fontWeight: '700', letterSpacing: -0.2 },
-  headerWithIcon: { flex: 1 },
   dayCount: { fontFamily: typography.regular, fontSize: 12, paddingBottom: 2 },
   workoutList: { borderTopWidth: 1, paddingHorizontal: 16 },
   compactWorkoutList: { paddingHorizontal: 12 },
@@ -158,11 +144,11 @@ const styles = StyleSheet.create({
   contextRow: { flexDirection: 'row', alignItems: 'stretch', paddingTop: 14, borderTopWidth: 1 },
   compactContextRow: { paddingTop: 6 },
   metric: { flex: 1 },
-  metricIcon: { marginBottom: 8 },
+  metricIcon: { marginBottom: 8, opacity: 0.72 },
   compactMetricIcon: { marginBottom: 2 },
   contextValue: { fontFamily: typography.bold, fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
   compactContextValue: { fontSize: 18 },
-  contextLabel: { fontFamily: typography.medium, fontSize: 12, marginTop: 4, maxWidth: 86, lineHeight: 16 },
+  contextLabel: { fontFamily: typography.medium, fontSize: 11.5, marginTop: 4, maxWidth: 86, lineHeight: 16 },
   compactContextLabel: { fontSize: 11, marginTop: 2, lineHeight: 14 },
   contextDivider: { width: 1, marginHorizontal: 12 },
   dockSlot: {

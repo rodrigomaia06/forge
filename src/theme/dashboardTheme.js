@@ -7,7 +7,7 @@ export const dashboardTheme = {
   ink: '#17191C',
   accent: '#1D252D',
   slate: '#55585C',
-  muted: '#62676B',
+  muted: '#8A969E',
   divider: '#E2E3E0',
   selected: '#1F2932',
   selectedText: '#FFFFFF',
@@ -23,6 +23,8 @@ export const dashboardTheme = {
   headerVariant: 'greeting',
   startButtonVariant: 'outline-compact',
   iconCalendar: '#4F6B5B',
-  iconStrength: '#8A6A4A',
+  iconStrength: '#6F7FF2',
+  iconSport: '#62C98A',
+  iconActivity: '#E99A5B',
   iconTime: '#5F7770',
 };
