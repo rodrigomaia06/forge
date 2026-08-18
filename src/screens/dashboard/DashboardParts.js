@@ -1,45 +1,27 @@
 import React from 'react';
-import { BlurView } from 'expo-blur';
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BottomNavigation } from '../../components/BottomNavigation';
 import { Calendar } from '../../components/Calendar';
 import { WorkoutRow } from '../../components/WorkoutRow';
 import { AppScreen, Button, Icon, SectionHeader } from '../../components/ui';
 import { typography, spacing } from '../../theme/tokens';
 
-export function DashboardShell({ children, theme, floatingDock = false }) {
+export function DashboardShell({ children, theme }) {
   return (
     <AppScreen backgroundColor={theme.background}>
       <View style={styles.appShell}>
-        <View style={styles.topBarShell}>
-          {theme.topBar && (
-            <BlurView
-              pointerEvents="none"
-              intensity={18}
-              tint="light"
-              style={StyleSheet.absoluteFill}
-            />
-          )}
-          <View style={[styles.topBarTint, { backgroundColor: `${theme.background}C8` }]} />
-          <View style={styles.topBar}>
-            <View style={styles.titleGroup}>
-              <Icon name="calendar-outline" size={22} color={theme.accent} />
-              <Text style={[styles.screenTitle, { color: theme.ink }]}>Dashboard</Text>
-            </View>
-            <Button label="Start" accessibilityLabel="Start workout" icon="add" onPress={() => {}} theme={theme} />
+        <View style={[styles.topBar, { backgroundColor: theme.background }]}>
+          <View style={styles.titleGroup}>
+            <Icon name="calendar-outline" size={22} color={theme.accent} />
+            <Text style={[styles.screenTitle, { color: theme.ink }]}>Dashboard</Text>
           </View>
+          <Button label="Start" accessibilityLabel="Start workout" icon="add" onPress={() => {}} theme={theme} />
         </View>
-        {children}
-        <View style={floatingDock ? styles.floatingDock : null}>
-          {floatingDock && Platform.OS !== 'web' && (
-            <BlurView
-              pointerEvents="none"
-              intensity={22}
-              tint="dark"
-              style={[StyleSheet.absoluteFill, styles.dockBlur]}
-            />
-          )}
-          <BottomNavigation theme={theme} />
+        <View style={styles.body}>{children}</View>
+        <View style={[styles.dockSlot, { backgroundColor: theme.background }]}>
+          <View style={[styles.dockCylinder, { backgroundColor: theme.ink, borderColor: theme.slate }]}>
+            <BottomNavigation theme={{ ...theme, surface: theme.surface }} />
+          </View>
         </View>
       </View>
     </AppScreen>
@@ -109,13 +91,12 @@ export function DashboardScroll({ children, style }) {
 
 const styles = StyleSheet.create({
   appShell: { flex: 1 },
-  topBarShell: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 2, borderBottomWidth: 1, borderBottomColor: 'transparent' },
-  topBarTint: { ...StyleSheet.absoluteFillObject },
   topBar: { height: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.screen },
   titleGroup: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   screenTitle: { fontFamily: typography.bold, fontSize: 29, fontWeight: '700', letterSpacing: -0.9 },
+  body: { flex: 1 },
   scrollView: { flex: 1 },
-  scrollContent: { paddingHorizontal: spacing.screen, paddingTop: 64, paddingBottom: 116, gap: 14 },
+  scrollContent: { paddingHorizontal: spacing.screen, paddingTop: 16, paddingBottom: 24, gap: 14 },
   calendarCard: { paddingHorizontal: 14, borderWidth: 1, overflow: 'hidden' },
   dayCard: { borderWidth: 1, overflow: 'hidden' },
   compactDayCard: { borderRadius: 12 },
@@ -137,24 +118,18 @@ const styles = StyleSheet.create({
   contextValue: { fontFamily: typography.bold, fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
   contextLabel: { fontFamily: typography.regular, fontSize: 11, marginTop: 4, maxWidth: 80, lineHeight: 15 },
   contextDivider: { width: 1, marginHorizontal: 12 },
-  floatingDock: {
+  dockSlot: {
+    height: 82,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dockCylinder: {
     width: '82%',
     maxWidth: 360,
     alignSelf: 'center',
-    marginTop: 12,
-    marginBottom: 8,
     overflow: 'hidden',
     borderRadius: 1000,
     borderWidth: 1,
-    borderColor: '#314454',
     paddingHorizontal: 10,
-    backgroundColor: 'rgba(23, 36, 49, 0.94)',
-    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(14px)' } : {}),
-    shadowColor: '#172431',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
   },
-  dockBlur: { borderRadius: 1000, overflow: 'hidden' },
 });
