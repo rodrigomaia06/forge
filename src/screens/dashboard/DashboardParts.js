@@ -35,7 +35,7 @@ export function DashboardShell({ children, theme, floatingDock = false }) {
             <BlurView
               pointerEvents="none"
               intensity={22}
-              tint="light"
+              tint="dark"
               style={[StyleSheet.absoluteFill, styles.dockBlur]}
             />
           )}
@@ -146,9 +146,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: 1000,
     borderWidth: 1,
-    borderColor: '#DCE2E6',
+    borderColor: '#314454',
     paddingHorizontal: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.64)',
+    backgroundColor: 'rgba(23, 36, 49, 0.94)',
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(14px)' } : {}),
     shadowColor: '#172431',
     shadowOffset: { width: 0, height: 3 },
