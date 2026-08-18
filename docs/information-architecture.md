@@ -2,14 +2,15 @@
 
 ## Primary navigation
 
-The permanent navigation has four destinations:
+The permanent navigation has four destinations plus a centered active-workout action:
 
 1. Dashboard
-2. Plans
-3. History
-4. More
+2. History
+3. Centered Workout action
+4. Plans
+5. More
 
-There is no Today tab, permanent Workout tab, or primary Exercises tab.
+There is no Today tab, permanent Workout destination, or primary Exercises tab. The centered Workout action is a fast return/start affordance for the current live workout, not a fifth browsing destination.
 
 Active Workout is persistent application state above normal navigation, not a fifth tab.
 
@@ -79,4 +80,3 @@ Exercises is reachable from More, routine editing, adding an exercise during a w
 When a workout starts from a Routine, it becomes an independent snapshot. Later changes to the source Routine or Plan affect future workouts only. Changes to the current session happen inside Active Workout only.
 
 The user may browse and edit Plans and Routines while a workout is active; those edits never silently synchronize into the active snapshot. An explicit “apply to current workout” action may be considered later, but automatic synchronization is not allowed.
-

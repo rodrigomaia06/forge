@@ -5,7 +5,7 @@
 - The first visual Dashboard prototype is split into `src/screens/`, `src/components/`, `src/data/`, and `src/theme/`. It remains a prototype and is not the final application architecture.
 - The prototype is intentionally limited to Dashboard rendering and basic calendar day selection.
 - The Dashboard direction is now consolidated into the former option 3 composition. The temporary option 1 and option 2 branches were removed after visual review.
-- Plans, History, More, Active Workout, persistence, real navigation, themes, and historical entry are not implemented yet.
+- Plans, History, More, centered Workout action, Active Workout, persistence, real navigation, themes, and historical entry are not implemented yet.
 - Mock workouts exist only to make the visual hierarchy reviewable. They must not become the domain model by accident.
 - The supplied logo and the Forge name remain provisional.
 

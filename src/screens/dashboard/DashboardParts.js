@@ -1,6 +1,7 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BlurView } from 'expo-blur';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { BottomNavigation } from '../../components/BottomNavigation';
 import { Calendar } from '../../components/Calendar';
 import { WorkoutRow } from '../../components/WorkoutRow';
@@ -16,7 +17,7 @@ export function DashboardShell({ children, theme }) {
   return (
     <AppScreen testID="dashboard-app-screen" backgroundColor={theme.background}>
       <View ref={shellProbe.ref} onLayout={shellProbe.onLayout} testID="dashboard-shell" style={styles.appShell}>
-        <View style={[styles.topBar, { backgroundColor: theme.background }]}>
+        <View testID="dashboard-header" style={[styles.topBar, { backgroundColor: theme.background }]}>
           <View style={styles.titleGroup}>
             <Icon name="calendar-outline" size={22} color={theme.accent} />
             <Text style={[styles.screenTitle, { color: theme.ink }]}>Dashboard</Text>
@@ -25,6 +26,15 @@ export function DashboardShell({ children, theme }) {
         </View>
         <View style={styles.body}>{children}</View>
         <View pointerEvents="box-none" ref={dockSlotProbe.ref} onLayout={dockSlotProbe.onLayout} testID="dashboard-dock-slot" style={styles.dockSlot}>
+          <Svg pointerEvents="none" testID="dashboard-dock-vignette" style={styles.dockVignette}>
+            <Defs>
+              <LinearGradient id="forgeDockBottomFade" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor={theme.background} stopOpacity="0" />
+                <Stop offset="1" stopColor={theme.background} stopOpacity="0.9" />
+              </LinearGradient>
+            </Defs>
+            <Rect x="0" y="0" width="100%" height="100%" fill="url(#forgeDockBottomFade)" />
+          </Svg>
           <View
             ref={dockCylinderProbe.ref}
             onLayout={dockCylinderProbe.onLayout}
@@ -34,6 +44,11 @@ export function DashboardShell({ children, theme }) {
             <BlurView testID="dashboard-dock-blur" tint="light" intensity={62} style={styles.dockBlur} />
             <BottomNavigation theme={{ ...theme, surface: theme.surface }} />
           </View>
+          <View
+            testID="dashboard-dock-home-indicator"
+            accessibilityLabel="Home indicator"
+            style={[styles.dockHomeIndicator, { backgroundColor: theme.ink }]}
+          />
         </View>
       </View>
     </AppScreen>
@@ -112,10 +127,10 @@ export function DashboardScroll({ children, style }) {
 
 const styles = StyleSheet.create({
   appShell: { flex: 1 },
-  topBar: { height: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.screen },
+  topBar: { height: 64, flexShrink: 0, zIndex: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.screen },
   titleGroup: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   screenTitle: { fontFamily: typography.bold, fontSize: 29, fontWeight: '700', letterSpacing: -0.9 },
-  body: { flex: 1 },
+  body: { flex: 1, minHeight: 0 },
   scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: spacing.screen, paddingTop: 16, paddingBottom: 132, gap: 14 },
   calendarCard: { paddingHorizontal: 14, borderWidth: 1, overflow: 'hidden' },
@@ -149,19 +164,37 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: 92,
+    height: 88,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 10,
     zIndex: 10,
   },
+  dockVignette: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 20,
+    zIndex: 0,
+  },
+  dockHomeIndicator: {
+    position: 'absolute',
+    bottom: 2,
+    width: 88,
+    height: 4,
+    borderRadius: 1000,
+    opacity: 0.72,
+    zIndex: 12,
+  },
   dockCylinder: {
-    width: '90%',
+    width: '88%',
     maxWidth: 390,
     alignSelf: 'center',
     overflow: 'hidden',
     borderRadius: 1000,
     borderWidth: 1,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     shadowColor: '#172431',
     shadowOpacity: 0.14,
     shadowRadius: 16,

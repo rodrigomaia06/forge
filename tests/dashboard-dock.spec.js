@@ -22,9 +22,23 @@ test.describe('Dashboard dock geometry', () => {
     expect(dock.x + dock.width).toBeLessThanOrEqual(shell.x + shell.width);
     expect(dock.y).toBeGreaterThanOrEqual(shell.y);
     expect(dock.y + dock.height).toBeLessThanOrEqual(shell.y + shell.height);
+    expect(dock.height).toBeGreaterThanOrEqual(60);
+    expect(dock.height).toBeLessThanOrEqual(72);
 
     expect(await page.getByTestId('dashboard-dock-slot')).toHaveCSS('position', 'absolute');
+    const header = await page.getByTestId('dashboard-header').boundingBox();
+    const scroll = await page.getByTestId('dashboard-scroll').boundingBox();
+    expect(header).not.toBeNull();
+    expect(scroll).not.toBeNull();
+    expect(header.y).toBe(shell.y);
+    expect(scroll.y).toBeGreaterThanOrEqual(header.y + header.height);
     await expect(page.getByTestId('dashboard-dock-blur')).toBeVisible();
+    await expect(page.getByTestId('dashboard-dock-vignette')).toBeVisible();
+    await expect(page.getByTestId('dashboard-dock-home-indicator')).toBeVisible();
+    await expect(page.locator('[data-testid^="dashboard-nav-label-"]')).toHaveCount(0);
+    await expect(page.getByTestId('dashboard-nav-history')).toBeVisible();
+    await expect(page.getByTestId('dashboard-nav-workout')).toBeVisible();
+    await expect(page.getByTestId('dashboard-nav-plans')).toBeVisible();
   });
 
   test('captures the dock as a single bounded surface', async ({ page }) => {

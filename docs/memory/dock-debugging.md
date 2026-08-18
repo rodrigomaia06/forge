@@ -6,10 +6,10 @@ The web geometry test initially reported an iPhone 15 Pro viewport with these bo
 
 - Shell: `0,0,393×659`
 - Scroll viewport: `0,64,393×513`, ending at `y=577`
-- Dock cylinder: `x=35.375,y=585,w=322.25,h=66`
+- Dock cylinder: compact floating surface, approximately `h=66` on the mobile viewport
 - Recent context card: `x=20,y=599,w=353,h=170`, outside the visible scroll viewport
 
-The dock now follows the requested translucent floating treatment: it overlays the scroll content, uses the SDK 54-compatible `expo-blur` `BlurView` inside the pill, and keeps the surrounding slot transparent. The `Recent context` card remains compact and is allowed to sit behind the blurred surface as it would in a floating navigation treatment. The selected state is represented by a circle behind the active icon rather than a capsule around the label.
+The dock now follows the requested translucent floating treatment: it overlays the scroll content, uses the SDK 54-compatible `expo-blur` `BlurView` inside the pill, and keeps the surrounding slot transparent. The `Recent context` card remains compact and is allowed to sit behind the blurred surface as it would in a floating navigation treatment. The selected state is represented by a full-height internal pill behind the active icon, with labels omitted in the compact navigation. The navigation is bottom-aligned and compact at about 66px high; the vignette is limited to a short fade at the final screen edge.
 
 ## Expo Go capture
 

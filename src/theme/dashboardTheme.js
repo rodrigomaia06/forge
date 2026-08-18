@@ -11,7 +11,7 @@ export const dashboardTheme = {
   selectedText: '#FFFFFF',
   marker: '#284C68',
   navigation: '#FFFFFF',
-  dockSurface: 'rgba(255, 255, 255, 0.88)',
+  dockSurface: 'rgba(255, 255, 255, 0.92)',
   dockSelected: 'rgba(23, 36, 49, 0.28)',
   dockBorder: 'rgba(255, 255, 255, 0.72)',
   dockForeground: '#172431',
