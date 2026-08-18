@@ -1,0 +1,16 @@
+export const dashboardTheme = {
+  background: '#F3F5F6',
+  surface: '#FFFFFF',
+  surfaceMuted: '#E9EEF1',
+  ink: '#172431',
+  accent: '#284C68',
+  slate: '#62717D',
+  muted: '#8A969E',
+  divider: '#DCE2E6',
+  selected: '#172431',
+  selectedText: '#FFFFFF',
+  marker: '#284C68',
+  navigation: '#FFFFFF',
+  cardRadius: 18,
+  topBar: true,
+};

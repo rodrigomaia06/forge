@@ -10,12 +10,6 @@ import {
 
 import { DashboardScreen } from './src/screens/DashboardScreen';
 
-function getDashboardDirection() {
-  if (typeof window === 'undefined' || !window.location) return 'ink';
-  const direction = new URLSearchParams(window.location.search).get('direction');
-  return ['ink', 'studio', 'signal'].includes(direction) ? direction : 'ink';
-}
-
 export default function App() {
   const [fontsLoaded] = useFonts({
     OpenSans_400Regular,
@@ -28,7 +22,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <DashboardScreen direction={getDashboardDirection()} />
+      <DashboardScreen />
     </SafeAreaProvider>
   );
 }

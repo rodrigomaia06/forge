@@ -6,11 +6,11 @@ import { Calendar } from '../components/Calendar';
 import { WorkoutRow } from '../components/WorkoutRow';
 import { AppScreen, Button, SectionHeader } from '../components/ui';
 import { workoutsByDate } from '../data/mockWorkouts';
-import { dashboardDirections } from '../theme/dashboardDirections';
+import { dashboardTheme } from '../theme/dashboardTheme';
 import { spacing, typography } from '../theme/tokens';
 
-export function DashboardScreen({ direction = 'ink' }) {
-  const theme = dashboardDirections[direction] || dashboardDirections.ink;
+export function DashboardScreen() {
+  const theme = dashboardTheme;
   const [selectedDay, setSelectedDay] = useState(24);
   const selectedWorkouts = workoutsByDate[selectedDay] || [];
 
