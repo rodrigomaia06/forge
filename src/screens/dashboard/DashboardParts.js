@@ -1,5 +1,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { BottomNavigation } from '../../components/BottomNavigation';
 import { Calendar } from '../../components/Calendar';
 import { WorkoutRow } from '../../components/WorkoutRow';
@@ -23,13 +24,14 @@ export function DashboardShell({ children, theme }) {
           <Button label="Start" accessibilityLabel="Start workout" icon="add" onPress={() => {}} theme={theme} />
         </View>
         <View style={styles.body}>{children}</View>
-        <View ref={dockSlotProbe.ref} onLayout={dockSlotProbe.onLayout} testID="dashboard-dock-slot" style={styles.dockSlot}>
+        <View pointerEvents="box-none" ref={dockSlotProbe.ref} onLayout={dockSlotProbe.onLayout} testID="dashboard-dock-slot" style={styles.dockSlot}>
           <View
             ref={dockCylinderProbe.ref}
             onLayout={dockCylinderProbe.onLayout}
             testID="dashboard-dock-cylinder"
             style={[styles.dockCylinder, { backgroundColor: theme.dockSurface, borderColor: theme.dockBorder }]}
           >
+            <BlurView testID="dashboard-dock-blur" tint="light" intensity={62} style={styles.dockBlur} />
             <BottomNavigation theme={{ ...theme, surface: theme.surface }} />
           </View>
         </View>
@@ -115,7 +117,7 @@ const styles = StyleSheet.create({
   screenTitle: { fontFamily: typography.bold, fontSize: 29, fontWeight: '700', letterSpacing: -0.9 },
   body: { flex: 1 },
   scrollView: { flex: 1 },
-  scrollContent: { paddingHorizontal: spacing.screen, paddingTop: 16, paddingBottom: 24, gap: 14 },
+  scrollContent: { paddingHorizontal: spacing.screen, paddingTop: 16, paddingBottom: 132, gap: 14 },
   calendarCard: { paddingHorizontal: 14, borderWidth: 1, overflow: 'hidden' },
   dayCard: { borderWidth: 1, overflow: 'hidden' },
   compactDayCard: { borderRadius: 12 },
@@ -143,9 +145,14 @@ const styles = StyleSheet.create({
   compactContextLabel: { fontSize: 10, marginTop: 2, lineHeight: 13 },
   contextDivider: { width: 1, marginHorizontal: 12 },
   dockSlot: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     height: 92,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 10,
   },
   dockCylinder: {
     width: '90%',
@@ -161,4 +168,5 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     elevation: 6,
   },
+  dockBlur: { ...StyleSheet.absoluteFillObject, borderRadius: 1000 },
 });
