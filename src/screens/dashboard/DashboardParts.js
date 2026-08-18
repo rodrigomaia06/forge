@@ -1,6 +1,6 @@
 import React from 'react';
 import { BlurView } from 'expo-blur';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BottomNavigation } from '../../components/BottomNavigation';
 import { Calendar } from '../../components/Calendar';
 import { WorkoutRow } from '../../components/WorkoutRow';
@@ -31,6 +31,15 @@ export function DashboardShell({ children, theme, floatingDock = false }) {
         </View>
         {children}
         <View style={floatingDock ? styles.floatingDock : null}>
+          {floatingDock && (
+            <BlurView
+              pointerEvents="none"
+              intensity={22}
+              tint="light"
+              style={StyleSheet.absoluteFill}
+            />
+          )}
+          {floatingDock && <View style={styles.dockTint} />}
           <BottomNavigation theme={theme} />
         </View>
       </View>
@@ -106,7 +115,7 @@ const styles = StyleSheet.create({
   topBar: { height: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.screen },
   titleGroup: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   screenTitle: { fontFamily: typography.bold, fontSize: 29, fontWeight: '700', letterSpacing: -0.9 },
-  scrollContent: { paddingHorizontal: spacing.screen, paddingTop: 64, paddingBottom: 24, gap: 14 },
+  scrollContent: { paddingHorizontal: spacing.screen, paddingTop: 64, paddingBottom: 116, gap: 14 },
   calendarCard: { paddingHorizontal: 14, borderWidth: 1, overflow: 'hidden' },
   dayCard: { borderWidth: 1, overflow: 'hidden' },
   compactDayCard: { borderRadius: 12 },
@@ -138,11 +147,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#DCE2E6',
     paddingHorizontal: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.72)',
+    backgroundColor: 'rgba(255, 255, 255, 0.48)',
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(14px)' } : {}),
     shadowColor: '#172431',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 3,
   },
+  dockTint: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255, 255, 255, 0.42)' },
 });
