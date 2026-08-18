@@ -4,7 +4,8 @@
 
 - The first visual Dashboard prototype is split into `src/screens/`, `src/components/`, `src/data/`, and `src/theme/`. It remains a prototype and is not the final application architecture.
 - The prototype is intentionally limited to Dashboard rendering and basic calendar day selection.
-- Dashboard direction previews are available on web with `?direction=ink`, `?direction=studio`, and `?direction=signal`. These are exploratory visual directions, not approved product styling yet.
+- Dashboard direction previews are available on web with `?direction=ink`, `?direction=ochre`, `?direction=studio`, and `?direction=signal`. These are exploratory visual directions, not approved product styling yet.
+- The `ochre` direction is the current Shadowmap-informed candidate: light archive cards, an earth-metal accent, and a restrained translucent top-bar overlay. The blur is limited to app chrome and should not spread into content surfaces.
 - Plans, History, More, Active Workout, persistence, real navigation, themes, and historical entry are not implemented yet.
 - Mock workouts exist only to make the visual hierarchy reviewable. They must not become the domain model by accident.
 - The supplied logo and the Forge name remain provisional.

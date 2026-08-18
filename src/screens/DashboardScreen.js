@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BottomNavigation } from '../components/BottomNavigation';
 import { Calendar } from '../components/Calendar';
@@ -17,14 +17,14 @@ export function DashboardScreen({ direction = 'ink' }) {
   return (
     <AppScreen backgroundColor={theme.background}>
       <View style={styles.appShell}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={[styles.topBarShell, { backgroundColor: `${theme.background}E8` }, theme.topBar && styles.blurredTopBar]}>
           <View style={styles.topBar}>
-            <View>
-              <Text style={[styles.eyebrow, { color: theme.accent }]}>Training archive</Text>
-              <Text style={[styles.screenTitle, { color: theme.ink }]}>Dashboard</Text>
-            </View>
+            <Text style={[styles.screenTitle, { color: theme.ink }]}>Dashboard</Text>
             <Button label="Start" accessibilityLabel="Start workout" icon="add" onPress={() => {}} theme={theme} />
           </View>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
           <View style={[styles.calendarCard, { backgroundColor: theme.surface, borderColor: theme.divider, borderRadius: theme.cardRadius }]}>
             <Calendar selectedDay={selectedDay} setSelectedDay={setSelectedDay} theme={theme} />
@@ -76,10 +76,11 @@ function Metric({ value, label, theme }) {
 
 const styles = StyleSheet.create({
   appShell: { flex: 1 },
-  scrollContent: { paddingHorizontal: spacing.screen, paddingBottom: 24, gap: 14 },
-  topBar: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingTop: 10, paddingBottom: 8 },
-  eyebrow: { fontSize: 11, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 5 },
-  screenTitle: { fontSize: 30, fontWeight: '700', letterSpacing: -0.7 },
+  scrollContent: { paddingHorizontal: spacing.screen, paddingTop: 64, paddingBottom: 24, gap: 14 },
+  topBarShell: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 2, borderBottomWidth: 1, borderBottomColor: 'transparent' },
+  blurredTopBar: Platform.OS === 'web' ? { backdropFilter: 'blur(16px)' } : {},
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.screen, paddingTop: 10, paddingBottom: 12 },
+  screenTitle: { fontSize: 29, fontWeight: '700', letterSpacing: -0.9 },
   calendarCard: { paddingHorizontal: 14, borderWidth: 1, overflow: 'hidden' },
   dayCard: { borderWidth: 1, overflow: 'hidden' },
   cardHeader: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 },
