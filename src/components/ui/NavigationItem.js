@@ -6,6 +6,7 @@ import { colors, typography } from '../../theme/tokens';
 export function NavigationItem({ icon, label, active = false, onPress, theme = colors }) {
   return (
     <Pressable
+      testID={active ? 'dashboard-nav-active' : `dashboard-nav-${label.toLowerCase()}`}
       accessibilityRole="tab"
       accessibilityLabel={label}
       accessibilityState={{ selected: active }}

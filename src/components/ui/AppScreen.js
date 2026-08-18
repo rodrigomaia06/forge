@@ -4,9 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors } from '../../theme/tokens';
 
-export function AppScreen({ children, style, backgroundColor = colors.background }) {
+export function AppScreen({ children, style, backgroundColor = colors.background, testID }) {
   return (
-    <SafeAreaView edges={['top', 'bottom']} style={[styles.safeArea, { backgroundColor }]}>
+    <SafeAreaView
+      testID={testID}
+      edges={['top', 'bottom']}
+      style={[styles.safeArea, { backgroundColor }]}
+    >
       <View style={[styles.content, style]}>{children}</View>
     </SafeAreaView>
   );

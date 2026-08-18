@@ -5,11 +5,16 @@ import { Calendar } from '../../components/Calendar';
 import { WorkoutRow } from '../../components/WorkoutRow';
 import { AppScreen, Button, Icon, SectionHeader } from '../../components/ui';
 import { typography, spacing } from '../../theme/tokens';
+import { useLayoutProbe } from '../../debug/layoutProbe';
 
 export function DashboardShell({ children, theme }) {
+  const shellProbe = useLayoutProbe('dashboard-shell');
+  const dockSlotProbe = useLayoutProbe('dashboard-dock-slot');
+  const dockCylinderProbe = useLayoutProbe('dashboard-dock-cylinder');
+
   return (
-    <AppScreen backgroundColor={theme.background}>
-      <View style={styles.appShell}>
+    <AppScreen testID="dashboard-app-screen" backgroundColor={theme.background}>
+      <View ref={shellProbe.ref} onLayout={shellProbe.onLayout} testID="dashboard-shell" style={styles.appShell}>
         <View style={[styles.topBar, { backgroundColor: theme.background }]}>
           <View style={styles.titleGroup}>
             <Icon name="calendar-outline" size={22} color={theme.accent} />
@@ -18,8 +23,13 @@ export function DashboardShell({ children, theme }) {
           <Button label="Start" accessibilityLabel="Start workout" icon="add" onPress={() => {}} theme={theme} />
         </View>
         <View style={styles.body}>{children}</View>
-        <View style={styles.dockSlot}>
-          <View style={[styles.dockCylinder, { backgroundColor: theme.ink, borderColor: theme.slate }]}>
+        <View ref={dockSlotProbe.ref} onLayout={dockSlotProbe.onLayout} testID="dashboard-dock-slot" style={styles.dockSlot}>
+          <View
+            ref={dockCylinderProbe.ref}
+            onLayout={dockCylinderProbe.onLayout}
+            testID="dashboard-dock-cylinder"
+            style={[styles.dockCylinder, { backgroundColor: theme.ink, borderColor: theme.slate }]}
+          >
             <BottomNavigation theme={{ ...theme, surface: theme.surface }} />
           </View>
         </View>
@@ -60,6 +70,7 @@ export function DashboardWorkoutCard({ selectedDay, selectedWorkouts, theme, rai
 }
 
 export function DashboardContextCard({ theme, icons = false, inline = false }) {
+  const contextProbe = useLayoutProbe('dashboard-context-card');
   const metrics = [
     ['3', 'workouts this week', theme.iconCalendar, 'calendar-outline'],
     ['8', 'workouts this month', theme.iconStrength, 'fitness-outline'],
@@ -67,7 +78,12 @@ export function DashboardContextCard({ theme, icons = false, inline = false }) {
   ];
 
   return (
-    <View style={[styles.contextCard, inline && styles.inlineContextCard, { backgroundColor: theme.surfaceMuted, borderRadius: theme.cardRadius }]}>
+    <View
+      ref={contextProbe.ref}
+      onLayout={contextProbe.onLayout}
+      testID="dashboard-context-card"
+      style={[styles.contextCard, inline && styles.inlineContextCard, { backgroundColor: theme.surfaceMuted, borderRadius: theme.cardRadius }]}
+    >
       <SectionHeader title="Recent context" meta="This month" theme={theme} />
       <View style={[styles.contextRow, { borderColor: theme.divider }]}>
         {metrics.map(([value, label, iconColor, iconName], index) => (
@@ -86,7 +102,8 @@ export function DashboardContextCard({ theme, icons = false, inline = false }) {
 }
 
 export function DashboardScroll({ children, style }) {
-  return <ScrollView style={styles.scrollView} contentContainerStyle={[styles.scrollContent, style]} showsVerticalScrollIndicator={false}>{children}</ScrollView>;
+  const scrollProbe = useLayoutProbe('dashboard-scroll');
+  return <ScrollView ref={scrollProbe.ref} onLayout={scrollProbe.onLayout} testID="dashboard-scroll" style={styles.scrollView} contentContainerStyle={[styles.scrollContent, style]} showsVerticalScrollIndicator={false}>{children}</ScrollView>;
 }
 
 const styles = StyleSheet.create({
