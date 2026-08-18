@@ -32,5 +32,5 @@ const iconMap = {
 
 export function Icon({ name, size = 20, color, weight = 'regular', ...props }) {
   const IconComponent = iconMap[name] || QuestionMark;
-  return <IconComponent width={size} height={size} color={color} strokeWidth={weight === 'thin' ? 1 : 1.7} {...props} />;
+  return <IconComponent width={size} height={size} color={color} strokeWidth={weight === 'thin' ? 1.5 : 2.1} {...props} />;
 }

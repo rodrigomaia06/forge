@@ -17,6 +17,7 @@
 - Browser visual checks use Expo's static web export plus a local Python server under Playwright's `webServer`, with Playwright's iPhone device emulation defining the viewport. The interactive `npx expo start --web` path remains available for normal development.
 - Playwright's local preview/test server is standardized on port `9021`.
 - The prototype now trials Iconoir through `src/components/ui/Icon.js` as its single icon-family boundary. The family can be replaced later without changing feature components.
+- Iconoir strokes are intentionally slightly heavier for mobile legibility. The Dashboard dock now follows the useful structural pattern found in Stack Wallet's public `WalletNavigationBar`: a narrower floating container, large radius, internal padding, and evenly distributed items.
 - Generated Playwright results live in `tests/results/`. Visual baselines remain beside their spec, currently under `tests/dashboard.spec.js-snapshots/`.
 
 ## Revisit before production implementation

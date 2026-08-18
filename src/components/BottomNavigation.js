@@ -22,5 +22,5 @@ export function BottomNavigation({ theme = colors }) {
 }
 
 const styles = StyleSheet.create({
-  navigation: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', minHeight: 76, paddingBottom: 7, paddingTop: 8, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.divider },
+  navigation: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 64, paddingHorizontal: 8, paddingBottom: 6, paddingTop: 6, backgroundColor: 'transparent' },
 });
