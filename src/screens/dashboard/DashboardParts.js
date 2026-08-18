@@ -10,7 +10,7 @@ import { useLayoutProbe } from '../../debug/layoutProbe';
 export function DashboardShell({ children, theme }) {
   const shellProbe = useLayoutProbe('dashboard-shell', { background: theme.background });
   const dockSlotProbe = useLayoutProbe('dashboard-dock-slot', { background: theme.dockBackdrop });
-  const dockCylinderProbe = useLayoutProbe('dashboard-dock-cylinder', { background: theme.ink });
+  const dockCylinderProbe = useLayoutProbe('dashboard-dock-cylinder', { background: theme.dockSurface });
 
   return (
     <AppScreen testID="dashboard-app-screen" backgroundColor={theme.background}>
@@ -28,7 +28,7 @@ export function DashboardShell({ children, theme }) {
             ref={dockCylinderProbe.ref}
             onLayout={dockCylinderProbe.onLayout}
             testID="dashboard-dock-cylinder"
-            style={[styles.dockCylinder, { backgroundColor: theme.ink, borderColor: theme.slate }]}
+            style={[styles.dockCylinder, { backgroundColor: theme.dockSurface, borderColor: theme.dockBorder }]}
           >
             <BottomNavigation theme={{ ...theme, surface: theme.surface }} />
           </View>
@@ -85,7 +85,8 @@ export function DashboardContextCard({ theme, icons = false, inline = false, com
       style={[styles.contextCard, compact && styles.compactContextCard, inline && styles.inlineContextCard, { backgroundColor: theme.surfaceMuted, borderRadius: theme.cardRadius }]}
     >
       <SectionHeader title="Recent context" meta="This month" theme={theme} />
-      <View style={[styles.contextRow, compact && styles.compactContextRow, { borderColor: theme.divider }]}
+      <View
+        style={[styles.contextRow, compact && styles.compactContextRow, { borderColor: theme.divider }]}
       >
         {metrics.map(([value, label, iconColor, iconName], index) => (
           <React.Fragment key={label}>
@@ -129,30 +130,30 @@ const styles = StyleSheet.create({
   emptyCopy: { fontFamily: typography.regular, fontSize: 13, lineHeight: 19, marginTop: 6, maxWidth: 300 },
   secondaryAction: { alignSelf: 'flex-start', marginTop: 14 },
   contextCard: { padding: 16 },
-  compactContextCard: { padding: 12 },
+  compactContextCard: { padding: 8 },
   inlineContextCard: { paddingVertical: 13 },
   contextRow: { flexDirection: 'row', alignItems: 'stretch', paddingTop: 14, borderTopWidth: 1 },
-  compactContextRow: { paddingTop: 8 },
+  compactContextRow: { paddingTop: 6 },
   metric: { flex: 1 },
   metricIcon: { marginBottom: 8 },
-  compactMetricIcon: { marginBottom: 4 },
+  compactMetricIcon: { marginBottom: 2 },
   contextValue: { fontFamily: typography.bold, fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
   compactContextValue: { fontSize: 18 },
   contextLabel: { fontFamily: typography.regular, fontSize: 11, marginTop: 4, maxWidth: 80, lineHeight: 15 },
   compactContextLabel: { fontSize: 10, marginTop: 2, lineHeight: 13 },
   contextDivider: { width: 1, marginHorizontal: 12 },
   dockSlot: {
-    height: 82,
+    height: 92,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dockCylinder: {
-    width: '82%',
-    maxWidth: 360,
+    width: '90%',
+    maxWidth: 390,
     alignSelf: 'center',
     overflow: 'hidden',
     borderRadius: 1000,
     borderWidth: 1,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
   },
 });

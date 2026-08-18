@@ -11,7 +11,7 @@ export function NavigationItem({ icon, label, active = false, onPress, theme = c
       accessibilityLabel={label}
       accessibilityState={{ selected: active }}
       onPress={onPress}
-      style={({ pressed }) => [styles.item, active && [styles.activeItem, { backgroundColor: theme.slate }], pressed && styles.pressed]}
+      style={({ pressed }) => [styles.item, active && [styles.activeItem, { backgroundColor: theme.dockSelected || theme.slate }], pressed && styles.pressed]}
     >
       <Icon name={active ? icon.replace('-outline', '') : icon} size={22} color={theme.surface} weight={active ? 'fill' : 'regular'} />
       <Text testID={`dashboard-nav-label-${label.toLowerCase()}`} style={[styles.label, { color: theme.surface }, !active && styles.inactiveLabel]}>{label}</Text>

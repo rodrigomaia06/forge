@@ -9,7 +9,7 @@ The web geometry test initially reported an iPhone 15 Pro viewport with these bo
 - Dock cylinder: `x=35.375,y=585,w=322.25,h=66`
 - Recent context card: `x=20,y=599,w=353,h=170`, outside the visible scroll viewport
 
-The dock slot is full-width by layout and now intentionally uses the dark bottom backdrop `#0D151C`; the cylinder remains a separate bounded surface inside it. The diagnostic capture `marked-dock-slot` colors that slot red to distinguish the backdrop from the cylinder. The `Recent context` card is compact again so it can return without becoming the pale clipped block beside the dock.
+The dock now follows the Stack-like layered treatment: a dark full-width bottom backdrop, a narrower rounded dock surface with a subtle border, and a contained selected capsule. The implementation is solid rather than blurred so it remains deterministic across Expo Go and web. The `Recent context` card is compact so it can return without becoming a pale clipped block beside the dock.
 
 ## Expo Go capture
 
