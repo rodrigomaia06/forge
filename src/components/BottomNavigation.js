@@ -13,7 +13,7 @@ const items = [
 
 export function BottomNavigation({ theme = colors }) {
   return (
-    <View style={[styles.navigation, { backgroundColor: theme.navigation, borderTopColor: theme.divider }]}>
+    <View style={styles.navigation}>
       {items.map(([icon, label, active]) => (
         <NavigationItem key={label} icon={icon} label={label} active={active} theme={theme} />
       ))}
@@ -22,5 +22,5 @@ export function BottomNavigation({ theme = colors }) {
 }
 
 const styles = StyleSheet.create({
-  navigation: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 64, paddingHorizontal: 8, paddingBottom: 6, paddingTop: 6, backgroundColor: 'transparent' },
+  navigation: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 64, paddingHorizontal: 8, paddingBottom: 6, paddingTop: 6, backgroundColor: 'transparent', borderTopWidth: 0 },
 });
