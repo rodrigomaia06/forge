@@ -2,7 +2,7 @@ import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { colors, radii } from '../../theme/tokens';
+import { colors, radii, typography } from '../../theme/tokens';
 
 export function Button({ label, accessibilityLabel, onPress, variant = 'primary', icon, loading = false, disabled = false, style, theme = colors }) {
   const isPrimary = variant === 'primary';
@@ -33,7 +33,7 @@ export function Button({ label, accessibilityLabel, onPress, variant = 'primary'
 const styles = StyleSheet.create({
   base: { minHeight: 44, minWidth: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 14, borderRadius: radii.control },
   primary: { minWidth: 92 },
-  label: { fontSize: 14, fontWeight: '600' },
+  label: { fontFamily: typography.semibold, fontSize: 14, fontWeight: '600' },
   disabled: { opacity: 0.45 },
   pressed: { opacity: 0.65 },
 });

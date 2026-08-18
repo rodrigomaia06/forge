@@ -7,7 +7,7 @@ import { WorkoutRow } from '../components/WorkoutRow';
 import { AppScreen, Button, SectionHeader } from '../components/ui';
 import { workoutsByDate } from '../data/mockWorkouts';
 import { dashboardDirections } from '../theme/dashboardDirections';
-import { spacing } from '../theme/tokens';
+import { spacing, typography } from '../theme/tokens';
 
 export function DashboardScreen({ direction = 'ink' }) {
   const theme = dashboardDirections[direction] || dashboardDirections.ink;
@@ -80,21 +80,21 @@ const styles = StyleSheet.create({
   topBarShell: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 2, borderBottomWidth: 1, borderBottomColor: 'transparent' },
   blurredTopBar: Platform.OS === 'web' ? { backdropFilter: 'blur(16px)' } : {},
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.screen, paddingTop: 10, paddingBottom: 12 },
-  screenTitle: { fontSize: 29, fontWeight: '700', letterSpacing: -0.9 },
+  screenTitle: { fontFamily: typography.bold, fontSize: 29, fontWeight: '700', letterSpacing: -0.9 },
   calendarCard: { paddingHorizontal: 14, borderWidth: 1, overflow: 'hidden' },
   dayCard: { borderWidth: 1, overflow: 'hidden' },
   cardHeader: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 },
-  selectedDate: { fontSize: 18, fontWeight: '700', letterSpacing: -0.2 },
-  dayCount: { fontSize: 12, paddingBottom: 2 },
+  selectedDate: { fontFamily: typography.bold, fontSize: 18, fontWeight: '700', letterSpacing: -0.2 },
+  dayCount: { fontFamily: typography.regular, fontSize: 12, paddingBottom: 2 },
   workoutList: { borderTopWidth: 1, paddingHorizontal: 16 },
   emptyDay: { padding: 16, borderTopWidth: 1 },
-  emptyTitle: { fontSize: 15, fontWeight: '600' },
-  emptyCopy: { fontSize: 13, lineHeight: 19, marginTop: 6, maxWidth: 300 },
+  emptyTitle: { fontFamily: typography.semibold, fontSize: 15, fontWeight: '600' },
+  emptyCopy: { fontFamily: typography.regular, fontSize: 13, lineHeight: 19, marginTop: 6, maxWidth: 300 },
   secondaryAction: { alignSelf: 'flex-start', marginTop: 14 },
   contextCard: { padding: 16 },
   contextRow: { flexDirection: 'row', alignItems: 'stretch', paddingTop: 14, borderTopWidth: 1 },
   metric: { flex: 1 },
-  contextValue: { fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
-  contextLabel: { fontSize: 11, marginTop: 4, maxWidth: 80, lineHeight: 15 },
+  contextValue: { fontFamily: typography.bold, fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
+  contextLabel: { fontFamily: typography.regular, fontSize: 11, marginTop: 4, maxWidth: 80, lineHeight: 15 },
   contextDivider: { width: 1, marginHorizontal: 12 },
 });

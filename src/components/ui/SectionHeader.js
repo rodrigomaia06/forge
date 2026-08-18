@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors } from '../../theme/tokens';
+import { colors, typography } from '../../theme/tokens';
 
 export function SectionHeader({ title, meta, theme = colors }) {
   return (
@@ -14,6 +14,6 @@ export function SectionHeader({ title, meta, theme = colors }) {
 
 const styles = StyleSheet.create({
   container: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 13 },
-  title: { color: colors.ink, fontSize: 16, fontWeight: '600' },
-  meta: { color: colors.muted, fontSize: 12 },
+  title: { color: colors.ink, fontFamily: typography.semibold, fontSize: 16, fontWeight: '600' },
+  meta: { color: colors.muted, fontFamily: typography.regular, fontSize: 12 },
 });

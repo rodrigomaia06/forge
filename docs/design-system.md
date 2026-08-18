@@ -30,7 +30,7 @@ Light mode is primary. Dark mode is equally intentional and uses semantic tokens
 
 ## Typography
 
-Use the platform system font. Establish identity through hierarchy, weight, scale, spacing, and layout rather than a custom typeface.
+Use Open Sans as the shared cross-platform product typeface. It is used by Shadowmap’s general interface and is distributed as an open font, which allows the same typography to render on iOS, Android, and web. Establish hierarchy through weight, scale, spacing, and layout rather than relying on display effects.
 
 Exercise names are the strongest live-workout hierarchy. Current-set information comes next, followed by previous-performance context. Use highly legible compact numeric treatment and tabular/monospaced numerals where practical for weights, reps, set numbers, and timers.
 

@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { colors } from '../theme/tokens';
+import { colors, typography } from '../theme/tokens';
 
 export function WorkoutRow({ workout, theme = colors }) {
   return (
@@ -29,8 +29,8 @@ const styles = StyleSheet.create({
   mark: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.inkInteractive, marginRight: 13 },
   copy: { flex: 1 },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 },
-  name: { flex: 1, color: colors.ink, fontSize: 16, fontWeight: '600' },
-  duration: { color: colors.slate, fontSize: 12 },
-  meta: { color: colors.slate, fontSize: 12, marginTop: 6 },
+  name: { flex: 1, color: colors.ink, fontFamily: typography.semibold, fontSize: 16, fontWeight: '600' },
+  duration: { color: colors.slate, fontFamily: typography.regular, fontSize: 12 },
+  meta: { color: colors.slate, fontFamily: typography.regular, fontSize: 12, marginTop: 6 },
   pressed: { opacity: 0.65 },
 });

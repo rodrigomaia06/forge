@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { colors, radii } from '../theme/tokens';
+import { colors, radii, typography } from '../theme/tokens';
 
 export function IconButton({ name, label, onPress, filled = false, title, theme = colors }) {
   return (
@@ -23,6 +23,6 @@ const styles = StyleSheet.create({
   icon: { width: 44, height: 44, borderRadius: radii.iconButton, backgroundColor: colors.surfaceMuted },
   action: { flexDirection: 'row', gap: 7, minWidth: 92, height: 44, paddingHorizontal: 14, borderRadius: radii.control },
   filled: { backgroundColor: colors.inkInteractive },
-  actionText: { color: colors.surface, fontSize: 14, fontWeight: '600' },
+  actionText: { color: colors.surface, fontFamily: typography.semibold, fontSize: 14, fontWeight: '600' },
   pressed: { opacity: 0.65 },
 });
