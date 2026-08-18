@@ -2,7 +2,7 @@ import { useCallback, useRef } from 'react';
 
 const enabled = typeof __DEV__ !== 'undefined' && __DEV__;
 
-export function useLayoutProbe(name) {
+export function useLayoutProbe(name, details = {}) {
   const ref = useRef(null);
 
   const onLayout = useCallback((event) => {
@@ -13,6 +13,7 @@ export function useLayoutProbe(name) {
 
     ref.current?.measureInWindow((windowX, windowY, windowWidth, windowHeight) => {
       console.log(`[Forge layout] ${name}`, JSON.stringify({
+        details,
         ...payload,
         window: { x: windowX, y: windowY, width: windowWidth, height: windowHeight },
       }));
@@ -21,4 +22,3 @@ export function useLayoutProbe(name) {
 
   return { ref, onLayout };
 }
-

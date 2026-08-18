@@ -14,7 +14,7 @@ export function NavigationItem({ icon, label, active = false, onPress, theme = c
       style={({ pressed }) => [styles.item, active && [styles.activeItem, { backgroundColor: theme.slate }], pressed && styles.pressed]}
     >
       <Icon name={active ? icon.replace('-outline', '') : icon} size={22} color={theme.surface} weight={active ? 'fill' : 'regular'} />
-      <Text style={[styles.label, { color: theme.surface }, !active && styles.inactiveLabel]}>{label}</Text>
+      <Text testID={`dashboard-nav-label-${label.toLowerCase()}`} style={[styles.label, { color: theme.surface }, !active && styles.inactiveLabel]}>{label}</Text>
     </Pressable>
   );
 }

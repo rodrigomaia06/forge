@@ -8,9 +8,9 @@ import { typography, spacing } from '../../theme/tokens';
 import { useLayoutProbe } from '../../debug/layoutProbe';
 
 export function DashboardShell({ children, theme }) {
-  const shellProbe = useLayoutProbe('dashboard-shell');
-  const dockSlotProbe = useLayoutProbe('dashboard-dock-slot');
-  const dockCylinderProbe = useLayoutProbe('dashboard-dock-cylinder');
+  const shellProbe = useLayoutProbe('dashboard-shell', { background: theme.background });
+  const dockSlotProbe = useLayoutProbe('dashboard-dock-slot', { background: 'transparent' });
+  const dockCylinderProbe = useLayoutProbe('dashboard-dock-cylinder', { background: theme.ink });
 
   return (
     <AppScreen testID="dashboard-app-screen" backgroundColor={theme.background}>
@@ -70,7 +70,7 @@ export function DashboardWorkoutCard({ selectedDay, selectedWorkouts, theme, rai
 }
 
 export function DashboardContextCard({ theme, icons = false, inline = false }) {
-  const contextProbe = useLayoutProbe('dashboard-context-card');
+  const contextProbe = useLayoutProbe('dashboard-context-card', { background: theme.surfaceMuted });
   const metrics = [
     ['3', 'workouts this week', theme.iconCalendar, 'calendar-outline'],
     ['8', 'workouts this month', theme.iconStrength, 'fitness-outline'],

@@ -42,6 +42,8 @@ test.describe('Dashboard dock geometry', () => {
   });
 
   test('captures the dock as a single bounded surface', async ({ page }) => {
+    const dockSlot = page.getByTestId('dashboard-dock-slot');
+    await expect(dockSlot).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     await expect(page.getByTestId('dashboard-dock-cylinder')).toHaveScreenshot('dashboard-dock.png');
   });
 });
