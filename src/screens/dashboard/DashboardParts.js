@@ -9,7 +9,7 @@ import { useLayoutProbe } from '../../debug/layoutProbe';
 
 export function DashboardShell({ children, theme }) {
   const shellProbe = useLayoutProbe('dashboard-shell', { background: theme.background });
-  const dockSlotProbe = useLayoutProbe('dashboard-dock-slot', { background: 'transparent' });
+  const dockSlotProbe = useLayoutProbe('dashboard-dock-slot', { background: theme.dockBackdrop });
   const dockCylinderProbe = useLayoutProbe('dashboard-dock-cylinder', { background: theme.ink });
 
   return (
@@ -23,7 +23,7 @@ export function DashboardShell({ children, theme }) {
           <Button label="Start" accessibilityLabel="Start workout" icon="add" onPress={() => {}} theme={theme} />
         </View>
         <View style={styles.body}>{children}</View>
-        <View ref={dockSlotProbe.ref} onLayout={dockSlotProbe.onLayout} testID="dashboard-dock-slot" style={styles.dockSlot}>
+        <View ref={dockSlotProbe.ref} onLayout={dockSlotProbe.onLayout} testID="dashboard-dock-slot" style={[styles.dockSlot, { backgroundColor: theme.dockBackdrop }]}>
           <View
             ref={dockCylinderProbe.ref}
             onLayout={dockCylinderProbe.onLayout}
@@ -69,7 +69,7 @@ export function DashboardWorkoutCard({ selectedDay, selectedWorkouts, theme, rai
   );
 }
 
-export function DashboardContextCard({ theme, icons = false, inline = false }) {
+export function DashboardContextCard({ theme, icons = false, inline = false, compact = false }) {
   const contextProbe = useLayoutProbe('dashboard-context-card', { background: theme.surfaceMuted });
   const metrics = [
     ['3', 'workouts this week', theme.iconCalendar, 'calendar-outline'],
@@ -82,16 +82,17 @@ export function DashboardContextCard({ theme, icons = false, inline = false }) {
       ref={contextProbe.ref}
       onLayout={contextProbe.onLayout}
       testID="dashboard-context-card"
-      style={[styles.contextCard, inline && styles.inlineContextCard, { backgroundColor: theme.surfaceMuted, borderRadius: theme.cardRadius }]}
+      style={[styles.contextCard, compact && styles.compactContextCard, inline && styles.inlineContextCard, { backgroundColor: theme.surfaceMuted, borderRadius: theme.cardRadius }]}
     >
       <SectionHeader title="Recent context" meta="This month" theme={theme} />
-      <View style={[styles.contextRow, { borderColor: theme.divider }]}>
+      <View style={[styles.contextRow, compact && styles.compactContextRow, { borderColor: theme.divider }]}
+      >
         {metrics.map(([value, label, iconColor, iconName], index) => (
           <React.Fragment key={label}>
             <View style={styles.metric}>
-              {icons && <Icon name={iconName} size={19} color={iconColor} style={styles.metricIcon} />}
-              <Text style={[styles.contextValue, { color: theme.ink }]}>{value}</Text>
-              <Text style={[styles.contextLabel, { color: theme.slate }]}>{label}</Text>
+              {icons && <Icon name={iconName} size={compact ? 16 : 19} color={iconColor} style={[styles.metricIcon, compact && styles.compactMetricIcon]} />}
+              <Text style={[styles.contextValue, compact && styles.compactContextValue, { color: theme.ink }]}>{value}</Text>
+              <Text style={[styles.contextLabel, compact && styles.compactContextLabel, { color: theme.slate }]}>{label}</Text>
             </View>
             {index < metrics.length - 1 && <View style={[styles.contextDivider, { backgroundColor: theme.divider }]} />}
           </React.Fragment>
@@ -128,12 +129,17 @@ const styles = StyleSheet.create({
   emptyCopy: { fontFamily: typography.regular, fontSize: 13, lineHeight: 19, marginTop: 6, maxWidth: 300 },
   secondaryAction: { alignSelf: 'flex-start', marginTop: 14 },
   contextCard: { padding: 16 },
+  compactContextCard: { padding: 12 },
   inlineContextCard: { paddingVertical: 13 },
   contextRow: { flexDirection: 'row', alignItems: 'stretch', paddingTop: 14, borderTopWidth: 1 },
+  compactContextRow: { paddingTop: 8 },
   metric: { flex: 1 },
   metricIcon: { marginBottom: 8 },
+  compactMetricIcon: { marginBottom: 4 },
   contextValue: { fontFamily: typography.bold, fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
+  compactContextValue: { fontSize: 18 },
   contextLabel: { fontFamily: typography.regular, fontSize: 11, marginTop: 4, maxWidth: 80, lineHeight: 15 },
+  compactContextLabel: { fontSize: 10, marginTop: 2, lineHeight: 13 },
   contextDivider: { width: 1, marginHorizontal: 12 },
   dockSlot: {
     height: 82,

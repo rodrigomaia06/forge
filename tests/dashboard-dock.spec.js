@@ -1,5 +1,13 @@
 const { test, expect } = require('@playwright/test');
 
+function intersection(first, second) {
+  const left = Math.max(first.x, second.x);
+  const top = Math.max(first.y, second.y);
+  const right = Math.min(first.x + first.width, second.x + second.width);
+  const bottom = Math.min(first.y + first.height, second.y + second.height);
+  return { x: left, y: top, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
+}
+
 test.describe('Dashboard dock geometry', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
@@ -18,18 +26,21 @@ test.describe('Dashboard dock geometry', () => {
     expect(shell).not.toBeNull();
     expect(scroll).not.toBeNull();
     expect(dock).not.toBeNull();
-    expect(context).toBeNull();
+    expect(context).not.toBeNull();
 
     expect(dock.x).toBeGreaterThanOrEqual(shell.x);
     expect(dock.x + dock.width).toBeLessThanOrEqual(shell.x + shell.width);
     expect(dock.y).toBeGreaterThanOrEqual(shell.y);
     expect(dock.y + dock.height).toBeLessThanOrEqual(shell.y + shell.height);
 
+    const visibleContext = intersection(context, scroll);
+    const overlap = intersection(visibleContext, dock);
+    expect(overlap.width * overlap.height).toBe(0);
   });
 
   test('captures the dock as a single bounded surface', async ({ page }) => {
     const dockSlot = page.getByTestId('dashboard-dock-slot');
-    await expect(dockSlot).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await expect(dockSlot).toHaveCSS('background-color', 'rgb(13, 21, 28)');
     await expect(page.getByTestId('dashboard-dock-cylinder')).toHaveScreenshot('dashboard-dock.png');
   });
 });

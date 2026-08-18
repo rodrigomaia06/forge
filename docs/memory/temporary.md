@@ -19,7 +19,7 @@
 - The prototype now trials Iconoir through `src/components/ui/Icon.js` as its single icon-family boundary. The family can be replaced later without changing feature components.
 - Iconoir strokes are intentionally slightly heavier for mobile legibility. The Dashboard dock now follows the useful structural pattern found in Stack Wallet's public `WalletNavigationBar`: a narrower floating container, large radius, internal padding, and evenly distributed items.
 - The Dashboard shell is temporarily reduced to three ordinary layout regions: header, scrollable content, and dock slot. Blur, translucency, shadows, and absolute positioning were removed while the dock geometry is debugged. The dock is currently a single dark rounded cylinder with a contained selected item.
-- The Dashboard's `Recent context` card is temporarily not rendered in the initial composition. Native bounds showed that it was the pale rectangle being clipped immediately above the dock. Reintroduce it only after choosing a placement that cannot be partially visible at the bottom of the scroll viewport.
+- The Dashboard's `Recent context` card is rendered as a compact card again. Its compact height is intended to keep it fully inside the visible scroll viewport above the dark dock backdrop.
 - Generated Playwright results live in `tests/results/`. Visual baselines remain beside their spec, currently under `tests/dashboard.spec.js-snapshots/`.
 
 ## Revisit before production implementation

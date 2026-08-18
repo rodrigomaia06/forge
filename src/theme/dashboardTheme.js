@@ -11,6 +11,7 @@ export const dashboardTheme = {
   selectedText: '#FFFFFF',
   marker: '#284C68',
   navigation: '#FFFFFF',
+  dockBackdrop: '#0D151C',
   cardRadius: 18,
   topBar: true,
   iconCalendar: '#284C68',

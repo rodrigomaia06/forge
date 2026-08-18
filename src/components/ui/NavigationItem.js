@@ -21,7 +21,7 @@ export function NavigationItem({ icon, label, active = false, onPress, theme = c
 
 const styles = StyleSheet.create({
   item: { alignItems: 'center', justifyContent: 'center', minWidth: 64, minHeight: 48, paddingHorizontal: 6, gap: 4 },
-  activeItem: { minWidth: 76, paddingHorizontal: 12, borderRadius: 100 },
+  activeItem: { minWidth: 76, minHeight: 56, paddingHorizontal: 12, borderRadius: 100 },
   label: { color: colors.surface, fontFamily: typography.medium, fontSize: 11, fontWeight: '500' },
   inactiveLabel: { opacity: 0.68 },
   activeLabel: { color: colors.inkInteractive, fontWeight: '700' },
