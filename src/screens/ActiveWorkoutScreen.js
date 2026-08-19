@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, LayoutAnimation, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, UIManager, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { AppScreen, Button, Icon } from '../components/ui';
@@ -19,7 +19,51 @@ function animateLayout() {
 
 export function ActiveWorkoutScreen({ navigation }) {
   const { activeWorkout, ready, addExercise, addSet, removeExercise, updateSet, toggleSet, finishWorkout } = useWorkouts();
+  const [elapsed, setElapsed] = useState(0);
+  const [restRemaining, setRestRemaining] = useState(0);
+  const [restDuration, setRestDuration] = useState(60);
+  const [restRunning, setRestRunning] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  useEffect(() => {
+    if (!activeWorkout) return undefined;
+    const update = () => setElapsed(Math.max(0, Math.floor((Date.now() - activeWorkout.startedAt) / 1000)));
+    update();
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, [activeWorkout]);
+
+  useEffect(() => {
+    if (!restRunning) return undefined;
+    const timer = setInterval(() => {
+      setRestRemaining((current) => {
+        if (current === 0) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+          return -1;
+        }
+        return current - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [restRunning]);
+
+  const startRestTimer = (duration = 60) => {
+    lightHaptic();
+    setRestDuration(duration);
+    setRestRemaining(duration);
+    setRestRunning(true);
+  };
+  const toggleRestTimer = () => {
+    lightHaptic();
+    if (restRunning) {
+      setRestRunning(false);
+    } else if (restRemaining === 0) {
+      startRestTimer(restDuration);
+    } else {
+      setRestRunning(true);
+    }
+  };
   const returnToDashboard = (finished) => navigation.reset({ index: 0, routes: [{ name: 'Dashboard', params: finished ? { selectedDay: new Date(finished.completedAt).getDate() } : undefined }] });
 
   if (!ready) return <AppScreen backgroundColor={dashboardTheme.background}><View style={styles.center}><Text style={styles.muted}>Loading workout…</Text></View></AppScreen>;
@@ -41,17 +85,36 @@ export function ActiveWorkoutScreen({ navigation }) {
   return (
     <AppScreen backgroundColor={dashboardTheme.background}>
       <View style={styles.header}>
-        <Button label="Cancel" variant="secondary" onPress={() => navigation.goBack()} theme={dashboardTheme} style={styles.cancelButton} />
-        <View style={styles.headerCopy}>
+        <View style={styles.headerTop}>
+          <Button label="Cancel" variant="secondary" onPress={() => navigation.goBack()} theme={dashboardTheme} style={styles.cancelButton} />
+          <View style={styles.headerActions}>
+            <Button label="Edit" variant="secondary" onPress={() => { lightHaptic(); setEditing((current) => !current); }} theme={dashboardTheme} style={[styles.editButton, editing && styles.editActive]} />
+            <Button label="Finish" onPress={handleFinish} variant="secondary" theme={dashboardTheme} style={styles.finishButton} />
+          </View>
+        </View>
+        <View style={styles.titleBlock}>
           <Text style={styles.headerTitle}>{activeWorkout.name}</Text>
           <Text style={styles.headerMeta}>{activeWorkout.type}</Text>
         </View>
-        <Button label="Finish" onPress={handleFinish} variant="outline" theme={dashboardTheme} />
+        <View style={styles.elapsedRow}>
+          <View style={styles.elapsedInfo}>
+            <Icon name="stopwatch-outline" size={23} color={dashboardTheme.ink} />
+            <Text style={styles.elapsedValue}>{formatElapsed(elapsed)}</Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={restRunning ? `Rest timer, ${Math.abs(restRemaining)} seconds remaining` : 'Start rest timer'}
+            onPress={toggleRestTimer}
+            style={styles.timerReset}
+          >
+            <RestTimerIndicator remaining={restRemaining} duration={restDuration} running={restRunning} />
+          </Pressable>
+        </View>
       </View>
       <KeyboardAvoidingView style={styles.keyboardArea} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {activeWorkout.exercises.length > 0 && activeWorkout.exercises.map((exercise, index) => (
-          <ExerciseSection key={exercise.id} exercise={exercise} index={index} addSet={addSet} removeExercise={removeExercise} updateSet={updateSet} toggleSet={toggleSet} />
+          <ExerciseSection key={exercise.id} exercise={exercise} index={index} addSet={addSet} removeExercise={removeExercise} updateSet={updateSet} toggleSet={toggleSet} onSetCompleted={startRestTimer} />
         ))}
         <Pressable accessibilityRole="button" accessibilityLabel="Add exercise" onPress={() => { animateLayout(); setSheetOpen(true); }} style={styles.addExercise}>
           <Icon name="add" size={17} color={dashboardTheme.ink} />
@@ -65,15 +128,39 @@ export function ActiveWorkoutScreen({ navigation }) {
   );
 }
 
-function ExerciseSection({ exercise, index, addSet, removeExercise, updateSet, toggleSet }) {
+function ExerciseSection({ exercise, index, addSet, removeExercise, updateSet, toggleSet, onSetCompleted }) {
   const [optionsOpen, setOptionsOpen] = useState(false);
   return (
     <View style={styles.exerciseCard}>
       <View style={styles.exerciseHeader}><Text style={styles.exerciseName}>{exercise.name}</Text><Pressable accessibilityRole="button" accessibilityLabel={`More options for ${exercise.name}`} onPress={() => setOptionsOpen(true)} style={styles.moreButton}><Icon name="ellipsis-horizontal" size={20} color={dashboardTheme.ink} /></Pressable></View>
       <View style={styles.setHeader}><Text style={[styles.setHeaderText, styles.setColumn]}>Set</Text><Text style={[styles.setHeaderText, styles.previousColumn]}>Previous</Text><Text style={[styles.setHeaderText, styles.inputColumn]}>kg</Text><Text style={[styles.setHeaderText, styles.inputColumn]}>Reps</Text><View style={styles.checkColumn} /></View>
-      {exercise.sets.map((set, setIndex) => <SetRow key={set.id} set={set} index={setIndex} onChange={(changes) => updateSet(exercise.id, set.id, changes)} onToggle={() => { lightHaptic(); toggleSet(exercise.id, set.id); }} />)}
+      {exercise.sets.map((set, setIndex) => <SetRow key={set.id} set={set} index={setIndex} onChange={(changes) => updateSet(exercise.id, set.id, changes)} onToggle={() => { lightHaptic(); if (!set.completed) onSetCompleted(); toggleSet(exercise.id, set.id); }} />)}
       <Pressable accessibilityRole="button" accessibilityLabel={`Add set to ${exercise.name}`} onPress={() => { animateLayout(); lightHaptic(); addSet(exercise.id); }} style={styles.addSet}><Icon name="add" size={16} color={dashboardTheme.ink} /><Text style={styles.addSetText}>Add set</Text></Pressable>
       <ExerciseOptionsSheet visible={optionsOpen} exercise={exercise} onClose={() => setOptionsOpen(false)} onRemove={() => { animateLayout(); removeExercise(exercise.id); setOptionsOpen(false); }} />
+    </View>
+  );
+}
+
+function formatElapsed(seconds) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainder = seconds % 60;
+  if (hours > 0) return `${hours}:${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
+  return `${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
+}
+
+function formatRest(seconds) {
+  const absolute = Math.abs(seconds);
+  return `${String(Math.floor(absolute / 60)).padStart(2, '0')}:${String(absolute % 60).padStart(2, '0')}`;
+}
+
+function RestTimerIndicator({ remaining, duration, running }) {
+  const contentColor = !running ? dashboardTheme.ink : remaining <= 0 ? '#C85C5C' : remaining <= duration * 0.2 ? '#C58A45' : remaining <= duration * 0.5 ? dashboardTheme.accent : dashboardTheme.ink;
+
+  return (
+    <View style={styles.timerIndicator}>
+      <Icon name="time-outline" size={23} color={contentColor} />
+      {running && <Text style={[styles.restValue, { color: contentColor }]}>{formatRest(remaining)}</Text>}
     </View>
   );
 }
@@ -99,11 +186,22 @@ function ExerciseOptionsSheet({ visible, exercise, onClose, onRemove }) {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: dashboardTheme.divider },
-  headerCopy: { flex: 1 },
-  headerTitle: { color: dashboardTheme.ink, fontFamily: typography.semibold, fontSize: 21, fontWeight: '600' },
-  headerMeta: { color: dashboardTheme.slate, fontFamily: typography.medium, fontSize: 12, marginTop: 3 },
-  cancelButton: { minWidth: 92, minHeight: 44 },
+  header: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2, borderBottomWidth: 1, borderBottomColor: dashboardTheme.divider },
+  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 4, padding: 3, borderRadius: 16, borderWidth: 1, borderColor: dashboardTheme.divider, backgroundColor: dashboardTheme.surface },
+  headerTitle: { color: dashboardTheme.ink, fontFamily: typography.semibold, fontSize: 28, lineHeight: 34, fontWeight: '600' },
+  titleBlock: { alignItems: 'flex-start', marginTop: 22 },
+  headerMeta: { color: dashboardTheme.slate, fontFamily: typography.medium, fontSize: 12, lineHeight: 17, marginTop: 2 },
+  cancelButton: { minWidth: 82, minHeight: 42, borderRadius: 14, borderWidth: 1, borderColor: dashboardTheme.divider, backgroundColor: dashboardTheme.surface },
+  editButton: { minWidth: 62, minHeight: 38, borderRadius: 12, borderWidth: 0, backgroundColor: 'transparent' },
+  editActive: { backgroundColor: dashboardTheme.surfaceMuted },
+  finishButton: { minWidth: 76, minHeight: 38, borderRadius: 12, borderWidth: 1, borderColor: dashboardTheme.divider, backgroundColor: dashboardTheme.surfaceMuted },
+  elapsedRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 7 },
+  elapsedInfo: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  timerReset: { minWidth: 48, height: 48, paddingHorizontal: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 14 },
+  timerIndicator: { minHeight: 32, minWidth: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  restValue: { minWidth: 34, marginLeft: 0, color: dashboardTheme.ink, fontFamily: typography.semibold, fontSize: 13, lineHeight: 17, textAlign: 'right' },
+  elapsedValue: { color: dashboardTheme.ink, fontFamily: typography.medium, fontSize: 17, lineHeight: 22 },
   keyboardArea: { flex: 1 },
   content: { padding: 16, gap: 12, paddingBottom: 18 },
   exerciseCard: { backgroundColor: dashboardTheme.surface, borderRadius: 20, padding: 12, borderWidth: 1, borderColor: dashboardTheme.divider },

@@ -22,6 +22,17 @@ test.describe('Active workout flow', () => {
     await expect(page.getByText('Workout', { exact: true })).toBeVisible();
   });
 
+  test('starts the rest timer from the workout header', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Start workout' }).click();
+
+    const restTimer = page.getByRole('button', { name: 'Start rest timer' });
+    await expect(restTimer).toBeVisible();
+    await restTimer.click();
+    await expect(page.getByRole('button', { name: /Rest timer,/ })).toBeVisible();
+    await expect(page.getByText(/00:5[0-9]/)).toBeVisible();
+  });
+
   test('navigates between the primary destinations', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'History' }).click();
