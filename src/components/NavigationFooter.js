@@ -1,12 +1,9 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { DockSurface } from './DockSurface';
+import { DockChrome } from './DockChrome';
 import { dashboardTheme } from '../theme/dashboardTheme';
 
 export function NavigationFooter({ style }) {
-  return <View style={[styles.footer, style]}><DockSurface theme={dashboardTheme} /></View>;
+  return <DockChrome theme={dashboardTheme} style={[styles.footer, style]} />;
 }
 
-const styles = StyleSheet.create({
-  footer: { paddingHorizontal: 0, paddingBottom: 10, paddingTop: 8 },
-});
+const styles = { footer: { height: 88, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 10, zIndex: 10 } };

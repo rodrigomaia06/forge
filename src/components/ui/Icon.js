@@ -18,6 +18,7 @@ import {
   Plus,
   QuestionMark,
   Timer,
+  Trash,
   Running,
   Stretching,
   TennisBall,
@@ -51,6 +52,7 @@ const iconMap = {
   'tennis-ball': TennisBall,
   stopwatch: Timer,
   'stopwatch-outline': Timer,
+  trash: Trash,
   check: Check,
 };
 

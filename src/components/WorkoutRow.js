@@ -18,7 +18,7 @@ export function WorkoutRow({ workout, theme = colors }) {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${workout.name}, ${workout.type}, ${duration}, ${summary}`}
-      style={({ pressed }) => [styles.row, { borderBottomColor: theme.divider }, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
       <View style={[styles.typeIcon, { backgroundColor: presentation.background }]}>
         <Icon name={presentation.icon} size={23} color={presentation.color} weight="regular" />
@@ -37,12 +37,12 @@ export function WorkoutRow({ workout, theme = colors }) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', minHeight: 74, paddingVertical: 14, paddingLeft: 4, borderBottomWidth: 1, borderBottomColor: colors.divider },
+  row: { flexDirection: 'row', alignItems: 'center', minHeight: 70, paddingVertical: 11, paddingLeft: 4 },
   typeIcon: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18, marginRight: 10 },
   copy: { flex: 1 },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 },
   name: { flex: 1, color: colors.ink, fontFamily: typography.semibold, fontSize: 16, fontWeight: '600' },
-  meta: { color: colors.slate, fontFamily: typography.regular, fontSize: 13, marginTop: 7 },
+  meta: { color: colors.slate, fontFamily: typography.regular, fontSize: 13, lineHeight: 18, marginTop: 5 },
   pressed: { opacity: 0.65 },
 });
 

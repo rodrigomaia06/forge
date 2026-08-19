@@ -2,9 +2,8 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { DashboardHeader } from '../../components/DashboardHeader';
-import { DockSurface } from '../../components/DockSurface';
+import { DockChrome } from '../../components/DockChrome';
 import { Calendar } from '../../components/Calendar';
 import { WorkoutRow } from '../../components/WorkoutRow';
 import { workoutsByDate } from '../../data/mockWorkouts';
@@ -28,25 +27,17 @@ export function DashboardShell({ children, theme }) {
     <AppScreen testID="dashboard-app-screen" backgroundColor={theme.background}>
       <View ref={shellProbe.ref} onLayout={shellProbe.onLayout} testID="dashboard-shell" style={styles.appShell}>
         <View style={styles.body}>{React.cloneElement(children, { header: <DashboardHeader theme={theme} variant={theme.headerVariant} onStart={openWorkout} /> })}</View>
-        <View pointerEvents="box-none" ref={dockSlotProbe.ref} onLayout={dockSlotProbe.onLayout} testID="dashboard-dock-slot" style={styles.dockSlot}>
-          <Svg pointerEvents="none" testID="dashboard-dock-vignette" style={styles.dockVignette}>
-            <Defs>
-              <LinearGradient id="forgeDockBottomFade" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={theme.background} stopOpacity="0" />
-                <Stop offset="0.3" stopColor={theme.background} stopOpacity="0.42" />
-                <Stop offset="0.56" stopColor={theme.background} stopOpacity="0.82" />
-                <Stop offset="1" stopColor={theme.background} stopOpacity="1" />
-              </LinearGradient>
-            </Defs>
-            <Rect x="0" y="0" width="100%" height="100%" fill="url(#forgeDockBottomFade)" />
-          </Svg>
-          <DockSurface theme={theme} dockRef={dockCylinderProbe.ref} onLayout={dockCylinderProbe.onLayout} testID="dashboard-dock-cylinder" />
-          <View
-            testID="dashboard-dock-home-indicator"
-            accessibilityLabel="Home indicator"
-            style={[styles.dockHomeIndicator, { backgroundColor: theme.ink }]}
-          />
-        </View>
+        <DockChrome
+          theme={theme}
+          slotRef={dockSlotProbe.ref}
+          onLayout={dockSlotProbe.onLayout}
+          slotTestID="dashboard-dock-slot"
+          cylinderRef={dockCylinderProbe.ref}
+          cylinderOnLayout={dockCylinderProbe.onLayout}
+          cylinderTestID="dashboard-dock-cylinder"
+          vignetteTestID="dashboard-dock-vignette"
+          indicatorTestID="dashboard-dock-home-indicator"
+        />
       </View>
     </AppScreen>
   );
@@ -175,7 +166,7 @@ const styles = StyleSheet.create({
   calendarCard: { position: 'relative', zIndex: 10, marginHorizontal: 0, paddingHorizontal: 0, borderWidth: 0, overflow: 'visible' },
   dayCard: { borderWidth: 0, overflow: 'hidden' },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 },
-  selectedDate: { flex: 1, fontFamily: typography.bold, fontSize: 18, fontWeight: '700', letterSpacing: -0.2 },
+  selectedDate: { flex: 1, fontFamily: typography.medium, fontSize: 18, fontWeight: '500', letterSpacing: -0.2 },
   dayCount: { fontFamily: typography.regular, fontSize: 12, paddingBottom: 2 },
   workoutList: { borderTopWidth: 1, paddingHorizontal: 16 },
   emptyDay: { padding: 16, borderTopWidth: 1 },
@@ -184,7 +175,7 @@ const styles = StyleSheet.create({
   secondaryAction: { alignSelf: 'flex-start', marginTop: 14 },
   contextCard: { padding: 16 },
   compactContextCard: { paddingTop: 16, paddingBottom: 8, paddingHorizontal: 16 },
-  contextTitle: { alignSelf: 'flex-start', fontFamily: typography.semibold, fontSize: 18, fontWeight: '600', marginBottom: 12 },
+  contextTitle: { alignSelf: 'flex-start', fontFamily: typography.medium, fontSize: 18, fontWeight: '500', marginBottom: 12 },
   contextRow: { flexDirection: 'row', alignItems: 'stretch', paddingTop: 14, borderTopWidth: 1 },
   compactContextRow: { paddingTop: 6 },
   metric: { flex: 1 },
@@ -202,32 +193,4 @@ const styles = StyleSheet.create({
   typeDot: { width: 9, height: 9, borderRadius: 4.5 },
   typeLabel: { fontFamily: typography.regular, fontSize: 14 },
   typeValue: { fontFamily: typography.regular, fontSize: 13 },
-  dockSlot: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 88,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingBottom: 10,
-    zIndex: 10,
-  },
-  dockVignette: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 68,
-    zIndex: 0,
-  },
-  dockHomeIndicator: {
-    position: 'absolute',
-    bottom: 2,
-    width: 88,
-    height: 4,
-    borderRadius: 1000,
-    opacity: 0.72,
-    zIndex: 12,
-  },
 });

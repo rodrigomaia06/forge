@@ -3,10 +3,10 @@ import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 import { Icon } from './Icon';
 import { colors, radii, typography } from '../../theme/tokens';
 
-export function Button({ label, accessibilityLabel, onPress, variant = 'primary', icon, iconSize = 20, iconWeight = 'regular', loading = false, disabled = false, style, theme = colors }) {
+export function Button({ label, accessibilityLabel, onPress, variant = 'primary', icon, iconSize = 20, iconWeight = 'regular', loading = false, disabled = false, style, labelStyle, labelColor, theme = colors }) {
   const isPrimary = variant === 'primary';
   const isOutline = variant === 'outline';
-  const textColor = isPrimary ? theme.surface : theme.accent;
+  const textColor = labelColor || (isPrimary ? theme.surface : theme.accent);
 
   return (
     <Pressable
@@ -25,7 +25,7 @@ export function Button({ label, accessibilityLabel, onPress, variant = 'primary'
       ]}
     >
       {loading ? <ActivityIndicator color={textColor} /> : icon && <Icon name={icon} size={iconSize} weight={iconWeight} color={textColor} />}
-      {!loading && label && <Text style={[styles.label, { color: textColor }]}>{label}</Text>}
+      {!loading && label && <Text style={[styles.label, { color: textColor }, labelStyle]}>{label}</Text>}
     </Pressable>
   );
 }

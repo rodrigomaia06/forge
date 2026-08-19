@@ -16,5 +16,5 @@ function MoreScreen({ navigation }) {
 }
 
 export function AppNavigator() {
-  return <NavigationContainer><Stack.Navigator initialRouteName="Dashboard" screenOptions={{ headerShown: false, animation: 'fade', animationDuration: 160 }}><Stack.Screen name="Dashboard" component={DashboardScreen} /><Stack.Screen name="ActiveWorkout" component={ActiveWorkoutScreen} /><Stack.Screen name="History" component={HistoryScreen} /><Stack.Screen name="Plans" component={PlansScreen} /><Stack.Screen name="More" component={MoreScreen} /></Stack.Navigator></NavigationContainer>;
+  return <NavigationContainer><Stack.Navigator initialRouteName="Dashboard" screenOptions={{ headerShown: false, animation: 'fade', animationDuration: 140 }}><Stack.Screen name="Dashboard" component={DashboardScreen} /><Stack.Screen name="ActiveWorkout" component={ActiveWorkoutScreen} /><Stack.Screen name="History" component={HistoryScreen} /><Stack.Screen name="Plans" component={PlansScreen} /><Stack.Screen name="More" component={MoreScreen} /></Stack.Navigator></NavigationContainer>;
 }

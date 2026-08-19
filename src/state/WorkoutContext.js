@@ -78,6 +78,15 @@ export function WorkoutProvider({ children }) {
     }));
   }, []);
 
+  const removeSet = useCallback((exerciseId, setId) => {
+    setActiveWorkout((current) => current && ({
+      ...current,
+      exercises: current.exercises.map((exercise) => exercise.id === exerciseId
+        ? { ...exercise, sets: exercise.sets.filter((set) => set.id !== setId) }
+        : exercise),
+    }));
+  }, []);
+
   const removeExercise = useCallback((exerciseId) => {
     setActiveWorkout((current) => current && ({
       ...current,
@@ -111,7 +120,7 @@ export function WorkoutProvider({ children }) {
     return finished;
   }, [activeWorkout]);
 
-  const value = useMemo(() => ({ ready, activeWorkout, completedWorkouts, startWorkout, addExercise, addSet, removeExercise, updateSet, toggleSet, finishWorkout }), [ready, activeWorkout, completedWorkouts, startWorkout, addExercise, addSet, removeExercise, updateSet, toggleSet, finishWorkout]);
+  const value = useMemo(() => ({ ready, activeWorkout, completedWorkouts, startWorkout, addExercise, addSet, removeSet, removeExercise, updateSet, toggleSet, finishWorkout }), [ready, activeWorkout, completedWorkouts, startWorkout, addExercise, addSet, removeSet, removeExercise, updateSet, toggleSet, finishWorkout]);
   return <WorkoutContext.Provider value={value}>{children}</WorkoutContext.Provider>;
 }
 
