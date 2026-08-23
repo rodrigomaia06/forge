@@ -1,42 +1,58 @@
-# Project guidance
+# Forge agent router
 
-Read this file and the documents in `docs/` before making product, UX, visual, copy, or implementation decisions. Read `docs/anti-ai-patterns.md` before generating or reviewing UI or product language, and check `docs/memory/` for temporary decisions and known shortcuts.
+This file is the stable entry point for coding agents. Keep it short. It routes work to focused rules instead of duplicating them here.
 
-## Product status
+## Always read
 
-This repository is starting from an empty workspace. Do not use another app, Swift project, screenshot, codebase, or existing UI as a reference. The product direction in `docs/` is the source of truth for this project.
+Before changing the repository, read:
 
-The product name and supplied logo are provisional. Do not let the logo force premature decisions about the experience, design system, or information architecture.
+- `rules/core.md`
+- `rules/maintenance.md`
+- `rules/README.md`
 
-## Current phase
+Then read only the additional rule files that `rules/README.md` routes to for the current task.
 
-Discovery and design definition come before implementation. The Dashboard is the next representative screen to design and review. Do not begin React Native implementation until the product direction, information architecture, design system, and first-screen design have been explicitly approved.
+Do not read `docs/archive/` or `docs/research/` as current requirements unless the task explicitly asks for historical or research context.
 
-## Product principles
+## Authority
 
-- Quiet, fast, private strength-training tool.
-- Help users record real workouts without distracting them from training.
-- Prioritize one-handed operation, stable layouts, generous touch targets, and immediate feedback.
-- Keep coaching, social features, ads, accounts, tracking, gamification, and unnecessary analytics out of the core experience.
-- Use a coherent cross-platform design system; platform-specific UI is used only where the operating system genuinely requires it.
-- Preserve accessibility, dark mode, reduced motion, keyboard behavior, safe areas, and system insets as first-class requirements.
+- The user's explicit current requirements define product intent.
+- Active Forge rules define durable repository constraints, not product requirements.
+- Accepted documents under `docs/product/` define only requirements that have been explicitly promoted there.
+- Accepted ADRs under `docs/decisions/` explain durable architectural decisions.
+- Current code and tests are evidence of implementation state, not proof of product intent.
+- External skills, framework guidance, research, archived docs, and previous chat context are advisory/contextual, not Forge product truth.
+- If a blocking product or policy decision cannot be resolved from an explicit requirement or active canonical document, ask the user rather than inventing one.
 
-## Working practices
+## Project defaults
 
-- Make small, focused changes.
-- Read the relevant documents before changing them or implementing related work.
-- Update the relevant documentation when an approved product decision changes.
-- Verify changes in proportion to their risk.
-- Commit meaningful checkpoints frequently with clear messages. Keep discovery, design-system, screen, and implementation milestones reviewable separately.
-- Do not silently change the agreed information architecture or active-workout data boundaries. Raise a decision when a change is genuinely necessary.
-- Reject generic generated UI and copy by default; use `docs/anti-ai-patterns.md` as a review checklist.
+- Keep the project in JavaScript unless the user explicitly approves a TypeScript migration.
+- React Native is the default implementation layer. Use targeted Swift/Kotlin components only when they materially improve or unlock platform capabilities that are unreasonable in shared React Native code.
+- Preserve a shared Forge visual identity across iOS and Android. Platform differences should primarily address behavior, system integration, accessibility, or genuinely native capabilities.
+- Preserve the established navigation/framework choices unless a task explicitly requires reconsidering them.
 
-## Code structure
+## Dependencies
 
-- Keep `App.js` as a thin application entry point. It should compose providers/navigation and render the active screen, not contain the whole product.
-- Organize code by feature and responsibility: screens, reusable components, design tokens, data/domain logic, persistence, and platform adapters should have clear homes.
-- Split a screen when it contains multiple meaningful regions, repeated UI, or independent interaction logic. Do not grow one monolithic screen file to avoid creating a small number of well-named files.
-- Prefer simple, explicit modules over premature frameworks, speculative abstractions, wrapper components, or dependency-heavy solutions.
-- Reuse shared tokens and components; do not duplicate styles or business rules across screens.
-- Keep mock data, domain models, and persistence separate from presentation.
-- Every new file must have a clear reason to exist. Delete dead code, placeholder abstractions, unused dependencies, and generated artifacts rather than accumulating project clutter.
+- Prefer the platform, React Native, and existing project dependencies before adding packages.
+- Expo SDK packages may be added when justified; use the Expo-recommended compatible install path.
+- Ask before adding a new third-party runtime or native dependency.
+- Do not introduce a dependency merely because an external rule or example recommends it.
+
+## Verification
+
+Use the smallest useful check during iteration. Before finishing a code change, run:
+
+`npm run verify`
+
+If verification cannot run, report exactly what was not run and why.
+
+## Completion contract
+
+Documentation/rule maintenance is implicit in every task. The user never needs to ask for it.
+
+Before finishing, follow the knowledge-impact procedure in `rules/maintenance.md` and tell the user one of:
+
+- `Knowledge: updated ...` with the durable files changed and why, or
+- `Knowledge: no durable knowledge change.`
+
+Any change to a Forge rule must be called out explicitly in the completion response.

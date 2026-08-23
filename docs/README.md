@@ -1,14 +1,23 @@
-# Product documentation
+# Forge documentation map
 
-These documents capture the product decisions made during discovery and are the working source of truth for the project.
+Documentation is classified by authority so agents do not confuse history with current requirements.
 
-- [Product discovery](product-discovery.md) — purpose, users, problem, product personality, and non-goals.
-- [Information architecture](information-architecture.md) — primary navigation, Dashboard, Plans, History, More, calendar, and active-workout boundaries.
-- [Interaction principles](interaction-principles.md) — live workout behavior, persistence, timers, editing, accessibility, and feedback.
-- [Design system direction](design-system.md) — visual identity, typography, color semantics, density, surfaces, controls, and states.
-- [Dashboard prototype](memory/dashboard-prototype.md) — temporary scope and review status of the first visual implementation.
-- [Anti-AI patterns](anti-ai-patterns.md) — UI, language, data, and implementation patterns to reject by default.
-- [Spotify UI notes](spotify-ui-notes.md) — principles and patterns studied for hierarchy and polish, translated for Forge without copying Spotify’s product styling.
-- [Project memory](memory/README.md) — temporary choices, known shortcuts, open questions, and revisit items.
+## Active product requirements — `product/`
 
-The next design task is the Dashboard: a polished training archive with a prominent monthly calendar, inline selected-day details, and clear start/resume actions.
+Only explicitly promoted durable product requirements belong here. The existence of old implementation, research, or archived notes is not enough to promote a requirement.
+
+## Architecture decisions — `decisions/`
+
+Use ADRs sparingly for significant architectural choices and trade-offs. Accepted ADRs explain why a durable decision exists; they should not become a running implementation log.
+
+## Research — `research/`
+
+Non-authoritative references, inspiration, comparisons, and investigations. Research may inform a decision but does not become a Forge requirement automatically.
+
+## Archive — `archive/`
+
+Historical material retained only for context. Never use archived files as current requirements unless a task explicitly asks to investigate history.
+
+## Maintenance
+
+Agents follow `rules/maintenance.md` after every implementation task. Durable knowledge updates are implicit and must be reported to the user automatically.
