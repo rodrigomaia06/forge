@@ -1,20 +1,20 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 import { DashboardHeader } from '../../components/DashboardHeader';
 import { DockChrome } from '../../components/DockChrome';
 import { Calendar } from '../../components/Calendar';
 import { WorkoutRow } from '../../components/WorkoutRow';
-import { workoutsByDate } from '../../data/mockWorkouts';
 import { AppScreen, Button } from '../../components/ui';
-import { typography, spacing } from '../../theme/tokens';
 import { useLayoutProbe } from '../../debug/layoutProbe';
 import { useWorkouts } from '../../state/WorkoutContext';
 import type { ReactElement, ReactNode } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { ScrollView as ScrollViewType, StyleProp, ViewStyle } from 'react-native';
 import type { ForgeTheme, RootNavigationProp, WorkoutMap, WorkoutSummary } from '../../types';
+import { styles } from './dashboardStyles';
+import { summarizeWorkoutTypes } from './dashboardMetrics';
 
 export function DashboardShell({
   children,
@@ -233,35 +233,6 @@ export function DashboardContextCard({
   );
 }
 
-function summarizeWorkoutTypes() {
-  const summary: Record<string, { type: string; count: number; minutes: number }> = {};
-  Object.values(workoutsByDate)
-    .flat()
-    .forEach((workout) => {
-      const minutes = parseDuration(workout.duration || '');
-      if (!summary[workout.type]) summary[workout.type] = { type: workout.type, count: 0, minutes };
-      else summary[workout.type].minutes += minutes;
-      summary[workout.type].count += 1;
-    });
-  return Object.values(summary).map((item) => ({
-    ...item,
-    duration: formatDuration(item.minutes),
-    color: item.type === 'Strength' ? '#8290F4' : '#ED7C82',
-  }));
-}
-
-function parseDuration(value: string): number {
-  const hours = Number(value.match(/(\d+)\s*h/)?.[1] || 0);
-  const minutes = Number(value.match(/(\d+)\s*min/)?.[1] || 0);
-  return hours * 60 + minutes;
-}
-
-function formatDuration(minutes: number): string {
-  const hours = Math.floor(minutes / 60);
-  const remainder = minutes % 60;
-  return hours ? `${hours}h ${String(remainder).padStart(2, '0')}m` : `${remainder}m`;
-}
-
 export function DashboardScroll({
   children,
   style,
@@ -286,98 +257,3 @@ export function DashboardScroll({
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  appShell: { flex: 1 },
-  body: { flex: 1, minHeight: 0 },
-  scrollView: { flex: 1 },
-  scrollContent: { paddingHorizontal: spacing.screen, paddingTop: 0, paddingBottom: 132, gap: 14 },
-  scrollHeader: { marginHorizontal: -spacing.screen },
-  calendarCard: {
-    position: 'relative',
-    zIndex: 10,
-    marginHorizontal: 0,
-    paddingHorizontal: 0,
-    borderWidth: 0,
-    overflow: 'visible',
-  },
-  dayCard: { borderWidth: 0, overflow: 'hidden' },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-  },
-  selectedDate: {
-    flex: 1,
-    fontFamily: typography.medium,
-    fontSize: 18,
-    fontWeight: '500',
-    letterSpacing: -0.2,
-  },
-  dayCount: { fontFamily: typography.regular, fontSize: 12, paddingBottom: 2 },
-  workoutList: { borderTopWidth: 1, paddingHorizontal: 16 },
-  emptyDay: { padding: 16, borderTopWidth: 1 },
-  emptyTitle: { fontFamily: typography.semibold, fontSize: 15, fontWeight: '600' },
-  emptyCopy: {
-    fontFamily: typography.regular,
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 6,
-    maxWidth: 300,
-  },
-  secondaryAction: { alignSelf: 'flex-start', marginTop: 14 },
-  contextCard: { padding: 16 },
-  compactContextCard: { paddingTop: 16, paddingBottom: 8, paddingHorizontal: 16 },
-  contextTitle: {
-    alignSelf: 'flex-start',
-    fontFamily: typography.medium,
-    fontSize: 18,
-    fontWeight: '500',
-    marginBottom: 12,
-  },
-  contextRow: { flexDirection: 'row', alignItems: 'stretch', paddingTop: 14, borderTopWidth: 1 },
-  compactContextRow: { paddingTop: 6 },
-  metric: { flex: 1 },
-  contextValue: {
-    fontFamily: typography.bold,
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    textAlign: 'center',
-  },
-  compactContextValue: { fontSize: 25 },
-  contextLabel: {
-    alignSelf: 'center',
-    fontFamily: typography.medium,
-    fontSize: 11.5,
-    marginTop: 5,
-    maxWidth: 86,
-    lineHeight: 16,
-    textAlign: 'center',
-  },
-  compactContextLabel: { fontSize: 11, marginTop: 2, lineHeight: 14 },
-  contextDivider: { width: 1, marginHorizontal: 12 },
-  typeSection: { borderTopWidth: 1, marginTop: 16, paddingTop: 10 },
-  typeTitle: {
-    fontFamily: typography.medium,
-    fontSize: 13,
-    fontWeight: '500',
-    letterSpacing: 0.2,
-    marginBottom: 8,
-  },
-  typeBar: { flexDirection: 'row', gap: 4, height: 7, marginBottom: 4 },
-  typeBarSegment: { borderRadius: 1000 },
-  typeRow: {
-    minHeight: 28,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  typeLabelWrap: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  typeDot: { width: 9, height: 9, borderRadius: 4.5 },
-  typeLabel: { fontFamily: typography.regular, fontSize: 14 },
-  typeValue: { fontFamily: typography.regular, fontSize: 13 },
-});
