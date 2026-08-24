@@ -1,0 +1,32 @@
+export interface ForgeTheme {
+  background: string;
+  surface: string;
+  surfaceMuted: string;
+  ink: string;
+  slate: string;
+  muted: string;
+  divider: string;
+  accent?: string;
+  inkInteractive?: string;
+  success?: string;
+  calendarSurface?: string;
+  calendarDay?: string;
+  selected?: string;
+  selectedText?: string;
+  marker?: string;
+  navigation?: string;
+  dockSurface?: string;
+  dockSelected?: string;
+  dockBorder?: string;
+  dockForeground?: string;
+  dockMuted?: string;
+  cardRadius?: number;
+  topBar?: boolean;
+  headerVariant?: 'greeting' | 'archive' | 'month';
+  startButtonVariant?: string;
+  iconCalendar?: string;
+  iconStrength?: string;
+  iconSport?: string;
+  iconActivity?: string;
+  iconTime?: string;
+}

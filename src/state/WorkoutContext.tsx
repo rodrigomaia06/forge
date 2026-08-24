@@ -11,12 +11,17 @@ import type {
   WorkoutContextValue,
   WorkoutSetChanges,
 } from '../types';
+import {
+  addExerciseToWorkout,
+  addSetToWorkout,
+  createWorkout,
+  removeExerciseFromWorkout,
+  removeSetFromWorkout,
+  toggleWorkoutSet,
+  updateWorkoutSet,
+} from './workoutMutations';
 
 const WorkoutContext = createContext<WorkoutContextValue | null>(null);
-
-function makeId(prefix: string): string {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-}
 
 export function WorkoutProvider({ children }: ChildrenProps) {
   const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
@@ -49,26 +54,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
   const startWorkout = useCallback(
     (options: StartWorkoutOptions = {}): Workout => {
       if (activeWorkout) return activeWorkout;
-      const plannedExercises = options.exercises || [];
-      const workout = {
-        id: makeId('workout'),
-        name: options.name || 'Workout',
-        type: options.type || 'Strength',
-        startedAt: Date.now(),
-        completedAt: null,
-        exercises: plannedExercises.map((exercise) => ({
-          id: exercise.id || makeId('exercise'),
-          name: exercise.name,
-          sets: (exercise.sets || []).map((set) => ({
-            id: set.id || makeId('set'),
-            weight: set.weight || '',
-            reps: set.reps || '',
-            previous: set.previous,
-            targetReps: set.targetReps,
-            completed: false,
-          })),
-        })),
-      };
+      const workout = createWorkout(options);
       setActiveWorkout(workout);
       return workout;
     },
@@ -77,105 +63,30 @@ export function WorkoutProvider({ children }: ChildrenProps) {
 
   const addExercise = useCallback((name: string): void => {
     if (!name.trim()) return;
-    setActiveWorkout(
-      (current) =>
-        current && {
-          ...current,
-          exercises: [
-            ...current.exercises,
-            {
-              id: makeId('exercise'),
-              name: name.trim(),
-              sets: [{ id: makeId('set'), weight: '', reps: '', completed: false }],
-            },
-          ],
-        },
-    );
+    setActiveWorkout((current) => addExerciseToWorkout(current, name));
   }, []);
 
   const addSet = useCallback((exerciseId: string): void => {
-    setActiveWorkout(
-      (current) =>
-        current && {
-          ...current,
-          exercises: current.exercises.map((exercise) =>
-            exercise.id === exerciseId
-              ? {
-                  ...exercise,
-                  sets: [
-                    ...exercise.sets,
-                    { id: makeId('set'), weight: '', reps: '', completed: false },
-                  ],
-                }
-              : exercise,
-          ),
-        },
-    );
+    setActiveWorkout((current) => addSetToWorkout(current, exerciseId));
   }, []);
 
   const removeSet = useCallback((exerciseId: string, setId: string): void => {
-    setActiveWorkout(
-      (current) =>
-        current && {
-          ...current,
-          exercises: current.exercises.map((exercise) =>
-            exercise.id === exerciseId
-              ? { ...exercise, sets: exercise.sets.filter((set) => set.id !== setId) }
-              : exercise,
-          ),
-        },
-    );
+    setActiveWorkout((current) => removeSetFromWorkout(current, exerciseId, setId));
   }, []);
 
   const removeExercise = useCallback((exerciseId: string): void => {
-    setActiveWorkout(
-      (current) =>
-        current && {
-          ...current,
-          exercises: current.exercises.filter((exercise) => exercise.id !== exerciseId),
-        },
-    );
+    setActiveWorkout((current) => removeExerciseFromWorkout(current, exerciseId));
   }, []);
 
   const updateSet = useCallback(
     (exerciseId: string, setId: string, changes: WorkoutSetChanges): void => {
-      setActiveWorkout(
-        (current) =>
-          current && {
-            ...current,
-            exercises: current.exercises.map((exercise) =>
-              exercise.id === exerciseId
-                ? {
-                    ...exercise,
-                    sets: exercise.sets.map((set) =>
-                      set.id === setId ? { ...set, ...changes } : set,
-                    ),
-                  }
-                : exercise,
-            ),
-          },
-      );
+      setActiveWorkout((current) => updateWorkoutSet(current, exerciseId, setId, changes));
     },
     [],
   );
 
   const toggleSet = useCallback((exerciseId: string, setId: string): void => {
-    setActiveWorkout(
-      (current) =>
-        current && {
-          ...current,
-          exercises: current.exercises.map((exercise) =>
-            exercise.id === exerciseId
-              ? {
-                  ...exercise,
-                  sets: exercise.sets.map((set) =>
-                    set.id === setId ? { ...set, completed: !set.completed } : set,
-                  ),
-                }
-              : exercise,
-          ),
-        },
-    );
+    setActiveWorkout((current) => toggleWorkoutSet(current, exerciseId, setId));
   }, []);
 
   const finishWorkout = useCallback((): Workout | null => {
