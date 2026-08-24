@@ -1,16 +1,17 @@
-import React, { useEffect, useRef } from 'react';
-import {
-  Animated,
-  Modal,
-  PanResponder,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import React, { useCallback, useEffect, useRef } from 'react';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  Extrapolation,
+  interpolate,
+  runOnJS,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { Icon } from '../../components/ui';
 import { dashboardTheme } from '../../theme/dashboardTheme';
@@ -18,6 +19,7 @@ import { styles } from './activeWorkoutStyles';
 import { formatRest, formatRestDisplay } from './activeWorkoutFormatters';
 import { lightHaptic, selectionHaptic } from './activeWorkoutFeedback';
 import type { RestTimerSheetProps } from './activeWorkoutTypes';
+import type { NativeScrollEvent } from 'react-native';
 
 export function RestTimerIndicator({
   remaining,
@@ -40,7 +42,7 @@ export function RestTimerIndicator({
 
   return (
     <View style={styles.timerIndicator}>
-      <Icon name="time-outline" size={23} color={contentColor} />
+      <Icon name="stopwatch-outline" size={23} color={contentColor} />
       {running && (
         <Text style={[styles.restValue, { color: contentColor }]}>{formatRest(remaining)}</Text>
       )}
@@ -62,78 +64,69 @@ export function RestTimerSheet({
   onAdjust,
   onSkip,
 }: RestTimerSheetProps) {
-  const translateY = useRef(new Animated.Value(420)).current;
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
+  const translateY = useSharedValue(420);
+  const backdropOpacity = useSharedValue(0);
   const onCloseRef = useRef(onClose);
-  const closingRef = useRef(false);
+  const closing = useSharedValue(false);
+  const dragStartOffset = useSharedValue(0);
   onCloseRef.current = onClose;
 
-  const closeSheet = () => {
-    if (closingRef.current) return;
-    closingRef.current = true;
+  const finishClose = useCallback(() => onCloseRef.current(), []);
+  const closeSheet = useCallback(() => {
+    if (closing.value) return;
+    closing.value = true;
     lightHaptic();
-    Animated.timing(translateY, {
-      toValue: 520,
-      duration: 200,
-      useNativeDriver: Platform.OS !== 'web',
-    }).start(() => onCloseRef.current());
-    Animated.timing(backdropOpacity, {
-      toValue: 0,
-      duration: 160,
-      useNativeDriver: Platform.OS !== 'web',
-    }).start();
-  };
+    translateY.value = withTiming(520, { duration: 200 }, (finished) => {
+      if (finished) runOnJS(finishClose)();
+    });
+    backdropOpacity.value = withTiming(0, { duration: 160 });
+  }, [backdropOpacity, closing, finishClose, translateY]);
 
   useEffect(() => {
     if (!visible) return undefined;
-    closingRef.current = false;
-    translateY.setValue(420);
-    backdropOpacity.setValue(0);
-    const frame = requestAnimationFrame(() =>
-      Animated.parallel([
-        Animated.spring(translateY, {
-          toValue: 0,
-          damping: 22,
-          stiffness: 240,
-          mass: 0.8,
-          useNativeDriver: Platform.OS !== 'web',
-        }),
-        Animated.timing(backdropOpacity, {
-          toValue: 1,
-          duration: 180,
-          useNativeDriver: Platform.OS !== 'web',
-        }),
-      ]).start(),
-    );
+    closing.value = false;
+    translateY.value = 420;
+    backdropOpacity.value = 0;
+    const frame = requestAnimationFrame(() => {
+      translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.8 });
+      backdropOpacity.value = withTiming(1, { duration: 180 });
+    });
     return () => cancelAnimationFrame(frame);
-  }, [visible, translateY, backdropOpacity]);
+  }, [visible, translateY, backdropOpacity, closing]);
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, gesture) =>
-        Math.abs(gesture.dy) > 5 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
-      onPanResponderMove: (_, gesture) => translateY.setValue(Math.max(0, gesture.dy)),
-      onPanResponderGrant: () => lightHaptic(),
-      onPanResponderRelease: (_, gesture) => {
-        if (gesture.dy > 80 || gesture.vy > 0.8) closeSheet();
-        else {
-          lightHaptic();
-          Animated.spring(translateY, {
-            toValue: 0,
-            damping: 22,
-            stiffness: 240,
-            mass: 0.8,
-            useNativeDriver: Platform.OS !== 'web',
-          }).start();
-        }
-      },
-    }),
-  ).current;
+  const sheetGesture = Gesture.Pan()
+    .activeOffsetY([-6, 6])
+    .failOffsetX([-24, 24])
+    .onStart(() => {
+      dragStartOffset.value = translateY.value;
+    })
+    .onUpdate((event) => {
+      translateY.value = Math.max(0, dragStartOffset.value + event.translationY);
+    })
+    .onEnd((event) => {
+      const projectedOffset = Math.max(
+        0,
+        dragStartOffset.value + event.translationY + event.velocityY * 0.12,
+      );
+      if (projectedOffset >= 260 || event.velocityY > 900) {
+        closing.value = true;
+        translateY.value = withTiming(520, { duration: 200 }, (finished) => {
+          if (finished) runOnJS(finishClose)();
+        });
+        backdropOpacity.value = withTiming(0, { duration: 160 });
+      } else {
+        translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.8 });
+      }
+    });
+
+  const sheetAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+  const backdropAnimatedStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value }));
 
   return (
     <Modal visible={visible} animationType="none" transparent onRequestClose={closeSheet}>
-      <Animated.View style={[styles.restTimerBackdrop, { opacity: backdropOpacity }]}>
+      <Animated.View style={[styles.restTimerBackdrop, backdropAnimatedStyle]}>
         <Pressable
           testID="rest-timer-backdrop"
           accessibilityRole="button"
@@ -141,22 +134,27 @@ export function RestTimerSheet({
           onPress={closeSheet}
           style={StyleSheet.absoluteFill}
         />
-        <Animated.View style={[styles.restTimerSheet, { transform: [{ translateY }] }]}>
-          <View {...panResponder.panHandlers} style={styles.sheetDragArea}>
-            <View style={styles.sheetHandle} />
-          </View>
-          <View style={styles.restTimerHeader}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Close rest timer"
-              onPress={closeSheet}
-              style={styles.restCloseButton}
-            >
-              <Text style={styles.restCloseText}>Close</Text>
-            </Pressable>
-            <Text style={styles.restTimerTitle}>Rest timer</Text>
-            <View style={styles.restHeaderBalance} />
-          </View>
+        <Animated.View style={[styles.restTimerSheet, sheetAnimatedStyle]}>
+          <GestureDetector gesture={sheetGesture}>
+            <View style={styles.sheetDragArea}>
+              <View style={styles.sheetHandle} />
+              <View style={styles.restTimerHeader}>
+                <View style={styles.restHeaderSide} />
+                <Text style={styles.restTimerTitle}>Rest timer</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Close rest timer"
+                  onPress={closeSheet}
+                  style={({ pressed }) => [
+                    styles.restCloseButton,
+                    pressed && styles.restClosePressed,
+                  ]}
+                >
+                  <Icon name="close" size={20} color={dashboardTheme.slate} />
+                </Pressable>
+              </View>
+            </View>
+          </GestureDetector>
           {running ? (
             <ActiveRestTimer
               remaining={remaining}
@@ -174,7 +172,10 @@ export function RestTimerSheet({
                 accessibilityRole="button"
                 accessibilityLabel="Start rest timer"
                 onPress={onStart}
-                style={styles.restStartButton}
+                style={({ pressed }) => [
+                  styles.restStartButton,
+                  pressed && styles.restButtonPressed,
+                ]}
               >
                 <Text style={styles.restStartText}>Start</Text>
               </Pressable>
@@ -230,7 +231,6 @@ function ActiveRestTimer({
           />
         </Svg>
         <View style={styles.progressLabel}>
-          <Text style={styles.progressCaption}>Rest</Text>
           <Text style={[styles.progressValue, { color: stateColor }]}>
             {formatRestDisplay(remaining)}
           </Text>
@@ -242,7 +242,7 @@ function ActiveRestTimer({
           accessibilityRole="button"
           accessibilityLabel="Decrease rest by 15 seconds"
           onPress={() => onAdjust(-15)}
-          style={styles.restQuickButton}
+          style={({ pressed }) => [styles.restQuickButton, pressed && styles.restButtonPressed]}
         >
           <Text style={styles.restQuickText}>− 15s</Text>
         </Pressable>
@@ -250,7 +250,7 @@ function ActiveRestTimer({
           accessibilityRole="button"
           accessibilityLabel="Skip rest timer"
           onPress={onSkip}
-          style={styles.restQuickButton}
+          style={({ pressed }) => [styles.restQuickButton, pressed && styles.restButtonPressed]}
         >
           <Text style={styles.restQuickText}>Skip</Text>
         </Pressable>
@@ -258,7 +258,7 @@ function ActiveRestTimer({
           accessibilityRole="button"
           accessibilityLabel="Increase rest by 15 seconds"
           onPress={() => onAdjust(15)}
-          style={styles.restQuickButton}
+          style={({ pressed }) => [styles.restQuickButton, pressed && styles.restButtonPressed]}
         >
           <Text style={styles.restQuickText}>+ 15s</Text>
         </Pressable>
@@ -274,26 +274,58 @@ function RestDurationPicker({
   selectedDuration: number;
   onSelect: (duration: number) => void;
 }) {
-  const pickerRef = useRef<ScrollView>(null);
+  const pickerRef = useRef<React.ElementRef<typeof Animated.ScrollView>>(null);
   const selectedIndex = Math.max(0, REST_DURATIONS.indexOf(selectedDuration));
   const lastHapticIndex = useRef(selectedIndex);
+  const programmaticScroll = useRef(false);
   const rowHeight = 44;
+  const scrollOffset = useSharedValue(selectedIndex * rowHeight);
+  const hapticIndex = useSharedValue(selectedIndex);
 
   useEffect(() => {
+    if (programmaticScroll.current) return;
     lastHapticIndex.current = selectedIndex;
+    scrollOffset.value = selectedIndex * rowHeight;
+    hapticIndex.value = selectedIndex;
     pickerRef.current?.scrollTo({ y: selectedIndex * rowHeight, animated: false });
-  }, [selectedIndex]);
+  }, [hapticIndex, rowHeight, scrollOffset, selectedIndex]);
 
-  const selectIndex = (index: number, animated = true): void => {
+  const scrollToIndex = (index: number): void => {
     const nextIndex = Math.max(0, Math.min(REST_DURATIONS.length - 1, index));
+    if (nextIndex === selectedIndex) return;
+    programmaticScroll.current = true;
     onSelect(REST_DURATIONS[nextIndex]);
-    pickerRef.current?.scrollTo({ y: nextIndex * rowHeight, animated });
+    pickerRef.current?.scrollTo({ y: nextIndex * rowHeight, animated: true });
+  };
+
+  const handleScroll = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      const index = Math.max(
+        0,
+        Math.min(REST_DURATIONS.length - 1, Math.round(event.contentOffset.y / rowHeight)),
+      );
+      scrollOffset.value = event.contentOffset.y;
+      if (index !== hapticIndex.value) {
+        hapticIndex.value = index;
+        runOnJS(selectionHaptic)();
+      }
+    },
+  });
+
+  const handleScrollEnd = (event: NativeScrollEvent): void => {
+    const index = Math.max(
+      0,
+      Math.min(REST_DURATIONS.length - 1, Math.round(event.contentOffset.y / rowHeight)),
+    );
+    programmaticScroll.current = false;
+    lastHapticIndex.current = index;
+    onSelect(REST_DURATIONS[index]);
   };
 
   return (
     <View style={styles.durationPicker}>
       <View pointerEvents="none" style={styles.durationSelection} />
-      <ScrollView
+      <Animated.ScrollView
         ref={pickerRef}
         showsVerticalScrollIndicator={false}
         snapToInterval={rowHeight}
@@ -301,46 +333,83 @@ function RestDurationPicker({
         decelerationRate="fast"
         scrollEventThrottle={16}
         contentContainerStyle={styles.durationPickerContent}
-        onScroll={(event) => {
-          const index = Math.max(
-            0,
-            Math.min(
-              REST_DURATIONS.length - 1,
-              Math.round(event.nativeEvent.contentOffset.y / rowHeight),
-            ),
-          );
-          if (index !== lastHapticIndex.current) {
-            lastHapticIndex.current = index;
-            selectionHaptic();
-          }
-        }}
-        onMomentumScrollEnd={(event) =>
-          selectIndex(Math.round(event.nativeEvent.contentOffset.y / rowHeight), false)
-        }
+        onScroll={handleScroll}
+        onMomentumScrollEnd={(event) => handleScrollEnd(event.nativeEvent)}
       >
         {REST_DURATIONS.map((duration, index) => {
-          const distance = Math.abs(index - selectedIndex);
           return (
             <Pressable
               key={duration}
               accessibilityRole="button"
               accessibilityLabel={`Rest duration ${formatRest(duration)}`}
-              onPress={() => selectIndex(index)}
-              style={styles.durationRow}
+              onPress={() => scrollToIndex(index)}
+              style={({ pressed }) => [styles.durationRow, pressed && styles.durationRowPressed]}
             >
-              <Text
-                style={[
-                  styles.durationText,
-                  distance === 0 && styles.durationTextSelected,
-                  distance > 2 && styles.durationTextFaded,
-                ]}
-              >
-                {formatRest(duration)}
-              </Text>
+              <DurationText
+                duration={duration}
+                index={index}
+                rowHeight={rowHeight}
+                selected={index === selectedIndex}
+                scrollOffset={scrollOffset}
+              />
             </Pressable>
           );
         })}
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
+  );
+}
+
+function DurationText({
+  duration,
+  index,
+  rowHeight,
+  selected,
+  scrollOffset,
+}: {
+  duration: number;
+  index: number;
+  rowHeight: number;
+  selected: boolean;
+  scrollOffset: { value: number };
+}) {
+  const center = index * rowHeight;
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      scrollOffset.value,
+      [
+        center - rowHeight * 2,
+        center - rowHeight,
+        center,
+        center + rowHeight,
+        center + rowHeight * 2,
+      ],
+      [0.24, 0.58, 1, 0.58, 0.24],
+      Extrapolation.CLAMP,
+    ),
+    transform: [
+      {
+        scale: interpolate(
+          scrollOffset.value,
+          [
+            center - rowHeight * 2,
+            center - rowHeight,
+            center,
+            center + rowHeight,
+            center + rowHeight * 2,
+          ],
+          [0.88, 0.94, 1, 0.94, 0.88],
+          Extrapolation.CLAMP,
+        ),
+      },
+    ],
+  }));
+
+  return (
+    <Animated.Text
+      style={[styles.durationText, selected && styles.durationTextSelected, animatedStyle]}
+    >
+      {formatRest(duration)}
+    </Animated.Text>
   );
 }

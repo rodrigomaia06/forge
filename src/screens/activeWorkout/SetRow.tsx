@@ -209,9 +209,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
   },
-  inputColumn: { width: 56 },
+  inputColumn: { width: 52 },
   input: {
-    minHeight: 40,
+    minHeight: 36,
     borderWidth: 1,
     borderColor: dashboardTheme.divider,
     borderRadius: 8,

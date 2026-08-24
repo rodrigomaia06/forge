@@ -67,11 +67,13 @@ export function removeSetFromWorkout(
   if (!workout) return workout;
   return {
     ...workout,
-    exercises: workout.exercises.map((exercise) =>
-      exercise.id === exerciseId
-        ? { ...exercise, sets: exercise.sets.filter((set) => set.id !== setId) }
-        : exercise,
-    ),
+    exercises: workout.exercises
+      .map((exercise) =>
+        exercise.id === exerciseId
+          ? { ...exercise, sets: exercise.sets.filter((set) => set.id !== setId) }
+          : exercise,
+      )
+      .filter((exercise) => exercise.sets.length > 0),
   };
 }
 

@@ -5,6 +5,7 @@ import { DashboardScreen } from '../screens/DashboardScreen';
 import { ActiveWorkoutScreen } from '../screens/ActiveWorkoutScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
+import { useWorkouts } from '../state/WorkoutContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
 
@@ -35,10 +36,14 @@ function MoreScreen({ navigation }: MoreScreenProps) {
 }
 
 export function AppNavigator() {
+  const { ready, activeWorkout } = useWorkouts();
+
+  if (!ready) return null;
+
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Dashboard"
+        initialRouteName={activeWorkout ? 'ActiveWorkout' : 'Dashboard'}
         screenOptions={{ headerShown: false, animation: 'fade', animationDuration: 140 }}
       >
         <Stack.Screen name="Dashboard" component={DashboardScreen} />

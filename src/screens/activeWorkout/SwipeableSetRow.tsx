@@ -48,7 +48,7 @@ export function SwipeableSetRow({
     removalStartedRef.current = true;
     Animated.timing(removalProgress, {
       toValue: 1,
-      duration: 140,
+      duration: 70,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: Platform.OS !== 'web',
     }).start(({ finished }) => {
@@ -142,7 +142,7 @@ export function SwipeableSetRow({
               {
                 translateX: Animated.add(
                   deleteProgress.interpolate({ inputRange: [0, 1], outputRange: [0, -60] }),
-                  removalProgress.interpolate({ inputRange: [0, 1], outputRange: [0, -24] }),
+                  removalProgress.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }),
                 ),
               },
             ],

@@ -63,6 +63,7 @@ export interface WorkoutContextValue extends WorkoutState {
   removeExercise: (exerciseId: string) => void;
   updateSet: (exerciseId: string, setId: string, changes: WorkoutSetChanges) => void;
   toggleSet: (exerciseId: string, setId: string) => void;
+  cancelWorkout: () => void;
   finishWorkout: () => Workout | null;
 }
 export interface WorkoutSummary {

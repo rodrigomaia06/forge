@@ -25,3 +25,12 @@ export function animateLayout(): void {
     ),
   );
 }
+
+export function animateSetRemoval(): void {
+  if (Platform.OS === 'web') return;
+  if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental)
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  LayoutAnimation.configureNext(
+    LayoutAnimation.create(70, LayoutAnimation.Types.linear, LayoutAnimation.Properties.opacity),
+  );
+}

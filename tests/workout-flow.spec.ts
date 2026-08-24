@@ -61,6 +61,20 @@ test.describe('Active workout flow', () => {
     await expect(page.getByRole('button', { name: 'Start rest timer' }).first()).toBeVisible();
   });
 
+  test('selects a rest duration by tapping a picker value', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Start workout' }).click();
+    await page.getByRole('button', { name: 'Start rest timer' }).click();
+
+    await page.getByRole('button', { name: 'Rest duration 02:00' }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Start rest timer', exact: true })
+      .click();
+
+    await expect(page.getByRole('dialog').getByText(/02:0[0-9]/)).toBeVisible();
+  });
+
   test('marks missing set inputs before allowing completion', async ({ page }) => {
     await startEmptyWorkoutWithExercise(page);
 
@@ -129,6 +143,37 @@ test.describe('Active workout flow', () => {
     await expect(page.getByLabel('Home indicator').last()).toBeVisible();
   });
 
+  test('keeps the workout dock item available without a selection pill', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Start workout' }).click();
+
+    const workoutItem = page.getByRole('button', { name: 'Workout', exact: true });
+    await expect(workoutItem).toBeVisible();
+    await expect(workoutItem).toHaveCSS('background-color', 'rgb(29, 37, 45)');
+
+    await page.getByRole('tab', { name: 'Dashboard' }).click();
+    await expect(workoutItem).toBeVisible();
+  });
+
+  test('opens the active workout after reloading with a workout in progress', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Start workout' }).click();
+    await expect(page.getByRole('button', { name: 'Finish' })).toBeVisible();
+
+    await page.reload();
+
+    await expect(page.getByRole('button', { name: 'Finish' })).toBeVisible();
+    await expect(page.getByText('Workout', { exact: true })).toBeVisible();
+  });
+
+  test('cancels an active workout without saving it', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Start workout' }).click();
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Start workout' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Workout', exact: true })).toHaveCount(0);
+  });
+
   test('removes an exercise from its options sheet', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Start workout' }).click();
@@ -150,6 +195,13 @@ test.describe('Active workout flow', () => {
     await expect(page.getByRole('button', { name: 'Delete set 1' })).toBeVisible();
     await page.getByRole('button', { name: 'Delete set 1' }).click();
     await expect(page.getByLabel('Weight for set 1')).toHaveCount(0);
+  });
+
+  test('removes the exercise card when its last set is deleted', async ({ page }) => {
+    await startEmptyWorkoutWithExercise(page);
+    await swipeLeftFrom(page, page.getByLabel('Weight for set 1'));
+    await page.getByRole('button', { name: 'Delete set 1' }).click();
+    await expect(page.getByText('Bench press', { exact: true })).toHaveCount(0);
   });
 
   test('reveals delete action when swiping from a weight input', async ({ page }) => {

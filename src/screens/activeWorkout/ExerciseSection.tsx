@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Icon } from '../../components/ui';
 import { dashboardTheme } from '../../theme/dashboardTheme';
 import { typography } from '../../theme/tokens';
-import { animateLayout, lightHaptic } from './activeWorkoutFeedback';
+import { animateLayout, animateSetRemoval, lightHaptic } from './activeWorkoutFeedback';
 import { SwipeableSetRow } from './SwipeableSetRow';
 import { ExerciseOptionsSheet } from './WorkoutSheets';
 import type { ExerciseSectionProps } from './activeWorkoutTypes';
@@ -52,7 +52,7 @@ export function ExerciseSection({
           }}
           onDelete={() => {
             lightHaptic();
-            animateLayout();
+            animateSetRemoval();
             removeSet(exercise.id, set.id);
           }}
         />
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   },
   setColumn: { width: 46 },
   previousColumn: { flex: 1 },
-  inputColumn: { width: 56 },
+  inputColumn: { width: 52 },
   inputHeader: { textAlign: 'center' },
   checkColumn: { width: 44 },
   addSet: {

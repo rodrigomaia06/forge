@@ -49,6 +49,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     removeExercise,
     updateSet,
     toggleSet,
+    cancelWorkout,
     finishWorkout,
   } = useWorkouts();
   const [elapsed, setElapsed] = useState(0);
@@ -158,6 +159,12 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     returnToDashboard(finished);
   };
 
+  const handleCancel = (): void => {
+    lightHaptic();
+    cancelWorkout();
+    returnToDashboard(null);
+  };
+
   const typePresentation = workoutTypePresentation(activeWorkout.type);
 
   return (
@@ -168,7 +175,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
             label="Cancel"
             variant="secondary"
             labelColor={dashboardTheme.slate}
-            onPress={() => navigation.goBack()}
+            onPress={handleCancel}
             theme={dashboardTheme}
             style={styles.cancelButton}
           />
@@ -194,7 +201,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
         </View>
         <View style={styles.elapsedRow}>
           <View style={styles.elapsedInfo}>
-            <Icon name="stopwatch-outline" size={23} color={dashboardTheme.ink} />
+            <Icon name="time-outline" size={23} color={dashboardTheme.ink} />
             <Text style={styles.elapsedValue}>{formatElapsed(elapsed)}</Text>
           </View>
           <Pressable
