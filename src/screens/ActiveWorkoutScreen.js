@@ -8,6 +8,8 @@ import { useWorkouts } from '../state/WorkoutContext';
 import { dashboardTheme } from '../theme/dashboardTheme';
 import { typography } from '../theme/tokens';
 
+const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
+
 function lightHaptic() {
   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 }
@@ -16,10 +18,14 @@ function selectionHaptic() {
   Haptics.selectionAsync().catch(() => {});
 }
 
+function errorHaptic() {
+  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+}
+
 function animateLayout() {
   if (Platform.OS === 'web') return;
   if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) UIManager.setLayoutAnimationEnabledExperimental(true);
-  LayoutAnimation.configureNext(LayoutAnimation.create(180, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
+  LayoutAnimation.configureNext(LayoutAnimation.create(140, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
 }
 
 function workoutTypePresentation(type) {
@@ -38,6 +44,7 @@ export function ActiveWorkoutScreen({ navigation }) {
   const [restSelection, setRestSelection] = useState(90);
   const [restSheetOpen, setRestSheetOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const timerLongPressRef = useRef(false);
 
   useEffect(() => {
     if (!activeWorkout) return undefined;
@@ -121,7 +128,19 @@ export function ActiveWorkoutScreen({ navigation }) {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={restRunning ? `Rest timer, ${Math.abs(restRemaining)} seconds remaining` : 'Start rest timer'}
-            onPress={openRestTimer}
+            onPress={() => {
+              if (timerLongPressRef.current) {
+                timerLongPressRef.current = false;
+                return;
+              }
+              openRestTimer();
+            }}
+            onLongPress={() => {
+              timerLongPressRef.current = true;
+              startRestTimer(restDuration);
+            }}
+            delayLongPress={450}
+            accessibilityHint="Tap to open the rest timer or hold to restart it"
             style={styles.timerReset}
           >
             <RestTimerIndicator remaining={restRemaining} duration={restDuration} running={restRunning} />
@@ -164,7 +183,7 @@ function ExerciseSection({ exercise, index, addSet, removeSet, removeExercise, u
       <View style={styles.exerciseHeader}><Text style={styles.exerciseName}>{exercise.name}</Text><Pressable accessibilityRole="button" accessibilityLabel={`More options for ${exercise.name}`} onPress={() => setOptionsOpen(true)} style={styles.moreButton}><Icon name="ellipsis-horizontal" size={20} color={dashboardTheme.ink} /></Pressable></View>
       <View style={styles.setHeader}><Text style={[styles.setHeaderText, styles.setColumn]}>Set</Text><Text style={[styles.setHeaderText, styles.previousColumn]}>Previous</Text><Text style={[styles.setHeaderText, styles.inputColumn]}>kg</Text><Text style={[styles.setHeaderText, styles.inputColumn]}>Reps</Text><View style={styles.checkColumn} /></View>
       {exercise.sets.map((set, setIndex) => <SwipeableSetRow key={set.id} set={set} index={setIndex} onChange={(changes) => updateSet(exercise.id, set.id, changes)} onToggle={() => { lightHaptic(); if (!set.completed) onSetCompleted(); toggleSet(exercise.id, set.id); }} onDelete={() => { lightHaptic(); removeSet(exercise.id, set.id); }} />)}
-      <Pressable accessibilityRole="button" accessibilityLabel={`Add set to ${exercise.name}`} onPress={() => { animateLayout(); lightHaptic(); addSet(exercise.id); }} style={styles.addSet}><Icon name="add" size={16} color={dashboardTheme.accent} /><Text style={styles.addSetText}>Add set</Text></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Add set to ${exercise.name}`} onPress={() => { lightHaptic(); addSet(exercise.id); }} style={styles.addSet}><Icon name="add" size={16} color={dashboardTheme.accent} /><Text style={styles.addSetText}>Add set</Text></Pressable>
       <ExerciseOptionsSheet visible={optionsOpen} exercise={exercise} onClose={() => setOptionsOpen(false)} onRemove={() => { animateLayout(); removeExercise(exercise.id); setOptionsOpen(false); }} />
     </View>
   );
@@ -338,11 +357,16 @@ function RestDurationPicker({ selectedDuration, onSelect }) {
 
 function SwipeableSetRow({ set, index, onChange, onToggle, onDelete }) {
   const deleteProgress = useRef(new Animated.Value(0)).current;
+  const entranceProgress = useRef(new Animated.Value(0)).current;
   const deleteFractionRef = useRef(0);
   const openRef = useRef(false);
   const touchStartRef = useRef(null);
   const touchActiveRef = useRef(false);
   const [isOpen, setIsOpen] = useState(false);
+  useEffect(() => {
+    Animated.timing(entranceProgress, { toValue: 1, duration: 120, useNativeDriver: Platform.OS !== 'web' }).start();
+    return () => entranceProgress.stopAnimation();
+  }, [entranceProgress]);
   const settleDelete = (shouldOpen) => {
     const wasOpen = openRef.current;
     openRef.current = shouldOpen;
@@ -385,7 +409,7 @@ function SwipeableSetRow({ set, index, onChange, onToggle, onDelete }) {
     onPanResponderMove: (_, gesture) => updateDeleteFromDelta(gesture.dx, gesture.dy),
     onPanResponderRelease: (_, gesture) => settleDelete(Math.max(-60, Math.min(0, (openRef.current ? -60 : 0) + gesture.dx)) < -30),
   })).current;
-  const setRowContent = <SetRow set={set} index={index} onChange={onChange} onToggle={onToggle} onDelete={onDelete} onInputTouchStart={onInputTouchStart} onInputTouchMove={onInputTouchMove} onInputTouchEnd={onInputTouchEnd} />;
+  const setRowContent = <Animated.View style={{ opacity: entranceProgress, transform: [{ translateY: entranceProgress.interpolate({ inputRange: [0, 1], outputRange: [4, 0] }) }] }}><SetRow set={set} index={index} onChange={onChange} onToggle={onToggle} onDelete={onDelete} onInputTouchStart={onInputTouchStart} onInputTouchMove={onInputTouchMove} onInputTouchEnd={onInputTouchEnd} /></Animated.View>;
 
   return <View {...panResponder.panHandlers} style={styles.swipeRow}>
     <View pointerEvents={isOpen ? 'auto' : 'none'} style={styles.deleteActionLayer}>
@@ -404,8 +428,51 @@ function SwipeableSetRow({ set, index, onChange, onToggle, onDelete }) {
 }
 
 function SetRow({ set, index, onChange, onToggle, onDelete, onInputTouchStart, onInputTouchMove, onInputTouchEnd }) {
+  const weightInvalidProgress = useRef(new Animated.Value(0)).current;
+  const repsInvalidProgress = useRef(new Animated.Value(0)).current;
+  const invalidTimerRef = useRef(null);
   const previous = set.previous || '—';
-  return <View style={[styles.setRow, set.completed && styles.setCompleted]}><Pressable accessibilityRole="button" accessibilityLabel={`Set ${index + 1} options`} accessibilityHint="Use the accessibility actions to delete this set" accessibilityActions={[{ name: 'delete', label: 'Delete set' }]} onAccessibilityAction={(event) => { if (event.nativeEvent.actionName === 'delete') onDelete(); }} style={styles.setNumberWrap}><Text style={styles.setNumber}>{index + 1}</Text></Pressable><Text style={styles.previous} numberOfLines={1}>{previous}</Text><TextInput accessibilityLabel={`Weight for set ${index + 1}`} value={String(set.weight)} onChangeText={(weight) => onChange({ weight })} onTouchStart={onInputTouchStart} onTouchMove={onInputTouchMove} onTouchEnd={onInputTouchEnd} keyboardType="decimal-pad" placeholder={set.targetWeight || '—'} style={[styles.input, styles.inputColumn]} /><TextInput accessibilityLabel={`Reps for set ${index + 1}`} value={String(set.reps)} onChangeText={(reps) => onChange({ reps })} onTouchStart={onInputTouchStart} onTouchMove={onInputTouchMove} onTouchEnd={onInputTouchEnd} keyboardType="number-pad" placeholder={set.targetReps || '—'} style={[styles.input, styles.inputColumn]} /><View style={styles.check}><Pressable accessibilityRole="checkbox" accessibilityState={{ checked: set.completed }} accessibilityLabel={set.completed ? `Set ${index + 1} completed` : `Complete set ${index + 1}`} onPress={onToggle} style={styles.checkPressable}><View style={[styles.checkVisual, set.completed && styles.checkActive]}>{set.completed && <Icon name="check" size={15} color={dashboardTheme.surface} />}</View></Pressable></View></View>;
+  useEffect(() => () => {
+    if (invalidTimerRef.current) clearTimeout(invalidTimerRef.current);
+    weightInvalidProgress.stopAnimation();
+    repsInvalidProgress.stopAnimation();
+  }, []);
+  const animateInvalidField = (field, value, duration = 150) => {
+    Animated.timing(field === 'weight' ? weightInvalidProgress : repsInvalidProgress, {
+      toValue: value,
+      duration,
+      useNativeDriver: false,
+    }).start();
+  };
+  const updateField = (field, value) => {
+    animateInvalidField(field, 0, 300);
+    onChange({ [field]: value });
+  };
+  const handleToggle = () => {
+    if (!set.completed) {
+      const missingWeight = !String(set.weight || '').trim();
+      const missingReps = !String(set.reps || '').trim();
+      if (missingWeight || missingReps) {
+        animateInvalidField('weight', missingWeight ? 1 : 0);
+        animateInvalidField('reps', missingReps ? 1 : 0);
+        if (invalidTimerRef.current) clearTimeout(invalidTimerRef.current);
+        invalidTimerRef.current = setTimeout(() => {
+          animateInvalidField('weight', 0, 300);
+          animateInvalidField('reps', 0, 300);
+          invalidTimerRef.current = null;
+        }, 1200);
+        errorHaptic();
+        return;
+      }
+    }
+    onToggle();
+  };
+  const invalidStyle = (progress) => ({
+    borderColor: progress.interpolate({ inputRange: [0, 1], outputRange: [dashboardTheme.divider, '#FF3B30'] }),
+    borderWidth: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 2] }),
+    borderRadius: progress.interpolate({ inputRange: [0, 1], outputRange: [9, 8] }),
+  });
+  return <View style={[styles.setRow, set.completed && styles.setCompleted]}><Pressable accessibilityRole="button" accessibilityLabel={`Set ${index + 1} options`} accessibilityHint="Use the accessibility actions to delete this set" accessibilityActions={[{ name: 'delete', label: 'Delete set' }]} onAccessibilityAction={(event) => { if (event.nativeEvent.actionName === 'delete') onDelete(); }} style={styles.setNumberWrap}><Text style={styles.setNumber}>{index + 1}</Text></Pressable><Text style={styles.previous} numberOfLines={1}>{previous}</Text><AnimatedTextInput accessibilityLabel={`Weight for set ${index + 1}`} value={String(set.weight)} onChangeText={(weight) => updateField('weight', weight)} onTouchStart={onInputTouchStart} onTouchMove={onInputTouchMove} onTouchEnd={onInputTouchEnd} keyboardType="decimal-pad" placeholder={set.targetWeight || '—'} style={[styles.input, styles.inputColumn, invalidStyle(weightInvalidProgress)]} /><AnimatedTextInput accessibilityLabel={`Reps for set ${index + 1}`} value={String(set.reps)} onChangeText={(reps) => updateField('reps', reps)} onTouchStart={onInputTouchStart} onTouchMove={onInputTouchMove} onTouchEnd={onInputTouchEnd} keyboardType="number-pad" placeholder={set.targetReps || '—'} style={[styles.input, styles.inputColumn, invalidStyle(repsInvalidProgress)]} /><View style={styles.check}><Pressable accessibilityRole="checkbox" accessibilityState={{ checked: set.completed }} accessibilityLabel={set.completed ? `Set ${index + 1} completed` : `Complete set ${index + 1}`} onPress={handleToggle} style={styles.checkPressable}><View style={[styles.checkVisual, set.completed && styles.checkActive]}>{set.completed && <Icon name="check" size={15} color={dashboardTheme.surface} />}</View></Pressable></View></View>;
 }
 
 function AddExerciseSheet({ visible, onClose, onSubmit }) {
@@ -441,7 +508,7 @@ const styles = StyleSheet.create({
   keyboardArea: { flex: 1 },
   content: { padding: 16, gap: 12, paddingBottom: 18 },
   exerciseCard: { backgroundColor: dashboardTheme.surface, borderRadius: 16, paddingTop: 14, paddingHorizontal: 12, paddingBottom: 0, borderWidth: 1, borderColor: 'rgba(226,227,224,0.72)', shadowColor: dashboardTheme.ink, shadowOpacity: 0.06, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
-  exerciseHeader: { minHeight: 30, flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingHorizontal: 4, marginBottom: 0 },
+  exerciseHeader: { minHeight: 30, flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingHorizontal: 0, marginBottom: 0 },
   exerciseName: { flex: 1, color: dashboardTheme.ink, fontFamily: typography.semibold, fontSize: 15, lineHeight: 20, fontWeight: '600' },
   moreButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', marginTop: -8, marginRight: -6 },
   setHeader: { minHeight: 32, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: dashboardTheme.divider },

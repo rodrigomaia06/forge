@@ -60,6 +60,38 @@ test.describe('Active workout flow', () => {
     await expect(page.getByRole('button', { name: 'Start rest timer' }).first()).toBeVisible();
   });
 
+  test('marks missing set inputs before allowing completion', async ({ page }) => {
+    await startEmptyWorkoutWithExercise(page);
+
+    await page.getByRole('checkbox', { name: 'Complete set 1' }).click();
+    await expect(page.getByLabel('Weight for set 1')).toHaveCSS('border-top-color', 'rgb(255, 59, 48)');
+    await expect(page.getByLabel('Reps for set 1')).toHaveCSS('border-top-color', 'rgb(255, 59, 48)');
+    await page.waitForTimeout(1300);
+    await expect(page.getByLabel('Weight for set 1')).not.toHaveCSS('border-top-color', 'rgb(255, 59, 48)');
+    await expect(page.getByLabel('Reps for set 1')).not.toHaveCSS('border-top-color', 'rgb(255, 59, 48)');
+
+    await page.getByLabel('Weight for set 1').fill('60');
+    await expect(page.getByLabel('Weight for set 1')).not.toHaveCSS('border-top-color', 'rgb(255, 59, 48)');
+    await page.getByLabel('Reps for set 1').fill('8');
+    await page.getByRole('checkbox', { name: 'Complete set 1' }).click();
+    await expect(page.getByRole('checkbox', { name: 'Set 1 completed' })).toBeVisible();
+  });
+
+  test('restarts the rest timer when held', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Start workout' }).click();
+
+    const restTimer = page.getByRole('button', { name: 'Start rest timer' });
+    const box = await restTimer.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(550);
+    await page.mouse.up();
+
+    await expect(page.getByRole('button', { name: /Rest timer,/ })).toBeVisible();
+    await expect(page.getByText('Rest timer', { exact: true })).toHaveCount(0);
+  });
+
   test('navigates between the primary destinations', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'History' }).click();
