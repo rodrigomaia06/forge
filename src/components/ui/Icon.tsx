@@ -25,6 +25,13 @@ import {
   Stretching,
   TennisBall,
   WeightAlt,
+  Ruler,
+  Edit,
+  Notes,
+  ClockRotateRight,
+  FireFlame,
+  InfoCircle,
+  Xmark,
 } from 'iconoir-react-native';
 
 const iconMap: Record<IconName, React.ComponentType<SvgProps>> = {
@@ -56,6 +63,13 @@ const iconMap: Record<IconName, React.ComponentType<SvgProps>> = {
   'stopwatch-outline': Timer,
   trash: Trash,
   check: Check,
+  measure: Ruler,
+  note: Edit,
+  history: ClockRotateRight,
+  'warm-up': FireFlame,
+  info: InfoCircle,
+  close: Xmark,
+  'arrow-forward': NavArrowRight,
 };
 
 export function Icon({

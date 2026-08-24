@@ -26,5 +26,12 @@ export type IconName =
   | 'stopwatch'
   | 'stopwatch-outline'
   | 'trash'
-  | 'check';
+  | 'check'
+  | 'measure'
+  | 'note'
+  | 'history'
+  | 'warm-up'
+  | 'info'
+  | 'close'
+  | 'arrow-forward';
 export type IconWeight = 'thin' | 'regular' | 'bold' | 'fill';

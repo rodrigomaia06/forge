@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { LayoutAnimation, Platform, UIManager, View, StyleSheet } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { NavigationItem } from './ui';
@@ -13,10 +13,27 @@ interface BottomNavigationProps {
 }
 type NavigationItemEntry = [IconName, string, keyof RootStackParamList, boolean];
 
+let knownWorkoutId: string | null | undefined;
+
 export function BottomNavigation({ theme = colors }: BottomNavigationProps) {
   const navigation = useNavigation<RootNavigationProp>();
   const route = useRoute<RouteProp<RootStackParamList>>();
   const activeWorkout = useWorkouts().activeWorkout;
+  const hasActiveWorkout = Boolean(activeWorkout);
+  const workoutStartedNow =
+    activeWorkout?.id !== undefined &&
+    activeWorkout.id !== knownWorkoutId &&
+    knownWorkoutId !== undefined;
+  knownWorkoutId = activeWorkout?.id ?? null;
+  const workoutPresence = useRef(hasActiveWorkout);
+  useEffect(() => {
+    if (workoutPresence.current === hasActiveWorkout) return;
+    if (Platform.OS !== 'web') {
+      if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    }
+    workoutPresence.current = hasActiveWorkout;
+  }, [hasActiveWorkout]);
   const items: NavigationItemEntry[] = [
     ['home-outline', 'Dashboard', 'Dashboard', false],
     ['time-outline', 'History', 'History', false],
@@ -38,6 +55,8 @@ export function BottomNavigation({ theme = colors }: BottomNavigationProps) {
           emphasis={emphasis}
           onPress={() => goTo(screen)}
           theme={theme}
+          iconSize={emphasis ? 38 : hasActiveWorkout ? 24 : 26}
+          enterFromBottom={emphasis && workoutStartedNow}
         />
       ))}
     </View>
