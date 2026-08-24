@@ -4,6 +4,18 @@ import { typography, spacing } from '../../theme/tokens';
 export const styles = StyleSheet.create({
   appShell: { flex: 1 },
   body: { flex: 1, minHeight: 0 },
+  calendarMenuDismiss: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    left: 0,
+    bottom: 88,
+    zIndex: 8,
+  },
+  calendarMenuPortal: {
+    position: 'absolute',
+    zIndex: 9,
+  },
   scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: spacing.screen, paddingTop: 0, paddingBottom: 132, gap: 14 },
   scrollHeader: { marginHorizontal: -spacing.screen },

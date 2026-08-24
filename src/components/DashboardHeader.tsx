@@ -95,7 +95,7 @@ function getDashboardGreeting(date = new Date()): string {
 
 const styles = StyleSheet.create({
   container: {
-    height: 78,
+    height: 70,
     flexShrink: 0,
     zIndex: 20,
     flexDirection: 'row',

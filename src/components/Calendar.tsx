@@ -1,11 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Platform, Pressable, Text, View } from 'react-native';
+import {
+  Animated,
+  Easing,
+  Platform,
+  Pressable,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { useIsFocused } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { monthDays, workoutsByDate } from '../data/mockWorkouts';
 import { colors } from '../theme/tokens';
 import { Icon } from './ui';
-import type { Dispatch, SetStateAction } from 'react';
+import type { Dispatch, ReactNode, SetStateAction } from 'react';
+import type { StyleProp, ViewStyle } from 'react-native';
 import type { ForgeTheme, WorkoutMap, WorkoutSummary } from '../types';
 import { styles } from './calendar/calendarStyles';
 
@@ -32,16 +43,65 @@ interface CalendarProps {
   setSelectedDay: Dispatch<SetStateAction<number>>;
   theme?: ForgeTheme;
   workoutMap?: WorkoutMap;
+  viewMenuOpen?: boolean;
+  onViewMenuOpenChange?: (open: boolean) => void;
+  onMenuStateChange?: (state: CalendarMenuState | null) => void;
+}
+
+export interface CalendarMenuState {
+  top: number;
+  right: number;
+  content: ReactNode;
 }
 export function Calendar({
   selectedDay,
   setSelectedDay,
   theme = colors,
   workoutMap = workoutsByDate,
+  viewMenuOpen,
+  onViewMenuOpenChange,
+  onMenuStateChange,
 }: CalendarProps) {
   const [view, setView] = useState<CalendarView>('month');
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [localMenuOpen, setLocalMenuOpen] = useState(false);
+  const menuOpen = viewMenuOpen ?? localMenuOpen;
+  const isFocused = useIsFocused();
+  const { width: windowWidth } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const viewControlRef = useRef<View>(null);
   const [month, setMonth] = useState(8);
+  const setMenuOpen = (next: boolean | ((current: boolean) => boolean)): void => {
+    const open = typeof next === 'function' ? next(menuOpen) : next;
+    setLocalMenuOpen(open);
+    onViewMenuOpenChange?.(open);
+    if (!open) onMenuStateChange?.(null);
+  };
+
+  useEffect(() => {
+    if (!isFocused) setMenuOpen(false);
+  }, [isFocused]);
+
+  const toggleMenu = (): void => {
+    if (menuOpen) {
+      setMenuOpen(false);
+      return;
+    }
+    viewControlRef.current?.measureInWindow((x, y, width, height) => {
+      setMenuOpen(true);
+      onMenuStateChange?.({
+        top: y + height + 6 - insets.top,
+        right: windowWidth - x - width,
+        content: (
+          <CalendarViewMenu
+            view={view}
+            theme={theme}
+            onSelect={selectView}
+            style={{ position: 'relative', top: 0, right: 0 }}
+          />
+        ),
+      });
+    });
+  };
   const title =
     view === 'year'
       ? 'Activity 2026'
@@ -61,10 +121,11 @@ export function Calendar({
         <View style={styles.header}>
           <Text style={[styles.monthTitle, { color: theme.ink }]}>{title}</Text>
           <Pressable
+            ref={viewControlRef}
             testID="calendar-view-menu-button"
             accessibilityRole="button"
             accessibilityLabel="Change calendar view"
-            onPress={() => setMenuOpen((open) => !open)}
+            onPress={toggleMenu}
             style={styles.viewControl}
           >
             <Text style={[styles.viewControlText, { color: theme.ink }]}>
@@ -73,7 +134,6 @@ export function Calendar({
             <Icon name="chevron-down" size={15} color={theme.slate} />
           </Pressable>
         </View>
-        {menuOpen && <CalendarViewMenu view={view} theme={theme} onSelect={selectView} />}
         <CalendarContent
           view={view}
           selectedDay={selectedDay}
@@ -92,10 +152,12 @@ function CalendarViewMenu({
   view,
   theme,
   onSelect,
+  style,
 }: {
   view: CalendarView;
   theme: ForgeTheme;
   onSelect: (view: CalendarView) => void;
+  style?: StyleProp<ViewStyle>;
 }) {
   const progress = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -110,6 +172,7 @@ function CalendarViewMenu({
     <Animated.View
       style={[
         styles.viewMenu,
+        style,
         {
           backgroundColor: theme.surface,
           borderColor: theme.divider,

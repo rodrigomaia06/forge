@@ -1,10 +1,10 @@
 import React from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 import { DashboardHeader } from '../../components/DashboardHeader';
 import { DockChrome } from '../../components/DockChrome';
-import { Calendar } from '../../components/Calendar';
+import { Calendar, type CalendarMenuState } from '../../components/Calendar';
 import { WorkoutRow } from '../../components/WorkoutRow';
 import { AppScreen, Button } from '../../components/ui';
 import { useLayoutProbe } from '../../debug/layoutProbe';
@@ -19,9 +19,13 @@ import { summarizeWorkoutTypes } from './dashboardMetrics';
 export function DashboardShell({
   children,
   theme,
+  calendarMenu,
+  onCalendarMenuDismiss,
 }: {
   children: ReactElement<{ header?: ReactNode }>;
   theme: ForgeTheme;
+  calendarMenu?: CalendarMenuState | null;
+  onCalendarMenuDismiss?: () => void;
 }) {
   const navigation = useNavigation<RootNavigationProp>();
   const { activeWorkout, startWorkout } = useWorkouts();
@@ -50,6 +54,25 @@ export function DashboardShell({
             ),
           })}
         </View>
+        {calendarMenu && (
+          <>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close calendar view menu"
+              onPress={onCalendarMenuDismiss}
+              style={styles.calendarMenuDismiss}
+            />
+            <View
+              pointerEvents="box-none"
+              style={[
+                styles.calendarMenuPortal,
+                { top: calendarMenu.top, right: calendarMenu.right },
+              ]}
+            >
+              {calendarMenu.content}
+            </View>
+          </>
+        )}
         <DockChrome
           theme={theme}
           slotRef={dockSlotProbe.ref}
@@ -71,11 +94,17 @@ export function DashboardCalendar({
   setSelectedDay,
   theme,
   workoutMap,
+  viewMenuOpen,
+  onViewMenuOpenChange,
+  onMenuStateChange,
 }: {
   selectedDay: number;
   setSelectedDay: Dispatch<SetStateAction<number>>;
   theme: ForgeTheme;
   workoutMap: WorkoutMap;
+  viewMenuOpen?: boolean;
+  onViewMenuOpenChange?: (open: boolean) => void;
+  onMenuStateChange?: (state: CalendarMenuState | null) => void;
 }) {
   return (
     <View
@@ -89,6 +118,9 @@ export function DashboardCalendar({
         setSelectedDay={setSelectedDay}
         theme={theme}
         workoutMap={workoutMap}
+        viewMenuOpen={viewMenuOpen}
+        onViewMenuOpenChange={onViewMenuOpenChange}
+        onMenuStateChange={onMenuStateChange}
       />
     </View>
   );
@@ -119,7 +151,7 @@ export function DashboardWorkoutCard({
       {selectedWorkouts.length > 0 ? (
         <View style={[styles.workoutList, { borderTopColor: theme.divider }]}>
           {selectedWorkouts.map((workout) => (
-            <WorkoutRow key={`${selectedDay}-${workout.name}`} workout={workout} theme={theme} />
+            <WorkoutRow key={`${selectedDay}-${workout.id}`} workout={workout} theme={theme} />
           ))}
         </View>
       ) : (

@@ -10,7 +10,7 @@ export const styles = StyleSheet.create({
     borderRadius: 24,
     borderBottomWidth: 0,
   },
-  calendarInner: { width: '100%', alignSelf: 'center' },
+  calendarInner: { width: '100%', alignSelf: 'center', position: 'relative' },
   compactCalendarInner: { maxWidth: 340 },
   header: {
     flexDirection: 'row',
@@ -36,8 +36,8 @@ export const styles = StyleSheet.create({
     fontWeight: '500',
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 6 },
-  dayCell: { width: '14.2857%', height: 46, alignItems: 'center', justifyContent: 'center' },
-  dateTouchTarget: { width: '100%', height: 46, alignItems: 'center', justifyContent: 'center' },
+  dayCell: { width: '14.2857%', height: 42, alignItems: 'center', justifyContent: 'center' },
+  dateTouchTarget: { width: '100%', height: 42, alignItems: 'center', justifyContent: 'center' },
   daySurface: {
     width: 34,
     height: 34,
@@ -52,7 +52,7 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 3,
+    bottom: 6,
     height: 3,
     flexDirection: 'row',
     alignItems: 'center',

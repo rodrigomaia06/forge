@@ -12,6 +12,7 @@ import { dashboardTheme } from '../../theme/dashboardTheme';
 import { useWorkouts } from '../../state/WorkoutContext';
 import type { RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../types';
+import type { CalendarMenuState } from '../../components/Calendar';
 
 export function DashboardOptionThree({
   route,
@@ -20,6 +21,7 @@ export function DashboardOptionThree({
 }) {
   const { completedWorkouts } = useWorkouts();
   const [selectedDay, setSelectedDay] = useState(route?.params?.selectedDay || 24);
+  const [calendarMenu, setCalendarMenu] = useState<CalendarMenuState | null>(null);
   useEffect(() => {
     if (route?.params?.selectedDay) setSelectedDay(route.params.selectedDay);
   }, [route?.params?.selectedDay]);
@@ -32,13 +34,22 @@ export function DashboardOptionThree({
     return map;
   }, [completedWorkouts]);
   return (
-    <DashboardShell theme={dashboardTheme}>
+    <DashboardShell
+      theme={dashboardTheme}
+      calendarMenu={calendarMenu}
+      onCalendarMenuDismiss={() => setCalendarMenu(null)}
+    >
       <DashboardScroll style={{ gap: 16 }}>
         <DashboardCalendar
           selectedDay={selectedDay}
           setSelectedDay={setSelectedDay}
           theme={dashboardTheme}
           workoutMap={workoutMap}
+          viewMenuOpen={Boolean(calendarMenu)}
+          onViewMenuOpenChange={(open) => {
+            if (!open) setCalendarMenu(null);
+          }}
+          onMenuStateChange={setCalendarMenu}
         />
         <DashboardWorkoutCard
           selectedDay={selectedDay}
