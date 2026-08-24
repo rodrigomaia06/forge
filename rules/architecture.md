@@ -30,6 +30,10 @@ Keep mock/sample data distinguishable from durable domain data. Avoid turning pr
 
 Reuse shared tokens/components where they reduce duplication, but do not create speculative abstraction layers before there is a real repeated need.
 
+## Feature-local boundaries
+
+Keep feature-specific screens, interactive subcomponents, hooks, formatters, and styles together in a feature-local folder. A screen should retain orchestration while independently interactive sections, modals, gestures, timers, and validation are extracted into focused modules. Promote code to shared folders only when multiple features genuinely reuse it.
+
 ## Dependency changes
 
 Architectural convenience is not sufficient justification for a new dependency. Follow `core.md` dependency policy and prefer supported platform/Expo capabilities when they solve the problem cleanly.
