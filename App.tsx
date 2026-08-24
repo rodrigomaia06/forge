@@ -1,4 +1,5 @@
 import React from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   Manrope_400Regular,
@@ -22,10 +23,12 @@ export default function App() {
   if (!fontsLoaded) return null;
 
   return (
-    <SafeAreaProvider>
-      <WorkoutProvider>
-        <AppNavigator />
-      </WorkoutProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <WorkoutProvider>
+          <AppNavigator />
+        </WorkoutProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
