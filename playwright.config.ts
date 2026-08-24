@@ -6,8 +6,8 @@ export default defineConfig({
   reporter: [['list'], ['html', { outputFolder: 'tests/results/report', open: 'never' }]],
   projects: [
     {
-      name: 'mobile-safari',
-      use: { ...devices['iPhone 15 Pro'] },
+      name: 'iphone-air',
+      use: { ...devices['iPhone Air'] },
     },
   ],
   use: {

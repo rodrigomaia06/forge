@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
+  Easing,
   KeyboardAvoidingView,
   LayoutAnimation,
   Modal,
@@ -356,8 +357,8 @@ function ExerciseSection({
       <View style={styles.setHeader}>
         <Text style={[styles.setHeaderText, styles.setColumn]}>Set</Text>
         <Text style={[styles.setHeaderText, styles.previousColumn]}>Previous</Text>
-        <Text style={[styles.setHeaderText, styles.inputColumn]}>kg</Text>
-        <Text style={[styles.setHeaderText, styles.inputColumn]}>Reps</Text>
+        <Text style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>KG</Text>
+        <Text style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>Reps</Text>
         <View style={styles.checkColumn} />
       </View>
       {exercise.sets.map((set, setIndex) => (
@@ -373,6 +374,7 @@ function ExerciseSection({
           }}
           onDelete={() => {
             lightHaptic();
+            animateLayout();
             removeSet(exercise.id, set.id);
           }}
         />
@@ -769,8 +771,10 @@ interface SwipeableSetRowProps {
 function SwipeableSetRow({ set, index, onChange, onToggle, onDelete }: SwipeableSetRowProps) {
   const deleteProgress = useRef(new Animated.Value(0)).current;
   const entranceProgress = useRef(new Animated.Value(0)).current;
+  const removalProgress = useRef(new Animated.Value(0)).current;
   const deleteFractionRef = useRef(0);
   const openRef = useRef(false);
+  const removalStartedRef = useRef(false);
   const touchStartRef = useRef<{ pageX: number; pageY: number } | null>(null);
   const touchActiveRef = useRef(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -782,6 +786,19 @@ function SwipeableSetRow({ set, index, onChange, onToggle, onDelete }: Swipeable
     }).start();
     return () => entranceProgress.stopAnimation();
   }, [entranceProgress]);
+  useEffect(() => () => removalProgress.stopAnimation(), [removalProgress]);
+  const handleDelete = (): void => {
+    if (removalStartedRef.current) return;
+    removalStartedRef.current = true;
+    Animated.timing(removalProgress, {
+      toValue: 1,
+      duration: 140,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: Platform.OS !== 'web',
+    }).start(({ finished }) => {
+      if (finished) onDelete();
+    });
+  };
   const settleDelete = (shouldOpen: boolean): void => {
     const wasOpen = openRef.current;
     openRef.current = shouldOpen;
@@ -851,7 +868,7 @@ function SwipeableSetRow({ set, index, onChange, onToggle, onDelete }: Swipeable
         index={index}
         onChange={onChange}
         onToggle={onToggle}
-        onDelete={onDelete}
+        onDelete={handleDelete}
         onInputTouchStart={onInputTouchStart}
         onInputTouchMove={onInputTouchMove}
         onInputTouchEnd={onInputTouchEnd}
@@ -865,7 +882,7 @@ function SwipeableSetRow({ set, index, onChange, onToggle, onDelete }: Swipeable
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Delete set ${index + 1}`}
-          onPress={onDelete}
+          onPress={handleDelete}
           style={styles.deleteSetInline}
         >
           <Icon name="trash" size={21} color={dashboardTheme.surface} weight="regular" />
@@ -876,17 +893,18 @@ function SwipeableSetRow({ set, index, onChange, onToggle, onDelete }: Swipeable
         accessibilityLabel={`Set ${index + 1}`}
         accessibilityActions={[{ name: 'delete', label: 'Delete set' }]}
         onAccessibilityAction={(event) => {
-          if (event.nativeEvent.actionName === 'delete') onDelete();
+          if (event.nativeEvent.actionName === 'delete') handleDelete();
         }}
         style={[
           styles.swipeContent,
           {
+            opacity: removalProgress.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
             transform: [
               {
-                translateX: deleteProgress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, -60],
-                }),
+                translateX: Animated.add(
+                  deleteProgress.interpolate({ inputRange: [0, 1], outputRange: [0, -60] }),
+                  removalProgress.interpolate({ inputRange: [0, 1], outputRange: [0, -24] }),
+                ),
               },
             ],
           },
@@ -913,6 +931,7 @@ function SetRow({
   onInputTouchMove,
   onInputTouchEnd,
 }: SetRowProps) {
+  const completedProgress = useRef(new Animated.Value(set.completed ? 1 : 0)).current;
   const weightInvalidProgress = useRef(new Animated.Value(0)).current;
   const repsInvalidProgress = useRef(new Animated.Value(0)).current;
   const invalidTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -925,6 +944,14 @@ function SetRow({
     },
     [],
   );
+  useEffect(() => {
+    Animated.timing(completedProgress, {
+      toValue: set.completed ? 1 : 0,
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: Platform.OS !== 'web',
+    }).start();
+  }, [completedProgress, set.completed]);
   const animateInvalidField = (field: 'weight' | 'reps', value: number, duration = 150): void => {
     Animated.timing(field === 'weight' ? weightInvalidProgress : repsInvalidProgress, {
       toValue: value,
@@ -1012,9 +1039,38 @@ function SetRow({
           onPress={handleToggle}
           style={styles.checkPressable}
         >
-          <View style={[styles.checkVisual, set.completed && styles.checkActive]}>
-            {set.completed && <Icon name="check" size={15} color={dashboardTheme.surface} />}
-          </View>
+          <Animated.View
+            style={[
+              styles.checkVisual,
+              set.completed && styles.checkActive,
+              {
+                transform: [
+                  {
+                    scale: completedProgress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.82, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <Animated.View
+              style={{
+                opacity: completedProgress,
+                transform: [
+                  {
+                    scale: completedProgress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.5, 1],
+                    }),
+                  },
+                ],
+              }}
+            >
+              <Icon name="check" size={15} color={dashboardTheme.surface} />
+            </Animated.View>
+          </Animated.View>
         </Pressable>
       </View>
     </View>
@@ -1156,7 +1212,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 8,
   },
-  elapsedInfo: { minWidth: 92, height: 48, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  elapsedInfo: { minWidth: 92, height: 48, flexDirection: 'row', alignItems: 'center', gap: 6 },
   timerReset: {
     minWidth: 92,
     height: 48,
@@ -1172,15 +1228,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    gap: 6,
+    gap: 4,
   },
   restValue: {
     minWidth: 34,
     marginLeft: 0,
     color: dashboardTheme.ink,
     fontFamily: typography.semibold,
-    fontSize: 13,
-    lineHeight: 17,
+    fontSize: 17,
+    lineHeight: 22,
     textAlign: 'right',
   },
   elapsedValue: {
@@ -1194,7 +1250,7 @@ const styles = StyleSheet.create({
   exerciseCard: {
     backgroundColor: dashboardTheme.surface,
     borderRadius: 16,
-    paddingTop: 14,
+    paddingTop: 4,
     paddingHorizontal: 12,
     paddingBottom: 0,
     borderWidth: 1,
@@ -1208,7 +1264,7 @@ const styles = StyleSheet.create({
   exerciseHeader: {
     minHeight: 30,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 8,
     paddingHorizontal: 0,
     marginBottom: 0,
@@ -1226,20 +1282,27 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -8,
+    marginTop: 0,
     marginRight: -6,
   },
   setHeader: {
-    minHeight: 32,
+    minHeight: 30,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
     borderBottomWidth: 1,
     borderBottomColor: dashboardTheme.divider,
   },
-  setHeaderText: { color: dashboardTheme.slate, fontFamily: typography.medium, fontSize: 11.5 },
+  setHeaderText: {
+    color: dashboardTheme.slate,
+    fontFamily: typography.medium,
+    fontSize: 12.5,
+    lineHeight: 17,
+    textAlign: 'center',
+  },
   setRow: {
     position: 'relative',
-    minHeight: 58,
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -1247,15 +1310,16 @@ const styles = StyleSheet.create({
   setCompleted: {},
   setColumn: { width: 46 },
   previousColumn: { flex: 1 },
-  inputColumn: { width: 58 },
+  inputColumn: { width: 56 },
+  inputHeader: { textAlign: 'center' },
   checkColumn: { width: 44 },
-  setNumberWrap: { width: 46, height: 44, alignItems: 'flex-start', justifyContent: 'center' },
+  setNumberWrap: { width: 46, height: 44, alignItems: 'center', justifyContent: 'center' },
   setNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     textAlign: 'center',
-    lineHeight: 28,
+    lineHeight: 30,
     backgroundColor: dashboardTheme.surfaceMuted,
     color: dashboardTheme.ink,
     fontFamily: typography.medium,
@@ -1266,13 +1330,13 @@ const styles = StyleSheet.create({
     color: dashboardTheme.ink,
     fontFamily: typography.medium,
     fontSize: 13,
-    paddingRight: 2,
+    textAlign: 'center',
   },
   input: {
-    minHeight: 44,
+    minHeight: 40,
     borderWidth: 1,
     borderColor: dashboardTheme.divider,
-    borderRadius: 9,
+    borderRadius: 8,
     backgroundColor: dashboardTheme.surfaceMuted,
     color: dashboardTheme.ink,
     fontFamily: typography.medium,
@@ -1289,17 +1353,17 @@ const styles = StyleSheet.create({
   },
   checkPressable: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   checkVisual: {
-    width: 24,
-    height: 24,
+    width: 26,
+    height: 26,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: dashboardTheme.slate,
-    borderRadius: 12,
+    borderRadius: 13,
   },
   checkActive: { backgroundColor: dashboardTheme.iconSport, borderColor: dashboardTheme.iconSport },
   addSet: {
-    minHeight: 48,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
