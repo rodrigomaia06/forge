@@ -45,6 +45,17 @@ Do not store these as durable repository knowledge:
 
 Delete obsolete temporary documentation instead of maintaining a generic memory folder.
 
+## Commit organization
+
+When a change is large or spans multiple responsibilities, divide it into commits by
+cohesive concern rather than committing the entire change as one mixed unit.
+
+- Keep each commit internally understandable and independently reviewable where practical.
+- Separate concerns such as dependencies/configuration, feature behavior, UI refactors, and tests when they form clear boundaries.
+- Use descriptive commit subjects and add a body when it helps explain scope or rationale.
+- Do not create artificial commits for tiny or inseparable changes merely to increase the commit count.
+- Before splitting history, preserve the complete implementation and verify that the resulting commits together contain the same behavior.
+
 ## ADR threshold
 
 Create an ADR only when the decision is important enough that a future contributor would reasonably ask "why did we choose this instead of the alternatives?"
