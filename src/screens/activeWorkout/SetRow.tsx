@@ -23,6 +23,7 @@ export function SetRow({
   onChange,
   onToggle,
   onDelete,
+  onOpenDetails,
   onInputTouchStart,
   onInputTouchMove,
   onInputTouchEnd,
@@ -98,9 +99,10 @@ export function SetRow({
     <View style={[styles.setRow, set.completed && styles.setCompleted]}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Set ${index + 1} options`}
-        accessibilityHint="Use the accessibility actions to delete this set"
+        accessibilityLabel={`Open details for set ${index + 1}`}
+        accessibilityHint="Opens set tags, comments, and next-time targets"
         accessibilityActions={[{ name: 'delete', label: 'Delete set' }]}
+        onPress={onOpenDetails}
         onAccessibilityAction={(event) => {
           if (event.nativeEvent.actionName === 'delete') onDelete();
         }}
@@ -114,22 +116,26 @@ export function SetRow({
       <AnimatedTextInput
         accessibilityLabel={`Weight for set ${index + 1}`}
         value={String(set.weight)}
+        selection={{ start: String(set.weight).length, end: String(set.weight).length }}
         onChangeText={(weight: string) => updateField('weight', weight)}
         onTouchStart={onInputTouchStart}
         onTouchMove={onInputTouchMove}
         onTouchEnd={onInputTouchEnd}
         keyboardType="decimal-pad"
+        selectTextOnFocus={false}
         placeholder={set.targetWeight || '—'}
         style={[styles.input, styles.inputColumn, invalidStyle(weightInvalidProgress)]}
       />
       <AnimatedTextInput
         accessibilityLabel={`Reps for set ${index + 1}`}
         value={String(set.reps)}
+        selection={{ start: String(set.reps).length, end: String(set.reps).length }}
         onChangeText={(reps: string) => updateField('reps', reps)}
         onTouchStart={onInputTouchStart}
         onTouchMove={onInputTouchMove}
         onTouchEnd={onInputTouchEnd}
         keyboardType="number-pad"
+        selectTextOnFocus={false}
         placeholder={set.targetReps || '—'}
         style={[styles.input, styles.inputColumn, invalidStyle(repsInvalidProgress)]}
       />

@@ -24,7 +24,11 @@ Expo SDK packages may be added when they are the appropriate supported solution.
 
 Ask before adding any new third-party runtime or native dependency. Do not bypass this rule by changing another Forge rule to justify the dependency.
 
-## 5. Rules are harder to change than code
+## 5. Playwright test server
+
+Run Playwright tests against the local web server on port `9021`. Keep the Playwright `baseURL`, web-server URL, and static-server command aligned to `http://127.0.0.1:9021`.
+
+## 6. Rules are harder to change than code
 
 Implementation should normally conform to active Forge rules.
 
@@ -34,6 +38,6 @@ Never loosen a rule only to make an implementation or test pass.
 
 Every rule change must be named in the completion response.
 
-## 6. Keep routers small
+## 7. Keep routers small
 
 `AGENTS.md`, and this rule router exist to route context. Do not turn them into generated handbooks. Put detailed durable guidance in the smallest relevant rule or canonical document.

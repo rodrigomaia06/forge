@@ -107,6 +107,71 @@ test.describe('Active workout flow', () => {
     await expect(page.getByRole('checkbox', { name: 'Set 1 completed' })).toBeVisible();
   });
 
+  test('opens set details as a sheet from the set number', async ({ page }) => {
+    await startEmptyWorkoutWithExercise(page);
+
+    await page.getByLabel('Open details for set 1').click();
+    await expect(page.getByText('TYPE', { exact: true })).toBeVisible();
+    await expect(page.getByText('NEXT-TIME TARGET', { exact: true })).toBeVisible();
+    const readRect = async (selector: string) =>
+      page.locator(selector).evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      });
+    const targetRects = await page
+      .locator('input[aria-label^="Next-time"]')
+      .evaluateAll((elements) =>
+        elements.map((element) => {
+          const rect = element.getBoundingClientRect();
+          return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+        }),
+      );
+    if (targetRects.length !== 2) throw new Error('Expected two target inputs to be measurable');
+    const [firstTarget, secondTarget] = [...targetRects].sort((a, b) => a.x - b.x);
+    expect(secondTarget.x).toBeGreaterThanOrEqual(firstTarget.x + firstTarget.width - 1);
+    const typeTitle = await page.getByText('TYPE', { exact: true }).boundingBox();
+    const commentTitle = await page.getByText('COMMENT', { exact: true }).boundingBox();
+    const targetTitle = await page.getByText('NEXT-TIME TARGET', { exact: true }).boundingBox();
+    const commentInput = await page
+      .locator('[aria-label="Comment for set 1"]')
+      .evaluate((element) => {
+        const rect = element.parentElement?.getBoundingClientRect();
+        if (!rect) throw new Error('Expected comment field to be measurable');
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      });
+    const targetBox = await page
+      .locator('input[aria-label^="Next-time"]')
+      .first()
+      .evaluate((element) => {
+        const rect = element.parentElement?.parentElement?.parentElement?.getBoundingClientRect();
+        if (!rect) throw new Error('Expected target box to be measurable');
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      });
+    expect(targetBox.width).toBeGreaterThanOrEqual(140);
+    const typeRow = await page.getByLabel('Select Warm Up type').boundingBox();
+    if (!typeTitle || !commentTitle || !targetTitle || !commentInput || !typeRow) {
+      throw new Error('Expected set details alignment elements to be measurable');
+    }
+    expect(Math.abs(typeTitle.x - commentTitle.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(typeTitle.x - targetTitle.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(commentInput.x - (typeRow.x + 14))).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(commentInput.x + commentInput.width - (targetBox.x + targetBox.width)),
+    ).toBeLessThanOrEqual(2);
+    await page.getByRole('button', { name: 'Type help' }).click();
+    await expect(
+      page.getByText('Choose a type to describe this set.', { exact: true }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Type help' }).click();
+    await expect(
+      page.getByText('Choose a type to describe this set.', { exact: true }),
+    ).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Done' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Done' }).click();
+    await expect(page.getByText('TYPE', { exact: true })).toHaveCount(0);
+  });
+
   test('restarts the rest timer when held', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Start workout' }).click();

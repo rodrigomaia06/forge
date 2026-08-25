@@ -7,6 +7,8 @@ export interface WorkoutSet {
   previous?: string;
   targetWeight?: string;
   targetReps?: string;
+  tag?: string;
+  comment?: string;
   completed: boolean;
 }
 
@@ -53,6 +55,10 @@ export interface WorkoutSetChanges {
   weight?: string;
   reps?: string;
   completed?: boolean;
+  targetWeight?: string;
+  targetReps?: string;
+  tag?: string;
+  comment?: string;
 }
 export interface WorkoutContextValue extends WorkoutState {
   ready: boolean;

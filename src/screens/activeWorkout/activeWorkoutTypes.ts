@@ -21,6 +21,7 @@ export interface SwipeableSetRowProps {
 }
 
 export interface SetRowProps extends SwipeableSetRowProps {
+  onOpenDetails: () => void;
   onInputTouchStart: (event: GestureResponderEvent) => void;
   onInputTouchMove: (event: GestureResponderEvent) => void;
   onInputTouchEnd: () => void;

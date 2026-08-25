@@ -13,6 +13,7 @@ import { Icon } from '../../components/ui';
 import { dashboardTheme } from '../../theme/dashboardTheme';
 import { selectionHaptic } from './activeWorkoutFeedback';
 import { SetRow } from './SetRow';
+import { SetDetailsCard } from './SetDetailsCard';
 import type { SwipeableSetRowProps } from './activeWorkoutTypes';
 
 export function SwipeableSetRow({
@@ -31,6 +32,7 @@ export function SwipeableSetRow({
   const touchStartRef = useRef<{ pageX: number; pageY: number } | null>(null);
   const touchActiveRef = useRef(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   useEffect(() => {
     Animated.timing(entranceProgress, {
@@ -168,10 +170,21 @@ export function SwipeableSetRow({
             onChange={onChange}
             onToggle={onToggle}
             onDelete={handleDelete}
+            onOpenDetails={() => setDetailsOpen(true)}
             onInputTouchStart={onInputTouchStart}
             onInputTouchMove={onInputTouchMove}
             onInputTouchEnd={onInputTouchEnd}
           />
+          {detailsOpen ? (
+            <SetDetailsCard
+              visible
+              set={set}
+              index={index}
+              onChange={onChange}
+              onDelete={handleDelete}
+              onDone={() => setDetailsOpen(false)}
+            />
+          ) : null}
         </Animated.View>
       </Animated.View>
     </View>
