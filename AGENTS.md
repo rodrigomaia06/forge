@@ -26,7 +26,7 @@ Do not read `docs/archive/` or `docs/research/` as current requirements unless t
 
 ## Project defaults
 
-- Keep the project in JavaScript unless the user explicitly approves a TypeScript migration.
+- Keep the project in TypeScript migration.
 - React Native is the default implementation layer. Use targeted Swift/Kotlin components only when they materially improve or unlock platform capabilities that are unreasonable in shared React Native code.
 - Preserve a shared Forge visual identity across iOS and Android. Platform differences should primarily address behavior, system integration, accessibility, or genuinely native capabilities.
 - Preserve the established navigation/framework choices unless a task explicitly requires reconsidering them.
@@ -56,3 +56,64 @@ Before finishing, follow the knowledge-impact procedure in `rules/maintenance.md
 - `Knowledge: no durable knowledge change.`
 
 Any change to a Forge rule must be called out explicitly in the completion response.
+
+## Project tree
+
+docs/
+├── decisions
+│   └── README.md
+├── product
+│   └── README.md
+├── README.md
+└── research
+    └── README.md
+rules/
+├── architecture.md
+├── core.md
+├── design.md
+├── external.md
+├── maintenance.md
+└── README.md
+src/
+├── components
+│   ├── BottomNavigation.tsx
+│   ├── calendar
+│   ├── Calendar.tsx
+│   ├── DashboardHeader.tsx
+│   ├── DockChrome.tsx
+│   ├── DockSurface.tsx
+│   ├── IconButton.tsx
+│   ├── NavigationFooter.tsx
+│   ├── ui
+│   └── WorkoutRow.tsx
+├── data
+│   ├── mockWorkouts.ts
+│   └── workoutRepository.ts
+├── debug
+│   └── layoutProbe.ts
+├── navigation
+│   └── AppNavigator.tsx
+├── screens
+│   ├── activeWorkout
+│   ├── ActiveWorkoutScreen.tsx
+│   ├── dashboard
+│   ├── DashboardScreen.tsx
+│   ├── HistoryScreen.tsx
+│   └── PlaceholderScreen.tsx
+├── state
+│   ├── WorkoutContext.tsx
+│   └── workoutMutations.ts
+├── theme
+│   ├── dashboardTheme.ts
+│   └── tokens.ts
+├── types
+│   ├── icons.ts
+│   ├── navigation.ts
+│   ├── theme.ts
+│   ├── ui.ts
+│   └── workout.ts
+└── types.ts
+tests/
+
+This section should be updated as files are created for an updated overview of the project.
+Tests directory doesn't need to be expanded.

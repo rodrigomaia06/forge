@@ -12,9 +12,9 @@ Do not write permanent docs that merely say what files/screens/components curren
 
 Permanent knowledge should describe durable requirements, boundaries, rationale, or adopted policy.
 
-## 3. JavaScript remains the project language
+## 3. Typescript remains the project language
 
-Keep new project code in JavaScript unless the user explicitly approves a TypeScript migration. Do not begin a gradual TypeScript migration opportunistically.
+Typescript is the main language of the project
 
 ## 4. Dependency policy
 
@@ -36,4 +36,4 @@ Every rule change must be named in the completion response.
 
 ## 6. Keep routers small
 
-`AGENTS.md`, `CLAUDE.md`, and this rule router exist to route context. Do not turn them into generated handbooks. Put detailed durable guidance in the smallest relevant rule or canonical document.
+`AGENTS.md`, and this rule router exist to route context. Do not turn them into generated handbooks. Put detailed durable guidance in the smallest relevant rule or canonical document.

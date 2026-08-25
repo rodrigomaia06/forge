@@ -8,7 +8,7 @@ React Native is the default implementation layer and shared business/domain beha
 
 Targeted Swift/Kotlin components or modules are appropriate when they unlock materially better platform capabilities such as system timers, background/system integration, widgets/Live Activities, notifications, or performance that cannot reasonably be delivered in shared React Native code.
 
-Keep native code behind a clear adapter/module boundary. Do not fork business rules across Swift, Kotlin, and JavaScript without a strong reason.
+Keep native code behind a clear adapter/module boundary. Do not fork business rules across Swift, Kotlin, and Typescript without a strong reason.
 
 ## Preserve established stack by default
 
