@@ -66,8 +66,8 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 70,
-    paddingVertical: 11,
+    minHeight: 58,
+    paddingVertical: 6,
     paddingLeft: 4,
   },
   typeIcon: {
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.regular,
     fontSize: 13,
     lineHeight: 18,
-    marginTop: 5,
+    marginTop: 0,
   },
   pressed: { opacity: 0.65 },
 });

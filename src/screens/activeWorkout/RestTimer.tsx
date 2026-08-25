@@ -42,7 +42,7 @@ export function RestTimerIndicator({
 
   return (
     <View style={styles.timerIndicator}>
-      <Icon name="stopwatch-outline" size={23} color={contentColor} />
+      <Icon name="stopwatch-outline" size={22} color={contentColor} />
       {running && (
         <Text style={[styles.restValue, { color: contentColor }]}>{formatRest(remaining)}</Text>
       )}

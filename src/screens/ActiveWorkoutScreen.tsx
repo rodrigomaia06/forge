@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -31,11 +31,23 @@ import { AddExerciseSheet as ExtractedAddExerciseSheet } from './activeWorkout/W
 import { RestTimerIndicator, RestTimerSheet } from './activeWorkout/RestTimer';
 import { styles } from './activeWorkout/activeWorkoutStyles';
 
-function workoutTypePresentation(type: string): { color: string } {
-  if (type === 'Court sport') return { color: dashboardTheme.iconSport || dashboardTheme.ink };
-  if (type === 'Mobility') return { color: '#AA7CE8' };
-  if (type === 'Cardio') return { color: dashboardTheme.iconActivity || dashboardTheme.ink };
-  return { color: dashboardTheme.iconStrength || dashboardTheme.ink };
+function workoutTypeColor(type: string): string {
+  if (type === 'Martial arts') return '#F0444D';
+  if (type === 'Court sport') return dashboardTheme.iconSport || dashboardTheme.ink;
+  if (type === 'Mobility') return '#AA7CE8';
+  if (type === 'Cardio') return dashboardTheme.iconActivity || dashboardTheme.ink;
+  return dashboardTheme.iconStrength || dashboardTheme.ink;
+}
+
+function contrastingIconColor(hexColor: string): string {
+  const hex = hexColor.replace('#', '');
+  if (hex.length !== 6) return dashboardTheme.surface;
+  const [red, green, blue] = [0, 2, 4].map((offset) =>
+    Number.parseInt(hex.slice(offset, offset + 2), 16),
+  );
+  return 0.299 * red + 0.587 * green + 0.114 * blue > 140
+    ? dashboardTheme.ink
+    : dashboardTheme.surface;
 }
 
 type ActiveWorkoutScreenProps = NativeStackScreenProps<RootStackParamList, 'ActiveWorkout'>;
@@ -84,12 +96,12 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     return () => clearInterval(timer);
   }, [restRunning]);
 
-  const startRestTimer = (duration = 60): void => {
+  const startRestTimer = useCallback((duration = 60): void => {
     lightHaptic();
     setRestDuration(duration);
     setRestRemaining(duration);
     setRestRunning(true);
-  };
+  }, []);
   const openRestTimer = () => {
     lightHaptic();
     if (restRunning || restRemaining > 0) setRestSelection(restDuration);
@@ -165,23 +177,25 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     returnToDashboard(null);
   };
 
-  const typePresentation = workoutTypePresentation(activeWorkout.type);
+  const workoutColor = workoutTypeColor(activeWorkout.type);
+  const finishIconColor = contrastingIconColor(workoutColor);
 
   return (
-    <AppScreen backgroundColor={dashboardTheme.background}>
+    <AppScreen backgroundColor={dashboardTheme.surface} style={styles.screen}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <Button
-            label="Cancel"
+            accessibilityLabel="Cancel workout"
+            icon="close"
+            iconSize={19}
             variant="secondary"
-            labelColor={dashboardTheme.slate}
             onPress={handleCancel}
             theme={dashboardTheme}
             style={styles.cancelButton}
           />
           <View style={styles.titleBlock}>
             <View
-              style={[styles.nameUnderlineWrap, { borderBottomColor: typePresentation.color }]}
+              style={styles.titleWrap}
               accessibilityLabel={`Workout type: ${activeWorkout.type}`}
             >
               <Text style={styles.headerTitle} numberOfLines={1}>
@@ -190,20 +204,23 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
             </View>
           </View>
           <Button
-            label="Finish"
-            labelColor={dashboardTheme.accent}
-            labelStyle={styles.finishLabel}
+            accessibilityLabel="Finish workout"
+            icon="check"
+            iconSize={20}
+            labelColor={finishIconColor}
             onPress={handleFinish}
             variant="secondary"
             theme={dashboardTheme}
-            style={styles.finishButton}
+            style={[styles.finishButton, { backgroundColor: workoutColor }]}
           />
         </View>
-        <View style={styles.elapsedRow}>
+        <View style={styles.elapsedPanel}>
           <View style={styles.elapsedInfo}>
-            <Icon name="time-outline" size={23} color={dashboardTheme.ink} />
+            <Icon name="time-outline" size={22} color={dashboardTheme.slate} />
             <Text style={styles.elapsedValue}>{formatElapsed(elapsed)}</Text>
+            <Text style={styles.timerLabel}>Elapsed</Text>
           </View>
+          <View style={styles.timerDivider} />
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={
@@ -231,8 +248,10 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
               duration={restDuration}
               running={restRunning}
             />
+            <Text style={styles.timerLabel}>Rest</Text>
           </Pressable>
         </View>
+        <View pointerEvents="none" style={styles.headerSeparator} />
       </View>
       <KeyboardAvoidingView
         style={styles.keyboardArea}

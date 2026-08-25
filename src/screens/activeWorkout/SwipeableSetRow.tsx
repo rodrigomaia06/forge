@@ -16,7 +16,7 @@ import { SetRow } from './SetRow';
 import { SetDetailsCard } from './SetDetailsCard';
 import type { SwipeableSetRowProps } from './activeWorkoutTypes';
 
-export function SwipeableSetRow({
+function SwipeableSetRowComponent({
   set,
   index,
   onChange,
@@ -190,6 +190,11 @@ export function SwipeableSetRow({
     </View>
   );
 }
+
+export const SwipeableSetRow = React.memo(
+  SwipeableSetRowComponent,
+  (previous, next) => previous.set === next.set && previous.index === next.index,
+);
 
 const styles = StyleSheet.create({
   swipeRow: { position: 'relative', overflow: 'hidden' },

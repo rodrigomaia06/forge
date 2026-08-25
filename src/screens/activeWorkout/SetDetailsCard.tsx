@@ -340,18 +340,28 @@ function TargetRow({
   onChangeText: (value: string) => void;
   onFocus: () => void;
 }) {
+  const inputRef = useRef<TextInput>(null);
+  const focusInput = useCallback(() => {
+    inputRef.current?.focus();
+    requestAnimationFrame(() => inputRef.current?.setSelection(value.length, value.length));
+  }, [value.length]);
+
   return (
-    <View style={styles.targetCard}>
+    <Pressable accessibilityRole="button" onPress={focusInput} style={styles.targetCard}>
       <View style={styles.targetCardHeader}>
         <Text style={styles.targetLabel}>{label}</Text>
       </View>
       <View style={styles.targetValue}>
         <TextInput
+          ref={inputRef}
           accessibilityLabel={accessibilityLabel}
           value={value}
           selection={{ start: value.length, end: value.length }}
           onChangeText={onChangeText}
-          onFocus={onFocus}
+          onFocus={() => {
+            onFocus();
+            requestAnimationFrame(() => inputRef.current?.setSelection(value.length, value.length));
+          }}
           onTouchStart={(event) => event.stopPropagation()}
           keyboardType={keyboardType}
           inputMode={keyboardType === 'decimal-pad' ? 'decimal' : 'numeric'}
@@ -362,7 +372,7 @@ function TargetRow({
         />
         <Text style={styles.targetUnit}>{unit}</Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 

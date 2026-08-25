@@ -40,9 +40,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 6,
     shadowColor: '#172431',
-    shadowOpacity: 0.1,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 6,
   },
 });

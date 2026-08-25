@@ -25,6 +25,10 @@ test.describe('Active workout flow', () => {
     await page.getByRole('button', { name: 'Start workout' }).click();
     await expect(page.getByText('Workout', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Workout', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cancel workout' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Finish workout' })).toBeVisible();
+    await expect(page.getByText('Elapsed', { exact: true })).toBeVisible();
+    await expect(page.getByText('Rest', { exact: true })).toBeVisible();
 
     await page.getByRole('button', { name: 'Add exercise' }).click();
     await page.getByLabel('Exercise name').fill('Bench press');
@@ -35,7 +39,7 @@ test.describe('Active workout flow', () => {
     await page.getByLabel('Reps for set 1').fill('8');
     await page.getByLabel('Complete set 1').click();
 
-    await page.getByRole('button', { name: 'Finish' }).click();
+    await page.getByRole('button', { name: 'Finish workout' }).click();
     await expect(page.getByTestId('dashboard-header-title').last()).toBeVisible();
     await expect(page.getByText('Workout', { exact: true })).toBeVisible();
   });
@@ -223,18 +227,18 @@ test.describe('Active workout flow', () => {
   test('opens the active workout after reloading with a workout in progress', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Start workout' }).click();
-    await expect(page.getByRole('button', { name: 'Finish' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Finish workout' })).toBeVisible();
 
     await page.reload();
 
-    await expect(page.getByRole('button', { name: 'Finish' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Finish workout' })).toBeVisible();
     await expect(page.getByText('Workout', { exact: true })).toBeVisible();
   });
 
   test('cancels an active workout without saving it', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Start workout' }).click();
-    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await page.getByRole('button', { name: 'Cancel workout' }).click();
     await expect(page.getByRole('button', { name: 'Start workout' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Workout', exact: true })).toHaveCount(0);
   });

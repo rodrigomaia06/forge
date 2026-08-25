@@ -8,7 +8,7 @@ import { SwipeableSetRow } from './SwipeableSetRow';
 import { ExerciseOptionsSheet } from './WorkoutSheets';
 import type { ExerciseSectionProps } from './activeWorkoutTypes';
 
-export function ExerciseSection({
+export const ExerciseSection = React.memo(function ExerciseSection({
   exercise,
   addSet,
   removeSet,
@@ -81,7 +81,7 @@ export function ExerciseSection({
       />
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   exerciseCard: {
