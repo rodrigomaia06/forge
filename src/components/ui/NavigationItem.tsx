@@ -26,6 +26,7 @@ interface NavigationItemProps {
   theme?: ForgeTheme;
   iconSize?: number;
   enterFromBottom?: boolean;
+  compact?: boolean;
 }
 
 export function NavigationItem({
@@ -37,6 +38,7 @@ export function NavigationItem({
   theme = colors,
   iconSize = 23,
   enterFromBottom = false,
+  compact = false,
 }: NavigationItemProps) {
   const activeProgress = useRef(new RNAnimated.Value(active ? 1 : 0)).current;
   const entranceProgress = useSharedValue(enterFromBottom ? 0 : 1);
@@ -88,6 +90,7 @@ export function NavigationItem({
         onPress={onPress}
         style={({ pressed }) => [
           styles.item,
+          compact && styles.itemCompact,
           active && [
             styles.activeItem,
             {
@@ -103,8 +106,10 @@ export function NavigationItem({
         <RNAnimated.View
           style={[
             styles.iconFrame,
+            compact && styles.iconFrameCompact,
             Platform.OS === 'android' && emphasis && !active && styles.androidPlayShadow,
             active && styles.activeIconFrame,
+            active && compact && styles.activeIconFrameCompact,
             {
               opacity: activeProgress.interpolate({ inputRange: [0, 1], outputRange: [0.86, 1] }),
               transform: emphasis
@@ -172,6 +177,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 22,
   },
+  iconFrameCompact: { width: 36, height: 36, borderRadius: 18 },
   activeItem: { width: '100%', marginHorizontal: 2 },
   emphasisItem: { width: '100%', marginHorizontal: 2 },
   playIconShadow: {
@@ -194,7 +200,9 @@ const styles = StyleSheet.create({
     ],
   },
   activeIconFrame: { width: 44, height: 44, borderRadius: 22 },
+  activeIconFrameCompact: { width: 36, height: 36, borderRadius: 18 },
   inactiveLabel: { opacity: 0.68 },
   activeLabel: { color: colors.inkInteractive, fontWeight: '700' },
   pressed: { opacity: 0.65 },
+  itemCompact: { minHeight: 42, marginVertical: 2 },
 });

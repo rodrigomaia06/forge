@@ -4,8 +4,23 @@ import { DockChrome } from './DockChrome';
 import { dashboardTheme } from '../theme/dashboardTheme';
 import type { StyleProp, ViewStyle } from 'react-native';
 
-export function NavigationFooter({ style }: { style?: StyleProp<ViewStyle> }) {
-  return <DockChrome theme={dashboardTheme} style={[styles.footer, style]} />;
+export function NavigationFooter({
+  style,
+  compact = false,
+  onInteract,
+}: {
+  style?: StyleProp<ViewStyle>;
+  compact?: boolean;
+  onInteract?: () => void;
+}) {
+  return (
+    <DockChrome
+      theme={dashboardTheme}
+      compact={compact}
+      onInteract={onInteract}
+      style={[styles.footer, style]}
+    />
+  );
 }
 
 const styles = StyleSheet.create({

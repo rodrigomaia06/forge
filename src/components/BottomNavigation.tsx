@@ -10,12 +10,18 @@ import type { RouteProp } from '@react-navigation/native';
 
 interface BottomNavigationProps {
   theme?: ForgeTheme;
+  compact?: boolean;
+  onNavigate?: () => void;
 }
 type NavigationItemEntry = [IconName, string, keyof RootStackParamList, boolean];
 
 let knownWorkoutId: string | null | undefined;
 
-export function BottomNavigation({ theme = colors }: BottomNavigationProps) {
+export function BottomNavigation({
+  theme = colors,
+  compact = false,
+  onNavigate,
+}: BottomNavigationProps) {
   const navigation = useNavigation<RootNavigationProp>();
   const route = useRoute<RouteProp<RootStackParamList>>();
   const activeWorkout = useWorkouts().activeWorkout;
@@ -42,10 +48,11 @@ export function BottomNavigation({ theme = colors }: BottomNavigationProps) {
     ['menu', 'More', 'More', false],
   ];
   const goTo = (screen: keyof RootStackParamList): void => {
+    onNavigate?.();
     navigation.navigate(screen);
   };
   return (
-    <View style={styles.navigation}>
+    <View style={[styles.navigation, compact && styles.navigationCompact]}>
       {items.map(([icon, label, screen, emphasis]) => (
         <NavigationItem
           key={label}
@@ -55,8 +62,9 @@ export function BottomNavigation({ theme = colors }: BottomNavigationProps) {
           emphasis={emphasis}
           onPress={() => goTo(screen)}
           theme={theme}
-          iconSize={emphasis ? 38 : hasActiveWorkout ? 24 : 26}
+          iconSize={compact ? (emphasis ? 26 : 19) : emphasis ? 38 : hasActiveWorkout ? 24 : 26}
           enterFromBottom={emphasis && workoutStartedNow}
+          compact={compact}
         />
       ))}
     </View>
@@ -76,5 +84,9 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     backgroundColor: 'transparent',
     borderTopWidth: 0,
+  },
+  navigationCompact: {
+    minHeight: 48,
+    paddingVertical: 0,
   },
 });
