@@ -27,6 +27,25 @@ export function WorkoutProvider({ children }: ChildrenProps) {
   const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
   const [completedWorkouts, setCompletedWorkouts] = useState<Workout[]>([]);
   const [ready, setReady] = useState(false);
+  const activeSaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeWriteQueueRef = React.useRef<Promise<void>>(Promise.resolve());
+  const skipNextActivePersistenceRef = React.useRef(false);
+  const queueActiveSave = useCallback((workout: Workout | null): void => {
+    activeWriteQueueRef.current = activeWriteQueueRef.current
+      .catch(() => undefined)
+      .then(() => saveActiveWorkout(workout));
+  }, []);
+  const persistActiveWorkoutNow = useCallback(
+    (workout: Workout | null): void => {
+      if (activeSaveTimerRef.current) {
+        clearTimeout(activeSaveTimerRef.current);
+        activeSaveTimerRef.current = null;
+      }
+      skipNextActivePersistenceRef.current = true;
+      queueActiveSave(workout);
+    },
+    [queueActiveSave],
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -44,8 +63,24 @@ export function WorkoutProvider({ children }: ChildrenProps) {
   }, []);
 
   useEffect(() => {
-    if (ready) saveActiveWorkout(activeWorkout);
-  }, [activeWorkout, ready]);
+    if (!ready) return undefined;
+    if (activeSaveTimerRef.current) clearTimeout(activeSaveTimerRef.current);
+    if (skipNextActivePersistenceRef.current) {
+      skipNextActivePersistenceRef.current = false;
+      return undefined;
+    }
+    if (!activeWorkout) {
+      queueActiveSave(null);
+      return undefined;
+    }
+    activeSaveTimerRef.current = setTimeout(() => {
+      queueActiveSave(activeWorkout);
+      activeSaveTimerRef.current = null;
+    }, 300);
+    return () => {
+      if (activeSaveTimerRef.current) clearTimeout(activeSaveTimerRef.current);
+    };
+  }, [activeWorkout, queueActiveSave, ready]);
 
   useEffect(() => {
     if (ready) saveCompletedWorkouts(completedWorkouts);
@@ -90,8 +125,9 @@ export function WorkoutProvider({ children }: ChildrenProps) {
   }, []);
 
   const cancelWorkout = useCallback((): void => {
+    persistActiveWorkoutNow(null);
     setActiveWorkout(null);
-  }, []);
+  }, [persistActiveWorkoutNow]);
 
   const finishWorkout = useCallback((): Workout | null => {
     if (!activeWorkout) return null;
@@ -101,9 +137,10 @@ export function WorkoutProvider({ children }: ChildrenProps) {
       durationSeconds: Math.max(1, Math.round((Date.now() - activeWorkout.startedAt) / 1000)),
     };
     setCompletedWorkouts((current) => [finished, ...current]);
+    persistActiveWorkoutNow(null);
     setActiveWorkout(null);
     return finished;
-  }, [activeWorkout]);
+  }, [activeWorkout, persistActiveWorkoutNow]);
 
   const value = useMemo(
     () => ({

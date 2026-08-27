@@ -1,20 +1,28 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Animated,
+  Animated as RNAnimated,
   Easing,
-  PanResponder,
   Platform,
   Pressable,
   StyleSheet,
   View,
   type GestureResponderEvent,
 } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import { Icon } from '../../components/ui';
 import { dashboardTheme } from '../../theme/dashboardTheme';
-import { selectionHaptic } from './activeWorkoutFeedback';
-import { SetRow } from './SetRow';
+import { mediumHaptic } from './activeWorkoutFeedback';
 import { SetDetailsCard } from './SetDetailsCard';
+import { SetRow } from './SetRow';
 import type { SwipeableSetRowProps } from './activeWorkoutTypes';
+
+const DELETE_ACTION_WIDTH = 52;
 
 function SwipeableSetRowComponent({
   set,
@@ -22,20 +30,22 @@ function SwipeableSetRowComponent({
   onChange,
   onToggle,
   onDelete,
+  deleteRevealed,
+  onDeleteRevealChange,
 }: SwipeableSetRowProps) {
-  const deleteProgress = useRef(new Animated.Value(0)).current;
-  const entranceProgress = useRef(new Animated.Value(0)).current;
-  const removalProgress = useRef(new Animated.Value(0)).current;
-  const deleteFractionRef = useRef(0);
-  const openRef = useRef(false);
+  const deleteTranslateX = useSharedValue(deleteRevealed ? -DELETE_ACTION_WIDTH : 0);
+  const deleteOpen = useSharedValue(deleteRevealed);
+  const entranceProgress = useRef(new RNAnimated.Value(0)).current;
+  const removalProgress = useRef(new RNAnimated.Value(0)).current;
+  const deleteFractionRef = useRef(deleteRevealed ? 1 : 0);
   const removalStartedRef = useRef(false);
   const touchStartRef = useRef<{ pageX: number; pageY: number } | null>(null);
   const touchActiveRef = useRef(false);
-  const [isOpen, setIsOpen] = useState(false);
+  const openRef = useRef(deleteRevealed);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   useEffect(() => {
-    Animated.timing(entranceProgress, {
+    RNAnimated.timing(entranceProgress, {
       toValue: 1,
       duration: 120,
       useNativeDriver: Platform.OS !== 'web',
@@ -43,14 +53,26 @@ function SwipeableSetRowComponent({
     return () => entranceProgress.stopAnimation();
   }, [entranceProgress]);
 
+  useEffect(() => {
+    openRef.current = deleteRevealed;
+    deleteFractionRef.current = deleteRevealed ? 1 : 0;
+    deleteOpen.value = deleteRevealed;
+    deleteTranslateX.value = withSpring(deleteRevealed ? -DELETE_ACTION_WIDTH : 0, {
+      damping: 22,
+      stiffness: 280,
+      mass: 0.65,
+      overshootClamping: true,
+    });
+  }, [deleteOpen, deleteRevealed, deleteTranslateX]);
+
   useEffect(() => () => removalProgress.stopAnimation(), [removalProgress]);
 
   const handleDelete = (): void => {
     if (removalStartedRef.current) return;
     removalStartedRef.current = true;
-    Animated.timing(removalProgress, {
+    RNAnimated.timing(removalProgress, {
       toValue: 1,
-      duration: 70,
+      duration: 100,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: Platform.OS !== 'web',
     }).start(({ finished }) => {
@@ -59,24 +81,30 @@ function SwipeableSetRowComponent({
   };
 
   const settleDelete = (shouldOpen: boolean): void => {
-    const wasOpen = openRef.current;
-    openRef.current = shouldOpen;
-    setIsOpen(shouldOpen);
-    if (wasOpen !== shouldOpen) selectionHaptic();
-    Animated.timing(deleteProgress, {
-      toValue: shouldOpen ? 1 : 0,
-      duration: 160,
-      useNativeDriver: Platform.OS !== 'web',
-    }).start();
+    if (shouldOpen !== openRef.current) {
+      mediumHaptic();
+      onDeleteRevealChange(shouldOpen);
+      return;
+    }
+    deleteTranslateX.value = withSpring(shouldOpen ? -DELETE_ACTION_WIDTH : 0, {
+      damping: 22,
+      stiffness: 280,
+      mass: 0.65,
+      overshootClamping: true,
+    });
   };
 
   const updateDeleteFromDelta = (dx: number, dy = 0): boolean => {
     if (Math.abs(dx) <= Math.abs(dy) * 0.9 || (!openRef.current && dx >= 0)) return false;
-    const base = openRef.current ? -60 : 0;
-    const next = Math.max(-60, Math.min(0, base + dx));
-    deleteFractionRef.current = Math.min(1, Math.max(0, Math.abs(next) / 60));
-    deleteProgress.setValue(deleteFractionRef.current);
-    if (!openRef.current && next <= -30) setIsOpen(true);
+    const base = openRef.current ? -DELETE_ACTION_WIDTH : 0;
+    const unconstrained = base + dx;
+    const resisted =
+      unconstrained < -DELETE_ACTION_WIDTH
+        ? -DELETE_ACTION_WIDTH + (unconstrained + DELETE_ACTION_WIDTH) * 0.1
+        : Math.min(0, unconstrained);
+    const next = Math.max(-DELETE_ACTION_WIDTH, Math.min(0, resisted));
+    deleteFractionRef.current = Math.min(1, Math.max(0, Math.abs(next) / DELETE_ACTION_WIDTH));
+    deleteTranslateX.value = next;
     return true;
   };
 
@@ -98,35 +126,35 @@ function SwipeableSetRowComponent({
     touchActiveRef.current = false;
   };
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponderCapture: (_, gesture) =>
-        Math.abs(gesture.dx) > 3 &&
-        Math.abs(gesture.dx) > Math.abs(gesture.dy) * 0.65 &&
-        (openRef.current || gesture.dx < 0),
-      onMoveShouldSetPanResponder: (_, gesture) =>
-        Math.abs(gesture.dx) > 3 &&
-        Math.abs(gesture.dx) > Math.abs(gesture.dy) * 0.65 &&
-        (openRef.current || gesture.dx < 0),
-      onShouldBlockNativeResponder: () => true,
-      onPanResponderTerminationRequest: () => false,
-      onPanResponderMove: (_, gesture) => updateDeleteFromDelta(gesture.dx, gesture.dy),
-      onPanResponderRelease: (_, gesture) =>
-        settleDelete(Math.max(-60, Math.min(0, (openRef.current ? -60 : 0) + gesture.dx)) < -30),
-    }),
-  ).current;
+  const deleteGesture = Gesture.Pan()
+    .activeOffsetX([-6, 6])
+    .failOffsetY([-12, 12])
+    .onUpdate((gesture) => {
+      if (!deleteOpen.value && gesture.translationX >= 0) return;
+      const base = deleteOpen.value ? -DELETE_ACTION_WIDTH : 0;
+      deleteTranslateX.value = Math.max(-DELETE_ACTION_WIDTH, Math.min(0, base + gesture.translationX));
+    })
+    .onEnd((gesture) => {
+      const offset = (deleteOpen.value ? -DELETE_ACTION_WIDTH : 0) + gesture.translationX;
+      runOnJS(settleDelete)(
+        Math.max(-DELETE_ACTION_WIDTH, Math.min(0, offset)) < -DELETE_ACTION_WIDTH * 0.58,
+      );
+    });
+  const deleteSwipeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: deleteTranslateX.value }],
+  }));
 
   return (
-    <View {...panResponder.panHandlers} style={styles.swipeRow}>
-      <View pointerEvents={isOpen ? 'auto' : 'none'} style={styles.deleteActionLayer}>
+    <GestureDetector gesture={deleteGesture}>
+      <View style={styles.swipeRow}>
+      <View pointerEvents={deleteRevealed ? 'auto' : 'none'} style={styles.deleteActionLayer}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Delete set ${index + 1}`}
           onPress={handleDelete}
-          style={styles.deleteSetInline}
+          style={({ pressed }) => [styles.deleteAction, pressed && styles.deleteActionPressed]}
         >
-          <Icon name="trash" size={21} color={dashboardTheme.surface} weight="regular" />
+          <Icon name="trash" size={18} color="#D64848" weight="regular" />
         </Pressable>
       </View>
       <Animated.View
@@ -136,30 +164,24 @@ function SwipeableSetRowComponent({
         onAccessibilityAction={(event) => {
           if (event.nativeEvent.actionName === 'delete') handleDelete();
         }}
-        style={[
-          styles.swipeContent,
-          {
+        style={[styles.swipeContent, deleteSwipeStyle]}
+      >
+        <RNAnimated.View
+          style={{
             opacity: removalProgress.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
             transform: [
               {
-                translateX: Animated.add(
-                  deleteProgress.interpolate({ inputRange: [0, 1], outputRange: [0, -60] }),
-                  removalProgress.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }),
-                ),
+                translateX: removalProgress.interpolate({ inputRange: [0, 1], outputRange: [0, -14] }),
               },
             ],
-          },
-        ]}
-      >
-        <Animated.View
+          }}
+        >
+        <RNAnimated.View
           style={{
             opacity: entranceProgress,
             transform: [
               {
-                translateY: entranceProgress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [4, 0],
-                }),
+                translateY: entranceProgress.interpolate({ inputRange: [0, 1], outputRange: [4, 0] }),
               },
             ],
           }}
@@ -185,33 +207,41 @@ function SwipeableSetRowComponent({
               onDone={() => setDetailsOpen(false)}
             />
           ) : null}
-        </Animated.View>
+        </RNAnimated.View>
+        </RNAnimated.View>
       </Animated.View>
-    </View>
+      </View>
+    </GestureDetector>
   );
 }
 
 export const SwipeableSetRow = React.memo(
   SwipeableSetRowComponent,
-  (previous, next) => previous.set === next.set && previous.index === next.index,
+  (previous, next) =>
+    previous.set === next.set &&
+    previous.index === next.index &&
+    previous.deleteRevealed === next.deleteRevealed,
 );
 
 const styles = StyleSheet.create({
   swipeRow: { position: 'relative', overflow: 'hidden' },
-  swipeContent: { zIndex: 1, backgroundColor: dashboardTheme.surface },
+  swipeContent: {
+    zIndex: 1,
+    backgroundColor: dashboardTheme.surface,
+  },
   deleteActionLayer: {
     position: 'absolute',
     top: 0,
     right: 0,
     bottom: 0,
-    width: 60,
-    alignItems: 'stretch',
-    justifyContent: 'center',
+    width: DELETE_ACTION_WIDTH,
+    backgroundColor: '#F6DCDD',
   },
-  deleteSetInline: {
+  deleteAction: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#C54848',
+    transform: [{ translateY: 0 }],
   },
+  deleteActionPressed: { backgroundColor: '#F1CED0' },
 });

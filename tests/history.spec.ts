@@ -33,8 +33,7 @@ test.describe('History screen', () => {
 
   test('keeps history groups in descending order', async ({ page }) => {
     const headings = await page.locator('[data-testid^="history-group-"]').allTextContents();
-    expect(headings[0]).toContain('Muay Thai');
-    expect(headings.at(-1)).toContain('Push - Chest');
+    expect(headings).toEqual(['24–25 Aug 2026', '17–20 Aug 2026', '11–16 Aug 2026']);
   });
 
   test('keeps the empty state available without completed sessions', async ({ page }) => {

@@ -1,9 +1,28 @@
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import { Icon } from '../../components/ui';
 import { dashboardTheme } from '../../theme/dashboardTheme';
 import { typography } from '../../theme/tokens';
-import { animateLayout, animateSetRemoval, lightHaptic } from './activeWorkoutFeedback';
+import {
+  animateLayout,
+  animateSetRemoval,
+  errorHaptic,
+  lightHaptic,
+  mediumHaptic,
+  selectionHaptic,
+} from './activeWorkoutFeedback';
 import { SwipeableSetRow } from './SwipeableSetRow';
 import { ExerciseOptionsSheet } from './WorkoutSheets';
 import type { ExerciseSectionProps } from './activeWorkoutTypes';
@@ -16,17 +35,92 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   updateSet,
   toggleSet,
   onSetCompleted,
+  deleteRevealed,
+  onDeleteRevealChange,
 }: ExerciseSectionProps) {
+  const deleteActionWidth = 64;
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [openSetId, setOpenSetId] = useState<string | null>(null);
+  const cardTranslateX = useSharedValue(deleteRevealed ? -deleteActionWidth : 0);
+  const cardOpen = useSharedValue(deleteRevealed);
+
+  useEffect(() => {
+    cardOpen.value = deleteRevealed;
+    cardTranslateX.value = withSpring(deleteRevealed ? -deleteActionWidth : 0, {
+      damping: 22,
+      stiffness: 280,
+      mass: 0.65,
+      overshootClamping: true,
+    });
+  }, [cardOpen, cardTranslateX, deleteActionWidth, deleteRevealed]);
+
+  const settleCard = (shouldOpen: boolean): void => {
+    if (shouldOpen !== deleteRevealed) {
+      mediumHaptic();
+      onDeleteRevealChange(exercise.id, shouldOpen);
+      return;
+    }
+    cardTranslateX.value = withSpring(shouldOpen ? -deleteActionWidth : 0, {
+      damping: 22,
+      stiffness: 280,
+      mass: 0.65,
+      overshootClamping: true,
+    });
+  };
+
+  const cardGesture = Gesture.Pan()
+    .activeOffsetX([-8, 8])
+    .failOffsetY([-12, 12])
+    .onUpdate((gesture) => {
+      if (!cardOpen.value && gesture.translationX >= 0) return;
+      const base = cardOpen.value ? -deleteActionWidth : 0;
+      const next = Math.max(-deleteActionWidth, Math.min(0, base + gesture.translationX));
+      cardTranslateX.value = next;
+    })
+    .onEnd((gesture) => {
+      const offset = (cardOpen.value ? -deleteActionWidth : 0) + gesture.translationX;
+      runOnJS(settleCard)(Math.max(-deleteActionWidth, Math.min(0, offset)) < -42);
+    });
+  const swipeContentStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: cardTranslateX.value }],
+  }));
 
   return (
+    <GestureDetector gesture={cardGesture}>
+      <View style={styles.exerciseSwipe}>
+      <View
+        pointerEvents={deleteRevealed ? 'auto' : 'none'}
+        style={styles.deleteExerciseActionLayer}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Delete ${exercise.name}`}
+          onPress={() => {
+            errorHaptic();
+            animateLayout();
+            removeExercise(exercise.id);
+            onDeleteRevealChange(exercise.id, false);
+          }}
+          style={({ pressed }) => [
+            styles.deleteExerciseAction,
+            pressed && styles.deleteExerciseActionPressed,
+          ]}
+        >
+          <Icon name="trash" size={20} color="#D64848" />
+          <Text style={styles.deleteExerciseText}>Delete</Text>
+        </Pressable>
+      </View>
+      <Animated.View style={[styles.exerciseSwipeContent, swipeContentStyle]}>
     <View style={styles.exerciseCard}>
       <View style={styles.exerciseHeader}>
         <Text style={styles.exerciseName}>{exercise.name}</Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`More options for ${exercise.name}`}
-          onPress={() => setOptionsOpen(true)}
+          onPress={() => {
+            selectionHaptic();
+            setOptionsOpen(true);
+          }}
           style={styles.moreButton}
         >
           <Icon name="ellipsis-horizontal" size={20} color={dashboardTheme.ink} />
@@ -51,10 +145,12 @@ export const ExerciseSection = React.memo(function ExerciseSection({
             toggleSet(exercise.id, set.id);
           }}
           onDelete={() => {
-            lightHaptic();
+            errorHaptic();
             animateSetRemoval();
             removeSet(exercise.id, set.id);
           }}
+          deleteRevealed={openSetId === set.id}
+          onDeleteRevealChange={(revealed) => setOpenSetId(revealed ? set.id : null)}
         />
       ))}
       <Pressable
@@ -69,24 +165,53 @@ export const ExerciseSection = React.memo(function ExerciseSection({
         <Icon name="add" size={16} color={dashboardTheme.accent} />
         <Text style={styles.addSetText}>Add set</Text>
       </Pressable>
-      <ExerciseOptionsSheet
-        visible={optionsOpen}
-        exercise={exercise}
-        onClose={() => setOptionsOpen(false)}
-        onRemove={() => {
-          animateLayout();
-          removeExercise(exercise.id);
-          setOptionsOpen(false);
-        }}
-      />
+      {optionsOpen && (
+        <ExerciseOptionsSheet
+          visible
+          exercise={exercise}
+          onClose={() => setOptionsOpen(false)}
+          onRemove={() => {
+            animateLayout();
+            removeExercise(exercise.id);
+            setOptionsOpen(false);
+          }}
+        />
+      )}
+      </View>
+      </Animated.View>
     </View>
+    </GestureDetector>
   );
 });
 
 const styles = StyleSheet.create({
+  exerciseSwipe: {
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: 16,
+    backgroundColor: '#F6DCDD',
+  },
+  exerciseSwipeContent: { zIndex: 1, backgroundColor: dashboardTheme.surface },
+  deleteExerciseActionLayer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: 64,
+    backgroundColor: '#F6DCDD',
+  },
+  deleteExerciseAction: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    transform: [{ translateY: 3 }],
+  },
+  deleteExerciseActionPressed: { backgroundColor: '#F1CED0' },
+  deleteExerciseText: { color: '#D64848', fontFamily: typography.semibold, fontSize: 12 },
   exerciseCard: {
     backgroundColor: dashboardTheme.surface,
-    borderRadius: 16,
+    borderRadius: 0,
     paddingTop: 4,
     paddingHorizontal: 12,
     paddingBottom: 0,

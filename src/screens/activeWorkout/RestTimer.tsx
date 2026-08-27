@@ -124,6 +124,8 @@ export function RestTimerSheet({
   }));
   const backdropAnimatedStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value }));
 
+  if (!visible) return null;
+
   return (
     <Modal visible={visible} animationType="none" transparent onRequestClose={closeSheet}>
       <Animated.View style={[styles.restTimerBackdrop, backdropAnimatedStyle]}>

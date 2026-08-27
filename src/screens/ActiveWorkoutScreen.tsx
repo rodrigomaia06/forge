@@ -4,23 +4,17 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   Text,
   View,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import Animated, { runOnJS, useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import { AppScreen, Button, Icon } from '../components/ui';
 import { NavigationFooter } from '../components/NavigationFooter';
 import { useWorkouts } from '../state/WorkoutContext';
 import { dashboardTheme } from '../theme/dashboardTheme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList, Workout } from '../types';
-import {
-  animateLayout,
-  errorHaptic,
-  lightHaptic,
-  selectionHaptic,
-} from './activeWorkout/activeWorkoutFeedback';
+import type { RootStackParamList, Workout, WorkoutExercise } from '../types';
+import { animateLayout, lightHaptic, successHaptic } from './activeWorkout/activeWorkoutFeedback';
 import {
   formatElapsed,
   formatRest,
@@ -64,58 +58,106 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     cancelWorkout,
     finishWorkout,
   } = useWorkouts();
-  const [elapsed, setElapsed] = useState(0);
-  const [restRemaining, setRestRemaining] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
   const [restDuration, setRestDuration] = useState(60);
-  const [restRunning, setRestRunning] = useState(false);
   const [restSelection, setRestSelection] = useState(90);
   const [restSheetOpen, setRestSheetOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [openExerciseId, setOpenExerciseId] = useState<string | null>(null);
+  const [dockCompact, setDockCompact] = useState(false);
   const timerLongPressRef = useRef(false);
+  const dockCompactOnUi = useSharedValue(false);
+
+  const restCompletionNotified = useRef(false);
 
   useEffect(() => {
     if (!activeWorkout) return undefined;
-    const update = () =>
-      setElapsed(Math.max(0, Math.floor((Date.now() - activeWorkout.startedAt) / 1000)));
+    const update = () => setNow(Date.now());
     update();
     const timer = setInterval(update, 1000);
     return () => clearInterval(timer);
   }, [activeWorkout]);
 
   useEffect(() => {
-    if (!restRunning) return undefined;
-    const timer = setInterval(() => {
-      setRestRemaining((current) => {
-        if (current === 0) {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-          return -1;
-        }
-        return current - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [restRunning]);
+    if (!restEndsAt || now < restEndsAt) return;
+    if (!restCompletionNotified.current) {
+      restCompletionNotified.current = true;
+      successHaptic();
+    }
+    setRestEndsAt(null);
+  }, [now, restEndsAt]);
+
+  const elapsed = activeWorkout
+    ? Math.max(0, Math.floor((now - activeWorkout.startedAt) / 1000))
+    : 0;
+  const restRemaining = restEndsAt ? Math.max(0, Math.ceil((restEndsAt - now) / 1000)) : 0;
+  const restRunning = restEndsAt !== null && restRemaining > 0;
 
   const startRestTimer = useCallback((duration = 60): void => {
     lightHaptic();
     setRestDuration(duration);
-    setRestRemaining(duration);
-    setRestRunning(true);
+    restCompletionNotified.current = false;
+    const startedAt = Date.now();
+    setNow(startedAt);
+    setRestEndsAt(startedAt + duration * 1000);
   }, []);
   const openRestTimer = () => {
     lightHaptic();
-    if (restRunning || restRemaining > 0) setRestSelection(restDuration);
+    if (restRunning) setRestSelection(restDuration);
     setRestSheetOpen(true);
   };
   const adjustRestTimer = (amount: number): void => {
     lightHaptic();
-    setRestRemaining((current) => current + amount);
+    const adjustedAt = Date.now();
+    setNow(adjustedAt);
+    setRestEndsAt((current) => Math.max(adjustedAt, (current ?? adjustedAt) + amount * 1000));
   };
   const skipRestTimer = () => {
     lightHaptic();
-    setRestRunning(false);
-    setRestRemaining(0);
+    setRestEndsAt(null);
   };
+  const handleDockCompactChange = useCallback((nextCompact: boolean): void => {
+    setDockCompact((current) => (current === nextCompact ? current : nextCompact));
+  }, []);
+  const workoutScrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      const nextCompact = event.contentOffset.y > 12;
+      if (nextCompact !== dockCompactOnUi.value) {
+        dockCompactOnUi.value = nextCompact;
+        runOnJS(handleDockCompactChange)(nextCompact);
+      }
+    },
+  });
+  const handleExerciseDeleteReveal = useCallback((exerciseId: string, revealed: boolean): void => {
+    setOpenExerciseId(revealed ? exerciseId : null);
+  }, []);
+  const handleAddExerciseClose = useCallback(() => setSheetOpen(false), []);
+  const handleAddExercises = useCallback(
+    (names: string[]) => {
+      lightHaptic();
+      names.forEach((name) => addExercise(name));
+      setSheetOpen(false);
+    },
+    [addExercise],
+  );
+  const renderExercise = useCallback(
+    ({ item, index }: { item: WorkoutExercise; index: number }) => (
+      <ExtractedExerciseSection
+        exercise={item}
+        index={index}
+        addSet={addSet}
+        removeSet={removeSet}
+        removeExercise={removeExercise}
+        updateSet={updateSet}
+        toggleSet={toggleSet}
+        onSetCompleted={startRestTimer}
+        deleteRevealed={openExerciseId === item.id}
+        onDeleteRevealChange={handleExerciseDeleteReveal}
+      />
+    ),
+    [addSet, handleExerciseDeleteReveal, openExerciseId, removeExercise, removeSet, startRestTimer, toggleSet, updateSet],
+  );
   const returnToDashboard = (finished: Workout | null): void =>
     navigation.reset({
       index: 0,
@@ -257,62 +299,54 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
         style={styles.keyboardArea}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView
+        <Animated.FlatList
+          data={activeWorkout.exercises}
+          renderItem={renderExercise}
+          keyExtractor={(exercise) => exercise.id}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           nestedScrollEnabled
-        >
-          {activeWorkout.exercises.length > 0 &&
-            activeWorkout.exercises.map((exercise, index) => (
-              <ExtractedExerciseSection
-                key={exercise.id}
-                exercise={exercise}
-                index={index}
-                addSet={addSet}
-                removeSet={removeSet}
-                removeExercise={removeExercise}
-                updateSet={updateSet}
-                toggleSet={toggleSet}
-                onSetCompleted={startRestTimer}
-              />
-            ))}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Add exercise"
-            onPress={() => {
-              animateLayout();
-              setSheetOpen(true);
-            }}
-            style={styles.addExercise}
-          >
-            <Icon name="add" size={17} color={dashboardTheme.ink} />
-            <Text style={styles.addExerciseText}>Add exercise</Text>
-          </Pressable>
-        </ScrollView>
+          onScroll={workoutScrollHandler}
+          scrollEventThrottle={16}
+          ListFooterComponent={
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Add exercise"
+              onPress={() => {
+                animateLayout();
+                setSheetOpen(true);
+              }}
+              style={styles.addExercise}
+            >
+              <Icon name="add" size={17} color={dashboardTheme.ink} />
+              <Text style={styles.addExerciseText}>Add exercise</Text>
+            </Pressable>
+          }
+        />
       </KeyboardAvoidingView>
-      <ExtractedAddExerciseSheet
-        visible={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        onSubmit={(name) => {
-          lightHaptic();
-          addExercise(name);
-          setSheetOpen(false);
-        }}
-      />
-      <RestTimerSheet
-        visible={restSheetOpen}
-        selectedDuration={restSelection}
-        remaining={restRemaining}
-        duration={restDuration}
-        running={restRunning}
-        onClose={() => setRestSheetOpen(false)}
-        onSelect={setRestSelection}
-        onStart={() => startRestTimer(restSelection)}
-        onAdjust={adjustRestTimer}
-        onSkip={skipRestTimer}
-      />
-      <NavigationFooter />
+      {sheetOpen && (
+        <ExtractedAddExerciseSheet
+          visible
+          onClose={handleAddExerciseClose}
+          onSubmit={handleAddExercises}
+        />
+      )}
+      {restSheetOpen && (
+        <RestTimerSheet
+          visible
+          selectedDuration={restSelection}
+          remaining={restRemaining}
+          duration={restDuration}
+          running={restRunning}
+          onClose={() => setRestSheetOpen(false)}
+          onSelect={setRestSelection}
+          onStart={() => startRestTimer(restSelection)}
+          onAdjust={adjustRestTimer}
+          onSkip={skipRestTimer}
+        />
+      )}
+      <NavigationFooter compact={dockCompact} onInteract={() => setDockCompact(false)} />
     </AppScreen>
   );
 }

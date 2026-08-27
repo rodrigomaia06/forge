@@ -4,8 +4,10 @@ async function startEmptyWorkoutWithExercise(page: Page): Promise<void> {
   await page.goto('/');
   await page.getByRole('button', { name: 'Start workout' }).click();
   await page.getByRole('button', { name: 'Add exercise' }).click();
-  await page.getByLabel('Exercise name').fill('Bench press');
-  await page.getByRole('button', { name: 'Add exercise', exact: true }).last().click();
+  await page.getByRole('button', { name: 'Bench Press, 4 variations', exact: true }).click();
+  await page.getByRole('button', { name: 'Barbell, 2 variations', exact: true }).click();
+  await page.getByRole('checkbox', { name: 'Bench Press, Barbell, Standard' }).click({ force: true });
+  await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
 }
 
 async function swipeLeftFrom(page: Page, locator: Locator): Promise<void> {
@@ -31,10 +33,14 @@ test.describe('Active workout flow', () => {
     await expect(page.getByText('Rest', { exact: true })).toBeVisible();
 
     await page.getByRole('button', { name: 'Add exercise' }).click();
-    await page.getByLabel('Exercise name').fill('Bench press');
-    await page.getByRole('button', { name: 'Add exercise', exact: true }).last().click();
+    await page.getByRole('button', { name: 'Bench Press, 4 variations', exact: true }).click();
+    await page.getByRole('button', { name: 'Barbell, 2 variations', exact: true }).click();
+    await page
+      .getByRole('checkbox', { name: 'Bench Press, Barbell, Standard' })
+      .click({ force: true });
+    await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
 
-    await expect(page.getByText('Bench press', { exact: true })).toBeVisible();
+    await expect(page.getByText('Barbell Bench Press', { exact: true })).toBeVisible();
     await page.getByLabel('Weight for set 1').fill('60');
     await page.getByLabel('Reps for set 1').fill('8');
     await page.getByLabel('Complete set 1').click();
@@ -42,6 +48,40 @@ test.describe('Active workout flow', () => {
     await page.getByRole('button', { name: 'Finish workout' }).click();
     await expect(page.getByTestId('dashboard-header-title').last()).toBeVisible();
     await expect(page.getByText('Workout', { exact: true })).toBeVisible();
+  });
+
+  test('groups exercise variations and selects single-variation exercises directly', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Start workout' }).click();
+    await page.getByRole('button', { name: 'Add exercise' }).click();
+
+    await expect(page.getByText('Chest', { exact: true })).toBeVisible();
+    await expect(page.getByText('Chest · 12', { exact: true })).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: 'Bench Press, 4 variations', exact: true }),
+    ).toBeVisible();
+
+    const search = page.getByLabel('Search exercises');
+    await search.fill('pec');
+    await expect(page.getByRole('button', { name: 'Clear exercise search' })).toBeVisible();
+    await page.getByRole('button', { name: 'Clear exercise search' }).click();
+    await expect(search).toHaveValue('');
+
+    const pecDeck = page.getByRole('checkbox', { name: 'Pec Deck, variation' });
+    await pecDeck.scrollIntoViewIfNeeded();
+    await pecDeck.click();
+    await expect(page.getByText('Add exercises (1)', { exact: true })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Bench Press, 4 variations', exact: true }).click();
+    await expect(
+      page.getByRole('button', { name: 'Barbell, 2 variations', exact: true }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Barbell, 2 variations', exact: true }).click();
+    await expect(
+      page.getByRole('checkbox', { name: 'Bench Press, Barbell, Close grip' }),
+    ).toBeVisible();
   });
 
   test('starts the rest timer from the workout header', async ({ page }) => {
@@ -229,6 +269,8 @@ test.describe('Active workout flow', () => {
     await page.getByRole('button', { name: 'Start workout' }).click();
     await expect(page.getByRole('button', { name: 'Finish workout' })).toBeVisible();
 
+    // Active-workout persistence is debounced so typing and set changes do not write per frame.
+    await page.waitForTimeout(350);
     await page.reload();
 
     await expect(page.getByRole('button', { name: 'Finish workout' })).toBeVisible();
@@ -247,12 +289,25 @@ test.describe('Active workout flow', () => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Start workout' }).click();
     await page.getByRole('button', { name: 'Add exercise' }).click();
-    await page.getByLabel('Exercise name').fill('Bench press');
-    await page.getByRole('button', { name: 'Add exercise', exact: true }).last().click();
-    await page.getByRole('button', { name: 'More options for Bench press' }).click();
-    await page.getByRole('button', { name: 'Remove Bench press' }).click();
+    await page.getByRole('button', { name: 'Bench Press, 4 variations', exact: true }).click();
+    await page.getByRole('button', { name: 'Barbell, 2 variations', exact: true }).click();
+    await page
+      .getByRole('checkbox', { name: 'Bench Press, Barbell, Standard' })
+      .click({ force: true });
+    await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
+    await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
+    await page.getByRole('button', { name: 'Remove Barbell Bench Press' }).click();
     await expect(page.getByText('Start with an exercise', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Add exercise' }).last()).toBeVisible();
+  });
+
+  test('reveals delete action when swiping an exercise card to the left', async ({ page }) => {
+    await startEmptyWorkoutWithExercise(page);
+
+    await swipeLeftFrom(page, page.getByText('Barbell Bench Press', { exact: true }));
+    await expect(page.getByRole('button', { name: 'Delete Barbell Bench Press' })).toBeVisible();
+    await page.getByRole('button', { name: 'Delete Barbell Bench Press' }).click();
+    await expect(page.getByText('Barbell Bench Press', { exact: true })).toHaveCount(0);
   });
 
   test('reveals delete action when swiping a set to the left', async ({ page }) => {
@@ -270,7 +325,7 @@ test.describe('Active workout flow', () => {
     await startEmptyWorkoutWithExercise(page);
     await swipeLeftFrom(page, page.getByLabel('Weight for set 1'));
     await page.getByRole('button', { name: 'Delete set 1' }).click();
-    await expect(page.getByText('Bench press', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Barbell Bench Press', { exact: true })).toHaveCount(0);
   });
 
   test('reveals delete action when swiping from a weight input', async ({ page }) => {

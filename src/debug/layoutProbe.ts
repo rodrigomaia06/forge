@@ -1,7 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { View, type LayoutChangeEvent } from 'react-native';
 
-const enabled = typeof __DEV__ !== 'undefined' && __DEV__;
+const enabled = typeof __DEV__ !== 'undefined' && __DEV__ && process.env.EXPO_PUBLIC_LAYOUT_DEBUG === '1';
 
 export function useLayoutProbe<T = View>(name: string, details: Record<string, unknown> = {}) {
   const ref = useRef<T>(null);
