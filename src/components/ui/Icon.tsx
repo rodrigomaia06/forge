@@ -30,6 +30,8 @@ import {
   FireFlame,
   InfoCircle,
   Xmark,
+  Search,
+  Filter,
 } from 'iconoir-react-native';
 
 const iconMap: Record<IconName, React.ComponentType<SvgProps>> = {
@@ -67,6 +69,8 @@ const iconMap: Record<IconName, React.ComponentType<SvgProps>> = {
   'warm-up': FireFlame,
   info: InfoCircle,
   close: Xmark,
+  search: Search,
+  filter: Filter,
   'arrow-forward': NavArrowRight,
 };
 

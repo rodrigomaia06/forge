@@ -33,5 +33,7 @@ export type IconName =
   | 'warm-up'
   | 'info'
   | 'close'
+  | 'search'
+  | 'filter'
   | 'arrow-forward';
 export type IconWeight = 'thin' | 'regular' | 'bold' | 'fill';
