@@ -1,18 +1,16 @@
 import React, { useEffect, useRef } from 'react';
 import {
   Animated,
-  Easing,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { Icon } from '../../components/ui';
 import { dashboardTheme } from '../../theme/dashboardTheme';
 import { typography } from '../../theme/tokens';
 import { errorHaptic } from './activeWorkoutFeedback';
+import { CompletionCheck } from './CompletionCheck';
 import type { SetRowProps } from './activeWorkoutTypes';
 
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
@@ -28,7 +26,6 @@ export function SetRow({
   onInputTouchMove,
   onInputTouchEnd,
 }: SetRowProps) {
-  const completedProgress = useRef(new Animated.Value(set.completed ? 1 : 0)).current;
   const weightInvalidProgress = useRef(new Animated.Value(0)).current;
   const repsInvalidProgress = useRef(new Animated.Value(0)).current;
   const invalidTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -39,19 +36,9 @@ export function SetRow({
       if (invalidTimerRef.current) clearTimeout(invalidTimerRef.current);
       weightInvalidProgress.stopAnimation();
       repsInvalidProgress.stopAnimation();
-      completedProgress.stopAnimation();
     },
-    [completedProgress, repsInvalidProgress, weightInvalidProgress],
+    [repsInvalidProgress, weightInvalidProgress],
   );
-
-  useEffect(() => {
-    Animated.timing(completedProgress, {
-      toValue: set.completed ? 1 : 0,
-      duration: 180,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: Platform.OS !== 'web',
-    }).start();
-  }, [completedProgress, set.completed]);
 
   const animateInvalidField = (field: 'weight' | 'reps', value: number, duration = 150): void => {
     Animated.timing(field === 'weight' ? weightInvalidProgress : repsInvalidProgress, {
@@ -149,38 +136,7 @@ export function SetRow({
           onPress={handleToggle}
           style={styles.checkPressable}
         >
-          <Animated.View
-            style={[
-              styles.checkVisual,
-              set.completed && styles.checkActive,
-              {
-                transform: [
-                  {
-                    scale: completedProgress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.82, 1],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <Animated.View
-              style={{
-                opacity: completedProgress,
-                transform: [
-                  {
-                    scale: completedProgress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.5, 1],
-                    }),
-                  },
-                ],
-              }}
-            >
-              <Icon name="check" size={15} color={dashboardTheme.surface} />
-            </Animated.View>
-          </Animated.View>
+          <CompletionCheck selected={set.completed} />
         </Pressable>
       </View>
     </View>
@@ -236,14 +192,4 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   checkPressable: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  checkVisual: {
-    width: 26,
-    height: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: dashboardTheme.slate,
-    borderRadius: 13,
-  },
-  checkActive: { backgroundColor: dashboardTheme.iconSport, borderColor: dashboardTheme.iconSport },
 });

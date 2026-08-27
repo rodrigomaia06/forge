@@ -10,6 +10,8 @@ export interface ExerciseSectionProps {
   updateSet: (exerciseId: string, setId: string, changes: WorkoutSetChanges) => void;
   toggleSet: (exerciseId: string, setId: string) => void;
   onSetCompleted: (duration?: number) => void;
+  deleteRevealed: boolean;
+  onDeleteRevealChange: (exerciseId: string, revealed: boolean) => void;
 }
 
 export interface SwipeableSetRowProps {
@@ -18,9 +20,12 @@ export interface SwipeableSetRowProps {
   onChange: (changes: WorkoutSetChanges) => void;
   onToggle: () => void;
   onDelete: () => void;
+  deleteRevealed: boolean;
+  onDeleteRevealChange: (revealed: boolean) => void;
 }
 
-export interface SetRowProps extends SwipeableSetRowProps {
+export interface SetRowProps
+  extends Omit<SwipeableSetRowProps, 'deleteRevealed' | 'onDeleteRevealChange'> {
   onOpenDetails: () => void;
   onInputTouchStart: (event: GestureResponderEvent) => void;
   onInputTouchMove: (event: GestureResponderEvent) => void;

@@ -131,7 +131,7 @@ export const styles = StyleSheet.create({
     textAlign: 'left',
   },
   keyboardArea: { flex: 1 },
-  content: { padding: 16, gap: 12, paddingBottom: 18 },
+  content: { padding: 16, gap: 12, paddingBottom: 116 },
   exerciseCard: {
     backgroundColor: dashboardTheme.surface,
     borderRadius: 16,
