@@ -52,7 +52,8 @@ cohesive concern rather than committing the entire change as one mixed unit.
 
 - Keep each commit internally understandable and independently reviewable where practical.
 - Separate concerns such as dependencies/configuration, feature behavior, UI refactors, and tests when they form clear boundaries.
-- Use descriptive commit subjects and add a body when it helps explain scope or rationale.
+- Use a Conventional Commit subject in the form `type: concise description` (for example, `fix: restore history cards and dock transitions` or `perf: reduce live workout render and input pressure`).
+- Write commit subjects in English, keep them concise, and add a short body for changes whose scope or rationale is not clear from the subject.
 - Do not create artificial commits for tiny or inseparable changes merely to increase the commit count.
 - Before splitting history, preserve the complete implementation and verify that the resulting commits together contain the same behavior.
 
