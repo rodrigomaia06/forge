@@ -47,7 +47,7 @@ export function NavigationItem({
   useEffect(() => {
     RNAnimated.timing(activeProgress, {
       toValue: active ? 1 : 0,
-      duration: 180,
+      duration: 140,
       easing: RNEasing.out(RNEasing.cubic),
       useNativeDriver: true,
     }).start();

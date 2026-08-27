@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { SectionList, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppScreen, Button, Icon } from '../components/ui';
 import { NavigationFooter } from '../components/NavigationFooter';
 import { useWorkouts } from '../state/WorkoutContext';
@@ -15,26 +15,11 @@ interface HistoryGroup {
   workouts: Workout[];
 }
 
-interface HistorySection {
-  key: string;
-  title: string;
-  data: Workout[];
-}
-
 export function HistoryScreen({
   navigation,
 }: NativeStackScreenProps<RootStackParamList, 'History'>) {
   const { completedWorkouts, startWorkout } = useWorkouts();
   const groups = useMemo(() => groupByWeek(completedWorkouts), [completedWorkouts]);
-  const sections = useMemo<HistorySection[]>(
-    () =>
-      groups.map((group) => ({
-        key: group.key,
-        title: formatGroupRange(group.start, group.end),
-        data: group.workouts,
-      })),
-    [groups],
-  );
   const handleStart = () => {
     startWorkout();
     navigation.navigate('ActiveWorkout');
@@ -55,28 +40,23 @@ export function HistoryScreen({
           </View>
         </View>
 
-        <SectionList
-          sections={sections}
-          keyExtractor={(workout) => workout.id}
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-          renderSectionHeader={({ section }) => (
-            <View style={styles.group} testID={`history-group-${section.key}`}>
-              <Text style={styles.groupTitle}>{section.title}</Text>
-            </View>
-          )}
-          renderItem={({ item, index, section }) => (
-            <View
-              style={[
-                styles.sectionRowWrap,
-                index === 0 && styles.sectionRowFirst,
-                index === section.data.length - 1 && styles.sectionRowLast,
-              ]}
-            >
-              <HistoryRow workout={item} last={index === section.data.length - 1} />
-            </View>
-          )}
-          ListEmptyComponent={
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          {groups.length ? (
+            groups.map((group) => (
+              <View key={group.key} style={styles.group} testID={`history-group-${group.key}`}>
+                <Text style={styles.groupTitle}>{formatGroupRange(group.start, group.end)}</Text>
+                <View style={styles.groupCard}>
+                  {group.workouts.map((workout, index) => (
+                    <HistoryRow
+                      key={workout.id}
+                      workout={workout}
+                      last={index === group.workouts.length - 1}
+                    />
+                  ))}
+                </View>
+              </View>
+            ))
+          ) : (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>No completed workouts</Text>
               <Text style={styles.emptySubtitle}>Finish a workout and it will appear here.</Text>
@@ -87,8 +67,8 @@ export function HistoryScreen({
                 style={styles.emptyAction}
               />
             </View>
-          }
-        />
+          )}
+        </ScrollView>
         <NavigationFooter />
       </View>
     </AppScreen>
@@ -247,31 +227,24 @@ const styles = StyleSheet.create({
   editIconLine: { width: 9, height: 1.5, backgroundColor: dashboardTheme.slate },
   editText: { color: dashboardTheme.ink, fontFamily: typography.medium, fontSize: 16 },
   content: { paddingHorizontal: 16, paddingTop: 2, paddingBottom: 20, gap: 20 },
-  group: { marginTop: 20, marginBottom: 9 },
+  group: { gap: 9 },
   groupTitle: {
     color: dashboardTheme.slate,
     fontFamily: typography.semibold,
     fontSize: 18,
     lineHeight: 24,
   },
-  sectionRowWrap: {
-    marginHorizontal: 0,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
+  groupCard: {
+    overflow: 'hidden',
+    borderWidth: 1,
     borderColor: '#DCE0E6',
+    borderRadius: 17,
     backgroundColor: dashboardTheme.surface,
-  },
-  sectionRowFirst: {
-    borderTopWidth: 1,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    overflow: 'hidden',
-  },
-  sectionRowLast: {
-    borderBottomWidth: 1,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-    overflow: 'hidden',
+    shadowColor: '#20252D',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.09,
+    shadowRadius: 8,
+    elevation: 2,
   },
   row: {
     minHeight: 68,
