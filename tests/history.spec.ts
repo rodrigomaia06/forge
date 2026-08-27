@@ -11,8 +11,10 @@ const completedWorkouts = [
 test.describe('History screen', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((workouts) => {
+      if (sessionStorage.getItem('@forge/history-seeded')) return;
       localStorage.setItem('@forge/active-workout', 'null');
       localStorage.setItem('@forge/completed-workouts', JSON.stringify(workouts));
+      sessionStorage.setItem('@forge/history-seeded', 'true');
     }, completedWorkouts);
     await page.goto('/');
     await page.getByRole('tab', { name: 'History' }).click();
@@ -74,6 +76,36 @@ test.describe('History screen', () => {
     await expect(page.getByText('Muay Thai', { exact: true })).toHaveCount(0);
   });
 
+  test('edits a completed workout and persists the saved session', async ({ page }) => {
+    await page.getByRole('button', { name: 'Open Muay Thai' }).click();
+    await page.getByRole('button', { name: 'Workout options' }).click();
+    await page.getByRole('button', { name: 'Edit workout' }).click();
+    await expect(page.getByLabel('Workout name')).toBeVisible();
+    await page.getByLabel('Workout name').fill('Edited Muay Thai');
+    await page.getByLabel('End time').fill('19:30');
+    await page.getByLabel('Location').fill('Forge Gym');
+    await page.getByLabel('Notes').fill('Updated session');
+    await page.getByRole('button', { name: 'Save workout' }).click();
+    await expect(page.getByText('Edited Muay Thai', { exact: true })).toBeVisible();
+    await page.getByRole('tab', { name: 'History' }).click();
+    await expect(page.getByRole('button', { name: 'Open Edited Muay Thai' })).toBeVisible();
+    await page.reload();
+    await page.getByRole('tab', { name: 'History' }).click();
+    await expect(page.getByRole('button', { name: 'Open Edited Muay Thai' })).toBeVisible();
+  });
+
+  test('does not open a workout after swiping its History card', async ({ page }) => {
+    const card = page.getByTestId('history-swipe-muay-thai');
+    const box = await card.boundingBox();
+    if (!box) throw new Error('Expected History card to be measurable');
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x - 90, box.y + box.height / 2, { steps: 8 });
+    await page.mouse.up();
+    await expect(page.getByTestId('history-header')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Back to History' })).toHaveCount(0);
+  });
+
   test('keeps workout details read-only and expands exercises individually', async ({ page }) => {
     await page.getByRole('button', { name: 'Open Muay Thai' }).click();
     await expect(page.getByText('Exercises', { exact: true })).toBeVisible();
@@ -98,7 +130,8 @@ test.describe('History screen', () => {
     ).not.toHaveCSS('background-color', 'rgb(98, 201, 138)');
     await expect(page.getByLabel('Workout options')).toBeVisible();
     await page.getByRole('button', { name: 'Open details for set 1' }).click();
-    await expect(page.getByLabel('Comment for set 1')).toHaveValue('History note');
+    await expect(page.getByText('History note', { exact: true })).toBeVisible();
+    await expect(page.getByLabel('Comment for set 1')).toHaveCount(0);
   });
 
   test('keeps the empty state available without completed sessions', async ({ page }) => {

@@ -7,6 +7,7 @@ import {
   Button,
   errorHaptic,
   HeaderAction,
+  HeaderEdge,
   Icon,
   selectionHaptic,
 } from '../components/ui';
@@ -61,6 +62,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
               navigation.navigate('History');
             }}
           />
+          <HeaderEdge />
           <View style={styles.headerCopy}>
             <Text style={styles.headerTitle} numberOfLines={1}>
               {workout.name}
@@ -89,6 +91,11 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
           visible={optionsOpen}
           workoutName={workout.name}
           onClose={() => setOptionsOpen(false)}
+          onEdit={() => {
+            selectionHaptic();
+            setOptionsOpen(false);
+            navigation.navigate('HistoryWorkoutEditor', { workoutId: workout.id });
+          }}
           onDelete={() => {
             errorHaptic();
             deleteCompletedWorkout(workout.id);
@@ -288,6 +295,8 @@ function workoutTypePresentation(type: string) {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   header: {
+    position: 'relative',
+    zIndex: 2,
     minHeight: 70,
     flexDirection: 'row',
     alignItems: 'center',

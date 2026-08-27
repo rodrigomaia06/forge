@@ -6,6 +6,7 @@ import { DashboardScreen } from '../screens/DashboardScreen';
 import { ActiveWorkoutScreen } from '../screens/ActiveWorkoutScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { WorkoutDetailsScreen } from '../screens/WorkoutDetailsScreen';
+import { HistoryWorkoutEditorScreen } from '../screens/HistoryWorkoutEditorScreen';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
 import { useWorkouts } from '../state/WorkoutContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -59,6 +60,7 @@ export function AppNavigator() {
         <Stack.Screen name="ActiveWorkout" component={ActiveWorkoutScreen} />
         <Stack.Screen name="History" component={HistoryScreen} />
         <Stack.Screen name="WorkoutDetails" component={WorkoutDetailsScreen} />
+        <Stack.Screen name="HistoryWorkoutEditor" component={HistoryWorkoutEditorScreen} />
         <Stack.Screen name="Plans" component={PlansScreen} />
         <Stack.Screen name="More" component={MoreScreen} />
       </Stack.Navigator>

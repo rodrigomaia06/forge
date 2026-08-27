@@ -2,6 +2,8 @@ export { AppScreen } from './AppScreen';
 export { Button } from './Button';
 export { Divider } from './Divider';
 export { HeaderAction } from './HeaderAction';
+export { HeaderEdge } from './HeaderEdge';
+export { pressedFeedback, pressedFeedbackSubtle } from './pressFeedback';
 export { Icon } from './Icon';
 export { NavigationItem } from './NavigationItem';
 export { ScreenTitle } from './ScreenTitle';

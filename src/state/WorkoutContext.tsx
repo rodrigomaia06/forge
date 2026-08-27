@@ -144,15 +144,23 @@ export function WorkoutProvider({ children }: ChildrenProps) {
 
   const updateCompletedWorkout = useCallback(
     (workoutId: string, update: (workout: Workout) => Workout): void => {
-      setCompletedWorkouts((current) =>
-        current.map((workout) => (workout.id === workoutId ? update(workout) : workout)),
-      );
+      setCompletedWorkouts((current) => {
+        const next = current.map((workout) =>
+          workout.id === workoutId ? update(workout) : workout,
+        );
+        void saveCompletedWorkouts(next);
+        return next;
+      });
     },
     [],
   );
 
   const deleteCompletedWorkout = useCallback((workoutId: string): void => {
-    setCompletedWorkouts((current) => current.filter((workout) => workout.id !== workoutId));
+    setCompletedWorkouts((current) => {
+      const next = current.filter((workout) => workout.id !== workoutId);
+      void saveCompletedWorkouts(next);
+      return next;
+    });
   }, []);
 
   const value = useMemo(

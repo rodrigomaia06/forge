@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -10,6 +10,7 @@ import Animated, {
 import {
   AppScreen,
   Button,
+  HeaderEdge,
   Icon,
   lightHaptic,
   ScreenTitle,
@@ -51,6 +52,7 @@ export function HistoryScreen({
             theme={dashboardTheme}
             style={styles.filterButton}
           />
+          <HeaderEdge />
         </View>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {groups.length ? (
@@ -121,6 +123,8 @@ function TimelineRow({
   const deleteActionWidth = 64;
   const cardTranslateX = useSharedValue(deleteRevealed ? -deleteActionWidth : 0);
   const cardOpen = useSharedValue(deleteRevealed);
+  const dragDetected = useSharedValue(false);
+  const suppressNextPress = useRef(false);
   const date = new Date(workout.completedAt ?? workout.startedAt);
   const type = workoutTypePresentation(workout.type);
 
@@ -129,7 +133,8 @@ function TimelineRow({
     cardTranslateX.value = withSpring(deleteRevealed ? -deleteActionWidth : 0, swipeSpring);
   }, [cardOpen, cardTranslateX, deleteRevealed]);
 
-  const settleCard = (shouldOpen: boolean): void => {
+  const settleCard = (shouldOpen: boolean, dragged: boolean): void => {
+    if (dragged) suppressNextPress.current = true;
     if (shouldOpen !== deleteRevealed) {
       mediumHaptic();
       onDeleteRevealChange(shouldOpen);
@@ -140,14 +145,21 @@ function TimelineRow({
   const cardGesture = Gesture.Pan()
     .activeOffsetX([-8, 8])
     .failOffsetY([-12, 12])
+    .onBegin(() => {
+      dragDetected.value = false;
+    })
     .onUpdate((gesture) => {
+      if (Math.abs(gesture.translationX) > 6) dragDetected.value = true;
       if (!cardOpen.value && gesture.translationX >= 0) return;
       const base = cardOpen.value ? -deleteActionWidth : 0;
       cardTranslateX.value = Math.max(-deleteActionWidth, Math.min(0, base + gesture.translationX));
     })
     .onEnd((gesture) => {
       const offset = (cardOpen.value ? -deleteActionWidth : 0) + gesture.translationX;
-      runOnJS(settleCard)(Math.max(-deleteActionWidth, Math.min(0, offset)) < -42);
+      runOnJS(settleCard)(
+        Math.max(-deleteActionWidth, Math.min(0, offset)) < -42,
+        dragDetected.value,
+      );
     });
   const swipeContentStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: cardTranslateX.value }],
@@ -186,7 +198,13 @@ function TimelineRow({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Open ${workout.name}`}
-              onPress={onPress}
+              onPress={() => {
+                if (suppressNextPress.current) {
+                  suppressNextPress.current = false;
+                  return;
+                }
+                onPress();
+              }}
               style={({ pressed }) => [styles.card, pressed && styles.pressed]}
             >
               <View style={[styles.typeIcon, { backgroundColor: type.background }]}>
@@ -278,6 +296,8 @@ function workoutTypePresentation(type: string) {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   header: {
+    position: 'relative',
+    zIndex: 2,
     height: 70,
     flexDirection: 'row',
     alignItems: 'center',

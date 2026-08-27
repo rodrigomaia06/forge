@@ -5,7 +5,7 @@ import Animated, {
   useAnimatedScrollHandler,
   useSharedValue,
 } from 'react-native-reanimated';
-import { AppScreen, Button, HeaderAction, Icon } from '../components/ui';
+import { AppScreen, Button, HeaderAction, Icon, pressedFeedback } from '../components/ui';
 import { NavigationFooter } from '../components/NavigationFooter';
 import { useWorkouts } from '../state/WorkoutContext';
 import { dashboardTheme } from '../theme/dashboardTheme';
@@ -21,25 +21,7 @@ import { ExerciseSection as ExtractedExerciseSection } from './activeWorkout/Exe
 import { AddExerciseSheet as ExtractedAddExerciseSheet } from './activeWorkout/WorkoutSheets';
 import { RestTimerIndicator, RestTimerSheet } from './activeWorkout/RestTimer';
 import { styles } from './activeWorkout/activeWorkoutStyles';
-
-function workoutTypeColor(type: string): string {
-  if (type === 'Martial arts') return '#F0444D';
-  if (type === 'Court sport') return dashboardTheme.iconSport || dashboardTheme.ink;
-  if (type === 'Mobility') return '#AA7CE8';
-  if (type === 'Cardio') return dashboardTheme.iconActivity || dashboardTheme.ink;
-  return dashboardTheme.iconStrength || dashboardTheme.ink;
-}
-
-function contrastingIconColor(hexColor: string): string {
-  const hex = hexColor.replace('#', '');
-  if (hex.length !== 6) return dashboardTheme.surface;
-  const [red, green, blue] = [0, 2, 4].map((offset) =>
-    Number.parseInt(hex.slice(offset, offset + 2), 16),
-  );
-  return 0.299 * red + 0.587 * green + 0.114 * blue > 140
-    ? dashboardTheme.ink
-    : dashboardTheme.surface;
-}
+import { contrastingIconColor, workoutTypeColor } from './activeWorkout/workoutTypeColor';
 
 type ActiveWorkoutScreenProps = NativeStackScreenProps<RootStackParamList, 'ActiveWorkout'>;
 export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
@@ -285,7 +267,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
             }}
             delayLongPress={450}
             accessibilityHint="Tap to open the rest timer or hold to restart it"
-            style={styles.timerReset}
+            style={({ pressed }) => [styles.timerReset, pressed && pressedFeedback]}
           >
             <RestTimerIndicator
               remaining={restRemaining}
@@ -319,7 +301,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
                 animateLayout();
                 setSheetOpen(true);
               }}
-              style={styles.addExercise}
+              style={({ pressed }) => [styles.addExercise, pressed && pressedFeedback]}
             >
               <Icon name="add" size={17} color={dashboardTheme.ink} />
               <Text style={styles.addExerciseText}>Add exercise</Text>

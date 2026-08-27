@@ -675,11 +675,13 @@ export function WorkoutOptionsSheet({
   workoutName,
   onClose,
   onDelete,
+  onEdit,
 }: {
   visible: boolean;
   workoutName: string;
   onClose: () => void;
   onDelete: () => void;
+  onEdit?: () => void;
 }) {
   const translateY = useSharedValue(320);
   const backdropOpacity = useSharedValue(0);
@@ -765,6 +767,7 @@ export function WorkoutOptionsSheet({
                 <Icon name="close" size={24} color={dashboardTheme.slate} />
               </Pressable>
             </View>
+            {onEdit && <OptionRow icon="note" label="Edit workout" onPress={onEdit} />}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Delete ${workoutName}`}
@@ -1148,6 +1151,8 @@ const styles = StyleSheet.create({
   },
   optionRow: {
     minHeight: 46,
+    marginHorizontal: -22,
+    paddingHorizontal: 22,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 18,
@@ -1163,6 +1168,8 @@ const styles = StyleSheet.create({
   },
   destructiveAction: {
     minHeight: 65,
+    marginHorizontal: -22,
+    paddingHorizontal: 22,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 18,

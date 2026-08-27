@@ -54,7 +54,10 @@ export function BottomNavigation({
     onNavigate?.();
     navigation.navigate(screen);
   };
-  const historyIsActive = route.name === 'History' || route.name === 'WorkoutDetails';
+  const historyIsActive =
+    route.name === 'History' ||
+    route.name === 'WorkoutDetails' ||
+    route.name === 'HistoryWorkoutEditor';
   return (
     <View style={[styles.navigation, compact && styles.navigationCompact]}>
       {items.map(([icon, label, screen, emphasis]) => (

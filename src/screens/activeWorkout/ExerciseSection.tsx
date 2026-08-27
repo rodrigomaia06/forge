@@ -7,7 +7,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { Icon } from '../../components/ui';
+import { Icon, pressedFeedback, pressedFeedbackSubtle } from '../../components/ui';
 import { dashboardTheme } from '../../theme/dashboardTheme';
 import { typography } from '../../theme/tokens';
 import {
@@ -35,6 +35,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   onSetCompleted,
   deleteRevealed,
   onDeleteRevealChange,
+  size = 'standard',
 }: ExerciseSectionProps) {
   const deleteActionWidth = 64;
   const [optionsOpen, setOptionsOpen] = useState(false);
@@ -109,9 +110,11 @@ export const ExerciseSection = React.memo(function ExerciseSection({
           </Pressable>
         </View>
         <Animated.View style={[styles.exerciseSwipeContent, swipeContentStyle]}>
-          <View style={styles.exerciseCard}>
-            <View style={styles.exerciseHeader}>
-              <Text style={styles.exerciseName}>{exercise.name}</Text>
+          <View style={[styles.exerciseCard, size === 'large' && styles.exerciseCardLarge]}>
+            <View style={[styles.exerciseHeader, size === 'large' && styles.exerciseHeaderLarge]}>
+              <Text style={[styles.exerciseName, size === 'large' && styles.exerciseNameLarge]}>
+                {exercise.name}
+              </Text>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`More options for ${exercise.name}`}
@@ -119,12 +122,12 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                   selectionHaptic();
                   setOptionsOpen(true);
                 }}
-                style={styles.moreButton}
+                style={({ pressed }) => [styles.moreButton, pressed && pressedFeedback]}
               >
                 <Icon name="ellipsis-horizontal" size={20} color={dashboardTheme.ink} />
               </Pressable>
             </View>
-            <View style={styles.setHeader}>
+            <View style={[styles.setHeader, size === 'large' && styles.setHeaderLarge]}>
               <Text style={[styles.setHeaderText, styles.setColumn]}>Set</Text>
               <Text style={[styles.setHeaderText, styles.previousColumn]}>Previous</Text>
               <Text style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>KG</Text>
@@ -160,7 +163,11 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 lightHaptic();
                 addSet(exercise.id);
               }}
-              style={styles.addSet}
+              style={({ pressed }) => [
+                styles.addSet,
+                size === 'large' && styles.addSetLarge,
+                pressed && pressedFeedbackSubtle,
+              ]}
             >
               <Icon name="add" size={16} color={dashboardTheme.accent} />
               <Text style={styles.addSetText}>Add set</Text>
@@ -332,6 +339,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
   },
+  exerciseCardLarge: { paddingTop: 8, paddingHorizontal: 16 },
   readOnlyExerciseCard: {
     overflow: 'hidden',
     borderWidth: 1,
@@ -383,6 +391,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  exerciseHeaderLarge: { minHeight: 42 },
   exerciseName: {
     flex: 1,
     color: dashboardTheme.ink,
@@ -391,6 +400,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: '600',
   },
+  exerciseNameLarge: { fontSize: 17, lineHeight: 23 },
   moreButton: {
     width: 40,
     height: 40,
@@ -406,6 +416,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: dashboardTheme.divider,
   },
+  setHeaderLarge: { minHeight: 34 },
   setHeaderText: {
     color: dashboardTheme.slate,
     fontFamily: typography.medium,
@@ -427,6 +438,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: dashboardTheme.divider,
   },
+  addSetLarge: { minHeight: 48 },
   addSetText: { color: dashboardTheme.accent, fontFamily: typography.medium, fontSize: 13 },
   readOnlySetRow: {
     minHeight: 48,

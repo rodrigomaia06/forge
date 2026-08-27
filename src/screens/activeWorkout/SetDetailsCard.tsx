@@ -19,11 +19,11 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { Icon } from '../../components/ui';
+import { Icon, pressedFeedback, pressedFeedbackSubtle } from '../../components/ui';
 import { dashboardTheme } from '../../theme/dashboardTheme';
 import { typography } from '../../theme/tokens';
 import { styles as workoutSheetStyles } from './activeWorkoutStyles';
-import { selectionHaptic } from './activeWorkoutFeedback';
+import { lightHaptic, selectionHaptic } from './activeWorkoutFeedback';
 import type { WorkoutSet, WorkoutSetChanges } from '../../types';
 
 const TYPES = [
@@ -55,6 +55,7 @@ export function SetDetailsCard({
   const [infoOpen, setInfoOpen] = React.useState<'type' | 'target' | null>(null);
 
   const toggleInfo = (key: 'type' | 'target'): void => {
+    selectionHaptic();
     setInfoOpen((current) => (current === key ? null : key));
   };
 
@@ -124,7 +125,10 @@ export function SetDetailsCard({
           testID="set-details-backdrop"
           accessibilityRole="button"
           accessibilityLabel="Close set details"
-          onPress={closeSheet}
+          onPress={() => {
+            lightHaptic();
+            closeSheet();
+          }}
           style={StyleSheet.absoluteFill}
         />
         <KeyboardAvoidingView
@@ -148,16 +152,9 @@ export function SetDetailsCard({
               }}
               style={[workoutSheetStyles.restTimerHeader, styles.topBar]}
             >
-              {editable && (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Delete set ${index + 1}`}
-                  onPress={onDelete}
-                  style={styles.deleteButton}
-                >
-                  <Text style={styles.deleteText}>Delete set</Text>
-                </Pressable>
-              )}
+              <View accessibilityLabel={`Set ${index + 1}`} style={styles.setNumberBadge}>
+                <Text style={styles.setNumberBadgeText}>{index + 1}</Text>
+              </View>
               {set.weight || set.reps ? (
                 <Text style={styles.title}>
                   {`${set.weight || ''}${set.weight ? ' kg' : ''}${set.weight && set.reps ? ' × ' : ''}${set.reps || ''}`}
@@ -166,7 +163,10 @@ export function SetDetailsCard({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Done"
-                onPress={closeSheet}
+                onPress={() => {
+                  lightHaptic();
+                  closeSheet();
+                }}
                 style={({ pressed }) => [
                   workoutSheetStyles.restCloseButton,
                   pressed && workoutSheetStyles.restClosePressed,
@@ -176,85 +176,111 @@ export function SetDetailsCard({
               </Pressable>
             </View>
             <View style={styles.sheetContent}>
-              <View style={[styles.section, styles.typeSection]}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.label}>TYPE</Text>
-                  <InfoButton label="Type help" onPress={() => toggleInfo('type')} />
+              {editable ? (
+                <View style={[styles.section, styles.typeSection]}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.label}>TYPE</Text>
+                    <InfoButton label="Type help" onPress={() => toggleInfo('type')} />
+                  </View>
+                  <InfoPopover
+                    visible={infoOpen === 'type'}
+                    text="Choose a type to describe this set."
+                  />
+                  {TYPES.map((tag) => {
+                    const selected = set.tag === tag.label;
+                    return (
+                      <TypeOption
+                        key={tag.label}
+                        label={tag.label}
+                        color={tag.color}
+                        selected={selected}
+                        onPress={() => {
+                          setInfoOpen(null);
+                          selectionHaptic();
+                          onChange({ tag: selected ? '' : tag.label });
+                        }}
+                        disabled={!editable}
+                      />
+                    );
+                  })}
                 </View>
-                <InfoPopover
-                  visible={infoOpen === 'type'}
-                  text="Choose a type to describe this set."
-                />
-                {TYPES.map((tag) => {
-                  const selected = set.tag === tag.label;
-                  return (
-                    <TypeOption
-                      key={tag.label}
-                      label={tag.label}
-                      color={tag.color}
-                      selected={selected}
-                      onPress={() => {
-                        setInfoOpen(null);
-                        selectionHaptic();
-                        onChange({ tag: selected ? '' : tag.label });
-                      }}
-                      disabled={!editable}
+              ) : (
+                <RecordedDetail label="TYPE" value={set.tag || 'No type recorded'} />
+              )}
+              {editable ? (
+                <View style={styles.section}>
+                  <Text style={[styles.label, styles.commentLabel]}>COMMENT</Text>
+                  <View style={styles.commentField}>
+                    <TextInput
+                      accessibilityLabel={`Comment for set ${index + 1}`}
+                      value={set.comment || ''}
+                      onChangeText={(comment) => onChange({ comment })}
+                      editable={editable}
+                      onFocus={() => setInfoOpen(null)}
+                      onTouchStart={(event) => event.stopPropagation()}
+                      maxLength={120}
+                      placeholder="Add a comment..."
+                      placeholderTextColor={dashboardTheme.muted}
+                      style={styles.commentInput}
                     />
-                  );
-                })}
-              </View>
-              <View style={styles.section}>
-                <Text style={[styles.label, styles.commentLabel]}>COMMENT</Text>
-                <View style={styles.commentField}>
-                  <TextInput
-                    accessibilityLabel={`Comment for set ${index + 1}`}
-                    value={set.comment || ''}
-                    onChangeText={(comment) => onChange({ comment })}
-                    editable={editable}
-                    onFocus={() => setInfoOpen(null)}
-                    onTouchStart={(event) => event.stopPropagation()}
-                    maxLength={120}
-                    placeholder="Add a comment..."
-                    placeholderTextColor={dashboardTheme.muted}
-                    style={styles.commentInput}
-                  />
-                  <Text style={styles.commentCount}>{`${(set.comment || '').length}/120`}</Text>
+                    <Text style={styles.commentCount}>{`${(set.comment || '').length}/120`}</Text>
+                  </View>
                 </View>
-              </View>
-              <View style={[styles.section, styles.targetSection]}>
-                <View style={[styles.sectionHeader, styles.targetHeader]}>
-                  <Text style={styles.label}>NEXT-TIME TARGET</Text>
-                  <InfoButton label="Next-time target help" onPress={() => toggleInfo('target')} />
-                </View>
-                <InfoPopover
-                  visible={infoOpen === 'target'}
-                  text="This target pre-fills the set next time. It does not change this set."
-                />
-                <View style={styles.targetCards}>
-                  <TargetRow
-                    label="Weight"
-                    value={set.targetWeight || ''}
-                    placeholder="—"
-                    unit="kg"
-                    keyboardType="decimal-pad"
-                    accessibilityLabel={`Next-time weight target for set ${index + 1}`}
-                    onChangeText={(targetWeight) => onChange({ targetWeight })}
-                    onFocus={() => setInfoOpen(null)}
-                    editable={editable}
+              ) : (
+                <RecordedDetail label="COMMENT" value={set.comment || 'No comment recorded'} />
+              )}
+              {editable ? (
+                <View style={[styles.section, styles.targetSection]}>
+                  <View style={[styles.sectionHeader, styles.targetHeader]}>
+                    <Text style={styles.label}>NEXT-TIME TARGET</Text>
+                    <InfoButton
+                      label="Next-time target help"
+                      onPress={() => toggleInfo('target')}
+                    />
+                  </View>
+                  <InfoPopover
+                    visible={infoOpen === 'target'}
+                    text="This target pre-fills the set next time. It does not change this set."
                   />
-                  <TargetRow
-                    label="Reps"
-                    value={set.targetReps || ''}
-                    placeholder="—"
-                    unit="reps"
-                    keyboardType="number-pad"
-                    accessibilityLabel={`Next-time reps target for set ${index + 1}`}
-                    onChangeText={(targetReps) => onChange({ targetReps })}
-                    onFocus={() => setInfoOpen(null)}
-                    editable={editable}
-                  />
+                  <View style={styles.targetCards}>
+                    <TargetRow
+                      label="Weight"
+                      value={set.targetWeight || ''}
+                      placeholder="—"
+                      unit="kg"
+                      keyboardType="decimal-pad"
+                      accessibilityLabel={`Next-time weight target for set ${index + 1}`}
+                      onChangeText={(targetWeight) => onChange({ targetWeight })}
+                      onFocus={() => setInfoOpen(null)}
+                      editable={editable}
+                    />
+                    <TargetRow
+                      label="Reps"
+                      value={set.targetReps || ''}
+                      placeholder="—"
+                      unit="reps"
+                      keyboardType="number-pad"
+                      accessibilityLabel={`Next-time reps target for set ${index + 1}`}
+                      onChangeText={(targetReps) => onChange({ targetReps })}
+                      onFocus={() => setInfoOpen(null)}
+                      editable={editable}
+                    />
+                  </View>
                 </View>
-              </View>
+              ) : (
+                <RecordedTarget set={set} />
+              )}
+              {editable && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Delete set ${index + 1}`}
+                  onPress={onDelete}
+                  style={({ pressed }) => [styles.deleteButton, pressed && styles.deleteButtonPressed]}
+                >
+                  <Icon name="trash" size={18} color="#F0444D" />
+                  <Text style={styles.deleteText}>Delete set</Text>
+                </Pressable>
+              )}
             </View>
           </Animated.View>
         </KeyboardAvoidingView>
@@ -269,11 +295,30 @@ function InfoButton({ label, onPress }: { label: string; onPress: () => void }) 
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      style={styles.helpButton}
+      style={({ pressed }) => [styles.helpButton, pressed && pressedFeedback]}
     >
       <Text style={styles.helpText}>?</Text>
     </Pressable>
   );
+}
+
+function RecordedDetail({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.recordedSection}>
+      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.recordedValue}>{value}</Text>
+    </View>
+  );
+}
+
+function RecordedTarget({ set }: { set: WorkoutSet }) {
+  const target = [
+    set.targetWeight && `${set.targetWeight} kg`,
+    set.targetReps && `${set.targetReps} reps`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  return <RecordedDetail label="NEXT-TIME TARGET" value={target || 'No target recorded'} />;
 }
 
 function TypeOption({
@@ -308,7 +353,7 @@ function TypeOption({
       accessibilityLabel={`${selected ? 'Remove' : 'Select'} ${label} type`}
       onPress={onPress}
       disabled={disabled}
-      style={styles.tagRow}
+      style={({ pressed }) => [styles.tagRow, pressed && pressedFeedbackSubtle]}
     >
       <Animated.View
         pointerEvents="none"
@@ -364,7 +409,7 @@ function TargetRow({
       accessibilityRole="button"
       onPress={focusInput}
       disabled={!editable}
-      style={styles.targetCard}
+      style={({ pressed }) => [styles.targetCard, pressed && pressedFeedbackSubtle]}
     >
       <View style={styles.targetCardHeader}>
         <Text style={styles.targetLabel}>{label}</Text>
@@ -410,15 +455,19 @@ const styles = StyleSheet.create({
     position: 'relative',
     transform: [{ translateY: -4 }],
   },
-  deleteButton: {
+  setNumberBadge: {
+    width: 36,
     height: 36,
-    paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 10,
-    backgroundColor: '#FFF2F2',
+    borderRadius: 18,
+    backgroundColor: dashboardTheme.surfaceMuted,
   },
-  deleteText: { color: '#F0444D', fontFamily: typography.semibold, fontSize: 13 },
+  setNumberBadgeText: {
+    color: dashboardTheme.ink,
+    fontFamily: typography.semibold,
+    fontSize: 15,
+  },
   title: {
     position: 'absolute',
     left: 0,
@@ -436,6 +485,31 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: dashboardTheme.divider,
   },
+  recordedSection: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: dashboardTheme.divider,
+  },
+  recordedValue: {
+    color: dashboardTheme.ink,
+    fontFamily: typography.medium,
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  deleteButton: {
+    minHeight: 48,
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FFF2F2',
+  },
+  deleteButtonPressed: { backgroundColor: '#FBE1E1' },
+  deleteText: { color: '#F0444D', fontFamily: typography.semibold, fontSize: 14 },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',

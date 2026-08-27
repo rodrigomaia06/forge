@@ -1,11 +1,13 @@
 # History
 
 - Completed workouts can be opened individually from the History list.
-- Sets in a completed workout can be opened to inspect their details and comments.
+- Sets in a completed workout can be opened to inspect their details and comments. The read-only set sheet presents recorded type, comment, and next-time target as values rather than disabled editing controls; historical sets cannot be deleted there.
 - Set comments are visible in workout cards wherever the set is shown.
 - A workout always has a note field, initially empty; empty notes are hidden. Optional workout metadata such as location, mood, and average rest may be supplied when creating a free workout or plan.
 - History groups completed workouts into relative periods with a date timeline, type icon, compact summary counts, and a separate duration chip. A completed workout can be removed from its contextual options or by revealing its swipe-to-delete action; deletion is immediate and persists.
+- History and its nested detail/editor screens use the same restrained elevated header edge, separating header controls from contrasting scroll content without changing the Forge surface.
 - Workout detail presents a highlighted Forge summary with duration, average rest per set when recorded, exercises, sets, and optional metadata, followed by individually expandable read-only exercise cards. Collapsed exercise cards keep the name and set count together in one compact row; expanded recorded sets use the standard Forge completion check as a read-only status.
-- The workout detail is read-only and does not provide a rest timer; it displays the recorded duration.
+- A completed workout can be edited from its contextual options. Editing operates on a local copy and requires an explicit Save; cancelling or leaving a modified editor discards only after confirmation. The editor header presents only the workout name; the editable type sits directly beneath the name in the session card. The editor uses the active-workout exercise controls, enlarged for the editing context, with the add-exercise action at the end of the list, but excludes live elapsed/rest timers. Its session card uses restrained dividers rather than timing/personal-detail section labels; date, start time, and end time use native mobile pickers and structured web fields, with duration calculated from the interval rather than manually entered. Save uses the workout type's semantic action color.
+- The workout detail remains read-only and does not provide a rest timer; it displays the recorded duration.
 - Workout detail uses labeled Back and More header actions; long workout names remain a single truncated centered line.
 - The existing workout-in-progress screen keeps its elapsed and rest timer behavior.
