@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { monthDays, workoutsByDate } from '../data/mockWorkouts';
 import { colors } from '../theme/tokens';
-import { Icon } from './ui';
+import { Icon, pressedFeedback, pressedFeedbackSubtle } from './ui';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import type { ForgeTheme, WorkoutMap, WorkoutSummary } from '../types';
@@ -82,6 +82,7 @@ export function Calendar({
   }, [isFocused]);
 
   const toggleMenu = (): void => {
+    triggerLightHaptic();
     if (menuOpen) {
       setMenuOpen(false);
       return;
@@ -126,7 +127,7 @@ export function Calendar({
             accessibilityRole="button"
             accessibilityLabel="Change calendar view"
             onPress={toggleMenu}
-            style={styles.viewControl}
+            style={({ pressed }) => [styles.viewControl, pressed && pressedFeedback]}
           >
             <Text style={[styles.viewControlText, { color: theme.ink }]}>
               {view === 'year' ? 'This Year' : view === 'week' ? 'This Week' : 'This Month'}
@@ -189,7 +190,11 @@ function CalendarViewMenu({
           key={item}
           accessibilityRole="menuitem"
           onPress={() => onSelect(item)}
-          style={[styles.viewMenuItem, item === view && { backgroundColor: theme.surfaceMuted }]}
+          style={({ pressed }) => [
+            styles.viewMenuItem,
+            item === view && { backgroundColor: theme.surfaceMuted },
+            pressed && pressedFeedback,
+          ]}
         >
           <Text style={[styles.viewMenuText, { color: theme.ink }]}>
             {item[0].toUpperCase() + item.slice(1)}
@@ -245,6 +250,7 @@ function CalendarContent({
         <YearView
           theme={theme}
           onSelectMonth={(selectedMonth) => {
+            triggerLightHaptic();
             setMonth(selectedMonth);
           }}
           workoutMap={workoutMap}
@@ -356,7 +362,7 @@ function YearView({
           accessibilityRole="button"
           accessibilityLabel={`Show ${month} 2026`}
           onPress={() => onSelectMonth(index + 1)}
-          style={styles.yearMonth}
+          style={({ pressed }) => [styles.yearMonth, pressed && pressedFeedbackSubtle]}
         >
           <Text style={[styles.yearMonthTitle, { color: theme.slate }]}>{month.slice(0, 3)}</Text>
           <MiniMonth month={index + 1} theme={theme} workoutMap={workoutMap} />

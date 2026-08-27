@@ -24,6 +24,8 @@ Accessibility fixes may alter layout or interaction; do not treat them as option
 
 Prefer stable, predictable layouts during active input and repeated interactions. Avoid unnecessary focus stealing, surprise scrolling, or decorative motion that interferes with task completion.
 
+Custom interactive controls must provide a visible pressed state. Reuse Forge's shared pressed feedback for ordinary controls and preserve stronger semantic contrast for destructive actions; do not rely on haptics alone.
+
 ## Platform guidance is behavioral guidance
 
 Apple/Android guidance may inform native expectations, system components, accessibility, modality, input, haptics, and system integration. It does not override Forge's product hierarchy, brand, or shared visual system unless the user explicitly decides otherwise.
