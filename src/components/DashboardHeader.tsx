@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { Button } from './ui';
+import { Button, ScreenTitle } from './ui';
 import { typography, spacing } from '../theme/tokens';
 import type { ForgeTheme, IconName, IconWeight } from '../types';
 
@@ -33,13 +33,9 @@ export function DashboardHeader({
       style={[styles.container, { backgroundColor: theme.background }, style]}
     >
       <View testID={`dashboard-header-${variant}`} style={styles.copy}>
-        <Text
-          testID="dashboard-header-title"
-          numberOfLines={1}
-          style={[styles.title, { color: theme.ink }]}
-        >
+        <ScreenTitle testID="dashboard-header-title" numberOfLines={1} color={theme.ink}>
           {content.title}
-        </Text>
+        </ScreenTitle>
         {content.subtitle && (
           <Text style={[styles.subtitle, { color: theme.slate }]}>{content.subtitle}</Text>
         )}
@@ -105,16 +101,6 @@ const styles = StyleSheet.create({
   },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   copy: { flex: 1, minWidth: 0, justifyContent: 'center', paddingRight: 16 },
-  title: {
-    fontFamily: typography.bold,
-    fontSize: 31,
-    lineHeight: 36,
-    fontWeight: '700',
-    letterSpacing: -1,
-    textShadowColor: 'rgba(23, 36, 49, 0.12)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1.5,
-  },
   subtitle: { fontFamily: typography.medium, fontSize: 13, lineHeight: 17, marginTop: 2 },
   headerIconButton: {
     width: 46,

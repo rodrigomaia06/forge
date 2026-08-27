@@ -1,12 +1,11 @@
 import React from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 import { DashboardHeader } from '../../components/DashboardHeader';
 import { DockChrome } from '../../components/DockChrome';
 import { Calendar, type CalendarMenuState } from '../../components/Calendar';
 import { WorkoutRow } from '../../components/WorkoutRow';
-import { AppScreen, Button } from '../../components/ui';
+import { AppScreen, Button, lightHaptic } from '../../components/ui';
 import { useLayoutProbe } from '../../debug/layoutProbe';
 import { useWorkouts } from '../../state/WorkoutContext';
 import type { ReactElement, ReactNode } from 'react';
@@ -31,7 +30,7 @@ export function DashboardShell({
   const { activeWorkout, startWorkout } = useWorkouts();
   const openWorkout = () => {
     if (!activeWorkout) startWorkout();
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    lightHaptic();
     navigation.navigate('ActiveWorkout');
   };
   const shellProbe = useLayoutProbe('dashboard-shell', { background: theme.background });
@@ -59,7 +58,10 @@ export function DashboardShell({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Close calendar view menu"
-              onPress={onCalendarMenuDismiss}
+              onPress={() => {
+                lightHaptic();
+                onCalendarMenuDismiss?.();
+              }}
               style={styles.calendarMenuDismiss}
             />
             <View

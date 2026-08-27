@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { AppScreen, Button } from '../components/ui';
+import { AppScreen, Button, lightHaptic, ScreenTitle } from '../components/ui';
 import { NavigationFooter } from '../components/NavigationFooter';
 import { dashboardTheme } from '../theme/dashboardTheme';
 import { typography } from '../theme/tokens';
@@ -19,14 +19,19 @@ export function PlaceholderScreen({
   return (
     <AppScreen backgroundColor={dashboardTheme.background}>
       <View style={styles.screen}>
+        <View style={styles.header}>
+          <ScreenTitle color={dashboardTheme.ink}>{title}</ScreenTitle>
+        </View>
         <View style={styles.container}>
           <View style={styles.empty}>
-            <Text style={styles.title}>{title}</Text>
             <Text style={styles.description}>{description}</Text>
             {actionLabel && (
               <Button
                 label={actionLabel}
-                onPress={onAction}
+                onPress={() => {
+                  lightHaptic();
+                  onAction();
+                }}
                 theme={dashboardTheme}
                 style={styles.action}
               />
@@ -41,13 +46,13 @@ export function PlaceholderScreen({
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  container: { flex: 1, padding: 20 },
-  title: {
-    color: dashboardTheme.ink,
-    fontFamily: typography.bold,
-    fontSize: 30,
-    fontWeight: '700',
+  header: {
+    height: 70,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
   },
+  container: { flex: 1, paddingHorizontal: 20 },
   description: {
     color: dashboardTheme.slate,
     fontFamily: typography.regular,
@@ -56,6 +61,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     maxWidth: 300,
   },
-  empty: { alignItems: 'flex-start', paddingTop: 32 },
+  empty: { alignItems: 'flex-start', paddingTop: 24 },
   action: { marginTop: 20 },
 });

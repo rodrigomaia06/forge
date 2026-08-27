@@ -1,10 +1,13 @@
 import React, { useEffect, type ReactNode, type Ref } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import {
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
+  StyleSheet,
+  View,
+  type LayoutChangeEvent,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { useSharedValue, withSpring } from 'react-native-reanimated';
 import { DockSurface } from './DockSurface';
 import { dashboardTheme } from '../theme/dashboardTheme';
 import type { ForgeTheme } from '../types';
@@ -85,6 +88,14 @@ export function DockChrome({
           testID={cylinderTestID}
         />
       </View>
+      {(indicatorTestID || !slotTestID) && (
+        <View
+          testID={indicatorTestID}
+          accessibilityLabel="Home indicator"
+          pointerEvents="none"
+          style={[styles.homeIndicator, { backgroundColor: theme.dockForeground || theme.ink }]}
+        />
+      )}
     </View>
   );
 }
@@ -107,5 +118,13 @@ const styles = StyleSheet.create({
     bottom: 12,
     alignItems: 'center',
     justifyContent: 'flex-end',
+  },
+  homeIndicator: {
+    position: 'absolute',
+    bottom: 3,
+    width: 94,
+    height: 4,
+    borderRadius: 4,
+    opacity: 0,
   },
 });

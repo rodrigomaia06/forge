@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { LayoutAnimation, Platform, UIManager, View, StyleSheet } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
-import { NavigationItem } from './ui';
+import { NavigationItem, selectionHaptic } from './ui';
 import { colors } from '../theme/tokens';
 import { useWorkouts } from '../state/WorkoutContext';
 import type { ForgeTheme, IconName, RootNavigationProp, RootStackParamList } from '../types';
@@ -13,7 +13,8 @@ interface BottomNavigationProps {
   compact?: boolean;
   onNavigate?: () => void;
 }
-type NavigationItemEntry = [IconName, string, keyof RootStackParamList, boolean];
+type BottomNavigationScreen = 'Dashboard' | 'History' | 'ActiveWorkout' | 'Plans' | 'More';
+type NavigationItemEntry = [IconName, string, BottomNavigationScreen, boolean];
 
 let knownWorkoutId: string | null | undefined;
 
@@ -47,10 +48,13 @@ export function BottomNavigation({
     ['book', 'Plans', 'Plans', false],
     ['menu', 'More', 'More', false],
   ];
-  const goTo = (screen: keyof RootStackParamList): void => {
+  const goTo = (screen: BottomNavigationScreen): void => {
+    if (route.name === screen) return;
+    selectionHaptic();
     onNavigate?.();
     navigation.navigate(screen);
   };
+  const historyIsActive = route.name === 'History' || route.name === 'WorkoutDetails';
   return (
     <View style={[styles.navigation, compact && styles.navigationCompact]}>
       {items.map(([icon, label, screen, emphasis]) => (
@@ -58,7 +62,7 @@ export function BottomNavigation({
           key={label}
           icon={icon}
           label={label}
-          active={route.name === screen}
+          active={screen === 'History' ? historyIsActive : route.name === screen}
           emphasis={emphasis}
           onPress={() => goTo(screen)}
           theme={theme}

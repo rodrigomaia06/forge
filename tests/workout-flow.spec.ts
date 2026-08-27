@@ -6,7 +6,9 @@ async function startEmptyWorkoutWithExercise(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Add exercise' }).click();
   await page.getByRole('button', { name: 'Bench Press, 4 variations', exact: true }).click();
   await page.getByRole('button', { name: 'Barbell, 2 variations', exact: true }).click();
-  await page.getByRole('checkbox', { name: 'Bench Press, Barbell, Standard' }).click({ force: true });
+  await page
+    .getByRole('checkbox', { name: 'Bench Press, Barbell, Standard' })
+    .click({ force: true });
   await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
 }
 
@@ -29,6 +31,8 @@ test.describe('Active workout flow', () => {
     await expect(page.getByRole('button', { name: 'Workout', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Cancel workout' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Finish workout' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cancel workout' })).toContainText('Cancel');
+    await expect(page.getByRole('button', { name: 'Finish workout' })).toContainText('Finish');
     await expect(page.getByText('Elapsed', { exact: true })).toBeVisible();
     await expect(page.getByText('Rest', { exact: true })).toBeVisible();
 
@@ -214,6 +218,11 @@ test.describe('Active workout flow', () => {
 
     await page.getByRole('button', { name: 'Done' }).click();
     await expect(page.getByText('TYPE', { exact: true })).toHaveCount(0);
+
+    await page.getByLabel('Open details for set 1').click();
+    await page.getByLabel('Comment for set 1').fill('Keep this form');
+    await page.getByRole('button', { name: 'Done' }).click();
+    await expect(page.getByText('Keep this form', { exact: true })).toBeVisible();
   });
 
   test('restarts the rest timer when held', async ({ page }) => {

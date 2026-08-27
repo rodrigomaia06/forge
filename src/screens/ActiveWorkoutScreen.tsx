@@ -1,14 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  Text,
-  View,
-} from 'react-native';
-import Animated, { runOnJS, useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
-import { AppScreen, Button, Icon } from '../components/ui';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, Text, View } from 'react-native';
+import Animated, {
+  runOnJS,
+  useAnimatedScrollHandler,
+  useSharedValue,
+} from 'react-native-reanimated';
+import { AppScreen, Button, HeaderAction, Icon } from '../components/ui';
 import { NavigationFooter } from '../components/NavigationFooter';
 import { useWorkouts } from '../state/WorkoutContext';
 import { dashboardTheme } from '../theme/dashboardTheme';
@@ -156,7 +153,16 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
         onDeleteRevealChange={handleExerciseDeleteReveal}
       />
     ),
-    [addSet, handleExerciseDeleteReveal, openExerciseId, removeExercise, removeSet, startRestTimer, toggleSet, updateSet],
+    [
+      addSet,
+      handleExerciseDeleteReveal,
+      openExerciseId,
+      removeExercise,
+      removeSet,
+      startRestTimer,
+      toggleSet,
+      updateSet,
+    ],
   );
   const returnToDashboard = (finished: Workout | null): void =>
     navigation.reset({
@@ -223,17 +229,14 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   const finishIconColor = contrastingIconColor(workoutColor);
 
   return (
-    <AppScreen backgroundColor={dashboardTheme.surface} style={styles.screen}>
+    <AppScreen backgroundColor={dashboardTheme.background} style={styles.screen}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <Button
+          <HeaderAction
             accessibilityLabel="Cancel workout"
             icon="close"
-            iconSize={19}
-            variant="secondary"
+            label="Cancel"
             onPress={handleCancel}
-            theme={dashboardTheme}
-            style={styles.cancelButton}
           />
           <View style={styles.titleBlock}>
             <View
@@ -245,15 +248,14 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
               </Text>
             </View>
           </View>
-          <Button
+          <HeaderAction
             accessibilityLabel="Finish workout"
             icon="check"
-            iconSize={20}
+            label="Finish"
             labelColor={finishIconColor}
             onPress={handleFinish}
-            variant="secondary"
-            theme={dashboardTheme}
-            style={[styles.finishButton, { backgroundColor: workoutColor }]}
+            tone="accent"
+            accentColor={workoutColor}
           />
         </View>
         <View style={styles.elapsedPanel}>

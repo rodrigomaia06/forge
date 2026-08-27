@@ -1,25 +1,12 @@
 import { LayoutAnimation, Platform, UIManager } from 'react-native';
-import * as Haptics from 'expo-haptics';
 
-export function lightHaptic(): void {
-  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-}
-
-export function selectionHaptic(): void {
-  Haptics.selectionAsync().catch(() => {});
-}
-
-export function mediumHaptic(): void {
-  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-}
-
-export function errorHaptic(): void {
-  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-}
-
-export function successHaptic(): void {
-  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-}
+export {
+  errorHaptic,
+  lightHaptic,
+  mediumHaptic,
+  selectionHaptic,
+  successHaptic,
+} from '../../components/ui/haptics';
 
 export function animateLayout(): void {
   if (Platform.OS === 'web') return;

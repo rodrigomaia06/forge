@@ -1,12 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import {
-  Animated,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { dashboardTheme } from '../../theme/dashboardTheme';
 import { typography } from '../../theme/tokens';
 import { errorHaptic } from './activeWorkoutFeedback';
@@ -83,7 +76,13 @@ export function SetRow({
   });
 
   return (
-    <View style={[styles.setRow, set.completed && styles.setCompleted]}>
+    <View
+      style={[
+        styles.setRow,
+        set.completed && styles.setCompleted,
+        set.comment && styles.setRowWithComment,
+      ]}
+    >
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Open details for set ${index + 1}`}
@@ -139,6 +138,11 @@ export function SetRow({
           <CompletionCheck selected={set.completed} />
         </Pressable>
       </View>
+      {set.comment ? (
+        <Text style={styles.comment} numberOfLines={2}>
+          {set.comment}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -152,6 +156,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   setCompleted: {},
+  setRowWithComment: { minHeight: 66 },
   setNumberWrap: { width: 46, height: 44, alignItems: 'center', justifyContent: 'center' },
   setNumber: {
     width: 30,
@@ -192,4 +197,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   checkPressable: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  comment: {
+    position: 'absolute',
+    right: 0,
+    bottom: 3,
+    left: 52,
+    color: dashboardTheme.slate,
+    fontFamily: typography.regular,
+    fontSize: 11,
+    lineHeight: 15,
+  },
 });

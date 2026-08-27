@@ -34,4 +34,40 @@ test.describe('Dashboard', () => {
 
     await expect(page.getByText('History', { exact: true })).toBeVisible();
   });
+
+  test('uses one title baseline and typography across primary tabs', async ({ page }) => {
+    await page.goto('/');
+    const readTitle = async (locator: ReturnType<typeof page.locator>) =>
+      locator.evaluate((element) => {
+        const style = window.getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        return {
+          x: rect.x,
+          fontFamily: style.fontFamily,
+          fontSize: style.fontSize,
+          fontWeight: style.fontWeight,
+          lineHeight: style.lineHeight,
+          letterSpacing: style.letterSpacing,
+          textShadow: style.textShadow,
+        };
+      });
+
+    const dashboardTitle = await readTitle(page.getByTestId('dashboard-header-title'));
+    await page.getByRole('tab', { name: 'History' }).click();
+    const historyTitle = await readTitle(page.getByTestId('history-title'));
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    const plansTitle = await readTitle(page.getByText('Plans', { exact: true }));
+    await page.getByRole('tab', { name: 'More' }).click();
+    const moreTitle = await readTitle(page.getByText('More', { exact: true }));
+
+    for (const title of [historyTitle, plansTitle, moreTitle]) {
+      expect(Math.abs(title.x - dashboardTitle.x)).toBeLessThanOrEqual(1);
+      expect(title.fontFamily).toBe(dashboardTitle.fontFamily);
+      expect(title.fontSize).toBe(dashboardTitle.fontSize);
+      expect(title.fontWeight).toBe(dashboardTitle.fontWeight);
+      expect(title.lineHeight).toBe(dashboardTitle.lineHeight);
+      expect(title.letterSpacing).toBe(dashboardTitle.letterSpacing);
+      expect(title.textShadow).toBe(dashboardTitle.textShadow);
+    }
+  });
 });
