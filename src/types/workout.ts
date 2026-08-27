@@ -25,6 +25,10 @@ export interface Workout {
   startedAt: number;
   completedAt: number | null;
   durationSeconds?: number;
+  location?: string;
+  mood?: string;
+  note: string;
+  averageRestSeconds?: number;
   exercises: WorkoutExercise[];
 }
 
@@ -46,6 +50,10 @@ export interface StartWorkoutOptions {
   name?: string;
   type?: WorkoutType;
   exercises?: WorkoutExerciseInput[];
+  location?: string;
+  mood?: string;
+  note?: string;
+  averageRestSeconds?: number;
 }
 export interface WorkoutState {
   activeWorkout: Workout | null;
@@ -71,6 +79,8 @@ export interface WorkoutContextValue extends WorkoutState {
   toggleSet: (exerciseId: string, setId: string) => void;
   cancelWorkout: () => void;
   finishWorkout: () => Workout | null;
+  deleteCompletedWorkout: (workoutId: string) => void;
+  updateCompletedWorkout: (workoutId: string, update: (workout: Workout) => Workout) => void;
 }
 export interface WorkoutSummary {
   name: string;
@@ -82,5 +92,9 @@ export interface WorkoutSummary {
   startedAt?: number;
   completedAt?: number | null;
   id?: string;
+  location?: string;
+  mood?: string;
+  note?: string;
+  averageRestSeconds?: number;
 }
 export type WorkoutMap = Record<number, WorkoutSummary[]>;

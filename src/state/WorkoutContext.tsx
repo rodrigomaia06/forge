@@ -142,6 +142,19 @@ export function WorkoutProvider({ children }: ChildrenProps) {
     return finished;
   }, [activeWorkout, persistActiveWorkoutNow]);
 
+  const updateCompletedWorkout = useCallback(
+    (workoutId: string, update: (workout: Workout) => Workout): void => {
+      setCompletedWorkouts((current) =>
+        current.map((workout) => (workout.id === workoutId ? update(workout) : workout)),
+      );
+    },
+    [],
+  );
+
+  const deleteCompletedWorkout = useCallback((workoutId: string): void => {
+    setCompletedWorkouts((current) => current.filter((workout) => workout.id !== workoutId));
+  }, []);
+
   const value = useMemo(
     () => ({
       ready,
@@ -156,6 +169,8 @@ export function WorkoutProvider({ children }: ChildrenProps) {
       toggleSet,
       cancelWorkout,
       finishWorkout,
+      deleteCompletedWorkout,
+      updateCompletedWorkout,
     }),
     [
       ready,
@@ -170,6 +185,8 @@ export function WorkoutProvider({ children }: ChildrenProps) {
       toggleSet,
       cancelWorkout,
       finishWorkout,
+      deleteCompletedWorkout,
+      updateCompletedWorkout,
     ],
   );
   return <WorkoutContext.Provider value={value}>{children}</WorkoutContext.Provider>;

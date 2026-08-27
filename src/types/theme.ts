@@ -29,4 +29,8 @@ export interface ForgeTheme {
   iconSport?: string;
   iconActivity?: string;
   iconTime?: string;
+  summaryGradientStart?: string;
+  summaryGradientEnd?: string;
+  summaryBorder?: string;
+  summaryGlow?: string;
 }

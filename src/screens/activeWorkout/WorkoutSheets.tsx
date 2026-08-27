@@ -25,12 +25,7 @@ import { dashboardTheme } from '../../theme/dashboardTheme';
 import { typography } from '../../theme/tokens';
 import { exerciseCatalog, type ExerciseCatalogItem } from '../../data/exerciseCatalog';
 import { CompletionCheck } from './CompletionCheck';
-import {
-  animateLayout,
-  lightHaptic,
-  mediumHaptic,
-  selectionHaptic,
-} from './activeWorkoutFeedback';
+import { animateLayout, lightHaptic, mediumHaptic, selectionHaptic } from './activeWorkoutFeedback';
 import { styles as activeWorkoutStyles } from './activeWorkoutStyles';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { WorkoutExercise } from '../../types';
@@ -219,7 +214,10 @@ export function AddExerciseSheet({
                     accessibilityRole="button"
                     accessibilityLabel="Clear exercise search"
                     onPress={() => setQuery('')}
-                    style={({ pressed }) => [styles.searchClear, pressed && styles.searchClearPressed]}
+                    style={({ pressed }) => [
+                      styles.searchClear,
+                      pressed && styles.searchClearPressed,
+                    ]}
                   >
                     <Icon name="close" size={16} color={dashboardTheme.slate} />
                   </Pressable>
@@ -282,7 +280,10 @@ export function AddExerciseSheet({
             )}
             <ScrollView
               style={styles.pickerList}
-              contentContainerStyle={[styles.pickerListContent, { paddingBottom: 108 + insets.bottom }]}
+              contentContainerStyle={[
+                styles.pickerListContent,
+                { paddingBottom: 108 + insets.bottom },
+              ]}
               keyboardDismissMode="on-drag"
               keyboardShouldPersistTaps="handled"
               onScrollBeginDrag={Keyboard.dismiss}
@@ -301,12 +302,14 @@ export function AddExerciseSheet({
                         selected.includes(exercise.id),
                       ).length;
                       const expanded = expandedGroup === `${category}-${group}`;
-                      const equipmentGroups = [...new Set(variations.map((exercise) => exercise.equipment))].map(
-                        (equipment) => ({
-                          equipment,
-                          exercises: variations.filter((exercise) => exercise.equipment === equipment),
-                        }),
-                      );
+                      const equipmentGroups = [
+                        ...new Set(variations.map((exercise) => exercise.equipment)),
+                      ].map((equipment) => ({
+                        equipment,
+                        exercises: variations.filter(
+                          (exercise) => exercise.equipment === equipment,
+                        ),
+                      }));
                       if (variations.length === 1) {
                         const exercise = variations[0];
                         const isSelected = selected.includes(exercise.id);
@@ -420,7 +423,9 @@ export function AddExerciseSheet({
                                   >
                                     <View style={styles.exerciseOptionCopy}>
                                       <Text style={styles.equipmentName}>{equipment}</Text>
-                                      <Text style={styles.equipmentMeta}>{exercises.length} variations</Text>
+                                      <Text style={styles.equipmentMeta}>
+                                        {exercises.length} variations
+                                      </Text>
                                     </View>
                                     <View style={styles.groupActions}>
                                       <View
@@ -539,11 +544,7 @@ function AnimatedCount({ count }: { count: number }) {
 
   return (
     <Animated.Text
-      style={[
-        styles.groupCountText,
-        count > 0 && styles.groupCountTextActive,
-        animatedStyle,
-      ]}
+      style={[styles.groupCountText, count > 0 && styles.groupCountTextActive, animatedStyle]}
     >
       {count}
     </Animated.Text>
@@ -661,6 +662,120 @@ export function ExerciseOptionsSheet({
             >
               <Icon name="trash" size={22} color="#FF3B30" />
               <Text style={styles.destructiveText}>Remove exercise</Text>
+            </Pressable>
+          </Animated.View>
+        </GestureDetector>
+      </Animated.View>
+    </Modal>
+  );
+}
+
+export function WorkoutOptionsSheet({
+  visible,
+  workoutName,
+  onClose,
+  onDelete,
+}: {
+  visible: boolean;
+  workoutName: string;
+  onClose: () => void;
+  onDelete: () => void;
+}) {
+  const translateY = useSharedValue(320);
+  const backdropOpacity = useSharedValue(0);
+  const closing = useSharedValue(false);
+  const dragStartOffset = useSharedValue(0);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  const finishClose = useCallback(() => onCloseRef.current(), []);
+  const closeSheet = useCallback(() => {
+    if (closing.value) return;
+    closing.value = true;
+    lightHaptic();
+    translateY.value = withTiming(320, { duration: 200 }, (finished) => {
+      if (finished) runOnJS(finishClose)();
+    });
+    backdropOpacity.value = withTiming(0, { duration: 160 });
+  }, [backdropOpacity, closing, finishClose, translateY]);
+
+  useEffect(() => {
+    if (!visible) return undefined;
+    closing.value = false;
+    translateY.value = 320;
+    backdropOpacity.value = 0;
+    const frame = requestAnimationFrame(() => {
+      translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.8 });
+      backdropOpacity.value = withTiming(1, { duration: 180 });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [visible, translateY, backdropOpacity, closing]);
+
+  const sheetGesture = Gesture.Pan()
+    .activeOffsetY([-6, 6])
+    .failOffsetX([-24, 24])
+    .onStart(() => {
+      dragStartOffset.value = translateY.value;
+    })
+    .onUpdate((event) => {
+      translateY.value = Math.max(0, dragStartOffset.value + event.translationY);
+    })
+    .onEnd((event) => {
+      const projectedOffset = Math.max(
+        0,
+        dragStartOffset.value + event.translationY + event.velocityY * 0.12,
+      );
+      if (projectedOffset >= 160 || event.velocityY > 900) {
+        closing.value = true;
+        translateY.value = withTiming(320, { duration: 200 }, (finished) => {
+          if (finished) runOnJS(finishClose)();
+        });
+        backdropOpacity.value = withTiming(0, { duration: 160 });
+      } else {
+        translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.8 });
+      }
+    });
+  const sheetAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+  const backdropAnimatedStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value }));
+
+  if (!visible) return null;
+
+  return (
+    <Modal visible={visible} animationType="none" transparent onRequestClose={closeSheet}>
+      <Animated.View style={[styles.optionsBackdrop, backdropAnimatedStyle]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close workout options"
+          onPress={closeSheet}
+          style={StyleSheet.absoluteFill}
+        />
+        <GestureDetector gesture={sheetGesture}>
+          <Animated.View style={[styles.optionsSheet, sheetAnimatedStyle]}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Workout options</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close workout options"
+                onPress={closeSheet}
+                style={({ pressed }) => [styles.sheetClose, pressed && styles.sheetClosePressed]}
+              >
+                <Icon name="close" size={24} color={dashboardTheme.slate} />
+              </Pressable>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Delete ${workoutName}`}
+              onPress={onDelete}
+              style={({ pressed }) => [
+                styles.destructiveAction,
+                pressed && styles.destructivePressed,
+              ]}
+            >
+              <Icon name="trash" size={22} color="#FF3B30" />
+              <Text style={styles.destructiveText}>Delete workout</Text>
             </Pressable>
           </Animated.View>
         </GestureDetector>

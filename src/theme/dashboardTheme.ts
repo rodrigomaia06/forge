@@ -29,4 +29,8 @@ export const dashboardTheme: ForgeTheme = {
   iconSport: '#62C98A',
   iconActivity: '#E99A5B',
   iconTime: '#5F7770',
+  summaryGradientStart: '#F0EEFF',
+  summaryGradientEnd: '#E4E2FF',
+  summaryBorder: '#DAD7F8',
+  summaryGlow: '#FFFFFF',
 };

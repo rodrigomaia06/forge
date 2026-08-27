@@ -1,10 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -23,9 +18,12 @@ import {
   mediumHaptic,
   selectionHaptic,
 } from './activeWorkoutFeedback';
+import { CompletionCheck } from './CompletionCheck';
 import { SwipeableSetRow } from './SwipeableSetRow';
+import { SetDetailsCard } from './SetDetailsCard';
 import { ExerciseOptionsSheet } from './WorkoutSheets';
 import type { ExerciseSectionProps } from './activeWorkoutTypes';
+import type { WorkoutExercise, WorkoutSet } from '../../types';
 
 export const ExerciseSection = React.memo(function ExerciseSection({
   exercise,
@@ -88,101 +86,212 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   return (
     <GestureDetector gesture={cardGesture}>
       <View style={styles.exerciseSwipe}>
-      <View
-        pointerEvents={deleteRevealed ? 'auto' : 'none'}
-        style={styles.deleteExerciseActionLayer}
-      >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Delete ${exercise.name}`}
-          onPress={() => {
-            errorHaptic();
-            animateLayout();
-            removeExercise(exercise.id);
-            onDeleteRevealChange(exercise.id, false);
-          }}
-          style={({ pressed }) => [
-            styles.deleteExerciseAction,
-            pressed && styles.deleteExerciseActionPressed,
-          ]}
+        <View
+          pointerEvents={deleteRevealed ? 'auto' : 'none'}
+          style={styles.deleteExerciseActionLayer}
         >
-          <Icon name="trash" size={20} color="#D64848" />
-          <Text style={styles.deleteExerciseText}>Delete</Text>
-        </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Delete ${exercise.name}`}
+            onPress={() => {
+              errorHaptic();
+              animateLayout();
+              removeExercise(exercise.id);
+              onDeleteRevealChange(exercise.id, false);
+            }}
+            style={({ pressed }) => [
+              styles.deleteExerciseAction,
+              pressed && styles.deleteExerciseActionPressed,
+            ]}
+          >
+            <Icon name="trash" size={20} color="#D64848" />
+            <Text style={styles.deleteExerciseText}>Delete</Text>
+          </Pressable>
+        </View>
+        <Animated.View style={[styles.exerciseSwipeContent, swipeContentStyle]}>
+          <View style={styles.exerciseCard}>
+            <View style={styles.exerciseHeader}>
+              <Text style={styles.exerciseName}>{exercise.name}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`More options for ${exercise.name}`}
+                onPress={() => {
+                  selectionHaptic();
+                  setOptionsOpen(true);
+                }}
+                style={styles.moreButton}
+              >
+                <Icon name="ellipsis-horizontal" size={20} color={dashboardTheme.ink} />
+              </Pressable>
+            </View>
+            <View style={styles.setHeader}>
+              <Text style={[styles.setHeaderText, styles.setColumn]}>Set</Text>
+              <Text style={[styles.setHeaderText, styles.previousColumn]}>Previous</Text>
+              <Text style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>KG</Text>
+              <Text style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>
+                Reps
+              </Text>
+              <View style={styles.checkColumn} />
+            </View>
+            {exercise.sets.map((set, setIndex) => (
+              <SwipeableSetRow
+                key={set.id}
+                set={set}
+                index={setIndex}
+                onChange={(changes) => updateSet(exercise.id, set.id, changes)}
+                onToggle={() => {
+                  lightHaptic();
+                  if (!set.completed) onSetCompleted();
+                  toggleSet(exercise.id, set.id);
+                }}
+                onDelete={() => {
+                  errorHaptic();
+                  animateSetRemoval();
+                  removeSet(exercise.id, set.id);
+                }}
+                deleteRevealed={openSetId === set.id}
+                onDeleteRevealChange={(revealed) => setOpenSetId(revealed ? set.id : null)}
+              />
+            ))}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Add set to ${exercise.name}`}
+              onPress={() => {
+                lightHaptic();
+                addSet(exercise.id);
+              }}
+              style={styles.addSet}
+            >
+              <Icon name="add" size={16} color={dashboardTheme.accent} />
+              <Text style={styles.addSetText}>Add set</Text>
+            </Pressable>
+            {optionsOpen && (
+              <ExerciseOptionsSheet
+                visible
+                exercise={exercise}
+                onClose={() => setOptionsOpen(false)}
+                onRemove={() => {
+                  animateLayout();
+                  removeExercise(exercise.id);
+                  setOptionsOpen(false);
+                }}
+              />
+            )}
+          </View>
+        </Animated.View>
       </View>
-      <Animated.View style={[styles.exerciseSwipeContent, swipeContentStyle]}>
-    <View style={styles.exerciseCard}>
-      <View style={styles.exerciseHeader}>
-        <Text style={styles.exerciseName}>{exercise.name}</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`More options for ${exercise.name}`}
-          onPress={() => {
-            selectionHaptic();
-            setOptionsOpen(true);
-          }}
-          style={styles.moreButton}
-        >
-          <Icon name="ellipsis-horizontal" size={20} color={dashboardTheme.ink} />
-        </Pressable>
-      </View>
-      <View style={styles.setHeader}>
-        <Text style={[styles.setHeaderText, styles.setColumn]}>Set</Text>
-        <Text style={[styles.setHeaderText, styles.previousColumn]}>Previous</Text>
-        <Text style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>KG</Text>
-        <Text style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>Reps</Text>
-        <View style={styles.checkColumn} />
-      </View>
-      {exercise.sets.map((set, setIndex) => (
-        <SwipeableSetRow
-          key={set.id}
-          set={set}
-          index={setIndex}
-          onChange={(changes) => updateSet(exercise.id, set.id, changes)}
-          onToggle={() => {
-            lightHaptic();
-            if (!set.completed) onSetCompleted();
-            toggleSet(exercise.id, set.id);
-          }}
-          onDelete={() => {
-            errorHaptic();
-            animateSetRemoval();
-            removeSet(exercise.id, set.id);
-          }}
-          deleteRevealed={openSetId === set.id}
-          onDeleteRevealChange={(revealed) => setOpenSetId(revealed ? set.id : null)}
-        />
-      ))}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Add set to ${exercise.name}`}
-        onPress={() => {
-          lightHaptic();
-          addSet(exercise.id);
-        }}
-        style={styles.addSet}
-      >
-        <Icon name="add" size={16} color={dashboardTheme.accent} />
-        <Text style={styles.addSetText}>Add set</Text>
-      </Pressable>
-      {optionsOpen && (
-        <ExerciseOptionsSheet
-          visible
-          exercise={exercise}
-          onClose={() => setOptionsOpen(false)}
-          onRemove={() => {
-            animateLayout();
-            removeExercise(exercise.id);
-            setOptionsOpen(false);
-          }}
-        />
-      )}
-      </View>
-      </Animated.View>
-    </View>
     </GestureDetector>
   );
 });
+
+export function ReadOnlyExerciseSection({ exercise }: { exercise: WorkoutExercise }) {
+  const [expanded, setExpanded] = useState(false);
+  const [openSetIndex, setOpenSetIndex] = useState<number | null>(null);
+  const openSet = openSetIndex === null ? null : exercise.sets[openSetIndex];
+
+  return (
+    <View testID={`history-exercise-${exercise.id}`} style={styles.readOnlyExerciseCard}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${expanded ? 'Collapse' : 'Expand'} ${exercise.name}`}
+        accessibilityState={{ expanded }}
+        aria-expanded={expanded}
+        onPress={() => {
+          selectionHaptic();
+          setExpanded((current) => !current);
+        }}
+        style={styles.readOnlyExerciseHeader}
+      >
+        <View style={styles.readOnlyExerciseCopy}>
+          <Text numberOfLines={1} style={styles.readOnlyExerciseName}>
+            {exercise.name}
+          </Text>
+          <Text style={styles.readOnlyExerciseCount}>
+            {`· ${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'}`}
+          </Text>
+        </View>
+        <Icon
+          name={expanded ? 'chevron-down' : 'chevron-forward'}
+          size={20}
+          color={dashboardTheme.slate}
+          style={expanded ? styles.readOnlyExpandedChevron : undefined}
+        />
+      </Pressable>
+      {expanded && (
+        <View style={styles.readOnlySets}>
+          <View style={styles.setHeader}>
+            <Text style={[styles.setHeaderText, styles.setColumn]}>Set</Text>
+            <Text style={[styles.setHeaderText, styles.previousColumn]}>Previous</Text>
+            <Text style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>KG</Text>
+            <Text style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>Reps</Text>
+            <View style={styles.checkColumn} />
+          </View>
+          {exercise.sets.map((set, index) => (
+            <ReadOnlyHistorySetRow
+              key={set.id}
+              set={set}
+              index={index}
+              onOpenDetails={() => setOpenSetIndex(index)}
+            />
+          ))}
+        </View>
+      )}
+      {openSet && (
+        <SetDetailsCard
+          visible
+          set={openSet}
+          index={openSetIndex ?? 0}
+          editable={false}
+          onChange={() => undefined}
+          onDelete={() => undefined}
+          onDone={() => setOpenSetIndex(null)}
+        />
+      )}
+    </View>
+  );
+}
+
+function ReadOnlyHistorySetRow({
+  set,
+  index,
+  onOpenDetails,
+}: {
+  set: WorkoutSet;
+  index: number;
+  onOpenDetails: () => void;
+}) {
+  return (
+    <View testID={`workout-details-set-${set.id}`} style={styles.readOnlySetRow}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Open details for set ${index + 1}`}
+        accessibilityHint="Opens recorded set tags, comments, and targets"
+        onPress={() => {
+          selectionHaptic();
+          onOpenDetails();
+        }}
+        style={styles.setNumberWrap}
+      >
+        <Text style={styles.setNumber}>{index + 1}</Text>
+      </Pressable>
+      <Text style={styles.previous} numberOfLines={1}>
+        {set.previous || '—'}
+      </Text>
+      <View style={[styles.readOnlyInput, styles.inputColumn]}>
+        <Text style={styles.readOnlyInputText}>{set.weight || '—'}</Text>
+      </View>
+      <View style={[styles.readOnlyInput, styles.inputColumn]}>
+        <Text style={styles.readOnlyInputText}>{set.reps || '—'}</Text>
+      </View>
+      <View style={styles.check}>
+        <CompletionCheck
+          selected={set.completed}
+          testID={`workout-details-set-completion-${set.id}`}
+        />
+      </View>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   exerciseSwipe: {
@@ -223,6 +332,51 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
   },
+  readOnlyExerciseCard: {
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(226,227,224,0.72)',
+    borderRadius: 16,
+    backgroundColor: dashboardTheme.surface,
+    shadowColor: dashboardTheme.ink,
+    shadowOpacity: 0.06,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  readOnlyExerciseHeader: {
+    minHeight: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  readOnlyExerciseCopy: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  readOnlyExerciseName: {
+    flexShrink: 1,
+    color: dashboardTheme.ink,
+    fontFamily: typography.semibold,
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '600',
+  },
+  readOnlyExerciseCount: {
+    flexShrink: 0,
+    marginLeft: 4,
+    color: dashboardTheme.slate,
+    fontFamily: typography.regular,
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  readOnlyExpandedChevron: { transform: [{ rotate: '180deg' }] },
+  readOnlySets: { paddingHorizontal: 12, paddingBottom: 4 },
   exerciseHeader: {
     minHeight: 30,
     flexDirection: 'row',
@@ -274,4 +428,42 @@ const styles = StyleSheet.create({
     borderTopColor: dashboardTheme.divider,
   },
   addSetText: { color: dashboardTheme.accent, fontFamily: typography.medium, fontSize: 13 },
+  readOnlySetRow: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: dashboardTheme.divider,
+  },
+  setNumberWrap: { width: 46, height: 44, alignItems: 'center', justifyContent: 'center' },
+  setNumber: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    textAlign: 'center',
+    lineHeight: 30,
+    backgroundColor: dashboardTheme.surfaceMuted,
+    color: dashboardTheme.ink,
+    fontFamily: typography.medium,
+    fontSize: 12,
+  },
+  previous: {
+    flex: 1,
+    color: dashboardTheme.ink,
+    fontFamily: typography.medium,
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  readOnlyInput: {
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: dashboardTheme.divider,
+    borderRadius: 8,
+    backgroundColor: dashboardTheme.surfaceMuted,
+  },
+  readOnlyInputText: { color: dashboardTheme.ink, fontFamily: typography.medium, fontSize: 14 },
+  check: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
 });

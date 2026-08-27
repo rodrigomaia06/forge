@@ -4,6 +4,7 @@ export type RootStackParamList = {
   Dashboard: { selectedDay?: number } | undefined;
   ActiveWorkout: undefined;
   History: undefined;
+  WorkoutDetails: { workoutId: string };
   Plans: undefined;
   More: undefined;
 };

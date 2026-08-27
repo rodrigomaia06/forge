@@ -11,6 +11,10 @@ export function createWorkout(options: StartWorkoutOptions): Workout {
     type: options.type || 'Strength',
     startedAt: Date.now(),
     completedAt: null,
+    note: options.note || '',
+    location: options.location,
+    mood: options.mood,
+    averageRestSeconds: options.averageRestSeconds,
     exercises: (options.exercises || []).map((exercise) => ({
       id: exercise.id || makeWorkoutId('exercise'),
       name: exercise.name,

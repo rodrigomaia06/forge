@@ -40,6 +40,7 @@ interface SetDetailsCardProps {
   onChange: (changes: WorkoutSetChanges) => void;
   onDelete: () => void;
   onDone: () => void;
+  editable?: boolean;
 }
 
 export function SetDetailsCard({
@@ -49,6 +50,7 @@ export function SetDetailsCard({
   onChange,
   onDelete,
   onDone,
+  editable = true,
 }: SetDetailsCardProps) {
   const [infoOpen, setInfoOpen] = React.useState<'type' | 'target' | null>(null);
 
@@ -146,14 +148,16 @@ export function SetDetailsCard({
               }}
               style={[workoutSheetStyles.restTimerHeader, styles.topBar]}
             >
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Delete set ${index + 1}`}
-                onPress={onDelete}
-                style={styles.deleteButton}
-              >
-                <Text style={styles.deleteText}>Delete set</Text>
-              </Pressable>
+              {editable && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Delete set ${index + 1}`}
+                  onPress={onDelete}
+                  style={styles.deleteButton}
+                >
+                  <Text style={styles.deleteText}>Delete set</Text>
+                </Pressable>
+              )}
               {set.weight || set.reps ? (
                 <Text style={styles.title}>
                   {`${set.weight || ''}${set.weight ? ' kg' : ''}${set.weight && set.reps ? ' × ' : ''}${set.reps || ''}`}
@@ -194,6 +198,7 @@ export function SetDetailsCard({
                         selectionHaptic();
                         onChange({ tag: selected ? '' : tag.label });
                       }}
+                      disabled={!editable}
                     />
                   );
                 })}
@@ -205,6 +210,7 @@ export function SetDetailsCard({
                     accessibilityLabel={`Comment for set ${index + 1}`}
                     value={set.comment || ''}
                     onChangeText={(comment) => onChange({ comment })}
+                    editable={editable}
                     onFocus={() => setInfoOpen(null)}
                     onTouchStart={(event) => event.stopPropagation()}
                     maxLength={120}
@@ -234,6 +240,7 @@ export function SetDetailsCard({
                     accessibilityLabel={`Next-time weight target for set ${index + 1}`}
                     onChangeText={(targetWeight) => onChange({ targetWeight })}
                     onFocus={() => setInfoOpen(null)}
+                    editable={editable}
                   />
                   <TargetRow
                     label="Reps"
@@ -244,6 +251,7 @@ export function SetDetailsCard({
                     accessibilityLabel={`Next-time reps target for set ${index + 1}`}
                     onChangeText={(targetReps) => onChange({ targetReps })}
                     onFocus={() => setInfoOpen(null)}
+                    editable={editable}
                   />
                 </View>
               </View>
@@ -273,11 +281,13 @@ function TypeOption({
   color,
   selected,
   onPress,
+  disabled = false,
 }: {
   label: string;
   color: string;
   selected: boolean;
   onPress: () => void;
+  disabled?: boolean;
 }) {
   const progress = useSharedValue(selected ? 1 : 0);
 
@@ -297,6 +307,7 @@ function TypeOption({
       accessibilityState={{ selected }}
       accessibilityLabel={`${selected ? 'Remove' : 'Select'} ${label} type`}
       onPress={onPress}
+      disabled={disabled}
       style={styles.tagRow}
     >
       <Animated.View
@@ -330,6 +341,7 @@ function TargetRow({
   accessibilityLabel,
   onChangeText,
   onFocus,
+  editable = true,
 }: {
   label: string;
   value: string;
@@ -339,6 +351,7 @@ function TargetRow({
   accessibilityLabel: string;
   onChangeText: (value: string) => void;
   onFocus: () => void;
+  editable?: boolean;
 }) {
   const inputRef = useRef<TextInput>(null);
   const focusInput = useCallback(() => {
@@ -347,7 +360,12 @@ function TargetRow({
   }, [value.length]);
 
   return (
-    <Pressable accessibilityRole="button" onPress={focusInput} style={styles.targetCard}>
+    <Pressable
+      accessibilityRole="button"
+      onPress={focusInput}
+      disabled={!editable}
+      style={styles.targetCard}
+    >
       <View style={styles.targetCardHeader}>
         <Text style={styles.targetLabel}>{label}</Text>
       </View>
@@ -358,6 +376,7 @@ function TargetRow({
           value={value}
           selection={{ start: value.length, end: value.length }}
           onChangeText={onChangeText}
+          editable={editable}
           onFocus={() => {
             onFocus();
             requestAnimationFrame(() => inputRef.current?.setSelection(value.length, value.length));
