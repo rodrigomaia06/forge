@@ -4,3 +4,4 @@ export * from './types/theme';
 export * from './types/navigation';
 export * from './types/icons';
 export * from './types/ui';
+export * from './types/settings';

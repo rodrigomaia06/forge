@@ -8,6 +8,7 @@ import { WorkoutRow } from '../../components/WorkoutRow';
 import { AppScreen, Button, ForgeText as Text, lightHaptic } from '../../components/ui';
 import { useLayoutProbe } from '../../debug/layoutProbe';
 import { useWorkouts } from '../../state/WorkoutContext';
+import { useSettings } from '../../state/SettingsContext';
 import type { ReactElement, ReactNode } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { ScrollView as ScrollViewType, StyleProp, ViewStyle } from 'react-native';
@@ -108,6 +109,7 @@ export function DashboardCalendar({
   onViewMenuOpenChange?: (open: boolean) => void;
   onMenuStateChange?: (state: CalendarMenuState | null) => void;
 }) {
+  const { preferences } = useSettings();
   return (
     <View
       style={[
@@ -123,6 +125,7 @@ export function DashboardCalendar({
         viewMenuOpen={viewMenuOpen}
         onViewMenuOpenChange={onViewMenuOpenChange}
         onMenuStateChange={onMenuStateChange}
+        weekStartsOn={preferences.weekStartsOn}
       />
     </View>
   );

@@ -32,6 +32,9 @@ import {
   Xmark,
   Search,
   Filter,
+  Settings,
+  DatabaseExport,
+  ClipboardCheck,
 } from 'iconoir-react-native';
 
 const iconMap: Record<IconName, React.ComponentType<SvgProps>> = {
@@ -71,6 +74,9 @@ const iconMap: Record<IconName, React.ComponentType<SvgProps>> = {
   close: Xmark,
   search: Search,
   filter: Filter,
+  settings: Settings,
+  'database-export': DatabaseExport,
+  clipboard: ClipboardCheck,
   'arrow-forward': NavArrowRight,
 };
 

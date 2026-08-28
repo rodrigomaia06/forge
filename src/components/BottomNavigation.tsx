@@ -13,7 +13,7 @@ interface BottomNavigationProps {
   compact?: boolean;
   onNavigate?: () => void;
 }
-type BottomNavigationScreen = 'Dashboard' | 'History' | 'ActiveWorkout' | 'Plans' | 'More';
+type BottomNavigationScreen = 'Dashboard' | 'History' | 'ActiveWorkout' | 'Plans' | 'Settings';
 type NavigationItemEntry = [IconName, string, BottomNavigationScreen, boolean];
 
 let knownWorkoutId: string | null | undefined;
@@ -46,7 +46,7 @@ export function BottomNavigation({
     ['time-outline', 'History', 'History', false],
     ...(activeWorkout ? [['play', 'Workout', 'ActiveWorkout', true] as NavigationItemEntry] : []),
     ['book', 'Plans', 'Plans', false],
-    ['menu', 'More', 'More', false],
+    ['menu', 'Settings', 'Settings', false],
   ];
   const goTo = (screen: BottomNavigationScreen): void => {
     if (route.name === screen) return;

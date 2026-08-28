@@ -35,5 +35,8 @@ export type IconName =
   | 'close'
   | 'search'
   | 'filter'
+  | 'settings'
+  | 'database-export'
+  | 'clipboard'
   | 'arrow-forward';
 export type IconWeight = 'thin' | 'regular' | 'bold' | 'fill';

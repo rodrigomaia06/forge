@@ -11,6 +11,7 @@ import {
 
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { WorkoutProvider } from './src/state/WorkoutContext';
+import { SettingsProvider } from './src/state/SettingsContext';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -25,9 +26,11 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <WorkoutProvider>
-          <AppNavigator />
-        </WorkoutProvider>
+        <SettingsProvider>
+          <WorkoutProvider>
+            <AppNavigator />
+          </WorkoutProvider>
+        </SettingsProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

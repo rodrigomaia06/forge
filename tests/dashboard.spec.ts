@@ -57,10 +57,10 @@ test.describe('Dashboard', () => {
     const historyTitle = await readTitle(page.getByTestId('history-title'));
     await page.getByRole('tab', { name: 'Plans' }).click();
     const plansTitle = await readTitle(page.getByText('Plans', { exact: true }));
-    await page.getByRole('tab', { name: 'More' }).click();
-    const moreTitle = await readTitle(page.getByText('More', { exact: true }));
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    const settingsTitle = await readTitle(page.getByTestId('settings-title'));
 
-    for (const title of [historyTitle, plansTitle, moreTitle]) {
+    for (const title of [historyTitle, plansTitle, settingsTitle]) {
       expect(Math.abs(title.x - dashboardTitle.x)).toBeLessThanOrEqual(1);
       expect(title.fontFamily).toBe(dashboardTitle.fontFamily);
       expect(title.fontSize).toBe(dashboardTitle.fontSize);

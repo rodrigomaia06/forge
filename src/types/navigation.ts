@@ -7,6 +7,12 @@ export type RootStackParamList = {
   WorkoutDetails: { workoutId: string };
   HistoryWorkoutEditor: { workoutId: string };
   Plans: undefined;
-  More: undefined;
+  Settings: undefined;
+  GeneralSettings: undefined;
+  ExerciseLibrary: undefined;
+  WorkoutTypes: undefined;
+  BackupExport: undefined;
+  Logs: undefined;
+  About: undefined;
 };
 export type RootNavigationProp = NavigationProp<RootStackParamList>;

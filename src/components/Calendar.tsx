@@ -1,12 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  Easing,
-  Platform,
-  Pressable,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+import { Animated, Easing, Platform, Pressable, View, useWindowDimensions } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,7 +9,7 @@ import { colors } from '../theme/tokens';
 import { ForgeText as Text, Icon, pressedFeedback, pressedFeedbackSubtle } from './ui';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
-import type { ForgeTheme, WorkoutMap, WorkoutSummary } from '../types';
+import type { ForgeTheme, WeekStartsOn, WorkoutMap, WorkoutSummary } from '../types';
 import { styles } from './calendar/calendarStyles';
 
 const VIEWS = ['year', 'month', 'week'] as const;
@@ -35,7 +28,8 @@ const MONTHS = [
   'November',
   'December',
 ];
-const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const MONDAY_FIRST_WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const SUNDAY_FIRST_WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 interface CalendarProps {
   selectedDay: number;
@@ -45,6 +39,7 @@ interface CalendarProps {
   viewMenuOpen?: boolean;
   onViewMenuOpenChange?: (open: boolean) => void;
   onMenuStateChange?: (state: CalendarMenuState | null) => void;
+  weekStartsOn?: WeekStartsOn;
 }
 
 export interface CalendarMenuState {
@@ -60,6 +55,7 @@ export function Calendar({
   viewMenuOpen,
   onViewMenuOpenChange,
   onMenuStateChange,
+  weekStartsOn = 1,
 }: CalendarProps) {
   const [view, setView] = useState<CalendarView>('month');
   const [localMenuOpen, setLocalMenuOpen] = useState(false);
@@ -142,6 +138,7 @@ export function Calendar({
           month={month}
           setMonth={setMonth}
           workoutMap={workoutMap}
+          weekStartsOn={weekStartsOn}
         />
       </View>
     </View>
@@ -217,6 +214,7 @@ function CalendarContent({
   month,
   setMonth,
   workoutMap,
+  weekStartsOn,
 }: {
   view: CalendarView;
   selectedDay: number;
@@ -225,6 +223,7 @@ function CalendarContent({
   month: number;
   setMonth: Dispatch<SetStateAction<number>>;
   workoutMap: WorkoutMap;
+  weekStartsOn: WeekStartsOn;
 }) {
   const progress = useRef(new Animated.Value(1)).current;
   useEffect(() => {
@@ -253,6 +252,7 @@ function CalendarContent({
             setMonth(selectedMonth);
           }}
           workoutMap={workoutMap}
+          weekStartsOn={weekStartsOn}
         />
       )}
       {view === 'month' && (
@@ -262,6 +262,7 @@ function CalendarContent({
           theme={theme}
           month={month}
           workoutMap={workoutMap}
+          weekStartsOn={weekStartsOn}
         />
       )}
       {view === 'week' && (
@@ -270,6 +271,7 @@ function CalendarContent({
           setSelectedDay={setSelectedDay}
           theme={theme}
           workoutMap={workoutMap}
+          weekStartsOn={weekStartsOn}
         />
       )}
     </Animated.View>
@@ -282,12 +284,14 @@ function MonthView({
   theme,
   month,
   workoutMap,
+  weekStartsOn,
 }: Omit<Parameters<typeof CalendarContent>[0], 'view' | 'setMonth'>) {
-  const leadingBlanks = month === 8 ? 5 : 0;
+  const weekdays = weekStartsOn === 1 ? MONDAY_FIRST_WEEKDAYS : SUNDAY_FIRST_WEEKDAYS;
+  const leadingBlanks = leadingDaysForMonth(2026, month, weekStartsOn);
   return (
     <>
-      <View style={styles.weekHeader}>
-        {WEEKDAYS.map((day, index) => (
+      <View testID="calendar-weekdays" style={styles.weekHeader}>
+        {weekdays.map((day, index) => (
           <Text key={`${day}-${index}`} style={[styles.weekLabel, { color: theme.muted }]}>
             {day}
           </Text>
@@ -317,12 +321,14 @@ function WeekView({
   setSelectedDay,
   theme,
   workoutMap,
+  weekStartsOn,
 }: Omit<Parameters<typeof CalendarContent>[0], 'view' | 'month' | 'setMonth'>) {
   const days = [24, 25, 26, 27, 28, 29, 30];
+  const weekdays = weekStartsOn === 1 ? MONDAY_FIRST_WEEKDAYS : SUNDAY_FIRST_WEEKDAYS;
   return (
     <>
-      <View style={styles.weekHeader}>
-        {WEEKDAYS.map((day, index) => (
+      <View testID="calendar-weekdays" style={styles.weekHeader}>
+        {weekdays.map((day, index) => (
           <Text key={`${day}-${index}`} style={[styles.weekLabel, { color: theme.muted }]}>
             {day}
           </Text>
@@ -348,10 +354,12 @@ function YearView({
   theme,
   onSelectMonth,
   workoutMap,
+  weekStartsOn,
 }: {
   theme: ForgeTheme;
   onSelectMonth: (month: number) => void;
   workoutMap: WorkoutMap;
+  weekStartsOn: WeekStartsOn;
 }) {
   return (
     <View style={styles.yearGrid}>
@@ -364,7 +372,12 @@ function YearView({
           style={({ pressed }) => [styles.yearMonth, pressed && pressedFeedbackSubtle]}
         >
           <Text style={[styles.yearMonthTitle, { color: theme.slate }]}>{month.slice(0, 3)}</Text>
-          <MiniMonth month={index + 1} theme={theme} workoutMap={workoutMap} />
+          <MiniMonth
+            month={index + 1}
+            theme={theme}
+            workoutMap={workoutMap}
+            weekStartsOn={weekStartsOn}
+          />
         </Pressable>
       ))}
     </View>
@@ -375,12 +388,14 @@ function MiniMonth({
   month,
   theme,
   workoutMap,
+  weekStartsOn,
 }: {
   month: number;
   theme: ForgeTheme;
   workoutMap: WorkoutMap;
+  weekStartsOn: WeekStartsOn;
 }) {
-  const leadingBlanks = (new Date(2026, month - 1, 1).getDay() + 6) % 7;
+  const leadingBlanks = leadingDaysForMonth(2026, month, weekStartsOn);
   const totalDays = new Date(2026, month, 0).getDate();
   return (
     <View style={styles.miniGrid}>
@@ -499,4 +514,9 @@ function eventColor(workout: WorkoutSummary, theme: ForgeTheme): string {
   if (workout.type === 'Strength') return theme.iconTime || theme.marker || theme.muted;
   if (workout.type === 'Court sport') return theme.marker || theme.muted;
   return theme.muted;
+}
+
+function leadingDaysForMonth(year: number, month: number, weekStartsOn: WeekStartsOn): number {
+  const sundayFirstDay = new Date(year, month - 1, 1).getDay();
+  return weekStartsOn === 1 ? (sundayFirstDay + 6) % 7 : sundayFirstDay;
 }

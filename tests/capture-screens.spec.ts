@@ -46,7 +46,7 @@ async function capture(page: Page, name: string): Promise<void> {
 }
 
 test.describe('Forge screen captures', () => {
-  test('captures Dashboard, Plans and More', async ({ page }) => {
+  test('captures Dashboard, Plans and Settings', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByTestId('dashboard-header-title')).toBeVisible();
     await capture(page, 'dashboard');
@@ -55,9 +55,13 @@ test.describe('Forge screen captures', () => {
     await expect(page.getByText('Plans', { exact: true })).toBeVisible();
     await capture(page, 'plans');
 
-    await page.getByRole('tab', { name: 'More' }).click();
-    await expect(page.getByText('More', { exact: true })).toBeVisible();
-    await capture(page, 'more');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await expect(page.getByTestId('settings-title')).toBeVisible();
+    await capture(page, 'settings');
+
+    await page.getByRole('button', { name: 'General' }).click();
+    await expect(page.getByText('Week starts on', { exact: true })).toBeVisible();
+    await capture(page, 'general-settings');
   });
 
   test('captures History and its workout detail', async ({ page }) => {
