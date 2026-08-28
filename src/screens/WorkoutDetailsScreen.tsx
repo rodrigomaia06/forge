@@ -64,6 +64,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
             accessibilityLabel="Back to History"
             icon="chevron-back"
             label="Back"
+            iconOnly
             onPress={() => {
               selectionHaptic();
               returnToHistory();
@@ -307,12 +308,20 @@ const styles = StyleSheet.create({
     minHeight: 70,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: dashboardTheme.background,
   },
-  headerCopy: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center' },
+  headerCopy: {
+    position: 'absolute',
+    top: 0,
+    right: 116,
+    bottom: 0,
+    left: 116,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   headerTitle: { color: dashboardTheme.ink, ...typeScale.headerTitle, textAlign: 'center' },
   content: { padding: 16, paddingBottom: 116, gap: 12 },
   summaryCard: {

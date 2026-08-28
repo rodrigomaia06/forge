@@ -31,8 +31,11 @@ test.describe('Active workout flow', () => {
     await expect(page.getByRole('button', { name: 'Workout', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Cancel workout' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Finish workout' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Cancel workout' })).toContainText('Cancel');
+    await expect(page.getByRole('button', { name: 'Cancel workout' })).not.toContainText('Cancel');
     await expect(page.getByRole('button', { name: 'Finish workout' })).toContainText('Finish');
+    await expect(
+      page.getByRole('button', { name: 'Finish workout' }).getByText('Finish'),
+    ).toHaveCSS('font-weight', '700');
     await expect(page.getByText('Elapsed', { exact: true })).toBeVisible();
     await expect(page.getByText('Rest', { exact: true })).toBeVisible();
 
@@ -247,8 +250,8 @@ test.describe('Active workout flow', () => {
     await expect(page.getByText('History', { exact: true })).toBeVisible();
     await page.getByRole('tab', { name: 'Plans' }).click();
     await expect(page.getByText('Plans', { exact: true })).toBeVisible();
-    await page.getByRole('tab', { name: 'More' }).click();
-    await expect(page.getByText('More', { exact: true })).toBeVisible();
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await expect(page.getByTestId('settings-title')).toBeVisible();
     await page.getByRole('tab', { name: 'Dashboard' }).click();
     await expect(page.getByTestId('dashboard-header-title').last()).toBeVisible();
   });

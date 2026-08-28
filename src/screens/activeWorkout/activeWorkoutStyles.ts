@@ -22,7 +22,13 @@ export const styles = StyleSheet.create({
     backgroundColor: dashboardTheme.divider,
     zIndex: 2,
   },
-  headerTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerTop: {
+    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  finishLabel: { fontFamily: typeScale.metricLarge.fontFamily, fontWeight: '700' },
   headerTitle: {
     maxWidth: '100%',
     color: dashboardTheme.ink,
@@ -32,7 +38,15 @@ export const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 1.2,
   },
-  titleBlock: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center' },
+  titleBlock: {
+    position: 'absolute',
+    top: 0,
+    right: 100,
+    bottom: 0,
+    left: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   titleWrap: {
     maxWidth: '100%',
     alignSelf: 'center',

@@ -54,7 +54,7 @@ test.describe('History screen', () => {
     await expect(summary.getByText('Duration', { exact: true })).toBeVisible();
     await expect(page.getByText('Rest', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Back to History' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Back to History' })).toContainText('Back');
+    await expect(page.getByRole('button', { name: 'Back to History' })).not.toContainText('Back');
     await expect(page.getByRole('button', { name: 'Workout options' })).toContainText('More');
 
     await expect(page.getByText('Exercise 1', { exact: true })).toBeVisible();
@@ -74,9 +74,11 @@ test.describe('History screen', () => {
     await expect(page.getByRole('button', { name: 'Open Muay Thai' })).toBeVisible();
   });
 
-  test('uses the shared 15px action label in workout headers', async ({ page }) => {
+  test('uses the shared 15px action label for the visible workout-header action', async ({
+    page,
+  }) => {
     await page.getByRole('button', { name: 'Open Muay Thai' }).click();
-    const metrics = await page.getByText('Back', { exact: true }).evaluate((element) => {
+    const metrics = await page.getByText('More', { exact: true }).evaluate((element) => {
       const style = window.getComputedStyle(element);
       return { fontSize: style.fontSize, lineHeight: style.lineHeight };
     });

@@ -5,7 +5,14 @@ import Animated, {
   useAnimatedScrollHandler,
   useSharedValue,
 } from 'react-native-reanimated';
-import { AppScreen, Button, ForgeText as Text, HeaderAction, Icon, pressedFeedback } from '../components/ui';
+import {
+  AppScreen,
+  Button,
+  ForgeText as Text,
+  HeaderAction,
+  Icon,
+  pressedFeedback,
+} from '../components/ui';
 import { NavigationFooter } from '../components/NavigationFooter';
 import { useWorkouts } from '../state/WorkoutContext';
 import { dashboardTheme } from '../theme/dashboardTheme';
@@ -218,6 +225,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
             accessibilityLabel="Cancel workout"
             icon="close"
             label="Cancel"
+            iconOnly
             onPress={handleCancel}
           />
           <View style={styles.titleBlock}>
@@ -235,6 +243,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
             icon="check"
             label="Finish"
             labelColor={finishIconColor}
+            labelStyle={styles.finishLabel}
             onPress={handleFinish}
             tone="accent"
             accentColor={workoutColor}

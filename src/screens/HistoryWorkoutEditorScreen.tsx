@@ -130,6 +130,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
             accessibilityLabel="Cancel editing workout"
             icon="close"
             label="Cancel"
+            iconOnly
             onPress={discard}
           />
           <View style={styles.titleBlock}>
@@ -457,8 +458,21 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     backgroundColor: dashboardTheme.background,
   },
-  headerTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  titleBlock: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center' },
+  headerTop: {
+    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  titleBlock: {
+    position: 'absolute',
+    top: 0,
+    right: 100,
+    bottom: 0,
+    left: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: { color: dashboardTheme.ink, ...typeScale.sectionTitle, textAlign: 'center' },
   keyboardArea: { flex: 1 },
   content: { padding: 16, paddingBottom: 116, gap: 14 },

@@ -5,4 +5,4 @@
 - Elapsed and rest timers derive from timestamps and refresh together once per second; active-workout persistence is debounced during ordinary edits, while finishing or cancelling remains immediate.
 - Sets and exercise cards reveal compact contextual delete actions with a left swipe; the action remains hidden in the resting state.
 - The Add exercises picker dismisses its keyboard when its list is touched or dragged, without preventing the requested list action.
-- Live Workout and History workout detail use symmetric horizontal header actions so titles remain centered while their primary controls retain visible labels.
+- Live Workout and History workout detail reserve symmetric header space so titles remain centered. Back and Cancel are icon-only actions with accessible names; Finish and More retain visible labels.
