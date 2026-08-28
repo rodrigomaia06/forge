@@ -1,0 +1,103 @@
+import { expect, test, type Page } from '@playwright/test';
+
+const captureDirectory = 'tests/results/captures';
+
+const completedWorkouts = [
+  {
+    id: 'capture-upper-push',
+    name: 'Upper push',
+    type: 'Strength',
+    startedAt: Date.UTC(2026, 7, 24, 7, 22),
+    completedAt: Date.UTC(2026, 7, 24, 8, 14),
+    durationSeconds: 52 * 60,
+    averageRestSeconds: 83,
+    location: 'Gym',
+    mood: 'Great',
+    note: 'Felt strong. Good pump.',
+    exercises: [
+      {
+        id: 'capture-incline-press',
+        name: 'Incline Smith Press',
+        sets: [
+          { id: 'capture-set-1', weight: '80', reps: '8', completed: true },
+          { id: 'capture-set-2', weight: '90', reps: '6', completed: true },
+        ],
+      },
+      {
+        id: 'capture-dips',
+        name: 'Dips',
+        sets: [{ id: 'capture-set-3', weight: '12', reps: '10', completed: true }],
+      },
+    ],
+  },
+];
+
+async function seedHistory(page: Page): Promise<void> {
+  await page.addInitScript((workouts) => {
+    localStorage.setItem('@forge/active-workout', 'null');
+    localStorage.setItem('@forge/completed-workouts', JSON.stringify(workouts));
+  }, completedWorkouts);
+}
+
+async function capture(page: Page, name: string): Promise<void> {
+  // Let short entrance/layout animations settle so captures show final UI, not an in-between frame.
+  await page.waitForTimeout(250);
+  await page.screenshot({ path: `${captureDirectory}/${name}.png`, fullPage: true });
+}
+
+test.describe('Forge screen captures', () => {
+  test('captures Dashboard, Plans and More', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByTestId('dashboard-header-title')).toBeVisible();
+    await capture(page, 'dashboard');
+
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await expect(page.getByText('Plans', { exact: true })).toBeVisible();
+    await capture(page, 'plans');
+
+    await page.getByRole('tab', { name: 'More' }).click();
+    await expect(page.getByText('More', { exact: true })).toBeVisible();
+    await capture(page, 'more');
+  });
+
+  test('captures History and its workout detail', async ({ page }) => {
+    await seedHistory(page);
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'History' }).click();
+    await expect(page.getByRole('button', { name: 'Open Upper push' })).toBeVisible();
+    await capture(page, 'history');
+
+    await page.getByRole('button', { name: 'Open Upper push' }).click();
+    await expect(page.getByTestId('workout-details-summary')).toBeVisible();
+    await capture(page, 'workout-detail');
+  });
+
+  test('captures the History workout editor', async ({ page }) => {
+    await seedHistory(page);
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'History' }).click();
+    await page.getByRole('button', { name: 'Open Upper push' }).click();
+    await page.getByRole('button', { name: 'Workout options' }).click();
+    await page.getByRole('button', { name: 'Edit workout' }).click();
+    await expect(page.getByLabel('Workout name')).toBeVisible();
+    await capture(page, 'history-workout-editor');
+  });
+
+  test('captures Live Workout and set options', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Start workout' }).click();
+    await expect(page.getByRole('button', { name: 'Finish workout' })).toBeVisible();
+    await capture(page, 'live-workout');
+
+    await page.getByRole('button', { name: 'Add exercise' }).click();
+    await page.getByRole('button', { name: 'Bench Press, 4 variations', exact: true }).click();
+    await page.getByRole('button', { name: 'Barbell, 2 variations', exact: true }).click();
+    await page
+      .getByRole('checkbox', { name: 'Bench Press, Barbell, Standard' })
+      .click({ force: true });
+    await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
+    await page.getByLabel('Open details for set 1').click();
+    await expect(page.getByText('TYPE', { exact: true })).toBeVisible();
+    await capture(page, 'set-options');
+  });
+});
