@@ -38,5 +38,9 @@ export type IconName =
   | 'settings'
   | 'database-export'
   | 'clipboard'
-  | 'arrow-forward';
+  | 'arrow-forward'
+  | 'verified'
+  | 'arrow-up'
+  | 'arrow-down'
+  | 'drag';
 export type IconWeight = 'thin' | 'regular' | 'bold' | 'fill';

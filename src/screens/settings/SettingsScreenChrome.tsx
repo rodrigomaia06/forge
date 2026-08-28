@@ -8,9 +8,11 @@ import { typeScale } from '../../theme/tokens';
 export function SettingsDetailHeader({
   title,
   navigation,
+  rightAction,
 }: {
   title: string;
   navigation: { goBack: () => void };
+  rightAction?: React.ReactNode;
 }) {
   return (
     <View style={styles.header}>
@@ -26,7 +28,7 @@ export function SettingsDetailHeader({
           {title}
         </Text>
       </View>
-      <View style={styles.spacer} />
+      <View style={styles.spacer}>{rightAction}</View>
       <HeaderEdge />
     </View>
   );
@@ -38,14 +40,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     alignItems: 'center',
     flexDirection: 'row',
+    justifyContent: 'space-between',
     backgroundColor: dashboardTheme.background,
   },
   titleWrap: {
     position: 'absolute',
-    left: 124,
-    right: 124,
+    left: 76,
+    right: 128,
     alignItems: 'center',
   },
   title: { ...typeScale.headerTitle, color: dashboardTheme.ink },
-  spacer: { width: 100, height: 44 },
+  spacer: { width: 100, height: 44, alignItems: 'flex-end', justifyContent: 'center' },
 });

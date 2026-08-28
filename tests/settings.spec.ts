@@ -15,11 +15,16 @@ test.describe('Settings', () => {
 
     await page.getByRole('button', { name: 'Exercises' }).click();
     await expect(page.getByTestId('settings-detail-title')).toHaveText('Exercises');
+    await page.getByRole('button', { name: 'Filters' }).click();
+    await expect(page.getByText('Category', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await expect(page.getByTestId('settings-title')).toBeVisible();
 
     await page.getByRole('button', { name: 'Workout types' }).click();
     await expect(page.getByTestId('settings-detail-title')).toHaveText('Workout types');
+    await page.getByRole('button', { name: 'Strength workout type' }).click();
+    await expect(page.getByLabel('Workout type name')).toBeVisible();
+    await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
 
     await page.getByRole('button', { name: 'Backup & Export' }).click();
