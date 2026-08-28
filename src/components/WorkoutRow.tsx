@@ -1,7 +1,7 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Icon } from './ui';
-import { colors, typography } from '../theme/tokens';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { ForgeText as Text, Icon } from './ui';
+import { colors, typeScale } from '../theme/tokens';
 import type { ForgeTheme, IconName, WorkoutSummary } from '../types';
 
 export function WorkoutRow({
@@ -85,20 +85,8 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     gap: 10,
   },
-  name: {
-    flex: 1,
-    color: colors.ink,
-    fontFamily: typography.semibold,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  meta: {
-    color: colors.slate,
-    fontFamily: typography.regular,
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 0,
-  },
+  name: { flex: 1, color: colors.ink, ...typeScale.cardTitle },
+  meta: { color: colors.slate, ...typeScale.label, marginTop: 0 },
   pressed: { opacity: 0.65 },
 });
 

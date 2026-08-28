@@ -70,4 +70,31 @@ test.describe('Dashboard', () => {
       expect(title.textShadow).toBe(dashboardTitle.textShadow);
     }
   });
+
+  test('uses the Forge semantic scale for page and supporting text', async ({ page }) => {
+    await page.goto('/');
+
+    const readTextMetrics = async (locator: ReturnType<typeof page.locator>) =>
+      locator.evaluate((element) => {
+        const style = window.getComputedStyle(element);
+        return { fontSize: style.fontSize, lineHeight: style.lineHeight };
+      });
+
+    await expect(page.getByTestId('dashboard-header-title')).toBeVisible();
+    const selectedDate = page.getByText(/^August \d{1,2}, 2026$/);
+    await expect(selectedDate).toBeVisible();
+    expect(await readTextMetrics(page.getByTestId('dashboard-header-title'))).toEqual({
+      fontSize: '31px',
+      lineHeight: '36px',
+    });
+    expect(await readTextMetrics(selectedDate)).toEqual({
+      fontSize: '18px',
+      lineHeight: '24px',
+    });
+    await page.getByRole('tab', { name: 'History' }).click();
+    expect(await readTextMetrics(page.getByTestId('history-title'))).toEqual({
+      fontSize: '31px',
+      lineHeight: '36px',
+    });
+  });
 });

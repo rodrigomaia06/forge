@@ -4,7 +4,6 @@ import {
   Easing,
   Platform,
   Pressable,
-  Text,
   View,
   useWindowDimensions,
 } from 'react-native';
@@ -14,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { monthDays, workoutsByDate } from '../data/mockWorkouts';
 import { colors } from '../theme/tokens';
-import { Icon, pressedFeedback, pressedFeedbackSubtle } from './ui';
+import { ForgeText as Text, Icon, pressedFeedback, pressedFeedbackSubtle } from './ui';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import type { ForgeTheme, WorkoutMap, WorkoutSummary } from '../types';

@@ -1,8 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { Button, ScreenTitle } from './ui';
-import { typography, spacing } from '../theme/tokens';
+import { Button, ForgeText as Text, ScreenTitle } from './ui';
+import { spacing, typeScale } from '../theme/tokens';
 import type { ForgeTheme, IconName, IconWeight } from '../types';
 
 export const HEADER_VARIANTS = {
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   copy: { flex: 1, minWidth: 0, justifyContent: 'center', paddingRight: 16 },
-  subtitle: { fontFamily: typography.medium, fontSize: 13, lineHeight: 17, marginTop: 2 },
+  subtitle: { ...typeScale.label, marginTop: 2 },
   headerIconButton: {
     width: 46,
     height: 46,

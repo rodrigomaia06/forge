@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { colors, typography } from '../../theme/tokens';
+import { colors, typeScale } from '../../theme/tokens';
+import { ForgeText as Text } from './ForgeText';
 import type { ForgeTheme } from '../../types';
 
 export function SectionHeader({
@@ -28,12 +29,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 13,
   },
-  title: {
-    color: colors.ink,
-    fontFamily: typography.semibold,
-    fontSize: 18,
-    fontWeight: '600',
-    letterSpacing: -0.2,
-  },
-  meta: { color: colors.muted, fontFamily: typography.medium, fontSize: 13 },
+  title: { color: colors.ink, ...typeScale.sectionTitle },
+  meta: { color: colors.muted, ...typeScale.label },
 });

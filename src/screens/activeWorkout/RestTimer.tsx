@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -13,7 +13,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
-import { Icon } from '../../components/ui';
+import { ForgeText as Text, Icon } from '../../components/ui';
 import { dashboardTheme } from '../../theme/dashboardTheme';
 import { styles } from './activeWorkoutStyles';
 import { formatRest, formatRestDisplay } from './activeWorkoutFormatters';

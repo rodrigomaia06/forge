@@ -1,7 +1,7 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
-import { Icon } from './ui';
-import { colors, radii, typography } from '../theme/tokens';
+import { Pressable, StyleSheet } from 'react-native';
+import { ForgeText as Text, Icon } from './ui';
+import { colors, radii, typeScale } from '../theme/tokens';
 import type { ForgeTheme, IconName } from '../types';
 
 export function IconButton({
@@ -54,11 +54,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.control,
   },
   filled: { backgroundColor: colors.inkInteractive },
-  actionText: {
-    color: colors.surface,
-    fontFamily: typography.semibold,
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  actionText: { color: colors.surface, ...typeScale.supporting },
   pressed: { opacity: 0.65 },
 });

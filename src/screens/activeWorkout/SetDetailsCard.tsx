@@ -6,9 +6,8 @@ import {
   Platform,
   Pressable,
   StyleSheet,
-  Text,
-  TextInput,
   type TextInputProps,
+  type TextInput as NativeTextInput,
   View,
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -19,9 +18,15 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { Icon, pressedFeedback, pressedFeedbackSubtle } from '../../components/ui';
+import {
+  ForgeText as Text,
+  ForgeTextInput as TextInput,
+  Icon,
+  pressedFeedback,
+  pressedFeedbackSubtle,
+} from '../../components/ui';
 import { dashboardTheme } from '../../theme/dashboardTheme';
-import { typography } from '../../theme/tokens';
+import { typeScale } from '../../theme/tokens';
 import { styles as workoutSheetStyles } from './activeWorkoutStyles';
 import { lightHaptic, selectionHaptic } from './activeWorkoutFeedback';
 import type { WorkoutSet, WorkoutSetChanges } from '../../types';
@@ -398,7 +403,7 @@ function TargetRow({
   onFocus: () => void;
   editable?: boolean;
 }) {
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<NativeTextInput>(null);
   const focusInput = useCallback(() => {
     inputRef.current?.focus();
     requestAnimationFrame(() => inputRef.current?.setSelection(value.length, value.length));
@@ -463,18 +468,13 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: dashboardTheme.surfaceMuted,
   },
-  setNumberBadgeText: {
-    color: dashboardTheme.ink,
-    fontFamily: typography.semibold,
-    fontSize: 15,
-  },
+  setNumberBadgeText: { color: dashboardTheme.ink, ...typeScale.cardTitle },
   title: {
     position: 'absolute',
     left: 0,
     right: 0,
     color: dashboardTheme.ink,
-    fontFamily: typography.semibold,
-    fontSize: 17,
+    ...typeScale.sectionTitle,
     textAlign: 'center',
     zIndex: 1,
   },
@@ -492,12 +492,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: dashboardTheme.divider,
   },
-  recordedValue: {
-    color: dashboardTheme.ink,
-    fontFamily: typography.medium,
-    fontSize: 15,
-    lineHeight: 21,
-  },
+  recordedValue: { color: dashboardTheme.ink, ...typeScale.body },
   deleteButton: {
     minHeight: 48,
     marginHorizontal: -20,
@@ -509,7 +504,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF2F2',
   },
   deleteButtonPressed: { backgroundColor: '#FBE1E1' },
-  deleteText: { color: '#F0444D', fontFamily: typography.semibold, fontSize: 14 },
+  deleteText: { color: '#F0444D', ...typeScale.supporting },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -521,13 +516,7 @@ const styles = StyleSheet.create({
   typeSection: { position: 'relative' },
   targetHeader: { paddingBottom: 6, position: 'relative' },
   targetSection: { borderBottomWidth: 0 },
-  label: {
-    color: dashboardTheme.slate,
-    fontFamily: typography.bold,
-    fontSize: 13,
-    letterSpacing: 0.3,
-    transform: [{ translateX: -8 }],
-  },
+  label: { color: dashboardTheme.slate, ...typeScale.label, transform: [{ translateX: -8 }] },
   commentLabel: { transform: [{ translateX: -10 }] },
   helpButton: {
     width: 22,
@@ -538,7 +527,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  helpText: { color: dashboardTheme.slate, fontFamily: typography.bold, fontSize: 13 },
+  helpText: { color: dashboardTheme.slate, ...typeScale.label },
   infoPopover: {
     position: 'absolute',
     top: 30,
@@ -555,12 +544,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 4,
   },
-  infoPopoverText: {
-    color: dashboardTheme.surface,
-    fontFamily: typography.regular,
-    fontSize: 11,
-    lineHeight: 15,
-  },
+  infoPopoverText: { color: dashboardTheme.surface, ...typeScale.caption },
   tagRow: {
     minHeight: 33,
     alignSelf: 'stretch',
@@ -577,15 +561,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(77,123,103,0.15)',
   },
   dot: { width: 12, height: 12, borderRadius: 6 },
-  tagText: { flex: 1, color: dashboardTheme.ink, fontFamily: typography.medium, fontSize: 13 },
+  tagText: { flex: 1, color: dashboardTheme.ink, ...typeScale.label },
   commentInput: {
     flex: 1,
     height: 40,
     paddingHorizontal: 0,
     paddingVertical: 0,
     color: dashboardTheme.ink,
-    fontFamily: typography.regular,
-    fontSize: 13,
+    ...typeScale.label,
     textAlignVertical: 'center',
   },
   commentField: {
@@ -600,11 +583,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: dashboardTheme.surface,
   },
-  commentCount: {
-    color: dashboardTheme.slate,
-    fontFamily: typography.regular,
-    fontSize: 11,
-  },
+  commentCount: { color: dashboardTheme.slate, ...typeScale.caption },
   targetCards: {
     flexDirection: 'row',
     gap: 8,
@@ -628,11 +607,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  targetLabel: {
-    color: dashboardTheme.ink,
-    fontFamily: typography.medium,
-    fontSize: 13,
-  },
+  targetLabel: { color: dashboardTheme.ink, ...typeScale.label },
   targetValue: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -648,8 +623,7 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     backgroundColor: 'transparent',
     color: dashboardTheme.ink,
-    fontFamily: typography.medium,
-    fontSize: 20,
+    ...typeScale.sectionTitle,
     textAlign: 'right',
     textAlignVertical: 'center',
     paddingVertical: 2,
@@ -657,8 +631,6 @@ const styles = StyleSheet.create({
   targetUnit: {
     minWidth: 0,
     color: dashboardTheme.muted,
-    fontFamily: typography.medium,
-    fontSize: 13,
-    lineHeight: 20,
+    ...typeScale.label,
   },
 });

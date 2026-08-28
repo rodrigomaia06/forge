@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { typography } from '../../theme/tokens';
+import { typeScale } from '../../theme/tokens';
 
 export const styles = StyleSheet.create({
   calendar: {
@@ -19,22 +19,9 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
     paddingHorizontal: 12,
   },
-  monthTitle: {
-    fontFamily: typography.semibold,
-    fontSize: 17,
-    lineHeight: 22,
-    fontWeight: '600',
-    letterSpacing: -0.15,
-  },
+  monthTitle: typeScale.cardTitle,
   weekHeader: { flexDirection: 'row', marginBottom: 7, paddingHorizontal: 6 },
-  weekLabel: {
-    flex: 1,
-    textAlign: 'center',
-    fontFamily: typography.medium,
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '500',
-  },
+  weekLabel: { flex: 1, textAlign: 'center', ...typeScale.caption },
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 6 },
   dayCell: { width: '14.2857%', height: 42, alignItems: 'center', justifyContent: 'center' },
   dateTouchTarget: { width: '100%', height: 42, alignItems: 'center', justifyContent: 'center' },
@@ -46,8 +33,8 @@ export const styles = StyleSheet.create({
     borderRadius: 17,
     position: 'relative',
   },
-  dayText: { fontFamily: typography.regular, fontSize: 14, lineHeight: 18, fontWeight: '400' },
-  selectedDayText: { fontFamily: typography.semibold, fontWeight: '600' },
+  dayText: typeScale.supporting,
+  selectedDayText: { fontFamily: typeScale.cardTitle.fontFamily, fontWeight: '600' },
   markers: {
     position: 'absolute',
     left: 0,
@@ -67,7 +54,7 @@ export const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 2,
   },
-  viewControlText: { fontFamily: typography.medium, fontSize: 13 },
+  viewControlText: typeScale.label,
   viewMenu: {
     position: 'absolute',
     top: 54,
@@ -91,16 +78,11 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 8,
   },
-  viewMenuText: { fontFamily: typography.medium, fontSize: 13 },
-  viewMenuCheck: { fontFamily: typography.bold, fontSize: 14 },
+  viewMenuText: typeScale.label,
+  viewMenuCheck: typeScale.supporting,
   yearGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 12 },
   yearMonth: { width: '31%', minHeight: 58, padding: 4 },
-  yearMonthTitle: {
-    fontFamily: typography.semibold,
-    fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 7,
-  },
+  yearMonthTitle: { ...typeScale.label, marginBottom: 7 },
   miniGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 1.5 },
   miniDay: { width: 7, height: 7, borderRadius: 1.5 },
   pressed: { opacity: 0.72 },

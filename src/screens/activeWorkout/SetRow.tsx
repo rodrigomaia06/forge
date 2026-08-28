@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, View } from 'react-native';
+import { ForgeText as Text, ForgeTextInput as TextInput } from '../../components/ui';
 import { dashboardTheme } from '../../theme/dashboardTheme';
-import { typography } from '../../theme/tokens';
+import { typeScale } from '../../theme/tokens';
 import { errorHaptic } from './activeWorkoutFeedback';
 import { CompletionCheck } from './CompletionCheck';
 import type { SetRowProps } from './activeWorkoutTypes';
@@ -163,17 +164,15 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 15,
     textAlign: 'center',
-    lineHeight: 30,
     backgroundColor: dashboardTheme.surfaceMuted,
     color: dashboardTheme.ink,
-    fontFamily: typography.medium,
-    fontSize: 12,
+    ...typeScale.caption,
+    lineHeight: 30,
   },
   previous: {
     flex: 1,
     color: dashboardTheme.ink,
-    fontFamily: typography.medium,
-    fontSize: 13,
+    ...typeScale.label,
     textAlign: 'center',
   },
   inputColumn: { width: 52 },
@@ -184,8 +183,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: dashboardTheme.surfaceMuted,
     color: dashboardTheme.ink,
-    fontFamily: typography.medium,
-    fontSize: 14,
+    ...typeScale.supporting,
     textAlign: 'center',
     paddingHorizontal: 3,
   },
@@ -203,8 +201,6 @@ const styles = StyleSheet.create({
     bottom: 3,
     left: 52,
     color: dashboardTheme.slate,
-    fontFamily: typography.regular,
-    fontSize: 11,
-    lineHeight: 15,
+    ...typeScale.caption,
   },
 });

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -7,9 +7,9 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { Icon, pressedFeedback, pressedFeedbackSubtle } from '../../components/ui';
+import { ForgeText as Text, Icon, pressedFeedback, pressedFeedbackSubtle } from '../../components/ui';
 import { dashboardTheme } from '../../theme/dashboardTheme';
-import { typography } from '../../theme/tokens';
+import { typeScale } from '../../theme/tokens';
 import {
   animateLayout,
   animateSetRemoval,
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     transform: [{ translateY: 3 }],
   },
   deleteExerciseActionPressed: { backgroundColor: '#F1CED0' },
-  deleteExerciseText: { color: '#D64848', fontFamily: typography.semibold, fontSize: 12 },
+  deleteExerciseText: { color: '#D64848', ...typeScale.caption },
   exerciseCard: {
     backgroundColor: dashboardTheme.surface,
     borderRadius: 0,
@@ -370,18 +370,13 @@ const styles = StyleSheet.create({
   readOnlyExerciseName: {
     flexShrink: 1,
     color: dashboardTheme.ink,
-    fontFamily: typography.semibold,
-    fontSize: 15,
-    lineHeight: 20,
-    fontWeight: '600',
+    ...typeScale.cardTitle,
   },
   readOnlyExerciseCount: {
     flexShrink: 0,
     marginLeft: 4,
     color: dashboardTheme.slate,
-    fontFamily: typography.regular,
-    fontSize: 13,
-    lineHeight: 20,
+    ...typeScale.label,
   },
   readOnlyExpandedChevron: { transform: [{ rotate: '180deg' }] },
   readOnlySets: { paddingHorizontal: 12, paddingBottom: 4 },
@@ -395,12 +390,9 @@ const styles = StyleSheet.create({
   exerciseName: {
     flex: 1,
     color: dashboardTheme.ink,
-    fontFamily: typography.semibold,
-    fontSize: 15,
-    lineHeight: 20,
-    fontWeight: '600',
+    ...typeScale.cardTitle,
   },
-  exerciseNameLarge: { fontSize: 17, lineHeight: 23 },
+  exerciseNameLarge: typeScale.sectionTitle,
   moreButton: {
     width: 40,
     height: 40,
@@ -417,13 +409,7 @@ const styles = StyleSheet.create({
     borderBottomColor: dashboardTheme.divider,
   },
   setHeaderLarge: { minHeight: 34 },
-  setHeaderText: {
-    color: dashboardTheme.slate,
-    fontFamily: typography.medium,
-    fontSize: 12.5,
-    lineHeight: 17,
-    textAlign: 'center',
-  },
+  setHeaderText: { color: dashboardTheme.slate, ...typeScale.label, textAlign: 'center' },
   setColumn: { width: 46 },
   previousColumn: { flex: 1 },
   inputColumn: { width: 52 },
@@ -439,7 +425,7 @@ const styles = StyleSheet.create({
     borderTopColor: dashboardTheme.divider,
   },
   addSetLarge: { minHeight: 48 },
-  addSetText: { color: dashboardTheme.accent, fontFamily: typography.medium, fontSize: 13 },
+  addSetText: { color: dashboardTheme.accent, ...typeScale.label },
   readOnlySetRow: {
     minHeight: 48,
     flexDirection: 'row',
@@ -454,17 +440,15 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 15,
     textAlign: 'center',
-    lineHeight: 30,
     backgroundColor: dashboardTheme.surfaceMuted,
     color: dashboardTheme.ink,
-    fontFamily: typography.medium,
-    fontSize: 12,
+    ...typeScale.caption,
+    lineHeight: 30,
   },
   previous: {
     flex: 1,
     color: dashboardTheme.ink,
-    fontFamily: typography.medium,
-    fontSize: 13,
+    ...typeScale.label,
     textAlign: 'center',
   },
   readOnlyInput: {
@@ -476,6 +460,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: dashboardTheme.surfaceMuted,
   },
-  readOnlyInputText: { color: dashboardTheme.ink, fontFamily: typography.medium, fontSize: 14 },
+  readOnlyInputText: { color: dashboardTheme.ink, ...typeScale.supporting },
   check: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
 });

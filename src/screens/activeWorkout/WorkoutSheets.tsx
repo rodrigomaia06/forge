@@ -7,8 +7,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -20,9 +18,9 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { Button, Icon } from '../../components/ui';
+import { Button, ForgeText as Text, ForgeTextInput as TextInput, Icon } from '../../components/ui';
 import { dashboardTheme } from '../../theme/dashboardTheme';
-import { typography } from '../../theme/tokens';
+import { typeScale } from '../../theme/tokens';
 import { exerciseCatalog, type ExerciseCatalogItem } from '../../data/exerciseCatalog';
 import { CompletionCheck } from './CompletionCheck';
 import { animateLayout, lightHaptic, mediumHaptic, selectionHaptic } from './activeWorkoutFeedback';
@@ -837,13 +835,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   pickerDragArea: { marginHorizontal: -20, paddingHorizontal: 20 },
-  pickerTitle: {
-    color: dashboardTheme.ink,
-    fontFamily: typography.bold,
-    fontSize: 21,
-    lineHeight: 26,
-    fontWeight: '700',
-  },
+  pickerTitle: { color: dashboardTheme.ink, ...typeScale.sectionTitle },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -878,11 +870,7 @@ const styles = StyleSheet.create({
     backgroundColor: dashboardTheme.surfaceMuted,
   },
   filterButtonPressed: { opacity: 0.7 },
-  filterText: {
-    color: dashboardTheme.ink,
-    fontFamily: typography.medium,
-    fontSize: 12,
-  },
+  filterText: { color: dashboardTheme.ink, ...typeScale.label },
   filterBadge: {
     minWidth: 18,
     height: 18,
@@ -891,24 +879,14 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     backgroundColor: '#6678F0',
   },
-  filterBadgeText: {
-    color: dashboardTheme.surface,
-    fontFamily: typography.bold,
-    fontSize: 11,
-    lineHeight: 14,
-  },
+  filterBadgeText: { color: dashboardTheme.surface, ...typeScale.caption },
   filterPanel: {
     marginTop: 8,
     padding: 12,
     borderRadius: 14,
     backgroundColor: dashboardTheme.surfaceMuted,
   },
-  filterPanelTitle: {
-    marginBottom: 8,
-    color: dashboardTheme.slate,
-    fontFamily: typography.semibold,
-    fontSize: 12,
-  },
+  filterPanelTitle: { marginBottom: 8, color: dashboardTheme.slate, ...typeScale.label },
   filterChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   filterChoice: {
     paddingHorizontal: 11,
@@ -917,19 +895,14 @@ const styles = StyleSheet.create({
     backgroundColor: dashboardTheme.surface,
   },
   filterChoiceActive: { backgroundColor: '#6678F0' },
-  filterChoiceText: {
-    color: dashboardTheme.slate,
-    fontFamily: typography.medium,
-    fontSize: 12,
-  },
+  filterChoiceText: { color: dashboardTheme.slate, ...typeScale.label },
   filterChoiceTextActive: { color: dashboardTheme.surface },
   searchInput: {
     flex: 1,
     minHeight: 40,
     paddingVertical: 0,
     color: dashboardTheme.ink,
-    fontFamily: typography.regular,
-    fontSize: 13,
+    ...typeScale.label,
   },
   pickerList: { flex: 1, marginTop: 10 },
   pickerListContent: { paddingBottom: 22 },
@@ -937,9 +910,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     marginBottom: 7,
     color: dashboardTheme.slate,
-    fontFamily: typography.semibold,
-    fontSize: 16,
-    lineHeight: 21,
+    ...typeScale.cardTitle,
   },
   categoryCard: {
     overflow: 'hidden',
@@ -967,18 +938,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(77,123,103,0.18)',
     backgroundColor: 'rgba(77,123,103,0.10)',
   },
-  groupName: {
-    color: dashboardTheme.ink,
-    fontFamily: typography.semibold,
-    fontSize: 15,
-    lineHeight: 19,
-  },
-  groupMeta: {
-    color: dashboardTheme.slate,
-    fontFamily: typography.regular,
-    fontSize: 12,
-    lineHeight: 15,
-  },
+  groupName: { color: dashboardTheme.ink, ...typeScale.body },
+  groupMeta: { color: dashboardTheme.slate, ...typeScale.caption },
   groupActions: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   groupCount: {
     width: 24,
@@ -989,11 +950,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F3FA',
   },
   groupCountActive: { backgroundColor: '#E5EBFF' },
-  groupCountText: {
-    color: dashboardTheme.slate,
-    fontFamily: typography.semibold,
-    fontSize: 11,
-  },
+  groupCountText: { color: dashboardTheme.slate, ...typeScale.caption },
   groupCountTextActive: { color: '#5269D9' },
   equipmentGroup: { overflow: 'hidden' },
   equipmentRow: {
@@ -1011,16 +968,9 @@ const styles = StyleSheet.create({
   equipmentName: {
     flex: 1,
     color: dashboardTheme.ink,
-    fontFamily: typography.medium,
-    fontSize: 15,
-    lineHeight: 19,
+    ...typeScale.body,
   },
-  equipmentMeta: {
-    color: dashboardTheme.slate,
-    fontFamily: typography.regular,
-    fontSize: 12,
-    lineHeight: 15,
-  },
+  equipmentMeta: { color: dashboardTheme.slate, ...typeScale.caption },
   subVariationRow: {
     minHeight: 50,
     paddingHorizontal: 14,
@@ -1036,9 +986,7 @@ const styles = StyleSheet.create({
   variationName: {
     flex: 1,
     color: dashboardTheme.ink,
-    fontFamily: typography.medium,
-    fontSize: 15,
-    lineHeight: 19,
+    ...typeScale.body,
   },
   exerciseOption: {
     minHeight: 66,
@@ -1058,23 +1006,12 @@ const styles = StyleSheet.create({
   },
   exerciseOptionPressed: { opacity: 0.72 },
   exerciseOptionCopy: { flex: 1, gap: 2 },
-  exerciseOptionName: {
-    color: dashboardTheme.ink,
-    fontFamily: typography.medium,
-    fontSize: 16,
-    lineHeight: 21,
-  },
-  exerciseOptionEquipment: {
-    color: '#4F625A',
-    fontFamily: typography.regular,
-    fontSize: 13,
-    lineHeight: 17,
-  },
+  exerciseOptionName: { color: dashboardTheme.ink, ...typeScale.cardTitle },
+  exerciseOptionEquipment: { color: '#4F625A', ...typeScale.label },
   emptySearch: {
     paddingVertical: 28,
     color: dashboardTheme.slate,
-    fontFamily: typography.regular,
-    fontSize: 16,
+    ...typeScale.cardTitle,
     textAlign: 'center',
   },
   pickerSubmit: {
@@ -1126,9 +1063,7 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     color: dashboardTheme.ink,
-    fontFamily: typography.semibold,
-    fontSize: 18,
-    fontWeight: '600',
+    ...typeScale.sectionTitle,
     textAlign: 'center',
     position: 'absolute',
     left: 0,
@@ -1160,12 +1095,7 @@ const styles = StyleSheet.create({
     borderBottomColor: dashboardTheme.divider,
   },
   optionRowPressed: { backgroundColor: dashboardTheme.surfaceMuted, opacity: 0.8 },
-  optionLabel: {
-    flex: 1,
-    color: dashboardTheme.ink,
-    fontFamily: typography.regular,
-    fontSize: 16,
-  },
+  optionLabel: { flex: 1, color: dashboardTheme.ink, ...typeScale.cardTitle },
   destructiveAction: {
     minHeight: 65,
     marginHorizontal: -22,
@@ -1175,10 +1105,5 @@ const styles = StyleSheet.create({
     gap: 18,
   },
   destructivePressed: { backgroundColor: 'rgba(255,59,48,0.08)', opacity: 0.8 },
-  destructiveText: {
-    color: '#FF3B30',
-    fontFamily: typography.semibold,
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  destructiveText: { color: '#FF3B30', ...typeScale.cardTitle },
 });

@@ -1,6 +1,7 @@
 export { AppScreen } from './AppScreen';
 export { Button } from './Button';
 export { Divider } from './Divider';
+export { ForgeText, ForgeTextInput } from './ForgeText';
 export { HeaderAction } from './HeaderAction';
 export { HeaderEdge } from './HeaderEdge';
 export { pressedFeedback, pressedFeedbackSubtle } from './pressFeedback';

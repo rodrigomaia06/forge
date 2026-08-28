@@ -2,7 +2,6 @@ import React from 'react';
 import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
 import { dashboardTheme } from '../../theme/dashboardTheme';
-import { typography } from '../../theme/tokens';
 import type { IconName } from '../../types';
 import { Button } from './Button';
 
@@ -34,12 +33,11 @@ export function HeaderAction({
       accessibilityLabel={accessibilityLabel}
       label={label}
       icon={icon}
-      iconSize={18}
+      iconSize={20}
       variant="secondary"
       onPress={onPress}
       theme={dashboardTheme}
       labelColor={labelColor ?? (isAccent ? dashboardTheme.surface : dashboardTheme.ink)}
-      labelStyle={styles.label}
       style={[
         styles.base,
         isAccent ? { backgroundColor: accent, borderColor: accent } : styles.neutral,
@@ -51,10 +49,10 @@ export function HeaderAction({
 
 const styles = StyleSheet.create({
   base: {
-    width: 90,
-    height: 42,
-    minWidth: 90,
-    minHeight: 42,
+    width: 100,
+    height: 44,
+    minWidth: 100,
+    minHeight: 44,
     paddingHorizontal: 8,
     borderRadius: 21,
     borderWidth: 1,
@@ -63,5 +61,4 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.45)',
     backgroundColor: 'rgba(255,255,255,0.68)',
   },
-  label: { fontFamily: typography.semibold, fontSize: 13, lineHeight: 17 },
 });

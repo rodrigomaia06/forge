@@ -1,9 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { AppScreen, Button, lightHaptic, ScreenTitle } from '../components/ui';
+import { StyleSheet, View } from 'react-native';
+import { AppScreen, Button, ForgeText as Text, lightHaptic, ScreenTitle } from '../components/ui';
 import { NavigationFooter } from '../components/NavigationFooter';
 import { dashboardTheme } from '../theme/dashboardTheme';
-import { typography } from '../theme/tokens';
+import { typeScale } from '../theme/tokens';
 
 export function PlaceholderScreen({
   title,
@@ -53,14 +53,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   container: { flex: 1, paddingHorizontal: 20 },
-  description: {
-    color: dashboardTheme.slate,
-    fontFamily: typography.regular,
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: 8,
-    maxWidth: 300,
-  },
+  description: { color: dashboardTheme.slate, ...typeScale.body, marginTop: 8, maxWidth: 300 },
   empty: { alignItems: 'flex-start', paddingTop: 24 },
   action: { marginTop: 20 },
 });

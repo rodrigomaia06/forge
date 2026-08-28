@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, type StyleProp, type TextProps, type TextStyle } from 'react-native';
+import { StyleSheet, type StyleProp, type TextProps, type TextStyle } from 'react-native';
 
-import { colors, typography } from '../../theme/tokens';
+import { colors, typeScale } from '../../theme/tokens';
+import { ForgeText as Text } from './ForgeText';
 
 interface ScreenTitleProps extends Pick<TextProps, 'children' | 'numberOfLines' | 'testID'> {
   color?: string;
@@ -17,14 +18,5 @@ export function ScreenTitle({ children, color = colors.ink, style, ...props }: S
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontFamily: typography.bold,
-    fontSize: 31,
-    lineHeight: 36,
-    fontWeight: '700',
-    letterSpacing: -1,
-    textShadowColor: 'rgba(23, 36, 49, 0.12)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1.5,
-  },
+  title: typeScale.screenTitle,
 });

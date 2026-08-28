@@ -3,13 +3,13 @@ import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
-  Text,
   type StyleProp,
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
 import { Icon } from './Icon';
-import { colors, radii, typography } from '../../theme/tokens';
+import { ForgeText as Text } from './ForgeText';
+import { colors, radii, typeScale } from '../../theme/tokens';
 import type { ForgeTheme, IconName, IconWeight } from '../../types';
 
 interface ButtonProps {
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   },
   primary: { minWidth: 92 },
   outline: { borderWidth: 2 },
-  label: { fontFamily: typography.semibold, fontSize: 14, fontWeight: '600' },
+  label: typeScale.controlLabel,
   disabled: { opacity: 0.45 },
   pressed: { opacity: 0.65 },
 });

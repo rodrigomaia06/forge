@@ -1,11 +1,11 @@
 import React from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { DashboardHeader } from '../../components/DashboardHeader';
 import { DockChrome } from '../../components/DockChrome';
 import { Calendar, type CalendarMenuState } from '../../components/Calendar';
 import { WorkoutRow } from '../../components/WorkoutRow';
-import { AppScreen, Button, lightHaptic } from '../../components/ui';
+import { AppScreen, Button, ForgeText as Text, lightHaptic } from '../../components/ui';
 import { useLayoutProbe } from '../../debug/layoutProbe';
 import { useWorkouts } from '../../state/WorkoutContext';
 import type { ReactElement, ReactNode } from 'react';
