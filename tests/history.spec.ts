@@ -30,7 +30,7 @@ test.describe('History screen', () => {
     await expect(page.getByText('This week', { exact: true })).toBeVisible();
     await expect(page.getByText('Last week', { exact: true })).toBeVisible();
     await expect(page.getByText('2 weeks ago', { exact: true })).toBeVisible();
-    await expect(page.getByText('Muay Thai', { exact: true })).toBeVisible();
+    await expect(page.getByText('Muay Thai', { exact: true }).last()).toBeVisible();
     await expect(page.getByText('Martial arts', { exact: true })).toHaveCount(0);
     await expect(page.getByText('3 exercises · 8 sets', { exact: true })).toBeVisible();
     await expect(page.getByText('7 exercises · 16 sets', { exact: true })).toBeVisible();
@@ -49,7 +49,7 @@ test.describe('History screen', () => {
 
     const summary = page.getByTestId('workout-details-summary');
     await expect(summary.getByText('Muay Thai', { exact: true })).toHaveCount(0);
-    await expect(page.getByText('Muay Thai', { exact: true })).toBeVisible();
+    await expect(page.getByText('Muay Thai', { exact: true }).last()).toBeVisible();
     await expect(summary.getByText('1h 12m', { exact: true })).toBeVisible();
     await expect(summary.getByText('Duration', { exact: true })).toBeVisible();
     await expect(page.getByText('Rest', { exact: true })).toHaveCount(0);
@@ -65,6 +65,22 @@ test.describe('History screen', () => {
 
     await page.getByRole('tab', { name: 'History' }).click();
     await expect(page.getByTestId('history-header')).toBeVisible();
+  });
+
+  test('returns to History through the Back action after opening a workout', async ({ page }) => {
+    await page.getByRole('button', { name: 'Open Muay Thai' }).click();
+    await page.getByRole('button', { name: 'Back to History' }).click();
+    await expect(page.getByTestId('history-header')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open Muay Thai' })).toBeVisible();
+  });
+
+  test('uses the shared 15px action label in workout headers', async ({ page }) => {
+    await page.getByRole('button', { name: 'Open Muay Thai' }).click();
+    const metrics = await page.getByText('Back', { exact: true }).evaluate((element) => {
+      const style = window.getComputedStyle(element);
+      return { fontSize: style.fontSize, lineHeight: style.lineHeight };
+    });
+    expect(metrics).toEqual({ fontSize: '15px', lineHeight: '20px' });
   });
 
   test('opens functional workout options and can delete the selected workout', async ({ page }) => {
@@ -86,7 +102,7 @@ test.describe('History screen', () => {
     await page.getByLabel('Location').fill('Forge Gym');
     await page.getByLabel('Notes').fill('Updated session');
     await page.getByRole('button', { name: 'Save workout' }).click();
-    await expect(page.getByText('Edited Muay Thai', { exact: true })).toBeVisible();
+    await expect(page.getByText('Edited Muay Thai', { exact: true }).last()).toBeVisible();
     await page.getByRole('tab', { name: 'History' }).click();
     await expect(page.getByRole('button', { name: 'Open Edited Muay Thai' })).toBeVisible();
     await page.reload();

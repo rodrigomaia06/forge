@@ -7,8 +7,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -16,6 +14,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import {
   AppScreen,
+  ForgeText as Text,
+  ForgeTextInput as TextInput,
   HeaderAction,
   HeaderEdge,
   Icon,
@@ -29,7 +29,7 @@ import { ExerciseSection } from './activeWorkout/ExerciseSection';
 import { AddExerciseSheet } from './activeWorkout/WorkoutSheets';
 import { contrastingIconColor, workoutTypeColor } from './activeWorkout/workoutTypeColor';
 import { dashboardTheme } from '../theme/dashboardTheme';
-import { typography } from '../theme/tokens';
+import { typeScale } from '../theme/tokens';
 import { useWorkouts } from '../state/WorkoutContext';
 import {
   addExerciseToWorkout,
@@ -52,6 +52,11 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
   const [openExerciseId, setOpenExerciseId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const returnToHistory = (): void => {
+    if (navigation.canGoBack()) navigation.goBack();
+    else navigation.navigate('History');
+  };
+
   const dirty = useMemo(
     () => Boolean(source && draft && JSON.stringify(source) !== JSON.stringify(draft)),
     [draft, source],
@@ -62,7 +67,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
   };
   const discard = (): void => {
     lightHaptic();
-    const leave = () => navigation.goBack();
+    const leave = returnToHistory;
     if (!dirty) return leave();
     Alert.alert('Discard changes?', 'Your edits to this workout will not be saved.', [
       { text: 'Keep editing', style: 'cancel' },
@@ -454,13 +459,7 @@ const styles = StyleSheet.create({
   },
   headerTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   titleBlock: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center' },
-  title: {
-    color: dashboardTheme.ink,
-    fontFamily: typography.semibold,
-    fontSize: 20,
-    lineHeight: 24,
-    textAlign: 'center',
-  },
+  title: { color: dashboardTheme.ink, ...typeScale.sectionTitle, textAlign: 'center' },
   keyboardArea: { flex: 1 },
   content: { padding: 16, paddingBottom: 116, gap: 14 },
   formCard: {
@@ -472,35 +471,25 @@ const styles = StyleSheet.create({
     borderColor: dashboardTheme.divider,
   },
   identityGroup: { gap: 0 },
-  cardEyebrow: {
-    color: dashboardTheme.slate,
-    fontFamily: typography.semibold,
-    fontSize: 11,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
+  cardEyebrow: { color: dashboardTheme.slate, ...typeScale.caption, textTransform: 'uppercase' },
   nameInput: {
     minHeight: 36,
     padding: 0,
     color: dashboardTheme.ink,
-    fontFamily: typography.semibold,
-    fontSize: 22,
-    lineHeight: 28,
+    ...typeScale.metricMedium,
   },
   typeInput: {
     minHeight: 22,
     marginTop: -7,
     padding: 0,
     color: dashboardTheme.slate,
-    fontFamily: typography.medium,
-    fontSize: 14,
-    lineHeight: 18,
+    ...typeScale.supporting,
   },
   cardDivider: { height: 1, marginVertical: 2, backgroundColor: dashboardTheme.divider },
   formRow: { flexDirection: 'row', gap: 10 },
   field: { gap: 4 },
   halfField: { flex: 1 },
-  fieldLabel: { color: dashboardTheme.slate, fontFamily: typography.medium, fontSize: 12 },
+  fieldLabel: { color: dashboardTheme.slate, ...typeScale.label },
   input: {
     minHeight: 40,
     borderWidth: 1,
@@ -509,8 +498,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     color: dashboardTheme.ink,
     backgroundColor: dashboardTheme.surfaceMuted,
-    fontFamily: typography.medium,
-    fontSize: 14,
+    ...typeScale.supporting,
   },
   notesInput: { minHeight: 72, paddingTop: 9, textAlignVertical: 'top' },
   pickerValue: {
@@ -521,12 +509,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: dashboardTheme.surfaceMuted,
     color: dashboardTheme.ink,
-    fontFamily: typography.medium,
-    fontSize: 14,
+    ...typeScale.supporting,
     lineHeight: 40,
   },
-  error: { color: '#D64848', fontFamily: typography.medium, fontSize: 12 },
-  sectionTitle: { color: dashboardTheme.ink, fontFamily: typography.semibold, fontSize: 17 },
+  error: { color: '#D64848', ...typeScale.label },
+  sectionTitle: { color: dashboardTheme.ink, ...typeScale.sectionTitle },
   addExercise: {
     minHeight: 48,
     flexDirection: 'row',
@@ -538,7 +525,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: dashboardTheme.surface,
   },
-  addExerciseText: { color: dashboardTheme.ink, fontFamily: typography.semibold, fontSize: 13 },
+  addExerciseText: { color: dashboardTheme.ink, ...typeScale.label },
   exerciseList: { gap: 10 },
   pickerBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(23,25,28,0.22)' },
   pickerSheet: {
@@ -552,7 +539,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  pickerSheetTitle: { color: dashboardTheme.ink, fontFamily: typography.semibold, fontSize: 17 },
+  pickerSheetTitle: { color: dashboardTheme.ink, ...typeScale.cardTitle },
   pickerDone: { minWidth: 56, minHeight: 38, alignItems: 'center', justifyContent: 'center' },
-  pickerDoneText: { color: dashboardTheme.accent, fontFamily: typography.semibold, fontSize: 15 },
+  pickerDoneText: { color: dashboardTheme.accent, ...typeScale.supporting },
 });

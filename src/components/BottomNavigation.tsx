@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { LayoutAnimation, Platform, UIManager, View, StyleSheet } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { StackActions, useNavigation, useRoute } from '@react-navigation/native';
 
 import { NavigationItem, selectionHaptic } from './ui';
 import { colors } from '../theme/tokens';
@@ -52,6 +52,10 @@ export function BottomNavigation({
     if (route.name === screen) return;
     selectionHaptic();
     onNavigate?.();
+    if (screen === 'History' && historyIsActive) {
+      navigation.dispatch(StackActions.popTo('History'));
+      return;
+    }
     navigation.navigate(screen);
   };
   const historyIsActive =

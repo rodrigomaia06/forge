@@ -59,8 +59,16 @@ export function AppNavigator() {
         <Stack.Screen name="Dashboard" component={DashboardScreen} />
         <Stack.Screen name="ActiveWorkout" component={ActiveWorkoutScreen} />
         <Stack.Screen name="History" component={HistoryScreen} />
-        <Stack.Screen name="WorkoutDetails" component={WorkoutDetailsScreen} />
-        <Stack.Screen name="HistoryWorkoutEditor" component={HistoryWorkoutEditorScreen} />
+        <Stack.Screen
+          name="WorkoutDetails"
+          component={WorkoutDetailsScreen}
+          options={{ gestureEnabled: true }}
+        />
+        <Stack.Screen
+          name="HistoryWorkoutEditor"
+          component={HistoryWorkoutEditorScreen}
+          options={{ gestureEnabled: true }}
+        />
         <Stack.Screen name="Plans" component={PlansScreen} />
         <Stack.Screen name="More" component={MoreScreen} />
       </Stack.Navigator>

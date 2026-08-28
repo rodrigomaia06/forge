@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { StackActions } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   AppScreen,
   Button,
+  ForgeText as Text,
   errorHaptic,
   HeaderAction,
   HeaderEdge,
@@ -16,7 +18,7 @@ import { ReadOnlyExerciseSection } from './activeWorkout/ExerciseSection';
 import { WorkoutOptionsSheet } from './activeWorkout/WorkoutSheets';
 import { useWorkouts } from '../state/WorkoutContext';
 import { dashboardTheme } from '../theme/dashboardTheme';
-import { typography } from '../theme/tokens';
+import { typeScale } from '../theme/tokens';
 import type { RootStackParamList, Workout } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutDetails'>;
@@ -25,6 +27,11 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
   const { ready, completedWorkouts, deleteCompletedWorkout } = useWorkouts();
   const [optionsOpen, setOptionsOpen] = useState(false);
   const workout = completedWorkouts.find((item) => item.id === route.params.workoutId);
+  const returnToHistory = (): void => {
+    const state = navigation.getState();
+    if (state.routes[state.index - 1]?.name === 'History') navigation.goBack();
+    else navigation.dispatch(StackActions.popTo('History'));
+  };
   if (!ready)
     return (
       <AppScreen backgroundColor={dashboardTheme.background}>
@@ -42,7 +49,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
             label="Back to History"
             onPress={() => {
               selectionHaptic();
-              navigation.navigate('History');
+              returnToHistory();
             }}
             theme={dashboardTheme}
           />
@@ -59,7 +66,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
             label="Back"
             onPress={() => {
               selectionHaptic();
-              navigation.navigate('History');
+              returnToHistory();
             }}
           />
           <HeaderEdge />
@@ -100,7 +107,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
             errorHaptic();
             deleteCompletedWorkout(workout.id);
             setOptionsOpen(false);
-            navigation.navigate('History');
+            returnToHistory();
           }}
         />
       </View>
@@ -306,14 +313,7 @@ const styles = StyleSheet.create({
     backgroundColor: dashboardTheme.background,
   },
   headerCopy: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: {
-    color: dashboardTheme.ink,
-    fontFamily: typography.semibold,
-    fontSize: 23,
-    lineHeight: 28,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
+  headerTitle: { color: dashboardTheme.ink, ...typeScale.headerTitle, textAlign: 'center' },
   content: { padding: 16, paddingBottom: 116, gap: 12 },
   summaryCard: {
     overflow: 'hidden',
@@ -351,8 +351,8 @@ const styles = StyleSheet.create({
   },
   timingMetric: { alignItems: 'flex-end', gap: 2 },
   timingValueRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  timingValue: { color: dashboardTheme.ink, fontFamily: typography.bold, fontSize: 17 },
-  timingLabel: { color: dashboardTheme.slate, fontFamily: typography.medium, fontSize: 11 },
+  timingValue: { color: dashboardTheme.ink, ...typeScale.cardTitle },
+  timingLabel: { color: dashboardTheme.slate, ...typeScale.caption },
   summaryMain: { minHeight: 24, justifyContent: 'center' },
   summaryDateRow: {
     flexDirection: 'row',
@@ -360,13 +360,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 2,
   },
-  summaryDate: {
-    flex: 1,
-    color: dashboardTheme.slate,
-    fontFamily: typography.medium,
-    fontSize: 12,
-    lineHeight: 17,
-  },
+  summaryDate: { flex: 1, color: dashboardTheme.slate, ...typeScale.caption },
   metrics: {
     flexDirection: 'row',
     borderTopWidth: 1,
@@ -375,18 +369,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   metric: { flex: 1, alignItems: 'center', gap: 3 },
-  metricLabel: {
-    color: dashboardTheme.slate,
-    fontFamily: typography.medium,
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  metricValue: {
-    color: dashboardTheme.ink,
-    fontFamily: typography.bold,
-    fontSize: 19,
-    textAlign: 'center',
-  },
+  metricLabel: { color: dashboardTheme.slate, ...typeScale.caption, textAlign: 'center' },
+  metricValue: { color: dashboardTheme.ink, ...typeScale.metricMedium, textAlign: 'center' },
   metadata: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -397,15 +381,10 @@ const styles = StyleSheet.create({
   },
   metadataItem: { flex: 1, minWidth: 90, flexDirection: 'row', gap: 8 },
   metadataCopy: { flex: 1 },
-  metadataLabel: { color: dashboardTheme.slate, fontFamily: typography.medium, fontSize: 12 },
-  metadataValue: {
-    color: dashboardTheme.ink,
-    fontFamily: typography.medium,
-    fontSize: 14,
-    lineHeight: 20,
-  },
+  metadataLabel: { color: dashboardTheme.slate, ...typeScale.caption },
+  metadataValue: { color: dashboardTheme.ink, ...typeScale.supporting },
   exerciseList: { gap: 10 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },
-  title: { color: dashboardTheme.ink, fontFamily: typography.semibold, fontSize: 20 },
-  muted: { color: dashboardTheme.slate, fontFamily: typography.regular, fontSize: 13 },
+  title: { color: dashboardTheme.ink, ...typeScale.sectionTitle },
+  muted: { color: dashboardTheme.slate, ...typeScale.label },
 });

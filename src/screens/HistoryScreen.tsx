@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -10,6 +10,7 @@ import Animated, {
 import {
   AppScreen,
   Button,
+  ForgeText as Text,
   HeaderEdge,
   Icon,
   lightHaptic,
@@ -20,7 +21,7 @@ import { NavigationFooter } from '../components/NavigationFooter';
 import { useWorkouts } from '../state/WorkoutContext';
 import { animateLayout, errorHaptic, mediumHaptic } from './activeWorkout/activeWorkoutFeedback';
 import { dashboardTheme } from '../theme/dashboardTheme';
-import { typography } from '../theme/tokens';
+import { typeScale } from '../theme/tokens';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList, Workout } from '../types';
 
@@ -66,7 +67,7 @@ export function HistoryScreen({
                     first={index === 0}
                     onPress={() => {
                       selectionHaptic();
-                      navigation.replace('WorkoutDetails', { workoutId: workout.id });
+                      navigation.navigate('WorkoutDetails', { workoutId: workout.id });
                     }}
                     deleteRevealed={deleteRevealedId === workout.id}
                     onDeleteRevealChange={(revealed) =>
@@ -321,25 +322,13 @@ const styles = StyleSheet.create({
   groupTitle: {
     marginLeft: 70,
     color: dashboardTheme.slate,
-    fontFamily: typography.semibold,
-    fontSize: 15,
-    lineHeight: 20,
+    ...typeScale.supporting,
   },
   timelineRow: { minHeight: 76, flexDirection: 'row', alignItems: 'stretch' },
   dateColumn: { width: 47, alignItems: 'flex-end', paddingTop: 14, paddingRight: 5 },
-  weekday: {
-    color: dashboardTheme.slate,
-    fontFamily: typography.medium,
-    fontSize: 12,
-    lineHeight: 15,
-  },
-  day: { color: dashboardTheme.ink, fontFamily: typography.bold, fontSize: 22, lineHeight: 24 },
-  month: {
-    color: dashboardTheme.slate,
-    fontFamily: typography.regular,
-    fontSize: 12,
-    lineHeight: 15,
-  },
+  weekday: { color: dashboardTheme.slate, ...typeScale.caption },
+  day: { color: dashboardTheme.ink, ...typeScale.metricMedium },
+  month: { color: dashboardTheme.slate, ...typeScale.caption },
   timelineRail: { width: 23, alignItems: 'center', position: 'relative' },
   railLine: {
     position: 'absolute',
@@ -377,7 +366,7 @@ const styles = StyleSheet.create({
   },
   deleteAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
   deleteActionPressed: { backgroundColor: '#F1CED0' },
-  deleteActionText: { color: '#D64848', fontFamily: typography.semibold, fontSize: 11 },
+  deleteActionText: { color: '#D64848', ...typeScale.caption },
   swipeContent: { zIndex: 1, backgroundColor: dashboardTheme.surface },
   card: {
     flex: 1,
@@ -405,18 +394,8 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   cardCopy: { flex: 1, minWidth: 0, justifyContent: 'center' },
-  name: {
-    color: dashboardTheme.ink,
-    fontFamily: typography.semibold,
-    fontSize: 16,
-    lineHeight: 20,
-  },
-  stats: {
-    color: dashboardTheme.slate,
-    fontFamily: typography.regular,
-    fontSize: 12,
-    lineHeight: 18,
-  },
+  name: { color: dashboardTheme.ink, ...typeScale.cardTitle },
+  stats: { color: dashboardTheme.slate, ...typeScale.label },
   durationChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -426,14 +405,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: dashboardTheme.surfaceMuted,
   },
-  durationText: {
-    color: dashboardTheme.ink,
-    fontFamily: typography.medium,
-    fontSize: 11,
-    lineHeight: 14,
-  },
+  durationText: { color: dashboardTheme.ink, ...typeScale.caption },
   empty: { alignItems: 'center', paddingVertical: 60, gap: 5 },
-  emptyTitle: { color: dashboardTheme.ink, fontFamily: typography.semibold, fontSize: 18 },
-  emptySubtitle: { color: dashboardTheme.slate, fontFamily: typography.medium, fontSize: 13 },
+  emptyTitle: { color: dashboardTheme.ink, ...typeScale.sectionTitle },
+  emptySubtitle: { color: dashboardTheme.slate, ...typeScale.label },
   emptyAction: { marginTop: 14 },
 });
