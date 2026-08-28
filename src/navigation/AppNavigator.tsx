@@ -7,30 +7,21 @@ import { ActiveWorkoutScreen } from '../screens/ActiveWorkoutScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { WorkoutDetailsScreen } from '../screens/WorkoutDetailsScreen';
 import { HistoryWorkoutEditorScreen } from '../screens/HistoryWorkoutEditorScreen';
-import { PlaceholderScreen } from '../screens/PlaceholderScreen';
+import { PlansScreen } from '../screens/PlansScreen';
+import { RoutineEditorScreen } from '../screens/RoutineEditorScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { GeneralSettingsScreen } from '../screens/settings/GeneralSettingsScreen';
 import { SettingsDestinationScreen } from '../screens/settings/SettingsDestinationScreen';
+import { WorkoutTypesScreen } from '../screens/settings/WorkoutTypesScreen';
+import { WorkoutTypeEditorScreen } from '../screens/settings/WorkoutTypeEditorScreen';
+import { ExerciseLibraryScreen } from '../screens/settings/ExerciseLibraryScreen';
 import { useWorkouts } from '../state/WorkoutContext';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 enableFreeze(true);
 
-type PlansScreenProps = NativeStackScreenProps<RootStackParamList, 'Plans'>;
-
-function PlansScreen({ navigation }: PlansScreenProps) {
-  return (
-    <PlaceholderScreen
-      title="Plans"
-      description="Your saved routines will appear here."
-      actionLabel="Start a workout"
-      onAction={() => navigation.navigate('ActiveWorkout')}
-    />
-  );
-}
 export function AppNavigator() {
   const { ready, activeWorkout } = useWorkouts();
 
@@ -74,6 +65,11 @@ export function AppNavigator() {
         />
         <Stack.Screen name="Plans" component={PlansScreen} options={{ gestureEnabled: false }} />
         <Stack.Screen
+          name="RoutineEditor"
+          component={RoutineEditorScreen}
+          options={{ gestureEnabled: true }}
+        />
+        <Stack.Screen
           name="Settings"
           component={SettingsScreen}
           options={{ gestureEnabled: false }}
@@ -85,12 +81,17 @@ export function AppNavigator() {
         />
         <Stack.Screen
           name="ExerciseLibrary"
-          component={SettingsDestinationScreen}
+          component={ExerciseLibraryScreen}
           options={{ gestureEnabled: true }}
         />
         <Stack.Screen
           name="WorkoutTypes"
-          component={SettingsDestinationScreen}
+          component={WorkoutTypesScreen}
+          options={{ gestureEnabled: true }}
+        />
+        <Stack.Screen
+          name="WorkoutTypeEditor"
+          component={WorkoutTypeEditorScreen}
           options={{ gestureEnabled: true }}
         />
         <Stack.Screen

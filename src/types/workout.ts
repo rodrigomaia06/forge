@@ -14,7 +14,10 @@ export interface WorkoutSet {
 
 export interface WorkoutExercise {
   id: string;
+  exerciseId?: string;
   name: string;
+  note?: string;
+  supersetId?: string;
   sets: WorkoutSet[];
 }
 
@@ -30,6 +33,9 @@ export interface Workout {
   note: string;
   averageRestSeconds?: number;
   exercises: WorkoutExercise[];
+  routineId?: string;
+  planId?: string;
+  attributes?: Record<string, string>;
 }
 
 export interface WorkoutSetInput {
@@ -43,8 +49,45 @@ export interface WorkoutSetInput {
 
 export interface WorkoutExerciseInput {
   id?: string;
+  exerciseId?: string;
   name: string;
+  note?: string;
+  supersetId?: string;
   sets?: WorkoutSetInput[];
+}
+export interface WorkoutRoutine {
+  id: string;
+  name: string;
+  type: WorkoutType;
+  note?: string;
+  attributes?: Record<string, string>;
+  exercises: WorkoutExerciseInput[];
+  planId?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+export interface WorkoutPlan {
+  id: string;
+  name: string;
+  routines: WorkoutRoutine[];
+  createdAt: number;
+  updatedAt: number;
+}
+export interface PlansState {
+  plans: WorkoutPlan[];
+  standaloneRoutines: WorkoutRoutine[];
+}
+export interface PlansContextValue extends PlansState {
+  ready: boolean;
+  createPlan: (name?: string) => WorkoutPlan;
+  updatePlan: (planId: string, update: (plan: WorkoutPlan) => WorkoutPlan) => void;
+  deletePlan: (planId: string) => void;
+  createRoutine: (options?: Partial<WorkoutRoutine>) => WorkoutRoutine;
+  updateRoutine: (routineId: string, update: (routine: WorkoutRoutine) => WorkoutRoutine) => void;
+  deleteRoutine: (routineId: string) => void;
+  duplicateRoutine: (routineId: string) => WorkoutRoutine | null;
+  moveRoutine: (routineId: string, planId?: string) => void;
+  findRoutine: (routineId: string) => WorkoutRoutine | undefined;
 }
 export interface StartWorkoutOptions {
   name?: string;
@@ -54,6 +97,9 @@ export interface StartWorkoutOptions {
   mood?: string;
   note?: string;
   averageRestSeconds?: number;
+  routineId?: string;
+  planId?: string;
+  attributes?: Record<string, string>;
 }
 export interface WorkoutState {
   activeWorkout: Workout | null;

@@ -7,7 +7,6 @@ import { Calendar, type CalendarMenuState } from '../../components/Calendar';
 import { WorkoutRow } from '../../components/WorkoutRow';
 import { AppScreen, Button, ForgeText as Text, lightHaptic } from '../../components/ui';
 import { useLayoutProbe } from '../../debug/layoutProbe';
-import { useWorkouts } from '../../state/WorkoutContext';
 import { useSettings } from '../../state/SettingsContext';
 import type { ReactElement, ReactNode } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
@@ -28,11 +27,9 @@ export function DashboardShell({
   onCalendarMenuDismiss?: () => void;
 }) {
   const navigation = useNavigation<RootNavigationProp>();
-  const { activeWorkout, startWorkout } = useWorkouts();
   const openWorkout = () => {
-    if (!activeWorkout) startWorkout();
     lightHaptic();
-    navigation.navigate('ActiveWorkout');
+    navigation.navigate('Plans', { openCreation: true });
   };
   const shellProbe = useLayoutProbe('dashboard-shell', { background: theme.background });
   const dockSlotProbe = useLayoutProbe('dashboard-dock-slot', { background: 'transparent' });

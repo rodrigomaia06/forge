@@ -54,6 +54,13 @@ test.describe('Forge screen captures', () => {
     await page.getByRole('tab', { name: 'Plans' }).click();
     await expect(page.getByText('Plans', { exact: true })).toBeVisible();
     await capture(page, 'plans');
+    await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
+    await expect(page.getByTestId('plans-creation-popover')).toBeVisible();
+    await capture(page, 'plans-creation-popover');
+    await page.getByTestId('plans-creation-popover').getByRole('button', { name: 'New routine', exact: true }).click();
+    await expect(page.getByText('Edit routine', { exact: true })).toBeVisible();
+    await capture(page, 'routine-editor');
+    await page.getByRole('button', { name: 'Back to Plans' }).click();
 
     await page.getByRole('tab', { name: 'Settings' }).click();
     await expect(page.getByTestId('settings-title')).toBeVisible();
@@ -62,6 +69,16 @@ test.describe('Forge screen captures', () => {
     await page.getByRole('button', { name: 'General' }).click();
     await expect(page.getByText('Week starts on', { exact: true })).toBeVisible();
     await capture(page, 'general-settings');
+
+    await page.getByRole('button', { name: 'Back to Settings' }).click();
+    await page.getByRole('button', { name: 'Exercises' }).click();
+    await expect(page.getByTestId('settings-detail-title')).toHaveText('Exercises');
+    await capture(page, 'settings-exercises');
+
+    await page.getByRole('button', { name: 'Back to Settings' }).click();
+    await page.getByRole('button', { name: 'Workout types' }).click();
+    await expect(page.getByTestId('settings-detail-title')).toHaveText('Workout types');
+    await capture(page, 'settings-workout-types');
   });
 
   test('captures History and its workout detail', async ({ page }) => {
@@ -90,6 +107,7 @@ test.describe('Forge screen captures', () => {
   test('captures Live Workout and set options', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Start workout' }).click();
+    await page.getByTestId('plans-creation-popover').getByRole('button', { name: 'New workout', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Finish workout' })).toBeVisible();
     await capture(page, 'live-workout');
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { Button, ForgeText as Text, ScreenTitle } from './ui';
+import { ForgeText as Text, HeaderCircleAction, ScreenTitle } from './ui';
 import { spacing, typeScale } from '../theme/tokens';
 import type { ForgeTheme, IconName, IconWeight } from '../types';
 
@@ -41,15 +41,12 @@ export function DashboardHeader({
         )}
       </View>
       <View style={styles.actions}>
-        <Button
+        <HeaderCircleAction
           accessibilityLabel={action.accessibilityLabel}
           icon={action.icon}
           iconSize={action.iconSize}
           iconWeight={action.iconWeight}
-          variant="secondary"
           onPress={onStart}
-          style={styles.headerIconButton}
-          theme={theme}
         />
       </View>
     </View>
@@ -102,22 +99,6 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   copy: { flex: 1, minWidth: 0, justifyContent: 'center', paddingRight: 16 },
   subtitle: { ...typeScale.label, marginTop: 2 },
-  headerIconButton: {
-    width: 46,
-    height: 46,
-    minWidth: 46,
-    minHeight: 46,
-    paddingHorizontal: 0,
-    borderRadius: 1000,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.45)',
-    backgroundColor: 'rgba(255,255,255,0.68)',
-    shadowColor: '#000000',
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
-  },
   outlinePillButton: { borderRadius: 1000 },
   outlineRoundedButton: { borderRadius: 15 },
   outlineCompactButton: { width: 46, height: 46, minWidth: 46, minHeight: 46, borderRadius: 13 },

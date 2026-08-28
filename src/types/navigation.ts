@@ -6,11 +6,13 @@ export type RootStackParamList = {
   History: undefined;
   WorkoutDetails: { workoutId: string };
   HistoryWorkoutEditor: { workoutId: string };
-  Plans: undefined;
+  Plans: { openCreation?: boolean } | undefined;
+  RoutineEditor: { routineId: string };
   Settings: undefined;
   GeneralSettings: undefined;
   ExerciseLibrary: undefined;
   WorkoutTypes: undefined;
+  WorkoutTypeEditor: { workoutTypeId: string };
   BackupExport: undefined;
   Logs: undefined;
   About: undefined;

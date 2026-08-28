@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 
 async function startEmptyWorkoutWithExercise(page: Page): Promise<void> {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Start workout' }).click();
+  await startBlankWorkout(page);
   await page.getByRole('button', { name: 'Add exercise' }).click();
   await page.getByRole('button', { name: 'Bench Press, 4 variations', exact: true }).click();
   await page.getByRole('button', { name: 'Barbell, 2 variations', exact: true }).click();
@@ -10,6 +10,12 @@ async function startEmptyWorkoutWithExercise(page: Page): Promise<void> {
     .getByRole('checkbox', { name: 'Bench Press, Barbell, Standard' })
     .click({ force: true });
   await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
+}
+
+async function startBlankWorkout(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Start workout' }).click();
+  await expect(page.getByTestId('plans-creation-popover')).toBeVisible();
+  await page.getByTestId('plans-creation-popover').getByRole('button', { name: 'New workout', exact: true }).click();
 }
 
 async function swipeLeftFrom(page: Page, locator: Locator): Promise<void> {
@@ -26,7 +32,7 @@ test.describe('Active workout flow', () => {
   test('starts, records an exercise and finishes a workout', async ({ page }) => {
     await page.goto('/');
 
-    await page.getByRole('button', { name: 'Start workout' }).click();
+    await startBlankWorkout(page);
     await expect(page.getByText('Workout', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Workout', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Cancel workout' })).toBeVisible();
@@ -61,7 +67,7 @@ test.describe('Active workout flow', () => {
     page,
   }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Start workout' }).click();
+    await startBlankWorkout(page);
     await page.getByRole('button', { name: 'Add exercise' }).click();
 
     await expect(page.getByText('Chest', { exact: true })).toBeVisible();
@@ -93,7 +99,7 @@ test.describe('Active workout flow', () => {
 
   test('starts the rest timer from the workout header', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Start workout' }).click();
+    await startBlankWorkout(page);
 
     const restTimer = page.getByRole('button', { name: 'Start rest timer' });
     await expect(restTimer).toBeVisible();
@@ -114,7 +120,7 @@ test.describe('Active workout flow', () => {
 
   test('selects a rest duration by tapping a picker value', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Start workout' }).click();
+    await startBlankWorkout(page);
     await page.getByRole('button', { name: 'Start rest timer' }).click();
 
     await page.getByRole('button', { name: 'Rest duration 02:00' }).click();
@@ -230,7 +236,7 @@ test.describe('Active workout flow', () => {
 
   test('restarts the rest timer when held', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Start workout' }).click();
+    await startBlankWorkout(page);
 
     const restTimer = page.getByRole('button', { name: 'Start rest timer' });
     const box = await restTimer.boundingBox();
@@ -258,7 +264,7 @@ test.describe('Active workout flow', () => {
 
   test('keeps the shared dock visible while a workout is active', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Start workout' }).click();
+    await startBlankWorkout(page);
     await expect(page.getByRole('tab', { name: 'Dashboard' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Workout', exact: true })).toBeVisible();
     await expect(page.getByLabel('Home indicator').last()).toBeVisible();
@@ -266,7 +272,7 @@ test.describe('Active workout flow', () => {
 
   test('keeps the workout dock item available without a selection pill', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Start workout' }).click();
+    await startBlankWorkout(page);
 
     const workoutItem = page.getByRole('button', { name: 'Workout', exact: true });
     await expect(workoutItem).toBeVisible();
@@ -278,7 +284,7 @@ test.describe('Active workout flow', () => {
 
   test('opens the active workout after reloading with a workout in progress', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Start workout' }).click();
+    await startBlankWorkout(page);
     await expect(page.getByRole('button', { name: 'Finish workout' })).toBeVisible();
 
     // Active-workout persistence is debounced so typing and set changes do not write per frame.
@@ -291,7 +297,7 @@ test.describe('Active workout flow', () => {
 
   test('cancels an active workout without saving it', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Start workout' }).click();
+    await startBlankWorkout(page);
     await page.getByRole('button', { name: 'Cancel workout' }).click();
     await expect(page.getByRole('button', { name: 'Start workout' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Workout', exact: true })).toHaveCount(0);
@@ -299,7 +305,7 @@ test.describe('Active workout flow', () => {
 
   test('removes an exercise from its options sheet', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Start workout' }).click();
+    await startBlankWorkout(page);
     await page.getByRole('button', { name: 'Add exercise' }).click();
     await page.getByRole('button', { name: 'Bench Press, 4 variations', exact: true }).click();
     await page.getByRole('button', { name: 'Barbell, 2 variations', exact: true }).click();
