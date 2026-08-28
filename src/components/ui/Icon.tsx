@@ -35,6 +35,9 @@ import {
   Settings,
   DatabaseExport,
   ClipboardCheck,
+  BadgeCheck,
+  NavArrowUp,
+  Drag,
 } from 'iconoir-react-native';
 
 const iconMap: Record<IconName, React.ComponentType<SvgProps>> = {
@@ -78,6 +81,10 @@ const iconMap: Record<IconName, React.ComponentType<SvgProps>> = {
   'database-export': DatabaseExport,
   clipboard: ClipboardCheck,
   'arrow-forward': NavArrowRight,
+  verified: BadgeCheck,
+  'arrow-up': NavArrowUp,
+  'arrow-down': NavArrowDown,
+  drag: Drag,
 };
 
 export function Icon({

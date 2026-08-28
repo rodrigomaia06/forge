@@ -209,7 +209,6 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   };
 
   const handleCancel = (): void => {
-    lightHaptic();
     cancelWorkout();
     returnToDashboard(null);
   };

@@ -12,6 +12,8 @@ Use platform-specific behavior where it improves system integration, accessibili
 
 Use shared semantic tokens and reusable primitives for recurring color, typography, spacing, shape, and interaction roles. Avoid duplicating raw visual values across feature components when a shared semantic value already exists.
 
+Icon-only dismiss and navigation header actions use the shared 44 pt circular overlay surface, including its border, pressed state, haptic feedback, and accessible name.
+
 Do not copy exact visual constants from an external design guideline when the platform provides a semantic/system value or Forge already owns that visual decision.
 
 ## Typography

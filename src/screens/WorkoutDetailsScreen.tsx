@@ -66,7 +66,6 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
             label="Back"
             iconOnly
             onPress={() => {
-              selectionHaptic();
               returnToHistory();
             }}
           />

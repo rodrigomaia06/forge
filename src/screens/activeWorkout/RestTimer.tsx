@@ -13,7 +13,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
-import { ForgeText as Text, Icon } from '../../components/ui';
+import { ForgeText as Text, Icon, SheetCloseButton } from '../../components/ui';
 import { dashboardTheme } from '../../theme/dashboardTheme';
 import { styles } from './activeWorkoutStyles';
 import { formatRest, formatRestDisplay } from './activeWorkoutFormatters';
@@ -143,17 +143,7 @@ export function RestTimerSheet({
               <View style={styles.restTimerHeader}>
                 <View style={styles.restHeaderSide} />
                 <Text style={styles.restTimerTitle}>Rest timer</Text>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Close rest timer"
-                  onPress={closeSheet}
-                  style={({ pressed }) => [
-                    styles.restCloseButton,
-                    pressed && styles.restClosePressed,
-                  ]}
-                >
-                  <Icon name="close" size={20} color={dashboardTheme.slate} />
-                </Pressable>
+                <SheetCloseButton accessibilityLabel="Close rest timer" onPress={closeSheet} />
               </View>
             </View>
           </GestureDetector>

@@ -4,6 +4,7 @@ import { StyleSheet, type StyleProp, type TextStyle, type ViewStyle } from 'reac
 import { dashboardTheme } from '../../theme/dashboardTheme';
 import type { IconName } from '../../types';
 import { Button } from './Button';
+import { lightHaptic } from './haptics';
 
 interface HeaderActionProps {
   accessibilityLabel: string;
@@ -39,7 +40,10 @@ export function HeaderAction({
       icon={icon}
       iconSize={20}
       variant="secondary"
-      onPress={onPress}
+      onPress={() => {
+        if (iconOnly) lightHaptic();
+        onPress();
+      }}
       theme={dashboardTheme}
       labelColor={labelColor ?? (isAccent ? dashboardTheme.surface : dashboardTheme.ink)}
       labelStyle={labelStyle}
@@ -71,8 +75,13 @@ const styles = StyleSheet.create({
     minWidth: 44,
     paddingHorizontal: 0,
     borderRadius: 22,
-    borderColor: 'transparent',
-    backgroundColor: 'transparent',
+    borderColor: dashboardTheme.divider,
+    backgroundColor: dashboardTheme.surfaceMuted,
+    shadowColor: '#17191C',
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
   },
   neutral: {
     borderColor: 'rgba(255,255,255,0.45)',

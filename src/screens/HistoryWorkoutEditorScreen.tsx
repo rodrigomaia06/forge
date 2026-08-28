@@ -66,7 +66,6 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
     setError(null);
   };
   const discard = (): void => {
-    lightHaptic();
     const leave = returnToHistory;
     if (!dirty) return leave();
     Alert.alert('Discard changes?', 'Your edits to this workout will not be saved.', [

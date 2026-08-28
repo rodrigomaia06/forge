@@ -24,6 +24,7 @@ import {
   Icon,
   pressedFeedback,
   pressedFeedbackSubtle,
+  SheetCloseButton,
 } from '../../components/ui';
 import { dashboardTheme } from '../../theme/dashboardTheme';
 import { typeScale } from '../../theme/tokens';
@@ -165,20 +166,7 @@ export function SetDetailsCard({
                   {`${set.weight || ''}${set.weight ? ' kg' : ''}${set.weight && set.reps ? ' × ' : ''}${set.reps || ''}`}
                 </Text>
               ) : null}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Done"
-                onPress={() => {
-                  lightHaptic();
-                  closeSheet();
-                }}
-                style={({ pressed }) => [
-                  workoutSheetStyles.restCloseButton,
-                  pressed && workoutSheetStyles.restClosePressed,
-                ]}
-              >
-                <Icon name="close" size={20} color={dashboardTheme.slate} />
-              </Pressable>
+              <SheetCloseButton accessibilityLabel="Done" onPress={closeSheet} />
             </View>
             <View style={styles.sheetContent}>
               {editable ? (

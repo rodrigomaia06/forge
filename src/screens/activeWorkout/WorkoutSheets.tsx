@@ -18,13 +18,12 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { Button, ForgeText as Text, ForgeTextInput as TextInput, Icon } from '../../components/ui';
+import { Button, ForgeText as Text, ForgeTextInput as TextInput, Icon, SheetCloseButton } from '../../components/ui';
 import { dashboardTheme } from '../../theme/dashboardTheme';
 import { typeScale } from '../../theme/tokens';
 import { exerciseCatalog, type ExerciseCatalogItem } from '../../data/exerciseCatalog';
 import { CompletionCheck } from './CompletionCheck';
 import { animateLayout, lightHaptic, mediumHaptic, selectionHaptic } from './activeWorkoutFeedback';
-import { styles as activeWorkoutStyles } from './activeWorkoutStyles';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { WorkoutExercise } from '../../types';
 
@@ -181,17 +180,7 @@ export function AddExerciseSheet({
                 <View style={styles.sheetHandle} />
                 <View style={styles.pickerHeader}>
                   <Text style={styles.pickerTitle}>Add exercises</Text>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Close add exercises"
-                    onPress={resetAndClose}
-                    style={({ pressed }) => [
-                      activeWorkoutStyles.restCloseButton,
-                      pressed && activeWorkoutStyles.restClosePressed,
-                    ]}
-                  >
-                    <Icon name="close" size={20} color={dashboardTheme.slate} />
-                  </Pressable>
+                  <SheetCloseButton accessibilityLabel="Close add exercises" onPress={resetAndClose} />
                 </View>
               </View>
             </GestureDetector>
@@ -633,14 +622,7 @@ export function ExerciseOptionsSheet({
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>Options</Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Close options"
-                onPress={closeSheet}
-                style={({ pressed }) => [styles.sheetClose, pressed && styles.sheetClosePressed]}
-              >
-                <Icon name="close" size={24} color={dashboardTheme.slate} />
-              </Pressable>
+              <SheetCloseButton accessibilityLabel="Close options" onPress={closeSheet} style={styles.sheetClose} />
             </View>
             <View style={styles.optionList}>
               <OptionRow icon="measure" label="Measure by" onPress={closeSheet} showArrow />
@@ -756,14 +738,7 @@ export function WorkoutOptionsSheet({
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>Workout options</Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Close workout options"
-                onPress={closeSheet}
-                style={({ pressed }) => [styles.sheetClose, pressed && styles.sheetClosePressed]}
-              >
-                <Icon name="close" size={24} color={dashboardTheme.slate} />
-              </Pressable>
+              <SheetCloseButton accessibilityLabel="Close workout options" onPress={closeSheet} style={styles.sheetClose} />
             </View>
             {onEdit && <OptionRow icon="note" label="Edit workout" onPress={onEdit} />}
             <Pressable
@@ -1073,14 +1048,9 @@ const styles = StyleSheet.create({
   sheetClose: {
     position: 'absolute',
     right: 0,
-    width: 42,
-    height: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 21,
-    backgroundColor: dashboardTheme.surfaceMuted,
+    width: 44,
+    height: 44,
   },
-  sheetClosePressed: { transform: [{ scale: 0.92 }], opacity: 0.72 },
   optionList: {
     marginTop: 10,
   },
