@@ -1,7 +1,6 @@
-import React, { useCallback, useEffect, useRef } from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Extrapolation,
   interpolate,
@@ -9,11 +8,9 @@ import Animated, {
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
-  withTiming,
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
-import { ForgeText as Text, Icon, SheetCloseButton } from '../../components/ui';
+import { ForgeBottomSheet, ForgeBottomSheetHandle, ForgeText as Text, Icon, SheetCloseButton } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { createActiveWorkoutStyles } from './activeWorkoutStyles';
@@ -69,89 +66,16 @@ export function RestTimerSheet({
 }: RestTimerSheetProps) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createActiveWorkoutStyles);
-  const translateY = useSharedValue(420);
-  const backdropOpacity = useSharedValue(0);
-  const onCloseRef = useRef(onClose);
-  const closing = useSharedValue(false);
-  const dragStartOffset = useSharedValue(0);
-  onCloseRef.current = onClose;
-
-  const finishClose = useCallback(() => onCloseRef.current(), []);
-  const closeSheet = useCallback(() => {
-    if (closing.value) return;
-    closing.value = true;
-    lightHaptic();
-    translateY.value = withTiming(520, { duration: 200 }, (finished) => {
-      if (finished) runOnJS(finishClose)();
-    });
-    backdropOpacity.value = withTiming(0, { duration: 160 });
-  }, [backdropOpacity, closing, finishClose, translateY]);
-
-  useEffect(() => {
-    if (!visible) return undefined;
-    closing.value = false;
-    translateY.value = 420;
-    backdropOpacity.value = 0;
-    const frame = requestAnimationFrame(() => {
-      translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.8 });
-      backdropOpacity.value = withTiming(1, { duration: 180 });
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [visible, translateY, backdropOpacity, closing]);
-
-  const sheetGesture = Gesture.Pan()
-    .activeOffsetY([-6, 6])
-    .failOffsetX([-24, 24])
-    .onStart(() => {
-      dragStartOffset.value = translateY.value;
-    })
-    .onUpdate((event) => {
-      translateY.value = Math.max(0, dragStartOffset.value + event.translationY);
-    })
-    .onEnd((event) => {
-      const projectedOffset = Math.max(
-        0,
-        dragStartOffset.value + event.translationY + event.velocityY * 0.12,
-      );
-      if (projectedOffset >= 260 || event.velocityY > 900) {
-        closing.value = true;
-        translateY.value = withTiming(520, { duration: 200 }, (finished) => {
-          if (finished) runOnJS(finishClose)();
-        });
-        backdropOpacity.value = withTiming(0, { duration: 160 });
-      } else {
-        translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.8 });
-      }
-    });
-
-  const sheetAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
-  const backdropAnimatedStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value }));
-
-  if (!visible) return null;
-
   return (
-    <Modal visible={visible} animationType="none" transparent onRequestClose={closeSheet}>
-      <Animated.View style={[styles.restTimerBackdrop, backdropAnimatedStyle]}>
-        <Pressable
-          testID="rest-timer-backdrop"
-          accessibilityRole="button"
-          accessibilityLabel="Close rest timer"
-          onPress={closeSheet}
-          style={StyleSheet.absoluteFill}
-        />
-        <Animated.View style={[styles.restTimerSheet, sheetAnimatedStyle]}>
-          <GestureDetector gesture={sheetGesture}>
+    <ForgeBottomSheet visible={visible} onClose={onClose} accessibilityLabel="Close rest timer" initialOffset={420} closeDistance={520} dismissThreshold={260} backdropTestID="rest-timer-backdrop" style={styles.restTimerSheet}>{(closeSheet) => <>
+            <ForgeBottomSheetHandle />
             <View style={styles.sheetDragArea}>
-              <View style={styles.sheetHandle} />
               <View style={styles.restTimerHeader}>
                 <View style={styles.restHeaderSide} />
                 <Text style={styles.restTimerTitle}>Rest timer</Text>
                 <SheetCloseButton accessibilityLabel="Close rest timer" onPress={closeSheet} />
               </View>
             </View>
-          </GestureDetector>
           {running ? (
             <ActiveRestTimer
               remaining={remaining}
@@ -178,9 +102,7 @@ export function RestTimerSheet({
               </Pressable>
             </>
           )}
-        </Animated.View>
-      </Animated.View>
-    </Modal>
+    </>}</ForgeBottomSheet>
   );
 }
 

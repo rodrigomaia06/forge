@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { Modal, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -19,7 +19,12 @@ interface ForgeBottomSheetProps {
   children: React.ReactNode | ((close: () => void) => React.ReactNode);
   style?: StyleProp<ViewStyle>;
   closeDistance?: number;
+  initialOffset?: number;
   dismissThreshold?: number;
+  onCloseStart?: () => void;
+  keyboardAvoiding?: boolean;
+  backdropTestID?: string;
+  dragArea?: (children: React.ReactNode) => React.ReactNode;
   testID?: string;
 }
 
@@ -31,7 +36,12 @@ export function ForgeBottomSheet({
   children,
   style,
   closeDistance = 520,
+  initialOffset = closeDistance,
   dismissThreshold = 190,
+  onCloseStart,
+  keyboardAvoiding = false,
+  backdropTestID,
+  dragArea,
   testID,
 }: ForgeBottomSheetProps) {
   const theme = useForgeTheme();
@@ -43,27 +53,28 @@ export function ForgeBottomSheet({
   onCloseRef.current = onClose;
 
   const finishClose = useCallback(() => onCloseRef.current(), []);
-  const close = useCallback(() => {
+  const close = useCallback((withHaptic = false) => {
     if (closing.value) return;
     closing.value = true;
-    lightHaptic();
+    onCloseStart?.();
+    if (withHaptic) lightHaptic();
     translateY.value = withTiming(closeDistance, { duration: 200 }, (finished) => {
       if (finished) runOnJS(finishClose)();
     });
     backdropOpacity.value = withTiming(0, { duration: 160 });
-  }, [backdropOpacity, closeDistance, closing, finishClose, translateY]);
+  }, [backdropOpacity, closeDistance, closing, finishClose, onCloseStart, translateY]);
 
   useEffect(() => {
     if (!visible) return undefined;
     closing.value = false;
-    translateY.value = closeDistance;
+    translateY.value = initialOffset;
     backdropOpacity.value = 0;
     const frame = requestAnimationFrame(() => {
       translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.8 });
       backdropOpacity.value = withTiming(1, { duration: 180 });
     });
     return () => cancelAnimationFrame(frame);
-  }, [backdropOpacity, closeDistance, closing, translateY, visible]);
+  }, [backdropOpacity, closing, initialOffset, translateY, visible]);
 
   const pan = Gesture.Pan()
     .activeOffsetY([-6, 6])
@@ -74,6 +85,7 @@ export function ForgeBottomSheet({
       const projected = Math.max(0, dragStart.value + event.translationY + event.velocityY * 0.12);
       if (projected >= dismissThreshold || event.velocityY > 900) {
         closing.value = true;
+        runOnJS(onCloseStart ?? (() => undefined))();
         translateY.value = withTiming(closeDistance, { duration: 200 }, (finished) => {
           if (finished) runOnJS(finishClose)();
         });
@@ -87,17 +99,20 @@ export function ForgeBottomSheet({
 
   if (!visible) return null;
   return (
-    <Modal visible transparent animationType="none" onRequestClose={close}>
+    <Modal visible transparent animationType="none" onRequestClose={() => close(true)}>
       <Animated.View testID={testID} style={[styles.backdrop, backdropStyle]}>
         <Pressable
+          testID={backdropTestID}
           accessibilityRole="button"
           accessibilityLabel={accessibilityLabel}
-          onPress={close}
+          onPress={() => close(true)}
           style={StyleSheet.absoluteFill}
         />
-        <GestureDetector gesture={pan}>
-          <Animated.View style={[styles.sheet, { backgroundColor: theme.surfaceElevated, shadowColor: theme.shadow }, style, sheetStyle]}>{typeof children === 'function' ? children(close) : children}</Animated.View>
-        </GestureDetector>
+        <KeyboardAvoidingView style={styles.keyboardArea} behavior={keyboardAvoiding && Platform.OS === 'ios' ? 'padding' : undefined}>
+          <GestureDetector gesture={pan}>
+            <Animated.View style={[styles.sheet, { backgroundColor: theme.surfaceElevated, shadowColor: theme.shadow }, style, sheetStyle]}>{dragArea ? dragArea(typeof children === 'function' ? children(() => close(false)) : children) : (typeof children === 'function' ? children(() => close(false)) : children)}</Animated.View>
+          </GestureDetector>
+        </KeyboardAvoidingView>
       </Animated.View>
     </Modal>
   );
@@ -108,8 +123,13 @@ export function ForgeBottomSheetHandle() {
   return <View style={[styles.handle, { backgroundColor: theme.divider }]} />;
 }
 
+export function ForgeBottomSheetDragArea({ children }: { children: React.ReactNode }) {
+  return <View>{children}</View>;
+}
+
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(23,25,28,0.24)' },
+  keyboardArea: { justifyContent: 'flex-end' },
   sheet: {
     overflow: 'hidden',
     borderTopLeftRadius: 28,

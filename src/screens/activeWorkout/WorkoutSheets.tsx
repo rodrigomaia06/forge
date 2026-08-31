@@ -1,24 +1,19 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import Animated, {
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { Button, ForgeText as Text, ForgeTextInput as TextInput, Icon, SheetCloseButton } from '../../components/ui';
+import { Button, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeText as Text, ForgeTextInput as TextInput, Icon, SheetCloseButton } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
@@ -50,69 +45,6 @@ export function AddExerciseSheet({
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [expandedEquipment, setExpandedEquipment] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
-  const translateY = useSharedValue(520);
-  const backdropOpacity = useSharedValue(0);
-  const closing = useSharedValue(false);
-  const dragStartOffset = useSharedValue(0);
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-
-  const finishClose = useCallback(() => onCloseRef.current(), []);
-  const closeSheet = useCallback((): void => {
-    if (closing.value) return;
-    closing.value = true;
-    lightHaptic();
-    Keyboard.dismiss();
-    translateY.value = withTiming(520, { duration: 200 }, (finished) => {
-      if (finished) runOnJS(finishClose)();
-    });
-    backdropOpacity.value = withTiming(0, { duration: 160 });
-  }, [backdropOpacity, closing, finishClose, translateY]);
-
-  useEffect(() => {
-    if (!visible) return undefined;
-    closing.value = false;
-    translateY.value = 520;
-    backdropOpacity.value = 0;
-    const frame = requestAnimationFrame(() => {
-      translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.8 });
-      backdropOpacity.value = withTiming(1, { duration: 180 });
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [visible, translateY, backdropOpacity, closing]);
-
-  const sheetGesture = Gesture.Pan()
-    .activeOffsetY([-6, 6])
-    .failOffsetX([-24, 24])
-    .onStart(() => {
-      dragStartOffset.value = translateY.value;
-    })
-    .onUpdate((event) => {
-      translateY.value = Math.max(0, dragStartOffset.value + event.translationY);
-    })
-    .onEnd((event) => {
-      const projectedOffset = Math.max(
-        0,
-        dragStartOffset.value + event.translationY + event.velocityY * 0.12,
-      );
-      if (projectedOffset >= 260 || event.velocityY > 900) {
-        closing.value = true;
-        translateY.value = withTiming(520, { duration: 200 }, (finished) => {
-          if (finished) runOnJS(finishClose)();
-        });
-        backdropOpacity.value = withTiming(0, { duration: 160 });
-      } else {
-        translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.8 });
-      }
-    });
-
-  const sheetAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
-  const backdropAnimatedStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value }));
-
-  if (!visible) return null;
-
   const filteredExercises = filterCatalog(exerciseCatalog, { query, categories: categoryFilter ? [categoryFilter] : [], includeGroupInSearch: false });
   const categories = [...new Set(filteredExercises.map((exercise) => exercise.category))];
   const groupedExercises = categories.map((category) => ({
@@ -134,7 +66,7 @@ export function AddExerciseSheet({
         : [...current, exercise.id],
     );
   };
-  const resetAndClose = (): void => {
+  const reset = (): void => {
     Keyboard.dismiss();
     setQuery('');
     setSelected([]);
@@ -142,7 +74,6 @@ export function AddExerciseSheet({
     setCategoryFilter(null);
     setExpandedGroup(null);
     setExpandedEquipment(null);
-    closeSheet();
   };
   const submit = (): void => {
     const names = exerciseCatalog
@@ -161,28 +92,14 @@ export function AddExerciseSheet({
   };
 
   return (
-    <Modal visible={visible} animationType="none" transparent onRequestClose={resetAndClose}>
-      <Animated.View style={[styles.pickerBackdrop, backdropAnimatedStyle]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close add exercises"
-          onPress={resetAndClose}
-          style={StyleSheet.absoluteFill}
-        />
-        <KeyboardAvoidingView
-          style={styles.pickerKeyboardArea}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <Animated.View style={[styles.pickerSheet, sheetAnimatedStyle]}>
-            <GestureDetector gesture={sheetGesture}>
+    <ForgeBottomSheet visible={visible} onClose={onClose} onCloseStart={reset} accessibilityLabel="Close add exercises" initialOffset={520} closeDistance={520} dismissThreshold={260} keyboardAvoiding style={styles.pickerSheet}>{(closeSheet) => <>
+            <ForgeBottomSheetHandle />
               <View style={styles.pickerDragArea}>
-                <View style={styles.sheetHandle} />
                 <View style={styles.pickerHeader}>
                   <Text style={styles.pickerTitle}>Add exercises</Text>
-                  <SheetCloseButton accessibilityLabel="Close add exercises" onPress={resetAndClose} />
+                  <SheetCloseButton accessibilityLabel="Close add exercises" onPress={closeSheet} />
                 </View>
               </View>
-            </GestureDetector>
             <View style={styles.searchRow}>
               <View style={styles.searchField}>
                 <Icon name="search" size={22} color={dashboardTheme.slate} />
@@ -484,10 +401,7 @@ export function AddExerciseSheet({
                 style={[styles.pickerSubmit, !selected.length && styles.pickerSubmitDisabled]}
               />
             </Animated.View>
-          </Animated.View>
-        </KeyboardAvoidingView>
-      </Animated.View>
-    </Modal>
+    </>}</ForgeBottomSheet>
   );
 }
 
@@ -545,80 +459,10 @@ export function ExerciseOptionsSheet({
   onClose: () => void;
   onRemove: () => void;
 }) {
-  const theme = useForgeTheme();
-  const dashboardTheme = theme;
   const styles = useThemedStyles(createStyles);
-  const translateY = useSharedValue(420);
-  const backdropOpacity = useSharedValue(0);
-  const closing = useSharedValue(false);
-  const dragStartOffset = useSharedValue(0);
-
-  const finishClose = useCallback(() => onClose(), [onClose]);
-  const closeSheet = useCallback(() => {
-    if (closing.value) return;
-    closing.value = true;
-    translateY.value = withTiming(520, { duration: 200 }, (finished) => {
-      if (finished) runOnJS(finishClose)();
-    });
-    backdropOpacity.value = withTiming(0, { duration: 160 });
-  }, [backdropOpacity, closing, finishClose, translateY]);
-
-  useEffect(() => {
-    if (!visible) return undefined;
-    closing.value = false;
-    translateY.value = 420;
-    backdropOpacity.value = 0;
-    const frame = requestAnimationFrame(() => {
-      translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.8 });
-      backdropOpacity.value = withTiming(1, { duration: 180 });
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [visible, translateY, backdropOpacity]);
-
-  const sheetGesture = Gesture.Pan()
-    .activeOffsetY([-6, 6])
-    .failOffsetX([-24, 24])
-    .onStart(() => {
-      dragStartOffset.value = translateY.value;
-    })
-    .onUpdate((event) => {
-      translateY.value = Math.max(0, dragStartOffset.value + event.translationY);
-    })
-    .onEnd((event) => {
-      const projectedOffset = Math.max(
-        0,
-        dragStartOffset.value + event.translationY + event.velocityY * 0.12,
-      );
-      if (projectedOffset >= 260 || event.velocityY > 900) {
-        closing.value = true;
-        translateY.value = withTiming(520, { duration: 200 }, (finished) => {
-          if (finished) runOnJS(finishClose)();
-        });
-        backdropOpacity.value = withTiming(0, { duration: 160 });
-      } else {
-        translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.8 });
-      }
-    });
-
-  const sheetAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
-  const backdropAnimatedStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value }));
-
-  if (!visible) return null;
-
   return (
-    <Modal visible={visible} animationType="none" transparent onRequestClose={closeSheet}>
-      <Animated.View style={[styles.optionsBackdrop, backdropAnimatedStyle]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close options"
-          onPress={closeSheet}
-          style={StyleSheet.absoluteFill}
-        />
-        <GestureDetector gesture={sheetGesture}>
-          <Animated.View style={[styles.optionsSheet, sheetAnimatedStyle]}>
-            <View style={styles.sheetHandle} />
+    <ForgeBottomSheet visible={visible} onClose={onClose} accessibilityLabel="Close options" initialOffset={420} closeDistance={520} dismissThreshold={260} style={styles.optionsSheet}>{(closeSheet) => <>
+            <ForgeBottomSheetHandle />
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>Options</Text>
               <SheetCloseButton accessibilityLabel="Close options" onPress={closeSheet} style={styles.sheetClose} />
@@ -642,10 +486,7 @@ export function ExerciseOptionsSheet({
               <Icon name="trash" size={22} color="#FF3B30" />
               <Text style={styles.destructiveText}>Remove exercise</Text>
             </Pressable>
-          </Animated.View>
-        </GestureDetector>
-      </Animated.View>
-    </Modal>
+    </>}</ForgeBottomSheet>
   );
 }
 
@@ -663,79 +504,9 @@ export function WorkoutOptionsSheet({
   onEdit?: () => void;
 }) {
   const styles = useThemedStyles(createStyles);
-  const translateY = useSharedValue(320);
-  const backdropOpacity = useSharedValue(0);
-  const closing = useSharedValue(false);
-  const dragStartOffset = useSharedValue(0);
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-
-  const finishClose = useCallback(() => onCloseRef.current(), []);
-  const closeSheet = useCallback(() => {
-    if (closing.value) return;
-    closing.value = true;
-    lightHaptic();
-    translateY.value = withTiming(320, { duration: 200 }, (finished) => {
-      if (finished) runOnJS(finishClose)();
-    });
-    backdropOpacity.value = withTiming(0, { duration: 160 });
-  }, [backdropOpacity, closing, finishClose, translateY]);
-
-  useEffect(() => {
-    if (!visible) return undefined;
-    closing.value = false;
-    translateY.value = 320;
-    backdropOpacity.value = 0;
-    const frame = requestAnimationFrame(() => {
-      translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.8 });
-      backdropOpacity.value = withTiming(1, { duration: 180 });
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [visible, translateY, backdropOpacity, closing]);
-
-  const sheetGesture = Gesture.Pan()
-    .activeOffsetY([-6, 6])
-    .failOffsetX([-24, 24])
-    .onStart(() => {
-      dragStartOffset.value = translateY.value;
-    })
-    .onUpdate((event) => {
-      translateY.value = Math.max(0, dragStartOffset.value + event.translationY);
-    })
-    .onEnd((event) => {
-      const projectedOffset = Math.max(
-        0,
-        dragStartOffset.value + event.translationY + event.velocityY * 0.12,
-      );
-      if (projectedOffset >= 160 || event.velocityY > 900) {
-        closing.value = true;
-        translateY.value = withTiming(320, { duration: 200 }, (finished) => {
-          if (finished) runOnJS(finishClose)();
-        });
-        backdropOpacity.value = withTiming(0, { duration: 160 });
-      } else {
-        translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.8 });
-      }
-    });
-  const sheetAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
-  const backdropAnimatedStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value }));
-
-  if (!visible) return null;
-
   return (
-    <Modal visible={visible} animationType="none" transparent onRequestClose={closeSheet}>
-      <Animated.View style={[styles.optionsBackdrop, backdropAnimatedStyle]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close workout options"
-          onPress={closeSheet}
-          style={StyleSheet.absoluteFill}
-        />
-        <GestureDetector gesture={sheetGesture}>
-          <Animated.View style={[styles.optionsSheet, sheetAnimatedStyle]}>
-            <View style={styles.sheetHandle} />
+    <ForgeBottomSheet visible={visible} onClose={onClose} accessibilityLabel="Close workout options" initialOffset={320} closeDistance={320} dismissThreshold={160} style={styles.optionsSheet}>{(closeSheet) => <>
+            <ForgeBottomSheetHandle />
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>Workout options</Text>
               <SheetCloseButton accessibilityLabel="Close workout options" onPress={closeSheet} style={styles.sheetClose} />
@@ -753,10 +524,7 @@ export function WorkoutOptionsSheet({
               <Icon name="trash" size={22} color="#FF3B30" />
               <Text style={styles.destructiveText}>Delete workout</Text>
             </Pressable>
-          </Animated.View>
-        </GestureDetector>
-      </Animated.View>
-    </Modal>
+    </>}</ForgeBottomSheet>
   );
 }
 

@@ -86,6 +86,10 @@ src/
 │   ├── NavigationFooter.tsx
 │   ├── ui
 │   └── WorkoutRow.tsx
+├── domain
+│   ├── exercises
+│   ├── rest
+│   └── workouts
 ├── data
 │   ├── mockWorkouts.ts
 │   └── workoutRepository.ts
