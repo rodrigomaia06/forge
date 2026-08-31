@@ -1,14 +1,15 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { dashboardTheme } from '../../theme/dashboardTheme';
+import { useForgeTheme } from '../../theme/ThemeProvider';
 
 /** A restrained elevated edge for persistent Forge headers. */
 export function HeaderEdge() {
+  const theme = useForgeTheme();
   return (
     <View pointerEvents="none" style={styles.edge}>
-      <View style={styles.line} />
-      <View style={styles.shadow} />
+      <View style={[styles.line, { backgroundColor: theme.divider }]} />
+      <View style={[styles.shadow, { shadowColor: theme.shadow }]} />
     </View>
   );
 }
@@ -22,11 +23,10 @@ const styles = StyleSheet.create({
     height: 9,
     zIndex: 2,
   },
-  line: { height: 1, backgroundColor: 'rgba(23,25,28,0.07)' },
+  line: { height: 1 },
   shadow: {
     height: 7,
-    backgroundColor: 'rgba(23,25,28,0.008)',
-    shadowColor: dashboardTheme.ink,
+    backgroundColor: 'transparent',
     shadowOpacity: 0.12,
     shadowRadius: 7,
     shadowOffset: { width: 0, height: 4 },

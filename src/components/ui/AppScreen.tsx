@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 
-import { colors } from '../../theme/tokens';
+import { useForgeTheme } from '../../theme/ThemeProvider';
 
 interface AppScreenProps {
   children?: ReactNode;
@@ -16,14 +16,16 @@ interface AppScreenProps {
 export function AppScreen({
   children,
   style,
-  backgroundColor = colors.background,
+  backgroundColor,
   testID,
 }: AppScreenProps) {
+  const theme = useForgeTheme();
+  const surface = backgroundColor ?? theme.background;
   return (
     <SafeAreaView
       testID={testID}
       edges={['top', 'bottom']}
-      style={[styles.safeArea, { backgroundColor }]}
+      style={[styles.safeArea, { backgroundColor: surface }]}
     >
       <View style={[styles.content, style]}>{children}</View>
     </SafeAreaView>
@@ -31,6 +33,6 @@ export function AppScreen({
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.background },
+  safeArea: { flex: 1 },
   content: { flex: 1 },
 });

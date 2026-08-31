@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
-import { dashboardTheme } from '../../theme/dashboardTheme';
+import { useForgeTheme } from '../../theme/ThemeProvider';
 import { Icon } from './Icon';
 import { lightHaptic } from './haptics';
 
@@ -17,6 +17,7 @@ export function SheetCloseButton({
   onPress,
   style,
 }: SheetCloseButtonProps) {
+  const theme = useForgeTheme();
   return (
     <Pressable
       accessibilityRole="button"
@@ -25,9 +26,9 @@ export function SheetCloseButton({
         lightHaptic();
         onPress();
       }}
-      style={({ pressed }) => [styles.button, pressed && styles.pressed, style]}
+      style={({ pressed }) => [styles.button, { backgroundColor: theme.surfaceMuted }, pressed && styles.pressed, style]}
     >
-      <Icon name="close" size={22} color={dashboardTheme.slate} />
+      <Icon name="close" size={22} color={theme.textSecondary} />
     </Pressable>
   );
 }
@@ -39,7 +40,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 22,
-    backgroundColor: dashboardTheme.surfaceMuted,
+    backgroundColor: '#00000000',
   },
   pressed: { transform: [{ scale: 0.94 }], opacity: 0.74 },
 });

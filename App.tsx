@@ -13,6 +13,8 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 import { WorkoutProvider } from './src/state/WorkoutContext';
 import { SettingsProvider } from './src/state/SettingsContext';
 import { PlansProvider } from './src/state/PlansContext';
+import { ForgeThemeProvider } from './src/theme/ThemeProvider';
+import { ExerciseCatalogProvider } from './src/state/ExerciseCatalogContext';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -28,11 +30,9 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <SettingsProvider>
-          <PlansProvider>
-            <WorkoutProvider>
-              <AppNavigator />
-            </WorkoutProvider>
-          </PlansProvider>
+          <ForgeThemeProvider>
+            <ExerciseCatalogProvider><PlansProvider><WorkoutProvider><AppNavigator /></WorkoutProvider></PlansProvider></ExerciseCatalogProvider>
+          </ForgeThemeProvider>
         </SettingsProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

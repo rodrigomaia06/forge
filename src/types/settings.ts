@@ -1,5 +1,5 @@
-export type AppearancePreference = 'light';
-export type UnitsPreference = 'metric';
+export type AppearancePreference = 'light' | 'dark' | 'system';
+export type UnitsPreference = 'metric' | 'imperial';
 export type WeekStartsOn = 0 | 1;
 export interface WorkoutTypePreference {
   id: string;
@@ -13,7 +13,16 @@ export interface WorkoutTypePreference {
 export interface SettingsPreferences {
   appearance: AppearancePreference;
   units: UnitsPreference;
+  bodyweightKg: number;
   weekStartsOn: WeekStartsOn;
+  showRestTimer: boolean;
+  defaultRestSeconds: number;
+  keepRestTimerRunning: boolean;
+  restTimerSound: boolean;
+  restTimerHaptic: boolean;
+  unfinishedWorkoutReminderEnabled: boolean;
+  unfinishedWorkoutReminderDelay: number;
+  showPlanInWorkoutTitle: boolean;
   workoutTypes: WorkoutTypePreference[];
 }
 

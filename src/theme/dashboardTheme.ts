@@ -1,36 +1,34 @@
+/** Legacy names remain as imports during the staged screen migration. */
+export { lightTheme as lightDashboardTheme, darkTheme as darkDashboardTheme } from './tokens';
 import type { ForgeTheme } from '../types';
+import { lightTheme } from './tokens';
+import { Platform } from 'react-native';
 
-export const dashboardTheme: ForgeTheme = {
-  background: '#E8E8E8',
-  surface: '#F8F8F6',
-  surfaceMuted: '#ECEDEB',
-  calendarSurface: '#F2F2F2',
-  calendarDay: 'rgba(255, 255, 255, 0.58)',
-  ink: '#17191C',
-  accent: '#1D252D',
-  slate: '#55585C',
-  muted: '#8A969E',
-  divider: '#E2E3E0',
-  selected: '#1F2932',
-  selectedText: '#FFFFFF',
-  marker: '#4D7B67',
-  navigation: '#FFFFFF',
-  dockSurface: '#FAFAF8',
-  dockSelected: 'rgba(23, 36, 49, 0.28)',
-  dockBorder: '#FFFFFF',
-  dockForeground: '#172431',
-  dockMuted: 'rgba(23, 36, 49, 0.68)',
-  cardRadius: 24,
-  topBar: true,
-  headerVariant: 'greeting',
-  startButtonVariant: 'outline-compact',
-  iconCalendar: '#4F6B5B',
-  iconStrength: '#6F7FF2',
-  iconSport: '#62C98A',
-  iconActivity: '#E99A5B',
-  iconTime: '#5F7770',
-  summaryGradientStart: '#F0EEFF',
-  summaryGradientEnd: '#E4E2FF',
-  summaryBorder: '#DAD7F8',
-  summaryGlow: '#FFFFFF',
-};
+let activeTheme: ForgeTheme = lightTheme;
+export function setDashboardTheme(theme: ForgeTheme): void { activeTheme = theme; }
+const colorKeys = new Set([
+  'background', 'header', 'surface', 'surfaceElevated', 'input', 'dock', 'overlay', 'surfaceMuted',
+  'ink', 'textPrimary', 'textSecondary', 'textDisabled', 'textDestructive', 'slate', 'muted', 'divider',
+  'border', 'pressed', 'focus', 'shadow', 'accent', 'inkInteractive', 'success', 'calendarSurface',
+  'calendarDay', 'selected', 'selectedText', 'marker', 'navigation', 'dockSurface', 'dockSelected',
+  'dockBorder', 'dockForeground', 'dockMuted', 'iconCalendar', 'iconStrength', 'iconSport', 'iconActivity',
+  'iconTime', 'summaryGradientStart', 'summaryGradientEnd', 'summaryBorder', 'summaryGlow',
+]);
+
+export function setWebThemeVariables(theme: ForgeTheme): void {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+  const root = document.documentElement;
+  colorKeys.forEach((key) => {
+    const value = theme[key as keyof ForgeTheme];
+    if (typeof value === 'string') root.style.setProperty(`--forge-${key}`, value);
+  });
+}
+/** Transitional facade for screens not yet migrated to useForgeTheme. */
+export const dashboardTheme: ForgeTheme = new Proxy({} as ForgeTheme, {
+  get: (_target, key) => {
+    if (Platform.OS === 'web' && typeof key === 'string' && colorKeys.has(key)) {
+      return `var(--forge-${key})`;
+    }
+    return activeTheme[key as keyof ForgeTheme];
+  },
+}) as ForgeTheme;

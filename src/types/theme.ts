@@ -1,16 +1,32 @@
 export interface ForgeTheme {
   background: string;
+  header: string;
   surface: string;
+  surfaceElevated: string;
+  input: string;
+  dock: string;
+  overlay: string;
   surfaceMuted: string;
   ink: string;
+  textPrimary: string;
+  primaryText: string;
+  textSecondary: string;
+  textDisabled: string;
+  textDestructive: string;
   slate: string;
   muted: string;
   divider: string;
+  border: string;
+  pressed: string;
+  focus: string;
+  shadow: string;
   accent?: string;
   inkInteractive?: string;
   success?: string;
   calendarSurface?: string;
   calendarDay?: string;
+  calendarWorkoutDay?: string;
+  calendarWorkoutBorder?: string;
   selected?: string;
   selectedText?: string;
   marker?: string;
@@ -33,4 +49,12 @@ export interface ForgeTheme {
   summaryGradientEnd?: string;
   summaryBorder?: string;
   summaryGlow?: string;
+  cardShadowOpacity?: number;
+  workoutType: {
+    strength: string;
+    mobility: string;
+    cardio: string;
+    sport: string;
+    activity: string;
+  };
 }

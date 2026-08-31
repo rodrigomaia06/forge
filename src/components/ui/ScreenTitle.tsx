@@ -1,7 +1,8 @@
 import React from 'react';
 import { StyleSheet, type StyleProp, type TextProps, type TextStyle } from 'react-native';
 
-import { colors, typeScale } from '../../theme/tokens';
+import { typeScale } from '../../theme/tokens';
+import { useForgeTheme } from '../../theme/ThemeProvider';
 import { ForgeText as Text } from './ForgeText';
 
 interface ScreenTitleProps extends Pick<TextProps, 'children' | 'numberOfLines' | 'testID'> {
@@ -9,9 +10,10 @@ interface ScreenTitleProps extends Pick<TextProps, 'children' | 'numberOfLines' 
   style?: StyleProp<TextStyle>;
 }
 
-export function ScreenTitle({ children, color = colors.ink, style, ...props }: ScreenTitleProps) {
+export function ScreenTitle({ children, color, style, ...props }: ScreenTitleProps) {
+  const theme = useForgeTheme();
   return (
-    <Text {...props} style={[styles.title, { color }, style]}>
+    <Text {...props} style={[styles.title, { color: color ?? theme.textPrimary }, style]}>
       {children}
     </Text>
   );

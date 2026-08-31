@@ -6,10 +6,19 @@ const SETTINGS_PREFERENCES_KEY = '@forge/settings-preferences';
 export const defaultSettingsPreferences: SettingsPreferences = {
   appearance: 'light',
   units: 'metric',
+  bodyweightKg: 0,
   weekStartsOn: 1,
+  showRestTimer: true,
+  defaultRestSeconds: 90,
+  keepRestTimerRunning: false,
+  restTimerSound: true,
+  restTimerHaptic: true,
+  unfinishedWorkoutReminderEnabled: false,
+  unfinishedWorkoutReminderDelay: 1800,
+  showPlanInWorkoutTitle: true,
   workoutTypes: [
     { id: 'strength', name: 'Strength', color: '#687CF2', source: 'builtIn' },
-    { id: 'mobility', name: 'Mobility', color: '#55BC91', source: 'builtIn' },
+    { id: 'mobility', name: 'Mobility', color: '#62C98A', source: 'builtIn' },
     { id: 'cardio', name: 'Cardio', color: '#EF715F', source: 'builtIn' },
     { id: 'court-sport', name: 'Court sport', color: '#E3A346', source: 'builtIn' },
   ],
@@ -21,9 +30,18 @@ export async function loadSettingsPreferences(): Promise<SettingsPreferences> {
 
   const parsed = JSON.parse(value) as Partial<SettingsPreferences>;
   return {
-    appearance: parsed.appearance === 'light' ? parsed.appearance : 'light',
-    units: parsed.units === 'metric' ? parsed.units : 'metric',
+    appearance: parsed.appearance === 'dark' || parsed.appearance === 'system' ? parsed.appearance : 'light',
+    units: parsed.units === 'imperial' ? parsed.units : 'metric',
+    bodyweightKg: typeof parsed.bodyweightKg === 'number' && parsed.bodyweightKg >= 0 ? parsed.bodyweightKg : 0,
     weekStartsOn: parsed.weekStartsOn === 0 ? 0 : 1,
+    showRestTimer: parsed.showRestTimer !== false,
+    defaultRestSeconds: typeof parsed.defaultRestSeconds === 'number' && parsed.defaultRestSeconds >= 0 ? parsed.defaultRestSeconds : 90,
+    keepRestTimerRunning: parsed.keepRestTimerRunning === true,
+    restTimerSound: parsed.restTimerSound !== false,
+    restTimerHaptic: parsed.restTimerHaptic !== false,
+    unfinishedWorkoutReminderEnabled: parsed.unfinishedWorkoutReminderEnabled === true,
+    unfinishedWorkoutReminderDelay: [900, 1800, 3600, 7200].includes(parsed.unfinishedWorkoutReminderDelay as number) ? parsed.unfinishedWorkoutReminderDelay as number : 1800,
+    showPlanInWorkoutTitle: parsed.showPlanInWorkoutTitle !== false,
     workoutTypes: Array.isArray(parsed.workoutTypes)
       ? parsed.workoutTypes.flatMap((item) =>
           typeof item?.id === 'string' && typeof item.name === 'string' && typeof item.color === 'string'

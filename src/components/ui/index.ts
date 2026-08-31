@@ -7,6 +7,8 @@ export { HeaderCircleAction } from './HeaderCircleAction';
 export { AnchoredActionPopover } from './AnchoredActionPopover';
 export { HeaderEdge } from './HeaderEdge';
 export { SheetCloseButton } from './SheetCloseButton';
+export { ForgeBottomSheet, ForgeBottomSheetHandle } from './ForgeBottomSheet';
+export { ForgeCard } from './ForgeCard';
 export { pressedFeedback, pressedFeedbackSubtle } from './pressFeedback';
 export { Icon } from './Icon';
 export { NavigationItem } from './NavigationItem';
