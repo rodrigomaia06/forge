@@ -62,7 +62,7 @@ export function DockSurface({
       style={[
         styles.dock,
         surfaceAnimatedStyle,
-        { backgroundColor: theme.dockSurface, borderColor: theme.dockBorder },
+        { backgroundColor: theme.dock ?? theme.dockSurface, borderColor: theme.border ?? theme.dockBorder, shadowColor: theme.shadow },
       ]}
     >
       {children || (

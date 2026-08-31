@@ -9,6 +9,7 @@ import {
 } from './DashboardParts';
 import { workoutsByDate } from '../../data/mockWorkouts';
 import { dashboardTheme } from '../../theme/dashboardTheme';
+import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useWorkouts } from '../../state/WorkoutContext';
 import type { RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../types';
@@ -20,6 +21,7 @@ export function DashboardOptionThree({
   route: RouteProp<RootStackParamList, 'Dashboard'>;
 }) {
   const { completedWorkouts } = useWorkouts();
+  const theme = useForgeTheme();
   const [selectedDay, setSelectedDay] = useState(route?.params?.selectedDay || 24);
   const [calendarMenu, setCalendarMenu] = useState<CalendarMenuState | null>(null);
   useEffect(() => {
@@ -35,7 +37,7 @@ export function DashboardOptionThree({
   }, [completedWorkouts]);
   return (
     <DashboardShell
-      theme={dashboardTheme}
+      theme={theme}
       calendarMenu={calendarMenu}
       onCalendarMenuDismiss={() => setCalendarMenu(null)}
     >
@@ -43,7 +45,7 @@ export function DashboardOptionThree({
         <DashboardCalendar
           selectedDay={selectedDay}
           setSelectedDay={setSelectedDay}
-          theme={dashboardTheme}
+          theme={theme}
           workoutMap={workoutMap}
           viewMenuOpen={Boolean(calendarMenu)}
           onViewMenuOpenChange={(open) => {
@@ -54,9 +56,9 @@ export function DashboardOptionThree({
         <DashboardWorkoutCard
           selectedDay={selectedDay}
           selectedWorkouts={workoutMap[selectedDay] || []}
-          theme={dashboardTheme}
+          theme={theme}
         />
-        <DashboardContextCard theme={dashboardTheme} icons compact />
+        <DashboardContextCard theme={theme} icons compact />
       </DashboardScroll>
     </DashboardShell>
   );

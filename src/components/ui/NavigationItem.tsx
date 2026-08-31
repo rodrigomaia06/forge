@@ -146,7 +146,9 @@ export function NavigationItem({
                 ? theme.surface || colors.surface
                 : emphasis
                   ? theme.accent || colors.inkInteractive
-                  : theme.dockForeground || theme.surface
+                : active
+                  ? theme.dockForeground || theme.surface
+                  : theme.dockMuted || theme.slate
             }
             weight={emphasis ? 'thin' : active ? 'fill' : 'regular'}
             style={Platform.OS === 'web' && emphasis && !active ? styles.playIcon : undefined}

@@ -461,11 +461,11 @@ function DayCell({
         <Animated.View
           style={[
             styles.daySurface,
-            { backgroundColor: theme.calendarDay || '#FFFFFF' },
+            { backgroundColor: theme.calendarDay },
             hasWorkout && {
-              backgroundColor: 'rgba(31,41,50,0.07)',
+              backgroundColor: theme.calendarWorkoutDay,
               borderWidth: 1,
-              borderColor: 'rgba(31,41,50,0.1)',
+              borderColor: theme.calendarWorkoutBorder,
             },
             isSelected && { backgroundColor: theme.selected, borderWidth: 0, shadowOpacity: 0 },
             {
@@ -511,8 +511,10 @@ function DayCell({
 }
 
 function eventColor(workout: WorkoutSummary, theme: ForgeTheme): string {
-  if (workout.type === 'Strength') return theme.iconTime || theme.marker || theme.muted;
-  if (workout.type === 'Court sport') return theme.marker || theme.muted;
+  if (workout.type === 'Strength') return theme.workoutType.strength;
+  if (workout.type === 'Mobility') return theme.workoutType.mobility;
+  if (workout.type === 'Cardio') return theme.workoutType.cardio;
+  if (workout.type === 'Court sport') return theme.workoutType.sport;
   return theme.muted;
 }
 

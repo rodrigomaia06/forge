@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { DockChrome } from './DockChrome';
-import { dashboardTheme } from '../theme/dashboardTheme';
+import { useForgeTheme } from '../theme/ThemeProvider';
 import type { StyleProp, ViewStyle } from 'react-native';
 
 export function NavigationFooter({
@@ -13,9 +13,10 @@ export function NavigationFooter({
   compact?: boolean;
   onInteract?: () => void;
 }) {
+  const theme = useForgeTheme();
   return (
     <DockChrome
-      theme={dashboardTheme}
+      theme={theme}
       compact={compact}
       onInteract={onInteract}
       style={[styles.footer, style]}

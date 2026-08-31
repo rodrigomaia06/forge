@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
-import { dashboardTheme } from '../../theme/dashboardTheme';
+import { useForgeTheme } from '../../theme/ThemeProvider';
 import type { IconName, IconWeight } from '../../types';
 import { Button } from './Button';
 
@@ -23,6 +23,7 @@ export function HeaderCircleAction({
   iconWeight = 'regular',
   style,
 }: HeaderCircleActionProps) {
+  const theme = useForgeTheme();
   return (
     <Button
       accessibilityLabel={accessibilityLabel}
@@ -30,9 +31,18 @@ export function HeaderCircleAction({
       iconSize={iconSize}
       iconWeight={iconWeight}
       variant="secondary"
+      tone="neutral"
       onPress={onPress}
-      theme={dashboardTheme}
-      style={[styles.button, style]}
+      theme={theme}
+      style={[
+        styles.button,
+        {
+          borderColor: theme.border,
+          backgroundColor: theme.surfaceElevated,
+          shadowColor: theme.shadow,
+        },
+        style,
+      ]}
     />
   );
 }

@@ -1,10 +1,9 @@
 import React from 'react';
 import { StyleSheet, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 
-import { dashboardTheme } from '../../theme/dashboardTheme';
+import { useForgeTheme } from '../../theme/ThemeProvider';
 import type { IconName } from '../../types';
 import { Button } from './Button';
-import { lightHaptic } from './haptics';
 
 interface HeaderActionProps {
   accessibilityLabel: string;
@@ -31,7 +30,8 @@ export function HeaderAction({
   labelStyle,
   style,
 }: HeaderActionProps) {
-  const accent = accentColor ?? dashboardTheme.accent;
+  const theme = useForgeTheme();
+  const accent = accentColor ?? theme.accent;
   const isAccent = tone === 'accent';
   return (
     <Button
@@ -40,20 +40,24 @@ export function HeaderAction({
       icon={icon}
       iconSize={20}
       variant="secondary"
-      onPress={() => {
-        if (iconOnly) lightHaptic();
-        onPress();
-      }}
-      theme={dashboardTheme}
-      labelColor={labelColor ?? (isAccent ? dashboardTheme.surface : dashboardTheme.ink)}
+      onPress={onPress}
+      theme={theme}
+      labelColor={labelColor ?? (isAccent ? theme.surface : theme.textPrimary)}
       labelStyle={labelStyle}
       style={[
         styles.base,
         isAccent
           ? { backgroundColor: accent, borderColor: accent }
           : iconOnly
-            ? styles.iconOnly
-            : styles.neutral,
+            ? [
+                styles.iconOnly,
+                {
+                  borderColor: theme.border,
+                  backgroundColor: theme.surfaceElevated,
+                  shadowColor: theme.shadow,
+                },
+              ]
+            : [styles.neutral, { borderColor: theme.border, backgroundColor: theme.surface }],
         style,
       ]}
     />
@@ -75,8 +79,8 @@ const styles = StyleSheet.create({
     minWidth: 44,
     paddingHorizontal: 0,
     borderRadius: 22,
-    borderColor: dashboardTheme.divider,
-    backgroundColor: dashboardTheme.surfaceMuted,
+    borderColor: '#00000000',
+    backgroundColor: '#00000000',
     shadowColor: '#17191C',
     shadowOpacity: 0.04,
     shadowRadius: 3,

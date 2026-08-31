@@ -42,5 +42,7 @@ export type IconName =
   | 'verified'
   | 'arrow-up'
   | 'arrow-down'
-  | 'drag';
+  | 'drag'
+  | 'git'
+  | 'license';
 export type IconWeight = 'thin' | 'regular' | 'bold' | 'fill';

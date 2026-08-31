@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { dashboardTheme } from '../../theme/dashboardTheme';
+import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
 import type { IconName } from '../../types';
 import { ForgeText as Text } from './ForgeText';
@@ -25,11 +26,12 @@ export function AnchoredActionPopover({
   actions: AnchoredPopoverAction[];
   testID?: string;
 }) {
+  const theme = useForgeTheme();
   if (!visible) return null;
   return (
     <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
       <Pressable accessibilityRole="button" accessibilityLabel="Dismiss actions" onPress={onClose} style={StyleSheet.absoluteFill} />
-      <View testID={testID} style={styles.popover}>
+      <View testID={testID} style={[styles.popover, { backgroundColor: theme.surfaceElevated, borderColor: theme.border, shadowColor: theme.shadow }]}>
         {actions.map((action, index) => (
           <React.Fragment key={action.label}>
             <Pressable
@@ -40,12 +42,12 @@ export function AnchoredActionPopover({
                 onClose();
                 action.onPress();
               }}
-              style={({ pressed }) => [styles.action, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.action, pressed && [styles.pressed, { backgroundColor: theme.pressed }]]}
             >
-              <Icon name={action.icon} size={19} color={dashboardTheme.ink} />
-              <Text style={styles.label}>{action.label}</Text>
+              <Icon name={action.icon} size={19} color={theme.textPrimary} />
+              <Text style={[styles.label, { color: theme.textPrimary }]}>{action.label}</Text>
             </Pressable>
-            {index < actions.length - 1 && <View style={styles.divider} />}
+            {index < actions.length - 1 && <View style={[styles.divider, { backgroundColor: theme.divider }]} />}
           </React.Fragment>
         ))}
       </View>

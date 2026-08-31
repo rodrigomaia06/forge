@@ -38,6 +38,8 @@ import {
   BadgeCheck,
   NavArrowUp,
   Drag,
+  Git,
+  Page,
 } from 'iconoir-react-native';
 
 const iconMap: Record<IconName, React.ComponentType<SvgProps>> = {
@@ -85,6 +87,8 @@ const iconMap: Record<IconName, React.ComponentType<SvgProps>> = {
   'arrow-up': NavArrowUp,
   'arrow-down': NavArrowDown,
   drag: Drag,
+  git: Git,
+  license: Page,
 };
 
 export function Icon({
