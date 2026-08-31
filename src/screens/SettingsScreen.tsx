@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { NavigationFooter } from '../components/NavigationFooter';
-import { AppScreen, ForgeCard, ScreenTitle, selectionHaptic } from '../components/ui';
+import { AppScreen, ForgeCard, ScreenTitle } from '../components/ui';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { spacing } from '../theme/tokens';
@@ -16,7 +16,6 @@ export function SettingsScreen({ navigation }: Props) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const open = (screen: keyof RootStackParamList): void => {
-    selectionHaptic();
     navigation.navigate(screen as never);
   };
 
@@ -60,21 +59,24 @@ export function SettingsScreen({ navigation }: Props) {
   );
 }
 
-function SettingsGroup({ children }: { children: React.ReactNode }) { return <ForgeCard variant="elevated">{children}</ForgeCard>; }
+function SettingsGroup({ children }: { children: React.ReactNode }) {
+  return <ForgeCard variant="elevated">{children}</ForgeCard>;
+}
 
-const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create({
-  screen: { flex: 1 },
-  header: {
-    height: 70,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.screen,
-    backgroundColor: theme.background,
-  },
-  content: {
-    paddingHorizontal: spacing.screen,
-    paddingTop: 17,
-    paddingBottom: 112,
-    gap: 25,
-  },
-  aboutCard: {},
-});
+const createStyles = (theme: import('../types').ForgeTheme) =>
+  StyleSheet.create({
+    screen: { flex: 1 },
+    header: {
+      height: 70,
+      justifyContent: 'center',
+      paddingHorizontal: spacing.screen,
+      backgroundColor: theme.background,
+    },
+    content: {
+      paddingHorizontal: spacing.screen,
+      paddingTop: 17,
+      paddingBottom: 112,
+      gap: 25,
+    },
+    aboutCard: {},
+  });

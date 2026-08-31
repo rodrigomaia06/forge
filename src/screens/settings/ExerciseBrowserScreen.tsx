@@ -10,7 +10,6 @@ import {
   ForgeTextInput as TextInput,
   Icon,
   lightHaptic,
-  mediumHaptic,
   pressedFeedback,
   selectionHaptic,
 } from '../../components/ui';
@@ -22,7 +21,11 @@ import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import type { RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
-import { catalogFacets, filterCatalog, groupCatalogByMovement } from '../../domain/exercises/catalogSelectors';
+import {
+  catalogFacets,
+  filterCatalog,
+  groupCatalogByMovement,
+} from '../../domain/exercises/catalogSelectors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseBrowser'>;
 type Filters = { types: string[]; equipment: string[]; categories: string[] };
@@ -59,14 +62,16 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const active = filters.types.length + filters.equipment.length + filters.categories.length;
   const filtered = useMemo(
     () =>
-      filterCatalog(source, { query, types: filters.types, equipment: filters.equipment, categories: filters.categories, includeGroupInSearch: true }).filter((item) => !fixedTypeId || item.workoutTypeIds.includes(fixedTypeId)),
+      filterCatalog(source, {
+        query,
+        types: filters.types,
+        equipment: filters.equipment,
+        categories: filters.categories,
+        includeGroupInSearch: true,
+      }).filter((item) => !fixedTypeId || item.workoutTypeIds.includes(fixedTypeId)),
     [source, fixedTypeId, filters, query],
   );
-  const groups = useMemo(
-    () =>
-      groupCatalogByMovement(filtered),
-    [filtered],
-  );
+  const groups = useMemo(() => groupCatalogByMovement(filtered), [filtered]);
   const { equipment, categories } = catalogFacets(source);
   const openCreate = (parent: string | null) => {
     lightHaptic();
@@ -99,7 +104,6 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     };
     if (editing) catalog.updateCustomExercise(exercise);
     else catalog.addCustomExercise(exercise);
-    mediumHaptic();
     setFormParent(undefined);
     setEditing(null);
   };
@@ -344,7 +348,6 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                         labelColor={theme.textDestructive}
                         onPress={() => {
                           catalog.removeCustomExercise(detail.id);
-                          mediumHaptic();
                           close();
                         }}
                       />
@@ -488,7 +491,6 @@ function Movement({
           <Pressable
             accessibilityRole="button"
             onPress={() => {
-              lightHaptic();
               onAdd();
             }}
             style={styles.addVariation}

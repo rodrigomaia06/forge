@@ -88,6 +88,13 @@ test.describe('Settings', () => {
     await expect(page.getByRole('button', { name: 'Save workout type' })).toBeDisabled();
     await expect(page.getByText('New workout type', { exact: true })).toBeVisible();
     await page.getByLabel('Workout type name').fill('Recovery');
+    await page.getByRole('button', { name: 'Choose custom workout type color' }).click();
+    await expect(page.getByTestId('custom-workout-type-color-picker')).toBeVisible();
+    await page
+      .getByRole('button', { name: /Use custom color #/ })
+      .first()
+      .click();
+    await expect(page.getByTestId('custom-workout-type-color-picker')).toHaveCount(0);
     await page.getByRole('button', { name: 'Save workout type' }).click();
     await expect(page.getByRole('button', { name: 'Recovery workout type' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Recovery workout type' })).toHaveCount(1);
