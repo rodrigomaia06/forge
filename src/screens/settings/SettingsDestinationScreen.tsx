@@ -1,7 +1,7 @@
 import React from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { AppScreen, ForgeText as Text, Icon, pressedFeedback } from '../../components/ui';
+import { AppScreen, ForgeCard, ForgeText as Text, Icon, pressedFeedback } from '../../components/ui';
 import { dashboardTheme } from '../../theme/dashboardTheme';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
@@ -116,16 +116,7 @@ function Group({
     </View>
   );
 }
-function Card({ children }: { children: React.ReactNode }) {
-  const theme = useForgeTheme();
-  return (
-    <View
-      style={[styles.card, { backgroundColor: theme.surfaceElevated, shadowColor: theme.shadow }]}
-    >
-      {children}
-    </View>
-  );
-}
+function Card({ children }: { children: React.ReactNode }) { return <ForgeCard variant="elevated">{children}</ForgeCard>; }
 function Action({
   title,
   subtitle,
@@ -169,19 +160,10 @@ function Action({
     </Pressable>
   );
 }
-const card = {
-  overflow: 'hidden',
-  borderRadius: dashboardTheme.cardRadius,
-  shadowOpacity: 0.06,
-  shadowRadius: 10,
-  shadowOffset: { width: 0, height: 4 },
-  elevation: 2,
-} as const;
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: 20, paddingTop: 24, paddingBottom: 44 },
   stack: { gap: 22 },
-  card,
   group: { gap: 8 },
   groupTitle: { marginLeft: 6, color: dashboardTheme.slate, ...typeScale.label },
   footer: { paddingHorizontal: 6, color: dashboardTheme.slate, ...typeScale.caption },

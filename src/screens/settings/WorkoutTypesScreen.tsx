@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import {
   AppScreen,
+  ForgeCard,
   ForgeText as Text,
   HeaderCircleAction,
   Icon,
@@ -173,17 +174,7 @@ function TypeList({
 }) {
   const theme = useForgeTheme();
   return (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: theme.surfaceElevated,
-          borderColor: theme.border,
-          shadowColor: theme.shadow,
-          shadowOpacity: theme.cardShadowOpacity ?? 0.06,
-        },
-      ]}
-    >
+    <ForgeCard style={styles.card}>
       {types.map((type, index) => (
         <React.Fragment key={type.id}>
           <SwipeTypeRow
@@ -205,7 +196,7 @@ function TypeList({
           )}
         </React.Fragment>
       ))}
-    </View>
+    </ForgeCard>
   );
 }
 

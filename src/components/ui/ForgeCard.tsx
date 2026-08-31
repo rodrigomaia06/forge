@@ -5,9 +5,11 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 export function ForgeCard({
   children,
   style,
+  variant = 'outlined',
 }: {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
+  variant?: 'outlined' | 'elevated';
 }) {
   const theme = useForgeTheme();
   return (
@@ -19,6 +21,7 @@ export function ForgeCard({
           borderColor: theme.border,
           shadowColor: theme.shadow,
           shadowOpacity: theme.cardShadowOpacity ?? 0.06,
+          borderWidth: variant === 'outlined' ? 1 : 0,
         },
         style,
       ]}

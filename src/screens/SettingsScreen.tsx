@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { NavigationFooter } from '../components/NavigationFooter';
-import { AppScreen, ScreenTitle, selectionHaptic } from '../components/ui';
+import { AppScreen, ForgeCard, ScreenTitle, selectionHaptic } from '../components/ui';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { spacing } from '../theme/tokens';
@@ -50,9 +50,9 @@ export function SettingsScreen({ navigation }: Props) {
             />
             <SettingsRow icon="clipboard" title="Logs" onPress={() => open('Logs')} />
           </SettingsGroup>
-          <View style={styles.aboutCard}>
+          <ForgeCard variant="elevated" style={styles.aboutCard}>
             <SettingsRow icon="info" title="About" onPress={() => open('About')} />
-          </View>
+          </ForgeCard>
         </ScrollView>
         <NavigationFooter />
       </View>
@@ -60,11 +60,7 @@ export function SettingsScreen({ navigation }: Props) {
   );
 }
 
-function SettingsGroup({ children }: { children: React.ReactNode }) {
-  const theme = useForgeTheme();
-  const styles = useThemedStyles(createStyles);
-  return <View style={[styles.card, { backgroundColor: theme.surfaceElevated, shadowColor: theme.shadow }]}>{children}</View>;
-}
+function SettingsGroup({ children }: { children: React.ReactNode }) { return <ForgeCard variant="elevated">{children}</ForgeCard>; }
 
 const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create({
   screen: { flex: 1 },
@@ -80,6 +76,5 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     paddingBottom: 112,
     gap: 25,
   },
-  card: { borderRadius: theme.cardRadius, backgroundColor: theme.surface, shadowColor: theme.shadow, shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
-  aboutCard: { borderRadius: theme.cardRadius, backgroundColor: theme.surface, shadowColor: theme.shadow, shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  aboutCard: {},
 });
