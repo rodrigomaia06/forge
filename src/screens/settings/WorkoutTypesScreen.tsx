@@ -1,44 +1,409 @@
-import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-
-import { AppScreen, ForgeText as Text, HeaderCircleAction, Icon, lightHaptic, pressedFeedback, selectionHaptic } from '../../components/ui';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
+import {
+  AppScreen,
+  ForgeText as Text,
+  HeaderCircleAction,
+  Icon,
+  lightHaptic,
+  mediumHaptic,
+  pressedFeedback,
+  selectionHaptic,
+} from '../../components/ui';
+import { usePlans } from '../../state/PlansContext';
 import { useSettings } from '../../state/SettingsContext';
+import { useWorkouts } from '../../state/WorkoutContext';
 import { dashboardTheme } from '../../theme/dashboardTheme';
+import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
 import type { RootStackParamList, WorkoutTypePreference } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutTypes'>;
 const colors = ['#7C8CF8', '#6BD48F', '#F27D7D', '#F4A261', '#B78AF0', '#9CA3AF'];
+const spring = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
 
 export function WorkoutTypesScreen({ navigation }: Props) {
+  const theme = useForgeTheme();
   const { preferences, updatePreferences } = useSettings();
-  const [editing, setEditing] = useState(false);
-  const visible = useMemo(() => preferences.workoutTypes.filter((type) => !type.hidden), [preferences.workoutTypes]);
-  const hidden = useMemo(() => preferences.workoutTypes.filter((type) => type.hidden), [preferences.workoutTypes]);
-  const update = (next: WorkoutTypePreference[]): void => updatePreferences({ workoutTypes: next });
-  const add = (): void => {
+  const { activeWorkout, completedWorkouts } = useWorkouts();
+  const { plans, standaloneRoutines } = usePlans();
+  const [revealedId, setRevealedId] = useState<string | null>(null);
+  const visible = useMemo(
+    () => preferences.workoutTypes.filter((type) => !type.hidden),
+    [preferences.workoutTypes],
+  );
+  const hidden = useMemo(
+    () => preferences.workoutTypes.filter((type) => type.hidden),
+    [preferences.workoutTypes],
+  );
+  const isReferenced = (type: WorkoutTypePreference) =>
+    [activeWorkout, ...completedWorkouts]
+      .filter(Boolean)
+      .some((workout) => workout?.type === type.name) ||
+    [...standaloneRoutines, ...plans.flatMap((plan) => plan.routines)].some(
+      (routine) => routine.type === type.name,
+    );
+  const add = () => {
     lightHaptic();
-    const type = { id: `type-${Date.now()}`, name: 'New type', color: colors[preferences.workoutTypes.length % colors.length], source: 'custom' as const };
-    update([...preferences.workoutTypes, type]);
+    const type: WorkoutTypePreference = {
+      id: `type-${Date.now()}`,
+      name: 'New type',
+      color: colors[preferences.workoutTypes.length % colors.length],
+      source: 'custom',
+    };
+    updatePreferences({ workoutTypes: [...preferences.workoutTypes, type] });
     navigation.navigate('WorkoutTypeEditor', { workoutTypeId: type.id });
   };
-  const move = (id: string, direction: -1 | 1): void => {
-    const next = [...preferences.workoutTypes];
-    const index = next.findIndex((type) => type.id === id);
-    const target = index + direction;
-    if (index < 0 || target < 0 || target >= next.length || next[target].hidden) return;
-    [next[index], next[target]] = [next[target], next[index]];
-    selectionHaptic();
-    update(next);
+  const remove = (type: WorkoutTypePreference) => {
+    const hide = type.source === 'builtIn' || type.hasReferencedData || isReferenced(type);
+    Alert.alert(
+      hide ? 'Hide workout type?' : 'Delete workout type?',
+      hide
+        ? 'It will disappear from new-workout pickers. Existing training keeps its saved type.'
+        : 'This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel', onPress: () => setRevealedId(null) },
+        {
+          text: hide ? 'Hide' : 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            lightHaptic();
+            updatePreferences({
+              workoutTypes: hide
+                ? preferences.workoutTypes.map((item) =>
+                    item.id === type.id
+                      ? {
+                          ...item,
+                          hidden: true,
+                          hasReferencedData: item.hasReferencedData || isReferenced(type),
+                        }
+                      : item,
+                  )
+                : preferences.workoutTypes.filter((item) => item.id !== type.id),
+            });
+            setRevealedId(null);
+          },
+        },
+      ],
+    );
   };
-  return <AppScreen backgroundColor={dashboardTheme.background}><View style={styles.screen}><SettingsDetailHeader title="Workout types" navigation={navigation} rightAction={<View style={styles.headerActions}><Pressable accessibilityRole="button" accessibilityLabel={editing ? 'Finish editing workout types' : 'Edit workout types'} onPress={() => { selectionHaptic(); setEditing((current) => !current); }} style={({ pressed }) => [styles.edit, pressed && styles.pressed]}><Text style={styles.editText}>{editing ? 'Done' : 'Edit'}</Text></Pressable><HeaderCircleAction accessibilityLabel="Add workout type" icon="add" iconSize={20} onPress={add} /></View>} /><ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}><TypeSection types={visible} editing={editing} onOpen={(type) => navigation.navigate('WorkoutTypeEditor', { workoutTypeId: type.id })} onMove={move} />{hidden.length > 0 && <TypeSection title="Hidden" types={hidden} editing={false} onOpen={(type) => navigation.navigate('WorkoutTypeEditor', { workoutTypeId: type.id })} onMove={move} hidden />}</ScrollView></View></AppScreen>;
+  const toggleBuiltInVisibility = (type: WorkoutTypePreference) => {
+    selectionHaptic();
+    updatePreferences({
+      workoutTypes: preferences.workoutTypes.map((item) =>
+        item.id === type.id ? { ...item, hidden: !item.hidden } : item,
+      ),
+    });
+  };
+  return (
+    <AppScreen backgroundColor={theme.background}>
+      <View style={[styles.screen, { backgroundColor: theme.background }]}>
+        <SettingsDetailHeader
+          title="Workout types"
+          navigation={navigation}
+          rightAction={
+            <HeaderCircleAction
+              accessibilityLabel="Add workout type"
+              icon="add"
+              iconSize={20}
+              onPress={add}
+            />
+          }
+        />
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <TypeList
+            types={visible}
+            revealedId={revealedId}
+            setRevealedId={setRevealedId}
+            onOpen={(type) => navigation.navigate('WorkoutTypeEditor', { workoutTypeId: type.id })}
+            onRemove={remove}
+            onToggleVisibility={toggleBuiltInVisibility}
+            isReferenced={isReferenced}
+          />
+          {hidden.length > 0 && (
+            <View style={styles.hiddenSection}>
+              <Text style={styles.sectionTitle}>Hidden</Text>
+              <TypeList
+                types={hidden}
+                revealedId={null}
+                setRevealedId={() => undefined}
+                onOpen={(type) =>
+                  navigation.navigate('WorkoutTypeEditor', { workoutTypeId: type.id })
+                }
+                onRemove={remove}
+                onToggleVisibility={toggleBuiltInVisibility}
+                isReferenced={isReferenced}
+                hidden
+              />
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    </AppScreen>
+  );
 }
 
-function TypeSection({ title, types, editing, onOpen, onMove, hidden = false }: { title?: string; types: WorkoutTypePreference[]; editing: boolean; hidden?: boolean; onOpen: (type: WorkoutTypePreference) => void; onMove: (id: string, direction: -1 | 1) => void }) {
-  return <View style={styles.section}>{title && <Text style={styles.sectionTitle}>{title}</Text>}<View style={styles.card}>{types.map((type, index) => <React.Fragment key={type.id}><Pressable accessibilityRole="button" accessibilityLabel={`${type.name} workout type`} onPress={() => !editing && onOpen(type)} style={({ pressed }) => [styles.row, pressed && pressedFeedback]}><View style={[styles.swatch, { backgroundColor: type.color }]} /><Text style={styles.name} numberOfLines={1}>{type.name}</Text><Icon name={type.source === 'builtIn' ? 'verified' : 'note'} size={17} color={dashboardTheme.slate} accessibilityLabel={type.source === 'builtIn' ? 'Provided by Forge' : 'Created by you'} />{editing ? <View style={styles.reorder}><Icon name="drag" size={17} color={dashboardTheme.muted} /><Pressable accessibilityRole="button" accessibilityLabel={`Move ${type.name} up`} disabled={index === 0} onPress={() => onMove(type.id, -1)} style={({ pressed }) => [styles.move, index === 0 && styles.disabled, pressed && styles.pressed]}><Icon name="arrow-up" size={15} color={dashboardTheme.slate} /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Move ${type.name} down`} disabled={index === types.length - 1} onPress={() => onMove(type.id, 1)} style={({ pressed }) => [styles.move, index === types.length - 1 && styles.disabled, pressed && styles.pressed]}><Icon name="arrow-down" size={15} color={dashboardTheme.slate} /></Pressable></View> : <>{hidden && <Text style={styles.hidden}>Hidden</Text>}<Icon name="chevron-forward" size={18} color={dashboardTheme.slate} /></>}</Pressable>{index < types.length - 1 && <View style={styles.divider} />}</React.Fragment>)}</View></View>;
+function TypeList({
+  types,
+  revealedId,
+  setRevealedId,
+  onOpen,
+  onRemove,
+  onToggleVisibility,
+  isReferenced,
+  hidden = false,
+}: {
+  types: WorkoutTypePreference[];
+  revealedId: string | null;
+  setRevealedId: (id: string | null) => void;
+  onOpen: (type: WorkoutTypePreference) => void;
+  onRemove: (type: WorkoutTypePreference) => void;
+  onToggleVisibility: (type: WorkoutTypePreference) => void;
+  isReferenced: (type: WorkoutTypePreference) => boolean;
+  hidden?: boolean;
+}) {
+  const theme = useForgeTheme();
+  return (
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.surfaceElevated,
+          borderColor: theme.border,
+          shadowColor: theme.shadow,
+          shadowOpacity: theme.cardShadowOpacity ?? 0.06,
+        },
+      ]}
+    >
+      {types.map((type, index) => (
+        <React.Fragment key={type.id}>
+          <SwipeTypeRow
+            type={type}
+            hidden={hidden}
+            revealed={revealedId === type.id}
+            onReveal={(show) => setRevealedId(show ? type.id : null)}
+            onOpen={() => onOpen(type)}
+            onRemove={() => onRemove(type)}
+            onToggleVisibility={() => onToggleVisibility(type)}
+            actionLabel={
+              type.source === 'builtIn' || type.hasReferencedData || isReferenced(type)
+                ? 'Hide'
+                : 'Delete'
+            }
+          />
+          {index < types.length - 1 && (
+            <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+          )}
+        </React.Fragment>
+      ))}
+    </View>
+  );
 }
 
-const card = { overflow: 'hidden', borderRadius: dashboardTheme.cardRadius, backgroundColor: dashboardTheme.surface, shadowColor: '#17191C', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 } as const;
-const styles = StyleSheet.create({ screen: { flex: 1 }, headerActions: { width: 120, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 2 }, edit: { minWidth: 48, minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 }, editText: { ...typeScale.controlLabel, color: dashboardTheme.ink }, content: { padding: 20, paddingTop: 20, paddingBottom: 40, gap: 22 }, section: { gap: 8 }, sectionTitle: { ...typeScale.sectionTitle, color: dashboardTheme.slate }, card, row: { minHeight: 54, paddingHorizontal: 16, gap: 10, flexDirection: 'row', alignItems: 'center' }, swatch: { width: 14, height: 14, borderRadius: 7 }, name: { flex: 1, minWidth: 0, color: dashboardTheme.ink, ...typeScale.cardTitle }, hidden: { color: dashboardTheme.slate, ...typeScale.caption }, divider: { height: StyleSheet.hairlineWidth, marginLeft: 40, backgroundColor: dashboardTheme.divider }, reorder: { height: 44, flexDirection: 'row', alignItems: 'center', gap: 1, marginRight: -10 }, move: { width: 27, height: 44, alignItems: 'center', justifyContent: 'center' }, disabled: { opacity: 0.22 }, pressed: { opacity: 0.56 } });
+function SwipeTypeRow({
+  type,
+  hidden,
+  revealed,
+  onReveal,
+  onOpen,
+  onRemove,
+  onToggleVisibility,
+  actionLabel,
+}: {
+  type: WorkoutTypePreference;
+  hidden: boolean;
+  revealed: boolean;
+  onReveal: (show: boolean) => void;
+  onOpen: () => void;
+  onRemove: () => void;
+  onToggleVisibility: () => void;
+  actionLabel: 'Hide' | 'Delete';
+}) {
+  const theme = useForgeTheme();
+  const width = 72;
+  const x = useSharedValue(revealed ? -width : 0);
+  const open = useSharedValue(revealed);
+  const suppress = useRef(false);
+  const [expanded, setExpanded] = useState(false);
+  useEffect(() => {
+    open.value = revealed;
+    x.value = withSpring(revealed ? -width : 0, spring);
+  }, [open, revealed, x]);
+  const settle = (next: boolean, dragged: boolean) => {
+    if (dragged) suppress.current = true;
+    if (next !== revealed) {
+      mediumHaptic();
+      onReveal(next);
+    } else x.value = withSpring(next ? -width : 0, spring);
+  };
+  const pan = Gesture.Pan()
+    .activeOffsetX([-8, 8])
+    .failOffsetY([-12, 12])
+    .onUpdate((event) => {
+      if (!open.value && event.translationX >= 0) return;
+      x.value = Math.max(-width, Math.min(0, (open.value ? -width : 0) + event.translationX));
+    })
+    .onEnd((event) => {
+      const next = (open.value ? -width : 0) + event.translationX < -width * 0.55;
+      runOnJS(settle)(next, Math.abs(event.translationX) > 6);
+    });
+  const animated = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
+  const content = (
+    <View style={[styles.swipe, { backgroundColor: theme.overlay }]}>
+      <View
+        pointerEvents={revealed ? 'auto' : 'none'}
+        style={[styles.actionLayer, { backgroundColor: theme.overlay }]}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${actionLabel} ${type.name}`}
+          onPress={onRemove}
+          style={({ pressed }) => [styles.swipeAction, pressed && styles.swipeActionPressed]}
+        >
+          <Icon
+            name={actionLabel === 'Hide' ? 'close' : 'trash'}
+            size={18}
+            color={theme.textDestructive}
+          />
+          <Text style={[styles.swipeActionText, { color: theme.textDestructive }]}>
+            {actionLabel}
+          </Text>
+        </Pressable>
+      </View>
+      <Animated.View
+        style={[styles.rowSurface, { backgroundColor: theme.surfaceElevated }, animated]}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${type.name} workout type`}
+          onPress={() => {
+            if (suppress.current) {
+              suppress.current = false;
+              return;
+            }
+            if (type.source === 'builtIn') {
+              selectionHaptic();
+              setExpanded((value) => !value);
+            } else onOpen();
+          }}
+          style={({ pressed }) => [styles.row, pressed && { backgroundColor: theme.pressed }]}
+        >
+          <View style={[styles.swatch, { backgroundColor: type.color }]} />
+          <Text style={[styles.name, { color: theme.textPrimary }]} numberOfLines={1}>
+            {type.name}
+          </Text>
+          <Icon
+            name={type.source === 'builtIn' ? 'verified' : 'note'}
+            size={17}
+            color={theme.textSecondary}
+            accessibilityLabel={
+              type.source === 'builtIn' ? 'Included with Forge' : 'Created by you'
+            }
+          />
+          {hidden && <Text style={[styles.hidden, { color: theme.textSecondary }]}>Hidden</Text>}
+          <Icon name="chevron-forward" size={18} color={theme.textSecondary} />
+        </Pressable>
+      </Animated.View>
+      {type.source === 'builtIn' && expanded && (
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityLabel={`${hidden ? 'Show' : 'Hide'} ${type.name} in workout pickers`}
+          accessibilityState={{ checked: !hidden }}
+          onPress={onToggleVisibility}
+          style={({ pressed }) => [
+            styles.builtInControl,
+            pressed && { backgroundColor: theme.pressed },
+          ]}
+        >
+          <Text style={[styles.builtInText, { color: theme.textPrimary }]}>
+            {hidden ? 'Show in workout pickers' : 'Hide from workout pickers'}
+          </Text>
+          <View
+            style={[styles.switch, { backgroundColor: !hidden ? theme.marker : theme.divider }]}
+          >
+            <View
+              style={[
+                styles.switchThumb,
+                { backgroundColor: theme.surfaceElevated },
+                !hidden && styles.switchThumbOn,
+              ]}
+            />
+          </View>
+        </Pressable>
+      )}
+    </View>
+  );
+  return hidden || type.source === 'builtIn' ? (
+    content
+  ) : (
+    <GestureDetector gesture={pan}>{content}</GestureDetector>
+  );
+}
+
+const card = {
+  overflow: 'hidden',
+  borderRadius: dashboardTheme.cardRadius,
+  borderWidth: 1,
+  backgroundColor: dashboardTheme.surface,
+  shadowColor: '#17191C',
+  shadowOpacity: 0.06,
+  shadowRadius: 10,
+  shadowOffset: { width: 0, height: 4 },
+  elevation: 2,
+} as const;
+const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  content: { padding: 20, paddingTop: 20, paddingBottom: 40, gap: 22 },
+  card,
+  hiddenSection: { gap: 8 },
+  sectionTitle: { ...typeScale.sectionTitle, color: dashboardTheme.slate },
+  swipe: { position: 'relative', overflow: 'hidden', backgroundColor: '#F6DCDD' },
+  actionLayer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: 72,
+    backgroundColor: '#F6DCDD',
+  },
+  swipeAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  swipeActionPressed: { backgroundColor: '#F1CED0' },
+  swipeActionText: { color: '#D64848', ...typeScale.caption },
+  rowSurface: { zIndex: 1, backgroundColor: dashboardTheme.surface },
+  row: {
+    minHeight: 54,
+    paddingHorizontal: 16,
+    gap: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  swatch: { width: 13, height: 13, borderRadius: 7 },
+  name: { flex: 1, minWidth: 0, color: dashboardTheme.ink, ...typeScale.cardTitle },
+  hidden: { color: dashboardTheme.slate, ...typeScale.caption },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 40,
+    backgroundColor: dashboardTheme.divider,
+  },
+  builtInControl: {
+    minHeight: 54,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: dashboardTheme.divider,
+  },
+  builtInText: { flex: 1, ...typeScale.body },
+  switch: { width: 42, height: 26, padding: 3, borderRadius: 13 },
+  switchThumb: { width: 20, height: 20, borderRadius: 10 },
+  switchThumbOn: { alignSelf: 'flex-end' },
+});
