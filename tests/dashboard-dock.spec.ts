@@ -43,7 +43,7 @@ test.describe('Dashboard dock geometry', () => {
     await expect(page.locator('[data-testid^="dashboard-nav-label-"]')).toHaveCount(0);
     await expect(page.getByTestId('dashboard-nav-history')).toBeVisible();
     await expect(page.getByTestId('dashboard-nav-plans')).toBeVisible();
-    await expect(page.getByTestId('dashboard-nav-more')).toBeVisible();
+    await expect(page.getByTestId('dashboard-nav-settings')).toBeVisible();
     await expect(page.getByTestId('dashboard-nav-workout')).toHaveCount(0);
   });
 

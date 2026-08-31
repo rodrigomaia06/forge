@@ -15,16 +15,23 @@ test.describe('Settings', () => {
 
     await page.getByRole('button', { name: 'Exercises' }).click();
     await expect(page.getByTestId('settings-detail-title')).toHaveText('Exercises');
-    await page.getByRole('button', { name: 'Filters' }).click();
-    await expect(page.getByText('Category', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'All exercises, 21 exercises' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Strength, 21 exercises' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Mobility, 0 exercises' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cardio, 0 exercises' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Court sport, 0 exercises' })).toBeVisible();
+    await page.getByRole('button', { name: 'Strength, 21 exercises' }).click();
+    await expect(page.getByTestId('settings-detail-title').last()).toHaveText('Strength');
+    await page.getByRole('button', { name: 'Back to Exercises' }).click();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await expect(page.getByTestId('settings-title')).toBeVisible();
 
     await page.getByRole('button', { name: 'Workout types' }).click();
     await expect(page.getByTestId('settings-detail-title')).toHaveText('Workout types');
     await page.getByRole('button', { name: 'Strength workout type' }).click();
-    await expect(page.getByLabel('Workout type name')).toBeVisible();
-    await page.getByRole('button', { name: 'Back to Settings' }).click();
+    await expect(
+      page.getByRole('switch', { name: 'Hide Strength in workout pickers' }),
+    ).toBeVisible();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
 
     await page.getByRole('button', { name: 'Backup & Export' }).click();

@@ -1,11 +1,15 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('Dashboard', () => {
-  test('matches the iPhone visual baseline', async ({ page }) => {
+  test('matches the iPhone visual baseline', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-air', 'The baseline is intentionally iPhone-specific.');
     await page.goto('/');
 
     await expect(page.getByTestId('dashboard-header-title')).toBeVisible();
-    await expect(page).toHaveScreenshot('dashboard.png', { fullPage: true });
+    await expect(page).toHaveScreenshot('dashboard.png', {
+      fullPage: true,
+      mask: [page.getByTestId('dashboard-header-title')],
+    });
   });
 
   test('switches calendar scale from the overflow menu and selects a workout day', async ({

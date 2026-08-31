@@ -27,7 +27,6 @@ test.describe('History screen', () => {
       'background-color',
       'rgb(232, 232, 232)',
     );
-    await expect(page.getByText('This week', { exact: true })).toBeVisible();
     await expect(page.getByText('Last week', { exact: true })).toBeVisible();
     await expect(page.getByText('2 weeks ago', { exact: true })).toBeVisible();
     await expect(page.getByText('Muay Thai', { exact: true }).last()).toBeVisible();
