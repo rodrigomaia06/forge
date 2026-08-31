@@ -38,6 +38,7 @@ test.describe('Settings', () => {
     await expect(
       page.getByRole('switch', { name: 'Hide Strength in workout pickers' }),
     ).toBeVisible();
+    await expect(page.getByTestId('workout-type-visibility-bottom-divider')).toBeVisible();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
 
     await page.getByRole('button', { name: 'Backup & Export' }).click();
@@ -74,6 +75,11 @@ test.describe('Settings', () => {
     await expect(page.getByText('New type', { exact: true })).toHaveCount(0);
     await page.getByRole('button', { name: 'Add workout type' }).click();
     await expect(page.getByText('New workout type', { exact: true })).toBeVisible();
+    const titleBox = await page.getByTestId('new-workout-type-title-wrap').boundingBox();
+    const saveBox = await page.getByRole('button', { name: 'Save workout type' }).boundingBox();
+    expect(titleBox).not.toBeNull();
+    expect(saveBox).not.toBeNull();
+    expect((titleBox?.x ?? 0) + (titleBox?.width ?? 0)).toBeLessThanOrEqual(saveBox?.x ?? 0);
     await page.getByRole('button', { name: 'Cancel new workout type' }).click();
     await expect(page.getByText('New type', { exact: true })).toHaveCount(0);
 

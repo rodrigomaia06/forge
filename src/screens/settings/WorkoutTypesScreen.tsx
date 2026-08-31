@@ -301,31 +301,34 @@ function SwipeTypeRow({
         </Pressable>
       </Animated.View>
       {type.source === 'builtIn' && expanded && (
-        <Pressable
-          accessibilityRole="switch"
-          accessibilityLabel={`${hidden ? 'Show' : 'Hide'} ${type.name} in workout pickers`}
-          accessibilityState={{ checked: !hidden }}
-          onPress={onToggleVisibility}
-          style={({ pressed }) => [
-            styles.builtInControl,
-            pressed && { backgroundColor: theme.pressed },
-          ]}
-        >
-          <Text style={[styles.builtInText, { color: theme.textPrimary }]}>
-            {hidden ? 'Show in workout pickers' : 'Hide from workout pickers'}
-          </Text>
-          <View
-            style={[styles.switch, { backgroundColor: !hidden ? theme.marker : theme.divider }]}
+        <>
+          <Pressable
+            accessibilityRole="switch"
+            accessibilityLabel={`${hidden ? 'Show' : 'Hide'} ${type.name} in workout pickers`}
+            accessibilityState={{ checked: !hidden }}
+            onPress={onToggleVisibility}
+            style={({ pressed }) => [
+              styles.builtInControl,
+              pressed && { backgroundColor: theme.pressed },
+            ]}
           >
+            <Text style={[styles.builtInText, { color: theme.textPrimary }]}>
+              {hidden ? 'Show in workout pickers' : 'Hide from workout pickers'}
+            </Text>
             <View
-              style={[
-                styles.switchThumb,
-                { backgroundColor: theme.surfaceElevated },
-                !hidden && styles.switchThumbOn,
-              ]}
-            />
-          </View>
-        </Pressable>
+              style={[styles.switch, { backgroundColor: !hidden ? theme.marker : theme.divider }]}
+            >
+              <View
+                style={[
+                  styles.switchThumb,
+                  { backgroundColor: theme.surfaceElevated },
+                  !hidden && styles.switchThumbOn,
+                ]}
+              />
+            </View>
+          </Pressable>
+          <View testID="workout-type-visibility-bottom-divider" style={styles.builtInDivider} />
+        </>
       )}
     </View>
   );
@@ -384,6 +387,7 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderColor: dashboardTheme.divider,
   },
+  builtInDivider: { height: StyleSheet.hairlineWidth, backgroundColor: dashboardTheme.divider },
   builtInText: { flex: 1, ...typeScale.body },
   switch: { width: 42, height: 26, padding: 3, borderRadius: 13 },
   switchThumb: { width: 20, height: 20, borderRadius: 10 },

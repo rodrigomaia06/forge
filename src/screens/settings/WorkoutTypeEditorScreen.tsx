@@ -174,7 +174,9 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
               onPress={discardDraft}
               haptic="none"
             />
-            <Text pointerEvents="none" style={styles.createTitle}>New workout type</Text>
+            <View testID="new-workout-type-title-wrap" pointerEvents="none" style={styles.createTitleWrap}>
+              <Text numberOfLines={1} style={styles.createTitle}>New workout type</Text>
+            </View>
             <HeaderAction
               accessibilityLabel="Save workout type"
               icon="check"
@@ -357,7 +359,16 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       justifyContent: 'space-between',
       backgroundColor: dashboardTheme.background,
     },
-    createTitle: { position: 'absolute', left: 0, right: 0, textAlign: 'center', color: dashboardTheme.ink, ...typeScale.headerTitle },
+    createTitleWrap: {
+      position: 'absolute',
+      top: 0,
+      right: 124,
+      bottom: 0,
+      left: 76,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    createTitle: { textAlign: 'center', color: dashboardTheme.ink, ...typeScale.sectionTitle },
     content: { padding: 20, paddingTop: 20, paddingBottom: 40, gap: 18 },
     card,
     identityCard: { paddingVertical: 10, gap: 3 },
