@@ -57,6 +57,14 @@ cohesive concern rather than committing the entire change as one mixed unit.
 - Do not create artificial commits for tiny or inseparable changes merely to increase the commit count.
 - Before splitting history, preserve the complete implementation and verify that the resulting commits together contain the same behavior.
 
+### Commit size review
+
+Do not create commits around 2,000 changed lines. Before committing, inspect `git diff --stat` and proactively look for a cohesive split when a commit exceeds roughly 750 changed lines or touches more than 15 files.
+
+- Line/file counts are a review signal, not a reason to split an inseparable change artificially.
+- A larger commit is acceptable only when its parts cannot be reviewed, tested, or reverted meaningfully on their own; explain that constraint in the commit body.
+- If oversized commits are still local and the full behavior is preserved, rewrite them into smaller cohesive commits before sharing the branch.
+
 ## ADR threshold
 
 Create an ADR only when the decision is important enough that a future contributor would reasonably ask "why did we choose this instead of the alternatives?"
