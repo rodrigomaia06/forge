@@ -28,6 +28,7 @@ import { CompletionCheck } from './CompletionCheck';
 import { animateLayout, lightHaptic, mediumHaptic, selectionHaptic } from './activeWorkoutFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { WorkoutExercise } from '../../types';
+import { filterCatalog, groupCatalogByEquipment } from '../../domain/exercises/catalogSelectors';
 
 export function AddExerciseSheet({
   visible,
@@ -112,15 +113,7 @@ export function AddExerciseSheet({
 
   if (!visible) return null;
 
-  const filteredExercises = exerciseCatalog.filter((exercise) => {
-    if (categoryFilter && exercise.category !== categoryFilter) return false;
-    const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return true;
-    return [exercise.name, exercise.equipment, exercise.category, ...exercise.aliases]
-      .join(' ')
-      .toLowerCase()
-      .includes(normalizedQuery);
-  });
+  const filteredExercises = filterCatalog(exerciseCatalog, { query, categories: categoryFilter ? [categoryFilter] : [], includeGroupInSearch: false });
   const categories = [...new Set(filteredExercises.map((exercise) => exercise.category))];
   const groupedExercises = categories.map((category) => ({
     category,
@@ -295,14 +288,7 @@ export function AddExerciseSheet({
                         selected.includes(exercise.id),
                       ).length;
                       const expanded = expandedGroup === `${category}-${group}`;
-                      const equipmentGroups = [
-                        ...new Set(variations.map((exercise) => exercise.equipment)),
-                      ].map((equipment) => ({
-                        equipment,
-                        exercises: variations.filter(
-                          (exercise) => exercise.equipment === equipment,
-                        ),
-                      }));
+                      const equipmentGroups = groupCatalogByEquipment(variations).map(([equipment, exercises]) => ({ equipment, exercises }));
                       if (variations.length === 1) {
                         const exercise = variations[0];
                         const isSelected = selected.includes(exercise.id);

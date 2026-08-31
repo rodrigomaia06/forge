@@ -22,6 +22,7 @@ import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import type { RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
+import { catalogFacets, filterCatalog, groupCatalogByMovement } from '../../domain/exercises/catalogSelectors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseBrowser'>;
 type Filters = { types: string[]; equipment: string[]; categories: string[] };
@@ -58,31 +59,15 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const active = filters.types.length + filters.equipment.length + filters.categories.length;
   const filtered = useMemo(
     () =>
-      source.filter(
-        (item) =>
-          (!fixedTypeId || item.workoutTypeIds.includes(fixedTypeId)) &&
-          (!filters.types.length || item.workoutTypeIds.some((id) => filters.types.includes(id))) &&
-          (!filters.equipment.length || filters.equipment.includes(item.equipment)) &&
-          (!filters.categories.length || filters.categories.includes(item.category)) &&
-          [item.name, item.group, item.equipment, item.category, ...item.aliases]
-            .join(' ')
-            .toLowerCase()
-            .includes(query.toLowerCase()),
-      ),
+      filterCatalog(source, { query, types: filters.types, equipment: filters.equipment, categories: filters.categories, includeGroupInSearch: true }).filter((item) => !fixedTypeId || item.workoutTypeIds.includes(fixedTypeId)),
     [source, fixedTypeId, filters, query],
   );
   const groups = useMemo(
     () =>
-      Object.entries(
-        filtered.reduce<Record<string, ExerciseCatalogItem[]>>((result, item) => {
-          (result[item.group] ??= []).push(item);
-          return result;
-        }, {}),
-      ),
+      groupCatalogByMovement(filtered),
     [filtered],
   );
-  const equipment = [...new Set(source.map((item) => item.equipment))].sort();
-  const categories = [...new Set(source.map((item) => item.category))].sort();
+  const { equipment, categories } = catalogFacets(source);
   const openCreate = (parent: string | null) => {
     lightHaptic();
     setEditing(null);

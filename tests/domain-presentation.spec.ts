@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { REST_DURATION_OPTIONS } from '../src/domain/rest/restDurationOptions';
+import { catalogFacets, filterCatalog, groupCatalogByEquipment, groupCatalogByMovement } from '../src/domain/exercises/catalogSelectors';
 import { countWorkoutSets, formatCompactDuration, getWorkoutTypePresentation } from '../src/domain/workouts/presentation';
 import { lightTheme } from '../src/theme/tokens';
 
@@ -12,4 +13,17 @@ test('presents workout types with the requested background opacity', () => {
   expect(getWorkoutTypePresentation('Court sport', lightTheme, 0.14)).toMatchObject({ icon: 'tennis-ball', background: 'rgba(98,201,138,0.14)' });
   expect(getWorkoutTypePresentation('Unknown', lightTheme, 0.16)).toMatchObject({ icon: 'fitness-outline', background: 'rgba(111,127,242,0.16)' });
   expect(REST_DURATION_OPTIONS).toEqual([45, 60, 75, 90, 105, 120, 135, 150, 165]);
+});
+
+test('filters and groups exercise catalog entries without changing feature selection state', () => {
+  const items = [
+    { id: 'bench', name: 'Close grip', group: 'Bench Press', equipment: 'Barbell', category: 'Chest', aliases: ['press'], workoutTypeIds: ['strength'] },
+    { id: 'pec', name: 'Pec Deck', group: 'Pec Deck', equipment: 'Machine', category: 'Chest', aliases: ['fly'], workoutTypeIds: ['strength'] },
+  ];
+  expect(filterCatalog(items, { query: 'bench', includeGroupInSearch: false })).toHaveLength(0);
+  expect(filterCatalog(items, { query: 'bench press', includeGroupInSearch: true })).toHaveLength(1);
+  expect(filterCatalog(items, { query: 'fly', equipment: ['Machine'], categories: ['Chest'] })).toEqual([items[1]]);
+  expect(catalogFacets(items)).toEqual({ equipment: ['Barbell', 'Machine'], categories: ['Chest'] });
+  expect(groupCatalogByMovement(items).map(([name]) => name)).toEqual(['Bench Press', 'Pec Deck']);
+  expect(groupCatalogByEquipment(items).map(([name]) => name)).toEqual(['Barbell', 'Machine']);
 });
