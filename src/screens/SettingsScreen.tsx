@@ -4,7 +4,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { NavigationFooter } from '../components/NavigationFooter';
 import { AppScreen, ScreenTitle, selectionHaptic } from '../components/ui';
-import { dashboardTheme } from '../theme/dashboardTheme';
+import { useForgeTheme } from '../theme/ThemeProvider';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { spacing } from '../theme/tokens';
 import type { RootStackParamList } from '../types';
 import { SettingsRow } from './settings/SettingsRow';
@@ -12,16 +13,18 @@ import { SettingsRow } from './settings/SettingsRow';
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
 export function SettingsScreen({ navigation }: Props) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
   const open = (screen: keyof RootStackParamList): void => {
     selectionHaptic();
     navigation.navigate(screen as never);
   };
 
   return (
-    <AppScreen backgroundColor={dashboardTheme.background}>
+    <AppScreen backgroundColor={theme.background}>
       <View style={styles.screen}>
         <View style={styles.header}>
-          <ScreenTitle testID="settings-title" color={dashboardTheme.ink}>
+          <ScreenTitle testID="settings-title" color={theme.textPrimary}>
             Settings
           </ScreenTitle>
         </View>
@@ -58,26 +61,18 @@ export function SettingsScreen({ navigation }: Props) {
 }
 
 function SettingsGroup({ children }: { children: React.ReactNode }) {
-  return <View style={styles.card}>{children}</View>;
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  return <View style={[styles.card, { backgroundColor: theme.surfaceElevated, shadowColor: theme.shadow }]}>{children}</View>;
 }
 
-const cardStyle = {
-  borderRadius: dashboardTheme.cardRadius,
-  backgroundColor: dashboardTheme.surface,
-  shadowColor: '#17191C',
-  shadowOpacity: 0.06,
-  shadowRadius: 10,
-  shadowOffset: { width: 0, height: 4 },
-  elevation: 2,
-} as const;
-
-const styles = StyleSheet.create({
+const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create({
   screen: { flex: 1 },
   header: {
     height: 70,
     justifyContent: 'center',
     paddingHorizontal: spacing.screen,
-    backgroundColor: dashboardTheme.background,
+    backgroundColor: theme.background,
   },
   content: {
     paddingHorizontal: spacing.screen,
@@ -85,6 +80,6 @@ const styles = StyleSheet.create({
     paddingBottom: 112,
     gap: 25,
   },
-  card: cardStyle,
-  aboutCard: cardStyle,
+  card: { borderRadius: theme.cardRadius, backgroundColor: theme.surface, shadowColor: theme.shadow, shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  aboutCard: { borderRadius: theme.cardRadius, backgroundColor: theme.surface, shadowColor: theme.shadow, shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
 });
