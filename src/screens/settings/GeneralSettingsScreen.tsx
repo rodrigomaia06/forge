@@ -30,9 +30,9 @@ import type {
   WeekStartsOn,
 } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
+import { REST_DURATION_OPTIONS } from '../../domain/rest/restDurationOptions';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GeneralSettings'>;
-const rests = [45, 60, 75, 90, 105, 120, 135, 150, 165];
 
 export function GeneralSettingsScreen({ navigation }: Props) {
   const { preferences, updatePreferences } = useSettings();
@@ -179,8 +179,8 @@ export function GeneralSettingsScreen({ navigation }: Props) {
                   title={`Default rest time · ${formatSeconds(preferences.defaultRestSeconds)}`}
                   selected={false}
                   onPress={() => {
-                    const at = rests.indexOf(preferences.defaultRestSeconds);
-                    choose({ defaultRestSeconds: rests[(at + 1 + rests.length) % rests.length] });
+                    const at = REST_DURATION_OPTIONS.indexOf(preferences.defaultRestSeconds as typeof REST_DURATION_OPTIONS[number]);
+                    choose({ defaultRestSeconds: REST_DURATION_OPTIONS[(at + 1 + REST_DURATION_OPTIONS.length) % REST_DURATION_OPTIONS.length] });
                   }}
                   divider
                 />

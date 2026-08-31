@@ -21,6 +21,7 @@ import { formatRest, formatRestDisplay } from './activeWorkoutFormatters';
 import { lightHaptic, selectionHaptic } from './activeWorkoutFeedback';
 import type { RestTimerSheetProps } from './activeWorkoutTypes';
 import type { NativeScrollEvent } from 'react-native';
+import { REST_DURATION_OPTIONS } from '../../domain/rest/restDurationOptions';
 
 export function RestTimerIndicator({
   remaining,
@@ -53,7 +54,6 @@ export function RestTimerIndicator({
   );
 }
 
-const REST_DURATIONS = [45, 60, 75, 90, 105, 120, 135, 150, 165];
 
 export function RestTimerSheet({
   visible,
@@ -275,7 +275,7 @@ function RestDurationPicker({
 }) {
   const styles = useThemedStyles(createActiveWorkoutStyles);
   const pickerRef = useRef<React.ElementRef<typeof Animated.ScrollView>>(null);
-  const selectedIndex = Math.max(0, REST_DURATIONS.indexOf(selectedDuration));
+  const selectedIndex = Math.max(0, REST_DURATION_OPTIONS.indexOf(selectedDuration as typeof REST_DURATION_OPTIONS[number]));
   const lastHapticIndex = useRef(selectedIndex);
   const programmaticScroll = useRef(false);
   const rowHeight = 44;
@@ -291,10 +291,10 @@ function RestDurationPicker({
   }, [hapticIndex, rowHeight, scrollOffset, selectedIndex]);
 
   const scrollToIndex = (index: number): void => {
-    const nextIndex = Math.max(0, Math.min(REST_DURATIONS.length - 1, index));
+    const nextIndex = Math.max(0, Math.min(REST_DURATION_OPTIONS.length - 1, index));
     if (nextIndex === selectedIndex) return;
     programmaticScroll.current = true;
-    onSelect(REST_DURATIONS[nextIndex]);
+    onSelect(REST_DURATION_OPTIONS[nextIndex]);
     pickerRef.current?.scrollTo({ y: nextIndex * rowHeight, animated: true });
   };
 
@@ -302,7 +302,7 @@ function RestDurationPicker({
     onScroll: (event) => {
       const index = Math.max(
         0,
-        Math.min(REST_DURATIONS.length - 1, Math.round(event.contentOffset.y / rowHeight)),
+        Math.min(REST_DURATION_OPTIONS.length - 1, Math.round(event.contentOffset.y / rowHeight)),
       );
       scrollOffset.value = event.contentOffset.y;
       if (index !== hapticIndex.value) {
@@ -315,11 +315,11 @@ function RestDurationPicker({
   const handleScrollEnd = (event: NativeScrollEvent): void => {
     const index = Math.max(
       0,
-      Math.min(REST_DURATIONS.length - 1, Math.round(event.contentOffset.y / rowHeight)),
+      Math.min(REST_DURATION_OPTIONS.length - 1, Math.round(event.contentOffset.y / rowHeight)),
     );
     programmaticScroll.current = false;
     lastHapticIndex.current = index;
-    onSelect(REST_DURATIONS[index]);
+    onSelect(REST_DURATION_OPTIONS[index]);
   };
 
   return (
@@ -336,7 +336,7 @@ function RestDurationPicker({
         onScroll={handleScroll}
         onMomentumScrollEnd={(event) => handleScrollEnd(event.nativeEvent)}
       >
-        {REST_DURATIONS.map((duration, index) => {
+        {REST_DURATION_OPTIONS.map((duration, index) => {
           return (
             <Pressable
               key={duration}

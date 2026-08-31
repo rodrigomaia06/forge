@@ -14,6 +14,7 @@ import {
   selectionHaptic,
 } from '../components/ui';
 import { NavigationFooter } from '../components/NavigationFooter';
+import { countWorkoutSets, formatCompactDuration, getWorkoutTypePresentation } from '../domain/workouts/presentation';
 import { ReadOnlyExerciseSection } from './activeWorkout/ExerciseSection';
 import { WorkoutOptionsSheet } from './activeWorkout/WorkoutSheets';
 import { useWorkouts } from '../state/WorkoutContext';
@@ -122,8 +123,8 @@ function WorkoutSummaryCard({ workout }: { workout: Workout }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const [cardSize, setCardSize] = useState({ width: 0, height: 0 });
-  const type = workoutTypePresentation(workout.type, theme);
-  const duration = formatDuration(workout.durationSeconds ?? 0);
+  const type = getWorkoutTypePresentation(workout.type, theme, 0.16);
+  const duration = formatCompactDuration(workout.durationSeconds ?? 0);
   const metadata = [
     workout.location && { icon: 'measure' as const, label: 'Location', value: workout.location },
     workout.mood && { icon: 'info' as const, label: 'Mood', value: workout.mood },
@@ -195,7 +196,7 @@ function WorkoutSummaryCard({ workout }: { workout: Workout }) {
       </View>
       <View style={styles.metrics}>
         {metric('Exercises', String(workout.exercises.length))}
-        {metric('Sets', String(totalSets(workout)))}
+        {metric('Sets', String(countWorkoutSets(workout)))}
       </View>
       {metadata.length > 0 && (
         <View style={styles.metadata}>
@@ -261,9 +262,6 @@ function MetadataItem({
   );
 }
 
-function totalSets(workout: Workout) {
-  return workout.exercises.reduce((total, exercise) => total + exercise.sets.length, 0);
-}
 function formatDateTime(value: number) {
   return (
     new Date(value).toLocaleDateString('en-GB', {
@@ -275,37 +273,9 @@ function formatDateTime(value: number) {
     new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
   );
 }
-function formatDuration(seconds: number) {
-  const minutes = Math.max(1, Math.round(seconds / 60));
-  return minutes < 60
-    ? `${minutes}m`
-    : `${Math.floor(minutes / 60)}h ${minutes % 60 ? `${minutes % 60}m` : ''}`.trim();
-}
 function formatRest(seconds: number) {
   const rounded = Math.max(0, Math.round(seconds));
   return rounded < 60 ? `${rounded}s` : `${Math.floor(rounded / 60)}m ${rounded % 60}s`;
-}
-function workoutTypePresentation(type: string, theme: import('../types').ForgeTheme) {
-  const value = type.toLowerCase();
-  if (value.includes('mobility'))
-    return { icon: 'stretching' as const, color: '#AA7CE8', background: 'rgba(170,124,232,0.16)' };
-  if (value.includes('court'))
-    return {
-      icon: 'tennis-ball' as const,
-      color: theme.iconSport || '#62C98A',
-      background: 'rgba(98,201,138,0.16)',
-    };
-  if (value.includes('cardio'))
-    return {
-      icon: 'running' as const,
-      color: theme.iconActivity || '#E99A5B',
-      background: 'rgba(233,154,91,0.16)',
-    };
-  return {
-    icon: 'fitness-outline' as const,
-    color: theme.iconStrength || '#6F7FF2',
-    background: 'rgba(111,127,242,0.16)',
-  };
 }
 
 const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create({

@@ -18,6 +18,7 @@ import {
   selectionHaptic,
 } from '../components/ui';
 import { NavigationFooter } from '../components/NavigationFooter';
+import { countWorkoutSets, formatCompactDuration, getWorkoutTypePresentation } from '../domain/workouts/presentation';
 import { useWorkouts } from '../state/WorkoutContext';
 import { animateLayout, errorHaptic, mediumHaptic } from './activeWorkout/activeWorkoutFeedback';
 import { useForgeTheme } from '../theme/ThemeProvider';
@@ -132,7 +133,7 @@ function TimelineRow({
   const dragDetected = useSharedValue(false);
   const suppressNextPress = useRef(false);
   const date = new Date(workout.completedAt ?? workout.startedAt);
-  const type = workoutTypePresentation(workout.type, theme);
+  const type = getWorkoutTypePresentation(workout.type, theme, 0.14);
 
   React.useEffect(() => {
     cardOpen.value = deleteRevealed;
@@ -221,12 +222,12 @@ function TimelineRow({
                   {workout.name}
                 </Text>
                 <Text style={styles.stats} numberOfLines={1}>
-                  {`${workout.exercises.length} exercises · ${totalSets(workout)} sets`}
+                  {`${workout.exercises.length} exercises · ${countWorkoutSets(workout)} sets`}
                 </Text>
               </View>
               <View style={styles.durationChip}>
                 <Icon name="time-outline" size={13} color={theme.ink} />
-                <Text style={styles.durationText}>{formatDuration(workout.durationSeconds)}</Text>
+                <Text style={styles.durationText}>{formatCompactDuration(workout.durationSeconds)}</Text>
               </View>
               <Icon name="chevron-forward" size={17} color={theme.slate} />
             </Pressable>
@@ -267,36 +268,6 @@ function periodLabel(week: Date, current: Date): string {
   if (days <= 0) return 'This week';
   if (days <= 7) return 'Last week';
   return `${Math.floor(days / 7)} weeks ago`;
-}
-function totalSets(workout: Workout): number {
-  return workout.exercises.reduce((total, exercise) => total + exercise.sets.length, 0);
-}
-function formatDuration(seconds = 0): string {
-  const minutes = Math.max(1, Math.round(seconds / 60));
-  if (minutes < 60) return `${minutes}m`;
-  return `${Math.floor(minutes / 60)}h ${minutes % 60 ? `${minutes % 60}m` : ''}`.trim();
-}
-function workoutTypePresentation(type: string, theme: import('../types').ForgeTheme) {
-  const normalized = type.toLowerCase();
-  if (normalized.includes('mobility'))
-    return { icon: 'stretching' as const, color: '#AA7CE8', background: 'rgba(170,124,232,0.14)' };
-  if (normalized.includes('court'))
-    return {
-      icon: 'tennis-ball' as const,
-      color: theme.iconSport || '#62C98A',
-      background: 'rgba(98,201,138,0.14)',
-    };
-  if (normalized.includes('cardio'))
-    return {
-      icon: 'running' as const,
-      color: theme.iconActivity || '#E99A5B',
-      background: 'rgba(233,154,91,0.14)',
-    };
-  return {
-    icon: 'fitness-outline' as const,
-    color: theme.iconStrength || '#6F7FF2',
-    background: 'rgba(111,127,242,0.14)',
-  };
 }
 
 const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create({
