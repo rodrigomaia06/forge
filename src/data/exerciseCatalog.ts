@@ -6,9 +6,10 @@ export interface ExerciseCatalogItem {
   variation?: string;
   category: string;
   aliases: string[];
+  workoutTypeIds: string[];
 }
 
-export const exerciseCatalog: ExerciseCatalogItem[] = [
+const strengthCatalog: Omit<ExerciseCatalogItem, 'workoutTypeIds'>[] = [
   {
     id: 'barbell-bench-press',
     name: 'Barbell Bench Press',
@@ -180,3 +181,11 @@ export const exerciseCatalog: ExerciseCatalogItem[] = [
     aliases: ['rdl', 'deadlift'],
   },
 ];
+
+// The current built-in catalogue is strength-only. Keeping the association on
+// every item makes the type browser ready for future Mobility/Cardio/Court data
+// without implying those types already have exercises.
+export const exerciseCatalog: ExerciseCatalogItem[] = strengthCatalog.map((exercise) => ({
+  ...exercise,
+  workoutTypeIds: ['strength'],
+}));

@@ -11,6 +11,7 @@ export type RootStackParamList = {
   Settings: undefined;
   GeneralSettings: undefined;
   ExerciseLibrary: undefined;
+  ExerciseBrowser: { workoutTypeId?: string; custom?: boolean } | undefined;
   WorkoutTypes: undefined;
   WorkoutTypeEditor: { workoutTypeId: string };
   BackupExport: undefined;

@@ -15,6 +15,7 @@ import { SettingsDestinationScreen } from '../screens/settings/SettingsDestinati
 import { WorkoutTypesScreen } from '../screens/settings/WorkoutTypesScreen';
 import { WorkoutTypeEditorScreen } from '../screens/settings/WorkoutTypeEditorScreen';
 import { ExerciseLibraryScreen } from '../screens/settings/ExerciseLibraryScreen';
+import { ExerciseBrowserScreen } from '../screens/settings/ExerciseBrowserScreen';
 import { useWorkouts } from '../state/WorkoutContext';
 import type { RootStackParamList } from '../types';
 
@@ -82,6 +83,11 @@ export function AppNavigator() {
         <Stack.Screen
           name="ExerciseLibrary"
           component={ExerciseLibraryScreen}
+          options={{ gestureEnabled: true }}
+        />
+        <Stack.Screen
+          name="ExerciseBrowser"
+          component={ExerciseBrowserScreen}
           options={{ gestureEnabled: true }}
         />
         <Stack.Screen

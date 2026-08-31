@@ -1,30 +1,155 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { ForgeText as Text, ForgeTextInput as TextInput, AppScreen, Icon, pressedFeedback, selectionHaptic } from '../../components/ui';
-import { exerciseCatalog } from '../../data/exerciseCatalog';
-import { dashboardTheme } from '../../theme/dashboardTheme';
+import {
+  AppScreen,
+  ForgeCard,
+  ForgeText as Text,
+  Icon,
+  pressedFeedback,
+  selectionHaptic,
+} from '../../components/ui';
+import { useExerciseCatalog } from '../../state/ExerciseCatalogContext';
+import { useSettings } from '../../state/SettingsContext';
+import { useForgeTheme } from '../../theme/ThemeProvider';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import type { RootStackParamList } from '../../types';
+import type { IconName, RootStackParamList, WorkoutTypePreference } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseLibrary'>;
 
-export function ExerciseLibraryScreen({ navigation }: Props) {
-  const [query, setQuery] = useState('');
-  const [category, setCategory] = useState<string | null>(null);
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const categories = useMemo(() => [...new Set(exerciseCatalog.map((exercise) => exercise.category))], []);
-  const exercises = exerciseCatalog.filter((exercise) => {
-    if (category && exercise.category !== category) return false;
-    const terms = [exercise.name, exercise.group, exercise.equipment, ...exercise.aliases].join(' ').toLowerCase();
-    return terms.includes(query.trim().toLowerCase());
-  });
-  const activeFilterCount = category ? 1 : 0;
-  return <AppScreen backgroundColor={dashboardTheme.background}><View style={styles.screen}><SettingsDetailHeader title="Exercises" navigation={navigation} /><ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"><View style={styles.searchRow}><View style={styles.search}><Icon name="search" size={19} color={dashboardTheme.slate} /><TextInput accessibilityLabel="Search exercise library" value={query} onChangeText={setQuery} placeholder="Search exercises" placeholderTextColor={dashboardTheme.muted} style={styles.searchInput} /></View><Pressable accessibilityRole="button" accessibilityLabel={`Filters${activeFilterCount ? `, ${activeFilterCount} active` : ''}`} accessibilityState={{ expanded: filtersOpen }} onPress={() => { selectionHaptic(); setFiltersOpen((current) => !current); }} style={({ pressed }) => [styles.filterButton, pressed && styles.pressed]}><Icon name="filter" size={17} color={dashboardTheme.ink} /><Text style={styles.filterButtonText}>Filter</Text>{activeFilterCount > 0 && <View style={styles.filterBadge}><Text style={styles.filterBadgeText}>{activeFilterCount}</Text></View>}</Pressable></View>{filtersOpen && <View style={styles.filterPanel}><Text style={styles.filterPanelTitle}>Category</Text><View style={styles.filterChoices}><Filter label="All" active={!category} onPress={() => setCategory(null)} />{categories.map((item) => <Filter key={item} label={item} active={category === item} onPress={() => setCategory(item)} />)}</View></View>}<View style={styles.card}>{exercises.map((exercise, index) => <React.Fragment key={exercise.id}><Pressable accessibilityRole="button" accessibilityLabel={`Exercise ${exercise.name}`} onPress={() => { selectionHaptic(); setSelectedId((current) => current === exercise.id ? null : exercise.id); }} style={({ pressed }) => [styles.row, pressed && pressedFeedback]}><View style={styles.copy}><Text style={styles.name}>{exercise.name}</Text><Text style={styles.meta}>{`${exercise.group} · ${exercise.equipment}`}</Text></View><Icon name={selectedId === exercise.id ? 'chevron-down' : 'chevron-forward'} size={18} color={dashboardTheme.slate} /></Pressable>{selectedId === exercise.id && <View style={styles.detail}><Detail label="Category" value={exercise.category} /><Detail label="Aliases" value={exercise.aliases.join(', ') || '—'} /><Text style={styles.detailNote}>Exercise history, statistics, custom exercises, and individual rest settings are the next library increment.</Text></View>}{index < exercises.length - 1 && <View style={styles.divider} />}</React.Fragment>)}</View>{!exercises.length && <View style={styles.empty}><Text style={styles.emptyText}>No exercises match your search.</Text></View>}</ScrollView></View></AppScreen>;
+function typeIcon(type: WorkoutTypePreference): IconName {
+  if (type.id === 'strength') return 'fitness';
+  if (type.id === 'mobility') return 'stretching';
+  if (type.id === 'cardio') return 'running';
+  if (type.id === 'court-sport') return 'tennis-ball';
+  return 'layers';
 }
-function Filter({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) { return <Pressable accessibilityRole="button" accessibilityLabel={`Filter ${label}`} accessibilityState={{ selected: active }} onPress={() => { selectionHaptic(); onPress(); }} style={({ pressed }) => [styles.filter, active && styles.filterActive, pressed && styles.pressed]}><Text style={[styles.filterText, active && styles.filterTextActive]}>{label}</Text></Pressable>; }
-function Detail({ label, value }: { label: string; value: string }) { return <View style={styles.detailRow}><Text style={styles.detailLabel}>{label}</Text><Text style={styles.detailValue}>{value}</Text></View>; }
-const styles = StyleSheet.create({ screen: { flex: 1 }, searchRow: { flexDirection: 'row', gap: 8, alignItems: 'center' }, search: { flex: 1, minHeight: 46, borderRadius: 14, paddingHorizontal: 13, gap: 8, flexDirection: 'row', alignItems: 'center', backgroundColor: dashboardTheme.surface, borderWidth: 1, borderColor: dashboardTheme.divider }, searchInput: { flex: 1, minWidth: 0, color: dashboardTheme.ink, ...typeScale.body, paddingVertical: 0 }, content: { padding: 20, paddingTop: 22, paddingBottom: 40, gap: 14 }, filterButton: { minWidth: 82, minHeight: 46, paddingHorizontal: 11, gap: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 14, borderWidth: 1, borderColor: dashboardTheme.divider, backgroundColor: dashboardTheme.surface }, filterButtonText: { ...typeScale.controlLabel, color: dashboardTheme.ink }, filterBadge: { minWidth: 17, height: 17, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', borderRadius: 9, backgroundColor: dashboardTheme.accent }, filterBadgeText: { ...typeScale.caption, color: dashboardTheme.surface }, filterPanel: { padding: 14, gap: 9, borderRadius: 16, backgroundColor: dashboardTheme.surfaceMuted }, filterPanelTitle: { ...typeScale.label, color: dashboardTheme.slate }, filterChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, filter: { minHeight: 34, paddingHorizontal: 12, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.55)', borderWidth: 1, borderColor: dashboardTheme.divider }, filterActive: { backgroundColor: dashboardTheme.accent, borderColor: dashboardTheme.accent }, filterText: { ...typeScale.label, color: dashboardTheme.slate }, filterTextActive: { color: dashboardTheme.surface }, card: { overflow: 'hidden', borderRadius: dashboardTheme.cardRadius, backgroundColor: dashboardTheme.surface, shadowColor: '#17191C', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 }, row: { minHeight: 62, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }, copy: { flex: 1, minWidth: 0 }, name: { ...typeScale.cardTitle, color: dashboardTheme.ink }, meta: { ...typeScale.supporting, color: dashboardTheme.slate, marginTop: 2 }, divider: { height: StyleSheet.hairlineWidth, marginHorizontal: 16, backgroundColor: dashboardTheme.divider }, detail: { padding: 16, paddingTop: 6, gap: 8, backgroundColor: 'rgba(245,245,243,0.7)' }, detailRow: { flexDirection: 'row', gap: 12 }, detailLabel: { width: 72, ...typeScale.label, color: dashboardTheme.slate }, detailValue: { flex: 1, ...typeScale.supporting, color: dashboardTheme.ink }, detailNote: { ...typeScale.caption, color: dashboardTheme.slate, marginTop: 3 }, empty: { paddingTop: 50, alignItems: 'center' }, emptyText: { ...typeScale.body, color: dashboardTheme.slate }, pressed: { opacity: 0.58 } });
+
+export function ExerciseLibraryScreen({ navigation }: Props) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  const { preferences } = useSettings();
+  const { exercises, customExercises } = useExerciseCatalog();
+  const visibleTypes = useMemo(
+    () => preferences.workoutTypes.filter((type) => !type.hidden),
+    [preferences.workoutTypes],
+  );
+
+  return (
+    <AppScreen backgroundColor={theme.background}>
+      <View style={styles.screen}>
+        <SettingsDetailHeader title="Exercises" navigation={navigation} />
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <ForgeCard>
+            {visibleTypes.map((type, index) => {
+              const count = exercises.filter((exercise) =>
+                exercise.workoutTypeIds.includes(type.id),
+              ).length;
+              return (
+                <React.Fragment key={type.id}>
+                  {index > 0 && <View style={styles.divider} />}
+                  <LibraryRow
+                    icon={typeIcon(type)}
+                    color={type.color}
+                    title={type.name}
+                    count={count}
+                    accessibilityLabel={`${type.name}, ${count} exercises`}
+                    onPress={() =>
+                      navigation.navigate('ExerciseBrowser', { workoutTypeId: type.id })
+                    }
+                  />
+                </React.Fragment>
+              );
+            })}
+          </ForgeCard>
+          <ForgeCard>
+            <LibraryRow
+              icon="layers"
+              color={theme.slate}
+              title="All"
+              count={exercises.length}
+              accessibilityLabel={`All exercises, ${exercises.length} exercises`}
+              onPress={() => navigation.navigate('ExerciseBrowser')}
+            />
+            <View style={styles.divider} />
+            <LibraryRow
+              icon="add"
+              color={theme.slate}
+              title="Custom"
+              count={customExercises.length}
+              accessibilityLabel={`Custom exercises, ${customExercises.length} exercises`}
+              onPress={() => navigation.navigate('ExerciseBrowser', { custom: true })}
+            />
+          </ForgeCard>
+        </ScrollView>
+      </View>
+    </AppScreen>
+  );
+}
+
+function LibraryRow({
+  icon,
+  color,
+  title,
+  count,
+  accessibilityLabel,
+  onPress,
+}: {
+  icon: IconName;
+  color: string;
+  title: string;
+  count: number;
+  accessibilityLabel: string;
+  onPress: () => void;
+}) {
+  const styles = useThemedStyles(createStyles);
+  const theme = useForgeTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      testID={`exercise-library-type-${title.toLowerCase().replace(/\s+/g, '-')}`}
+      onPress={() => {
+        selectionHaptic();
+        onPress();
+      }}
+      style={({ pressed }) => [styles.row, pressed && pressedFeedback]}
+    >
+      <View style={[styles.iconWrap, { backgroundColor: `${color}20` }]}>
+        <Icon name={icon} size={22} color={color} />
+      </View>
+      <View style={styles.copy}>
+        <Text style={styles.name}>{title}</Text>
+        <Text style={styles.count}>{`${count} ${count === 1 ? 'exercise' : 'exercises'}`}</Text>
+      </View>
+      <Icon name="chevron-forward" size={20} color={theme.textPrimary} />
+    </Pressable>
+  );
+}
+
+const createStyles = (theme: import('../../types').ForgeTheme) =>
+  StyleSheet.create({
+    screen: { flex: 1 },
+    content: { padding: 20, paddingTop: 22, paddingBottom: 40, gap: 16 },
+    row: {
+      minHeight: 76,
+      paddingHorizontal: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 13,
+    },
+    iconWrap: {
+      width: 42,
+      height: 42,
+      borderRadius: 13,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    copy: { flex: 1, minWidth: 0 },
+    name: { ...typeScale.cardTitle, color: theme.ink },
+    count: { ...typeScale.supporting, color: theme.slate, marginTop: 2 },
+    divider: { height: StyleSheet.hairlineWidth, marginLeft: 71, backgroundColor: theme.divider },
+  });
