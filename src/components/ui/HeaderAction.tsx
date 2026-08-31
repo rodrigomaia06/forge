@@ -16,6 +16,8 @@ interface HeaderActionProps {
   labelColor?: string;
   labelStyle?: StyleProp<TextStyle>;
   style?: StyleProp<ViewStyle>;
+  disabled?: boolean;
+  haptic?: 'none' | 'light' | 'medium';
 }
 
 export function HeaderAction({
@@ -29,6 +31,8 @@ export function HeaderAction({
   labelColor,
   labelStyle,
   style,
+  disabled = false,
+  haptic,
 }: HeaderActionProps) {
   const theme = useForgeTheme();
   const accent = accentColor ?? theme.accent;
@@ -41,6 +45,8 @@ export function HeaderAction({
       iconSize={20}
       variant="secondary"
       onPress={onPress}
+      disabled={disabled}
+      haptic={haptic}
       theme={theme}
       labelColor={labelColor ?? (isAccent ? theme.surface : theme.textPrimary)}
       labelStyle={labelStyle}

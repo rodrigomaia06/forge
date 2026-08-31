@@ -55,14 +55,11 @@ export function WorkoutTypesScreen({ navigation }: Props) {
     );
   const add = () => {
     lightHaptic();
-    const type: WorkoutTypePreference = {
-      id: `type-${Date.now()}`,
-      name: 'New type',
-      color: colors[preferences.workoutTypes.length % colors.length],
-      source: 'custom',
-    };
-    updatePreferences({ workoutTypes: [...preferences.workoutTypes, type] });
-    navigation.navigate('WorkoutTypeEditor', { workoutTypeId: type.id });
+    navigation.navigate('WorkoutTypeEditor', {
+      mode: 'create',
+      draftId: `type-${Date.now()}`,
+      initialColor: colors[preferences.workoutTypes.length % colors.length],
+    });
   };
   const remove = (type: WorkoutTypePreference) => {
     const hide = type.source === 'builtIn' || type.hasReferencedData || isReferenced(type);
@@ -172,10 +169,9 @@ function TypeList({
   isReferenced: (type: WorkoutTypePreference) => boolean;
   hidden?: boolean;
 }) {
-  const theme = useForgeTheme();
   return (
     <ForgeCard style={styles.card}>
-      {types.map((type, index) => (
+      {types.map((type) => (
         <React.Fragment key={type.id}>
           <SwipeTypeRow
             type={type}
@@ -191,9 +187,6 @@ function TypeList({
                 : 'Delete'
             }
           />
-          {index < types.length - 1 && (
-            <View style={[styles.divider, { backgroundColor: theme.divider }]} />
-          )}
         </React.Fragment>
       ))}
     </ForgeCard>
@@ -383,11 +376,6 @@ const styles = StyleSheet.create({
   swatch: { width: 13, height: 13, borderRadius: 7 },
   name: { flex: 1, minWidth: 0, color: dashboardTheme.ink, ...typeScale.cardTitle },
   hidden: { color: dashboardTheme.slate, ...typeScale.caption },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    marginLeft: 40,
-    backgroundColor: dashboardTheme.divider,
-  },
   builtInControl: {
     minHeight: 54,
     paddingHorizontal: 16,

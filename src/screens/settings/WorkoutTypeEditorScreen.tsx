@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -7,10 +7,13 @@ import {
   Button,
   ForgeText as Text,
   ForgeTextInput as TextInput,
+  HeaderAction,
+  HeaderEdge,
   Icon,
   lightHaptic,
   pressedFeedback,
   selectionHaptic,
+  successHaptic,
 } from '../../components/ui';
 import { usePlans } from '../../state/PlansContext';
 import { useSettings } from '../../state/SettingsContext';
@@ -38,7 +41,17 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
   const { preferences, updatePreferences } = useSettings();
   const { activeWorkout, completedWorkouts } = useWorkouts();
   const { plans, standaloneRoutines } = usePlans();
-  const type = preferences.workoutTypes.find((item) => item.id === route.params.workoutTypeId);
+  const creating = 'mode' in route.params && route.params.mode === 'create';
+  const initialDraft = creating
+    ? { id: route.params.draftId, name: 'New type', color: route.params.initialColor, source: 'custom' as const }
+    : null;
+  const [draft, setDraft] = useState<WorkoutTypePreference | null>(initialDraft);
+  const confirmedDraftDiscard = useRef(false);
+  const storedParams = 'workoutTypeId' in route.params ? route.params : null;
+  const storedType = storedParams
+    ? preferences.workoutTypes.find((item) => item.id === storedParams.workoutTypeId)
+    : undefined;
+  const type = creating ? draft : storedType;
   const [customColor, setCustomColor] = useState(type?.color ?? '');
   const [customColorError, setCustomColorError] = useState(false);
   const referenced = useMemo(() => {
@@ -64,7 +77,11 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
       </AppScreen>
     );
   const builtIn = type.source === 'builtIn';
-  const change = (changes: Partial<WorkoutTypePreference>): void =>
+  const change = (changes: Partial<WorkoutTypePreference>): void => {
+    if (creating) {
+      setDraft((current) => (current ? { ...current, ...changes } : current));
+      return;
+    }
     updatePreferences({
       workoutTypes: preferences.workoutTypes.map((item) =>
         item.id === type.id
@@ -72,6 +89,42 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
           : item,
       ),
     });
+  };
+  const draftChanged = creating && draft !== null && initialDraft !== null
+    ? draft.name !== initialDraft.name || draft.color !== initialDraft.color
+    : false;
+  const discardDraft = (): void => {
+    if (!draftChanged) lightHaptic();
+    navigation.goBack();
+  };
+
+  useEffect(() => {
+    if (!creating || !draftChanged) return undefined;
+    return navigation.addListener('beforeRemove', (event) => {
+      if (confirmedDraftDiscard.current) return;
+      event.preventDefault();
+      Alert.alert('Discard new workout type?', 'Your unsaved changes will be lost.', [
+        { text: 'Keep editing', style: 'cancel' },
+        {
+          text: 'Discard',
+          style: 'destructive',
+          onPress: () => {
+            confirmedDraftDiscard.current = true;
+            lightHaptic();
+            navigation.dispatch(event.data.action);
+          },
+        },
+      ]);
+    });
+  }, [creating, draftChanged, navigation]);
+  const saveDraft = (): void => {
+    const name = draft?.name.trim() ?? '';
+    if (!draft || !name) return;
+    updatePreferences({ workoutTypes: [...preferences.workoutTypes, { ...draft, name }] });
+    successHaptic();
+    confirmedDraftDiscard.current = true;
+    navigation.goBack();
+  };
   const mustHide = type.source === 'builtIn' || type.hasReferencedData || referenced;
   const destructiveLabel = type.hidden ? 'Unhide type' : mustHide ? 'Hide type' : 'Delete type';
   const applyCustomColor = (): void => {
@@ -81,7 +134,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
       return;
     }
     setCustomColorError(false);
-    selectionHaptic();
+    if (!creating) selectionHaptic();
     change({ color });
   };
   const removeOrHide = (): void => {
@@ -111,7 +164,31 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
   return (
     <AppScreen backgroundColor={dashboardTheme.background}>
       <View style={styles.screen}>
-        <SettingsDetailHeader title={type.name.trim() || 'Workout type'} navigation={navigation} />
+        {creating ? (
+          <View style={styles.createHeader}>
+            <HeaderAction
+              accessibilityLabel="Cancel new workout type"
+              icon="close"
+              label="Cancel"
+              iconOnly
+              onPress={discardDraft}
+              haptic="none"
+            />
+            <Text pointerEvents="none" style={styles.createTitle}>New workout type</Text>
+            <HeaderAction
+              accessibilityLabel="Save workout type"
+              icon="check"
+              label="Save"
+              tone="accent"
+              onPress={saveDraft}
+              disabled={!draft?.name.trim()}
+              haptic="none"
+            />
+            <HeaderEdge />
+          </View>
+        ) : (
+          <SettingsDetailHeader title={type.name.trim() || 'Workout type'} navigation={navigation} />
+        )}
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={[styles.card, styles.identityCard]}>
             {builtIn ? (
@@ -209,7 +286,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
               </View>
             </View>
           )}
-          <View style={styles.card}>
+          {!creating && <View style={styles.card}>
             <Pressable
               accessibilityRole="switch"
               accessibilityLabel={`Hide ${type.name} from workout pickers`}
@@ -232,8 +309,8 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
                 <View style={[styles.switchThumb, type.hidden && styles.switchThumbOn]} />
               </View>
             </Pressable>
-          </View>
-          {!builtIn && (
+          </View>}
+          {!creating && !builtIn && (
             <Button
               label={destructiveLabel}
               accessibilityLabel={destructiveLabel}
@@ -272,6 +349,15 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   } as const;
   return StyleSheet.create({
     screen: { flex: 1 },
+    createHeader: {
+      height: 70,
+      paddingHorizontal: 20,
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      backgroundColor: dashboardTheme.background,
+    },
+    createTitle: { position: 'absolute', left: 0, right: 0, textAlign: 'center', color: dashboardTheme.ink, ...typeScale.headerTitle },
     content: { padding: 20, paddingTop: 20, paddingBottom: 40, gap: 18 },
     card,
     identityCard: { paddingVertical: 10, gap: 3 },

@@ -13,7 +13,9 @@ export type RootStackParamList = {
   ExerciseLibrary: undefined;
   ExerciseBrowser: { workoutTypeId?: string; custom?: boolean } | undefined;
   WorkoutTypes: undefined;
-  WorkoutTypeEditor: { workoutTypeId: string };
+  WorkoutTypeEditor:
+    | { workoutTypeId: string }
+    | { mode: 'create'; draftId: string; initialColor: string };
   BackupExport: undefined;
   Logs: undefined;
   About: undefined;
