@@ -1,7 +1,7 @@
 import React from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { AppScreen, ForgeCard, ForgeText as Text, Icon, pressedFeedback } from '../../components/ui';
+import { AppScreen, ForgeCard, ForgeText as Text, Icon, lightHaptic, pressedFeedback } from '../../components/ui';
 import { dashboardTheme } from '../../theme/dashboardTheme';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
@@ -138,7 +138,11 @@ function Action({
       accessibilityRole="button"
       accessibilityState={{ disabled: !onPress }}
       disabled={!onPress}
-      onPress={onPress}
+      onPress={() => {
+        if (!onPress) return;
+        lightHaptic();
+        onPress();
+      }}
       style={({ pressed }) => [styles.action, onPress && pressed && { backgroundColor: theme.pressed }]}
     >
       {icon && <Icon name={icon} size={21} color={theme.textPrimary} />}

@@ -180,7 +180,10 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Clear all filters"
-                onPress={() => setFilters({ types: [], equipment: [], categories: [] })}
+                onPress={() => {
+                  selectionHaptic();
+                  setFilters({ types: [], equipment: [], categories: [] });
+                }}
               >
                 <Text style={styles.clear}>Clear all</Text>
               </Pressable>
@@ -221,7 +224,10 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                 {active > 0 && (
                   <Pressable
                     accessibilityLabel="Clear all filters"
-                    onPress={() => setFilters({ types: [], equipment: [], categories: [] })}
+                    onPress={() => {
+                      selectionHaptic();
+                      setFilters({ types: [], equipment: [], categories: [] });
+                    }}
                   >
                     <Text style={styles.clear}>Clear all</Text>
                   </Pressable>

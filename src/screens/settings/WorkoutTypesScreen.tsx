@@ -249,8 +249,8 @@ function SwipeTypeRow({
     });
   const animated = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
   const content = (
-    <View style={[styles.swipe, { backgroundColor: theme.overlay }]}>
-      <View
+    <View style={[styles.swipe, { backgroundColor: type.source === 'builtIn' ? theme.surfaceElevated : theme.overlay }]}>
+      {type.source !== 'builtIn' && <View
         pointerEvents={revealed ? 'auto' : 'none'}
         style={[styles.actionLayer, { backgroundColor: theme.overlay }]}
       >
@@ -269,7 +269,7 @@ function SwipeTypeRow({
             {actionLabel}
           </Text>
         </Pressable>
-      </View>
+      </View>}
       <Animated.View
         style={[styles.rowSurface, { backgroundColor: theme.surfaceElevated }, animated]}
       >
@@ -284,7 +284,10 @@ function SwipeTypeRow({
             if (type.source === 'builtIn') {
               selectionHaptic();
               setExpanded((value) => !value);
-            } else onOpen();
+            } else {
+              lightHaptic();
+              onOpen();
+            }
           }}
           style={({ pressed }) => [styles.row, pressed && { backgroundColor: theme.pressed }]}
         >
