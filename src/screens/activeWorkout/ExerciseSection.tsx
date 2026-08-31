@@ -7,8 +7,14 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { ForgeText as Text, Icon, pressedFeedback, pressedFeedbackSubtle } from '../../components/ui';
-import { dashboardTheme } from '../../theme/dashboardTheme';
+import {
+  ForgeText as Text,
+  Icon,
+  pressedFeedback,
+  pressedFeedbackSubtle,
+} from '../../components/ui';
+import { useForgeTheme } from '../../theme/ThemeProvider';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import {
   animateLayout,
@@ -37,6 +43,8 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   onDeleteRevealChange,
   size = 'standard',
 }: ExerciseSectionProps) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
   const deleteActionWidth = 64;
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [openSetId, setOpenSetId] = useState<string | null>(null);
@@ -124,7 +132,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 }}
                 style={({ pressed }) => [styles.moreButton, pressed && pressedFeedback]}
               >
-                <Icon name="ellipsis-horizontal" size={20} color={dashboardTheme.ink} />
+                <Icon name="ellipsis-horizontal" size={20} color={theme.ink} />
               </Pressable>
             </View>
             <View style={[styles.setHeader, size === 'large' && styles.setHeaderLarge]}>
@@ -169,7 +177,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 pressed && pressedFeedbackSubtle,
               ]}
             >
-              <Icon name="add" size={16} color={dashboardTheme.accent} />
+              <Icon name="add" size={16} color={theme.textPrimary} />
               <Text style={styles.addSetText}>Add set</Text>
             </Pressable>
             {optionsOpen && (
@@ -192,6 +200,8 @@ export const ExerciseSection = React.memo(function ExerciseSection({
 });
 
 export function ReadOnlyExerciseSection({ exercise }: { exercise: WorkoutExercise }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
   const [expanded, setExpanded] = useState(false);
   const [openSetIndex, setOpenSetIndex] = useState<number | null>(null);
   const openSet = openSetIndex === null ? null : exercise.sets[openSetIndex];
@@ -220,7 +230,7 @@ export function ReadOnlyExerciseSection({ exercise }: { exercise: WorkoutExercis
         <Icon
           name={expanded ? 'chevron-down' : 'chevron-forward'}
           size={20}
-          color={dashboardTheme.slate}
+          color={theme.slate}
           style={expanded ? styles.readOnlyExpandedChevron : undefined}
         />
       </Pressable>
@@ -267,6 +277,8 @@ function ReadOnlyHistorySetRow({
   index: number;
   onOpenDetails: () => void;
 }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
   return (
     <View testID={`workout-details-set-${set.id}`} style={styles.readOnlySetRow}>
       <Pressable
@@ -300,166 +312,169 @@ function ReadOnlyHistorySetRow({
   );
 }
 
-const styles = StyleSheet.create({
-  exerciseSwipe: {
-    position: 'relative',
-    overflow: 'hidden',
-    borderRadius: 16,
-    backgroundColor: '#F6DCDD',
-  },
-  exerciseSwipeContent: { zIndex: 1, backgroundColor: dashboardTheme.surface },
-  deleteExerciseActionLayer: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    width: 64,
-    backgroundColor: '#F6DCDD',
-  },
-  deleteExerciseAction: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    transform: [{ translateY: 3 }],
-  },
-  deleteExerciseActionPressed: { backgroundColor: '#F1CED0' },
-  deleteExerciseText: { color: '#D64848', ...typeScale.caption },
-  exerciseCard: {
-    backgroundColor: dashboardTheme.surface,
-    borderRadius: 0,
-    paddingTop: 4,
-    paddingHorizontal: 12,
-    paddingBottom: 0,
-    borderWidth: 1,
-    borderColor: 'rgba(226,227,224,0.72)',
-    shadowColor: dashboardTheme.ink,
-    shadowOpacity: 0.06,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
-  },
-  exerciseCardLarge: { paddingTop: 8, paddingHorizontal: 16 },
-  readOnlyExerciseCard: {
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(226,227,224,0.72)',
-    borderRadius: 16,
-    backgroundColor: dashboardTheme.surface,
-    shadowColor: dashboardTheme.ink,
-    shadowOpacity: 0.06,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
-  },
-  readOnlyExerciseHeader: {
-    minHeight: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  readOnlyExerciseCopy: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  readOnlyExerciseName: {
-    flexShrink: 1,
-    color: dashboardTheme.ink,
-    ...typeScale.cardTitle,
-  },
-  readOnlyExerciseCount: {
-    flexShrink: 0,
-    marginLeft: 4,
-    color: dashboardTheme.slate,
-    ...typeScale.label,
-  },
-  readOnlyExpandedChevron: { transform: [{ rotate: '180deg' }] },
-  readOnlySets: { paddingHorizontal: 12, paddingBottom: 4 },
-  exerciseHeader: {
-    minHeight: 30,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  exerciseHeaderLarge: { minHeight: 42 },
-  exerciseName: {
-    flex: 1,
-    color: dashboardTheme.ink,
-    ...typeScale.cardTitle,
-  },
-  exerciseNameLarge: typeScale.sectionTitle,
-  moreButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: -6,
-  },
-  setHeader: {
-    minHeight: 30,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: dashboardTheme.divider,
-  },
-  setHeaderLarge: { minHeight: 34 },
-  setHeaderText: { color: dashboardTheme.slate, ...typeScale.label, textAlign: 'center' },
-  setColumn: { width: 46 },
-  previousColumn: { flex: 1 },
-  inputColumn: { width: 52 },
-  inputHeader: { textAlign: 'center' },
-  checkColumn: { width: 44 },
-  addSet: {
-    minHeight: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    borderTopWidth: 1,
-    borderTopColor: dashboardTheme.divider,
-  },
-  addSetLarge: { minHeight: 48 },
-  addSetText: { color: dashboardTheme.accent, ...typeScale.label },
-  readOnlySetRow: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: dashboardTheme.divider,
-  },
-  setNumberWrap: { width: 46, height: 44, alignItems: 'center', justifyContent: 'center' },
-  setNumber: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    textAlign: 'center',
-    backgroundColor: dashboardTheme.surfaceMuted,
-    color: dashboardTheme.ink,
-    ...typeScale.caption,
-    lineHeight: 30,
-  },
-  previous: {
-    flex: 1,
-    color: dashboardTheme.ink,
-    ...typeScale.label,
-    textAlign: 'center',
-  },
-  readOnlyInput: {
-    minHeight: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: dashboardTheme.divider,
-    borderRadius: 8,
-    backgroundColor: dashboardTheme.surfaceMuted,
-  },
-  readOnlyInputText: { color: dashboardTheme.ink, ...typeScale.supporting },
-  check: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-});
+const createStyles = (theme: import('../../types').ForgeTheme) => {
+  const dashboardTheme = theme;
+  return StyleSheet.create({
+    exerciseSwipe: {
+      position: 'relative',
+      overflow: 'hidden',
+      borderRadius: 16,
+      backgroundColor: '#F6DCDD',
+    },
+    exerciseSwipeContent: { zIndex: 1, backgroundColor: dashboardTheme.surface },
+    deleteExerciseActionLayer: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      width: 64,
+      backgroundColor: '#F6DCDD',
+    },
+    deleteExerciseAction: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 4,
+      transform: [{ translateY: 3 }],
+    },
+    deleteExerciseActionPressed: { backgroundColor: '#F1CED0' },
+    deleteExerciseText: { color: '#D64848', ...typeScale.caption },
+    exerciseCard: {
+      backgroundColor: dashboardTheme.surface,
+      borderRadius: 0,
+      paddingTop: 4,
+      paddingHorizontal: 12,
+      paddingBottom: 0,
+      borderWidth: 1,
+      borderColor: 'rgba(226,227,224,0.72)',
+      shadowColor: dashboardTheme.ink,
+      shadowOpacity: 0.06,
+      shadowRadius: 5,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 1,
+    },
+    exerciseCardLarge: { paddingTop: 8, paddingHorizontal: 16 },
+    readOnlyExerciseCard: {
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: 'rgba(226,227,224,0.72)',
+      borderRadius: 16,
+      backgroundColor: dashboardTheme.surface,
+      shadowColor: dashboardTheme.ink,
+      shadowOpacity: 0.06,
+      shadowRadius: 5,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 1,
+    },
+    readOnlyExerciseHeader: {
+      minHeight: 56,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    readOnlyExerciseCopy: {
+      flex: 1,
+      minWidth: 0,
+      flexDirection: 'row',
+      alignItems: 'baseline',
+    },
+    readOnlyExerciseName: {
+      flexShrink: 1,
+      color: dashboardTheme.ink,
+      ...typeScale.cardTitle,
+    },
+    readOnlyExerciseCount: {
+      flexShrink: 0,
+      marginLeft: 4,
+      color: dashboardTheme.slate,
+      ...typeScale.label,
+    },
+    readOnlyExpandedChevron: { transform: [{ rotate: '180deg' }] },
+    readOnlySets: { paddingHorizontal: 12, paddingBottom: 4 },
+    exerciseHeader: {
+      minHeight: 30,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    exerciseHeaderLarge: { minHeight: 42 },
+    exerciseName: {
+      flex: 1,
+      color: dashboardTheme.ink,
+      ...typeScale.cardTitle,
+    },
+    exerciseNameLarge: typeScale.sectionTitle,
+    moreButton: {
+      width: 40,
+      height: 40,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: -6,
+    },
+    setHeader: {
+      minHeight: 30,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      borderBottomWidth: 1,
+      borderBottomColor: dashboardTheme.divider,
+    },
+    setHeaderLarge: { minHeight: 34 },
+    setHeaderText: { color: dashboardTheme.slate, ...typeScale.label, textAlign: 'center' },
+    setColumn: { width: 46 },
+    previousColumn: { flex: 1 },
+    inputColumn: { width: 52 },
+    inputHeader: { textAlign: 'center' },
+    checkColumn: { width: 44 },
+    addSet: {
+      minHeight: 44,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      borderTopWidth: 1,
+      borderTopColor: dashboardTheme.divider,
+    },
+    addSetLarge: { minHeight: 48 },
+    addSetText: { color: dashboardTheme.accent, ...typeScale.label },
+    readOnlySetRow: {
+      minHeight: 48,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      borderBottomWidth: 1,
+      borderBottomColor: dashboardTheme.divider,
+    },
+    setNumberWrap: { width: 46, height: 44, alignItems: 'center', justifyContent: 'center' },
+    setNumber: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      textAlign: 'center',
+      backgroundColor: dashboardTheme.surfaceMuted,
+      color: dashboardTheme.ink,
+      ...typeScale.caption,
+      lineHeight: 30,
+    },
+    previous: {
+      flex: 1,
+      color: dashboardTheme.ink,
+      ...typeScale.label,
+      textAlign: 'center',
+    },
+    readOnlyInput: {
+      minHeight: 36,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: dashboardTheme.divider,
+      borderRadius: 8,
+      backgroundColor: dashboardTheme.surfaceMuted,
+    },
+    readOnlyInputText: { color: dashboardTheme.ink, ...typeScale.supporting },
+    check: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  });
+};

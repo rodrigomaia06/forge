@@ -16,7 +16,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { Icon } from '../../components/ui';
-import { dashboardTheme } from '../../theme/dashboardTheme';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { mediumHaptic } from './activeWorkoutFeedback';
 import { SetDetailsCard } from './SetDetailsCard';
 import { SetRow } from './SetRow';
@@ -33,6 +33,7 @@ function SwipeableSetRowComponent({
   deleteRevealed,
   onDeleteRevealChange,
 }: SwipeableSetRowProps) {
+  const styles = useThemedStyles(createStyles);
   const deleteTranslateX = useSharedValue(deleteRevealed ? -DELETE_ACTION_WIDTH : 0);
   const deleteOpen = useSharedValue(deleteRevealed);
   const entranceProgress = useRef(new RNAnimated.Value(0)).current;
@@ -223,7 +224,9 @@ export const SwipeableSetRow = React.memo(
     previous.deleteRevealed === next.deleteRevealed,
 );
 
-const styles = StyleSheet.create({
+const createStyles = (theme: import('../../types').ForgeTheme) => {
+  const dashboardTheme = theme;
+  return StyleSheet.create({
   swipeRow: { position: 'relative', overflow: 'hidden' },
   swipeContent: {
     zIndex: 1,
@@ -244,4 +247,5 @@ const styles = StyleSheet.create({
     transform: [{ translateY: 0 }],
   },
   deleteActionPressed: { backgroundColor: '#F1CED0' },
-});
+  });
+};

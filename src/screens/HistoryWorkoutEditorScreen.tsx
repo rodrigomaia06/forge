@@ -28,7 +28,8 @@ import { NavigationFooter } from '../components/NavigationFooter';
 import { ExerciseSection } from './activeWorkout/ExerciseSection';
 import { AddExerciseSheet } from './activeWorkout/WorkoutSheets';
 import { contrastingIconColor, workoutTypeColor } from './activeWorkout/workoutTypeColor';
-import { dashboardTheme } from '../theme/dashboardTheme';
+import { useForgeTheme } from '../theme/ThemeProvider';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
 import { useWorkouts } from '../state/WorkoutContext';
 import {
@@ -44,6 +45,8 @@ import type { RootStackParamList, Workout } from '../types';
 type Props = NativeStackScreenProps<RootStackParamList, 'HistoryWorkoutEditor'>;
 
 export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
   const { completedWorkouts, updateCompletedWorkout } = useWorkouts();
   const source = completedWorkouts.find((workout) => workout.id === route.params.workoutId);
   const [draft, setDraft] = useState<Workout | null>(() => (source ? cloneWorkout(source) : null));
@@ -122,7 +125,10 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
   const saveLabelColor = contrastingIconColor(workoutColor);
 
   return (
-    <AppScreen backgroundColor={dashboardTheme.background} style={styles.screen}>
+    <AppScreen
+      backgroundColor={theme.background}
+      style={[styles.screen, { backgroundColor: theme.background }]}
+    >
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <HeaderAction
@@ -292,7 +298,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
               }}
               style={({ pressed }) => [styles.addExercise, pressed && pressedFeedback]}
             >
-              <Icon name="add" size={17} color={dashboardTheme.ink} />
+              <Icon name="add" size={17} color={theme.ink} />
               <Text style={styles.addExerciseText}>Add exercise</Text>
             </Pressable>
           </View>
@@ -381,6 +387,7 @@ function Field({
   multiline?: boolean;
   style?: object;
 }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={[styles.field, style]}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -404,6 +411,7 @@ function PickerButton({
   value: string;
   onPress: () => void;
 }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <Pressable
       accessibilityRole="button"
@@ -447,15 +455,15 @@ function setTimePart(current: Date, time: Date): Date {
   return next;
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: dashboardTheme.background },
+const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: theme.background },
   header: {
     position: 'relative',
     zIndex: 2,
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 12,
-    backgroundColor: dashboardTheme.background,
+    backgroundColor: theme.background,
   },
   headerTop: {
     height: 44,
@@ -472,45 +480,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { color: dashboardTheme.ink, ...typeScale.sectionTitle, textAlign: 'center' },
+  title: { color: theme.ink, ...typeScale.sectionTitle, textAlign: 'center' },
   keyboardArea: { flex: 1 },
   content: { padding: 16, paddingBottom: 116, gap: 14 },
   formCard: {
     padding: 14,
     gap: 10,
     borderRadius: 16,
-    backgroundColor: dashboardTheme.surface,
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: dashboardTheme.divider,
+    borderColor: theme.divider,
   },
   identityGroup: { gap: 0 },
-  cardEyebrow: { color: dashboardTheme.slate, ...typeScale.caption, textTransform: 'uppercase' },
+  cardEyebrow: { color: theme.slate, ...typeScale.caption, textTransform: 'uppercase' },
   nameInput: {
     minHeight: 36,
     padding: 0,
-    color: dashboardTheme.ink,
+    color: theme.ink,
     ...typeScale.metricMedium,
   },
   typeInput: {
     minHeight: 22,
     marginTop: -7,
     padding: 0,
-    color: dashboardTheme.slate,
+    color: theme.slate,
     ...typeScale.supporting,
   },
-  cardDivider: { height: 1, marginVertical: 2, backgroundColor: dashboardTheme.divider },
+  cardDivider: { height: 1, marginVertical: 2, backgroundColor: theme.divider },
   formRow: { flexDirection: 'row', gap: 10 },
   field: { gap: 4 },
   halfField: { flex: 1 },
-  fieldLabel: { color: dashboardTheme.slate, ...typeScale.label },
+  fieldLabel: { color: theme.slate, ...typeScale.label },
   input: {
     minHeight: 40,
     borderWidth: 1,
-    borderColor: dashboardTheme.divider,
+    borderColor: theme.divider,
     borderRadius: 10,
     paddingHorizontal: 10,
-    color: dashboardTheme.ink,
-    backgroundColor: dashboardTheme.surfaceMuted,
+    color: theme.ink,
+    backgroundColor: theme.surfaceMuted,
     ...typeScale.supporting,
   },
   notesInput: { minHeight: 72, paddingTop: 9, textAlignVertical: 'top' },
@@ -518,15 +526,15 @@ const styles = StyleSheet.create({
     minHeight: 40,
     paddingHorizontal: 10,
     borderWidth: 1,
-    borderColor: dashboardTheme.divider,
+    borderColor: theme.divider,
     borderRadius: 10,
-    backgroundColor: dashboardTheme.surfaceMuted,
-    color: dashboardTheme.ink,
+    backgroundColor: theme.surfaceMuted,
+    color: theme.ink,
     ...typeScale.supporting,
     lineHeight: 40,
   },
   error: { color: '#D64848', ...typeScale.label },
-  sectionTitle: { color: dashboardTheme.ink, ...typeScale.sectionTitle },
+  sectionTitle: { color: theme.ink, ...typeScale.sectionTitle },
   addExercise: {
     minHeight: 48,
     flexDirection: 'row',
@@ -534,25 +542,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 4,
     borderWidth: 1,
-    borderColor: dashboardTheme.divider,
+    borderColor: theme.divider,
     borderRadius: 12,
-    backgroundColor: dashboardTheme.surface,
+    backgroundColor: theme.surface,
   },
-  addExerciseText: { color: dashboardTheme.ink, ...typeScale.label },
+  addExerciseText: { color: theme.ink, ...typeScale.label },
   exerciseList: { gap: 10 },
   pickerBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(23,25,28,0.22)' },
   pickerSheet: {
     padding: 16,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    backgroundColor: dashboardTheme.surface,
+    backgroundColor: theme.surface,
   },
   pickerSheetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  pickerSheetTitle: { color: dashboardTheme.ink, ...typeScale.cardTitle },
+  pickerSheetTitle: { color: theme.ink, ...typeScale.cardTitle },
   pickerDone: { minWidth: 56, minHeight: 38, alignItems: 'center', justifyContent: 'center' },
-  pickerDoneText: { color: dashboardTheme.accent, ...typeScale.supporting },
+  pickerDoneText: { color: theme.accent, ...typeScale.supporting },
 });

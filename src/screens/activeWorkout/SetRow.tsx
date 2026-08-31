@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import { ForgeText as Text, ForgeTextInput as TextInput } from '../../components/ui';
-import { dashboardTheme } from '../../theme/dashboardTheme';
+import { useForgeTheme } from '../../theme/ThemeProvider';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import { errorHaptic } from './activeWorkoutFeedback';
 import { CompletionCheck } from './CompletionCheck';
@@ -20,6 +21,8 @@ export function SetRow({
   onInputTouchMove,
   onInputTouchEnd,
 }: SetRowProps) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
   const weightInvalidProgress = useRef(new Animated.Value(0)).current;
   const repsInvalidProgress = useRef(new Animated.Value(0)).current;
   const invalidTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -70,7 +73,7 @@ export function SetRow({
   const invalidStyle = (progress: Animated.Value) => ({
     borderColor: progress.interpolate({
       inputRange: [0, 1],
-      outputRange: [dashboardTheme.divider, '#FF3B30'],
+      outputRange: [theme.divider, '#FF3B30'],
     }),
     borderWidth: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 2] }),
     borderRadius: progress.interpolate({ inputRange: [0, 1], outputRange: [9, 8] }),
@@ -111,7 +114,7 @@ export function SetRow({
         keyboardType="decimal-pad"
         selectTextOnFocus={false}
         placeholder={set.targetWeight || '—'}
-        style={[styles.input, styles.inputColumn, invalidStyle(weightInvalidProgress)]}
+        style={[styles.input, styles.inputColumn, { borderColor: theme.divider }, invalidStyle(weightInvalidProgress)]}
       />
       <AnimatedTextInput
         accessibilityLabel={`Reps for set ${index + 1}`}
@@ -124,7 +127,7 @@ export function SetRow({
         keyboardType="number-pad"
         selectTextOnFocus={false}
         placeholder={set.targetReps || '—'}
-        style={[styles.input, styles.inputColumn, invalidStyle(repsInvalidProgress)]}
+        style={[styles.input, styles.inputColumn, { borderColor: theme.divider }, invalidStyle(repsInvalidProgress)]}
       />
       <View style={styles.check}>
         <Pressable
@@ -148,7 +151,9 @@ export function SetRow({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: import('../../types').ForgeTheme) => {
+  const dashboardTheme = theme;
+  return StyleSheet.create({
   setRow: {
     position: 'relative',
     minHeight: 48,
@@ -179,7 +184,6 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 36,
     borderWidth: 1,
-    borderColor: dashboardTheme.divider,
     borderRadius: 8,
     backgroundColor: dashboardTheme.surfaceMuted,
     color: dashboardTheme.ink,
@@ -203,4 +207,5 @@ const styles = StyleSheet.create({
     color: dashboardTheme.slate,
     ...typeScale.caption,
   },
-});
+  });
+};

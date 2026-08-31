@@ -14,8 +14,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { ForgeText as Text, Icon, SheetCloseButton } from '../../components/ui';
-import { dashboardTheme } from '../../theme/dashboardTheme';
-import { styles } from './activeWorkoutStyles';
+import { useForgeTheme } from '../../theme/ThemeProvider';
+import { useThemedStyles } from '../../theme/useThemedStyles';
+import { createActiveWorkoutStyles } from './activeWorkoutStyles';
 import { formatRest, formatRestDisplay } from './activeWorkoutFormatters';
 import { lightHaptic, selectionHaptic } from './activeWorkoutFeedback';
 import type { RestTimerSheetProps } from './activeWorkoutTypes';
@@ -30,15 +31,17 @@ export function RestTimerIndicator({
   duration: number;
   running: boolean;
 }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createActiveWorkoutStyles);
   const contentColor = !running
-    ? dashboardTheme.ink
+    ? theme.ink
     : remaining <= 0
       ? '#C85C5C'
       : remaining <= duration * 0.2
         ? '#C58A45'
         : remaining <= duration * 0.5
-          ? dashboardTheme.accent
-          : dashboardTheme.ink;
+          ? theme.accent
+          : theme.ink;
 
   return (
     <View style={styles.timerIndicator}>
@@ -64,6 +67,8 @@ export function RestTimerSheet({
   onAdjust,
   onSkip,
 }: RestTimerSheetProps) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createActiveWorkoutStyles);
   const translateY = useSharedValue(420);
   const backdropOpacity = useSharedValue(0);
   const onCloseRef = useRef(onClose);
@@ -190,11 +195,13 @@ function ActiveRestTimer({
   onAdjust: (amount: number) => void;
   onSkip: () => void;
 }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createActiveWorkoutStyles);
   const progress = duration > 0 ? Math.max(0, Math.min(1, remaining / duration)) : 0;
   const radius = 88;
   const circumference = 2 * Math.PI * radius;
   const stateColor =
-    remaining <= 0 ? '#C85C5C' : remaining <= duration * 0.2 ? '#C58A45' : dashboardTheme.accent;
+    remaining <= 0 ? '#C85C5C' : remaining <= duration * 0.2 ? '#C58A45' : theme.accent;
 
   return (
     <View style={styles.activeRestTimer}>
@@ -205,7 +212,7 @@ function ActiveRestTimer({
             cy="110"
             r={radius}
             fill="none"
-            stroke={dashboardTheme.surfaceMuted}
+            stroke={theme.surfaceMuted}
             strokeWidth="14"
           />
           <Circle
@@ -266,6 +273,7 @@ function RestDurationPicker({
   selectedDuration: number;
   onSelect: (duration: number) => void;
 }) {
+  const styles = useThemedStyles(createActiveWorkoutStyles);
   const pickerRef = useRef<React.ElementRef<typeof Animated.ScrollView>>(null);
   const selectedIndex = Math.max(0, REST_DURATIONS.indexOf(selectedDuration));
   const lastHapticIndex = useRef(selectedIndex);
@@ -365,6 +373,7 @@ function DurationText({
   selected: boolean;
   scrollOffset: { value: number };
 }) {
+  const styles = useThemedStyles(createActiveWorkoutStyles);
   const center = index * rowHeight;
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: interpolate(

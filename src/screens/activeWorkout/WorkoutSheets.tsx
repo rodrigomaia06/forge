@@ -19,9 +19,11 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Button, ForgeText as Text, ForgeTextInput as TextInput, Icon, SheetCloseButton } from '../../components/ui';
-import { dashboardTheme } from '../../theme/dashboardTheme';
+import { useForgeTheme } from '../../theme/ThemeProvider';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import { exerciseCatalog, type ExerciseCatalogItem } from '../../data/exerciseCatalog';
+import type { ExerciseCatalogItem } from '../../data/exerciseCatalog';
+import { useExerciseCatalog } from '../../state/ExerciseCatalogContext';
 import { CompletionCheck } from './CompletionCheck';
 import { animateLayout, lightHaptic, mediumHaptic, selectionHaptic } from './activeWorkoutFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -36,6 +38,10 @@ export function AddExerciseSheet({
   onClose: () => void;
   onSubmit: (names: string[]) => void;
 }) {
+  const { exercises: exerciseCatalog } = useExerciseCatalog();
+  const theme = useForgeTheme();
+  const dashboardTheme = theme;
+  const styles = useThemedStyles(createStyles);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -500,6 +506,9 @@ export function AddExerciseSheet({
 }
 
 function AnimatedChevron({ expanded }: { expanded: boolean }) {
+  const theme = useForgeTheme();
+  const dashboardTheme = theme;
+  const styles = useThemedStyles(createStyles);
   const progress = useSharedValue(expanded ? 1 : 0);
 
   useEffect(() => {
@@ -518,6 +527,7 @@ function AnimatedChevron({ expanded }: { expanded: boolean }) {
 }
 
 function AnimatedCount({ count }: { count: number }) {
+  const styles = useThemedStyles(createStyles);
   const progress = useSharedValue(1);
 
   useEffect(() => {
@@ -549,6 +559,9 @@ export function ExerciseOptionsSheet({
   onClose: () => void;
   onRemove: () => void;
 }) {
+  const theme = useForgeTheme();
+  const dashboardTheme = theme;
+  const styles = useThemedStyles(createStyles);
   const translateY = useSharedValue(420);
   const backdropOpacity = useSharedValue(0);
   const closing = useSharedValue(false);
@@ -663,6 +676,7 @@ export function WorkoutOptionsSheet({
   onDelete: () => void;
   onEdit?: () => void;
 }) {
+  const styles = useThemedStyles(createStyles);
   const translateY = useSharedValue(320);
   const backdropOpacity = useSharedValue(0);
   const closing = useSharedValue(false);
@@ -771,6 +785,9 @@ function OptionRow({
   onPress: () => void;
   showArrow?: boolean;
 }) {
+  const theme = useForgeTheme();
+  const dashboardTheme = theme;
+  const styles = useThemedStyles(createStyles);
   return (
     <Pressable
       accessibilityRole="button"
@@ -785,7 +802,9 @@ function OptionRow({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: import('../../types').ForgeTheme) => {
+  const dashboardTheme = theme;
+  return StyleSheet.create({
   pickerBackdrop: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -1076,4 +1095,5 @@ const styles = StyleSheet.create({
   },
   destructivePressed: { backgroundColor: 'rgba(255,59,48,0.08)', opacity: 0.8 },
   destructiveText: { color: '#FF3B30', ...typeScale.cardTitle },
-});
+  });
+};

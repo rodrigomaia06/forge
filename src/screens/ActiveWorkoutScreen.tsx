@@ -15,7 +15,8 @@ import {
 } from '../components/ui';
 import { NavigationFooter } from '../components/NavigationFooter';
 import { useWorkouts } from '../state/WorkoutContext';
-import { dashboardTheme } from '../theme/dashboardTheme';
+import { useForgeTheme } from '../theme/ThemeProvider';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList, Workout, WorkoutExercise } from '../types';
 import { animateLayout, lightHaptic, successHaptic } from './activeWorkout/activeWorkoutFeedback';
@@ -27,11 +28,13 @@ import {
 import { ExerciseSection as ExtractedExerciseSection } from './activeWorkout/ExerciseSection';
 import { AddExerciseSheet as ExtractedAddExerciseSheet } from './activeWorkout/WorkoutSheets';
 import { RestTimerIndicator, RestTimerSheet } from './activeWorkout/RestTimer';
-import { styles } from './activeWorkout/activeWorkoutStyles';
+import { createActiveWorkoutStyles } from './activeWorkout/activeWorkoutStyles';
 import { contrastingIconColor, workoutTypeColor } from './activeWorkout/workoutTypeColor';
 
 type ActiveWorkoutScreenProps = NativeStackScreenProps<RootStackParamList, 'ActiveWorkout'>;
 export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createActiveWorkoutStyles);
   const {
     activeWorkout,
     ready,
@@ -168,7 +171,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
 
   if (!ready)
     return (
-      <AppScreen backgroundColor={dashboardTheme.background}>
+      <AppScreen backgroundColor={theme.background}>
         <View style={styles.center}>
           <Text style={styles.muted}>Loading workout…</Text>
         </View>
@@ -176,13 +179,13 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     );
   if (!activeWorkout)
     return (
-      <AppScreen backgroundColor={dashboardTheme.background}>
+      <AppScreen backgroundColor={theme.background}>
         <View style={styles.center}>
           <Text style={styles.title}>No active workout</Text>
           <Button
             label="Back to Dashboard"
             onPress={() => navigation.goBack()}
-            theme={dashboardTheme}
+            theme={theme}
           />
         </View>
       </AppScreen>
@@ -217,7 +220,10 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   const finishIconColor = contrastingIconColor(workoutColor);
 
   return (
-    <AppScreen backgroundColor={dashboardTheme.background} style={styles.screen}>
+    <AppScreen
+      backgroundColor={theme.background}
+      style={[styles.screen, { backgroundColor: theme.background }]}
+    >
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <HeaderAction
@@ -250,7 +256,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
         </View>
         <View style={styles.elapsedPanel}>
           <View style={styles.elapsedInfo}>
-            <Icon name="time-outline" size={22} color={dashboardTheme.slate} />
+            <Icon name="time-outline" size={22} color={theme.slate} />
             <Text style={styles.elapsedValue}>{formatElapsed(elapsed)}</Text>
             <Text style={styles.timerLabel}>Elapsed</Text>
           </View>
@@ -311,7 +317,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
               }}
               style={({ pressed }) => [styles.addExercise, pressed && pressedFeedback]}
             >
-              <Icon name="add" size={17} color={dashboardTheme.ink} />
+              <Icon name="add" size={17} color={theme.ink} />
               <Text style={styles.addExerciseText}>Add exercise</Text>
             </Pressable>
           }

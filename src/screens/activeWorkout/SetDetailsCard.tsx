@@ -1,35 +1,32 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
-  KeyboardAvoidingView,
   Keyboard,
-  Modal,
-  Platform,
   Pressable,
   StyleSheet,
   type TextInputProps,
   type TextInput as NativeTextInput,
   View,
 } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import {
   ForgeText as Text,
   ForgeTextInput as TextInput,
   Icon,
+  ForgeBottomSheet,
+  ForgeBottomSheetHandle,
   pressedFeedback,
   pressedFeedbackSubtle,
   SheetCloseButton,
 } from '../../components/ui';
-import { dashboardTheme } from '../../theme/dashboardTheme';
+import { useForgeTheme } from '../../theme/ThemeProvider';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import { styles as workoutSheetStyles } from './activeWorkoutStyles';
-import { lightHaptic, selectionHaptic } from './activeWorkoutFeedback';
+import { createActiveWorkoutStyles } from './activeWorkoutStyles';
+import { selectionHaptic } from './activeWorkoutFeedback';
 import type { WorkoutSet, WorkoutSetChanges } from '../../types';
 
 const TYPES = [
@@ -58,6 +55,9 @@ export function SetDetailsCard({
   onDone,
   editable = true,
 }: SetDetailsCardProps) {
+  const theme = useForgeTheme();
+  const workoutSheetStyles = useThemedStyles(createActiveWorkoutStyles);
+  const styles = useThemedStyles(createStyles);
   const [infoOpen, setInfoOpen] = React.useState<'type' | 'target' | null>(null);
 
   const toggleInfo = (key: 'type' | 'target'): void => {
@@ -65,92 +65,16 @@ export function SetDetailsCard({
     setInfoOpen((current) => (current === key ? null : key));
   };
 
-  const translateY = useSharedValue(420);
-  const backdropOpacity = useSharedValue(0);
-  const closing = useSharedValue(false);
-  const dragStartOffset = useSharedValue(0);
-  const onDoneRef = useRef(onDone);
-  onDoneRef.current = onDone;
-
-  const finishClose = useCallback(() => onDoneRef.current(), []);
-  const closeSheet = useCallback(() => {
-    if (closing.value) return;
-    closing.value = true;
-    translateY.value = withTiming(520, { duration: 200 }, (finished) => {
-      if (finished) runOnJS(finishClose)();
-    });
-    backdropOpacity.value = withTiming(0, { duration: 160 });
-  }, [backdropOpacity, closing, finishClose, translateY]);
-
-  useEffect(() => {
-    if (!visible) return undefined;
-    closing.value = false;
-    translateY.value = 420;
-    backdropOpacity.value = 0;
-    const frame = requestAnimationFrame(() => {
-      translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.8 });
-      backdropOpacity.value = withTiming(1, { duration: 180 });
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [backdropOpacity, closing, translateY, visible]);
-
-  const sheetGesture = Gesture.Pan()
-    .activeOffsetY([-6, 6])
-    .failOffsetX([-24, 24])
-    .onStart(() => {
-      dragStartOffset.value = translateY.value;
-    })
-    .onUpdate((event) => {
-      translateY.value = Math.max(0, dragStartOffset.value + event.translationY);
-    })
-    .onEnd((event) => {
-      const projectedOffset = Math.max(
-        0,
-        dragStartOffset.value + event.translationY + event.velocityY * 0.12,
-      );
-      if (projectedOffset >= 260 || event.velocityY > 900) {
-        closing.value = true;
-        translateY.value = withTiming(520, { duration: 200 }, (finished) => {
-          if (finished) runOnJS(finishClose)();
-        });
-        backdropOpacity.value = withTiming(0, { duration: 160 });
-      } else {
-        translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.8 });
-      }
-    });
-
-  const sheetAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
-  const backdropAnimatedStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value }));
-
   return (
-    <Modal visible={visible} animationType="none" transparent onRequestClose={closeSheet}>
-      <Animated.View style={[workoutSheetStyles.restTimerBackdrop, backdropAnimatedStyle]}>
-        <Pressable
-          testID="set-details-backdrop"
-          accessibilityRole="button"
-          accessibilityLabel="Close set details"
-          onPress={() => {
-            lightHaptic();
-            closeSheet();
-          }}
-          style={StyleSheet.absoluteFill}
-        />
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardFrame}
-        >
-          <Animated.View
-            onTouchStart={() => Keyboard.dismiss()}
-            style={[workoutSheetStyles.restTimerSheet, styles.setDetailsSheet, sheetAnimatedStyle]}
-            accessibilityLabel={`Details for set ${index + 1}`}
-          >
-            <GestureDetector gesture={sheetGesture}>
-              <View style={styles.dragArea}>
-                <View style={workoutSheetStyles.sheetHandle} />
-              </View>
-            </GestureDetector>
+    <ForgeBottomSheet
+      visible={visible}
+      onClose={onDone}
+      accessibilityLabel="Close set details"
+      testID="set-details-sheet"
+      style={styles.setDetailsSheet}
+    >{(closeSheet) => <>
+            <ForgeBottomSheetHandle />
+            <View onTouchStart={() => Keyboard.dismiss()} accessibilityLabel={`Details for set ${index + 1}`}>
             <View
               onTouchStart={() => {
                 setInfoOpen(null);
@@ -158,9 +82,11 @@ export function SetDetailsCard({
               }}
               style={[workoutSheetStyles.restTimerHeader, styles.topBar]}
             >
-              <View accessibilityLabel={`Set ${index + 1}`} style={styles.setNumberBadge}>
-                <Text style={styles.setNumberBadgeText}>{index + 1}</Text>
-              </View>
+              {editable ? (
+                <Pressable accessibilityRole="button" accessibilityLabel={`Delete set ${index + 1}`} onPress={onDelete} style={({ pressed }) => [styles.deleteSetControl, pressed && pressedFeedback]}>
+                  <Icon name="trash" size={19} color="#F0444D" />
+                </Pressable>
+              ) : <View accessibilityLabel={`Set ${index + 1}`} style={styles.setNumberBadge}><Text style={styles.setNumberBadgeText}>{index + 1}</Text></View>}
               {set.weight || set.reps ? (
                 <Text style={styles.title}>
                   {`${set.weight || ''}${set.weight ? ' kg' : ''}${set.weight && set.reps ? ' × ' : ''}${set.reps || ''}`}
@@ -213,7 +139,7 @@ export function SetDetailsCard({
                       onTouchStart={(event) => event.stopPropagation()}
                       maxLength={120}
                       placeholder="Add a comment..."
-                      placeholderTextColor={dashboardTheme.muted}
+                      placeholderTextColor={theme.muted}
                       style={styles.commentInput}
                     />
                     <Text style={styles.commentCount}>{`${(set.comment || '').length}/120`}</Text>
@@ -263,26 +189,14 @@ export function SetDetailsCard({
               ) : (
                 <RecordedTarget set={set} />
               )}
-              {editable && (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Delete set ${index + 1}`}
-                  onPress={onDelete}
-                  style={({ pressed }) => [styles.deleteButton, pressed && styles.deleteButtonPressed]}
-                >
-                  <Icon name="trash" size={18} color="#F0444D" />
-                  <Text style={styles.deleteText}>Delete set</Text>
-                </Pressable>
-              )}
             </View>
-          </Animated.View>
-        </KeyboardAvoidingView>
-      </Animated.View>
-    </Modal>
+            </View>
+    </>}</ForgeBottomSheet>
   );
 }
 
 function InfoButton({ label, onPress }: { label: string; onPress: () => void }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <Pressable
       accessibilityRole="button"
@@ -296,6 +210,7 @@ function InfoButton({ label, onPress }: { label: string; onPress: () => void }) 
 }
 
 function RecordedDetail({ label, value }: { label: string; value: string }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.recordedSection}>
       <Text style={styles.label}>{label}</Text>
@@ -305,6 +220,7 @@ function RecordedDetail({ label, value }: { label: string; value: string }) {
 }
 
 function RecordedTarget({ set }: { set: WorkoutSet }) {
+  const styles = useThemedStyles(createStyles);
   const target = [
     set.targetWeight && `${set.targetWeight} kg`,
     set.targetReps && `${set.targetReps} reps`,
@@ -327,6 +243,8 @@ function TypeOption({
   onPress: () => void;
   disabled?: boolean;
 }) {
+  const styles = useThemedStyles(createStyles);
+  const theme = useForgeTheme();
   const progress = useSharedValue(selected ? 1 : 0);
 
   useEffect(() => {
@@ -355,13 +273,14 @@ function TypeOption({
       <View style={[styles.dot, { backgroundColor: color }]} />
       <Text style={styles.tagText}>{label}</Text>
       <Animated.View style={checkStyle}>
-        <Icon name="check" size={15} color={dashboardTheme.marker} />
+        <Icon name="check" size={15} color={theme.marker} />
       </Animated.View>
     </Pressable>
   );
 }
 
 function InfoPopover({ visible, text }: { visible: boolean; text: string }) {
+  const styles = useThemedStyles(createStyles);
   if (!visible) return null;
   return (
     <View pointerEvents="none" style={styles.infoPopover}>
@@ -391,6 +310,8 @@ function TargetRow({
   onFocus: () => void;
   editable?: boolean;
 }) {
+  const styles = useThemedStyles(createStyles);
+  const theme = useForgeTheme();
   const inputRef = useRef<NativeTextInput>(null);
   const focusInput = useCallback(() => {
     inputRef.current?.focus();
@@ -424,7 +345,7 @@ function TargetRow({
           inputMode={keyboardType === 'decimal-pad' ? 'decimal' : 'numeric'}
           selectTextOnFocus={false}
           placeholder={placeholder}
-          placeholderTextColor={dashboardTheme.ink}
+          placeholderTextColor={theme.ink}
           style={styles.targetInput}
         />
         <Text style={styles.targetUnit}>{unit}</Text>
@@ -433,15 +354,15 @@ function TargetRow({
   );
 }
 
-const styles = StyleSheet.create({
-  keyboardFrame: { flex: 1, justifyContent: 'flex-end' },
+const createStyles = (theme: import('../../types').ForgeTheme) => {
+  const dashboardTheme = theme;
+  return StyleSheet.create({
   sheetContent: { flexGrow: 0 },
   setDetailsSheet: {
     minHeight: 0,
     maxHeight: '100%',
     paddingBottom: 20,
   },
-  dragArea: { minHeight: 8, alignItems: 'center', justifyContent: 'center' },
   topBar: {
     minHeight: 40,
     marginHorizontal: 2,
@@ -457,6 +378,7 @@ const styles = StyleSheet.create({
     backgroundColor: dashboardTheme.surfaceMuted,
   },
   setNumberBadgeText: { color: dashboardTheme.ink, ...typeScale.cardTitle },
+  deleteSetControl: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF0F0' },
   title: {
     position: 'absolute',
     left: 0,
@@ -481,18 +403,6 @@ const styles = StyleSheet.create({
     borderBottomColor: dashboardTheme.divider,
   },
   recordedValue: { color: dashboardTheme.ink, ...typeScale.body },
-  deleteButton: {
-    minHeight: 48,
-    marginHorizontal: -20,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#FFF2F2',
-  },
-  deleteButtonPressed: { backgroundColor: '#FBE1E1' },
-  deleteText: { color: '#F0444D', ...typeScale.supporting },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -621,4 +531,5 @@ const styles = StyleSheet.create({
     color: dashboardTheme.muted,
     ...typeScale.label,
   },
-});
+  });
+};

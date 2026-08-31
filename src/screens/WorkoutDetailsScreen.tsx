@@ -17,13 +17,16 @@ import { NavigationFooter } from '../components/NavigationFooter';
 import { ReadOnlyExerciseSection } from './activeWorkout/ExerciseSection';
 import { WorkoutOptionsSheet } from './activeWorkout/WorkoutSheets';
 import { useWorkouts } from '../state/WorkoutContext';
-import { dashboardTheme } from '../theme/dashboardTheme';
+import { useForgeTheme } from '../theme/ThemeProvider';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
 import type { RootStackParamList, Workout } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutDetails'>;
 
 export function WorkoutDetailsScreen({ navigation, route }: Props) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
   const { ready, completedWorkouts, deleteCompletedWorkout } = useWorkouts();
   const [optionsOpen, setOptionsOpen] = useState(false);
   const workout = completedWorkouts.find((item) => item.id === route.params.workoutId);
@@ -34,7 +37,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
   };
   if (!ready)
     return (
-      <AppScreen backgroundColor={dashboardTheme.background}>
+      <AppScreen backgroundColor={theme.background}>
         <View style={styles.center}>
           <Text style={styles.muted}>Loading workout…</Text>
         </View>
@@ -42,7 +45,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
     );
   if (!workout)
     return (
-      <AppScreen backgroundColor={dashboardTheme.background}>
+      <AppScreen backgroundColor={theme.background}>
         <View style={styles.center}>
           <Text style={styles.title}>Workout not found</Text>
           <Button
@@ -51,13 +54,13 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
               selectionHaptic();
               returnToHistory();
             }}
-            theme={dashboardTheme}
+            theme={theme}
           />
         </View>
       </AppScreen>
     );
   return (
-    <AppScreen backgroundColor={dashboardTheme.background}>
+    <AppScreen backgroundColor={theme.background}>
       <View style={styles.screen}>
         <View style={styles.header}>
           <HeaderAction
@@ -116,8 +119,10 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
 }
 
 function WorkoutSummaryCard({ workout }: { workout: Workout }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
   const [cardSize, setCardSize] = useState({ width: 0, height: 0 });
-  const type = workoutTypePresentation(workout.type);
+  const type = workoutTypePresentation(workout.type, theme);
   const duration = formatDuration(workout.durationSeconds ?? 0);
   const metadata = [
     workout.location && { icon: 'measure' as const, label: 'Location', value: workout.location },
@@ -142,8 +147,8 @@ function WorkoutSummaryCard({ workout }: { workout: Workout }) {
       >
         <Defs>
           <LinearGradient id="workoutSummaryGradient" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0" stopColor={dashboardTheme.summaryGradientStart} />
-            <Stop offset="1" stopColor={dashboardTheme.summaryGradientEnd} />
+            <Stop offset="0" stopColor={theme.summaryGradientStart} />
+            <Stop offset="1" stopColor={theme.summaryGradientEnd} />
           </LinearGradient>
         </Defs>
         <Rect width={cardSize.width} height={cardSize.height} fill="url(#workoutSummaryGradient)" />
@@ -151,7 +156,7 @@ function WorkoutSummaryCard({ workout }: { workout: Workout }) {
           cx={cardSize.width * 0.94}
           cy={cardSize.height * 0.22}
           r={Math.max(cardSize.width, cardSize.height) * 0.52}
-          fill={dashboardTheme.summaryGlow}
+          fill={theme.summaryGlow}
           opacity={0.2}
         />
         <Circle
@@ -176,13 +181,13 @@ function WorkoutSummaryCard({ workout }: { workout: Workout }) {
                 ? '—'
                 : formatRest(workout.averageRestSeconds)
             }
-            color={dashboardTheme.iconStrength || dashboardTheme.accent || dashboardTheme.ink}
+            color={theme.iconStrength || theme.accent || theme.ink}
           />
         </View>
       </View>
       <View style={styles.summaryMain}>
         <View style={styles.summaryDateRow}>
-          <Icon name="calendar" size={16} color={dashboardTheme.slate} />
+          <Icon name="calendar" size={16} color={theme.slate} />
           <Text style={styles.summaryDate}>
             {formatDateTime(workout.completedAt ?? workout.startedAt)}
           </Text>
@@ -204,6 +209,7 @@ function WorkoutSummaryCard({ workout }: { workout: Workout }) {
 }
 
 function metric(label: string, value: string) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.metric}>
       <Text style={styles.metricLabel}>{label}</Text>
@@ -222,6 +228,7 @@ function TimingMetric({
   value: string;
   color: string;
 }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.timingMetric}>
       <View style={styles.timingValueRow}>
@@ -241,9 +248,11 @@ function MetadataItem({
   label: string;
   value: string;
 }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.metadataItem}>
-      <Icon name={icon} size={21} color={dashboardTheme.iconStrength} />
+      <Icon name={icon} size={21} color={theme.iconStrength} />
       <View style={styles.metadataCopy}>
         <Text style={styles.metadataLabel}>{label}</Text>
         <Text style={styles.metadataValue}>{value}</Text>
@@ -276,30 +285,30 @@ function formatRest(seconds: number) {
   const rounded = Math.max(0, Math.round(seconds));
   return rounded < 60 ? `${rounded}s` : `${Math.floor(rounded / 60)}m ${rounded % 60}s`;
 }
-function workoutTypePresentation(type: string) {
+function workoutTypePresentation(type: string, theme: import('../types').ForgeTheme) {
   const value = type.toLowerCase();
   if (value.includes('mobility'))
     return { icon: 'stretching' as const, color: '#AA7CE8', background: 'rgba(170,124,232,0.16)' };
   if (value.includes('court'))
     return {
       icon: 'tennis-ball' as const,
-      color: dashboardTheme.iconSport || '#62C98A',
+      color: theme.iconSport || '#62C98A',
       background: 'rgba(98,201,138,0.16)',
     };
   if (value.includes('cardio'))
     return {
       icon: 'running' as const,
-      color: dashboardTheme.iconActivity || '#E99A5B',
+      color: theme.iconActivity || '#E99A5B',
       background: 'rgba(233,154,91,0.16)',
     };
   return {
     icon: 'fitness-outline' as const,
-    color: dashboardTheme.iconStrength || '#6F7FF2',
+    color: theme.iconStrength || '#6F7FF2',
     background: 'rgba(111,127,242,0.16)',
   };
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create({
   screen: { flex: 1 },
   header: {
     position: 'relative',
@@ -310,7 +319,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: dashboardTheme.background,
+    backgroundColor: theme.background,
   },
   headerCopy: {
     position: 'absolute',
@@ -321,16 +330,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { color: dashboardTheme.ink, ...typeScale.headerTitle, textAlign: 'center' },
+  headerTitle: { color: theme.ink, ...typeScale.headerTitle, textAlign: 'center' },
   content: { padding: 16, paddingBottom: 116, gap: 12 },
   summaryCard: {
     overflow: 'hidden',
     padding: 16,
     borderWidth: 1,
-    borderColor: dashboardTheme.summaryBorder,
+    borderColor: theme.summaryBorder,
     borderRadius: 20,
     gap: 14,
-    shadowColor: dashboardTheme.ink,
+    shadowColor: theme.shadow,
     shadowOpacity: 0.07,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
@@ -359,8 +368,8 @@ const styles = StyleSheet.create({
   },
   timingMetric: { alignItems: 'flex-end', gap: 2 },
   timingValueRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  timingValue: { color: dashboardTheme.ink, ...typeScale.cardTitle },
-  timingLabel: { color: dashboardTheme.slate, ...typeScale.caption },
+  timingValue: { color: theme.ink, ...typeScale.cardTitle },
+  timingLabel: { color: theme.slate, ...typeScale.caption },
   summaryMain: { minHeight: 24, justifyContent: 'center' },
   summaryDateRow: {
     flexDirection: 'row',
@@ -368,7 +377,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 2,
   },
-  summaryDate: { flex: 1, color: dashboardTheme.slate, ...typeScale.caption },
+  summaryDate: { flex: 1, color: theme.slate, ...typeScale.caption },
   metrics: {
     flexDirection: 'row',
     borderTopWidth: 1,
@@ -377,8 +386,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   metric: { flex: 1, alignItems: 'center', gap: 3 },
-  metricLabel: { color: dashboardTheme.slate, ...typeScale.caption, textAlign: 'center' },
-  metricValue: { color: dashboardTheme.ink, ...typeScale.metricMedium, textAlign: 'center' },
+  metricLabel: { color: theme.slate, ...typeScale.caption, textAlign: 'center' },
+  metricValue: { color: theme.ink, ...typeScale.metricMedium, textAlign: 'center' },
   metadata: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -389,10 +398,10 @@ const styles = StyleSheet.create({
   },
   metadataItem: { flex: 1, minWidth: 90, flexDirection: 'row', gap: 8 },
   metadataCopy: { flex: 1 },
-  metadataLabel: { color: dashboardTheme.slate, ...typeScale.caption },
-  metadataValue: { color: dashboardTheme.ink, ...typeScale.supporting },
+  metadataLabel: { color: theme.slate, ...typeScale.caption },
+  metadataValue: { color: theme.ink, ...typeScale.supporting },
   exerciseList: { gap: 10 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },
-  title: { color: dashboardTheme.ink, ...typeScale.sectionTitle },
-  muted: { color: dashboardTheme.slate, ...typeScale.label },
+  title: { color: theme.ink, ...typeScale.sectionTitle },
+  muted: { color: theme.slate, ...typeScale.label },
 });

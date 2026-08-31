@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Platform, StyleSheet } from 'react-native';
 import { Icon } from '../../components/ui';
-import { dashboardTheme } from '../../theme/dashboardTheme';
+import { useForgeTheme } from '../../theme/ThemeProvider';
+import { useThemedStyles } from '../../theme/useThemedStyles';
 
 export function CompletionCheck({
   selected,
@@ -10,6 +11,9 @@ export function CompletionCheck({
   selected: boolean;
   testID?: string;
 }) {
+  const theme = useForgeTheme();
+  const dashboardTheme = theme;
+  const styles = useThemedStyles(createStyles);
   const progress = useRef(new Animated.Value(selected ? 1 : 0)).current;
 
   useEffect(() => {
@@ -52,7 +56,9 @@ export function CompletionCheck({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: import('../../types').ForgeTheme) => {
+  const dashboardTheme = theme;
+  return StyleSheet.create({
   visual: {
     width: 26,
     height: 26,
@@ -63,4 +69,5 @@ const styles = StyleSheet.create({
     borderRadius: 13,
   },
   active: { backgroundColor: dashboardTheme.iconSport, borderColor: dashboardTheme.iconSport },
-});
+  });
+};

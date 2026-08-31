@@ -20,7 +20,8 @@ import {
 import { NavigationFooter } from '../components/NavigationFooter';
 import { useWorkouts } from '../state/WorkoutContext';
 import { animateLayout, errorHaptic, mediumHaptic } from './activeWorkout/activeWorkoutFeedback';
-import { dashboardTheme } from '../theme/dashboardTheme';
+import { useForgeTheme } from '../theme/ThemeProvider';
+import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList, Workout } from '../types';
@@ -35,13 +36,15 @@ export function HistoryScreen({
   navigation,
 }: NativeStackScreenProps<RootStackParamList, 'History'>) {
   const { completedWorkouts, deleteCompletedWorkout, startWorkout } = useWorkouts();
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
   const groups = useMemo(() => groupByPeriod(completedWorkouts), [completedWorkouts]);
   const [deleteRevealedId, setDeleteRevealedId] = useState<string | null>(null);
   return (
-    <AppScreen backgroundColor={dashboardTheme.background}>
+    <AppScreen backgroundColor={theme.background}>
       <View style={styles.screen}>
         <View testID="history-header" style={styles.header}>
-          <ScreenTitle testID="history-title" color={dashboardTheme.ink}>
+          <ScreenTitle testID="history-title" color={theme.textPrimary}>
             History
           </ScreenTitle>
           <Button
@@ -50,7 +53,7 @@ export function HistoryScreen({
             iconSize={20}
             variant="secondary"
             onPress={() => undefined}
-            theme={dashboardTheme}
+            theme={theme}
             style={styles.filterButton}
           />
           <HeaderEdge />
@@ -94,7 +97,7 @@ export function HistoryScreen({
                   startWorkout();
                   navigation.navigate('ActiveWorkout');
                 }}
-                theme={dashboardTheme}
+                theme={theme}
                 style={styles.emptyAction}
               />
             </View>
@@ -121,13 +124,15 @@ function TimelineRow({
   onDeleteRevealChange: (revealed: boolean) => void;
   onDelete: () => void;
 }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
   const deleteActionWidth = 64;
   const cardTranslateX = useSharedValue(deleteRevealed ? -deleteActionWidth : 0);
   const cardOpen = useSharedValue(deleteRevealed);
   const dragDetected = useSharedValue(false);
   const suppressNextPress = useRef(false);
   const date = new Date(workout.completedAt ?? workout.startedAt);
-  const type = workoutTypePresentation(workout.type);
+  const type = workoutTypePresentation(workout.type, theme);
 
   React.useEffect(() => {
     cardOpen.value = deleteRevealed;
@@ -220,10 +225,10 @@ function TimelineRow({
                 </Text>
               </View>
               <View style={styles.durationChip}>
-                <Icon name="time-outline" size={13} color={dashboardTheme.ink} />
+                <Icon name="time-outline" size={13} color={theme.ink} />
                 <Text style={styles.durationText}>{formatDuration(workout.durationSeconds)}</Text>
               </View>
-              <Icon name="chevron-forward" size={17} color={dashboardTheme.slate} />
+              <Icon name="chevron-forward" size={17} color={theme.slate} />
             </Pressable>
           </Animated.View>
         </View>
@@ -271,30 +276,30 @@ function formatDuration(seconds = 0): string {
   if (minutes < 60) return `${minutes}m`;
   return `${Math.floor(minutes / 60)}h ${minutes % 60 ? `${minutes % 60}m` : ''}`.trim();
 }
-function workoutTypePresentation(type: string) {
+function workoutTypePresentation(type: string, theme: import('../types').ForgeTheme) {
   const normalized = type.toLowerCase();
   if (normalized.includes('mobility'))
     return { icon: 'stretching' as const, color: '#AA7CE8', background: 'rgba(170,124,232,0.14)' };
   if (normalized.includes('court'))
     return {
       icon: 'tennis-ball' as const,
-      color: dashboardTheme.iconSport || '#62C98A',
+      color: theme.iconSport || '#62C98A',
       background: 'rgba(98,201,138,0.14)',
     };
   if (normalized.includes('cardio'))
     return {
       icon: 'running' as const,
-      color: dashboardTheme.iconActivity || '#E99A5B',
+      color: theme.iconActivity || '#E99A5B',
       background: 'rgba(233,154,91,0.14)',
     };
   return {
     icon: 'fitness-outline' as const,
-    color: dashboardTheme.iconStrength || '#6F7FF2',
+    color: theme.iconStrength || '#6F7FF2',
     background: 'rgba(111,127,242,0.14)',
   };
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create({
   screen: { flex: 1 },
   header: {
     position: 'relative',
@@ -304,7 +309,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    backgroundColor: dashboardTheme.background,
+    backgroundColor: theme.background,
   },
   filterButton: {
     width: 46,
@@ -314,28 +319,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     borderRadius: 23,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.45)',
-    backgroundColor: 'rgba(255,255,255,0.68)',
+    borderColor: theme.border,
+    backgroundColor: theme.surfaceElevated,
+    shadowColor: theme.shadow,
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   content: { paddingHorizontal: 16, paddingTop: 18, paddingBottom: 108, gap: 18 },
   group: { gap: 8 },
   groupTitle: {
     marginLeft: 70,
-    color: dashboardTheme.slate,
+    color: theme.slate,
     ...typeScale.supporting,
   },
   timelineRow: { minHeight: 76, flexDirection: 'row', alignItems: 'stretch' },
   dateColumn: { width: 47, alignItems: 'flex-end', paddingTop: 14, paddingRight: 5 },
-  weekday: { color: dashboardTheme.slate, ...typeScale.caption },
-  day: { color: dashboardTheme.ink, ...typeScale.metricMedium },
-  month: { color: dashboardTheme.slate, ...typeScale.caption },
+  weekday: { color: theme.slate, ...typeScale.caption },
+  day: { color: theme.ink, ...typeScale.metricMedium },
+  month: { color: theme.slate, ...typeScale.caption },
   timelineRail: { width: 23, alignItems: 'center', position: 'relative' },
   railLine: {
     position: 'absolute',
     top: 0,
     bottom: 0,
     width: 2,
-    backgroundColor: dashboardTheme.divider,
+    backgroundColor: theme.divider,
   },
   railLineFirst: { top: 37 },
   marker: {
@@ -344,11 +354,11 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderWidth: 1.5,
-    borderColor: dashboardTheme.divider,
+    borderColor: theme.divider,
     borderRadius: 7,
-    backgroundColor: dashboardTheme.background,
+    backgroundColor: theme.background,
   },
-  markerActive: { borderColor: dashboardTheme.ink, backgroundColor: dashboardTheme.ink },
+  markerActive: { borderColor: theme.ink, backgroundColor: theme.ink },
   swipeContainer: {
     flex: 1,
     position: 'relative',
@@ -367,7 +377,7 @@ const styles = StyleSheet.create({
   deleteAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
   deleteActionPressed: { backgroundColor: '#F1CED0' },
   deleteActionText: { color: '#D64848', ...typeScale.caption },
-  swipeContent: { zIndex: 1, backgroundColor: dashboardTheme.surface },
+  swipeContent: { zIndex: 1, backgroundColor: theme.surface },
   card: {
     flex: 1,
     minHeight: 76,
@@ -376,12 +386,12 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: dashboardTheme.divider,
-    borderRadius: 0,
-    backgroundColor: dashboardTheme.surface,
-    shadowColor: dashboardTheme.ink,
-    shadowOpacity: 0.04,
-    shadowRadius: 5,
+    borderColor: theme.border,
+    borderRadius: 16,
+    backgroundColor: theme.surface,
+    shadowColor: theme.shadow,
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
@@ -394,8 +404,8 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   cardCopy: { flex: 1, minWidth: 0, justifyContent: 'center' },
-  name: { color: dashboardTheme.ink, ...typeScale.cardTitle },
-  stats: { color: dashboardTheme.slate, ...typeScale.label },
+  name: { color: theme.ink, ...typeScale.cardTitle },
+  stats: { color: theme.slate, ...typeScale.label },
   durationChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -403,11 +413,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: 12,
-    backgroundColor: dashboardTheme.surfaceMuted,
+    backgroundColor: theme.surfaceMuted,
   },
-  durationText: { color: dashboardTheme.ink, ...typeScale.caption },
+  durationText: { color: theme.ink, ...typeScale.caption },
   empty: { alignItems: 'center', paddingVertical: 60, gap: 5 },
-  emptyTitle: { color: dashboardTheme.ink, ...typeScale.sectionTitle },
-  emptySubtitle: { color: dashboardTheme.slate, ...typeScale.label },
+  emptyTitle: { color: theme.ink, ...typeScale.sectionTitle },
+  emptySubtitle: { color: theme.slate, ...typeScale.label },
   emptyAction: { marginTop: 14 },
 });

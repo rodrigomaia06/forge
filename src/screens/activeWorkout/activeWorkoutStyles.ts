@@ -1,8 +1,10 @@
 import { StyleSheet } from 'react-native';
-import { dashboardTheme } from '../../theme/dashboardTheme';
 import { spacing, typeScale } from '../../theme/tokens';
+import type { ForgeTheme } from '../../types';
 
-export const styles = StyleSheet.create({
+export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
+  const dashboardTheme = theme;
+  return StyleSheet.create({
   screen: { backgroundColor: dashboardTheme.background },
   header: {
     position: 'relative',
@@ -385,4 +387,5 @@ export const styles = StyleSheet.create({
     ...typeScale.supporting,
   },
   sheetActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
-});
+  });
+};
