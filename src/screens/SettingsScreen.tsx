@@ -30,17 +30,14 @@ export function SettingsScreen({ navigation }: Props) {
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <SettingsSection>
             <SettingsRow
-              icon="layers"
-              iconBackgroundColor={theme.surfaceMuted}
+              icon="weight"
               title="Exercises"
               onPress={() => open('ExerciseLibrary')}
               disclosure
-              showDivider
               testID="settings-main-exercises-row"
             />
             <SettingsRow
-              icon="activity"
-              iconBackgroundColor={theme.surfaceMuted}
+              icon="task-list"
               title="Workout types"
               onPress={() => open('WorkoutTypes')}
               disclosure
@@ -49,7 +46,6 @@ export function SettingsScreen({ navigation }: Props) {
           <SettingsSection>
             <SettingsRow
               icon="settings"
-              iconBackgroundColor={theme.surfaceMuted}
               title="General"
               onPress={() => open('GeneralSettings')}
               disclosure
@@ -58,15 +54,12 @@ export function SettingsScreen({ navigation }: Props) {
           <SettingsSection>
             <SettingsRow
               icon="database-export"
-              iconBackgroundColor={theme.surfaceMuted}
               title="Backup & Export"
               onPress={() => open('BackupExport')}
               disclosure
-              showDivider
             />
             <SettingsRow
               icon="clipboard"
-              iconBackgroundColor={theme.surfaceMuted}
               title="Logs"
               onPress={() => open('Logs')}
               disclosure
@@ -75,7 +68,6 @@ export function SettingsScreen({ navigation }: Props) {
           <SettingsSection>
             <SettingsRow
               icon="info"
-              iconBackgroundColor={theme.surfaceMuted}
               title="About"
               onPress={() => open('About')}
               disclosure

@@ -40,6 +40,8 @@ import {
   Drag,
   Git,
   Page,
+  TaskList,
+  Weight,
 } from 'iconoir-react-native';
 
 const iconMap: Record<IconName, React.ComponentType<SvgProps>> = {
@@ -62,6 +64,8 @@ const iconMap: Record<IconName, React.ComponentType<SvgProps>> = {
   menu: Menu,
   fitness: Gym,
   'fitness-outline': Gym,
+  weight: Weight,
+  'task-list': TaskList,
   basketball: Basketball,
   activity: Activity,
   running: Running,

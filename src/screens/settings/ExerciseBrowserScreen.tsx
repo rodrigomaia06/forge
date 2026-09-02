@@ -846,7 +846,7 @@ function Movement({
           accessibilityLabel={`Add variation to ${group}`}
           label="Add variation"
           icon="add"
-          iconSize={18}
+          iconSize={16}
           variant="outline"
           onPress={onAdd}
           style={styles.singleAddVariation}
@@ -905,7 +905,7 @@ function Movement({
             accessibilityLabel={`Add variation to ${group}`}
             label="Add variation"
             icon="add"
-            iconSize={18}
+            iconSize={16}
             variant="outline"
             style={styles.addVariation}
           />
@@ -1001,7 +1001,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       alignSelf: 'stretch',
       minHeight: 44,
       width: '100%',
-      marginTop: -4,
+      marginTop: 0,
       borderWidth: 1,
       borderStyle: 'dashed',
       borderRadius: 12,
@@ -1176,7 +1176,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     singleAddVariation: {
       alignSelf: 'stretch',
       minHeight: 44,
-      margin: 8,
+      margin: 12,
       width: 'auto',
       borderWidth: 1,
       borderStyle: 'dashed',

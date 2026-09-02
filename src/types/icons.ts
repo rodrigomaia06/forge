@@ -18,6 +18,8 @@ export type IconName =
   | 'menu'
   | 'fitness'
   | 'fitness-outline'
+  | 'weight'
+  | 'task-list'
   | 'basketball'
   | 'activity'
   | 'running'
