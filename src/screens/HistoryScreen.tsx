@@ -18,7 +18,6 @@ import {
   ScreenTitle,
   selectionHaptic,
 } from '../components/ui';
-import { NavigationFooter } from '../components/NavigationFooter';
 import { countWorkoutSets, formatCompactDuration, getWorkoutTypePresentation } from '../domain/workouts/presentation';
 import { useWorkouts } from '../state/WorkoutContext';
 import { useSettings } from '../state/SettingsContext';
@@ -26,8 +25,7 @@ import { animateLayout, errorHaptic, mediumHaptic } from './activeWorkout/active
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList, Workout } from '../types';
+import type { RootTabScreenProps, Workout } from '../types';
 
 interface HistoryGroup {
   key: string;
@@ -37,7 +35,7 @@ interface HistoryGroup {
 
 export function HistoryScreen({
   navigation,
-}: NativeStackScreenProps<RootStackParamList, 'History'>) {
+}: RootTabScreenProps<'History'>) {
   const { completedWorkouts, deleteCompletedWorkout, startWorkout } = useWorkouts();
   const { preferences } = useSettings();
   const theme = useForgeTheme();
@@ -106,7 +104,6 @@ export function HistoryScreen({
             </View>
           )}
         </ScrollView>
-        <NavigationFooter />
       </View>
     </AppScreen>
   );
@@ -302,7 +299,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  content: { paddingHorizontal: 16, paddingTop: 18, paddingBottom: 108, gap: 18 },
+  content: { paddingHorizontal: 16, paddingTop: 18, paddingBottom: 80, gap: 18 },
   group: { gap: 8 },
   groupTitle: {
     marginLeft: 70,

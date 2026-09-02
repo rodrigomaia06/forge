@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { StackActions } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   AppScreen,
@@ -13,7 +12,6 @@ import {
   Icon,
   selectionHaptic,
 } from '../components/ui';
-import { NavigationFooter } from '../components/NavigationFooter';
 import { countWorkoutSets, formatCompactDuration, getWorkoutTypePresentation } from '../domain/workouts/presentation';
 import { ReadOnlyExerciseSection } from './activeWorkout/ExerciseSection';
 import { WorkoutOptionsSheet } from './activeWorkout/WorkoutSheets';
@@ -34,9 +32,8 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
   const [optionsOpen, setOptionsOpen] = useState(false);
   const workout = completedWorkouts.find((item) => item.id === route.params.workoutId);
   const returnToHistory = (): void => {
-    const state = navigation.getState();
-    if (state.routes[state.index - 1]?.name === 'History') navigation.goBack();
-    else navigation.dispatch(StackActions.popTo('History'));
+    if (navigation.canGoBack()) navigation.goBack();
+    else navigation.navigate('MainTabs', { screen: 'History' });
   };
   if (!ready)
     return (
@@ -98,7 +95,6 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
             ))}
           </View>
         </ScrollView>
-        <NavigationFooter />
         <WorkoutOptionsSheet
           visible={optionsOpen}
           workoutName={workout.name}
@@ -295,7 +291,9 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     justifyContent: 'center',
   },
   headerTitle: { color: theme.ink, ...typeScale.headerTitle, textAlign: 'center' },
-  content: { padding: 16, paddingBottom: 116, gap: 12 },
+  // Details are presented above the tab navigator, so they do not reserve
+  // space for the floating primary dock.
+  content: { padding: 16, paddingBottom: 32, gap: 12 },
   summaryCard: {
     overflow: 'hidden',
     padding: 16,

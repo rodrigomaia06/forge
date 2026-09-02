@@ -26,7 +26,6 @@ export const settingsLayout = {
   screenPadding: 20,
   contentTop: 20,
   contentBottom: 40,
-  rootContentBottom: 112,
   sectionGap: 20,
   listGap: 14,
 } as const;

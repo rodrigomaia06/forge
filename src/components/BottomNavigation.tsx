@@ -1,34 +1,48 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { LayoutAnimation, Platform, UIManager, View, StyleSheet } from 'react-native';
-import { StackActions, useNavigation, useRoute } from '@react-navigation/native';
+import type { LayoutChangeEvent } from 'react-native';
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { NavigationItem, selectionHaptic } from './ui';
 import { getWorkoutTypePresentation } from '../domain/workouts/presentation';
 import { colors } from '../theme/tokens';
 import { useSettings } from '../state/SettingsContext';
 import { useWorkouts } from '../state/WorkoutContext';
-import type { ForgeTheme, IconName, RootNavigationProp, RootStackParamList } from '../types';
-import type { RouteProp } from '@react-navigation/native';
+import type { ForgeTheme, IconName, RootTabParamList } from '../types';
 
 interface BottomNavigationProps {
+  tabBarProps: BottomTabBarProps;
   theme?: ForgeTheme;
   compact?: boolean;
   onNavigate?: () => void;
 }
-type BottomNavigationScreen = 'Dashboard' | 'History' | 'ActiveWorkout' | 'Plans' | 'Settings';
+type BottomNavigationScreen = keyof RootTabParamList;
 type NavigationItemEntry = [IconName, string, BottomNavigationScreen, boolean];
+type ItemLayout = { x: number; width: number };
 
 let knownWorkoutId: string | null | undefined;
 
 export function BottomNavigation({
+  tabBarProps,
   theme = colors,
   compact = false,
   onNavigate,
 }: BottomNavigationProps) {
-  const navigation = useNavigation<RootNavigationProp>();
-  const route = useRoute<RouteProp<RootStackParamList>>();
+  const { navigation, state } = tabBarProps;
   const activeWorkout = useWorkouts().activeWorkout;
   const { preferences } = useSettings();
+  const [itemLayouts, setItemLayouts] = useState<Partial<Record<BottomNavigationScreen, ItemLayout>>>({});
+  const indicatorX = useSharedValue(0);
+  const indicatorWidth = useSharedValue(0);
+  const indicatorOpacity = useSharedValue(0);
+  const reducedMotion = useReducedMotion();
   const hasActiveWorkout = Boolean(activeWorkout);
   const activeWorkoutIcon = activeWorkout
     ? getWorkoutTypePresentation(activeWorkout.type, preferences.workoutTypes, theme, 1).icon
@@ -54,35 +68,72 @@ export function BottomNavigation({
     ['book', 'Plans', 'Plans', false],
     ['menu', 'Settings', 'Settings', false],
   ];
+  const activeRoute = state.routes[state.index]?.name as BottomNavigationScreen;
+
+  useEffect(() => {
+    const layout = itemLayouts[activeRoute];
+    if (!layout) return;
+    const transition = (next: number) =>
+      reducedMotion ? next : withTiming(next, { duration: 150, easing: Easing.out(Easing.cubic) });
+    indicatorX.value = transition(layout.x + 2);
+    indicatorWidth.value = transition(Math.max(0, layout.width - 4));
+    indicatorOpacity.value = transition(1);
+  }, [activeRoute, indicatorOpacity, indicatorWidth, indicatorX, itemLayouts, reducedMotion]);
+
+  const selectionIndicatorStyle = useAnimatedStyle(() => ({
+    opacity: indicatorOpacity.value,
+    width: indicatorWidth.value,
+    transform: [{ translateX: indicatorX.value }],
+  }));
+
+  const updateItemLayout = (screen: BottomNavigationScreen, event: LayoutChangeEvent): void => {
+    const { x, width } = event.nativeEvent.layout;
+    setItemLayouts((current) => {
+      const previous = current[screen];
+      if (previous?.x === x && previous.width === width) return current;
+      return { ...current, [screen]: { x, width } };
+    });
+  };
+
   const goTo = (screen: BottomNavigationScreen): void => {
-    if (route.name === screen) return;
+    const target = state.routes.find((route) => route.name === screen);
+    if (!target || activeRoute === screen) return;
+    const event = navigation.emit({ type: 'tabPress', target: target.key, canPreventDefault: true });
+    if (event.defaultPrevented) return;
     selectionHaptic();
     onNavigate?.();
-    if (screen === 'History' && historyIsActive) {
-      navigation.dispatch(StackActions.popTo('History'));
-      return;
-    }
     navigation.navigate(screen);
   };
-  const historyIsActive =
-    route.name === 'History' ||
-    route.name === 'WorkoutDetails' ||
-    route.name === 'HistoryWorkoutEditor';
+
   return (
     <View style={[styles.navigation, compact && styles.navigationCompact]}>
+      <Animated.View
+        testID="dashboard-nav-selection-pill"
+        pointerEvents="none"
+        style={[
+          styles.selectionPill,
+          compact && styles.selectionPillCompact,
+          selectionIndicatorStyle,
+          {
+            backgroundColor:
+              activeRoute === 'ActiveWorkout' ? theme.actionPrimary : theme.dockSelected || theme.slate,
+          },
+        ]}
+      />
       {items.map(([icon, label, screen, emphasis]) => (
-        <NavigationItem
-          key={label}
-          icon={icon}
-          label={label}
-          active={screen === 'History' ? historyIsActive : route.name === screen}
-          emphasis={emphasis}
-          onPress={() => goTo(screen)}
-          theme={theme}
-          iconSize={compact ? (emphasis ? 28 : 20) : emphasis ? 40 : hasActiveWorkout ? 26 : 28}
-          enterFromBottom={emphasis && workoutStartedNow}
-          compact={compact}
-        />
+        <View key={label} onLayout={(event) => updateItemLayout(screen, event)} style={styles.itemSlot}>
+          <NavigationItem
+            icon={icon}
+            label={label}
+            active={activeRoute === screen}
+            emphasis={emphasis}
+            onPress={() => goTo(screen)}
+            theme={theme}
+            iconSize={compact ? (emphasis ? 28 : 20) : emphasis ? 40 : hasActiveWorkout ? 26 : 28}
+            enterFromBottom={emphasis && workoutStartedNow}
+            compact={compact}
+          />
+        </View>
       ))}
     </View>
   );
@@ -106,4 +157,14 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingVertical: 0,
   },
+  itemSlot: { flex: 1, alignItems: 'center' },
+  selectionPill: {
+    position: 'absolute',
+    // Match the former per-item pill: its Pressable had a 3 pt vertical
+    // margin inside the 4 pt dock padding, making the visible capsule 50 pt.
+    top: 7,
+    bottom: 7,
+    borderRadius: 1000,
+  },
+  selectionPillCompact: { top: 2, bottom: 2 },
 });

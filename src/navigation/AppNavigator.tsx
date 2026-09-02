@@ -2,14 +2,9 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { enableFreeze } from 'react-native-screens';
-import { DashboardScreen } from '../screens/DashboardScreen';
-import { ActiveWorkoutScreen } from '../screens/ActiveWorkoutScreen';
-import { HistoryScreen } from '../screens/HistoryScreen';
 import { WorkoutDetailsScreen } from '../screens/WorkoutDetailsScreen';
 import { HistoryWorkoutEditorScreen } from '../screens/HistoryWorkoutEditorScreen';
-import { PlansScreen } from '../screens/PlansScreen';
 import { RoutineEditorScreen } from '../screens/RoutineEditorScreen';
-import { SettingsScreen } from '../screens/SettingsScreen';
 import { GeneralSettingsScreen } from '../screens/settings/GeneralSettingsScreen';
 import { SettingsDestinationScreen } from '../screens/settings/SettingsDestinationScreen';
 import { WorkoutTypesScreen } from '../screens/settings/WorkoutTypesScreen';
@@ -18,21 +13,21 @@ import { ExerciseLibraryScreen } from '../screens/settings/ExerciseLibraryScreen
 import { ExerciseBrowserScreen } from '../screens/settings/ExerciseBrowserScreen';
 import { useWorkouts } from '../state/WorkoutContext';
 import type { RootStackParamList } from '../types';
+import { MainTabNavigator } from './MainTabNavigator';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
-const rootTabOptions = { gestureEnabled: false, animation: 'none' as const };
 
 enableFreeze(true);
 
 export function AppNavigator() {
-  const { ready, activeWorkout } = useWorkouts();
+  const { ready } = useWorkouts();
 
   if (!ready) return null;
 
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName={activeWorkout ? 'ActiveWorkout' : 'Dashboard'}
+        initialRouteName="MainTabs"
         screenOptions={{
           headerShown: false,
           animation: 'fade',
@@ -40,21 +35,7 @@ export function AppNavigator() {
           freezeOnBlur: true,
         }}
       >
-        <Stack.Screen
-          name="Dashboard"
-          component={DashboardScreen}
-          options={rootTabOptions}
-        />
-        <Stack.Screen
-          name="ActiveWorkout"
-          component={ActiveWorkoutScreen}
-          options={rootTabOptions}
-        />
-        <Stack.Screen
-          name="History"
-          component={HistoryScreen}
-          options={rootTabOptions}
-        />
+        <Stack.Screen name="MainTabs" component={MainTabNavigator} options={{ gestureEnabled: false }} />
         <Stack.Screen
           name="WorkoutDetails"
           component={WorkoutDetailsScreen}
@@ -65,16 +46,10 @@ export function AppNavigator() {
           component={HistoryWorkoutEditorScreen}
           options={{ gestureEnabled: true }}
         />
-        <Stack.Screen name="Plans" component={PlansScreen} options={rootTabOptions} />
         <Stack.Screen
           name="RoutineEditor"
           component={RoutineEditorScreen}
           options={{ gestureEnabled: true }}
-        />
-        <Stack.Screen
-          name="Settings"
-          component={SettingsScreen}
-          options={rootTabOptions}
         />
         <Stack.Screen
           name="GeneralSettings"

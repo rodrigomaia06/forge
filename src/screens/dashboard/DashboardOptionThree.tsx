@@ -12,13 +12,13 @@ import { dashboardTheme } from '../../theme/dashboardTheme';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useWorkouts } from '../../state/WorkoutContext';
 import type { RouteProp } from '@react-navigation/native';
-import type { RootStackParamList } from '../../types';
+import type { RootTabParamList } from '../../types';
 import type { CalendarMenuState } from '../../components/Calendar';
 
 export function DashboardOptionThree({
   route,
 }: {
-  route: RouteProp<RootStackParamList, 'Dashboard'>;
+  route: RouteProp<RootTabParamList, 'Dashboard'>;
 }) {
   const { completedWorkouts } = useWorkouts();
   const theme = useForgeTheme();

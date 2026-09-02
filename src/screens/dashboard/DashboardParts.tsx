@@ -2,7 +2,6 @@ import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { DashboardHeader } from '../../components/DashboardHeader';
-import { DockChrome } from '../../components/DockChrome';
 import { Calendar, type CalendarMenuState } from '../../components/Calendar';
 import { WorkoutRow } from '../../components/WorkoutRow';
 import { AppScreen, Button, ForgeText as Text, lightHaptic } from '../../components/ui';
@@ -31,16 +30,9 @@ export function DashboardShell({
     lightHaptic();
     navigation.navigate('Plans', { openCreation: true });
   };
-  const shellProbe = useLayoutProbe('dashboard-shell', { background: theme.background });
-  const dockSlotProbe = useLayoutProbe('dashboard-dock-slot', { background: 'transparent' });
-  const dockCylinderProbe = useLayoutProbe('dashboard-dock-cylinder', {
-    background: theme.dockSurface,
-  });
   return (
     <AppScreen testID="dashboard-app-screen" backgroundColor={theme.background}>
       <View
-        ref={shellProbe.ref}
-        onLayout={shellProbe.onLayout}
         testID="dashboard-shell"
         style={styles.appShell}
       >
@@ -73,17 +65,6 @@ export function DashboardShell({
             </View>
           </>
         )}
-        <DockChrome
-          theme={theme}
-          slotRef={dockSlotProbe.ref}
-          onLayout={dockSlotProbe.onLayout}
-          slotTestID="dashboard-dock-slot"
-          cylinderRef={dockCylinderProbe.ref}
-          cylinderOnLayout={dockCylinderProbe.onLayout}
-          cylinderTestID="dashboard-dock-cylinder"
-          vignetteTestID="dashboard-dock-vignette"
-          indicatorTestID="dashboard-dock-home-indicator"
-        />
       </View>
     </AppScreen>
   );

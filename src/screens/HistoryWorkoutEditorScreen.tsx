@@ -24,7 +24,6 @@ import {
   pressedFeedbackSubtle,
   successHaptic,
 } from '../components/ui';
-import { NavigationFooter } from '../components/NavigationFooter';
 import { ExerciseSection } from './activeWorkout/ExerciseSection';
 import { AddExerciseSheet } from './activeWorkout/WorkoutSheets';
 import { useForgeTheme } from '../theme/ThemeProvider';
@@ -56,7 +55,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
 
   const returnToHistory = (): void => {
     if (navigation.canGoBack()) navigation.goBack();
-    else navigation.navigate('History');
+    else navigation.navigate('MainTabs', { screen: 'History' });
   };
 
   const dirty = useMemo(
@@ -299,7 +298,6 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      <NavigationFooter />
       <AddExerciseSheet
         visible={addExerciseOpen}
         onClose={() => setAddExerciseOpen(false)}
@@ -477,7 +475,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   },
   title: { color: theme.ink, ...typeScale.sectionTitle, textAlign: 'center' },
   keyboardArea: { flex: 1 },
-  content: { padding: 16, paddingBottom: 116, gap: 14 },
+  content: { padding: 16, paddingBottom: 32, gap: 14 },
   formCard: {
     padding: 14,
     gap: 10,

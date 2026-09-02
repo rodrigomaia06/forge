@@ -1,7 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppScreen, Button, ForgeText as Text, lightHaptic, ScreenTitle } from '../components/ui';
-import { NavigationFooter } from '../components/NavigationFooter';
 import { dashboardTheme } from '../theme/dashboardTheme';
 import { typeScale } from '../theme/tokens';
 
@@ -38,7 +37,6 @@ export function PlaceholderScreen({
             )}
           </View>
         </View>
-        <NavigationFooter />
       </View>
     </AppScreen>
   );

@@ -109,7 +109,7 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
     textAlign: 'left',
   },
   keyboardArea: { flex: 1 },
-  content: { padding: 16, gap: 12, paddingBottom: 116 },
+  content: { padding: 16, gap: 12, paddingBottom: 80 },
   exerciseCard: {
     backgroundColor: dashboardTheme.surface,
     borderRadius: 16,

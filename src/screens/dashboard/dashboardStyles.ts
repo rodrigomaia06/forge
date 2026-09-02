@@ -17,7 +17,9 @@ export const styles = StyleSheet.create({
     zIndex: 9,
   },
   scrollView: { flex: 1 },
-  scrollContent: { paddingHorizontal: spacing.screen, paddingTop: 0, paddingBottom: 132, gap: 14 },
+  // Primary-tab content scrolls beneath the persistent floating dock. This is
+  // just enough reachability space for the final row, not a second empty bar.
+  scrollContent: { paddingHorizontal: spacing.screen, paddingTop: 0, paddingBottom: 80, gap: 14 },
   scrollHeader: { marginHorizontal: -spacing.screen },
   calendarCard: {
     position: 'relative',

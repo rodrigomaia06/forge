@@ -260,6 +260,7 @@ export function AddExerciseSheet({
                             </View>
                             <View style={styles.groupActions}>
                               <View
+                                testID={`exercise-group-count-${group}`}
                                 style={[
                                   styles.groupCount,
                                   selectedCount > 0 && styles.groupCountActive,
@@ -328,6 +329,7 @@ export function AddExerciseSheet({
                                     </View>
                                     <View style={styles.groupActions}>
                                       <View
+                                        testID={`exercise-equipment-count-${group}-${equipment}`}
                                         style={[
                                           styles.groupCount,
                                           equipmentSelectedCount > 0 && styles.groupCountActive,
@@ -704,7 +706,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
-    backgroundColor: '#F0F3FA',
+    backgroundColor: dashboardTheme.surfaceElevated,
+    borderWidth: 1,
+    borderColor: dashboardTheme.divider,
   },
   groupCountActive: { backgroundColor: dashboardTheme.surfaceMuted, borderWidth: 1, borderColor: dashboardTheme.selectionIndicator },
   groupCountText: { color: dashboardTheme.slate, ...typeScale.caption },

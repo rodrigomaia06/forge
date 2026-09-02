@@ -1,14 +1,24 @@
-import type { NavigationProp } from '@react-navigation/native';
+import type {
+  CompositeNavigationProp,
+  CompositeScreenProps,
+  NavigatorScreenParams,
+} from '@react-navigation/native';
+import type { BottomTabNavigationProp, BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 
-export type RootStackParamList = {
+export type RootTabParamList = {
   Dashboard: { selectedDay?: number } | undefined;
   ActiveWorkout: undefined;
   History: undefined;
+  Plans: { openCreation?: boolean } | undefined;
+  Settings: undefined;
+};
+
+export type RootStackParamList = {
+  MainTabs: NavigatorScreenParams<RootTabParamList> | undefined;
   WorkoutDetails: { workoutId: string };
   HistoryWorkoutEditor: { workoutId: string };
-  Plans: { openCreation?: boolean } | undefined;
   RoutineEditor: { routineId: string };
-  Settings: undefined;
   GeneralSettings: undefined;
   ExerciseLibrary: undefined;
   ExerciseBrowser: { workoutTypeId?: string; custom?: boolean } | undefined;
@@ -20,4 +30,13 @@ export type RootStackParamList = {
   Logs: undefined;
   About: undefined;
 };
-export type RootNavigationProp = NavigationProp<RootStackParamList>;
+
+export type RootNavigationProp = CompositeNavigationProp<
+  BottomTabNavigationProp<RootTabParamList>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
+
+export type RootTabScreenProps<Screen extends keyof RootTabParamList> = CompositeScreenProps<
+  BottomTabScreenProps<RootTabParamList, Screen>,
+  NativeStackScreenProps<RootStackParamList>
+>;

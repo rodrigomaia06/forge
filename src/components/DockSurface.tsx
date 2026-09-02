@@ -8,6 +8,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BottomNavigation } from './BottomNavigation';
 import { dashboardTheme } from '../theme/dashboardTheme';
 import type { ForgeTheme } from '../types';
@@ -22,6 +23,7 @@ interface DockSurfaceProps {
   compactProgress?: SharedValue<number>;
   activeWorkout?: boolean;
   onNavigate?: () => void;
+  tabBarProps: BottomTabBarProps;
 }
 export function DockSurface({
   theme = dashboardTheme,
@@ -33,11 +35,15 @@ export function DockSurface({
   compactProgress,
   activeWorkout = false,
   onNavigate,
+  tabBarProps,
 }: DockSurfaceProps) {
   const { width: viewportWidth } = useWindowDimensions();
   const internalProgress = useSharedValue(compact ? 1 : 0);
   const progress = compactProgress ?? internalProgress;
-  const regularWidth = Math.min(Math.max(viewportWidth * 0.82, 304), 360);
+  // A 360 pt dock is the established regular Forge surface on phone widths.
+  // Retaining that width also keeps the selection capsule proportional to the
+  // original dock while the parent indicator moves between tabs.
+  const regularWidth = Math.min(Math.max(viewportWidth * 0.86, 304), 360);
   const activeWorkoutWidth = Math.min(Math.max(viewportWidth * 0.88, 320), 390);
   const compactWidth = Math.min(Math.max(viewportWidth * 0.62, 244), 270);
   const activeWorkoutProgress = useSharedValue(activeWorkout ? 1 : 0);
@@ -85,6 +91,7 @@ export function DockSurface({
     >
       {children || (
         <BottomNavigation
+          tabBarProps={tabBarProps}
           theme={{ ...theme, surface: theme.surface }}
           compact={compact}
           onNavigate={onNavigate}

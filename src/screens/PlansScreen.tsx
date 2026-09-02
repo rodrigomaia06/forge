@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import {
   AnchoredActionPopover,
@@ -12,15 +11,14 @@ import {
   ScreenTitle,
   selectionHaptic,
 } from '../components/ui';
-import { NavigationFooter } from '../components/NavigationFooter';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { spacing, typeScale } from '../theme/tokens';
 import { usePlans } from '../state/PlansContext';
 import { useWorkouts } from '../state/WorkoutContext';
-import type { RootStackParamList, WorkoutPlan, WorkoutRoutine } from '../types';
+import type { RootTabScreenProps, WorkoutPlan, WorkoutRoutine } from '../types';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Plans'>;
+type Props = RootTabScreenProps<'Plans'>;
 
 export function PlansScreen({ navigation, route }: Props) {
   const theme = useForgeTheme();
@@ -137,7 +135,6 @@ export function PlansScreen({ navigation, route }: Props) {
             </Pressable>
           )}
         </ScrollView>
-        <NavigationFooter />
         <AnchoredActionPopover
           visible={creationOpen}
           onClose={() => setCreationOpen(false)}
@@ -329,7 +326,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       justifyContent: 'space-between',
       flexDirection: 'row',
     },
-    content: { paddingHorizontal: spacing.screen, paddingTop: 16, paddingBottom: 112, gap: 22 },
+    content: { paddingHorizontal: spacing.screen, paddingTop: 16, paddingBottom: 80, gap: 22 },
     section: { gap: 9 },
     sectionTitle: { ...typeScale.sectionTitle, color: theme.slate },
     planHeader: {

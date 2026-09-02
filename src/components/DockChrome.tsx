@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useSharedValue, withSpring } from 'react-native-reanimated';
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { DockSurface } from './DockSurface';
 import { useWorkouts } from '../state/WorkoutContext';
 import { dashboardTheme } from '../theme/dashboardTheme';
@@ -26,6 +27,7 @@ interface DockChromeProps {
   indicatorTestID?: string;
   compact?: boolean;
   onInteract?: () => void;
+  tabBarProps: BottomTabBarProps;
   children?: ReactNode;
 }
 
@@ -42,6 +44,7 @@ export function DockChrome({
   indicatorTestID,
   compact = false,
   onInteract,
+  tabBarProps,
 }: DockChromeProps) {
   const hasActiveWorkout = Boolean(useWorkouts().activeWorkout);
   const gradientId = `dockFade${slotTestID || cylinderTestID || 'shared'}`.replace(
@@ -86,6 +89,7 @@ export function DockChrome({
           compactProgress={compactProgress}
           activeWorkout={hasActiveWorkout}
           onNavigate={onInteract}
+          tabBarProps={tabBarProps}
           dockRef={cylinderRef}
           onLayout={cylinderOnLayout}
           testID={cylinderTestID}
@@ -109,16 +113,18 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: 88,
+    height: 100,
     alignItems: 'center',
     justifyContent: 'flex-end',
     paddingBottom: 10,
     zIndex: 10,
   },
-  vignette: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 92, zIndex: 0 },
+  vignette: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 104, zIndex: 0 },
   dockLayer: {
     ...StyleSheet.absoluteFillObject,
-    bottom: 12,
+    // Keep the floating dock clear of the system edge. The scroll body remains
+    // visible beneath the vignette instead of reserving a separate tab-bar row.
+    bottom: 22,
     alignItems: 'center',
     justifyContent: 'flex-end',
   },

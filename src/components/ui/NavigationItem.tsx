@@ -46,7 +46,7 @@ export function NavigationItem({
   useEffect(() => {
     RNAnimated.timing(activeProgress, {
       toValue: active ? 1 : 0,
-      duration: 120,
+      duration: 180,
       easing: RNEasing.out(RNEasing.cubic),
       useNativeDriver: true,
     }).start();
@@ -83,9 +83,10 @@ export function NavigationItem({
     >
       <Pressable
         testID={active ? 'dashboard-nav-active' : `dashboard-nav-${label.toLowerCase()}`}
-        accessibilityRole={emphasis ? 'button' : 'tab'}
+        accessibilityRole="tab"
         accessibilityLabel={label}
         accessibilityState={{ selected: active }}
+        aria-selected={active}
         onPress={onPress}
         style={({ pressed }) => [
           styles.item,
@@ -95,29 +96,6 @@ export function NavigationItem({
           pressed && styles.pressed,
         ]}
       >
-        {active ? (
-          <RNAnimated.View
-            testID="dashboard-nav-selection-pill"
-            pointerEvents="none"
-            style={[
-              styles.selectionPill,
-              {
-                backgroundColor: emphasis
-                  ? theme.actionPrimary
-                  : theme.dockSelected || theme.slate,
-                opacity: activeProgress,
-                transform: [
-                  {
-                    scale: activeProgress.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.88, 1],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          />
-        ) : null}
         <RNAnimated.View
           style={[
             styles.iconFrame,
@@ -186,14 +164,6 @@ const styles = StyleSheet.create({
   iconFrameCompact: { width: 36, height: 36, borderRadius: 18 },
   activeItem: { width: '100%', marginHorizontal: 2 },
   emphasisItem: { width: '100%', marginHorizontal: 2 },
-  selectionPill: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    borderRadius: 1000,
-  },
   activeIconFrame: { width: 44, height: 44, borderRadius: 22 },
   activeIconFrameCompact: { width: 36, height: 36, borderRadius: 18 },
   inactiveLabel: { opacity: 0.68 },

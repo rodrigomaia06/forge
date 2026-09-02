@@ -1,16 +1,14 @@
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { NavigationFooter } from '../components/NavigationFooter';
 import { AppScreen, ScreenTitle } from '../components/ui';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { spacing } from '../theme/tokens';
-import type { RootStackParamList } from '../types';
+import type { RootStackParamList, RootTabScreenProps } from '../types';
 import { SettingsRow, SettingsSection, settingsLayout } from './settings/SettingsRow';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
+type Props = RootTabScreenProps<'Settings'>;
 
 export function SettingsScreen({ navigation }: Props) {
   const theme = useForgeTheme();
@@ -80,7 +78,6 @@ export function SettingsScreen({ navigation }: Props) {
             />
           </SettingsSection>
         </ScrollView>
-        <NavigationFooter />
       </View>
     </AppScreen>
   );
@@ -98,7 +95,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     content: {
       paddingHorizontal: settingsLayout.screenPadding,
       paddingTop: settingsLayout.contentTop,
-      paddingBottom: settingsLayout.rootContentBottom,
+      paddingBottom: 80,
       gap: settingsLayout.sectionGap,
     },
   });

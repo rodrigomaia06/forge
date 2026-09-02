@@ -13,12 +13,11 @@ import {
   Icon,
   pressedFeedback,
 } from '../components/ui';
-import { NavigationFooter } from '../components/NavigationFooter';
+import { usePrimaryDock } from '../navigation/PrimaryDockContext';
 import { useWorkouts } from '../state/WorkoutContext';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList, Workout, WorkoutExercise } from '../types';
+import type { RootTabScreenProps, Workout, WorkoutExercise } from '../types';
 import { animateLayout, lightHaptic, successHaptic } from './activeWorkout/activeWorkoutFeedback';
 import {
   formatElapsed,
@@ -30,7 +29,7 @@ import { AddExerciseSheet as ExtractedAddExerciseSheet } from './activeWorkout/W
 import { RestTimerIndicator, RestTimerSheet } from './activeWorkout/RestTimer';
 import { createActiveWorkoutStyles } from './activeWorkout/activeWorkoutStyles';
 
-type ActiveWorkoutScreenProps = NativeStackScreenProps<RootStackParamList, 'ActiveWorkout'>;
+type ActiveWorkoutScreenProps = RootTabScreenProps<'ActiveWorkout'>;
 export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createActiveWorkoutStyles);
@@ -53,9 +52,9 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   const [restSheetOpen, setRestSheetOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [openExerciseId, setOpenExerciseId] = useState<string | null>(null);
-  const [dockCompact, setDockCompact] = useState(false);
   const timerLongPressRef = useRef(false);
   const dockCompactOnUi = useSharedValue(false);
+  const { setCompact: setDockCompact } = usePrimaryDock();
 
   const restCompletionNotified = useRef(false);
 
@@ -105,9 +104,11 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     lightHaptic();
     setRestEndsAt(null);
   };
-  const handleDockCompactChange = useCallback((nextCompact: boolean): void => {
-    setDockCompact((current) => (current === nextCompact ? current : nextCompact));
-  }, []);
+  const handleDockCompactChange = useCallback(
+    (nextCompact: boolean): void => setDockCompact(nextCompact),
+    [setDockCompact],
+  );
+  useEffect(() => () => setDockCompact(false), [setDockCompact]);
   const workoutScrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       const nextCompact = event.contentOffset.y > 12;
@@ -156,17 +157,10 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     ],
   );
   const returnToDashboard = (finished: Workout | null): void =>
-    navigation.reset({
-      index: 0,
-      routes: [
-        {
-          name: 'Dashboard',
-          params: finished?.completedAt
-            ? { selectedDay: new Date(finished.completedAt).getDate() }
-            : undefined,
-        },
-      ],
-    });
+    navigation.navigate(
+      'Dashboard',
+      finished?.completedAt ? { selectedDay: new Date(finished.completedAt).getDate() } : undefined,
+    );
 
   if (!ready)
     return (
@@ -183,7 +177,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
           <Text style={styles.title}>No active workout</Text>
           <Button
             label="Back to Dashboard"
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.navigate('Dashboard')}
             theme={theme}
           />
         </View>
@@ -339,7 +333,6 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
           onSkip={skipRestTimer}
         />
       )}
-      <NavigationFooter compact={dockCompact} onInteract={() => setDockCompact(false)} />
     </AppScreen>
   );
 }
