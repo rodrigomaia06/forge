@@ -73,7 +73,11 @@ export function RestTimerSheet({
               <View style={styles.restTimerHeader}>
                 <View style={styles.restHeaderSide} />
                 <Text style={styles.restTimerTitle}>Rest timer</Text>
-                <SheetCloseButton accessibilityLabel="Close rest timer" onPress={closeSheet} />
+                <SheetCloseButton
+                  accessibilityLabel="Close rest timer"
+                  onPress={closeSheet}
+                  style={styles.restCloseButton}
+                />
               </View>
             </View>
           {running ? (

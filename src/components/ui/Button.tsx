@@ -133,7 +133,11 @@ function buttonSurface(
   }
   if (variant === 'outline') {
     return {
-      backgroundColor: tone === 'destructive' ? theme.destructiveSurface : theme.surface,
+      backgroundColor: tone === 'destructive'
+        ? theme.destructiveSurface
+        : tone === 'success'
+          ? theme.successSurface
+          : theme.surface,
       borderColor: tone === 'destructive' ? theme.textDestructive : tone === 'success' ? theme.success : theme.border,
     };
   }
@@ -149,6 +153,7 @@ function pressedSurface(
   theme: ForgeTheme,
 ): ViewStyle {
   if (tone === 'destructive') return { backgroundColor: theme.destructiveSurfacePressed };
+  if (tone === 'success' && variant === 'outline') return { backgroundColor: theme.successSurfacePressed };
   if (variant === 'ghost') return { backgroundColor: theme.pressed };
   return { opacity: 0.76 };
 }

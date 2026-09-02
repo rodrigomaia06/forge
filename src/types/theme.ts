@@ -24,6 +24,8 @@ export interface ForgeTheme {
   selectionIndicator: string;
   success: string;
   onSuccess: string;
+  successSurface: string;
+  successSurfacePressed: string;
   destructiveSurface: string;
   destructiveSurfacePressed: string;
   calendarSurface?: string;

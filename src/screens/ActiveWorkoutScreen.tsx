@@ -308,7 +308,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
               label="Add exercise"
               icon="add"
               iconSize={17}
-              variant="ghost"
+              variant="outline"
               onPress={() => {
                 animateLayout();
                 setSheetOpen(true);

@@ -105,6 +105,13 @@ test.describe('Active workout flow', () => {
     await expect(restTimer).toBeVisible();
     await restTimer.click();
     await expect(page.getByText('Rest timer', { exact: true })).toBeVisible();
+    const closeRestTimer = page.getByRole('button', { name: 'Close rest timer' }).last();
+    await expect(closeRestTimer).toHaveCSS('width', '44px');
+    await expect(closeRestTimer).toHaveCSS('height', '44px');
+    await closeRestTimer.click();
+    await expect(page.getByText('Rest timer', { exact: true })).toBeHidden();
+    await restTimer.click();
+    await expect(page.getByText('Rest timer', { exact: true })).toBeVisible();
     await page.getByTestId('rest-timer-backdrop').click({ position: { x: 4, y: 4 } });
     await expect(page.getByText('Rest timer', { exact: true })).toBeHidden();
     await restTimer.click();

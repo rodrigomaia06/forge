@@ -14,6 +14,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Button, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeText as Text, ForgeTextInput as TextInput, Icon, SheetCloseButton } from '../../components/ui';
+import { forgeSheetHeader } from '../../components/ui/ForgeBottomSheet';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
@@ -401,6 +402,9 @@ export function AddExerciseSheet({
                 disabled={!selected.length}
                 onPress={submit}
                 theme={dashboardTheme}
+                icon="arrow-forward"
+                variant="outline"
+                tone={selected.length ? 'success' : 'neutral'}
                 style={styles.pickerSubmit}
               />
             </Animated.View>
@@ -582,13 +586,13 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     position: 'relative',
   },
   pickerHeader: {
-    height: 52,
+    height: forgeSheetHeader.height,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   pickerDragArea: { marginHorizontal: -20, paddingHorizontal: 20 },
-  pickerTitle: { color: dashboardTheme.ink, ...typeScale.sectionTitle },
+  pickerTitle: { color: dashboardTheme.ink, ...typeScale.headerTitle },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -771,7 +775,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     marginTop: 0,
     minHeight: 46,
     borderRadius: 16,
-    backgroundColor: dashboardTheme.actionPrimary,
   },
   pickerCtaFade: {
     position: 'absolute',
@@ -815,13 +818,13 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   },
   sheetTitle: {
     color: dashboardTheme.ink,
-    ...typeScale.sectionTitle,
+    ...typeScale.headerTitle,
     textAlign: 'center',
     position: 'absolute',
     left: 0,
     right: 0,
   },
-  sheetHeader: { height: 44, alignItems: 'center', justifyContent: 'center' },
+  sheetHeader: { height: forgeSheetHeader.height, alignItems: 'center', justifyContent: 'center' },
   sheetClose: {
     position: 'absolute',
     right: 0,

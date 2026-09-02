@@ -24,6 +24,7 @@ import {
   pressedFeedback,
   selectionHaptic,
 } from '../../components/ui';
+import { forgeSheetHeader } from '../../components/ui/ForgeBottomSheet';
 import type { ForgeSingleSelectOption } from '../../components/ui';
 import type { ExerciseCatalogItem } from '../../data/exerciseCatalog';
 import { useExerciseCatalog } from '../../state/ExerciseCatalogContext';
@@ -110,6 +111,14 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   );
   const groups = useMemo(() => groupCatalogByMovement(filtered), [filtered]);
   const { equipment, categories } = catalogFacets(catalog.exercises);
+  const equipmentOptions = useMemo(
+    () => Array.from(new Set([...catalog.exercises, ...catalog.customExercises].map((item) => item.equipment))),
+    [catalog.customExercises, catalog.exercises],
+  );
+  const categoryOptions = useMemo(
+    () => Array.from(new Set([...catalog.exercises, ...catalog.customExercises].map((item) => item.group))).sort(),
+    [catalog.customExercises, catalog.exercises],
+  );
   const formEquipment = useMemo(() => {
     if (!formParent) return [];
     return Array.from(
@@ -120,8 +129,15 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
       ),
     );
   }, [catalog.customExercises, catalog.exercises, formParent]);
-  const usesCustomEquipment =
-    formParent !== null && formParent !== undefined && !formEquipment.includes(equipmentValue);
+  const selectableEquipment = formParent ? formEquipment : equipmentOptions;
+  const usesCustomEquipment = !selectableEquipment.includes(equipmentValue);
+  const categoryMatches = useMemo(() => {
+    const query = group.trim().toLocaleLowerCase();
+    return query ? categoryOptions.filter((item) => item.toLocaleLowerCase().includes(query)).slice(0, 5) : [];
+  }, [categoryOptions, group]);
+  const isExistingCategory = categoryOptions.some(
+    (item) => item.toLocaleLowerCase() === group.trim().toLocaleLowerCase(),
+  );
   const isCustom = (item: ExerciseCatalogItem) =>
     catalog.customExercises.some((custom) => custom.id === item.id);
   const restOverride = (item: ExerciseCatalogItem) =>
@@ -326,7 +342,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
           accessibilityLabel="Close exercise filters"
         >
           {(close) => (
-            <View style={styles.sheet}>
+            <View style={[styles.sheet, { maxHeight: Math.min(viewportHeight * 0.82, 680) }]}>
               <ForgeBottomSheetHandle />
               <View style={styles.sheetHeader}>
                 <Text style={styles.sheetTitle}>Filters</Text>
@@ -345,6 +361,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                 {!fixedTypeId && (
                   <FilterSection
                     title="Workout type"
+                    icon="layers"
                     values={visibleTypes.map((item) => [item.id, item.name])}
                     selected={filters.types}
                     onToggle={(value) => toggle('types', value)}
@@ -352,12 +369,14 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                 )}
                 <FilterSection
                   title="Equipment"
+                  icon="fitness-outline"
                   values={equipment.map((value) => [value, value])}
                   selected={filters.equipment}
                   onToggle={(value) => toggle('equipment', value)}
                 />
                 <FilterSection
                   title="Muscle group"
+                  icon="activity"
                   values={categories.map((value) => [value, value])}
                   selected={filters.categories}
                   onToggle={(value) => toggle('categories', value)}
@@ -380,7 +399,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
           surfaceTestID="custom-exercise-form-surface"
         >
           {(close) => (
-            <View style={[styles.formSheet, { height: Math.min(viewportHeight * 0.82, 640) }]}>
+            <View style={[styles.formSheet, { maxHeight: Math.min(viewportHeight * 0.82, 640) }]}>
               <ForgeBottomSheetHandle />
               <View style={styles.sheetHeader}>
                 <Text style={styles.sheetTitle}>
@@ -392,8 +411,10 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                 </Text>
                 <HeaderAction
                   accessibilityLabel="Save variation"
-                  icon="check"
+                  icon="arrow-forward"
                   iconOnly
+                  variant="outline"
+                  tone={name.trim() ? 'success' : 'neutral'}
                   disabled={!name.trim()}
                   onPress={() => {
                     if (save()) close();
@@ -414,69 +435,95 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   style={styles.input}
                 />
                 {!formParent && (
-                  <TextInput
-                    accessibilityLabel="Exercise category"
-                    value={group}
-                    onChangeText={setGroup}
-                    placeholder="Category"
-                    placeholderTextColor={theme.muted}
-                    style={styles.input}
-                  />
-                )}
-                {formParent ? (
                   <>
-                    <Text style={styles.fieldLabel}>Equipment</Text>
-                    <View
-                      accessibilityRole="radiogroup"
-                      accessibilityLabel="Exercise equipment"
-                      style={styles.choiceWrap}
-                    >
-                      {formEquipment.map((item) => (
-                        <Choice
-                          key={item}
-                          label={item}
-                          accessibilityLabel={`Equipment ${item}`}
-                          role="radio"
-                          selected={equipmentValue === item}
-                          onPress={() => {
-                            selectionHaptic();
-                            setEquipmentValue(item);
-                          }}
-                        />
-                      ))}
-                      <Choice
-                        icon="add"
-                        label="Custom equipment"
-                        accessibilityLabel="Add custom equipment"
-                        role="radio"
-                        selected={usesCustomEquipment}
-                        onPress={() => {
-                          selectionHaptic();
-                          setEquipmentValue('');
-                        }}
+                    <View style={styles.categorySearch}>
+                      <Icon name="search" size={19} color={theme.slate} />
+                      <TextInput
+                        accessibilityLabel="Exercise category"
+                        value={group}
+                        onChangeText={setGroup}
+                        placeholder="Search or add a category"
+                        placeholderTextColor={theme.muted}
+                        style={styles.categorySearchInput}
                       />
                     </View>
-                    {usesCustomEquipment && (
-                      <TextInput
-                        accessibilityLabel="Custom equipment"
-                        value={equipmentValue}
-                        onChangeText={setEquipmentValue}
-                        placeholder="Custom equipment"
-                        placeholderTextColor={theme.muted}
-                        style={styles.input}
-                      />
-                    )}
+                    {group.trim() ? (
+                      <View style={styles.categorySuggestions}>
+                        {categoryMatches.map((item) => (
+                          <Pressable
+                            key={item}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Use category ${item}`}
+                            onPress={() => {
+                              selectionHaptic();
+                              setGroup(item);
+                            }}
+                            style={({ pressed }) => [styles.categorySuggestion, pressed && pressedFeedback]}
+                          >
+                            <Icon name="layers-outline" size={16} color={theme.slate} />
+                            <Text style={styles.categorySuggestionText}>{item}</Text>
+                          </Pressable>
+                        ))}
+                        {!isExistingCategory && (
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={`Add ${group.trim()} as a custom category`}
+                            onPress={() => selectionHaptic()}
+                            style={({ pressed }) => [styles.categorySuggestion, pressed && pressedFeedback]}
+                          >
+                            <Icon name="add" size={17} color={theme.ink} />
+                            <Text style={styles.categorySuggestionText}>
+                              Add “{group.trim()}” as custom
+                            </Text>
+                          </Pressable>
+                        )}
+                      </View>
+                    ) : null}
                   </>
-                ) : (
-                  <TextInput
+                )}
+                <>
+                  <Text style={styles.fieldLabel}>Equipment</Text>
+                  <View
+                    accessibilityRole="radiogroup"
                     accessibilityLabel="Exercise equipment"
+                    style={styles.choiceWrap}
+                  >
+                    {selectableEquipment.map((item) => (
+                      <Choice
+                        key={item}
+                        label={item}
+                        accessibilityLabel={`Equipment ${item}`}
+                        role="radio"
+                        selected={equipmentValue === item}
+                        onPress={() => {
+                          selectionHaptic();
+                          setEquipmentValue(item);
+                        }}
+                      />
+                    ))}
+                    <Choice
+                      icon="add"
+                      label="Custom equipment"
+                      accessibilityLabel="Add custom equipment"
+                      role="radio"
+                      selected={usesCustomEquipment}
+                      onPress={() => {
+                        selectionHaptic();
+                        setEquipmentValue('');
+                      }}
+                    />
+                  </View>
+                  {usesCustomEquipment && (
+                  <TextInput
+                    accessibilityLabel="Custom equipment"
                     value={equipmentValue}
                     onChangeText={setEquipmentValue}
-                    placeholder="Equipment"
+                    placeholder="Custom equipment"
                     placeholderTextColor={theme.muted}
                     style={styles.input}
                   />
-                )}
+                  )}
+                </>
                 <Text style={styles.fieldLabel}>Sections</Text>
                 <View style={styles.choiceWrap}>
                   {visibleTypes.map((type) => (
@@ -719,11 +766,13 @@ function Choice({
 
 function FilterSection({
   title,
+  icon,
   values,
   selected,
   onToggle,
 }: {
   title: string;
+  icon: IconName;
   values: string[][];
   selected: string[];
   onToggle: (value: string) => void;
@@ -732,7 +781,10 @@ function FilterSection({
   const theme = useForgeTheme();
   return (
     <View style={styles.filterSection}>
-      <Text style={styles.filterTitle}>{title}</Text>
+      <View style={styles.filterHeading}>
+        <Icon name={icon} size={18} color={theme.ink} />
+        <Text style={styles.filterTitle}>{title}</Text>
+      </View>
       {values.map(([value, label]) => (
         <Pressable
           key={value}
@@ -794,7 +846,7 @@ function Movement({
           label="Add variation"
           icon="add"
           iconSize={18}
-          variant="ghost"
+          variant="outline"
           onPress={onAdd}
           style={styles.singleAddVariation}
         />
@@ -853,7 +905,7 @@ function Movement({
             label="Add variation"
             icon="add"
             iconSize={18}
-            variant="ghost"
+            variant="outline"
             style={styles.addVariation}
           />
         </View>
@@ -934,7 +986,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       paddingBottom: 5,
     },
     variation: {
-      minHeight: 46,
+      minHeight: 56,
       paddingHorizontal: 12,
       flexDirection: 'row',
       alignItems: 'center',
@@ -942,23 +994,28 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       borderTopWidth: StyleSheet.hairlineWidth,
       borderColor: theme.divider,
     },
-    variationName: { ...typeScale.body, color: theme.ink },
+    variationName: { ...typeScale.cardTitle, color: theme.ink },
     variationIcons: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-    addVariation: { alignSelf: 'flex-start', minHeight: 44, paddingHorizontal: 0 },
+    addVariation: { alignSelf: 'stretch', minHeight: 52, width: '100%' },
     empty: { paddingTop: 60, alignItems: 'center' },
-    sheet: { height: '78%' },
-    formSheet: {},
+    sheet: { alignSelf: 'stretch', flexShrink: 1 },
+    formSheet: { alignSelf: 'stretch', flexShrink: 1 },
     detailSheet: {},
     restTimeSheet: { minHeight: 400 },
     restTimeHeader: {
-      minHeight: 56,
-      paddingHorizontal: 20,
+      minHeight: forgeSheetHeader.height,
+      paddingHorizontal: forgeSheetHeader.horizontalPadding,
       flexDirection: 'row',
       alignItems: 'center',
     },
-    restTimeBack: { width: 44, height: 44, minWidth: 44, minHeight: 44 },
+    restTimeBack: {
+      width: forgeSheetHeader.closeSize,
+      height: forgeSheetHeader.closeSize,
+      minWidth: forgeSheetHeader.closeSize,
+      minHeight: forgeSheetHeader.closeSize,
+    },
     restTimeTitle: { flex: 1, textAlign: 'center', ...typeScale.headerTitle, color: theme.ink },
-    restTimeHeaderSpacer: { width: 44 },
+    restTimeHeaderSpacer: { width: forgeSheetHeader.closeSize },
     restTimeDefaultAction: {
       position: 'absolute',
       right: 20,
@@ -1009,22 +1066,23 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     sectionType: { flexDirection: 'row', alignItems: 'center', gap: 5 },
     sectionTypeName: { ...typeScale.body, color: theme.ink },
     sheetHeader: {
-      minHeight: 56,
-      paddingHorizontal: 20,
+      minHeight: forgeSheetHeader.height,
+      paddingHorizontal: forgeSheetHeader.horizontalPadding,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
     },
     sheetTitle: { ...typeScale.headerTitle, color: theme.ink },
     detailSheetTitle: { flex: 1, minWidth: 0, marginRight: 12 },
-    filterScroll: { flex: 1 },
+    filterScroll: { flexGrow: 0, flexShrink: 1 },
     filterContent: { padding: 20, paddingTop: 4, gap: 22, paddingBottom: 24 },
     filterSection: { gap: 8 },
+    filterHeading: { minHeight: 28, flexDirection: 'row', alignItems: 'center', gap: 8 },
     filterTitle: { ...typeScale.sectionTitle, color: theme.slate },
     option: {
-      minHeight: 48,
-      paddingHorizontal: 14,
-      borderRadius: 14,
+      minHeight: 56,
+      paddingHorizontal: 16,
+      borderRadius: 16,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -1032,11 +1090,11 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       borderWidth: 1,
       borderColor: theme.divider,
     },
-    optionText: { ...typeScale.body, color: theme.ink },
+    optionText: { ...typeScale.cardTitle, color: theme.ink },
     check: {
-      width: 22,
-      height: 22,
-      borderRadius: 11,
+      width: 26,
+      height: 26,
+      borderRadius: 13,
       borderWidth: 2,
       borderColor: theme.slate,
       alignItems: 'center',
@@ -1049,7 +1107,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       borderTopWidth: StyleSheet.hairlineWidth,
       borderColor: theme.divider,
     },
-    formScroll: { flex: 1 },
+    formScroll: { flexGrow: 0, flexShrink: 1 },
     form: { padding: 20, gap: 12, paddingBottom: 28 },
     detailContent: { paddingHorizontal: 20, paddingBottom: 12, paddingTop: 0, gap: 0 },
     editVariationAction: { marginTop: 16, marginBottom: 8 },
@@ -1063,6 +1121,35 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       color: theme.ink,
       ...typeScale.body,
     },
+    categorySearch: {
+      minHeight: 48,
+      paddingHorizontal: 14,
+      borderRadius: 14,
+      gap: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.input,
+      borderWidth: 1,
+      borderColor: theme.divider,
+    },
+    categorySearchInput: { flex: 1, paddingVertical: 0, color: theme.ink, ...typeScale.body },
+    categorySuggestions: {
+      overflow: 'hidden',
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: theme.divider,
+      backgroundColor: theme.surfaceElevated,
+    },
+    categorySuggestion: {
+      minHeight: 44,
+      paddingHorizontal: 14,
+      gap: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.divider,
+    },
+    categorySuggestionText: { ...typeScale.controlLabel, color: theme.ink, flexShrink: 1 },
     fieldLabel: { ...typeScale.label, color: theme.slate, marginTop: 5 },
     choiceWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     choice: {
@@ -1078,10 +1165,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     },
     choiceText: { ...typeScale.label, color: theme.ink },
     singleAddVariation: {
-      alignSelf: 'flex-start',
-      minHeight: 44,
-      paddingHorizontal: 16,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderColor: theme.divider,
+      alignSelf: 'stretch',
+      minHeight: 52,
+      margin: 12,
+      width: 'auto',
     },
   });

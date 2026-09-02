@@ -13,6 +13,12 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 import { lightHaptic } from './haptics';
 
 const noop = () => undefined;
+/** Shared sheet-header geometry keeps titles and close actions aligned. */
+export const forgeSheetHeader = {
+  height: 56,
+  horizontalPadding: 20,
+  closeSize: 44,
+} as const;
 const webViewportFill = Platform.OS === 'web'
   ? ({ position: 'fixed', top: 0, right: 0, bottom: 0, left: 0 } as unknown as ViewStyle)
   : undefined;
