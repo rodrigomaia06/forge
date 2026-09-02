@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Keyboard,
-  KeyboardAvoidingView,
   LayoutAnimation,
   Modal,
   Platform,
@@ -83,6 +82,7 @@ export function ForgeBottomSheet({
   const dragStart = useSharedValue(0);
   const keyboardProgress = useSharedValue(0);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
@@ -114,6 +114,7 @@ export function ForgeBottomSheet({
     if (!visible || !keyboardAvoiding) {
       keyboardProgress.value = withTiming(0, { duration: 160 });
       setKeyboardVisible(false);
+      setKeyboardHeight(0);
       return undefined;
     }
     const transition = (nextVisible: boolean, event: KeyboardEvent) => {
@@ -123,6 +124,7 @@ export function ForgeBottomSheet({
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       }
       setKeyboardVisible(nextVisible);
+      setKeyboardHeight(nextVisible ? event.endCoordinates.height : 0);
       keyboardProgress.value = withTiming(nextVisible ? 1 : 0, { duration: 180 });
     };
     const show = Keyboard.addListener(
@@ -183,10 +185,9 @@ export function ForgeBottomSheet({
           onPress={() => close(true)}
           style={StyleSheet.absoluteFill}
         />
-        <KeyboardAvoidingView
+        <View
           pointerEvents="box-none"
           style={styles.keyboardArea}
-          behavior={keyboardAvoiding ? 'height' : undefined}
         >
           <GestureDetector gesture={pan}>
             <Animated.View
@@ -196,7 +197,7 @@ export function ForgeBottomSheet({
                 { backgroundColor: theme.surfaceElevated, shadowColor: theme.shadow },
                 style,
                 keyboardVisible && styles.keyboardExpandedSheet,
-                keyboardVisible && { top: insets.top },
+                keyboardVisible && { top: insets.top, bottom: keyboardHeight },
                 keyboardSheetStyle,
                 sheetStyle,
               ]}
@@ -206,7 +207,7 @@ export function ForgeBottomSheet({
                 : (typeof children === 'function' ? children(() => close(false)) : children)}
             </Animated.View>
           </GestureDetector>
-        </KeyboardAvoidingView>
+        </View>
         {overlay}
       </Animated.View>
     </Modal>
