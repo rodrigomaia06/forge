@@ -11,12 +11,7 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { usePreventRemove } from '@react-navigation/native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
+import { runOnJS } from 'react-native-reanimated';
 
 import {
   AppScreen,
@@ -35,16 +30,23 @@ import {
   successHaptic,
 } from '../components/ui';
 import { AddExerciseSheet } from './activeWorkout/WorkoutSheets';
+import { ExerciseSection } from './activeWorkout/ExerciseSection';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
 import { usePlans } from '../state/PlansContext';
 import { useSettings } from '../state/SettingsContext';
 import { makeWorkoutId } from '../state/workoutMutations';
-import type { RootStackParamList, WorkoutRoutine } from '../types';
+import type {
+  RootStackParamList,
+  WorkoutExercise,
+  WorkoutRoutine,
+  WorkoutSetChanges,
+} from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RoutineEditor'>;
 type AttributeSheetState = { originalLabel?: string; label: string; value: string } | null;
+type RoutineDraftChange = (update: (current: WorkoutRoutine) => WorkoutRoutine) => void;
 
 export function RoutineEditorScreen({ navigation, route }: Props) {
   const theme = useForgeTheme();
@@ -52,7 +54,10 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
   const { findRoutine, createRoutine, updateRoutine, deleteRoutine, plans, moveRoutine } = usePlans();
   const { preferences } = useSettings();
   const creating = route.params.mode === 'create';
-  const source = route.params.mode === 'edit' ? findRoutine(route.params.routineId) : undefined;
+  const viewing = route.params.mode === 'view';
+  const source = route.params.mode === 'edit' || route.params.mode === 'view'
+    ? findRoutine(route.params.routineId)
+    : undefined;
   const [initialDraft] = useState<WorkoutRoutine | null>(() =>
     route.params.mode === 'create'
       ? createRoutineDraft(route.params.planId)
@@ -68,7 +73,9 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
   const [attributeError, setAttributeError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [canLeave, setCanLeave] = useState(false);
-  const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
+  const [noteHeight, setNoteHeight] = useState(56);
+  const [revealedExerciseId, setRevealedExerciseId] = useState<string | null>(null);
+  const [completedRoutineSetIds, setCompletedRoutineSetIds] = useState<string[]>([]);
 
   const dirty = Boolean(
     draft && initialDraft && JSON.stringify(draft) !== JSON.stringify(initialDraft),
@@ -124,7 +131,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
     if (draft.planId && !plans.some((plan) => plan.id === draft.planId)) {
       return setError('This plan is no longer available. Choose another destination before saving.');
     }
-    if (route.params.mode === 'edit' && !findRoutine(route.params.routineId)) {
+    if ((route.params.mode === 'edit' || route.params.mode === 'view') && !findRoutine(route.params.routineId)) {
       return setError('This routine is no longer available.');
     }
     const saved: WorkoutRoutine = {
@@ -206,11 +213,11 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           />
           <View style={styles.headerTitleWrap} pointerEvents="none">
             <Text style={styles.headerTitle} numberOfLines={1}>
-              {creating ? 'New routine' : 'Edit routine'}
+              {creating ? 'New routine' : viewing ? 'Routine' : 'Edit routine'}
             </Text>
           </View>
           <View style={styles.headerActions}>
-            {!creating && (
+            {!creating && !viewing && (
               <HeaderAction
                 accessibilityLabel="Routine options"
                 icon="ellipsis-horizontal"
@@ -219,16 +226,25 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                 onPress={() => setOptionsOpen(true)}
               />
             )}
-            <HeaderAction
-              accessibilityLabel="Save routine"
-              icon="check"
-              iconOnly
-              variant="outline"
-              tone="success"
-              disabled={!draft.name.trim() || !draft.type.trim()}
-              haptic="none"
-              onPress={save}
-            />
+            {viewing ? (
+              <HeaderAction
+                accessibilityLabel="Edit routine"
+                icon="note"
+                iconOnly
+                onPress={() => navigation.replace('RoutineEditor', { mode: 'edit', routineId: draft.id })}
+              />
+            ) : (
+              <HeaderAction
+                accessibilityLabel="Save routine"
+                icon="check"
+                iconOnly
+                variant="outline"
+                tone="success"
+                disabled={!draft.name.trim() || !draft.type.trim()}
+                haptic="none"
+                onPress={save}
+              />
+            )}
           </View>
         </View>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -237,6 +253,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
               accessibilityLabel="Routine name"
               value={draft.name}
               onChangeText={(name) => change((current) => ({ ...current, name }))}
+              editable={!viewing}
               style={styles.nameInput}
               placeholder="Routine name"
               placeholderTextColor={theme.muted}
@@ -245,6 +262,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Workout type, ${draft.type}`}
+              disabled={viewing}
               onPress={() => {
                 selectionHaptic();
                 setPickerOpen((current) => !current);
@@ -299,7 +317,11 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
               accessibilityLabel="Routine note"
               value={draft.note || ''}
               onChangeText={(note) => change((current) => ({ ...current, note }))}
-              style={styles.noteInput}
+              editable={!viewing}
+              onContentSizeChange={(event) =>
+                setNoteHeight(Math.max(56, Math.min(120, event.nativeEvent.contentSize.height + 20)))
+              }
+              style={[styles.noteInput, { height: noteHeight }]}
               placeholder="Add a note"
               placeholderTextColor={theme.muted}
               multiline
@@ -310,6 +332,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`Edit ${label} attribute`}
+                  disabled={viewing}
                   onPress={() => openAttribute(label, value)}
                   style={({ pressed }) => [styles.attributeRow, pressed && styles.pressed]}
                 >
@@ -319,71 +342,66 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                 </Pressable>
               </React.Fragment>
             ))}
-            <View style={styles.divider} />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Add attribute"
-              onPress={() => openAttribute()}
-              style={({ pressed }) => [styles.addAttribute, pressed && styles.pressed]}
-            >
-              <Icon name="add" size={18} color={theme.textPrimary} />
-              <Text style={styles.addAttributeText}>Add attribute</Text>
-            </Pressable>
+            {!viewing && (
+              <>
+                <View style={styles.divider} />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Add attribute"
+                  onPress={() => openAttribute()}
+                  style={({ pressed }) => [styles.addAttribute, pressed && styles.pressed]}
+                >
+                  <Icon name="add" size={18} color={theme.textPrimary} />
+                  <Text style={styles.addAttributeText}>Add attribute</Text>
+                </Pressable>
+              </>
+            )}
           </View>
           {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
           <View style={styles.exerciseSection}>
             <Text style={styles.sectionTitle}>Exercises</Text>
-            <View style={styles.exerciseCard}>
-              {draft.exercises.map((exercise, index) => (
-                <RoutineExerciseRow
-                  key={exercise.id || `${exercise.name}-${index}`}
-                  exercise={exercise}
-                  expanded={expandedExerciseId === exercise.id}
-                  onToggle={() =>
-                    setExpandedExerciseId((current) =>
-                      current === exercise.id ? null : (exercise.id ?? null),
-                    )
-                  }
-                  onRemove={() =>
-                    change((current) => ({
-                      ...current,
-                      exercises: current.exercises.filter((_, itemIndex) => itemIndex !== index),
-                    }))
-                  }
-                  onAddSet={() =>
-                    change((current) => ({
-                      ...current,
-                      exercises: current.exercises.map((item, itemIndex) =>
-                        itemIndex === index
-                          ? {
-                              ...item,
-                              sets: [
-                                ...(item.sets || []),
-                                {
-                                  id: makeWorkoutId('routine-set'),
-                                  weight: '',
-                                  reps: '',
-                                  targetReps: '8–12',
-                                },
-                              ],
-                            }
-                          : item,
-                      ),
-                    }))
-                  }
-                  onMove={(direction) =>
-                    change((current) => {
-                      const targetIndex = index + direction;
-                      if (targetIndex < 0 || targetIndex >= current.exercises.length) return current;
-                      const exercises = [...current.exercises];
-                      const [moved] = exercises.splice(index, 1);
-                      exercises.splice(targetIndex, 0, moved);
-                      return { ...current, exercises };
-                    })
-                  }
-                />
-              ))}
-              <Pressable
+            <View pointerEvents={viewing ? 'none' : 'auto'} style={styles.exerciseList}>
+              {draft.exercises.map((exercise, index) => {
+                const exerciseId = exercise.id ?? `routine-exercise-${index}`;
+                return (
+                  <ExerciseSection
+                    key={exerciseId}
+                    index={index}
+                    testID={`routine-exercise-${exerciseId}`}
+                    exercise={asWorkoutExercise(exercise, completedRoutineSetIds)}
+                    addSet={() => addRoutineSet(index, change)}
+                    removeSet={(_, setId) => removeRoutineSet(index, setId, change)}
+                    removeExercise={() =>
+                      change((current) => ({
+                        ...current,
+                        exercises: current.exercises.filter((_, itemIndex) => itemIndex !== index),
+                      }))
+                    }
+                    updateSet={(_, setId, changes) =>
+                      updateRoutineSet(index, setId, changes, change)
+                    }
+                    toggleSet={(_, setId) =>
+                      setCompletedRoutineSetIds((current) =>
+                        current.includes(setId)
+                          ? current.filter((item) => item !== setId)
+                          : [...current, setId],
+                      )
+                    }
+                    onSetCompleted={() => undefined}
+                    deleteRevealed={revealedExerciseId === exerciseId}
+                    onDeleteRevealChange={(id, revealed) =>
+                      setRevealedExerciseId(revealed ? id : null)
+                    }
+                    dragHandle={
+                      <RoutineExerciseDragHandle
+                        name={exercise.name}
+                        onMove={(direction) => moveRoutineExercise(index, direction, change)}
+                      />
+                    }
+                  />
+                );
+              })}
+              {!viewing && <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Add exercises to routine"
                 onPress={() => setAddingExercises(true)}
@@ -391,11 +409,11 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
               >
                 <Icon name="add" size={17} color={theme.textPrimary} />
                 <Text style={styles.addExerciseText}>Add exercises</Text>
-              </Pressable>
+              </Pressable>}
             </View>
           </View>
         </ScrollView>
-        {!creating && (
+        {!creating && !viewing && (
           <ForgeActionSheet
             visible={optionsOpen}
             onClose={() => setOptionsOpen(false)}
@@ -485,22 +503,22 @@ function AttributeEditorSheet({
           />
           <View style={styles.attributeForm}>
             <View style={styles.attributeFields}>
-            <TextInput
-              accessibilityLabel="Attribute label"
-              value={value.label}
-              onChangeText={(label) => onChange({ ...value, label })}
-              placeholder="Name"
-              placeholderTextColor={theme.textDisabled}
-              style={styles.attributeInput}
-            />
-            <TextInput
-              accessibilityLabel="Attribute value"
-              value={value.value}
-              onChangeText={(nextValue) => onChange({ ...value, value: nextValue })}
-              placeholder="Value (optional)"
-              placeholderTextColor={theme.textDisabled}
-              style={styles.attributeInput}
-            />
+              <TextInput
+                accessibilityLabel="Attribute label"
+                value={value.label}
+                onChangeText={(label) => onChange({ ...value, label })}
+                placeholder="Name"
+                placeholderTextColor={theme.textDisabled}
+                style={styles.attributeInput}
+              />
+              <TextInput
+                accessibilityLabel="Attribute value"
+                value={value.value}
+                onChangeText={(nextValue) => onChange({ ...value, value: nextValue })}
+                placeholder="Value (optional)"
+                placeholderTextColor={theme.textDisabled}
+                style={styles.attributeInput}
+              />
             </View>
             {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
             <Button
@@ -520,136 +538,119 @@ function AttributeEditorSheet({
   );
 }
 
-function RoutineExerciseRow({
-  exercise,
-  expanded,
-  onToggle,
-  onRemove,
-  onAddSet,
+function RoutineExerciseDragHandle({
+  name,
   onMove,
 }: {
-  exercise: WorkoutRoutine['exercises'][number];
-  expanded: boolean;
-  onToggle: () => void;
-  onRemove: () => void;
-  onAddSet: () => void;
+  name: string;
   onMove: (direction: -1 | 1) => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const deleteActionWidth = 72;
-  const [deleteRevealed, setDeleteRevealed] = useState(false);
-  const translateX = useSharedValue(0);
-  const translateY = useSharedValue(0);
-  const count = exercise.sets?.length || 0;
-
-  useEffect(() => {
-    translateX.value = withSpring(deleteRevealed ? -deleteActionWidth : 0, {
-      damping: 22,
-      stiffness: 280,
-      mass: 0.65,
-      overshootClamping: true,
-    });
-  }, [deleteRevealed, translateX]);
-
-  const settleDelete = (open: boolean): void => {
-    if (open !== deleteRevealed) {
-      lightHaptic();
-      setDeleteRevealed(open);
-      return;
-    }
-    translateX.value = withSpring(open ? -deleteActionWidth : 0, { damping: 22, stiffness: 280 });
-  };
-  const swipe = Gesture.Pan()
-    .activeOffsetX([-8, 8])
-    .failOffsetY([-12, 12])
-    .onUpdate((event) => {
-      if (!deleteRevealed && event.translationX >= 0) return;
-      const base = deleteRevealed ? -deleteActionWidth : 0;
-      translateX.value = Math.max(-deleteActionWidth, Math.min(0, base + event.translationX));
-    })
-    .onEnd((event) => {
-      const base = deleteRevealed ? -deleteActionWidth : 0;
-      runOnJS(settleDelete)(base + event.translationX < -deleteActionWidth * 0.55);
-    });
-  const reorder = Gesture.Pan()
-    .activateAfterLongPress(240)
-    .failOffsetX([-20, 20])
+  const drag = Gesture.Pan()
+    .activateAfterLongPress(180)
+    .failOffsetX([-24, 24])
     .onStart(() => runOnJS(lightHaptic)())
-    .onUpdate((event) => {
-      translateY.value = event.translationY;
-    })
     .onEnd((event) => {
-      if (event.translationY > 34) runOnJS(onMove)(1);
-      else if (event.translationY < -34) runOnJS(onMove)(-1);
-      translateY.value = withSpring(0, { damping: 20, stiffness: 260 });
+      if (event.translationY > 30) runOnJS(onMove)(1);
+      else if (event.translationY < -30) runOnJS(onMove)(-1);
     });
-  const gesture = Gesture.Race(swipe, reorder);
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }, { translateY: translateY.value }],
-  }));
-
   return (
-    <GestureDetector gesture={gesture}>
-      <View testID={`routine-exercise-${exercise.id ?? exercise.name}`} style={styles.exerciseSwipe}>
-        <View
-          pointerEvents={deleteRevealed ? 'auto' : 'none'}
-          style={[styles.exerciseDeleteLayer, { backgroundColor: theme.destructiveSurface }]}
-        >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Delete ${exercise.name}`}
-            onPress={() => {
-              errorHaptic();
-              onRemove();
-            }}
-            style={({ pressed }) => [styles.exerciseDeleteAction, pressed && styles.exerciseDeletePressed]}
-          >
-            <Icon name="trash" size={18} color={theme.textDestructive} />
-            <Text style={styles.exerciseDeleteText}>Delete</Text>
-          </Pressable>
-        </View>
-        <Animated.View style={[styles.exerciseSwipeContent, animatedStyle]}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${expanded ? 'Collapse' : 'Expand'} ${exercise.name}`}
-            accessibilityState={{ expanded }}
-            onPress={onToggle}
-            style={({ pressed }) => [styles.exerciseRow, pressed && styles.pressed]}
-          >
-            <Icon name="drag" size={18} color={theme.muted} />
-            <View style={styles.exerciseCopy}>
-              <Text style={styles.exerciseName} numberOfLines={1}>{exercise.name}</Text>
-              <Text style={styles.exerciseSets}>{`${count} ${count === 1 ? 'set' : 'sets'}`}</Text>
-            </View>
-            <Icon
-              name="chevron-down"
-              size={18}
-              color={theme.slate}
-              style={expanded ? styles.exerciseChevronExpanded : undefined}
-            />
-          </Pressable>
-          {expanded && (
-            <View style={styles.exerciseDetails}>
-              <Text style={styles.exerciseHint}>Hold and drag to reorder. Swipe left to delete.</Text>
-              <Button
-                accessibilityLabel={`Add set to ${exercise.name}`}
-                label="Add set"
-                icon="add"
-                variant="ghost"
-                haptic="none"
-                onPress={() => {
-                  lightHaptic();
-                  onAddSet();
-                }}
-                style={styles.addSet}
-              />
-            </View>
-          )}
-        </Animated.View>
+    <GestureDetector gesture={drag}>
+      <View accessibilityLabel={`Drag to reorder ${name}`} style={styles.routineDragHandle}>
+        <Icon name="drag" size={19} color={theme.muted} />
       </View>
     </GestureDetector>
   );
+}
+
+function asWorkoutExercise(
+  exercise: WorkoutRoutine['exercises'][number],
+  completedSetIds: string[],
+): WorkoutExercise {
+  const exerciseId = exercise.id ?? makeWorkoutId('routine-exercise');
+  return {
+    id: exerciseId,
+    name: exercise.name,
+    note: exercise.note,
+    sets: (exercise.sets ?? []).map((set, index) => {
+      const id = set.id ?? `${exerciseId}-set-${index}`;
+      return {
+        id,
+        weight: set.weight ?? '',
+        reps: set.reps ?? '',
+        previous: set.previous,
+        targetWeight: set.targetWeight,
+        targetReps: set.targetReps,
+        completed: completedSetIds.includes(id),
+      };
+    }),
+  };
+}
+
+function addRoutineSet(index: number, change: RoutineDraftChange): void {
+  change((current) => ({
+    ...current,
+    exercises: current.exercises.map((exercise, itemIndex) =>
+      itemIndex === index
+        ? {
+            ...exercise,
+            sets: [
+              ...(exercise.sets ?? []),
+              { id: makeWorkoutId('routine-set'), weight: '', reps: '', targetReps: '8–12' },
+            ],
+          }
+        : exercise,
+    ),
+  }));
+}
+
+function removeRoutineSet(index: number, setId: string, change: RoutineDraftChange): void {
+  change((current) => ({
+    ...current,
+    exercises: current.exercises.map((exercise, itemIndex) =>
+      itemIndex === index
+        ? { ...exercise, sets: (exercise.sets ?? []).filter((set) => set.id !== setId) }
+        : exercise,
+    ),
+  }));
+}
+
+function updateRoutineSet(
+  index: number,
+  setId: string,
+  changes: WorkoutSetChanges,
+  change: RoutineDraftChange,
+): void {
+  const { completed: _completed, ...setChanges } = changes;
+  change((current) => ({
+    ...current,
+    exercises: current.exercises.map((exercise, itemIndex) =>
+      itemIndex === index
+        ? {
+            ...exercise,
+            sets: (exercise.sets ?? []).map((set) =>
+              set.id === setId ? { ...set, ...setChanges } : set,
+            ),
+          }
+        : exercise,
+    ),
+  }));
+}
+
+function moveRoutineExercise(
+  index: number,
+  direction: -1 | 1,
+  change: RoutineDraftChange,
+): void {
+  change((current) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= current.exercises.length) return current;
+    const exercises = [...current.exercises];
+    const [moved] = exercises.splice(index, 1);
+    exercises.splice(targetIndex, 0, moved);
+    return { ...current, exercises };
+  });
 }
 
 function createRoutineDraft(planId?: string): WorkoutRoutine {
@@ -704,13 +705,13 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       borderColor: theme.divider,
     },
     nameInput: {
-      ...typeScale.cardTitle,
+      ...typeScale.sectionTitle,
       color: theme.ink,
       minHeight: 56,
       paddingHorizontal: 16,
       paddingVertical: 0,
     },
-    fieldLabel: { ...typeScale.label, color: theme.slate },
+    fieldLabel: { ...typeScale.caption, color: theme.slate },
     noteInput: {
       ...typeScale.body,
       color: theme.ink,
@@ -730,7 +731,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       gap: 8,
     },
     typeDot: { width: 10, height: 10, borderRadius: 5 },
-    typeValue: { ...typeScale.body, color: theme.ink, flex: 1 },
+    typeValue: { ...typeScale.controlLabel, color: theme.ink, flex: 1 },
     typeChevronExpanded: { transform: [{ rotate: '180deg' }] },
     typeChoices: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
     typeChoice: {
@@ -762,41 +763,14 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     error: { ...typeScale.label, color: theme.textDestructive, paddingHorizontal: 4 },
     exerciseSection: { gap: 8 },
     sectionTitle: { ...typeScale.sectionTitle, color: theme.slate },
-    exerciseCard: {
-      overflow: 'hidden',
-      borderRadius: 20,
-      backgroundColor: theme.surface,
-      borderWidth: 1,
-      borderColor: theme.divider,
-    },
-    exerciseSwipe: { position: 'relative', overflow: 'hidden', backgroundColor: theme.destructiveSurface },
-    exerciseDeleteLayer: {
-      position: 'absolute',
-      top: 0,
-      right: 0,
-      bottom: 0,
-      width: 72,
-    },
-    exerciseDeleteAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
-    exerciseDeletePressed: { backgroundColor: theme.destructiveSurfacePressed },
-    exerciseDeleteText: { ...typeScale.caption, color: theme.textDestructive },
-    exerciseSwipeContent: { backgroundColor: theme.surface, zIndex: 1 },
-    exerciseRow: {
-      minHeight: 64,
-      paddingHorizontal: 16,
-      flexDirection: 'row',
+    exerciseList: { gap: 12 },
+    routineDragHandle: {
+      width: 32,
+      height: 44,
       alignItems: 'center',
-      gap: 10,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.divider,
+      justifyContent: 'center',
+      marginLeft: -8,
     },
-    exerciseCopy: { flex: 1, minWidth: 0 },
-    exerciseName: { ...typeScale.cardTitle, color: theme.ink },
-    exerciseSets: { ...typeScale.supporting, color: theme.slate, marginTop: 2 },
-    exerciseChevronExpanded: { transform: [{ rotate: '180deg' }] },
-    exerciseDetails: { paddingHorizontal: 16, paddingBottom: 8, gap: 4 },
-    exerciseHint: { ...typeScale.caption, color: theme.muted, textAlign: 'center' },
-    addSet: { alignSelf: 'center' },
     addExercise: {
       minHeight: 50,
       flexDirection: 'row',
@@ -818,6 +792,8 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       color: theme.textPrimary,
       ...typeScale.body,
       flex: 1,
+      flexBasis: 0,
+      minWidth: 0,
     },
     unavailable: {
       flex: 1,

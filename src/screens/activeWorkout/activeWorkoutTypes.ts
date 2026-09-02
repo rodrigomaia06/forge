@@ -1,4 +1,5 @@
 import type { GestureResponderEvent } from 'react-native';
+import type { ReactNode } from 'react';
 import type { WorkoutExercise, WorkoutSet, WorkoutSetChanges } from '../../types';
 
 export interface ExerciseSectionProps {
@@ -13,6 +14,8 @@ export interface ExerciseSectionProps {
   deleteRevealed: boolean;
   onDeleteRevealChange: (exerciseId: string, revealed: boolean) => void;
   size?: 'standard' | 'large';
+  dragHandle?: ReactNode;
+  testID?: string;
 }
 
 export interface SwipeableSetRowProps {

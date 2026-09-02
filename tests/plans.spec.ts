@@ -59,8 +59,16 @@ test.describe('Plans and routines', () => {
     await expect(page.getByRole('button', { name: 'Start Upper body' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Save routine' }).click();
     await expect(page.getByText('Upper body')).toBeVisible();
-    await page.getByRole('button', { name: 'Edit Upper body' }).click();
+    await page.getByRole('button', { name: 'Routine actions for Upper body' }).click();
+    const routineActions = page.getByTestId('plans-options-sheet');
+    await expect(routineActions.getByText('Routine options', { exact: true })).toBeVisible();
+    await expect(routineActions.getByRole('button', { name: 'Visualize' }).locator('svg').first()).toBeVisible();
+    await expect(routineActions.getByRole('button', { name: 'Edit' }).locator('svg').first()).toBeVisible();
+    await expect(routineActions.getByRole('button', { name: 'Start' }).locator('svg').first()).toBeVisible();
+    await routineActions.getByRole('button', { name: 'Edit' }).click();
+    await expect(routineActions).toHaveCount(0);
     await page.getByLabel('Routine name').fill('Upper body updated');
+    await expect(page.getByLabel('Routine name')).toHaveValue('Upper body updated');
     await page.getByRole('button', { name: 'Save routine' }).click();
     await expect(page.getByText('Upper body updated', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Start Upper body updated' }).click();
@@ -82,7 +90,9 @@ test.describe('Plans and routines', () => {
     await expect(
       routine.getByRole('button', { name: 'Start Swipe routine' }).locator('svg'),
     ).toBeVisible();
-    await expect(routine.getByRole('button', { name: 'Edit Swipe routine' }).locator('svg')).toBeVisible();
+    await expect(
+      routine.getByRole('button', { name: 'Routine actions for Swipe routine' }).locator('svg'),
+    ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Create standalone routine' })).toHaveCount(0);
     await swipeLeftFrom(page, routine);
     const deleteRoutine = page.getByRole('button', { name: 'Delete Swipe routine' });
@@ -130,8 +140,10 @@ test.describe('Plans and routines', () => {
       .click();
     await page.getByLabel('Routine name').fill('Move routine');
     await page.getByRole('button', { name: 'Save routine' }).click();
-    await page.getByRole('button', { name: 'Edit Move routine' }).click();
-    await page.getByRole('button', { name: 'Routine options' }).click();
+    await page.getByRole('button', { name: 'Routine actions for Move routine' }).click();
+    await page.getByTestId('plans-options-sheet').getByRole('button', { name: 'Edit' }).click();
+    await expect(page.getByTestId('plans-options-sheet')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Routine options', exact: true }).click();
     const routineOptions = page.getByTestId('routine-options-sheet');
     await expect(routineOptions.getByText('Routine options', { exact: true })).toBeVisible();
     await expect(routineOptions.getByRole('button', { name: 'Move to a plan' }).locator('svg')).toHaveCount(2);
@@ -184,8 +196,9 @@ test.describe('Plans and routines', () => {
 
     const exercise = page.getByTestId(/^routine-exercise-/);
     await expect(exercise).toHaveCount(1);
-    await exercise.getByRole('button', { name: 'Expand Barbell Bench Press' }).click();
-    await expect(exercise.getByText('Hold and drag to reorder. Swipe left to delete.')).toBeVisible();
+    await expect(
+      exercise.getByRole('button', { name: 'More options for Barbell Bench Press' }),
+    ).toBeVisible();
     await swipeLeftFrom(page, exercise);
     await expect(exercise.getByRole('button', { name: 'Delete Barbell Bench Press' })).toBeVisible();
   });
@@ -209,5 +222,10 @@ test.describe('Plans and routines', () => {
     await expect(page.getByRole('button', { name: 'Start Plan draft' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Save routine' }).click();
     await expect(page.getByText('Plan draft', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Routine actions for Plan draft' }).click();
+    const routineActions = page.getByTestId('plans-options-sheet');
+    await expect(routineActions.getByRole('button', { name: 'Visualize' })).toBeVisible();
+    await expect(routineActions.getByRole('button', { name: 'Edit' })).toBeVisible();
+    await expect(routineActions.getByRole('button', { name: 'Start' })).toBeVisible();
   });
 });

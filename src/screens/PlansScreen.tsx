@@ -37,7 +37,9 @@ import { workoutTypeIcon } from './settings/workoutTypeIcon';
 import { forgeDockScrollInset } from '../components/DockChrome';
 
 type Props = RootTabScreenProps<'Plans'>;
-type PlanActionTarget = { kind: 'plan'; item: WorkoutPlan };
+type PlanActionTarget =
+  | { kind: 'routine'; item: WorkoutRoutine }
+  | { kind: 'plan'; item: WorkoutPlan };
 const swipeSpring = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
 
 export function PlansScreen({ navigation, route }: Props) {
@@ -78,6 +80,14 @@ export function PlansScreen({ navigation, route }: Props) {
     if (withHaptic) selectionHaptic();
     navigation.navigate('RoutineEditor', { mode: 'edit', routineId: routine.id });
   };
+  const viewRoutine = (routine: WorkoutRoutine, withHaptic = true): void => {
+    if (withHaptic) selectionHaptic();
+    navigation.navigate('RoutineEditor', { mode: 'view', routineId: routine.id });
+  };
+  const routineActions = (routine: WorkoutRoutine): void => {
+    lightHaptic();
+    setActionTarget({ kind: 'routine', item: routine });
+  };
   const addPlan = (): void => {
     createPlan();
   };
@@ -114,13 +124,13 @@ export function PlansScreen({ navigation, route }: Props) {
                     onOpen={() => openRoutine(routine)}
                     onDelete={() => deleteRoutine(routine.id)}
                   >
-                    {(onOpen) => (
+                    {() => (
                       <RoutineRow
                         routine={routine}
                         workoutTypes={preferences.workoutTypes}
                         last={index === standaloneRoutines.length - 1}
                         onStart={() => startRoutine(routine)}
-                        onPress={onOpen}
+                        onPress={() => routineActions(routine)}
                       />
                     )}
                   </SwipeDelete>
@@ -137,7 +147,7 @@ export function PlansScreen({ navigation, route }: Props) {
                     plan={plan}
                     workoutTypes={preferences.workoutTypes}
                     onAddRoutine={() => addRoutine(plan.id)}
-                    onOpenRoutine={openRoutine}
+                    onOpenRoutine={routineActions}
                     onStartRoutine={startRoutine}
                     onDeleteRoutine={(routine) => deleteRoutine(routine.id)}
                     onOptions={(item) => {
@@ -165,12 +175,20 @@ export function PlansScreen({ navigation, route }: Props) {
         <ForgeActionSheet
           visible={actionTarget !== null}
           onClose={() => setActionTarget(null)}
-          accessibilityLabel="Dismiss plan options"
-          title="Plan options"
+          accessibilityLabel={
+            actionTarget?.kind === 'routine' ? 'Dismiss routine options' : 'Dismiss plan options'
+          }
+          title={actionTarget?.kind === 'routine' ? 'Routine options' : 'Plan options'}
           testID="plans-options-sheet"
           actions={
-            actionTarget
+            actionTarget?.kind === 'routine'
               ? [
+                  { label: 'Visualize', icon: 'info', onPress: () => viewRoutine(actionTarget.item, false) },
+                  { label: 'Edit', icon: 'note', onPress: () => openRoutine(actionTarget.item, false) },
+                  { label: 'Start', icon: 'play', onPress: () => startRoutine(actionTarget.item, false) },
+                ]
+              : actionTarget
+                ? [
                   {
                     label: 'Add routine',
                     icon: 'add',
@@ -247,16 +265,15 @@ function PlanCard({
               key={routine.id}
               accessibilityLabel={`Delete ${routine.name}`}
               testID={`routine-swipe-${routine.id}`}
-              onOpen={() => onOpenRoutine(routine)}
               onDelete={() => onDeleteRoutine(routine)}
             >
-              {(onOpen) => (
+              {() => (
                 <RoutineRow
                   routine={routine}
                   workoutTypes={workoutTypes}
                   last={index === plan.routines.length - 1}
                   onStart={() => onStartRoutine(routine)}
-                  onPress={onOpen}
+                  onPress={() => onOpenRoutine(routine)}
                 />
               )}
             </SwipeDelete>
@@ -303,7 +320,7 @@ function RoutineRow({
       </Pressable>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Edit ${routine.name}`}
+        accessibilityLabel={`Routine actions for ${routine.name}`}
         onPress={onPress}
         style={({ pressed }) => [styles.routineCopy, pressed && styles.pressed]}
       >
@@ -478,7 +495,11 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       alignItems: 'center',
       justifyContent: 'space-between',
     },
-    planRoutineSeparation: { height: 10, backgroundColor: theme.surfaceMuted },
+    planRoutineSeparation: {
+      height: StyleSheet.hairlineWidth,
+      marginHorizontal: 12,
+      backgroundColor: theme.divider,
+    },
     planName: { ...typeScale.cardTitle, color: theme.ink },
     routineRow: {
       minHeight: 76,

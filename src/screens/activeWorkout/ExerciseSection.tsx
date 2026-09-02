@@ -37,6 +37,8 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   deleteRevealed,
   onDeleteRevealChange,
   size = 'standard',
+  dragHandle,
+  testID,
 }: ExerciseSectionProps) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -89,7 +91,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
 
   return (
     <GestureDetector gesture={cardGesture}>
-      <View style={styles.exerciseSwipe}>
+      <View testID={testID} style={styles.exerciseSwipe}>
         <View
           pointerEvents={deleteRevealed ? 'auto' : 'none'}
           style={styles.deleteExerciseActionLayer}
@@ -115,6 +117,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
         <Animated.View style={[styles.exerciseSwipeContent, swipeContentStyle]}>
           <View style={[styles.exerciseCard, size === 'large' && styles.exerciseCardLarge]}>
             <View style={[styles.exerciseHeader, size === 'large' && styles.exerciseHeaderLarge]}>
+              {dragHandle}
               <Text style={[styles.exerciseName, size === 'large' && styles.exerciseNameLarge]}>
                 {exercise.name}
               </Text>

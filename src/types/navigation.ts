@@ -20,7 +20,8 @@ export type RootStackParamList = {
   HistoryWorkoutEditor: { workoutId: string };
   RoutineEditor:
     | { mode: 'create'; planId?: string }
-    | { mode: 'edit'; routineId: string };
+    | { mode: 'edit'; routineId: string }
+    | { mode: 'view'; routineId: string };
   GeneralSettings: undefined;
   ExerciseLibrary: undefined;
   ExerciseBrowser: { workoutTypeId?: string; custom?: boolean } | undefined;
