@@ -8,6 +8,7 @@ import {
   ForgeCard,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
+  ForgeSheetHeader,
   ForgeSwitch,
   ForgeText as Text,
   ForgeTextInput as TextInput,
@@ -326,8 +327,12 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
           {(close) => (
             <View style={styles.colorPickerSheet}>
               <ForgeBottomSheetHandle />
+              <ForgeSheetHeader
+                title="Custom color"
+                onClose={close}
+                closeAccessibilityLabel="Close custom workout type color picker"
+              />
               <View style={styles.colorPickerHeader}>
-                <Text style={styles.colorPickerTitle}>Custom color</Text>
                 <Text style={styles.colorPickerCopy}>Choose a color for this workout type.</Text>
               </View>
               <View style={styles.colorGrid}>

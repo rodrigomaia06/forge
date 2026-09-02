@@ -9,7 +9,7 @@ import Animated, {
   useSharedValue,
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
-import { Button, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeText as Text, Icon, SheetCloseButton } from '../../components/ui';
+import { Button, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeSheetHeader, ForgeText as Text, Icon } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { createActiveWorkoutStyles } from './activeWorkoutStyles';
@@ -69,15 +69,11 @@ export function RestTimerSheet({
     <ForgeBottomSheet visible={visible} onClose={onClose} accessibilityLabel="Close rest timer" initialOffset={420} closeDistance={520} dismissThreshold={260} backdropTestID="rest-timer-backdrop" style={styles.restTimerSheet}>{(closeSheet) => <>
             <ForgeBottomSheetHandle />
             <View style={styles.sheetDragArea}>
-              <View style={styles.restTimerHeader}>
-                <View style={styles.restHeaderSide} />
-                <Text style={styles.restTimerTitle}>Rest timer</Text>
-                <SheetCloseButton
-                  accessibilityLabel="Close rest timer"
-                  onPress={closeSheet}
-                  style={styles.restCloseButton}
-                />
-              </View>
+              <ForgeSheetHeader
+                title="Rest timer"
+                onClose={closeSheet}
+                closeAccessibilityLabel="Close rest timer"
+              />
             </View>
           {running ? (
             <ActiveRestTimer

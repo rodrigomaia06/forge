@@ -9,7 +9,7 @@ import { ForgeText as Text } from './ForgeText';
 import { Icon } from './Icon';
 import { errorHaptic, selectionHaptic } from './haptics';
 import { pressedFeedback } from './pressFeedback';
-import { SheetCloseButton } from './SheetCloseButton';
+import { ForgeSheetHeader } from './ForgeSheetHeader';
 
 export interface ForgeActionSheetAction {
   label: string;
@@ -20,12 +20,19 @@ export interface ForgeActionSheetAction {
   accessibilityLabel?: string;
 }
 
+export interface ForgeActionSheetContext {
+  eyebrow: string;
+  title: string;
+  icon: IconName;
+}
+
 interface ForgeActionSheetProps {
   visible: boolean;
   onClose: () => void;
   accessibilityLabel: string;
   title: string;
   actions: readonly ForgeActionSheetAction[];
+  context?: ForgeActionSheetContext;
   testID?: string;
   initialOffset?: number;
   closeDistance?: number;
@@ -39,6 +46,7 @@ export function ForgeActionSheet({
   accessibilityLabel,
   title,
   actions,
+  context,
   testID,
   initialOffset,
   closeDistance,
@@ -61,18 +69,30 @@ export function ForgeActionSheet({
       {(close) => (
         <View style={styles.sheet}>
           <ForgeBottomSheetHandle />
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: theme.textPrimary }]} numberOfLines={1}>
-              {title}
-            </Text>
-            <SheetCloseButton
-              accessibilityLabel={`Close ${title}`}
-              onPress={close}
-              style={styles.close}
-            />
-          </View>
+          <ForgeSheetHeader title={title} onClose={close} />
+          {context ? (
+            <View
+              testID={testID ? `${testID}-context` : undefined}
+              style={[
+                styles.contextCard,
+                { backgroundColor: theme.surfaceMuted, borderColor: theme.border },
+              ]}
+            >
+              <View style={[styles.contextIcon, { borderColor: theme.border, backgroundColor: theme.surfaceElevated }]}>
+                <Icon name={context.icon} size={22} color={theme.selectionIndicator} />
+              </View>
+              <View style={styles.contextCopy}>
+                <Text style={[styles.contextEyebrow, { color: theme.textSecondary }]}>
+                  {context.eyebrow}
+                </Text>
+                <Text numberOfLines={1} style={[styles.contextTitle, { color: theme.textPrimary }]}>
+                  {context.title}
+                </Text>
+              </View>
+            </View>
+          ) : null}
           {neutralActions.length > 0 && (
-            <View style={styles.actionList}>
+            <View style={[styles.actionList, { borderColor: theme.border }]}>
               {neutralActions.map((action, index) => (
                 <ActionRow
                   key={action.label}
@@ -84,7 +104,12 @@ export function ForgeActionSheet({
             </View>
           )}
           {destructiveActions.length > 0 && (
-            <View style={[styles.destructiveList, { borderTopColor: theme.divider }]}>
+            <View
+              style={[
+                styles.destructiveList,
+                { borderColor: theme.textDestructive, backgroundColor: theme.destructiveSurface },
+              ]}
+            >
               {destructiveActions.map((action) => (
                 <ActionRow key={action.label} action={action} close={close} />
               ))}
@@ -121,17 +146,32 @@ function ActionRow({
           close();
           action.onPress();
         }}
-        style={({ pressed }) => [
-          styles.actionRow,
+      style={({ pressed }) => [
+        styles.actionRow,
           destructive && styles.destructiveAction,
           action.disabled && styles.disabledAction,
           pressed && pressedFeedback,
         ]}
       >
-        <Icon name={action.icon} size={22} color={action.disabled ? theme.textDisabled : color} />
+        <View
+          style={[
+            styles.iconTile,
+            {
+              backgroundColor: destructive ? theme.destructiveSurfacePressed : theme.surfaceMuted,
+              borderColor: destructive ? theme.textDestructive : theme.border,
+            },
+          ]}
+        >
+          <Icon name={action.icon} size={21} color={action.disabled ? theme.textDisabled : color} />
+        </View>
         <Text style={[styles.actionLabel, { color: action.disabled ? theme.textDisabled : color }]}>
           {action.label}
         </Text>
+        <Icon
+          name="chevron-forward"
+          size={19}
+          color={action.disabled ? theme.textDisabled : destructive ? theme.textDestructive : theme.textSecondary}
+        />
       </Pressable>
       {divider && <View style={[styles.divider, { backgroundColor: theme.divider }]} />}
     </>
@@ -139,21 +179,60 @@ function ActionRow({
 }
 
 const styles = StyleSheet.create({
-  sheet: { paddingBottom: 20 },
-  header: { height: 56, alignItems: 'center', justifyContent: 'center' },
-  title: { ...typeScale.headerTitle, textAlign: 'center', marginHorizontal: 72 },
-  close: { position: 'absolute', right: 20 },
-  actionList: { marginTop: 6 },
-  destructiveList: { marginTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
-  actionRow: {
-    minHeight: 52,
-    paddingHorizontal: 20,
+  sheet: { paddingBottom: 24 },
+  contextCard: {
+    minHeight: 72,
+    marginHorizontal: 20,
+    marginTop: 8,
+    padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 16,
   },
-  destructiveAction: { minHeight: 60 },
+  contextIcon: {
+    width: 42,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+  },
+  contextCopy: { flex: 1, minWidth: 0, gap: 2 },
+  contextEyebrow: { ...typeScale.label, letterSpacing: 0.7, fontWeight: '700' },
+  contextTitle: { ...typeScale.cardTitle },
+  actionList: {
+    marginHorizontal: 20,
+    marginTop: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderRadius: 16,
+  },
+  destructiveList: {
+    marginHorizontal: 20,
+    marginTop: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderRadius: 16,
+  },
+  actionRow: {
+    minHeight: 62,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  destructiveAction: { minHeight: 64 },
   disabledAction: { opacity: 0.68 },
   actionLabel: { ...typeScale.controlLabel, flex: 1 },
-  divider: { height: StyleSheet.hairlineWidth, marginLeft: 58 },
+  iconTile: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 11,
+  },
+  divider: { height: StyleSheet.hairlineWidth, marginLeft: 62 },
 });

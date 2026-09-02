@@ -7,6 +7,7 @@ import { useThemedStyles } from '../theme/useThemedStyles';
 import { spacing } from '../theme/tokens';
 import type { RootStackParamList, RootTabScreenProps } from '../types';
 import { SettingsRow, SettingsSection, settingsLayout } from './settings/SettingsRow';
+import { forgeDockScrollInset } from '../components/DockChrome';
 
 type Props = RootTabScreenProps<'Settings'>;
 
@@ -95,7 +96,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     content: {
       paddingHorizontal: settingsLayout.screenPadding,
       paddingTop: settingsLayout.contentTop,
-      paddingBottom: 80,
+      paddingBottom: forgeDockScrollInset,
       gap: settingsLayout.sectionGap,
     },
   });

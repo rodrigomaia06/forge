@@ -77,10 +77,15 @@ export function BottomNavigation({
   useEffect(() => {
     const layout = itemLayouts[activeRoute];
     if (!layout) return;
+    const compactWorkoutSelection = compact && activeRoute === 'ActiveWorkout';
     const transition = (next: number) =>
       reducedMotion ? next : withTiming(next, { duration: 150, easing: Easing.out(Easing.cubic) });
-    indicatorX.value = transition(layout.x + 2);
-    indicatorWidth.value = transition(Math.max(0, layout.width - 4));
+    // The compact workout destination keeps a visibly horizontal capsule rather
+    // than collapsing into a near-circle around its larger type icon.
+    indicatorX.value = transition(layout.x + (compactWorkoutSelection ? -5 : 2));
+    indicatorWidth.value = transition(
+      Math.max(0, layout.width + (compactWorkoutSelection ? 10 : -4)),
+    );
     indicatorOpacity.value = transition(1);
   }, [activeRoute, indicatorOpacity, indicatorWidth, indicatorX, itemLayouts, reducedMotion]);
 

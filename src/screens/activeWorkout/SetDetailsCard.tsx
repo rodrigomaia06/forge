@@ -18,14 +18,13 @@ import {
   Icon,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
+  ForgeSheetHeader,
   pressedFeedback,
   pressedFeedbackSubtle,
-  SheetCloseButton,
 } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import { createActiveWorkoutStyles } from './activeWorkoutStyles';
 import { selectionHaptic } from './activeWorkoutFeedback';
 import type { WorkoutSet, WorkoutSetChanges } from '../../types';
 
@@ -56,7 +55,6 @@ export function SetDetailsCard({
   editable = true,
 }: SetDetailsCardProps) {
   const theme = useForgeTheme();
-  const workoutSheetStyles = useThemedStyles(createActiveWorkoutStyles);
   const styles = useThemedStyles(createStyles);
   const [infoOpen, setInfoOpen] = React.useState<'type' | 'target' | null>(null);
   const [dismissTextKeyboardOnTap, setDismissTextKeyboardOnTap] = React.useState(true);
@@ -77,25 +75,27 @@ export function SetDetailsCard({
     >{(closeSheet) => <>
             <ForgeBottomSheetHandle />
             <View accessibilityLabel={`Details for set ${index + 1}`}>
-            <View
-              onTouchStart={() => setInfoOpen(null)}
-              style={[workoutSheetStyles.restTimerHeader, styles.topBar]}
-            >
-              {editable ? (
-                <HeaderAction
-                  accessibilityLabel={`Delete set ${index + 1}`}
-                  icon="trash"
-                  iconOnly
-                  tone="destructive"
-                  onPress={onDelete}
-                />
-              ) : <View accessibilityLabel={`Set ${index + 1}`} style={styles.setNumberBadge}><Text style={styles.setNumberBadgeText}>{index + 1}</Text></View>}
-              {set.weight || set.reps ? (
-                <Text style={styles.title}>
-                  {`${set.weight || ''}${set.weight ? ' kg' : ''}${set.weight && set.reps ? ' × ' : ''}${set.reps || ''}`}
-                </Text>
-              ) : null}
-              <SheetCloseButton accessibilityLabel="Done" onPress={closeSheet} />
+            <View onTouchStart={() => setInfoOpen(null)} style={styles.topBar}>
+              <ForgeSheetHeader
+                title={
+                  set.weight || set.reps
+                    ? `${set.weight || ''}${set.weight ? ' kg' : ''}${set.weight && set.reps ? ' × ' : ''}${set.reps || ''}`
+                    : `Set ${index + 1}`
+                }
+                onClose={closeSheet}
+                closeAccessibilityLabel="Done"
+                leading={
+                  editable ? (
+                    <HeaderAction
+                      accessibilityLabel={`Delete set ${index + 1}`}
+                      icon="trash"
+                      iconOnly
+                      tone="destructive"
+                      onPress={onDelete}
+                    />
+                  ) : undefined
+                }
+              />
             </View>
             <View style={styles.sheetContent}>
               {editable ? (

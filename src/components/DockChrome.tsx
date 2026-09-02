@@ -14,6 +14,9 @@ import { useWorkouts } from '../state/WorkoutContext';
 import { dashboardTheme } from '../theme/dashboardTheme';
 import type { ForgeTheme } from '../types';
 
+/** Bottom reachability room for scrollable primary-tab content under the floating dock. */
+export const forgeDockScrollInset = 112;
+
 interface DockChromeProps {
   theme?: ForgeTheme;
   style?: StyleProp<ViewStyle>;

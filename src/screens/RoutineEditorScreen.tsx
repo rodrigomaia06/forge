@@ -236,7 +236,8 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           visible={optionsOpen}
           onClose={() => setOptionsOpen(false)}
           accessibilityLabel="Close routine options"
-          title={routine.name}
+          title="Routine options"
+          context={{ eyebrow: 'ROUTINE', title: routine.name, icon: 'book' }}
           testID="routine-options-sheet"
           actions={[
             {

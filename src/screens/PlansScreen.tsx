@@ -34,6 +34,7 @@ import type {
   WorkoutTypePreference,
 } from '../types';
 import { workoutTypeIcon } from './settings/workoutTypeIcon';
+import { forgeDockScrollInset } from '../components/DockChrome';
 
 type Props = RootTabScreenProps<'Plans'>;
 type PlanActionTarget =
@@ -175,7 +176,19 @@ export function PlansScreen({ navigation, route }: Props) {
           visible={actionTarget !== null}
           onClose={() => setActionTarget(null)}
           accessibilityLabel="Dismiss plan options"
-          title={actionTarget?.item.name ?? ''}
+          title={actionTarget?.kind === 'plan' ? 'Plan options' : 'Routine options'}
+          context={
+            actionTarget
+              ? {
+                  eyebrow: actionTarget.kind === 'plan' ? 'PLAN' : 'ROUTINE',
+                  title: actionTarget.item.name,
+                  icon:
+                    actionTarget.kind === 'plan'
+                      ? 'layers'
+                      : getRoutineTypeIcon(actionTarget.item.type, preferences.workoutTypes),
+                }
+              : undefined
+          }
           testID="plans-options-sheet"
           actions={
             actionTarget?.kind === 'routine'
@@ -510,7 +523,12 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       justifyContent: 'space-between',
       flexDirection: 'row',
     },
-    content: { paddingHorizontal: spacing.screen, paddingTop: 16, paddingBottom: 80, gap: 28 },
+    content: {
+      paddingHorizontal: spacing.screen,
+      paddingTop: 16,
+      paddingBottom: forgeDockScrollInset,
+      gap: 28,
+    },
     section: { gap: 11 },
     sectionTitle: { ...typeScale.sectionTitle, color: theme.slate },
     planList: { gap: 14 },

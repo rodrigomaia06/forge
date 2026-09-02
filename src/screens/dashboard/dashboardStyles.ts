@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { spacing, typeScale } from '../../theme/tokens';
+import { forgeDockScrollInset } from '../../components/DockChrome';
 
 export const styles = StyleSheet.create({
   appShell: { flex: 1 },
@@ -19,7 +20,12 @@ export const styles = StyleSheet.create({
   scrollView: { flex: 1 },
   // Primary-tab content scrolls beneath the persistent floating dock. This is
   // just enough reachability space for the final row, not a second empty bar.
-  scrollContent: { paddingHorizontal: spacing.screen, paddingTop: 0, paddingBottom: 80, gap: 14 },
+  scrollContent: {
+    paddingHorizontal: spacing.screen,
+    paddingTop: 0,
+    paddingBottom: forgeDockScrollInset,
+    gap: 14,
+  },
   scrollHeader: { marginHorizontal: -spacing.screen },
   calendarCard: {
     position: 'relative',

@@ -83,7 +83,7 @@ test.describe('History screen', () => {
     await expect(page.getByText('Workout options', { exact: true })).toBeVisible();
     await expect(
       page.getByRole('button', { name: 'Delete Muay Thai' }).locator('svg'),
-    ).toBeVisible();
+    ).toHaveCount(2);
     await page.getByRole('button', { name: 'Delete Muay Thai' }).click();
     await expect(page.getByTestId('history-header')).toBeVisible();
     await expect(page.getByText('Muay Thai', { exact: true })).toHaveCount(0);

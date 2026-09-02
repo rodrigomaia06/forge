@@ -26,6 +26,7 @@ import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
 import type { RootTabScreenProps, Workout } from '../types';
+import { forgeDockScrollInset } from '../components/DockChrome';
 
 interface HistoryGroup {
   key: string;
@@ -299,7 +300,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  content: { paddingHorizontal: 16, paddingTop: 18, paddingBottom: 80, gap: 18 },
+  content: { paddingHorizontal: 16, paddingTop: 18, paddingBottom: forgeDockScrollInset, gap: 18 },
   group: { gap: 8 },
   groupTitle: {
     marginLeft: 70,

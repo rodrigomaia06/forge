@@ -22,6 +22,7 @@ import {
   Button,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
+  ForgeSheetHeader,
   ForgeSingleSelectList,
   ForgeText as Text,
   ForgeTextInput as TextInput,
@@ -387,19 +388,23 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
           {(close) => (
             <View style={[styles.sheet, { maxHeight: Math.min(viewportHeight * 0.82, 680) }]}>
               <ForgeBottomSheetHandle />
-              <View style={styles.sheetHeader}>
-                <Text style={styles.sheetTitle}>Filters</Text>
-                {active > 0 && (
-                  <HeaderAction
-                    accessibilityLabel="Clear filters in sheet"
-                    label="Clear"
-                    icon="close"
-                    onPress={() => {
-                      setFilters({ types: [], equipment: [], categories: [] });
-                    }}
-                  />
-                )}
-              </View>
+              <ForgeSheetHeader
+                title="Filters"
+                onClose={close}
+                closeAccessibilityLabel="Close exercise filters"
+                trailing={
+                  active > 0 ? (
+                    <HeaderAction
+                      accessibilityLabel="Clear filters in sheet"
+                      label="Clear"
+                      icon="close"
+                      onPress={() => {
+                        setFilters({ types: [], equipment: [], categories: [] });
+                      }}
+                    />
+                  ) : undefined
+                }
+              />
               <ScrollView style={styles.filterScroll} contentContainerStyle={styles.filterContent}>
                 {!fixedTypeId && (
                   <FilterSection
@@ -445,26 +450,30 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
           {(close) => (
             <View style={[styles.formSheet, { maxHeight: Math.min(viewportHeight * 0.82, 640) }]}>
               <ForgeBottomSheetHandle />
-              <View style={styles.sheetHeader}>
-                <Text style={styles.sheetTitle}>
-                  {editing
+              <ForgeSheetHeader
+                title={
+                  editing
                     ? 'Edit variation'
                     : formParent
                       ? 'Add variation'
-                      : 'New custom exercise'}
-                </Text>
-                <HeaderAction
-                  accessibilityLabel="Save variation"
-                  icon="check"
-                  iconOnly
-                  variant="outline"
-                  tone={name.trim() ? 'success' : 'neutral'}
-                  disabled={!name.trim()}
-                  onPress={() => {
-                    if (save()) close();
-                  }}
-                />
-              </View>
+                      : 'New custom exercise'
+                }
+                onClose={close}
+                closeAccessibilityLabel="Close custom exercise form"
+                trailing={
+                  <HeaderAction
+                    accessibilityLabel="Save variation"
+                    icon="check"
+                    iconOnly
+                    variant="outline"
+                    tone={name.trim() ? 'success' : 'neutral'}
+                    disabled={!name.trim()}
+                    onPress={() => {
+                      if (save()) close();
+                    }}
+                  />
+                }
+              />
               <ScrollView
                 style={styles.formScroll}
                 contentContainerStyle={styles.form}
@@ -657,17 +666,20 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
             (detailSheetView === 'restTime' ? (
               <View testID="exercise-rest-selection-view" style={styles.restTimeSheet}>
                 <ForgeBottomSheetHandle />
-                <View style={styles.restTimeHeader}>
-                  <HeaderAction
-                    accessibilityLabel="Back to exercise details"
-                    icon="chevron-back"
-                    iconOnly
-                    onPress={() => transitionDetailSheet('details')}
-                    style={styles.restTimeBack}
-                  />
-                  <Text style={styles.restTimeTitle}>Rest Time</Text>
-                  <View style={styles.restTimeHeaderSpacer} />
-                  <Pressable
+                <ForgeSheetHeader
+                  title="Rest Time"
+                  onClose={close}
+                  closeAccessibilityLabel="Close exercise details"
+                  leading={
+                    <HeaderAction
+                      accessibilityLabel="Back to exercise details"
+                      icon="chevron-back"
+                      iconOnly
+                      onPress={() => transitionDetailSheet('details')}
+                    />
+                  }
+                  trailing={
+                    <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Use default rest time"
                     accessibilityState={{ selected: restOverride(detail) === undefined }}
@@ -684,7 +696,8 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   >
                     <Text style={styles.restTimeDefaultLabel}>Default</Text>
                   </Pressable>
-                </View>
+                  }
+                />
                 <ForgeSingleSelectList<number>
                   testID="exercise-rest-selection-list"
                   options={restTimeOptions}
@@ -700,23 +713,25 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
             ) : (
               <View style={styles.detailSheet}>
                 <ForgeBottomSheetHandle />
-                <View style={styles.sheetHeader}>
-                  <Text style={[styles.sheetTitle, styles.detailSheetTitle]}>
-                    {detail.variation || detail.name}
-                  </Text>
-                  {isCustom(detail) && (
-                    <HeaderAction
-                      accessibilityLabel="Delete variation"
-                      icon="trash"
-                      iconOnly
-                      tone="destructive"
-                      onPress={() => {
-                        catalog.removeCustomExercise(detail.id);
-                        close();
-                      }}
-                    />
-                  )}
-                </View>
+                <ForgeSheetHeader
+                  title={detail.variation || detail.name}
+                  onClose={close}
+                  closeAccessibilityLabel="Close exercise details"
+                  trailing={
+                    isCustom(detail) ? (
+                      <HeaderAction
+                        accessibilityLabel="Delete variation"
+                        icon="trash"
+                        iconOnly
+                        tone="destructive"
+                        onPress={() => {
+                          catalog.removeCustomExercise(detail.id);
+                          close();
+                        }}
+                      />
+                    ) : undefined
+                  }
+                />
                 <View style={styles.detailContent}>
                   <Pressable
                     accessibilityRole="button"
@@ -1243,8 +1258,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     restTimeTitle: { flex: 1, textAlign: 'center', ...typeScale.headerTitle, color: theme.ink },
     restTimeHeaderSpacer: { width: forgeSheetHeader.closeSize },
     restTimeDefaultAction: {
-      position: 'absolute',
-      right: 20,
       minWidth: 80,
       height: 38,
       minHeight: 38,

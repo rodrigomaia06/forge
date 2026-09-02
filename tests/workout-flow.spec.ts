@@ -355,6 +355,7 @@ test.describe('Active workout flow', () => {
 
     expect(dock.width).toBeGreaterThanOrEqual(304);
     expect(pill.width).toBeGreaterThanOrEqual(56);
+    expect(pill.width).toBeGreaterThan(workoutTab.width);
     expect(pill.height).toBeGreaterThanOrEqual(40);
     expect(Math.abs(pill.x + pill.width / 2 - (workoutTab.x + workoutTab.width / 2))).toBeLessThan(
       2,
@@ -401,10 +402,11 @@ test.describe('Active workout flow', () => {
       .click({ force: true });
     await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
     await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
-    await expect(page.getByText('Options', { exact: true })).toBeVisible();
+    await expect(page.getByText('Exercise options', { exact: true })).toBeVisible();
+    await expect(page.getByText('EXERCISE', { exact: true })).toBeVisible();
     await expect(
       page.getByRole('button', { name: 'Remove Barbell Bench Press' }).locator('svg'),
-    ).toBeVisible();
+    ).toHaveCount(2);
     await page.getByRole('button', { name: 'Remove Barbell Bench Press' }).click();
     await expect(page.getByText('Start with an exercise', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Add exercise' }).last()).toBeVisible();

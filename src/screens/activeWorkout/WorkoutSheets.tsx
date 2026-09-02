@@ -12,10 +12,10 @@ import {
   ForgeActionSheet,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
+  ForgeSheetHeader,
   ForgeText as Text,
   ForgeTextInput as TextInput,
   Icon,
-  SheetCloseButton,
 } from '../../components/ui';
 import { forgeSheetHeader } from '../../components/ui/ForgeBottomSheet';
 import { useForgeTheme } from '../../theme/ThemeProvider';
@@ -115,10 +115,11 @@ export function AddExerciseSheet({
         <>
           <ForgeBottomSheetHandle />
           <View style={styles.pickerDragArea}>
-            <View style={styles.pickerHeader}>
-              <Text style={styles.pickerTitle}>Add exercises</Text>
-              <SheetCloseButton accessibilityLabel="Close add exercises" onPress={closeSheet} />
-            </View>
+            <ForgeSheetHeader
+              title="Add exercises"
+              onClose={closeSheet}
+              closeAccessibilityLabel="Close add exercises"
+            />
           </View>
           <View style={styles.searchRow}>
             <View style={styles.searchField}>
@@ -490,7 +491,8 @@ export function ExerciseOptionsSheet({
       visible={visible}
       onClose={onClose}
       accessibilityLabel="Close options"
-      title="Options"
+      title="Exercise options"
+      context={{ eyebrow: 'EXERCISE', title: exercise.name, icon: 'fitness-outline' }}
       initialOffset={420}
       closeDistance={520}
       dismissThreshold={260}
@@ -531,6 +533,7 @@ export function WorkoutOptionsSheet({
       onClose={onClose}
       accessibilityLabel="Close workout options"
       title="Workout options"
+      context={{ eyebrow: 'WORKOUT', title: workoutName, icon: 'fitness-outline' }}
       initialOffset={320}
       closeDistance={320}
       dismissThreshold={160}

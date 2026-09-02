@@ -5,6 +5,7 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
 import { ForgeBottomSheet, ForgeBottomSheetHandle } from './ForgeBottomSheet';
 import { ForgeText as Text } from './ForgeText';
+import { ForgeSheetHeader } from './ForgeSheetHeader';
 import { Icon } from './Icon';
 import { selectionHaptic } from './haptics';
 import { pressedFeedback } from './pressFeedback';
@@ -183,7 +184,6 @@ export function ForgeSelectionSheet<T extends SelectionValue>({
   testID,
   listTestID,
 }: ForgeSelectionSheetProps<T>) {
-  const theme = useForgeTheme();
   return (
     <ForgeBottomSheet
       visible={visible}
@@ -191,12 +191,10 @@ export function ForgeSelectionSheet<T extends SelectionValue>({
       accessibilityLabel={accessibilityLabel}
       testID={testID}
     >
-      {() => (
+      {(close) => (
         <View testID={testID ? `${testID}-surface` : undefined} style={styles.sheet}>
           <ForgeBottomSheetHandle />
-          <View style={styles.sheetTitleRow}>
-            <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>{title}</Text>
-          </View>
+          <ForgeSheetHeader title={title} onClose={close} />
           <ForgeSingleSelectList
             testID={listTestID}
             options={options}
@@ -204,9 +202,9 @@ export function ForgeSelectionSheet<T extends SelectionValue>({
             maxVisibleRows={maxVisibleRows}
             onSelect={(value) => {
               onSelect(value);
-              onClose();
+              close();
             }}
-            onSelectedPress={onClose}
+            onSelectedPress={close}
           />
         </View>
       )}
@@ -236,6 +234,4 @@ const styles = StyleSheet.create({
     left: 20,
   },
   sheet: { flexShrink: 1 },
-  sheetTitleRow: { minHeight: 56, paddingHorizontal: 20, justifyContent: 'center' },
-  sheetTitle: { ...typeScale.headerTitle },
 });
