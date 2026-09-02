@@ -781,25 +781,32 @@ function FilterSection({
   const styles = useThemedStyles(createStyles);
   const theme = useForgeTheme();
   return (
-    <View style={styles.filterSection}>
+      <View style={styles.filterSection}>
       <View style={styles.filterHeading}>
         <Icon name={icon} size={18} color={theme.ink} />
         <Text style={styles.filterTitle}>{title}</Text>
       </View>
-      {values.map(([value, label]) => (
-        <Pressable
-          key={value}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: selected.includes(value) }}
-          onPress={() => onToggle(value)}
-          style={({ pressed }) => [styles.option, pressed && pressedFeedback]}
-        >
-          <Text style={styles.optionText}>{label}</Text>
-          <View style={[styles.check, selected.includes(value) && styles.checkSelected]}>
-            {selected.includes(value) && <Icon name="check" size={14} color={theme.background} />}
-          </View>
-        </Pressable>
-      ))}
+      <View style={styles.filterChoices}>
+        {values.map(([value, label]) => {
+          const isSelected = selected.includes(value);
+          return (
+            <Pressable
+              key={value}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: isSelected }}
+              onPress={() => onToggle(value)}
+              style={({ pressed }) => [
+                styles.filterChoice,
+                isSelected && { borderColor: theme.selectionIndicator },
+                pressed && pressedFeedback,
+              ]}
+            >
+              <Text style={styles.filterChoiceText}>{label}</Text>
+              {isSelected && <Icon name="check" size={15} color={theme.ink} />}
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -848,6 +855,7 @@ function Movement({
           icon="add"
           iconSize={16}
           variant="outline"
+          hitSlop={4}
           onPress={onAdd}
           style={styles.singleAddVariation}
         />
@@ -907,6 +915,7 @@ function Movement({
             icon="add"
             iconSize={16}
             variant="outline"
+            hitSlop={4}
             style={styles.addVariation}
           />
         </View>
@@ -999,7 +1008,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     variationIcons: { flexDirection: 'row', alignItems: 'center', gap: 7 },
     addVariation: {
       alignSelf: 'stretch',
-      minHeight: 44,
+      height: 38,
+      minHeight: 38,
       width: '100%',
       marginTop: 0,
       borderWidth: 1,
@@ -1029,7 +1039,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       position: 'absolute',
       right: 20,
       minWidth: 80,
-      minHeight: 44,
+      height: 38,
+      minHeight: 38,
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: 14,
@@ -1084,32 +1095,23 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     sheetTitle: { ...typeScale.headerTitle, color: theme.ink },
     detailSheetTitle: { flex: 1, minWidth: 0, marginRight: 12 },
     filterScroll: { flexGrow: 0, flexShrink: 1 },
-    filterContent: { padding: 20, paddingTop: 4, gap: 22, paddingBottom: 24 },
+    filterContent: { padding: 20, paddingTop: 4, gap: 16, paddingBottom: 20 },
     filterSection: { gap: 8 },
     filterHeading: { minHeight: 28, flexDirection: 'row', alignItems: 'center', gap: 8 },
     filterTitle: { ...typeScale.sectionTitle, color: theme.slate },
-    option: {
-      minHeight: 56,
-      paddingHorizontal: 16,
-      borderRadius: 16,
+    filterChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    filterChoice: {
+      minHeight: 38,
+      paddingHorizontal: 11,
+      borderRadius: 19,
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
+      gap: 5,
       backgroundColor: theme.surfaceElevated,
       borderWidth: 1,
       borderColor: theme.divider,
     },
-    optionText: { ...typeScale.cardTitle, color: theme.ink },
-    check: {
-      width: 26,
-      height: 26,
-      borderRadius: 13,
-      borderWidth: 2,
-      borderColor: theme.slate,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    checkSelected: { borderColor: theme.selectionIndicator, backgroundColor: theme.selectionIndicator },
+    filterChoiceText: { ...typeScale.label, color: theme.ink },
     footer: {
       padding: 16,
       paddingTop: 10,
@@ -1175,7 +1177,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     choiceText: { ...typeScale.label, color: theme.ink },
     singleAddVariation: {
       alignSelf: 'stretch',
-      minHeight: 44,
+      height: 38,
+      minHeight: 38,
       margin: 12,
       width: 'auto',
       borderWidth: 1,

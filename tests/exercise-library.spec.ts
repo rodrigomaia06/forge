@@ -19,7 +19,7 @@ test.describe('Exercise library', () => {
     await expect(page.getByRole('button', { name: 'Open Pec Deck' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Filters' }).click();
-    await expect(page.getByRole('checkbox', { name: 'Machine', exact: true })).toHaveCSS('min-height', '56px');
+    await expect(page.getByRole('checkbox', { name: 'Machine', exact: true })).toHaveCSS('min-height', '38px');
     await page.getByRole('checkbox', { name: 'Machine', exact: true }).click();
     await page.getByRole('button', { name: 'Done' }).click();
     await expect(page.getByRole('button', { name: 'Remove Machine filter' })).toBeVisible();
@@ -81,6 +81,7 @@ test.describe('Exercise library', () => {
   test('adds a variation from a single exercise with its current equipment or a custom one', async ({ page }) => {
     await openAllExercises(page);
     const addVariation = page.getByRole('button', { name: 'Add variation to Pec Deck' });
+    await expect(addVariation).toHaveCSS('height', '38px');
     await expect(addVariation).toHaveCSS('border-width', '1px');
     await expect(addVariation).toHaveCSS('border-top-style', 'dashed');
     await page.getByRole('button', { name: 'Add variation to Pec Deck' }).click();

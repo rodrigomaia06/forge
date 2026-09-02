@@ -9,6 +9,7 @@ import {
   StyleSheet,
   UIManager,
   View,
+  type KeyboardEvent,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -23,6 +24,7 @@ import Animated, {
 
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { lightHaptic } from './haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const noop = () => undefined;
 /** Shared sheet-header geometry keeps titles and close actions aligned. */
@@ -74,6 +76,7 @@ export function ForgeBottomSheet({
   testID,
 }: ForgeBottomSheetProps) {
   const theme = useForgeTheme();
+  const insets = useSafeAreaInsets();
   const translateY = useSharedValue(closeDistance);
   const backdropOpacity = useSharedValue(0);
   const closing = useSharedValue(false);
@@ -113,19 +116,22 @@ export function ForgeBottomSheet({
       setKeyboardVisible(false);
       return undefined;
     }
-    const transition = (nextVisible: boolean) => {
-      if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    const transition = (nextVisible: boolean, event: KeyboardEvent) => {
+      if (Platform.OS === 'ios') Keyboard.scheduleLayoutAnimation(event);
+      else {
+        UIManager.setLayoutAnimationEnabledExperimental?.(true);
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      }
       setKeyboardVisible(nextVisible);
-      keyboardProgress.value = withTiming(nextVisible ? 1 : 0, { duration: 220 });
+      keyboardProgress.value = withTiming(nextVisible ? 1 : 0, { duration: 180 });
     };
     const show = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      () => transition(true),
+      (event) => transition(true, event),
     );
     const hide = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => transition(false),
+      (event) => transition(false, event),
     );
     return () => {
       show.remove();
@@ -190,6 +196,7 @@ export function ForgeBottomSheet({
                 { backgroundColor: theme.surfaceElevated, shadowColor: theme.shadow },
                 style,
                 keyboardVisible && styles.keyboardExpandedSheet,
+                keyboardVisible && { top: insets.top },
                 keyboardSheetStyle,
                 sheetStyle,
               ]}
@@ -232,8 +239,10 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   keyboardExpandedSheet: {
-    height: '100%',
-    maxHeight: '100%',
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    left: 0,
     shadowOpacity: 0,
     shadowRadius: 0,
     elevation: 0,

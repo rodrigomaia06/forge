@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
+  type Insets,
   type StyleProp,
   type TextStyle,
   type ViewStyle,
@@ -29,6 +30,7 @@ interface ButtonProps {
   theme?: ForgeTheme;
   tone?: 'neutral' | 'success' | 'destructive';
   haptic?: 'none' | 'light' | 'medium';
+  hitSlop?: number | Insets;
 }
 
 export function Button({
@@ -46,6 +48,7 @@ export function Button({
   theme,
   tone,
   haptic,
+  hitSlop,
 }: ButtonProps) {
   const contextTheme = useForgeTheme();
   const resolvedTheme = theme ?? contextTheme ?? colors;
@@ -63,6 +66,7 @@ export function Button({
       accessibilityLabel={accessibilityLabel || label}
       accessibilityState={{ disabled, busy: loading }}
       disabled={disabled || loading}
+      hitSlop={hitSlop}
       onPress={() => {
         const feedback = haptic ?? (isPrimary ? 'medium' : 'light');
         if (feedback === 'light') lightHaptic();
