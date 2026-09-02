@@ -14,6 +14,7 @@ import {
   AppScreen,
   ForgeText as Text,
   ForgeTextInput as TextInput,
+  ForgeActionSheet,
   HeaderAction,
   Icon,
   lightHaptic,
@@ -38,6 +39,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
   const routine = findRoutine(route.params.routineId);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [addingExercises, setAddingExercises] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const planName = useMemo(
     () => plans.find((plan) => plan.id === routine?.planId)?.name,
     [plans, routine?.planId],
@@ -78,20 +80,6 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
       },
       { text: 'Cancel', style: 'cancel' },
     ]);
-  const showRoutineOptions = (): void => {
-    Alert.alert(routine.name, undefined, [
-      {
-        text: routine.planId ? 'Move to standalone routines' : 'Move to a plan',
-        onPress: () => {
-          if (routine.planId) moveRoutine(routine.id);
-          else if (plans[0]) moveRoutine(routine.id, plans[0].id);
-        },
-      },
-      { text: 'Delete routine', style: 'destructive', onPress: confirmDelete },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-  };
-
   return (
     <AppScreen backgroundColor={theme.background}>
       <KeyboardAvoidingView
@@ -116,7 +104,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
             icon="ellipsis-horizontal"
             iconSize={20}
             iconOnly
-            onPress={showRoutineOptions}
+            onPress={() => setOptionsOpen(true)}
           />
         </View>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -143,7 +131,11 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
               <View
                 style={[
                   styles.typeDot,
-                  { backgroundColor: preferences.workoutTypes.find((type) => type.name === routine.type)?.color ?? theme.muted },
+                  {
+                    backgroundColor:
+                      preferences.workoutTypes.find((type) => type.name === routine.type)?.color ??
+                      theme.muted,
+                  },
                 ]}
               />
               <Text style={styles.typeValue}>{routine.type}</Text>
@@ -240,6 +232,30 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
             onSubmit={addExercises}
           />
         )}
+        <ForgeActionSheet
+          visible={optionsOpen}
+          onClose={() => setOptionsOpen(false)}
+          accessibilityLabel="Close routine options"
+          title={routine.name}
+          testID="routine-options-sheet"
+          actions={[
+            {
+              label: routine.planId ? 'Move to standalone routines' : 'Move to a plan',
+              icon: 'layers',
+              disabled: !routine.planId && !plans[0],
+              onPress: () => {
+                if (routine.planId) moveRoutine(routine.id);
+                else if (plans[0]) moveRoutine(routine.id, plans[0].id);
+              },
+            },
+            {
+              label: 'Delete routine',
+              icon: 'trash',
+              tone: 'destructive',
+              onPress: confirmDelete,
+            },
+          ]}
+        />
       </KeyboardAvoidingView>
     </AppScreen>
   );

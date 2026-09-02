@@ -1,6 +1,7 @@
 import React from 'react';
 import { type StyleProp, type ViewStyle } from 'react-native';
 
+import { useForgeTheme } from '../../theme/ThemeProvider';
 import { HeaderAction } from './HeaderAction';
 
 interface SheetCloseButtonProps {
@@ -15,13 +16,14 @@ export function SheetCloseButton({
   onPress,
   style,
 }: SheetCloseButtonProps) {
+  const theme = useForgeTheme();
   return (
     <HeaderAction
       accessibilityLabel={accessibilityLabel}
       icon="close"
       iconOnly
       onPress={onPress}
-      style={style}
+      style={[{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }, style]}
     />
   );
 }

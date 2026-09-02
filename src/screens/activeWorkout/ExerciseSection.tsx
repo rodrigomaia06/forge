@@ -7,12 +7,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import {
-  Button,
-  ForgeText as Text,
-  Icon,
-  pressedFeedback,
-} from '../../components/ui';
+import { Button, ForgeText as Text, Icon, pressedFeedback } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
@@ -175,10 +170,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 lightHaptic();
                 addSet(exercise.id);
               }}
-              style={[
-                styles.addSet,
-                size === 'large' && styles.addSetLarge,
-              ]}
+              style={[styles.addSet, size === 'large' && styles.addSetLarge]}
             />
             {optionsOpen && (
               <ExerciseOptionsSheet
@@ -188,7 +180,6 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 onRemove={() => {
                   animateLayout();
                   removeExercise(exercise.id);
-                  setOptionsOpen(false);
                 }}
               />
             )}

@@ -11,14 +11,12 @@ import Animated, {
 import {
   AnchoredActionPopover,
   AppScreen,
-  ForgeBottomSheet,
-  ForgeBottomSheetHandle,
+  ForgeActionSheet,
   ForgeText as Text,
   HeaderAction,
   Icon,
   lightHaptic,
   mediumHaptic,
-  pressedFeedback,
   ScreenTitle,
   selectionHaptic,
 } from '../components/ui';
@@ -65,8 +63,8 @@ export function PlansScreen({ navigation, route }: Props) {
     navigation.setParams({ openCreation: undefined });
   }, [navigation, route.params?.openCreation]);
 
-  const startRoutine = (routine: WorkoutRoutine): void => {
-    selectionHaptic();
+  const startRoutine = (routine: WorkoutRoutine, withHaptic = true): void => {
+    if (withHaptic) selectionHaptic();
     startWorkout({
       name: routine.name,
       type: routine.type,
@@ -78,8 +76,8 @@ export function PlansScreen({ navigation, route }: Props) {
     });
     navigation.navigate('ActiveWorkout');
   };
-  const openRoutine = (routine: WorkoutRoutine): void => {
-    selectionHaptic();
+  const openRoutine = (routine: WorkoutRoutine, withHaptic = true): void => {
+    if (withHaptic) selectionHaptic();
     navigation.navigate('RoutineEditor', { routineId: routine.id });
   };
   const routineActions = (routine: WorkoutRoutine): void => {
@@ -173,80 +171,54 @@ export function PlansScreen({ navigation, route }: Props) {
             { label: 'New workout plan', icon: 'layers', onPress: addPlan },
           ]}
         />
-        <ForgeBottomSheet
+        <ForgeActionSheet
           visible={actionTarget !== null}
           onClose={() => setActionTarget(null)}
           accessibilityLabel="Dismiss plan options"
-          surfaceTestID="plans-options-sheet"
-        >
-          {(close) =>
-            actionTarget ? (
-              <View style={styles.optionsSheet}>
-                <ForgeBottomSheetHandle />
-                <Text style={styles.optionsTitle}>{actionTarget.item.name}</Text>
-                <View style={styles.optionList}>
-                  {actionTarget.kind === 'routine' ? (
-                    <>
-                      <PlanOption
-                        label="Start"
-                        icon="play"
-                        onPress={() => {
-                          close();
-                          startRoutine(actionTarget.item);
-                        }}
-                      />
-                      <PlanOption
-                        label="Edit"
-                        icon="note"
-                        onPress={() => {
-                          close();
-                          openRoutine(actionTarget.item);
-                        }}
-                      />
-                      <PlanOption
-                        label="Duplicate"
-                        icon="duplicate"
-                        onPress={() => {
-                          duplicateRoutine(actionTarget.item.id);
-                          close();
-                        }}
-                      />
-                      <PlanOption
-                        label="Delete"
-                        icon="trash"
-                        destructive
-                        onPress={() => {
-                          deleteRoutine(actionTarget.item.id);
-                          close();
-                        }}
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <PlanOption
-                        label="Add routine"
-                        icon="add"
-                        onPress={() => {
-                          close();
-                          addRoutine(actionTarget.item.id);
-                        }}
-                      />
-                      <PlanOption
-                        label="Delete plan"
-                        icon="trash"
-                        destructive
-                        onPress={() => {
-                          deletePlan(actionTarget.item.id);
-                          close();
-                        }}
-                      />
-                    </>
-                  )}
-                </View>
-              </View>
-            ) : null
+          title={actionTarget?.item.name ?? ''}
+          testID="plans-options-sheet"
+          actions={
+            actionTarget?.kind === 'routine'
+              ? [
+                  {
+                    label: 'Start',
+                    icon: 'play',
+                    onPress: () => startRoutine(actionTarget.item, false),
+                  },
+                  {
+                    label: 'Edit',
+                    icon: 'note',
+                    onPress: () => openRoutine(actionTarget.item, false),
+                  },
+                  {
+                    label: 'Duplicate',
+                    icon: 'duplicate',
+                    onPress: () => duplicateRoutine(actionTarget.item.id),
+                  },
+                  {
+                    label: 'Delete',
+                    icon: 'trash',
+                    tone: 'destructive' as const,
+                    onPress: () => deleteRoutine(actionTarget.item.id),
+                  },
+                ]
+              : actionTarget
+                ? [
+                    {
+                      label: 'Add routine',
+                      icon: 'add',
+                      onPress: () => addRoutine(actionTarget.item.id),
+                    },
+                    {
+                      label: 'Delete plan',
+                      icon: 'trash',
+                      tone: 'destructive' as const,
+                      onPress: () => deletePlan(actionTarget.item.id),
+                    },
+                  ]
+                : []
           }
-        </ForgeBottomSheet>
+        />
       </View>
     </AppScreen>
   );
@@ -395,33 +367,6 @@ function RoutineRow({
         <Icon name="ellipsis-horizontal" size={19} color={theme.slate} />
       </Pressable>
     </View>
-  );
-}
-
-function PlanOption({
-  label,
-  icon,
-  destructive = false,
-  onPress,
-}: {
-  label: string;
-  icon: IconName;
-  destructive?: boolean;
-  onPress: () => void;
-}) {
-  const theme = useForgeTheme();
-  const styles = useThemedStyles(createStyles);
-  const color = destructive ? theme.textDestructive : theme.textPrimary;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={({ pressed }) => [styles.optionRow, pressed && pressedFeedback]}
-    >
-      <Icon name={icon} size={20} color={color} />
-      <Text style={[styles.optionLabel, { color }]}>{label}</Text>
-    </Pressable>
   );
 }
 
@@ -620,26 +565,6 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       textAlign: 'center',
       marginBottom: 8,
     },
-    optionsSheet: { paddingBottom: 20 },
-    optionsTitle: {
-      ...typeScale.headerTitle,
-      color: theme.ink,
-      textAlign: 'center',
-      marginTop: 8,
-      marginBottom: 16,
-      paddingHorizontal: spacing.screen,
-    },
-    optionList: { paddingHorizontal: spacing.screen, gap: 8 },
-    optionRow: {
-      minHeight: 48,
-      borderRadius: 14,
-      paddingHorizontal: 16,
-      gap: 12,
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: theme.surfaceMuted,
-    },
-    optionLabel: { ...typeScale.controlLabel },
     swipeContainer: {
       overflow: 'hidden',
       position: 'relative',

@@ -15,7 +15,10 @@ async function startEmptyWorkoutWithExercise(page: Page): Promise<void> {
 async function startBlankWorkout(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Start workout' }).click();
   await expect(page.getByTestId('plans-creation-popover')).toBeVisible();
-  await page.getByTestId('plans-creation-popover').getByRole('button', { name: 'New workout', exact: true }).click();
+  await page
+    .getByTestId('plans-creation-popover')
+    .getByRole('button', { name: 'New workout', exact: true })
+    .click();
 }
 
 async function swipeLeftFrom(page: Page, locator: Locator): Promise<void> {
@@ -308,7 +311,9 @@ test.describe('Active workout flow', () => {
     await expect(addExercise).toHaveCSS('border-width', '2px');
   });
 
-  test('keeps the workout dock item available with the active selection indicator', async ({ page }) => {
+  test('keeps the workout dock item available with the active selection indicator', async ({
+    page,
+  }) => {
     await page.goto('/');
     await startBlankWorkout(page);
 
@@ -355,6 +360,10 @@ test.describe('Active workout flow', () => {
       .click({ force: true });
     await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
     await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
+    await expect(page.getByText('Options', { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Remove Barbell Bench Press' }).locator('svg'),
+    ).toBeVisible();
     await page.getByRole('button', { name: 'Remove Barbell Bench Press' }).click();
     await expect(page.getByText('Start with an exercise', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Add exercise' }).last()).toBeVisible();

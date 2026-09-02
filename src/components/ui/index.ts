@@ -5,6 +5,8 @@ export { ForgeText, ForgeTextInput } from './ForgeText';
 export { HeaderAction } from './HeaderAction';
 export { ForgeSwitch } from './ForgeSwitch';
 export { AnchoredActionPopover } from './AnchoredActionPopover';
+export { ForgeActionSheet } from './ForgeActionSheet';
+export type { ForgeActionSheetAction } from './ForgeActionSheet';
 export { HeaderEdge } from './HeaderEdge';
 export { SheetCloseButton } from './SheetCloseButton';
 export {

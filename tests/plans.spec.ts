@@ -78,6 +78,7 @@ test.describe('Plans and routines', () => {
     await expect(page.getByRole('button', { name: 'Create standalone routine' })).toHaveCount(0);
     await page.getByRole('button', { name: 'More options for Swipe routine' }).click();
     const routineOptions = page.getByTestId('plans-options-sheet');
+    await expect(routineOptions.getByText('Swipe routine', { exact: true })).toBeVisible();
     await expect(
       routineOptions.getByRole('button', { name: 'Start' }).locator('svg'),
     ).toBeVisible();
@@ -88,6 +89,10 @@ test.describe('Plans and routines', () => {
     await expect(
       routineOptions.getByRole('button', { name: 'Delete' }).locator('svg'),
     ).toBeVisible();
+    await page.getByRole('button', { name: 'Close Swipe routine' }).click();
+    await expect(routineOptions).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'More options for Swipe routine' }).click();
     await page.getByRole('button', { name: 'Dismiss plan options' }).click();
     await expect(routineOptions).toHaveCount(0);
     await swipeLeftFrom(page, routine);
@@ -101,6 +106,17 @@ test.describe('Plans and routines', () => {
       .getByTestId('plans-creation-popover')
       .getByRole('button', { name: 'New workout plan' })
       .click();
+    await page.getByRole('button', { name: 'Options for New plan' }).click();
+    const planOptions = page.getByTestId('plans-options-sheet');
+    await expect(planOptions.getByText('New plan', { exact: true })).toBeVisible();
+    await expect(
+      planOptions.getByRole('button', { name: 'Add routine' }).locator('svg'),
+    ).toBeVisible();
+    await expect(
+      planOptions.getByRole('button', { name: 'Delete plan' }).locator('svg'),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Dismiss plan options' }).click();
+    await expect(planOptions).toHaveCount(0);
     const plan = page.locator('[data-testid^="plan-swipe-"]').first();
     await swipeLeftFrom(page, plan);
     const deletePlan = page.getByRole('button', { name: 'Delete New plan' });
@@ -112,5 +128,33 @@ test.describe('Plans and routines', () => {
     expect(deletePlanBox?.height).toBeCloseTo(planBox?.height ?? 0, 0);
     await deletePlan.click();
     await expect(page.getByText('New plan', { exact: true })).toHaveCount(0);
+  });
+
+  test('uses the shared action sheet for routine-editor overflow actions', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
+    await page
+      .getByTestId('plans-creation-popover')
+      .getByRole('button', { name: 'New workout plan' })
+      .click();
+    await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
+    await page
+      .getByTestId('plans-creation-popover')
+      .getByRole('button', { name: 'New routine' })
+      .click();
+    await page.getByLabel('Routine name').fill('Move routine');
+    await page.getByRole('button', { name: 'Routine options' }).click();
+    const routineOptions = page.getByTestId('routine-options-sheet');
+    await expect(routineOptions.getByText('Move routine', { exact: true })).toBeVisible();
+    await expect(
+      routineOptions.getByRole('button', { name: 'Move to a plan' }).locator('svg'),
+    ).toBeVisible();
+    await expect(
+      routineOptions.getByRole('button', { name: 'Delete routine' }).locator('svg'),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Move to a plan' }).click();
+    await expect(routineOptions).toHaveCount(0);
+    await expect(page.getByText('Part of New plan', { exact: true })).toBeVisible();
   });
 });

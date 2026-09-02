@@ -81,6 +81,9 @@ test.describe('History screen', () => {
     await page.getByRole('button', { name: 'Open Muay Thai' }).click();
     await page.getByRole('button', { name: 'Workout options' }).click();
     await expect(page.getByText('Workout options', { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Delete Muay Thai' }).locator('svg'),
+    ).toBeVisible();
     await page.getByRole('button', { name: 'Delete Muay Thai' }).click();
     await expect(page.getByTestId('history-header')).toBeVisible();
     await expect(page.getByText('Muay Thai', { exact: true })).toHaveCount(0);

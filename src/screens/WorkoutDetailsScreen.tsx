@@ -6,13 +6,16 @@ import {
   AppScreen,
   Button,
   ForgeText as Text,
-  errorHaptic,
   HeaderAction,
   HeaderEdge,
   Icon,
   selectionHaptic,
 } from '../components/ui';
-import { countWorkoutSets, formatCompactDuration, getWorkoutTypePresentation } from '../domain/workouts/presentation';
+import {
+  countWorkoutSets,
+  formatCompactDuration,
+  getWorkoutTypePresentation,
+} from '../domain/workouts/presentation';
 import { ReadOnlyExerciseSection } from './activeWorkout/ExerciseSection';
 import { WorkoutOptionsSheet } from './activeWorkout/WorkoutSheets';
 import { useWorkouts } from '../state/WorkoutContext';
@@ -100,14 +103,10 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
           workoutName={workout.name}
           onClose={() => setOptionsOpen(false)}
           onEdit={() => {
-            selectionHaptic();
-            setOptionsOpen(false);
             navigation.navigate('HistoryWorkoutEditor', { workoutId: workout.id });
           }}
           onDelete={() => {
-            errorHaptic();
             deleteCompletedWorkout(workout.id);
-            setOptionsOpen(false);
             returnToHistory();
           }}
         />
@@ -116,7 +115,13 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
   );
 }
 
-function WorkoutSummaryCard({ workout, workoutTypes }: { workout: Workout; workoutTypes: import('../types').WorkoutTypePreference[] }) {
+function WorkoutSummaryCard({
+  workout,
+  workoutTypes,
+}: {
+  workout: Workout;
+  workoutTypes: import('../types').WorkoutTypePreference[];
+}) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const [cardSize, setCardSize] = useState({ width: 0, height: 0 });
@@ -268,102 +273,103 @@ function formatRest(seconds: number) {
   return rounded < 60 ? `${rounded}s` : `${Math.floor(rounded / 60)}m ${rounded % 60}s`;
 }
 
-const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create({
-  screen: { flex: 1 },
-  header: {
-    position: 'relative',
-    zIndex: 2,
-    minHeight: 70,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: theme.background,
-  },
-  headerCopy: {
-    position: 'absolute',
-    top: 0,
-    right: 116,
-    bottom: 0,
-    left: 116,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: { color: theme.ink, ...typeScale.headerTitle, textAlign: 'center' },
-  // Details are presented above the tab navigator, so they do not reserve
-  // space for the floating primary dock.
-  content: { padding: 16, paddingBottom: 32, gap: 12 },
-  summaryCard: {
-    overflow: 'hidden',
-    padding: 16,
-    borderWidth: 1,
-    borderColor: theme.summaryBorder,
-    borderRadius: 20,
-    gap: 14,
-    shadowColor: theme.shadow,
-    shadowOpacity: 0.07,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-  },
-  summaryTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  summaryIcon: {
-    width: 46,
-    height: 46,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: 23,
-  },
-  timingMetrics: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 14,
-  },
-  timingMetric: { alignItems: 'flex-end', gap: 2 },
-  timingValueRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  timingValue: { color: theme.ink, ...typeScale.cardTitle },
-  timingLabel: { color: theme.slate, ...typeScale.caption },
-  summaryMain: { minHeight: 24, justifyContent: 'center' },
-  summaryDateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 2,
-  },
-  summaryDate: { flex: 1, color: theme.slate, ...typeScale.caption },
-  metrics: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: theme.divider,
-    paddingTop: 12,
-    justifyContent: 'center',
-  },
-  metric: { flex: 1, alignItems: 'center', gap: 3 },
-  metricLabel: { color: theme.slate, ...typeScale.caption, textAlign: 'center' },
-  metricValue: { color: theme.ink, ...typeScale.metricMedium, textAlign: 'center' },
-  metadata: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 14,
-    borderTopWidth: 1,
-    borderTopColor: theme.divider,
-    paddingTop: 12,
-  },
-  metadataItem: { flex: 1, minWidth: 90, flexDirection: 'row', gap: 8 },
-  metadataCopy: { flex: 1 },
-  metadataLabel: { color: theme.slate, ...typeScale.caption },
-  metadataValue: { color: theme.ink, ...typeScale.supporting },
-  exerciseList: { gap: 10 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },
-  title: { color: theme.ink, ...typeScale.sectionTitle },
-  muted: { color: theme.slate, ...typeScale.label },
-});
+const createStyles = (theme: import('../types').ForgeTheme) =>
+  StyleSheet.create({
+    screen: { flex: 1 },
+    header: {
+      position: 'relative',
+      zIndex: 2,
+      minHeight: 70,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: theme.background,
+    },
+    headerCopy: {
+      position: 'absolute',
+      top: 0,
+      right: 116,
+      bottom: 0,
+      left: 116,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    headerTitle: { color: theme.ink, ...typeScale.headerTitle, textAlign: 'center' },
+    // Details are presented above the tab navigator, so they do not reserve
+    // space for the floating primary dock.
+    content: { padding: 16, paddingBottom: 32, gap: 12 },
+    summaryCard: {
+      overflow: 'hidden',
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.summaryBorder,
+      borderRadius: 20,
+      gap: 14,
+      shadowColor: theme.shadow,
+      shadowOpacity: 0.07,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 2,
+    },
+    summaryTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    summaryIcon: {
+      width: 46,
+      height: 46,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: 23,
+    },
+    timingMetrics: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      gap: 14,
+    },
+    timingMetric: { alignItems: 'flex-end', gap: 2 },
+    timingValueRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    timingValue: { color: theme.ink, ...typeScale.cardTitle },
+    timingLabel: { color: theme.slate, ...typeScale.caption },
+    summaryMain: { minHeight: 24, justifyContent: 'center' },
+    summaryDateRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingVertical: 2,
+    },
+    summaryDate: { flex: 1, color: theme.slate, ...typeScale.caption },
+    metrics: {
+      flexDirection: 'row',
+      borderTopWidth: 1,
+      borderTopColor: theme.divider,
+      paddingTop: 12,
+      justifyContent: 'center',
+    },
+    metric: { flex: 1, alignItems: 'center', gap: 3 },
+    metricLabel: { color: theme.slate, ...typeScale.caption, textAlign: 'center' },
+    metricValue: { color: theme.ink, ...typeScale.metricMedium, textAlign: 'center' },
+    metadata: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 14,
+      borderTopWidth: 1,
+      borderTopColor: theme.divider,
+      paddingTop: 12,
+    },
+    metadataItem: { flex: 1, minWidth: 90, flexDirection: 'row', gap: 8 },
+    metadataCopy: { flex: 1 },
+    metadataLabel: { color: theme.slate, ...typeScale.caption },
+    metadataValue: { color: theme.ink, ...typeScale.supporting },
+    exerciseList: { gap: 10 },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },
+    title: { color: theme.ink, ...typeScale.sectionTitle },
+    muted: { color: theme.slate, ...typeScale.label },
+  });
