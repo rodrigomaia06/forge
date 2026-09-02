@@ -1000,6 +1000,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       alignSelf: 'stretch',
       minHeight: 44,
       width: '100%',
+      marginTop: -4,
       borderWidth: 1,
       borderStyle: 'dashed',
       borderRadius: 12,
@@ -1174,7 +1175,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     singleAddVariation: {
       alignSelf: 'stretch',
       minHeight: 44,
-      margin: 12,
+      margin: 8,
       width: 'auto',
       borderWidth: 1,
       borderStyle: 'dashed',

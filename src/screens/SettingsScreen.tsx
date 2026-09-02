@@ -31,39 +31,61 @@ export function SettingsScreen({ navigation }: Props) {
           <SettingsSection>
             <SettingsRow
               icon="fitness"
+              iconBackgroundColor={theme.surfaceMuted}
               title="Exercises"
               onPress={() => open('ExerciseLibrary')}
               disclosure
               showDivider
               testID="settings-main-exercises-row"
+              style={styles.rootRow}
             />
             <SettingsRow
               icon="book"
+              iconBackgroundColor={theme.surfaceMuted}
               title="Workout types"
               onPress={() => open('WorkoutTypes')}
               disclosure
+              style={styles.rootRow}
             />
           </SettingsSection>
           <SettingsSection>
             <SettingsRow
               icon="settings"
+              iconBackgroundColor={theme.surfaceMuted}
               title="General"
               onPress={() => open('GeneralSettings')}
               disclosure
+              style={styles.rootRow}
             />
           </SettingsSection>
           <SettingsSection>
             <SettingsRow
               icon="database-export"
+              iconBackgroundColor={theme.surfaceMuted}
               title="Backup & Export"
               onPress={() => open('BackupExport')}
               disclosure
               showDivider
+              style={styles.rootRow}
             />
-            <SettingsRow icon="clipboard" title="Logs" onPress={() => open('Logs')} disclosure />
+            <SettingsRow
+              icon="clipboard"
+              iconBackgroundColor={theme.surfaceMuted}
+              title="Logs"
+              onPress={() => open('Logs')}
+              disclosure
+              style={styles.rootRow}
+            />
           </SettingsSection>
           <SettingsSection>
-            <SettingsRow icon="info" title="About" onPress={() => open('About')} disclosure />
+            <SettingsRow
+              icon="info"
+              iconBackgroundColor={theme.surfaceMuted}
+              title="About"
+              onPress={() => open('About')}
+              disclosure
+              style={styles.rootRow}
+            />
           </SettingsSection>
         </ScrollView>
         <NavigationFooter />
@@ -87,4 +109,5 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       paddingBottom: settingsLayout.rootContentBottom,
       gap: settingsLayout.sectionGap,
     },
+    rootRow: { minHeight: 68 },
   });
