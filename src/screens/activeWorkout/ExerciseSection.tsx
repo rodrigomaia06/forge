@@ -8,10 +8,10 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import {
+  Button,
   ForgeText as Text,
   Icon,
   pressedFeedback,
-  pressedFeedbackSubtle,
 } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
@@ -113,7 +113,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
               pressed && styles.deleteExerciseActionPressed,
             ]}
           >
-            <Icon name="trash" size={20} color="#D64848" />
+            <Icon name="trash" size={20} color={theme.textDestructive} />
             <Text style={styles.deleteExerciseText}>Delete</Text>
           </Pressable>
         </View>
@@ -164,22 +164,23 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 onDeleteRevealChange={(revealed) => setOpenSetId(revealed ? set.id : null)}
               />
             ))}
-            <Pressable
-              accessibilityRole="button"
+            <Button
               accessibilityLabel={`Add set to ${exercise.name}`}
+              label="Add set"
+              icon="add"
+              iconSize={16}
+              variant="ghost"
+              tone="accent"
+              haptic="none"
               onPress={() => {
                 lightHaptic();
                 addSet(exercise.id);
               }}
-              style={({ pressed }) => [
+              style={[
                 styles.addSet,
                 size === 'large' && styles.addSetLarge,
-                pressed && pressedFeedbackSubtle,
               ]}
-            >
-              <Icon name="add" size={16} color={theme.textPrimary} />
-              <Text style={styles.addSetText}>Add set</Text>
-            </Pressable>
+            />
             {optionsOpen && (
               <ExerciseOptionsSheet
                 visible
@@ -319,7 +320,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       position: 'relative',
       overflow: 'hidden',
       borderRadius: 16,
-      backgroundColor: '#F6DCDD',
+      backgroundColor: dashboardTheme.destructiveSurface,
     },
     exerciseSwipeContent: { zIndex: 1, backgroundColor: dashboardTheme.surface },
     deleteExerciseActionLayer: {
@@ -328,7 +329,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       right: 0,
       bottom: 0,
       width: 64,
-      backgroundColor: '#F6DCDD',
+      backgroundColor: dashboardTheme.destructiveSurface,
     },
     deleteExerciseAction: {
       flex: 1,
@@ -337,8 +338,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       gap: 4,
       transform: [{ translateY: 3 }],
     },
-    deleteExerciseActionPressed: { backgroundColor: '#F1CED0' },
-    deleteExerciseText: { color: '#D64848', ...typeScale.caption },
+    deleteExerciseActionPressed: { backgroundColor: dashboardTheme.destructiveSurfacePressed },
+    deleteExerciseText: { color: dashboardTheme.textDestructive, ...typeScale.caption },
     exerciseCard: {
       backgroundColor: dashboardTheme.surface,
       borderRadius: 0,
@@ -408,8 +409,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     },
     exerciseNameLarge: typeScale.sectionTitle,
     moreButton: {
-      width: 40,
-      height: 40,
+      width: 44,
+      height: 44,
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: -6,
@@ -431,15 +432,10 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     checkColumn: { width: 44 },
     addSet: {
       minHeight: 44,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 6,
       borderTopWidth: 1,
       borderTopColor: dashboardTheme.divider,
     },
     addSetLarge: { minHeight: 48 },
-    addSetText: { color: dashboardTheme.accent, ...typeScale.label },
     readOnlySetRow: {
       minHeight: 48,
       flexDirection: 'row',

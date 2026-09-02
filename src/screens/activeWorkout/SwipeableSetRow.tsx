@@ -16,6 +16,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { Icon } from '../../components/ui';
+import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { mediumHaptic } from './activeWorkoutFeedback';
 import { SetDetailsCard } from './SetDetailsCard';
@@ -33,6 +34,7 @@ function SwipeableSetRowComponent({
   deleteRevealed,
   onDeleteRevealChange,
 }: SwipeableSetRowProps) {
+  const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const deleteTranslateX = useSharedValue(deleteRevealed ? -DELETE_ACTION_WIDTH : 0);
   const deleteOpen = useSharedValue(deleteRevealed);
@@ -155,7 +157,7 @@ function SwipeableSetRowComponent({
           onPress={handleDelete}
           style={({ pressed }) => [styles.deleteAction, pressed && styles.deleteActionPressed]}
         >
-          <Icon name="trash" size={18} color="#D64848" weight="regular" />
+          <Icon name="trash" size={18} color={theme.textDestructive} weight="regular" />
         </Pressable>
       </View>
       <Animated.View
@@ -238,7 +240,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     right: 0,
     bottom: 0,
     width: DELETE_ACTION_WIDTH,
-    backgroundColor: '#F6DCDD',
+    backgroundColor: dashboardTheme.destructiveSurface,
   },
   deleteAction: {
     flex: 1,
@@ -246,6 +248,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     justifyContent: 'center',
     transform: [{ translateY: 0 }],
   },
-  deleteActionPressed: { backgroundColor: '#F1CED0' },
+  deleteActionPressed: { backgroundColor: dashboardTheme.destructiveSurfacePressed },
   });
 };

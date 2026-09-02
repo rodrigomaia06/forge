@@ -15,6 +15,7 @@ import Animated, {
 import {
   ForgeText as Text,
   ForgeTextInput as TextInput,
+  HeaderAction,
   Icon,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
@@ -83,9 +84,13 @@ export function SetDetailsCard({
               style={[workoutSheetStyles.restTimerHeader, styles.topBar]}
             >
               {editable ? (
-                <Pressable accessibilityRole="button" accessibilityLabel={`Delete set ${index + 1}`} onPress={onDelete} style={({ pressed }) => [styles.deleteSetControl, pressed && pressedFeedback]}>
-                  <Icon name="trash" size={19} color="#F0444D" />
-                </Pressable>
+                <HeaderAction
+                  accessibilityLabel={`Delete set ${index + 1}`}
+                  icon="trash"
+                  iconOnly
+                  tone="destructive"
+                  onPress={onDelete}
+                />
               ) : <View accessibilityLabel={`Set ${index + 1}`} style={styles.setNumberBadge}><Text style={styles.setNumberBadgeText}>{index + 1}</Text></View>}
               {set.weight || set.reps ? (
                 <Text style={styles.title}>
@@ -201,6 +206,7 @@ function InfoButton({ label, onPress }: { label: string; onPress: () => void }) 
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      hitSlop={11}
       onPress={onPress}
       style={({ pressed }) => [styles.helpButton, pressed && pressedFeedback]}
     >
@@ -378,7 +384,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     backgroundColor: dashboardTheme.surfaceMuted,
   },
   setNumberBadgeText: { color: dashboardTheme.ink, ...typeScale.cardTitle },
-  deleteSetControl: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF0F0' },
   title: {
     position: 'absolute',
     left: 0,

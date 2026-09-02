@@ -7,9 +7,11 @@ import { useThemedStyles } from '../../theme/useThemedStyles';
 export function CompletionCheck({
   selected,
   testID,
+  tone = 'success',
 }: {
   selected: boolean;
   testID?: string;
+  tone?: 'success' | 'interactive';
 }) {
   const theme = useForgeTheme();
   const dashboardTheme = theme;
@@ -30,7 +32,7 @@ export function CompletionCheck({
       testID={testID}
       style={[
         styles.visual,
-        selected && styles.active,
+        selected && (tone === 'success' ? styles.success : styles.interactive),
         {
           transform: [
             {
@@ -68,6 +70,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     borderColor: dashboardTheme.slate,
     borderRadius: 13,
   },
-  active: { backgroundColor: dashboardTheme.iconSport, borderColor: dashboardTheme.iconSport },
+  success: { backgroundColor: dashboardTheme.success, borderColor: dashboardTheme.success },
+  interactive: { backgroundColor: dashboardTheme.inkInteractive, borderColor: dashboardTheme.inkInteractive },
   });
 };

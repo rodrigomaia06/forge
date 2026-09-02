@@ -73,7 +73,7 @@ export function SetRow({
   const invalidStyle = (progress: Animated.Value) => ({
     borderColor: progress.interpolate({
       inputRange: [0, 1],
-      outputRange: [theme.divider, '#FF3B30'],
+      outputRange: [theme.divider, theme.textDestructive],
     }),
     borderWidth: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 2] }),
     borderRadius: progress.interpolate({ inputRange: [0, 1], outputRange: [9, 8] }),

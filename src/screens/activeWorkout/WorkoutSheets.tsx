@@ -229,6 +229,7 @@ export function AddExerciseSheet({
                             </View>
                             <CompletionCheck
                               selected={isSelected}
+                              tone="interactive"
                               testID={`exercise-selection-${exercise.id}`}
                             />
                           </Pressable>
@@ -296,6 +297,7 @@ export function AddExerciseSheet({
                                     <Text style={styles.equipmentName}>{equipment}</Text>
                                     <CompletionCheck
                                       selected={isSelected}
+                                      tone="interactive"
                                       testID={`exercise-selection-${exercise.id}`}
                                     />
                                   </Pressable>
@@ -355,6 +357,7 @@ export function AddExerciseSheet({
                                           <Text style={styles.variationName}>{label}</Text>
                                           <CompletionCheck
                                             selected={isSelected}
+                                            tone="interactive"
                                             testID={`exercise-selection-${exercise.id}`}
                                           />
                                         </Pressable>
@@ -396,9 +399,10 @@ export function AddExerciseSheet({
                 label={`Add exercises${selected.length ? ` (${selected.length})` : ''}`}
                 accessibilityLabel="Confirm selected exercises"
                 disabled={!selected.length}
+                tone="accent"
                 onPress={submit}
                 theme={dashboardTheme}
-                style={[styles.pickerSubmit, !selected.length && styles.pickerSubmitDisabled]}
+                style={styles.pickerSubmit}
               />
             </Animated.View>
     </>}</ForgeBottomSheet>
@@ -459,6 +463,7 @@ export function ExerciseOptionsSheet({
   onClose: () => void;
   onRemove: () => void;
 }) {
+  const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   return (
     <ForgeBottomSheet visible={visible} onClose={onClose} accessibilityLabel="Close options" initialOffset={420} closeDistance={520} dismissThreshold={260} style={styles.optionsSheet}>{(closeSheet) => <>
@@ -483,7 +488,7 @@ export function ExerciseOptionsSheet({
                 pressed && styles.destructivePressed,
               ]}
             >
-              <Icon name="trash" size={22} color="#FF3B30" />
+              <Icon name="trash" size={22} color={theme.textDestructive} />
               <Text style={styles.destructiveText}>Remove exercise</Text>
             </Pressable>
     </>}</ForgeBottomSheet>
@@ -503,6 +508,7 @@ export function WorkoutOptionsSheet({
   onDelete: () => void;
   onEdit?: () => void;
 }) {
+  const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   return (
     <ForgeBottomSheet visible={visible} onClose={onClose} accessibilityLabel="Close workout options" initialOffset={320} closeDistance={320} dismissThreshold={160} style={styles.optionsSheet}>{(closeSheet) => <>
@@ -521,7 +527,7 @@ export function WorkoutOptionsSheet({
                 pressed && styles.destructivePressed,
               ]}
             >
-              <Icon name="trash" size={22} color="#FF3B30" />
+              <Icon name="trash" size={22} color={theme.textDestructive} />
               <Text style={styles.destructiveText}>Delete workout</Text>
             </Pressable>
     </>}</ForgeBottomSheet>
@@ -625,7 +631,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 9,
-    backgroundColor: '#6678F0',
+    backgroundColor: dashboardTheme.inkInteractive,
   },
   filterBadgeText: { color: dashboardTheme.surface, ...typeScale.caption },
   filterPanel: {
@@ -642,7 +648,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     borderRadius: 14,
     backgroundColor: dashboardTheme.surface,
   },
-  filterChoiceActive: { backgroundColor: '#6678F0' },
+  filterChoiceActive: { backgroundColor: dashboardTheme.inkInteractive },
   filterChoiceText: { color: dashboardTheme.slate, ...typeScale.label },
   filterChoiceTextActive: { color: dashboardTheme.surface },
   searchInput: {
@@ -683,8 +689,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     backgroundColor: dashboardTheme.surface,
   },
   singleGroupRowSelected: {
-    borderColor: 'rgba(77,123,103,0.18)',
-    backgroundColor: 'rgba(77,123,103,0.10)',
+    borderColor: dashboardTheme.inkInteractive,
+    backgroundColor: dashboardTheme.surfaceMuted,
   },
   groupName: { color: dashboardTheme.ink, ...typeScale.body },
   groupMeta: { color: dashboardTheme.slate, ...typeScale.caption },
@@ -697,9 +703,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     borderRadius: 12,
     backgroundColor: '#F0F3FA',
   },
-  groupCountActive: { backgroundColor: '#E5EBFF' },
+  groupCountActive: { backgroundColor: dashboardTheme.surfaceMuted, borderWidth: 1, borderColor: dashboardTheme.inkInteractive },
   groupCountText: { color: dashboardTheme.slate, ...typeScale.caption },
-  groupCountTextActive: { color: '#5269D9' },
+  groupCountTextActive: { color: dashboardTheme.inkInteractive },
   equipmentGroup: { overflow: 'hidden' },
   equipmentRow: {
     minHeight: 54,
@@ -709,10 +715,10 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     flexDirection: 'row',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#D8DAD7',
-    backgroundColor: '#E7E9E6',
+    borderTopColor: dashboardTheme.divider,
+    backgroundColor: dashboardTheme.surfaceMuted,
   },
-  equipmentRowSelected: { backgroundColor: 'rgba(98,201,138,0.12)' },
+  equipmentRowSelected: { backgroundColor: dashboardTheme.surfaceMuted, borderColor: dashboardTheme.inkInteractive },
   equipmentName: {
     flex: 1,
     color: dashboardTheme.ink,
@@ -727,10 +733,10 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     flexDirection: 'row',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#D8DAD7',
-    backgroundColor: '#EFF0ED',
+    borderTopColor: dashboardTheme.divider,
+    backgroundColor: dashboardTheme.surfaceElevated,
   },
-  subVariationRowSelected: { backgroundColor: 'rgba(98,201,138,0.18)' },
+  subVariationRowSelected: { backgroundColor: dashboardTheme.surfaceMuted, borderColor: dashboardTheme.inkInteractive },
   variationName: {
     flex: 1,
     color: dashboardTheme.ink,
@@ -749,8 +755,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     backgroundColor: dashboardTheme.surface,
   },
   exerciseOptionSelected: {
-    borderColor: 'rgba(102,120,240,0.16)',
-    backgroundColor: 'rgba(102,120,240,0.10)',
+    borderColor: dashboardTheme.inkInteractive,
+    backgroundColor: dashboardTheme.surfaceMuted,
   },
   exerciseOptionPressed: { opacity: 0.72 },
   exerciseOptionCopy: { flex: 1, gap: 2 },
@@ -768,7 +774,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     borderRadius: 16,
     backgroundColor: dashboardTheme.accent,
   },
-  pickerSubmitDisabled: { backgroundColor: '#B7BCBE' },
   pickerCtaFade: {
     position: 'absolute',
     left: 0,
@@ -847,7 +852,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     alignItems: 'center',
     gap: 18,
   },
-  destructivePressed: { backgroundColor: 'rgba(255,59,48,0.08)', opacity: 0.8 },
-  destructiveText: { color: '#FF3B30', ...typeScale.cardTitle },
+  destructivePressed: { backgroundColor: dashboardTheme.destructiveSurfacePressed, opacity: 0.8 },
+  destructiveText: { color: dashboardTheme.textDestructive, ...typeScale.cardTitle },
   });
 };

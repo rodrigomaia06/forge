@@ -12,6 +12,7 @@ import {
   Button,
   ForgeText as Text,
   HeaderEdge,
+  HeaderAction,
   Icon,
   lightHaptic,
   ScreenTitle,
@@ -48,13 +49,12 @@ export function HistoryScreen({
           <ScreenTitle testID="history-title" color={theme.textPrimary}>
             History
           </ScreenTitle>
-          <Button
+          <HeaderAction
             accessibilityLabel="Filter"
             icon="filter"
             iconSize={20}
-            variant="secondary"
             onPress={() => undefined}
-            theme={theme}
+            iconOnly
             style={styles.filterButton}
           />
           <HeaderEdge />
@@ -94,7 +94,6 @@ export function HistoryScreen({
               <Button
                 label="Start a workout"
                 onPress={() => {
-                  lightHaptic();
                   startWorkout();
                   navigation.navigate('ActiveWorkout');
                 }}
@@ -197,7 +196,7 @@ function TimelineRow({
               onPress={onDelete}
               style={({ pressed }) => [styles.deleteAction, pressed && styles.deleteActionPressed]}
             >
-              <Icon name="trash" size={18} color="#D64848" />
+              <Icon name="trash" size={18} color={theme.textDestructive} />
               <Text style={styles.deleteActionText}>Delete</Text>
             </Pressable>
           </View>
@@ -335,7 +334,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     position: 'relative',
     overflow: 'hidden',
     borderRadius: 16,
-    backgroundColor: '#F6DCDD',
+    backgroundColor: theme.destructiveSurface,
   },
   deleteActionLayer: {
     position: 'absolute',
@@ -343,11 +342,11 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     right: 0,
     bottom: 0,
     width: 64,
-    backgroundColor: '#F6DCDD',
+    backgroundColor: theme.destructiveSurface,
   },
   deleteAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
-  deleteActionPressed: { backgroundColor: '#F1CED0' },
-  deleteActionText: { color: '#D64848', ...typeScale.caption },
+  deleteActionPressed: { backgroundColor: theme.destructiveSurfacePressed },
+  deleteActionText: { color: theme.textDestructive, ...typeScale.caption },
   swipeContent: { zIndex: 1, backgroundColor: theme.surface },
   card: {
     flex: 1,

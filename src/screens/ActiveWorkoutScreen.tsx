@@ -29,7 +29,6 @@ import { ExerciseSection as ExtractedExerciseSection } from './activeWorkout/Exe
 import { AddExerciseSheet as ExtractedAddExerciseSheet } from './activeWorkout/WorkoutSheets';
 import { RestTimerIndicator, RestTimerSheet } from './activeWorkout/RestTimer';
 import { createActiveWorkoutStyles } from './activeWorkout/activeWorkoutStyles';
-import { contrastingIconColor, workoutTypeColor } from './activeWorkout/workoutTypeColor';
 
 type ActiveWorkoutScreenProps = NativeStackScreenProps<RootStackParamList, 'ActiveWorkout'>;
 export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
@@ -200,13 +199,14 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
           style: 'destructive',
           onPress: () => {
             finishWorkout();
+            successHaptic();
             returnToDashboard(null);
           },
         },
       ]);
       return;
     }
-    lightHaptic();
+    successHaptic();
     const finished = finishWorkout();
     returnToDashboard(finished);
   };
@@ -215,9 +215,6 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     cancelWorkout();
     returnToDashboard(null);
   };
-
-  const workoutColor = workoutTypeColor(activeWorkout.type);
-  const finishIconColor = contrastingIconColor(workoutColor);
 
   return (
     <AppScreen
@@ -232,6 +229,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
             label="Cancel"
             iconOnly
             onPress={handleCancel}
+            tone="destructive"
           />
           <View style={styles.titleBlock}>
             <View
@@ -247,11 +245,9 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
             accessibilityLabel="Finish workout"
             icon="check"
             label="Finish"
-            labelColor={finishIconColor}
-            labelStyle={styles.finishLabel}
             onPress={handleFinish}
-            tone="accent"
-            accentColor={workoutColor}
+            tone="success"
+            haptic="none"
           />
         </View>
         <View style={styles.elapsedPanel}>
@@ -308,18 +304,19 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
           onScroll={workoutScrollHandler}
           scrollEventThrottle={16}
           ListFooterComponent={
-            <Pressable
-              accessibilityRole="button"
+            <Button
               accessibilityLabel="Add exercise"
+              label="Add exercise"
+              icon="add"
+              iconSize={17}
+              variant="ghost"
+              tone="accent"
               onPress={() => {
                 animateLayout();
                 setSheetOpen(true);
               }}
-              style={({ pressed }) => [styles.addExercise, pressed && pressedFeedback]}
-            >
-              <Icon name="add" size={17} color={theme.ink} />
-              <Text style={styles.addExerciseText}>Add exercise</Text>
-            </Pressable>
+              style={styles.addExercise}
+            />
           }
         />
       </KeyboardAvoidingView>

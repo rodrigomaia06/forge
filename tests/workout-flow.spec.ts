@@ -41,7 +41,7 @@ test.describe('Active workout flow', () => {
     await expect(page.getByRole('button', { name: 'Finish workout' })).toContainText('Finish');
     await expect(
       page.getByRole('button', { name: 'Finish workout' }).getByText('Finish'),
-    ).toHaveCSS('font-weight', '700');
+    ).toHaveCSS('font-weight', '500');
     await expect(page.getByText('Elapsed', { exact: true })).toBeVisible();
     await expect(page.getByText('Rest', { exact: true })).toBeVisible();
 

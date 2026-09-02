@@ -84,7 +84,6 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
             icon="ellipsis-horizontal"
             label="More"
             onPress={() => {
-              selectionHaptic();
               setOptionsOpen(true);
             }}
           />

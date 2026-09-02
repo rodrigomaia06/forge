@@ -27,7 +27,6 @@ import {
 import { NavigationFooter } from '../components/NavigationFooter';
 import { ExerciseSection } from './activeWorkout/ExerciseSection';
 import { AddExerciseSheet } from './activeWorkout/WorkoutSheets';
-import { contrastingIconColor, workoutTypeColor } from './activeWorkout/workoutTypeColor';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
@@ -121,9 +120,6 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         ? { ...current, startedAt: updated }
         : { ...current, completedAt: updated };
     });
-  const workoutColor = workoutTypeColor(draft.type);
-  const saveLabelColor = contrastingIconColor(workoutColor);
-
   return (
     <AppScreen
       backgroundColor={theme.background}
@@ -137,6 +133,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
             label="Cancel"
             iconOnly
             onPress={discard}
+            tone="destructive"
           />
           <View style={styles.titleBlock}>
             <Text numberOfLines={1} style={styles.title}>
@@ -147,10 +144,9 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
             accessibilityLabel="Save workout"
             icon="check"
             label="Save"
-            tone="accent"
-            accentColor={workoutColor}
-            labelColor={saveLabelColor}
+            tone="success"
             onPress={save}
+            haptic="none"
           />
         </View>
         <HeaderEdge />
@@ -533,7 +529,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     ...typeScale.supporting,
     lineHeight: 40,
   },
-  error: { color: '#D64848', ...typeScale.label },
+  error: { color: theme.textDestructive, ...typeScale.label },
   sectionTitle: { color: theme.ink, ...typeScale.sectionTitle },
   addExercise: {
     minHeight: 48,
