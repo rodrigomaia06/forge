@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   LayoutAnimation,
   Platform,
@@ -10,6 +10,13 @@ import {
   View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import {
   AppScreen,
   Button,
@@ -21,6 +28,7 @@ import {
   HeaderAction,
   Icon,
   lightHaptic,
+  mediumHaptic,
   pressedFeedback,
   selectionHaptic,
 } from '../../components/ui';
@@ -60,6 +68,7 @@ const restTimeOptions: readonly ForgeSingleSelectOption<number>[] = REST_DURATIO
     accessibilityLabel: `Rest duration ${formatPickerDuration(seconds)}`,
   }),
 );
+const swipeSpring = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
 
 export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const theme = useForgeTheme();
@@ -359,6 +368,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
               }}
               onAdd={() => openCreate(group)}
               isCustom={isCustom}
+              onRemove={(item) => catalog.removeCustomExercise(item.id)}
             />
           ))}
           {!groups.length && (
@@ -883,6 +893,7 @@ function Movement({
   onOpen,
   onAdd,
   isCustom,
+  onRemove,
 }: {
   group: string;
   items: ExerciseCatalogItem[];
@@ -891,6 +902,7 @@ function Movement({
   onOpen: (item: ExerciseCatalogItem) => void;
   onAdd: () => void;
   isCustom: (item: ExerciseCatalogItem) => boolean;
+  onRemove: (item: ExerciseCatalogItem) => void;
 }) {
   const styles = useThemedStyles(createStyles);
   const theme = useForgeTheme();
@@ -904,16 +916,28 @@ function Movement({
     const item = items[0];
     return (
       <SettingsSection>
-        <SettingsRow
-          title={group}
-          subtitle={`${item.equipment} · ${item.category}`}
-          accessibilityLabel={`Open ${group}`}
-          onPress={() => onOpen(item)}
-          trailing={
-            isCustom(item) ? <Icon name="note" size={17} color={theme.textSecondary} /> : undefined
-          }
-          disclosure
-        />
+        {isCustom(item) ? (
+          <SwipeCustomExerciseRow item={item} onOpen={() => onOpen(item)} onRemove={() => onRemove(item)}>
+            {(onPress) => (
+              <SettingsRow
+                title={group}
+                subtitle={`${item.equipment} · ${item.category}`}
+                accessibilityLabel={`Open ${group}`}
+                onPress={onPress}
+                trailing={<Icon name="note" size={17} color={theme.textSecondary} />}
+                disclosure
+              />
+            )}
+          </SwipeCustomExerciseRow>
+        ) : (
+          <SettingsRow
+            title={group}
+            subtitle={`${item.equipment} · ${item.category}`}
+            accessibilityLabel={`Open ${group}`}
+            onPress={() => onOpen(item)}
+            disclosure
+          />
+        )}
         <Button
           accessibilityLabel={`Add variation to ${group}`}
           label="Add variation"
@@ -949,26 +973,43 @@ function Movement({
           {equipment.map(([label, variants]) => (
             <View key={label} style={styles.equipmentGroup}>
               <Text style={styles.equipmentTitle}>{label}</Text>
-              {variants.map((item) => (
-                <Pressable
-                  key={item.id}
-                  accessibilityRole="button"
-                  onPress={() => {
-                    lightHaptic();
-                    onOpen(item);
-                  }}
-                  style={({ pressed }) => [
-                    styles.variation,
-                    pressed && { backgroundColor: theme.pressed },
-                  ]}
-                >
-                  <Text style={styles.variationName}>{item.variation || item.name}</Text>
-                  <View style={styles.variationIcons}>
-                    {isCustom(item) && <Icon name="note" size={16} color={theme.textSecondary} />}
-                    <Icon name="chevron-forward" size={17} color={theme.slate} />
-                  </View>
-                </Pressable>
-              ))}
+              {variants.map((item) => {
+                const label = item.variation || item.name;
+                const variation = (onPress: () => void) => (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open ${label}`}
+                    onPress={onPress}
+                    style={({ pressed }) => [
+                      styles.variation,
+                      pressed && { backgroundColor: theme.pressed },
+                    ]}
+                  >
+                    <Text style={styles.variationName}>{label}</Text>
+                    <View style={styles.variationIcons}>
+                      {isCustom(item) && <Icon name="note" size={16} color={theme.textSecondary} />}
+                      <Icon name="chevron-forward" size={17} color={theme.slate} />
+                    </View>
+                  </Pressable>
+                );
+                return isCustom(item) ? (
+                  <SwipeCustomExerciseRow
+                    key={item.id}
+                    item={item}
+                    onOpen={() => onOpen(item)}
+                    onRemove={() => onRemove(item)}
+                  >
+                    {variation}
+                  </SwipeCustomExerciseRow>
+                ) : (
+                  <React.Fragment key={item.id}>
+                    {variation(() => {
+                      lightHaptic();
+                      onOpen(item);
+                    })}
+                  </React.Fragment>
+                );
+              })}
             </View>
           ))}
           <Button
@@ -986,6 +1027,91 @@ function Movement({
         </View>
       )}
     </SettingsSection>
+  );
+}
+
+function SwipeCustomExerciseRow({
+  item,
+  onOpen,
+  onRemove,
+  children,
+}: {
+  item: ExerciseCatalogItem;
+  onOpen: () => void;
+  onRemove: () => void;
+  children: (onPress: () => void) => React.ReactNode;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  const actionWidth = 72;
+  const [revealed, setRevealed] = useState(false);
+  const offset = useSharedValue(0);
+  const open = useSharedValue(false);
+  const suppressNextPress = useRef(false);
+
+  useEffect(() => {
+    open.value = revealed;
+    offset.value = withSpring(revealed ? -actionWidth : 0, swipeSpring);
+  }, [offset, open, revealed]);
+
+  const settle = (next: boolean, dragged: boolean): void => {
+    if (dragged) suppressNextPress.current = true;
+    if (next !== revealed) {
+      mediumHaptic();
+      setRevealed(next);
+      return;
+    }
+    offset.value = withSpring(next ? -actionWidth : 0, swipeSpring);
+  };
+  const pan = Gesture.Pan()
+    .activeOffsetX([-8, 8])
+    .failOffsetY([-12, 12])
+    .onUpdate((event) => {
+      if (!open.value && event.translationX >= 0) return;
+      const initial = open.value ? -actionWidth : 0;
+      offset.value = Math.max(-actionWidth, Math.min(0, initial + event.translationX));
+    })
+    .onEnd((event) => {
+      const initial = open.value ? -actionWidth : 0;
+      const next = initial + event.translationX < -actionWidth * 0.55;
+      runOnJS(settle)(next, Math.abs(event.translationX) > 6);
+    });
+  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ translateX: offset.value }] }));
+  const handleOpen = (): void => {
+    if (suppressNextPress.current) {
+      suppressNextPress.current = false;
+      return;
+    }
+    lightHaptic();
+    onOpen();
+  };
+  const label = item.variation || item.name;
+
+  return (
+    <GestureDetector gesture={pan}>
+      <View testID={`custom-exercise-swipe-${item.id}`} style={styles.customSwipe}>
+        <View
+          pointerEvents={revealed ? 'auto' : 'none'}
+          style={[styles.customDeleteLayer, { backgroundColor: theme.destructiveSurface }]}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Delete ${label}`}
+            onPress={() => {
+              lightHaptic();
+              onRemove();
+            }}
+            style={({ pressed }) => [styles.customDeleteAction, pressed && styles.customDeletePressed]}
+          >
+            <Icon name="trash" size={18} color={theme.textDestructive} />
+            <Text style={styles.customDeleteText}>Delete</Text>
+          </Pressable>
+        </View>
+        <Animated.View style={[styles.customSwipeSurface, animatedStyle]}>
+          {children(handleOpen)}
+        </Animated.View>
+      </View>
+    </GestureDetector>
   );
 }
 const createStyles = (theme: import('../../types').ForgeTheme) =>
@@ -1071,6 +1197,22 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     },
     variationName: { ...typeScale.cardTitle, color: theme.ink },
     variationIcons: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+    customSwipe: {
+      position: 'relative',
+      overflow: 'hidden',
+      backgroundColor: theme.destructiveSurface,
+    },
+    customDeleteLayer: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      width: 72,
+    },
+    customDeleteAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
+    customDeletePressed: { backgroundColor: theme.destructiveSurfacePressed },
+    customDeleteText: { color: theme.textDestructive, ...typeScale.caption },
+    customSwipeSurface: { zIndex: 1, backgroundColor: theme.surfaceElevated },
     addVariation: {
       alignSelf: 'stretch',
       height: 38,

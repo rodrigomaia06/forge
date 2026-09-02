@@ -1,5 +1,17 @@
 import { expect, test } from '@playwright/test';
 
+async function swipeLeftFrom(
+  page: import('@playwright/test').Page,
+  locator: import('@playwright/test').Locator,
+) {
+  const box = await locator.boundingBox();
+  if (!box) throw new Error('Expected swipe target to be measurable');
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x - 100, box.y + box.height / 2, { steps: 8 });
+  await page.mouse.up();
+}
+
 async function openAllExercises(page: import('@playwright/test').Page) {
   await page.goto('/');
   await page.getByRole('tab', { name: 'Settings' }).click();
@@ -124,6 +136,24 @@ test.describe('Exercise library', () => {
     await expect(
       page.getByRole('button', { name: 'Open Cable Press Around' }),
     ).toBeVisible();
+  });
+
+  test('reveals and executes delete when swiping a custom exercise', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Exercises' }).click();
+    await page.getByRole('button', { name: 'Custom exercises, 0 exercises' }).click();
+    await page.getByRole('button', { name: 'Create custom exercise' }).click();
+    await page.getByLabel('Exercise name').fill('Swipe Delete Exercise');
+    await page.getByRole('button', { name: 'Save variation' }).click();
+    await expect(page.getByTestId('custom-exercise-form-surface')).toHaveCount(0);
+
+    const customExercise = page.getByRole('button', { name: 'Open Swipe Delete Exercise' });
+    await expect(customExercise).toBeVisible();
+    await swipeLeftFrom(page, customExercise);
+    await expect(page.getByRole('button', { name: 'Delete Swipe Delete Exercise' })).toBeVisible();
+    await page.getByRole('button', { name: 'Delete Swipe Delete Exercise' }).click();
+    await expect(customExercise).toHaveCount(0);
   });
 
   test('edits custom exercise sections and muscle targets', async ({ page }) => {
