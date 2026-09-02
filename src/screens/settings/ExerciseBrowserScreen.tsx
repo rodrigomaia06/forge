@@ -397,6 +397,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
           }}
           accessibilityLabel="Close custom exercise form"
           surfaceTestID="custom-exercise-form-surface"
+          keyboardAvoiding
         >
           {(close) => (
             <View style={[styles.formSheet, { maxHeight: Math.min(viewportHeight * 0.82, 640) }]}>

@@ -30,22 +30,20 @@ export function SettingsScreen({ navigation }: Props) {
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <SettingsSection>
             <SettingsRow
-              icon="fitness"
+              icon="layers"
               iconBackgroundColor={theme.surfaceMuted}
               title="Exercises"
               onPress={() => open('ExerciseLibrary')}
               disclosure
               showDivider
               testID="settings-main-exercises-row"
-              style={styles.rootRow}
             />
             <SettingsRow
-              icon="book"
+              icon="activity"
               iconBackgroundColor={theme.surfaceMuted}
               title="Workout types"
               onPress={() => open('WorkoutTypes')}
               disclosure
-              style={styles.rootRow}
             />
           </SettingsSection>
           <SettingsSection>
@@ -55,7 +53,6 @@ export function SettingsScreen({ navigation }: Props) {
               title="General"
               onPress={() => open('GeneralSettings')}
               disclosure
-              style={styles.rootRow}
             />
           </SettingsSection>
           <SettingsSection>
@@ -66,7 +63,6 @@ export function SettingsScreen({ navigation }: Props) {
               onPress={() => open('BackupExport')}
               disclosure
               showDivider
-              style={styles.rootRow}
             />
             <SettingsRow
               icon="clipboard"
@@ -74,7 +70,6 @@ export function SettingsScreen({ navigation }: Props) {
               title="Logs"
               onPress={() => open('Logs')}
               disclosure
-              style={styles.rootRow}
             />
           </SettingsSection>
           <SettingsSection>
@@ -84,7 +79,6 @@ export function SettingsScreen({ navigation }: Props) {
               title="About"
               onPress={() => open('About')}
               disclosure
-              style={styles.rootRow}
             />
           </SettingsSection>
         </ScrollView>
@@ -109,5 +103,4 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       paddingBottom: settingsLayout.rootContentBottom,
       gap: settingsLayout.sectionGap,
     },
-    rootRow: { minHeight: 68 },
   });

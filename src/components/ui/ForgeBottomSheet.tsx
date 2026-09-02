@@ -1,5 +1,17 @@
-import React, { useCallback, useEffect, useRef } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  LayoutAnimation,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  UIManager,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -55,7 +67,7 @@ export function ForgeBottomSheet({
   dismissThreshold = 190,
   onCloseStart,
   onBackRequest,
-  keyboardAvoiding = false,
+  keyboardAvoiding = true,
   backdropTestID,
   surfaceTestID,
   dragArea,
@@ -66,6 +78,8 @@ export function ForgeBottomSheet({
   const backdropOpacity = useSharedValue(0);
   const closing = useSharedValue(false);
   const dragStart = useSharedValue(0);
+  const keyboardProgress = useSharedValue(0);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
@@ -93,6 +107,32 @@ export function ForgeBottomSheet({
     return () => cancelAnimationFrame(frame);
   }, [backdropOpacity, closing, initialOffset, translateY, visible]);
 
+  useEffect(() => {
+    if (!visible || !keyboardAvoiding) {
+      keyboardProgress.value = withTiming(0, { duration: 160 });
+      setKeyboardVisible(false);
+      return undefined;
+    }
+    const transition = (nextVisible: boolean) => {
+      if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setKeyboardVisible(nextVisible);
+      keyboardProgress.value = withTiming(nextVisible ? 1 : 0, { duration: 220 });
+    };
+    const show = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => transition(true),
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => transition(false),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, [keyboardAvoiding, keyboardProgress, visible]);
+
   const pan = Gesture.Pan()
     .activeOffsetY([-6, 6])
     .failOffsetX([-24, 24])
@@ -114,6 +154,10 @@ export function ForgeBottomSheet({
     });
   const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
   const backdropStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value }));
+  const keyboardSheetStyle = useAnimatedStyle(() => ({
+    borderTopLeftRadius: 28 * (1 - keyboardProgress.value),
+    borderTopRightRadius: 28 * (1 - keyboardProgress.value),
+  }));
 
   if (!visible) return null;
   return (
@@ -133,9 +177,27 @@ export function ForgeBottomSheet({
           onPress={() => close(true)}
           style={StyleSheet.absoluteFill}
         />
-        <KeyboardAvoidingView pointerEvents="box-none" style={styles.keyboardArea} behavior={keyboardAvoiding && Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView
+          pointerEvents="box-none"
+          style={styles.keyboardArea}
+          behavior={keyboardAvoiding ? 'height' : undefined}
+        >
           <GestureDetector gesture={pan}>
-            <Animated.View testID={surfaceTestID} style={[styles.sheet, { backgroundColor: theme.surfaceElevated, shadowColor: theme.shadow }, style, sheetStyle]}>{dragArea ? dragArea(typeof children === 'function' ? children(() => close(false)) : children) : (typeof children === 'function' ? children(() => close(false)) : children)}</Animated.View>
+            <Animated.View
+              testID={surfaceTestID}
+              style={[
+                styles.sheet,
+                { backgroundColor: theme.surfaceElevated, shadowColor: theme.shadow },
+                style,
+                keyboardVisible && styles.keyboardExpandedSheet,
+                keyboardSheetStyle,
+                sheetStyle,
+              ]}
+            >
+              {dragArea
+                ? dragArea(typeof children === 'function' ? children(() => close(false)) : children)
+                : (typeof children === 'function' ? children(() => close(false)) : children)}
+            </Animated.View>
           </GestureDetector>
         </KeyboardAvoidingView>
         {overlay}
@@ -168,6 +230,13 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     shadowOffset: { width: 0, height: -8 },
     elevation: 12,
+  },
+  keyboardExpandedSheet: {
+    height: '100%',
+    maxHeight: '100%',
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   handle: { width: 48, height: 5, borderRadius: 3, alignSelf: 'center', marginTop: 10, marginBottom: 4 },
 });

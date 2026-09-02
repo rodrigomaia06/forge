@@ -72,12 +72,12 @@ test.describe('Settings', () => {
     await expect(page.getByTestId('settings-detail-title')).toHaveText('About');
   });
 
-  test('uses the prominent root-card scale and compact nested settings rows', async ({ page }) => {
+  test('uses the shared Settings row scale across root and nested cards', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
 
     const rootRow = page.getByTestId('settings-main-exercises-row');
-    await expectRowHeight(rootRow, 68);
+    await expectRowHeight(rootRow, 56);
     await expectFontSize(page.getByTestId('settings-main-exercises-row-title'), 16);
     const rootCard = await rootRow.evaluate((element) => {
       const parent = element.parentElement;
