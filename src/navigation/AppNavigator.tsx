@@ -20,6 +20,7 @@ import { useWorkouts } from '../state/WorkoutContext';
 import type { RootStackParamList } from '../types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const rootTabOptions = { gestureEnabled: false, animation: 'none' as const };
 
 enableFreeze(true);
 
@@ -42,17 +43,17 @@ export function AppNavigator() {
         <Stack.Screen
           name="Dashboard"
           component={DashboardScreen}
-          options={{ gestureEnabled: false }}
+          options={rootTabOptions}
         />
         <Stack.Screen
           name="ActiveWorkout"
           component={ActiveWorkoutScreen}
-          options={{ gestureEnabled: false }}
+          options={rootTabOptions}
         />
         <Stack.Screen
           name="History"
           component={HistoryScreen}
-          options={{ gestureEnabled: false }}
+          options={rootTabOptions}
         />
         <Stack.Screen
           name="WorkoutDetails"
@@ -64,7 +65,7 @@ export function AppNavigator() {
           component={HistoryWorkoutEditorScreen}
           options={{ gestureEnabled: true }}
         />
-        <Stack.Screen name="Plans" component={PlansScreen} options={{ gestureEnabled: false }} />
+        <Stack.Screen name="Plans" component={PlansScreen} options={rootTabOptions} />
         <Stack.Screen
           name="RoutineEditor"
           component={RoutineEditorScreen}
@@ -73,7 +74,7 @@ export function AppNavigator() {
         <Stack.Screen
           name="Settings"
           component={SettingsScreen}
-          options={{ gestureEnabled: false }}
+          options={rootTabOptions}
         />
         <Stack.Screen
           name="GeneralSettings"

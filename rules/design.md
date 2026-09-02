@@ -30,6 +30,8 @@ Header actions use `HeaderAction` only: icon-only controls are 44 pt circles and
 
 Primary dock icons use the shared navigation item and animate subtly between their standard size and a slightly enlarged selected state.
 
+Primary dock tabs commit the destination immediately: they do not use a full-screen push or fade transition. A short local selection-indicator animation is sufficient confirmation of the change.
+
 All application icons are rendered through Forge's shared `Icon` adapter, backed by Tabler Icons. Choose the icon semantically for the action or content it represents; screens must not import a separate icon library directly.
 
 Do not copy exact visual constants from an external design guideline when the platform provides a semantic/system value or Forge already owns that visual decision.

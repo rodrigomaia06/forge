@@ -39,14 +39,14 @@ export function NavigationItem({
   enterFromBottom = false,
   compact = false,
 }: NavigationItemProps) {
-  const activeProgress = useRef(new RNAnimated.Value(active ? 1 : 0)).current;
+  const activeProgress = useRef(new RNAnimated.Value(0)).current;
   const entranceProgress = useSharedValue(enterFromBottom ? 0 : 1);
   const entranceStarted = useRef(false);
 
   useEffect(() => {
     RNAnimated.timing(activeProgress, {
       toValue: active ? 1 : 0,
-      duration: 180,
+      duration: 120,
       easing: RNEasing.out(RNEasing.cubic),
       useNativeDriver: true,
     }).start();
@@ -90,18 +90,34 @@ export function NavigationItem({
         style={({ pressed }) => [
           styles.item,
           compact && styles.itemCompact,
-          active && [
-            styles.activeItem,
-            {
-              backgroundColor: emphasis
-                ? theme.actionPrimary
-                : theme.dockSelected || theme.slate,
-            },
-          ],
+          active && styles.activeItem,
           emphasis && styles.emphasisItem,
           pressed && styles.pressed,
         ]}
       >
+        {active ? (
+          <RNAnimated.View
+            testID="dashboard-nav-selection-pill"
+            pointerEvents="none"
+            style={[
+              styles.selectionPill,
+              {
+                backgroundColor: emphasis
+                  ? theme.actionPrimary
+                  : theme.dockSelected || theme.slate,
+                opacity: activeProgress,
+                transform: [
+                  {
+                    scale: activeProgress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.88, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
+        ) : null}
         <RNAnimated.View
           style={[
             styles.iconFrame,
@@ -170,6 +186,14 @@ const styles = StyleSheet.create({
   iconFrameCompact: { width: 36, height: 36, borderRadius: 18 },
   activeItem: { width: '100%', marginHorizontal: 2 },
   emphasisItem: { width: '100%', marginHorizontal: 2 },
+  selectionPill: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    borderRadius: 1000,
+  },
   activeIconFrame: { width: 44, height: 44, borderRadius: 22 },
   activeIconFrameCompact: { width: 36, height: 36, borderRadius: 18 },
   inactiveLabel: { opacity: 0.68 },

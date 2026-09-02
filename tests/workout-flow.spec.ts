@@ -294,13 +294,16 @@ test.describe('Active workout flow', () => {
     await expect(addExercise).toHaveCSS('border-width', '2px');
   });
 
-  test('keeps the workout dock item available without a selection pill', async ({ page }) => {
+  test('keeps the workout dock item available with the active selection indicator', async ({ page }) => {
     await page.goto('/');
     await startBlankWorkout(page);
 
     const workoutItem = page.getByRole('button', { name: 'Workout', exact: true });
     await expect(workoutItem).toBeVisible();
-    await expect(workoutItem).toHaveCSS('background-color', 'rgb(29, 37, 45)');
+    await expect(workoutItem.getByTestId('dashboard-nav-selection-pill')).toHaveCSS(
+      'background-color',
+      'rgb(29, 37, 45)',
+    );
 
     await page.getByRole('tab', { name: 'Dashboard' }).click();
     await expect(workoutItem).toBeVisible();
