@@ -10,7 +10,7 @@ import Animated, {
   useSharedValue,
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
-import { ForgeBottomSheet, ForgeBottomSheetHandle, ForgeText as Text, Icon, SheetCloseButton } from '../../components/ui';
+import { Button, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeText as Text, Icon, SheetCloseButton } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { createActiveWorkoutStyles } from './activeWorkoutStyles';
@@ -89,17 +89,14 @@ export function RestTimerSheet({
           ) : (
             <>
               <RestDurationPicker selectedDuration={selectedDuration} onSelect={onSelect} />
-              <Pressable
-                accessibilityRole="button"
+              <Button
                 accessibilityLabel="Start rest timer"
+                label="Start"
+                tone="accent"
+                haptic="none"
                 onPress={onStart}
-                style={({ pressed }) => [
-                  styles.restStartButton,
-                  pressed && styles.restButtonPressed,
-                ]}
-              >
-                <Text style={styles.restStartText}>Start</Text>
-              </Pressable>
+                style={styles.restStartButton}
+              />
             </>
           )}
     </>}</ForgeBottomSheet>
@@ -188,7 +185,7 @@ function ActiveRestTimer({
   );
 }
 
-function RestDurationPicker({
+export function RestDurationPicker({
   selectedDuration,
   onSelect,
 }: {

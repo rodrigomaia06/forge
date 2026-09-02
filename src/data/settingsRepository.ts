@@ -16,6 +16,7 @@ export const defaultSettingsPreferences: SettingsPreferences = {
   unfinishedWorkoutReminderEnabled: false,
   unfinishedWorkoutReminderDelay: 1800,
   showPlanInWorkoutTitle: true,
+  exerciseRestSeconds: {},
   workoutTypes: [
     { id: 'strength', name: 'Strength', color: '#687CF2', source: 'builtIn' },
     { id: 'mobility', name: 'Mobility', color: '#62C98A', source: 'builtIn' },
@@ -42,6 +43,14 @@ export async function loadSettingsPreferences(): Promise<SettingsPreferences> {
     unfinishedWorkoutReminderEnabled: parsed.unfinishedWorkoutReminderEnabled === true,
     unfinishedWorkoutReminderDelay: [900, 1800, 3600, 7200].includes(parsed.unfinishedWorkoutReminderDelay as number) ? parsed.unfinishedWorkoutReminderDelay as number : 1800,
     showPlanInWorkoutTitle: parsed.showPlanInWorkoutTitle !== false,
+    exerciseRestSeconds:
+      parsed.exerciseRestSeconds && typeof parsed.exerciseRestSeconds === 'object'
+        ? Object.fromEntries(
+            Object.entries(parsed.exerciseRestSeconds).filter(
+              ([, value]) => typeof value === 'number' && value >= 0,
+            ),
+          )
+        : {},
     workoutTypes: Array.isArray(parsed.workoutTypes)
       ? parsed.workoutTypes.flatMap((item) =>
           typeof item?.id === 'string' && typeof item.name === 'string' && typeof item.color === 'string'

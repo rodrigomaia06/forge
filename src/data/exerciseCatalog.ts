@@ -5,11 +5,18 @@ export interface ExerciseCatalogItem {
   equipment: string;
   variation?: string;
   category: string;
+  primaryMuscle: string;
+  secondaryMuscles: string[];
+  /** A custom-exercise-only override. Built-in overrides live in Settings. */
+  restSeconds?: number;
   aliases: string[];
   workoutTypeIds: string[];
 }
 
-const strengthCatalog: Omit<ExerciseCatalogItem, 'workoutTypeIds'>[] = [
+const strengthCatalog: Omit<
+  ExerciseCatalogItem,
+  'workoutTypeIds' | 'primaryMuscle' | 'secondaryMuscles'
+>[] = [
   {
     id: 'barbell-bench-press',
     name: 'Barbell Bench Press',
@@ -185,7 +192,32 @@ const strengthCatalog: Omit<ExerciseCatalogItem, 'workoutTypeIds'>[] = [
 // The current built-in catalogue is strength-only. Keeping the association on
 // every item makes the type browser ready for future Mobility/Cardio/Court data
 // without implying those types already have exercises.
+const strengthMuscles: Record<string, Pick<ExerciseCatalogItem, 'primaryMuscle' | 'secondaryMuscles'>> = {
+  'barbell-bench-press': { primaryMuscle: 'Chest', secondaryMuscles: ['Triceps', 'Front delts'] },
+  'barbell-bench-press-close-grip': { primaryMuscle: 'Triceps', secondaryMuscles: ['Chest', 'Front delts'] },
+  'incline-dumbbell-press': { primaryMuscle: 'Chest', secondaryMuscles: ['Triceps', 'Front delts'] },
+  'incline-smith-press': { primaryMuscle: 'Chest', secondaryMuscles: ['Triceps', 'Front delts'] },
+  'incline-barbell-press': { primaryMuscle: 'Chest', secondaryMuscles: ['Triceps', 'Front delts'] },
+  'dumbbell-bench-press': { primaryMuscle: 'Chest', secondaryMuscles: ['Triceps', 'Front delts'] },
+  'smith-bench-press': { primaryMuscle: 'Chest', secondaryMuscles: ['Triceps', 'Front delts'] },
+  'decline-barbell-press': { primaryMuscle: 'Chest', secondaryMuscles: ['Triceps', 'Front delts'] },
+  'decline-dumbbell-press': { primaryMuscle: 'Chest', secondaryMuscles: ['Triceps'] },
+  'decline-smith-press': { primaryMuscle: 'Chest', secondaryMuscles: ['Triceps'] },
+  'pec-deck': { primaryMuscle: 'Chest', secondaryMuscles: [] },
+  'chest-fly': { primaryMuscle: 'Chest', secondaryMuscles: [] },
+  dips: { primaryMuscle: 'Triceps', secondaryMuscles: ['Chest', 'Front delts'] },
+  'cable-crossover': { primaryMuscle: 'Chest', secondaryMuscles: [] },
+  'push-up': { primaryMuscle: 'Chest', secondaryMuscles: ['Triceps', 'Front delts'] },
+  'barbell-row': { primaryMuscle: 'Back', secondaryMuscles: ['Biceps', 'Rear delts'] },
+  'lat-pulldown': { primaryMuscle: 'Back', secondaryMuscles: ['Biceps'] },
+  'seated-cable-row': { primaryMuscle: 'Back', secondaryMuscles: ['Biceps', 'Rear delts'] },
+  'pull-up': { primaryMuscle: 'Back', secondaryMuscles: ['Biceps'] },
+  'barbell-squat': { primaryMuscle: 'Quads', secondaryMuscles: ['Glutes', 'Hamstrings'] },
+  'romanian-deadlift': { primaryMuscle: 'Hamstrings', secondaryMuscles: ['Glutes', 'Back'] },
+};
+
 export const exerciseCatalog: ExerciseCatalogItem[] = strengthCatalog.map((exercise) => ({
   ...exercise,
+  ...strengthMuscles[exercise.id],
   workoutTypeIds: ['strength'],
 }));

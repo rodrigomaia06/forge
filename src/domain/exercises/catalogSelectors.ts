@@ -7,16 +7,20 @@ export function filterCatalog(items: ExerciseCatalogItem[], filters: CatalogFilt
   return items.filter((item) => {
     if (filters.types?.length && !item.workoutTypeIds.some((id) => filters.types?.includes(id))) return false;
     if (filters.equipment?.length && !filters.equipment.includes(item.equipment)) return false;
-    if (filters.categories?.length && !filters.categories.includes(item.category)) return false;
+    const muscles = [item.primaryMuscle, ...item.secondaryMuscles];
+    if (filters.categories?.length && !muscles.some((muscle) => filters.categories?.includes(muscle))) return false;
     if (!query) return true;
-    const searchable = [item.name, item.equipment, item.category, ...item.aliases];
+    const searchable = [item.name, item.equipment, item.category, item.primaryMuscle, ...item.secondaryMuscles, ...item.aliases];
     if (filters.includeGroupInSearch) searchable.push(item.group);
     return searchable.join(' ').toLowerCase().includes(query);
   });
 }
 
 export function catalogFacets(items: ExerciseCatalogItem[]): { equipment: string[]; categories: string[] } {
-  return { equipment: [...new Set(items.map((item) => item.equipment))].sort(), categories: [...new Set(items.map((item) => item.category))].sort() };
+  return {
+    equipment: [...new Set(items.map((item) => item.equipment))].sort(),
+    categories: [...new Set(items.flatMap((item) => [item.primaryMuscle, ...item.secondaryMuscles]))].sort(),
+  };
 }
 
 export function groupCatalogByMovement(items: ExerciseCatalogItem[]): [string, ExerciseCatalogItem[]][] {

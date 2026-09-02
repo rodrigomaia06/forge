@@ -13,21 +13,44 @@ type ExerciseCatalogContextValue = {
 
 const ExerciseCatalogContext = createContext<ExerciseCatalogContextValue | null>(null);
 
+function variationKey(exercise: ExerciseCatalogItem): string {
+  return [exercise.group, exercise.variation || exercise.name, exercise.equipment]
+    .map((value) => value.trim().toLocaleLowerCase())
+    .join('\u0000');
+}
+
+function withoutDuplicateVariations(exercises: ExerciseCatalogItem[]): ExerciseCatalogItem[] {
+  const seen = new Set<string>();
+  return exercises.filter((exercise) => {
+    const key = variationKey(exercise);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export function ExerciseCatalogProvider({ children }: ChildrenProps) {
   const [customExercises, setCustomExercises] = useState<ExerciseCatalogItem[]>([]);
   useEffect(() => {
-    void loadCustomExercises().then(setCustomExercises);
+    void loadCustomExercises().then((loaded) => {
+      const unique = withoutDuplicateVariations(loaded);
+      setCustomExercises(unique);
+      if (unique.length !== loaded.length) void saveCustomExercises(unique);
+    });
   }, []);
   const addCustomExercise = (exercise: ExerciseCatalogItem) => {
     setCustomExercises((current) => {
-      const next = [...current, exercise];
+      const next = withoutDuplicateVariations([...current, exercise]);
+      if (next.length === current.length) return current;
       void saveCustomExercises(next);
       return next;
     });
   };
   const updateCustomExercise = (exercise: ExerciseCatalogItem) => {
     setCustomExercises((current) => {
-      const next = current.map((item) => (item.id === exercise.id ? exercise : item));
+      const next = withoutDuplicateVariations(
+        current.map((item) => (item.id === exercise.id ? exercise : item)),
+      );
       void saveCustomExercises(next);
       return next;
     });

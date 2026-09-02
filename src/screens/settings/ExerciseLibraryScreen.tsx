@@ -15,18 +15,11 @@ import { useSettings } from '../../state/SettingsContext';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import type { IconName, RootStackParamList, WorkoutTypePreference } from '../../types';
+import type { IconName, RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
+import { workoutTypeIcon } from './workoutTypeIcon';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseLibrary'>;
-
-function typeIcon(type: WorkoutTypePreference): IconName {
-  if (type.id === 'strength') return 'fitness';
-  if (type.id === 'mobility') return 'stretching';
-  if (type.id === 'cardio') return 'running';
-  if (type.id === 'court-sport') return 'tennis-ball';
-  return 'layers';
-}
 
 export function ExerciseLibraryScreen({ navigation }: Props) {
   const theme = useForgeTheme();
@@ -52,7 +45,7 @@ export function ExerciseLibraryScreen({ navigation }: Props) {
                 <React.Fragment key={type.id}>
                   {index > 0 && <View style={styles.divider} />}
                   <LibraryRow
-                    icon={typeIcon(type)}
+                    icon={workoutTypeIcon(type)}
                     color={type.color}
                     title={type.name}
                     count={count}

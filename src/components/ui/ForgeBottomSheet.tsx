@@ -12,18 +12,26 @@ import Animated, {
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { lightHaptic } from './haptics';
 
+const noop = () => undefined;
+const webViewportFill = Platform.OS === 'web'
+  ? ({ position: 'fixed', top: 0, right: 0, bottom: 0, left: 0 } as unknown as ViewStyle)
+  : undefined;
+
 interface ForgeBottomSheetProps {
   visible: boolean;
   onClose: () => void;
   accessibilityLabel: string;
   children: React.ReactNode | ((close: () => void) => React.ReactNode);
+  overlay?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   closeDistance?: number;
   initialOffset?: number;
   dismissThreshold?: number;
   onCloseStart?: () => void;
+  onBackRequest?: () => boolean;
   keyboardAvoiding?: boolean;
   backdropTestID?: string;
+  surfaceTestID?: string;
   dragArea?: (children: React.ReactNode) => React.ReactNode;
   testID?: string;
 }
@@ -34,13 +42,16 @@ export function ForgeBottomSheet({
   onClose,
   accessibilityLabel,
   children,
+  overlay,
   style,
   closeDistance = 520,
   initialOffset = closeDistance,
   dismissThreshold = 190,
   onCloseStart,
+  onBackRequest,
   keyboardAvoiding = false,
   backdropTestID,
+  surfaceTestID,
   dragArea,
   testID,
 }: ForgeBottomSheetProps) {
@@ -82,10 +93,11 @@ export function ForgeBottomSheet({
     .onStart(() => { dragStart.value = translateY.value; })
     .onUpdate((event) => { translateY.value = Math.max(0, dragStart.value + event.translationY); })
     .onEnd((event) => {
+      if (closing.value) return;
       const projected = Math.max(0, dragStart.value + event.translationY + event.velocityY * 0.12);
       if (projected >= dismissThreshold || event.velocityY > 900) {
         closing.value = true;
-        runOnJS(onCloseStart ?? (() => undefined))();
+        runOnJS(onCloseStart ?? noop)();
         translateY.value = withTiming(closeDistance, { duration: 200 }, (finished) => {
           if (finished) runOnJS(finishClose)();
         });
@@ -99,8 +111,15 @@ export function ForgeBottomSheet({
 
   if (!visible) return null;
   return (
-    <Modal visible transparent animationType="none" onRequestClose={() => close(true)}>
-      <Animated.View testID={testID} style={[styles.backdrop, backdropStyle]}>
+    <Modal
+      visible
+      transparent
+      animationType="none"
+      onRequestClose={() => {
+        if (!onBackRequest?.()) close(true);
+      }}
+    >
+      <Animated.View testID={testID} style={[styles.backdrop, webViewportFill, backdropStyle]}>
         <Pressable
           testID={backdropTestID}
           accessibilityRole="button"
@@ -108,11 +127,12 @@ export function ForgeBottomSheet({
           onPress={() => close(true)}
           style={StyleSheet.absoluteFill}
         />
-        <KeyboardAvoidingView style={styles.keyboardArea} behavior={keyboardAvoiding && Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView pointerEvents="box-none" style={styles.keyboardArea} behavior={keyboardAvoiding && Platform.OS === 'ios' ? 'padding' : undefined}>
           <GestureDetector gesture={pan}>
-            <Animated.View style={[styles.sheet, { backgroundColor: theme.surfaceElevated, shadowColor: theme.shadow }, style, sheetStyle]}>{dragArea ? dragArea(typeof children === 'function' ? children(() => close(false)) : children) : (typeof children === 'function' ? children(() => close(false)) : children)}</Animated.View>
+            <Animated.View testID={surfaceTestID} style={[styles.sheet, { backgroundColor: theme.surfaceElevated, shadowColor: theme.shadow }, style, sheetStyle]}>{dragArea ? dragArea(typeof children === 'function' ? children(() => close(false)) : children) : (typeof children === 'function' ? children(() => close(false)) : children)}</Animated.View>
           </GestureDetector>
         </KeyboardAvoidingView>
+        {overlay}
       </Animated.View>
     </Modal>
   );
@@ -128,8 +148,12 @@ export function ForgeBottomSheetDragArea({ children }: { children: React.ReactNo
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(23,25,28,0.24)' },
-  keyboardArea: { justifyContent: 'flex-end' },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(23,25,28,0.24)',
+  },
+  keyboardArea: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
     overflow: 'hidden',
     borderTopLeftRadius: 28,
