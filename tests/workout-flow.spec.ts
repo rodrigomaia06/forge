@@ -328,6 +328,41 @@ test.describe('Active workout flow', () => {
     await expect(workoutItem).toBeVisible();
   });
 
+  test('keeps compact active-workout dock tabs centred inside the selection pill', async ({
+    page,
+  }) => {
+    await startEmptyWorkoutWithExercise(page);
+    const addSet = page.getByRole('button', { name: 'Add set to Barbell Bench Press' });
+    for (let count = 0; count < 10; count += 1) await addSet.click();
+
+    const workoutList = page.getByTestId('active-workout-list');
+    const listBox = await workoutList.boundingBox();
+    if (!listBox) throw new Error('Expected active-workout list to be measurable');
+    await page.mouse.move(listBox.x + listBox.width / 2, listBox.y + listBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(listBox.x + listBox.width / 2, listBox.y + 80, { steps: 10 });
+    await page.mouse.up();
+    await page.waitForTimeout(280);
+
+    const [dock, pill, workoutTab, workoutIcon] = await Promise.all([
+      page.getByTestId('dashboard-dock-cylinder').boundingBox(),
+      page.getByTestId('dashboard-nav-selection-pill').boundingBox(),
+      page.getByRole('tab', { name: 'Workout', exact: true }).boundingBox(),
+      page.getByRole('tab', { name: 'Workout', exact: true }).locator('svg').boundingBox(),
+    ]);
+    if (!dock || !pill || !workoutTab || !workoutIcon)
+      throw new Error('Expected compact workout dock geometry to be measurable');
+
+    expect(dock.width).toBeGreaterThanOrEqual(304);
+    expect(pill.width).toBeGreaterThanOrEqual(56);
+    expect(pill.height).toBeGreaterThanOrEqual(40);
+    expect(Math.abs(pill.x + pill.width / 2 - (workoutTab.x + workoutTab.width / 2))).toBeLessThan(
+      2,
+    );
+    expect(workoutIcon.width).toBeGreaterThanOrEqual(32);
+    expect(workoutIcon.height).toBeGreaterThanOrEqual(32);
+  });
+
   test('opens the active workout after reloading with a workout in progress', async ({ page }) => {
     await page.goto('/');
     await startBlankWorkout(page);

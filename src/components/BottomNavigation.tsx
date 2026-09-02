@@ -38,7 +38,9 @@ export function BottomNavigation({
   const { navigation, state } = tabBarProps;
   const activeWorkout = useWorkouts().activeWorkout;
   const { preferences } = useSettings();
-  const [itemLayouts, setItemLayouts] = useState<Partial<Record<BottomNavigationScreen, ItemLayout>>>({});
+  const [itemLayouts, setItemLayouts] = useState<
+    Partial<Record<BottomNavigationScreen, ItemLayout>>
+  >({});
   const indicatorX = useSharedValue(0);
   const indicatorWidth = useSharedValue(0);
   const indicatorOpacity = useSharedValue(0);
@@ -64,7 +66,9 @@ export function BottomNavigation({
   const items: NavigationItemEntry[] = [
     ['home-outline', 'Dashboard', 'Dashboard', false],
     ['time-outline', 'History', 'History', false],
-    ...(activeWorkout ? [[activeWorkoutIcon, 'Workout', 'ActiveWorkout', true] as NavigationItemEntry] : []),
+    ...(activeWorkout
+      ? [[activeWorkoutIcon, 'Workout', 'ActiveWorkout', true] as NavigationItemEntry]
+      : []),
     ['book', 'Plans', 'Plans', false],
     ['menu', 'Settings', 'Settings', false],
   ];
@@ -98,7 +102,11 @@ export function BottomNavigation({
   const goTo = (screen: BottomNavigationScreen): void => {
     const target = state.routes.find((route) => route.name === screen);
     if (!target || activeRoute === screen) return;
-    const event = navigation.emit({ type: 'tabPress', target: target.key, canPreventDefault: true });
+    const event = navigation.emit({
+      type: 'tabPress',
+      target: target.key,
+      canPreventDefault: true,
+    });
     if (event.defaultPrevented) return;
     selectionHaptic();
     onNavigate?.();
@@ -116,25 +124,45 @@ export function BottomNavigation({
           selectionIndicatorStyle,
           {
             backgroundColor:
-              activeRoute === 'ActiveWorkout' ? theme.actionPrimary : theme.dockSelected || theme.slate,
+              activeRoute === 'ActiveWorkout'
+                ? theme.actionPrimary
+                : theme.dockSelected || theme.slate,
           },
         ]}
       />
-      {items.map(([icon, label, screen, emphasis]) => (
-        <View key={label} onLayout={(event) => updateItemLayout(screen, event)} style={styles.itemSlot}>
-          <NavigationItem
-            icon={icon}
-            label={label}
-            active={activeRoute === screen}
-            emphasis={emphasis}
-            onPress={() => goTo(screen)}
-            theme={theme}
-            iconSize={compact ? (emphasis ? 28 : 20) : emphasis ? 40 : hasActiveWorkout ? 26 : 28}
-            enterFromBottom={emphasis && workoutStartedNow}
-            compact={compact}
-          />
-        </View>
-      ))}
+      {items.map(([icon, label, screen, emphasis]) => {
+        const active = activeRoute === screen;
+        const iconSize = compact
+          ? active
+            ? emphasis
+              ? 34
+              : 26
+            : 22
+          : emphasis
+            ? 40
+            : hasActiveWorkout
+              ? 26
+              : 28;
+        return (
+          <View
+            key={label}
+            onLayout={(event) => updateItemLayout(screen, event)}
+            style={styles.itemSlot}
+          >
+            <NavigationItem
+              icon={icon}
+              label={label}
+              active={active}
+              emphasis={emphasis}
+              onPress={() => goTo(screen)}
+              theme={theme}
+              iconSize={iconSize}
+              enterFromBottom={emphasis && workoutStartedNow}
+              compact={compact}
+            />
+          </View>
+        );
+      })}
     </View>
   );
 }

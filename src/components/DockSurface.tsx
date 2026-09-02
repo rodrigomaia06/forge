@@ -45,7 +45,10 @@ export function DockSurface({
   // original dock while the parent indicator moves between tabs.
   const regularWidth = Math.min(Math.max(viewportWidth * 0.86, 304), 360);
   const activeWorkoutWidth = Math.min(Math.max(viewportWidth * 0.88, 320), 390);
-  const compactWidth = Math.min(Math.max(viewportWidth * 0.62, 244), 270);
+  // Five tabs remain visible while a workout is active. Keep their 56 pt
+  // hit targets inside the compact surface so the selection pill stays
+  // centred on its measured slot instead of overflowing the dock.
+  const compactWidth = Math.min(Math.max(viewportWidth * 0.76, 304), 336);
   const activeWorkoutProgress = useSharedValue(activeWorkout ? 1 : 0);
 
   useEffect(() => {
@@ -63,20 +66,17 @@ export function DockSurface({
     });
   }, [activeWorkout, activeWorkoutProgress]);
 
-  const surfaceAnimatedStyle = useAnimatedStyle(
-    () => {
-      const expandedWidth = interpolate(
-        activeWorkoutProgress.value,
-        [0, 1],
-        [regularWidth, activeWorkoutWidth],
-      );
-      return {
-        width: interpolate(progress.value, [0, 1], [expandedWidth, compactWidth]),
-        minHeight: interpolate(progress.value, [0, 1], [64, 48]),
-      };
-    },
-    [activeWorkoutWidth, compactWidth, regularWidth],
-  );
+  const surfaceAnimatedStyle = useAnimatedStyle(() => {
+    const expandedWidth = interpolate(
+      activeWorkoutProgress.value,
+      [0, 1],
+      [regularWidth, activeWorkoutWidth],
+    );
+    return {
+      width: interpolate(progress.value, [0, 1], [expandedWidth, compactWidth]),
+      minHeight: interpolate(progress.value, [0, 1], [64, 48]),
+    };
+  }, [activeWorkoutWidth, compactWidth, regularWidth]);
 
   return (
     <Animated.View
@@ -86,7 +86,11 @@ export function DockSurface({
       style={[
         styles.dock,
         surfaceAnimatedStyle,
-        { backgroundColor: theme.dock ?? theme.dockSurface, borderColor: theme.border ?? theme.dockBorder, shadowColor: theme.shadow },
+        {
+          backgroundColor: theme.dock ?? theme.dockSurface,
+          borderColor: theme.border ?? theme.dockBorder,
+          shadowColor: theme.shadow,
+        },
       ]}
     >
       {children || (

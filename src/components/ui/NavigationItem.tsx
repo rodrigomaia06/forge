@@ -1,10 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import {
-  Animated as RNAnimated,
-  Easing as RNEasing,
-  Pressable,
-  StyleSheet,
-} from 'react-native';
+import { Animated as RNAnimated, Easing as RNEasing, Pressable, StyleSheet } from 'react-native';
 import Animated, {
   Easing,
   cancelAnimation,
@@ -129,9 +124,9 @@ export function NavigationItem({
                 ? theme.onActionPrimary
                 : emphasis
                   ? theme.actionPrimary
-                : active
-                  ? theme.dockForeground || theme.surface
-                  : theme.dockMuted || theme.slate
+                  : active
+                    ? theme.dockForeground || theme.surface
+                    : theme.dockMuted || theme.slate
             }
             weight={emphasis ? 'thin' : active ? 'fill' : 'regular'}
           />
@@ -161,13 +156,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 22,
   },
-  iconFrameCompact: { width: 36, height: 36, borderRadius: 18 },
+  iconFrameCompact: { width: 44, height: 44, borderRadius: 22 },
   activeItem: { width: '100%', marginHorizontal: 2 },
   emphasisItem: { width: '100%', marginHorizontal: 2 },
   activeIconFrame: { width: 44, height: 44, borderRadius: 22 },
-  activeIconFrameCompact: { width: 36, height: 36, borderRadius: 18 },
+  activeIconFrameCompact: { width: 44, height: 44, borderRadius: 22 },
   inactiveLabel: { opacity: 0.68 },
   activeLabel: { color: colors.selectionIndicator, fontWeight: '700' },
   pressed: { opacity: 0.65 },
-  itemCompact: { minHeight: 42, marginVertical: 2 },
+  itemCompact: { minHeight: 44, marginVertical: 2 },
 });
