@@ -7,6 +7,7 @@ import { HistoryScreen } from '../screens/HistoryScreen';
 import { PlansScreen } from '../screens/PlansScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { useWorkouts } from '../state/WorkoutContext';
+import { useForgeTheme } from '../theme/ThemeProvider';
 import { ForgeTabBar } from './ForgeTabBar';
 import { PrimaryDockProvider } from './PrimaryDockContext';
 import type { RootTabParamList } from '../types';
@@ -15,6 +16,7 @@ const Tab = createBottomTabNavigator<RootTabParamList>();
 
 export function MainTabNavigator() {
   const { activeWorkout } = useWorkouts();
+  const theme = useForgeTheme();
   const [compact, setCompact] = useState(false);
   const setDockCompact = useCallback((nextCompact: boolean) => setCompact(nextCompact), []);
   const dockContext = useMemo(
@@ -34,6 +36,10 @@ export function MainTabNavigator() {
           headerShown: false,
           lazy: false,
           freezeOnBlur: true,
+          // The tab scenes remain visible under the fade. Keep that shared
+          // surface theme-aware so Dark mode never flashes React Navigation's
+          // default white scene between tabs.
+          sceneStyle: { backgroundColor: theme.background },
           ...TransitionPresets.FadeTransition,
         }}
         tabBar={(props) => <ForgeTabBar {...props} />}

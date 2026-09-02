@@ -31,6 +31,7 @@ import type {
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 import { REST_DURATION_OPTIONS } from '../../domain/rest/restDurationOptions';
+import { forgeDockScrollInset } from '../../components/DockChrome';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GeneralSettings'>;
 
@@ -372,7 +373,7 @@ const styles = StyleSheet.create({
   content: {
     padding: settingsLayout.screenPadding,
     paddingTop: settingsLayout.contentTop,
-    paddingBottom: settingsLayout.contentBottom,
+    paddingBottom: forgeDockScrollInset,
     gap: settingsLayout.sectionGap,
   },
   value: { ...typeScale.supporting },

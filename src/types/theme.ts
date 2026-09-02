@@ -3,6 +3,7 @@ export interface ForgeTheme {
   header: string;
   surface: string;
   surfaceElevated: string;
+  surfaceInset: string;
   input: string;
   dock: string;
   overlay: string;

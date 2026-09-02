@@ -1183,7 +1183,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     meta: { ...typeScale.supporting, color: theme.slate, marginTop: 2 },
     variations: {
       padding: 14,
-      backgroundColor: theme.surfaceMuted,
+      backgroundColor: theme.surfaceInset,
       borderTopWidth: 1,
       borderColor: theme.border,
       gap: 12,

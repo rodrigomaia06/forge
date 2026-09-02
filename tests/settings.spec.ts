@@ -195,7 +195,7 @@ test.describe('Settings', () => {
       expect(appearanceBox?.height).toBeCloseTo(52 * 3, 0);
     }
     await page.getByRole('radio', { name: 'Dark' }).click();
-    await expect(page.getByRole('button', { name: 'Appearance' })).toContainText('Dark');
+    await expect(page.getByRole('button', { name: 'Appearance', exact: true })).toContainText('Dark');
   });
 
   test('keeps a new workout type as a draft until Save', async ({ page }) => {

@@ -1,5 +1,5 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useMemo } from 'react';
+import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { enableFreeze } from 'react-native-screens';
 import { WorkoutDetailsScreen } from '../screens/WorkoutDetailsScreen';
@@ -12,6 +12,7 @@ import { WorkoutTypeEditorScreen } from '../screens/settings/WorkoutTypeEditorSc
 import { ExerciseLibraryScreen } from '../screens/settings/ExerciseLibraryScreen';
 import { ExerciseBrowserScreen } from '../screens/settings/ExerciseBrowserScreen';
 import { useWorkouts } from '../state/WorkoutContext';
+import { useForgeTheme } from '../theme/ThemeProvider';
 import type { RootStackParamList } from '../types';
 import { MainTabNavigator } from './MainTabNavigator';
 
@@ -21,11 +22,26 @@ enableFreeze(true);
 
 export function AppNavigator() {
   const { ready } = useWorkouts();
+  const theme = useForgeTheme();
+  const navigationTheme = useMemo(
+    () => ({
+      ...DefaultTheme,
+      colors: {
+        ...DefaultTheme.colors,
+        primary: theme.selectionIndicator,
+        background: theme.background,
+        card: theme.background,
+        text: theme.textPrimary,
+        border: theme.border,
+      },
+    }),
+    [theme],
+  );
 
   if (!ready) return null;
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navigationTheme}>
       <Stack.Navigator
         initialRouteName="MainTabs"
         screenOptions={{
