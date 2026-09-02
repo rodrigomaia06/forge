@@ -164,5 +164,5 @@ const styles = StyleSheet.create({
   inactiveLabel: { opacity: 0.68 },
   activeLabel: { color: colors.selectionIndicator, fontWeight: '700' },
   pressed: { opacity: 0.65 },
-  itemCompact: { minHeight: 44, marginVertical: 2 },
+  itemCompact: { height: 44, minHeight: 44, marginVertical: 0 },
 });

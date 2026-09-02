@@ -359,6 +359,12 @@ test.describe('Active workout flow', () => {
     expect(Math.abs(pill.x + pill.width / 2 - (workoutTab.x + workoutTab.width / 2))).toBeLessThan(
       2,
     );
+    expect(
+      Math.abs(pill.y + pill.height / 2 - (workoutTab.y + workoutTab.height / 2)),
+    ).toBeLessThan(2);
+    expect(
+      Math.abs(pill.y + pill.height / 2 - (workoutIcon.y + workoutIcon.height / 2)),
+    ).toBeLessThan(2);
     expect(workoutIcon.width).toBeGreaterThanOrEqual(32);
     expect(workoutIcon.height).toBeGreaterThanOrEqual(32);
   });

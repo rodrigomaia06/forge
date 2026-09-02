@@ -147,7 +147,7 @@ export function BottomNavigation({
           <View
             key={label}
             onLayout={(event) => updateItemLayout(screen, event)}
-            style={styles.itemSlot}
+            style={[styles.itemSlot, compact && styles.itemSlotCompact]}
           >
             <NavigationItem
               icon={icon}
@@ -186,6 +186,7 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   itemSlot: { flex: 1, alignItems: 'center' },
+  itemSlotCompact: { height: 44, justifyContent: 'center' },
   selectionPill: {
     position: 'absolute',
     // Match the former per-item pill: its Pressable had a 3 pt vertical
