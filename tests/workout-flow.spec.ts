@@ -280,7 +280,9 @@ test.describe('Active workout flow', () => {
   test('uses a dashed outline for Add exercise', async ({ page }) => {
     await page.goto('/');
     await startBlankWorkout(page);
-    await expect(page.getByRole('button', { name: 'Add exercise' })).toHaveCSS('border-style', 'dashed');
+    const addExercise = page.getByRole('button', { name: 'Add exercise' });
+    await expect(addExercise).toHaveCSS('border-style', 'dashed');
+    await expect(addExercise).toHaveCSS('border-width', '2px');
   });
 
   test('keeps the workout dock item available without a selection pill', async ({ page }) => {
