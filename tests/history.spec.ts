@@ -57,13 +57,6 @@ test.describe('History screen', () => {
     await expect(page.getByRole('button', { name: 'Workout options' })).toContainText('More');
 
     await expect(page.getByText('Exercise 1', { exact: true })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'History' })).toHaveAttribute(
-      'data-testid',
-      'dashboard-nav-active',
-    );
-
-    await page.getByRole('tab', { name: 'History' }).click();
-    await expect(page.getByTestId('history-header')).toBeVisible();
   });
 
   test('returns to History through the Back action after opening a workout', async ({ page }) => {

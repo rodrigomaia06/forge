@@ -75,6 +75,55 @@ test.describe('Dashboard', () => {
     }
   });
 
+  test('keeps one persistent dock and moves its selected indicator between tabs', async ({ page }) => {
+    await page.goto('/');
+
+    const dock = page.getByTestId('dashboard-dock-cylinder');
+    const indicator = page.getByTestId('dashboard-nav-selection-pill');
+    await expect(dock).toHaveCount(1);
+    await expect(page.getByRole('tab', { name: 'Dashboard' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+
+    const dashboardIndicator = await indicator.boundingBox();
+    const dashboardIcon = await page
+      .getByRole('tab', { name: 'Dashboard' })
+      .locator('svg')
+      .boundingBox();
+    const inactiveHistoryIcon = await page
+      .getByRole('tab', { name: 'History' })
+      .locator('svg')
+      .boundingBox();
+    expect(dashboardIcon?.width).toBeGreaterThan(inactiveHistoryIcon?.width ?? 0);
+    await page.getByRole('tab', { name: 'History' }).click();
+    await expect(page.getByTestId('history-title')).toBeVisible();
+    await expect(dock).toHaveCount(1);
+    await expect(page.getByRole('tab', { name: 'History' })).toHaveAttribute('aria-selected', 'true');
+    await expect(indicator).toBeVisible();
+    await page.waitForTimeout(180);
+    const historyIndicator = await indicator.boundingBox();
+    const historyIcon = await page
+      .getByRole('tab', { name: 'History' })
+      .locator('svg')
+      .boundingBox();
+    const inactiveDashboardIcon = await page
+      .getByRole('tab', { name: 'Dashboard' })
+      .locator('svg')
+      .boundingBox();
+    expect(historyIcon?.width).toBeGreaterThan(inactiveDashboardIcon?.width ?? 0);
+
+    await page.getByRole('tab', { name: 'History' }).click();
+    await expect(page.getByRole('tab', { name: 'History' })).toHaveAttribute('aria-selected', 'true');
+    const retainedHistoryIndicator = await indicator.boundingBox();
+
+    expect(dashboardIndicator).not.toBeNull();
+    expect(historyIndicator).not.toBeNull();
+    expect(retainedHistoryIndicator).not.toBeNull();
+    expect(historyIndicator?.x).toBeGreaterThan(dashboardIndicator?.x ?? 0);
+    expect(retainedHistoryIndicator?.x).toBeCloseTo(historyIndicator?.x ?? 0, 0);
+  });
+
   test('uses the Forge semantic scale for page and supporting text', async ({ page }) => {
     await page.goto('/');
 

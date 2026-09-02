@@ -34,7 +34,7 @@ test.describe('Active workout flow', () => {
 
     await startBlankWorkout(page);
     await expect(page.getByText('Workout', { exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Workout', exact: true })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Workout', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Cancel workout' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Finish workout' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Cancel workout' })).not.toContainText('Cancel');
@@ -60,7 +60,7 @@ test.describe('Active workout flow', () => {
 
     await page.getByRole('button', { name: 'Finish workout' }).click();
     await expect(page.getByTestId('dashboard-header-title').last()).toBeVisible();
-    await expect(page.getByText('Workout', { exact: true })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Workout', exact: true })).toHaveCount(0);
   });
 
   test('groups exercise variations and selects single-variation exercises directly', async ({
@@ -95,6 +95,20 @@ test.describe('Active workout flow', () => {
     await expect(
       page.getByRole('checkbox', { name: 'Bench Press, Barbell, Close grip' }),
     ).toBeVisible();
+  });
+
+  test('keeps variation counts legible in Dark appearance', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance: 'dark' }));
+    });
+    await page.goto('/');
+    await startBlankWorkout(page);
+    await page.getByRole('button', { name: 'Add exercise' }).click();
+
+    const count = page.getByTestId('exercise-group-count-Bench Press');
+    await expect(count).toHaveCSS('background-color', 'rgb(42, 47, 52)');
+    await expect(count).toHaveCSS('border-color', 'rgb(58, 64, 70)');
+    await expect(count.getByText('0', { exact: true })).toHaveCSS('color', 'rgb(195, 200, 204)');
   });
 
   test('starts the rest timer from the workout header', async ({ page }) => {
@@ -274,7 +288,7 @@ test.describe('Active workout flow', () => {
     const restingDock = await page.getByTestId('dashboard-dock-cylinder').boundingBox();
     await startBlankWorkout(page);
     await expect(page.getByRole('tab', { name: 'Dashboard' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Workout', exact: true })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Workout', exact: true })).toBeVisible();
     await expect(page.getByLabel('Home indicator').last()).toBeVisible();
     await page.getByRole('tab', { name: 'Dashboard' }).click();
     await page.waitForTimeout(300);
@@ -298,9 +312,9 @@ test.describe('Active workout flow', () => {
     await page.goto('/');
     await startBlankWorkout(page);
 
-    const workoutItem = page.getByRole('button', { name: 'Workout', exact: true });
+    const workoutItem = page.getByRole('tab', { name: 'Workout', exact: true });
     await expect(workoutItem).toBeVisible();
-    await expect(workoutItem.getByTestId('dashboard-nav-selection-pill')).toHaveCSS(
+    await expect(page.getByTestId('dashboard-nav-selection-pill')).toHaveCSS(
       'background-color',
       'rgb(29, 37, 45)',
     );
@@ -327,7 +341,7 @@ test.describe('Active workout flow', () => {
     await startBlankWorkout(page);
     await page.getByRole('button', { name: 'Cancel workout' }).click();
     await expect(page.getByRole('button', { name: 'Start workout' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Workout', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('tab', { name: 'Workout', exact: true })).toHaveCount(0);
   });
 
   test('removes an exercise from its options sheet', async ({ page }) => {

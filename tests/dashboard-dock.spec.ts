@@ -6,24 +6,22 @@ test.describe('Dashboard dock geometry', () => {
     await expect(page.getByTestId('dashboard-shell')).toBeVisible();
   });
 
-  test('keeps the dock inside the shell without covering visible context', async ({ page }) => {
-    const shell = await page.getByTestId('dashboard-shell').boundingBox();
+  test('keeps the persistent dock floating above the tab scene edge', async ({ page }) => {
+    const viewport = page.viewportSize();
     const dock = await page.getByTestId('dashboard-dock-cylinder').boundingBox();
     const contextLocator = page.getByTestId('dashboard-context-card');
     const context = (await contextLocator.count()) > 0 ? await contextLocator.boundingBox() : null;
 
-    console.log('[dock geometry]', JSON.stringify({ shell, dock, context }));
-
-    expect(shell).not.toBeNull();
     expect(dock).not.toBeNull();
     expect(context).not.toBeNull();
-    if (!shell || !dock || !context)
+    expect(viewport).not.toBeNull();
+    if (!dock || !context || !viewport)
       throw new Error('Expected dashboard geometry to be measurable');
 
-    expect(dock.x).toBeGreaterThanOrEqual(shell.x);
-    expect(dock.x + dock.width).toBeLessThanOrEqual(shell.x + shell.width);
-    expect(dock.y).toBeGreaterThanOrEqual(shell.y);
-    expect(dock.y + dock.height).toBeLessThanOrEqual(shell.y + shell.height);
+    expect(dock.x).toBeGreaterThanOrEqual(0);
+    expect(dock.x + dock.width).toBeLessThanOrEqual(viewport.width);
+    expect(dock.y).toBeGreaterThanOrEqual(0);
+    expect(dock.y + dock.height).toBeLessThanOrEqual(viewport.height);
     expect(dock.width).toBeLessThanOrEqual(360);
     expect(dock.width).toBeGreaterThanOrEqual(304);
     expect(dock.height).toBeGreaterThanOrEqual(60);
@@ -37,7 +35,8 @@ test.describe('Dashboard dock geometry', () => {
     if (!header || !scroll)
       throw new Error('Expected dashboard header and scroll geometry to be measurable');
     expect(header.y).toBe(scroll.y);
-    expect(header.y).toBeGreaterThanOrEqual(shell.y);
+    expect(dock.y).toBeGreaterThanOrEqual(header.y + header.height);
+    expect(dock.y + dock.height).toBeLessThanOrEqual(viewport.height - 16);
     await expect(page.getByTestId('dashboard-header')).toHaveCSS('position', 'relative');
     await expect(page.getByTestId('dashboard-dock-vignette')).toBeVisible();
     await expect(page.getByTestId('dashboard-dock-home-indicator')).toBeVisible();
