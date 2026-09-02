@@ -80,7 +80,6 @@ export function ForgeBottomSheet({
   const backdropOpacity = useSharedValue(0);
   const closing = useSharedValue(false);
   const dragStart = useSharedValue(0);
-  const keyboardProgress = useSharedValue(0);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const onCloseRef = useRef(onClose);
@@ -112,7 +111,6 @@ export function ForgeBottomSheet({
 
   useEffect(() => {
     if (!visible || !keyboardAvoiding) {
-      keyboardProgress.value = withTiming(0, { duration: 160 });
       setKeyboardVisible(false);
       setKeyboardHeight(0);
       return undefined;
@@ -125,7 +123,6 @@ export function ForgeBottomSheet({
       }
       setKeyboardVisible(nextVisible);
       setKeyboardHeight(nextVisible ? event.endCoordinates.height : 0);
-      keyboardProgress.value = withTiming(nextVisible ? 1 : 0, { duration: 180 });
     };
     const show = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
@@ -139,7 +136,7 @@ export function ForgeBottomSheet({
       show.remove();
       hide.remove();
     };
-  }, [keyboardAvoiding, keyboardProgress, visible]);
+  }, [keyboardAvoiding, visible]);
 
   const pan = Gesture.Pan()
     .activeOffsetY([-6, 6])
@@ -162,10 +159,6 @@ export function ForgeBottomSheet({
     });
   const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
   const backdropStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value }));
-  const keyboardSheetStyle = useAnimatedStyle(() => ({
-    borderTopLeftRadius: 28 * (1 - keyboardProgress.value),
-    borderTopRightRadius: 28 * (1 - keyboardProgress.value),
-  }));
 
   if (!visible) return null;
   return (
@@ -198,7 +191,6 @@ export function ForgeBottomSheet({
                 style,
                 keyboardVisible && styles.keyboardExpandedSheet,
                 keyboardVisible && { top: insets.top, bottom: keyboardHeight },
-                keyboardSheetStyle,
                 sheetStyle,
               ]}
             >
