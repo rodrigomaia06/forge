@@ -1,8 +1,10 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { ForgeText as Text, Icon } from './ui';
+import { getWorkoutTypePresentation } from '../domain/workouts/presentation';
+import { useSettings } from '../state/SettingsContext';
 import { colors, typeScale } from '../theme/tokens';
-import type { ForgeTheme, IconName, WorkoutSummary } from '../types';
+import type { ForgeTheme, WorkoutSummary } from '../types';
 
 export function WorkoutRow({
   workout,
@@ -11,35 +13,13 @@ export function WorkoutRow({
   workout: WorkoutSummary;
   theme?: ForgeTheme;
 }) {
+  const { preferences } = useSettings();
   const summary =
     workout.summary ||
     `${workout.exercises?.length || 0} exercises · ${workout.exercises?.reduce((total, exercise) => total + exercise.sets.length, 0) || 0} sets`;
   const summaryItems = summary.split(' · ');
   const duration = workout.duration || formatDuration(workout.durationSeconds);
-  const presentation =
-    workout.type === 'Strength'
-      ? {
-          icon: 'fitness-outline' as IconName,
-          color: theme.iconStrength || theme.accent,
-          background: 'rgba(111,127,242,0.14)',
-        }
-      : workout.type === 'Court sport'
-        ? {
-            icon: 'tennis-ball' as IconName,
-            color: theme.iconSport || theme.marker,
-            background: 'rgba(98,201,138,0.14)',
-          }
-        : workout.type === 'Mobility'
-          ? {
-              icon: 'stretching' as IconName,
-              color: theme.iconActivity || theme.accent,
-              background: 'rgba(170,124,232,0.14)',
-            }
-          : {
-              icon: 'running' as IconName,
-              color: theme.iconActivity || theme.accent,
-              background: 'rgba(233,154,91,0.14)',
-            };
+  const presentation = getWorkoutTypePresentation(workout.type, preferences.workoutTypes, theme, 0.14);
   return (
     <Pressable
       accessibilityRole="button"

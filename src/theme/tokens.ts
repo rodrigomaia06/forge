@@ -2,31 +2,20 @@ import type { TextStyle } from 'react-native';
 import type { ForgeTheme } from '../types';
 
 const shared = {
-  accent: '#1D252D',
-  inkInteractive: '#284C68',
+  actionPrimary: '#1D252D',
+  onActionPrimary: '#FFFFFF',
+  selectionIndicator: '#1D252D',
   success: '#4D7B67',
   onSuccess: '#FFFFFF',
   marker: '#4D7B67',
-  iconCalendar: '#4F6B5B',
-  iconStrength: '#6F7FF2',
-  iconSport: '#62C98A',
-  iconActivity: '#E99A5B',
-  iconTime: '#5F7770',
   cardRadius: 24,
   topBar: true as const,
   headerVariant: 'greeting' as const,
   startButtonVariant: 'outline-compact',
-  summaryGradientStart: '#F0EEFF',
-  summaryGradientEnd: '#E4E2FF',
-  summaryBorder: '#DAD7F8',
+  summaryGradientStart: '#F8F8F6',
+  summaryGradientEnd: '#ECEDEB',
+  summaryBorder: '#E2E3E0',
   summaryGlow: '#FFFFFF',
-  workoutType: {
-    strength: '#6F7FF2',
-    mobility: '#62C98A',
-    cardio: '#EF715F',
-    sport: '#E99A5B',
-    activity: '#B78AF0',
-  },
 };
 
 export const lightTheme: ForgeTheme = {
@@ -41,7 +30,6 @@ export const lightTheme: ForgeTheme = {
   surfaceMuted: '#ECEDEB',
   ink: '#17191C',
   textPrimary: '#17191C',
-  primaryText: '#FFFFFF',
   textSecondary: '#55585C',
   textDisabled: '#A0A3A4',
   textDestructive: '#D64848',
@@ -52,7 +40,7 @@ export const lightTheme: ForgeTheme = {
   divider: '#E2E3E0',
   border: '#E2E3E0',
   pressed: 'rgba(23,25,28,0.08)',
-  focus: '#6F7FF2',
+  focus: '#1D252D',
   shadow: '#17191C',
   ...shared,
   calendarDay: '#FFFFFF',
@@ -66,8 +54,9 @@ export const lightTheme: ForgeTheme = {
 
 export const darkTheme: ForgeTheme = {
   ...shared,
-  accent: '#7C8CF8',
-  inkInteractive: '#9CA7FF',
+  actionPrimary: '#F5F7F8',
+  onActionPrimary: '#172431',
+  selectionIndicator: '#F5F7F8',
   success: '#6F9E87',
   onSuccess: '#172431',
   background: '#17191C',
@@ -80,7 +69,6 @@ export const darkTheme: ForgeTheme = {
   surfaceMuted: '#30363B',
   ink: '#F7F8F6',
   textPrimary: '#F7F8F6',
-  primaryText: '#172431',
   textSecondary: '#C3C8CC',
   textDisabled: '#707980',
   textDestructive: '#FF8A8A',
@@ -91,7 +79,7 @@ export const darkTheme: ForgeTheme = {
   divider: '#3A4046',
   border: '#464D54',
   pressed: 'rgba(247,248,246,0.10)',
-  focus: '#9CA7FF',
+  focus: '#F5F7F8',
   shadow: '#000000',
   calendarSurface: '#202428',
   calendarDay: 'rgba(255,255,255,0.08)',
@@ -106,10 +94,10 @@ export const darkTheme: ForgeTheme = {
   dockBorder: '#3A4046',
   dockForeground: '#F7F8F6',
   dockMuted: 'rgba(247,248,246,0.65)',
-  summaryGradientStart: '#302D4D',
-  summaryGradientEnd: '#292743',
-  summaryBorder: '#514C76',
-  summaryGlow: '#343150',
+  summaryGradientStart: '#2A2F34',
+  summaryGradientEnd: '#22262A',
+  summaryBorder: '#464D54',
+  summaryGlow: '#F5F7F8',
 };
 
 /** Backwards-compatible light default for components that are not migrated yet. */

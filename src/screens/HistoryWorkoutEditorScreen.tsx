@@ -40,7 +40,6 @@ import {
   updateWorkoutSet,
 } from '../state/workoutMutations';
 import type { RootStackParamList, Workout } from '../types';
-import { contrastingIconColor, workoutTypeColor } from './activeWorkout/workoutTypeColor';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'HistoryWorkoutEditor'>;
 
@@ -121,8 +120,6 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         ? { ...current, startedAt: updated }
         : { ...current, completedAt: updated };
     });
-  const workoutColor = workoutTypeColor(draft.type);
-  const saveContentColor = contrastingIconColor(workoutColor);
   return (
     <AppScreen
       backgroundColor={theme.background}
@@ -147,9 +144,6 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
             icon="check"
             label="Save"
             variant="primary"
-            tone="accent"
-            accentColor={workoutColor}
-            contentColor={saveContentColor}
             onPress={save}
             haptic="none"
           />
@@ -563,5 +557,5 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   },
   pickerSheetTitle: { color: theme.ink, ...typeScale.cardTitle },
   pickerDone: { minWidth: 56, minHeight: 38, alignItems: 'center', justifyContent: 'center' },
-  pickerDoneText: { color: theme.accent, ...typeScale.supporting },
+  pickerDoneText: { color: theme.selectionIndicator, ...typeScale.supporting },
 });

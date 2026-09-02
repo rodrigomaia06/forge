@@ -399,7 +399,6 @@ export function AddExerciseSheet({
                 label={`Add exercises${selected.length ? ` (${selected.length})` : ''}`}
                 accessibilityLabel="Confirm selected exercises"
                 disabled={!selected.length}
-                tone="accent"
                 onPress={submit}
                 theme={dashboardTheme}
                 style={styles.pickerSubmit}
@@ -631,7 +630,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 9,
-    backgroundColor: dashboardTheme.inkInteractive,
+    backgroundColor: dashboardTheme.selectionIndicator,
   },
   filterBadgeText: { color: dashboardTheme.surface, ...typeScale.caption },
   filterPanel: {
@@ -648,7 +647,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     borderRadius: 14,
     backgroundColor: dashboardTheme.surface,
   },
-  filterChoiceActive: { backgroundColor: dashboardTheme.inkInteractive },
+  filterChoiceActive: { backgroundColor: dashboardTheme.selectionIndicator },
   filterChoiceText: { color: dashboardTheme.slate, ...typeScale.label },
   filterChoiceTextActive: { color: dashboardTheme.surface },
   searchInput: {
@@ -689,7 +688,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     backgroundColor: dashboardTheme.surface,
   },
   singleGroupRowSelected: {
-    borderColor: dashboardTheme.inkInteractive,
+    borderColor: dashboardTheme.selectionIndicator,
     backgroundColor: dashboardTheme.surfaceMuted,
   },
   groupName: { color: dashboardTheme.ink, ...typeScale.body },
@@ -703,9 +702,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     borderRadius: 12,
     backgroundColor: '#F0F3FA',
   },
-  groupCountActive: { backgroundColor: dashboardTheme.surfaceMuted, borderWidth: 1, borderColor: dashboardTheme.inkInteractive },
+  groupCountActive: { backgroundColor: dashboardTheme.surfaceMuted, borderWidth: 1, borderColor: dashboardTheme.selectionIndicator },
   groupCountText: { color: dashboardTheme.slate, ...typeScale.caption },
-  groupCountTextActive: { color: dashboardTheme.inkInteractive },
+  groupCountTextActive: { color: dashboardTheme.selectionIndicator },
   equipmentGroup: { overflow: 'hidden' },
   equipmentRow: {
     minHeight: 54,
@@ -718,7 +717,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     borderTopColor: dashboardTheme.divider,
     backgroundColor: dashboardTheme.surfaceMuted,
   },
-  equipmentRowSelected: { backgroundColor: dashboardTheme.surfaceMuted, borderColor: dashboardTheme.inkInteractive },
+  equipmentRowSelected: { backgroundColor: dashboardTheme.surfaceMuted, borderColor: dashboardTheme.selectionIndicator },
   equipmentName: {
     flex: 1,
     color: dashboardTheme.ink,
@@ -736,7 +735,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     borderTopColor: dashboardTheme.divider,
     backgroundColor: dashboardTheme.surfaceElevated,
   },
-  subVariationRowSelected: { backgroundColor: dashboardTheme.surfaceMuted, borderColor: dashboardTheme.inkInteractive },
+  subVariationRowSelected: { backgroundColor: dashboardTheme.surfaceMuted, borderColor: dashboardTheme.selectionIndicator },
   variationName: {
     flex: 1,
     color: dashboardTheme.ink,
@@ -755,7 +754,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     backgroundColor: dashboardTheme.surface,
   },
   exerciseOptionSelected: {
-    borderColor: dashboardTheme.inkInteractive,
+    borderColor: dashboardTheme.selectionIndicator,
     backgroundColor: dashboardTheme.surfaceMuted,
   },
   exerciseOptionPressed: { opacity: 0.72 },
@@ -772,7 +771,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     marginTop: 0,
     minHeight: 46,
     borderRadius: 16,
-    backgroundColor: dashboardTheme.accent,
+    backgroundColor: dashboardTheme.actionPrimary,
   },
   pickerCtaFade: {
     position: 'absolute',

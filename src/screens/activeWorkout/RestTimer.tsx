@@ -38,7 +38,7 @@ export function RestTimerIndicator({
       : remaining <= duration * 0.2
         ? '#C58A45'
         : remaining <= duration * 0.5
-          ? theme.accent
+          ? theme.selectionIndicator
           : theme.ink;
 
   return (
@@ -92,7 +92,6 @@ export function RestTimerSheet({
               <Button
                 accessibilityLabel="Start rest timer"
                 label="Start"
-                tone="accent"
                 haptic="none"
                 onPress={onStart}
                 style={styles.restStartButton}
@@ -120,7 +119,7 @@ function ActiveRestTimer({
   const radius = 88;
   const circumference = 2 * Math.PI * radius;
   const stateColor =
-    remaining <= 0 ? '#C85C5C' : remaining <= duration * 0.2 ? '#C58A45' : theme.accent;
+    remaining <= 0 ? '#C85C5C' : remaining <= duration * 0.2 ? '#C58A45' : theme.selectionIndicator;
 
   return (
     <View style={styles.activeRestTimer}>

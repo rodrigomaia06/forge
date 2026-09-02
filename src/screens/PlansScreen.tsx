@@ -298,7 +298,7 @@ function EmptyPlans({
       <Text style={styles.emptyText}>
         Save exercises and targets so your next workout is ready to start.
       </Text>
-      <Button label="New routine" tone="accent" onPress={onNewRoutine} theme={theme} />
+      <Button label="New routine" onPress={onNewRoutine} theme={theme} />
       <Button
         accessibilityLabel="New plan"
         label="New plan"

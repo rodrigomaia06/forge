@@ -18,6 +18,7 @@ import { countWorkoutSets, formatCompactDuration, getWorkoutTypePresentation } f
 import { ReadOnlyExerciseSection } from './activeWorkout/ExerciseSection';
 import { WorkoutOptionsSheet } from './activeWorkout/WorkoutSheets';
 import { useWorkouts } from '../state/WorkoutContext';
+import { useSettings } from '../state/SettingsContext';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
@@ -29,6 +30,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const { ready, completedWorkouts, deleteCompletedWorkout } = useWorkouts();
+  const { preferences } = useSettings();
   const [optionsOpen, setOptionsOpen] = useState(false);
   const workout = completedWorkouts.find((item) => item.id === route.params.workoutId);
   const returnToHistory = (): void => {
@@ -89,7 +91,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
           />
         </View>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <WorkoutSummaryCard workout={workout} />
+          <WorkoutSummaryCard workout={workout} workoutTypes={preferences.workoutTypes} />
           <View style={styles.exerciseList}>
             {workout.exercises.map((exercise) => (
               <ReadOnlyExerciseSection key={exercise.id} exercise={exercise} />
@@ -118,11 +120,11 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
   );
 }
 
-function WorkoutSummaryCard({ workout }: { workout: Workout }) {
+function WorkoutSummaryCard({ workout, workoutTypes }: { workout: Workout; workoutTypes: import('../types').WorkoutTypePreference[] }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const [cardSize, setCardSize] = useState({ width: 0, height: 0 });
-  const type = getWorkoutTypePresentation(workout.type, theme, 0.16);
+  const type = getWorkoutTypePresentation(workout.type, workoutTypes, theme, 0.16);
   const duration = formatCompactDuration(workout.durationSeconds ?? 0);
   const metadata = [
     workout.location && { icon: 'measure' as const, label: 'Location', value: workout.location },
@@ -159,20 +161,13 @@ function WorkoutSummaryCard({ workout }: { workout: Workout }) {
           fill={theme.summaryGlow}
           opacity={0.2}
         />
-        <Circle
-          cx={cardSize.width * 0.84}
-          cy={cardSize.height * 0.92}
-          r={Math.max(cardSize.width, cardSize.height) * 0.42}
-          fill={type.color}
-          opacity={0.045}
-        />
       </Svg>
       <View style={styles.summaryTop}>
         <View style={[styles.summaryIcon, { backgroundColor: type.background }]}>
           <Icon name={type.icon} size={30} color={type.color} />
         </View>
         <View style={styles.timingMetrics}>
-          <TimingMetric icon="time-outline" label="Duration" value={duration} color={type.color} />
+          <TimingMetric icon="time-outline" label="Duration" value={duration} color={theme.slate} />
           <TimingMetric
             icon="time-outline"
             label="Avg rest / set"
@@ -181,7 +176,7 @@ function WorkoutSummaryCard({ workout }: { workout: Workout }) {
                 ? '—'
                 : formatRest(workout.averageRestSeconds)
             }
-            color={theme.iconStrength || theme.accent || theme.ink}
+            color={theme.slate}
           />
         </View>
       </View>
@@ -252,7 +247,7 @@ function MetadataItem({
   const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.metadataItem}>
-      <Icon name={icon} size={21} color={theme.iconStrength} />
+      <Icon name={icon} size={21} color={theme.slate} />
       <View style={styles.metadataCopy}>
         <Text style={styles.metadataLabel}>{label}</Text>
         <Text style={styles.metadataValue}>{value}</Text>
@@ -326,7 +321,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(111,127,242,0.18)',
+    borderColor: theme.border,
     borderRadius: 23,
   },
   timingMetrics: {
@@ -350,7 +345,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   metrics: {
     flexDirection: 'row',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(111,127,242,0.18)',
+    borderTopColor: theme.divider,
     paddingTop: 12,
     justifyContent: 'center',
   },
@@ -362,7 +357,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     flexWrap: 'wrap',
     gap: 14,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(111,127,242,0.18)',
+    borderTopColor: theme.divider,
     paddingTop: 12,
   },
   metadataItem: { flex: 1, minWidth: 90, flexDirection: 'row', gap: 8 },

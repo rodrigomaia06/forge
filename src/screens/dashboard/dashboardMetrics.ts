@@ -1,4 +1,6 @@
 import { workoutsByDate } from '../../data/mockWorkouts';
+import { getWorkoutTypePresentation } from '../../domain/workouts/presentation';
+import type { ForgeTheme, WorkoutTypePreference } from '../../types';
 
 export interface WorkoutTypeSummary {
   type: string;
@@ -8,7 +10,10 @@ export interface WorkoutTypeSummary {
   color: string;
 }
 
-export function summarizeWorkoutTypes(): WorkoutTypeSummary[] {
+export function summarizeWorkoutTypes(
+  workoutTypes: WorkoutTypePreference[],
+  theme: ForgeTheme,
+): WorkoutTypeSummary[] {
   const summary: Record<string, { type: string; count: number; minutes: number }> = {};
   Object.values(workoutsByDate)
     .flat()
@@ -21,7 +26,7 @@ export function summarizeWorkoutTypes(): WorkoutTypeSummary[] {
   return Object.values(summary).map((item) => ({
     ...item,
     duration: formatDuration(item.minutes),
-    color: item.type === 'Strength' ? '#8290F4' : '#ED7C82',
+    color: getWorkoutTypePresentation(item.type, workoutTypes, theme, 1).color,
   }));
 }
 

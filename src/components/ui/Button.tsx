@@ -26,9 +26,8 @@ interface ButtonProps {
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   labelStyle?: StyleProp<TextStyle>;
-  contentColor?: string;
   theme?: ForgeTheme;
-  tone?: 'neutral' | 'accent' | 'success' | 'destructive';
+  tone?: 'neutral' | 'success' | 'destructive';
   haptic?: 'none' | 'light' | 'medium';
 }
 
@@ -44,7 +43,6 @@ export function Button({
   disabled = false,
   style,
   labelStyle,
-  contentColor,
   theme,
   tone,
   haptic,
@@ -54,10 +52,10 @@ export function Button({
   const isPrimary = variant === 'primary';
   const isOutline = variant === 'outline';
   const isGhost = variant === 'ghost';
-  const resolvedTone = tone ?? (isPrimary ? 'accent' : 'neutral');
+  const resolvedTone = tone ?? 'neutral';
   const textColor = disabled || loading
     ? resolvedTheme.textDisabled
-    : contentColor ?? foregroundFor(resolvedTone, isPrimary, resolvedTheme);
+    : foregroundFor(resolvedTone, isPrimary, resolvedTheme);
 
   return (
     <Pressable
@@ -114,10 +112,9 @@ const styles = StyleSheet.create({
 });
 
 function foregroundFor(tone: NonNullable<ButtonProps['tone']>, primary: boolean, theme: ForgeTheme): string {
-  if (primary && tone === 'accent') return theme.primaryText;
+  if (primary && tone === 'neutral') return theme.onActionPrimary;
   if (primary && tone === 'success') return theme.onSuccess;
   if (tone === 'destructive') return theme.textDestructive;
-  if (tone === 'accent') return theme.accent;
   if (tone === 'success') return theme.success;
   return theme.textPrimary;
 }
@@ -129,7 +126,7 @@ function buttonSurface(
 ): ViewStyle {
   if (variant === 'ghost') return { backgroundColor: 'transparent', borderColor: 'transparent' };
   if (variant === 'primary') {
-    if (tone === 'accent') return { backgroundColor: theme.accent, borderColor: theme.accent };
+    if (tone === 'neutral') return { backgroundColor: theme.actionPrimary, borderColor: theme.actionPrimary };
     if (tone === 'success') return { backgroundColor: theme.success, borderColor: theme.success };
     if (tone === 'destructive') return { backgroundColor: theme.destructiveSurface, borderColor: theme.textDestructive };
     return { backgroundColor: theme.surfaceElevated, borderColor: theme.border };
@@ -137,7 +134,7 @@ function buttonSurface(
   if (variant === 'outline') {
     return {
       backgroundColor: tone === 'destructive' ? theme.destructiveSurface : theme.surface,
-      borderColor: tone === 'destructive' ? theme.textDestructive : tone === 'accent' ? theme.accent : tone === 'success' ? theme.success : theme.border,
+      borderColor: tone === 'destructive' ? theme.textDestructive : tone === 'success' ? theme.success : theme.border,
     };
   }
   return {

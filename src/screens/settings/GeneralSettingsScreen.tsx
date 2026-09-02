@@ -323,7 +323,7 @@ function Choice({
 }
 function ChoiceCheck() {
   const theme = useForgeTheme();
-  return <Icon name="check" size={20} color={theme.inkInteractive} weight="bold" />;
+  return <Icon name="check" size={20} color={theme.selectionIndicator} weight="bold" />;
 }
 function Toggle({
   title,

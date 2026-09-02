@@ -146,7 +146,7 @@ function ForgeSelectionRow<T extends SelectionValue>({
           </Text>
         )}
       </View>
-      {selected && <Icon name="check" size={22} color={theme.inkInteractive} weight="bold" />}
+      {selected && <Icon name="check" size={22} color={theme.selectionIndicator} weight="bold" />}
       {showSeparator && (
         <View
           pointerEvents="none"

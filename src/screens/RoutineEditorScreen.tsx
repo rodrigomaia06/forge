@@ -140,7 +140,12 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
               style={({ pressed }) => [styles.typeRow, pressed && styles.pressed]}
             >
               <Text style={styles.fieldLabel}>Workout type</Text>
-              <View style={styles.typeDot} />
+              <View
+                style={[
+                  styles.typeDot,
+                  { backgroundColor: preferences.workoutTypes.find((type) => type.name === routine.type)?.color ?? theme.muted },
+                ]}
+              />
               <Text style={styles.typeValue}>{routine.type}</Text>
               <Icon name="chevron-forward" size={17} color={theme.slate} />
             </Pressable>
@@ -162,7 +167,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                       <View style={[styles.choiceDot, { backgroundColor: type.color }]} />
                       <Text style={styles.typeChoiceText}>{type.name}</Text>
                       {routine.type === type.name && (
-                        <Icon name="check" size={17} color={theme.accent} />
+                        <Icon name="check" size={17} color={theme.selectionIndicator} />
                       )}
                     </Pressable>
                   ))}
@@ -323,7 +328,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     },
     divider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.divider },
     typeRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 },
-    typeDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.accent },
+    typeDot: { width: 10, height: 10, borderRadius: 5 },
     typeValue: { ...typeScale.body, color: theme.ink, flex: 1 },
     typeChoices: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
     typeChoice: {

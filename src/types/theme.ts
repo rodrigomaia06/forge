@@ -9,7 +9,6 @@ export interface ForgeTheme {
   surfaceMuted: string;
   ink: string;
   textPrimary: string;
-  primaryText: string;
   textSecondary: string;
   textDisabled: string;
   textDestructive: string;
@@ -20,8 +19,9 @@ export interface ForgeTheme {
   pressed: string;
   focus: string;
   shadow: string;
-  accent: string;
-  inkInteractive: string;
+  actionPrimary: string;
+  onActionPrimary: string;
+  selectionIndicator: string;
   success: string;
   onSuccess: string;
   destructiveSurface: string;
@@ -43,21 +43,9 @@ export interface ForgeTheme {
   topBar?: boolean;
   headerVariant?: 'greeting' | 'archive' | 'month';
   startButtonVariant?: string;
-  iconCalendar?: string;
-  iconStrength?: string;
-  iconSport?: string;
-  iconActivity?: string;
-  iconTime?: string;
   summaryGradientStart?: string;
   summaryGradientEnd?: string;
   summaryBorder?: string;
   summaryGlow?: string;
   cardShadowOpacity?: number;
-  workoutType: {
-    strength: string;
-    mobility: string;
-    cardio: string;
-    sport: string;
-    activity: string;
-  };
 }

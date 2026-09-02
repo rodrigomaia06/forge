@@ -170,7 +170,6 @@ export const ExerciseSection = React.memo(function ExerciseSection({
               icon="add"
               iconSize={16}
               variant="ghost"
-              tone="accent"
               haptic="none"
               onPress={() => {
                 lightHaptic();

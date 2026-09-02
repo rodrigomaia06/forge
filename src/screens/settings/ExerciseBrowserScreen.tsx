@@ -364,7 +364,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                 />
               </ScrollView>
               <View style={styles.footer}>
-                <Button label="Done" tone="accent" onPress={close} />
+                <Button label="Done" onPress={close} />
               </View>
             </View>
           )}
@@ -795,7 +795,6 @@ function Movement({
           icon="add"
           iconSize={18}
           variant="ghost"
-          tone="accent"
           onPress={onAdd}
           style={styles.singleAddVariation}
         />
@@ -855,7 +854,6 @@ function Movement({
             icon="add"
             iconSize={18}
             variant="ghost"
-            tone="accent"
             style={styles.addVariation}
           />
         </View>
@@ -974,7 +972,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       backgroundColor: theme.surfaceMuted,
       paddingHorizontal: 12,
     },
-    restTimeDefaultActionSelected: { borderColor: theme.inkInteractive },
+    restTimeDefaultActionSelected: { borderColor: theme.selectionIndicator },
     restTimeDefaultLabel: { ...typeScale.controlLabel, color: theme.textPrimary },
     detailRow: {
       minHeight: 44,
@@ -1044,7 +1042,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    checkSelected: { borderColor: theme.inkInteractive, backgroundColor: theme.inkInteractive },
+    checkSelected: { borderColor: theme.selectionIndicator, backgroundColor: theme.selectionIndicator },
     footer: {
       padding: 16,
       paddingTop: 10,

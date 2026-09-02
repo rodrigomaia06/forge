@@ -71,6 +71,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     borderRadius: 13,
   },
   success: { backgroundColor: dashboardTheme.success, borderColor: dashboardTheme.success },
-  interactive: { backgroundColor: dashboardTheme.inkInteractive, borderColor: dashboardTheme.inkInteractive },
+  interactive: { backgroundColor: dashboardTheme.selectionIndicator, borderColor: dashboardTheme.selectionIndicator },
   });
 };

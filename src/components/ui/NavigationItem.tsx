@@ -95,7 +95,7 @@ export function NavigationItem({
             styles.activeItem,
             {
               backgroundColor: emphasis
-                ? theme.accent || colors.inkInteractive
+                ? theme.actionPrimary
                 : theme.dockSelected || theme.slate,
             },
           ],
@@ -129,7 +129,7 @@ export function NavigationItem({
             <Icon
               name={icon.replace('-outline', '') as import('../../types').IconName}
               size={iconSize}
-              color="rgba(40, 76, 104, 0.22)"
+              color="rgba(23,25,28,0.22)"
               weight="thin"
               style={styles.playIconShadow}
             />
@@ -143,9 +143,9 @@ export function NavigationItem({
             size={iconSize}
             color={
               emphasis && active
-                ? theme.surface || colors.surface
+                ? theme.onActionPrimary
                 : emphasis
-                  ? theme.accent || colors.inkInteractive
+                  ? theme.actionPrimary
                 : active
                   ? theme.dockForeground || theme.surface
                   : theme.dockMuted || theme.slate
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     transform: [{ translateY: 2 }],
   },
   playIcon: {
-    filter: 'drop-shadow(0px 2px 3px rgba(40, 76, 104, 0.45))',
+    filter: 'drop-shadow(0px 2px 3px rgba(23,25,28,0.45))',
   },
   androidPlayShadow: {
     filter: [
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
           offsetX: 0,
           offsetY: 4,
           standardDeviation: 4,
-          color: 'rgba(40, 76, 104, 0.45)',
+          color: 'rgba(23,25,28,0.45)',
         },
       },
     ],
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   activeIconFrame: { width: 44, height: 44, borderRadius: 22 },
   activeIconFrameCompact: { width: 36, height: 36, borderRadius: 18 },
   inactiveLabel: { opacity: 0.68 },
-  activeLabel: { color: colors.inkInteractive, fontWeight: '700' },
+  activeLabel: { color: colors.selectionIndicator, fontWeight: '700' },
   pressed: { opacity: 0.65 },
   itemCompact: { minHeight: 42, marginVertical: 2 },
 });

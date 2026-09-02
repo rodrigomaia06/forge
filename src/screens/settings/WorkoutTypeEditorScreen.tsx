@@ -248,7 +248,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
                     <View style={[styles.swatch, { backgroundColor: choice.value }]} />
                     <Text style={styles.colorName}>{choice.name}</Text>
                     {type.color.toUpperCase() === choice.value && (
-                      <Icon name="check" size={18} color={dashboardTheme.accent} weight="bold" />
+                      <Icon name="check" size={18} color={dashboardTheme.selectionIndicator} weight="bold" />
                     )}
                   </Pressable>
                   {index < colors.length - 1 && <View style={styles.rowDivider} />}

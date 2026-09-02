@@ -65,14 +65,13 @@ test.describe('Interactive control consistency', () => {
     expect(await dimensions(generalSwitch)).toMatchObject({ width: 48, height: 28 });
   });
 
-  test('keeps cancel neutral and uses workout context for the primary finish action', async ({
+  test('keeps normal actions neutral, including Finish', async ({
     page,
   }) => {
     await page.goto('/');
     const neutralBackground = (
       await dimensions(page.getByRole('button', { name: 'Start workout' }))
     ).background;
-
     await page.getByRole('button', { name: 'Start workout' }).click();
     await page
       .getByTestId('plans-creation-popover')
@@ -82,8 +81,50 @@ test.describe('Interactive control consistency', () => {
     expect(
       (await dimensions(page.getByRole('button', { name: 'Cancel workout' }))).background,
     ).toBe(neutralBackground);
-    expect(
-      (await dimensions(page.getByRole('button', { name: 'Finish workout' }))).background,
-    ).toBe('rgb(111, 127, 242)');
+    expect((await dimensions(page.getByRole('button', { name: 'Finish workout' }))).background).toBe(
+      'rgb(29, 37, 45)',
+    );
+  });
+
+  test('uses monochrome controls in Dark while preserving type markers', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance: 'dark' }));
+    });
+    await page.goto('/');
+
+    const start = await dimensions(page.getByRole('button', { name: 'Start workout' }));
+    expect(start.background).toBe('rgb(42, 47, 52)');
+
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    const create = await dimensions(page.getByRole('button', { name: 'Create workout, routine, or plan' }));
+    expect(create.background).toBe(start.background);
+
+    await page.getByRole('tab', { name: 'Dashboard' }).click();
+    await page.getByRole('button', { name: 'Start workout' }).click();
+    await page
+      .getByTestId('plans-creation-popover')
+      .getByRole('button', { name: 'New workout', exact: true })
+      .click();
+    const finishButton = page.getByRole('button', { name: 'Finish workout' });
+    const finish = await dimensions(finishButton);
+    expect(finish.background).toBe('rgb(245, 247, 248)');
+    expect((await dimensions(finishButton.getByText('Finish'))).color).toBe('rgb(23, 36, 49)');
+
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'General' }).click();
+    const toggle = await dimensions(page.getByTestId('general-switch-unfinished-workout-reminder'));
+    await page.getByRole('switch', { name: 'Unfinished workout reminder' }).click();
+    expect((await dimensions(page.getByTestId('general-switch-unfinished-workout-reminder'))).background).toBe(
+      'rgb(245, 247, 248)',
+    );
+    expect(toggle.background).not.toBe('rgb(124, 140, 248)');
+
+    await page.getByRole('button', { name: 'Back to Settings' }).click();
+    await page.getByRole('button', { name: 'Workout types' }).click();
+    const strengthColors = await page
+      .getByRole('button', { name: 'Strength workout type' })
+      .locator('div')
+      .evaluateAll((elements) => elements.map((element) => window.getComputedStyle(element).backgroundColor));
+    expect(strengthColors).toContain('rgb(104, 124, 242)');
   });
 });

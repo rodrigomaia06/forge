@@ -19,7 +19,7 @@ export function ForgeSwitch({ value, disabled = false, testID, style }: ForgeSwi
       pointerEvents="none"
       style={[
         styles.track,
-        { backgroundColor: value ? theme.inkInteractive : theme.surfaceMuted },
+        { backgroundColor: value ? theme.selectionIndicator : theme.surfaceMuted },
         disabled && styles.disabled,
         style,
       ]}

@@ -6,10 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { monthDays, workoutsByDate } from '../data/mockWorkouts';
 import { colors } from '../theme/tokens';
+import { getWorkoutTypePresentation } from '../domain/workouts/presentation';
 import { ForgeText as Text, Icon, pressedFeedback, pressedFeedbackSubtle } from './ui';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
-import type { ForgeTheme, WeekStartsOn, WorkoutMap, WorkoutSummary } from '../types';
+import type { ForgeTheme, WeekStartsOn, WorkoutMap, WorkoutTypePreference } from '../types';
 import { styles } from './calendar/calendarStyles';
 
 const VIEWS = ['year', 'month', 'week'] as const;
@@ -40,6 +41,7 @@ interface CalendarProps {
   onViewMenuOpenChange?: (open: boolean) => void;
   onMenuStateChange?: (state: CalendarMenuState | null) => void;
   weekStartsOn?: WeekStartsOn;
+  workoutTypes?: WorkoutTypePreference[];
 }
 
 export interface CalendarMenuState {
@@ -56,6 +58,7 @@ export function Calendar({
   onViewMenuOpenChange,
   onMenuStateChange,
   weekStartsOn = 1,
+  workoutTypes = [],
 }: CalendarProps) {
   const [view, setView] = useState<CalendarView>('month');
   const [localMenuOpen, setLocalMenuOpen] = useState(false);
@@ -138,6 +141,7 @@ export function Calendar({
           month={month}
           setMonth={setMonth}
           workoutMap={workoutMap}
+          workoutTypes={workoutTypes}
           weekStartsOn={weekStartsOn}
         />
       </View>
@@ -214,6 +218,7 @@ function CalendarContent({
   month,
   setMonth,
   workoutMap,
+  workoutTypes,
   weekStartsOn,
 }: {
   view: CalendarView;
@@ -223,6 +228,7 @@ function CalendarContent({
   month: number;
   setMonth: Dispatch<SetStateAction<number>>;
   workoutMap: WorkoutMap;
+  workoutTypes: WorkoutTypePreference[];
   weekStartsOn: WeekStartsOn;
 }) {
   const progress = useRef(new Animated.Value(1)).current;
@@ -262,6 +268,7 @@ function CalendarContent({
           theme={theme}
           month={month}
           workoutMap={workoutMap}
+          workoutTypes={workoutTypes}
           weekStartsOn={weekStartsOn}
         />
       )}
@@ -271,6 +278,7 @@ function CalendarContent({
           setSelectedDay={setSelectedDay}
           theme={theme}
           workoutMap={workoutMap}
+          workoutTypes={workoutTypes}
           weekStartsOn={weekStartsOn}
         />
       )}
@@ -284,6 +292,7 @@ function MonthView({
   theme,
   month,
   workoutMap,
+  workoutTypes,
   weekStartsOn,
 }: Omit<Parameters<typeof CalendarContent>[0], 'view' | 'setMonth'>) {
   const weekdays = weekStartsOn === 1 ? MONDAY_FIRST_WEEKDAYS : SUNDAY_FIRST_WEEKDAYS;
@@ -309,6 +318,7 @@ function MonthView({
             setSelectedDay={setSelectedDay}
             theme={theme}
             workoutMap={workoutMap}
+            workoutTypes={workoutTypes}
           />
         ))}
       </View>
@@ -321,6 +331,7 @@ function WeekView({
   setSelectedDay,
   theme,
   workoutMap,
+  workoutTypes,
   weekStartsOn,
 }: Omit<Parameters<typeof CalendarContent>[0], 'view' | 'month' | 'setMonth'>) {
   const days = [24, 25, 26, 27, 28, 29, 30];
@@ -343,6 +354,7 @@ function WeekView({
             setSelectedDay={setSelectedDay}
             theme={theme}
             workoutMap={workoutMap}
+            workoutTypes={workoutTypes}
           />
         ))}
       </View>
@@ -422,12 +434,14 @@ function DayCell({
   setSelectedDay,
   theme,
   workoutMap,
+  workoutTypes,
 }: {
   day: number;
   selectedDay: number;
   setSelectedDay: Dispatch<SetStateAction<number>>;
   theme: ForgeTheme;
   workoutMap: WorkoutMap;
+  workoutTypes: WorkoutTypePreference[];
 }) {
   const dayWorkouts = workoutMap[day];
   const isSelected = day === selectedDay;
@@ -497,7 +511,9 @@ function DayCell({
                   style={[
                     styles.marker,
                     {
-                      backgroundColor: isSelected ? theme.selectedText : eventColor(workout, theme),
+                      backgroundColor: isSelected
+                        ? theme.selectedText
+                        : getWorkoutTypePresentation(workout.type, workoutTypes, theme, 1).color,
                     },
                   ]}
                 />
@@ -508,14 +524,6 @@ function DayCell({
       </View>
     </Pressable>
   );
-}
-
-function eventColor(workout: WorkoutSummary, theme: ForgeTheme): string {
-  if (workout.type === 'Strength') return theme.workoutType.strength;
-  if (workout.type === 'Mobility') return theme.workoutType.mobility;
-  if (workout.type === 'Cardio') return theme.workoutType.cardio;
-  if (workout.type === 'Court sport') return theme.workoutType.sport;
-  return theme.muted;
 }
 
 function leadingDaysForMonth(year: number, month: number, weekStartsOn: WeekStartsOn): number {

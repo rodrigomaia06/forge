@@ -119,6 +119,7 @@ export function DashboardCalendar({
         setSelectedDay={setSelectedDay}
         theme={theme}
         workoutMap={workoutMap}
+        workoutTypes={preferences.workoutTypes}
         viewMenuOpen={viewMenuOpen}
         onViewMenuOpenChange={onViewMenuOpenChange}
         onMenuStateChange={onMenuStateChange}
@@ -184,10 +185,11 @@ export function DashboardContextCard({
   compact?: boolean;
   icons?: boolean;
 }) {
+  const { preferences } = useSettings();
   const contextProbe = useLayoutProbe('dashboard-context-card', {
     background: theme.calendarSurface,
   });
-  const typeSummary = summarizeWorkoutTypes();
+  const typeSummary = summarizeWorkoutTypes(preferences.workoutTypes, theme);
   const metrics = [
     ['3', 'workouts this week'],
     ['8', 'workouts this month'],

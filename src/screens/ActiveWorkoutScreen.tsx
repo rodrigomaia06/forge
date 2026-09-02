@@ -29,7 +29,6 @@ import { ExerciseSection as ExtractedExerciseSection } from './activeWorkout/Exe
 import { AddExerciseSheet as ExtractedAddExerciseSheet } from './activeWorkout/WorkoutSheets';
 import { RestTimerIndicator, RestTimerSheet } from './activeWorkout/RestTimer';
 import { createActiveWorkoutStyles } from './activeWorkout/activeWorkoutStyles';
-import { contrastingIconColor, workoutTypeColor } from './activeWorkout/workoutTypeColor';
 
 type ActiveWorkoutScreenProps = NativeStackScreenProps<RootStackParamList, 'ActiveWorkout'>;
 export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
@@ -217,9 +216,6 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     returnToDashboard(null);
   };
 
-  const workoutColor = workoutTypeColor(activeWorkout.type);
-  const finishContentColor = contrastingIconColor(workoutColor);
-
   return (
     <AppScreen
       backgroundColor={theme.background}
@@ -250,9 +246,6 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
             label="Finish"
             onPress={handleFinish}
             variant="primary"
-            tone="accent"
-            accentColor={workoutColor}
-            contentColor={finishContentColor}
             haptic="none"
           />
         </View>
@@ -316,7 +309,6 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
               icon="add"
               iconSize={17}
               variant="ghost"
-              tone="accent"
               onPress={() => {
                 animateLayout();
                 setSheetOpen(true);

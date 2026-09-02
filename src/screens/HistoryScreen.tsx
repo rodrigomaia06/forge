@@ -21,6 +21,7 @@ import {
 import { NavigationFooter } from '../components/NavigationFooter';
 import { countWorkoutSets, formatCompactDuration, getWorkoutTypePresentation } from '../domain/workouts/presentation';
 import { useWorkouts } from '../state/WorkoutContext';
+import { useSettings } from '../state/SettingsContext';
 import { animateLayout, errorHaptic, mediumHaptic } from './activeWorkout/activeWorkoutFeedback';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
@@ -38,6 +39,7 @@ export function HistoryScreen({
   navigation,
 }: NativeStackScreenProps<RootStackParamList, 'History'>) {
   const { completedWorkouts, deleteCompletedWorkout, startWorkout } = useWorkouts();
+  const { preferences } = useSettings();
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const groups = useMemo(() => groupByPeriod(completedWorkouts), [completedWorkouts]);
@@ -68,6 +70,7 @@ export function HistoryScreen({
                   <TimelineRow
                     key={workout.id}
                     workout={workout}
+                    workoutTypes={preferences.workoutTypes}
                     first={index === 0}
                     onPress={() => {
                       selectionHaptic();
@@ -111,6 +114,7 @@ export function HistoryScreen({
 
 function TimelineRow({
   workout,
+  workoutTypes,
   first,
   onPress,
   deleteRevealed,
@@ -118,6 +122,7 @@ function TimelineRow({
   onDelete,
 }: {
   workout: Workout;
+  workoutTypes: import('../types').WorkoutTypePreference[];
   first: boolean;
   onPress: () => void;
   deleteRevealed: boolean;
@@ -132,7 +137,7 @@ function TimelineRow({
   const dragDetected = useSharedValue(false);
   const suppressNextPress = useRef(false);
   const date = new Date(workout.completedAt ?? workout.startedAt);
-  const type = getWorkoutTypePresentation(workout.type, theme, 0.14);
+  const type = getWorkoutTypePresentation(workout.type, workoutTypes, theme, 0.14);
 
   React.useEffect(() => {
     cardOpen.value = deleteRevealed;
