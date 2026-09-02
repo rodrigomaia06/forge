@@ -37,8 +37,7 @@ import { workoutTypeIcon } from './settings/workoutTypeIcon';
 import { forgeDockScrollInset } from '../components/DockChrome';
 
 type Props = RootTabScreenProps<'Plans'>;
-type PlanActionTarget =
-  { kind: 'routine'; item: WorkoutRoutine } | { kind: 'plan'; item: WorkoutPlan };
+type PlanActionTarget = { kind: 'plan'; item: WorkoutPlan };
 const swipeSpring = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
 
 export function PlansScreen({ navigation, route }: Props) {
@@ -49,8 +48,6 @@ export function PlansScreen({ navigation, route }: Props) {
     plans,
     standaloneRoutines,
     createPlan,
-    createRoutine,
-    duplicateRoutine,
     deletePlan,
     deleteRoutine,
   } = usePlans();
@@ -79,11 +76,7 @@ export function PlansScreen({ navigation, route }: Props) {
   };
   const openRoutine = (routine: WorkoutRoutine, withHaptic = true): void => {
     if (withHaptic) selectionHaptic();
-    navigation.navigate('RoutineEditor', { routineId: routine.id });
-  };
-  const routineActions = (routine: WorkoutRoutine): void => {
-    lightHaptic();
-    setActionTarget({ kind: 'routine', item: routine });
+    navigation.navigate('RoutineEditor', { mode: 'edit', routineId: routine.id });
   };
   const addPlan = (): void => {
     createPlan();
@@ -94,8 +87,7 @@ export function PlansScreen({ navigation, route }: Props) {
     navigation.navigate('ActiveWorkout');
   };
   const addRoutine = (planId?: string): void => {
-    const routine = createRoutine({ planId });
-    navigation.navigate('RoutineEditor', { routineId: routine.id });
+    navigation.navigate('RoutineEditor', { mode: 'create', planId });
   };
 
   return (
@@ -129,7 +121,6 @@ export function PlansScreen({ navigation, route }: Props) {
                         last={index === standaloneRoutines.length - 1}
                         onStart={() => startRoutine(routine)}
                         onPress={onOpen}
-                        onMore={() => routineActions(routine)}
                       />
                     )}
                   </SwipeDelete>
@@ -148,7 +139,6 @@ export function PlansScreen({ navigation, route }: Props) {
                     onAddRoutine={() => addRoutine(plan.id)}
                     onOpenRoutine={openRoutine}
                     onStartRoutine={startRoutine}
-                    onRoutineActions={routineActions}
                     onDeleteRoutine={(routine) => deleteRoutine(routine.id)}
                     onOptions={(item) => {
                       lightHaptic();
@@ -176,48 +166,24 @@ export function PlansScreen({ navigation, route }: Props) {
           visible={actionTarget !== null}
           onClose={() => setActionTarget(null)}
           accessibilityLabel="Dismiss plan options"
-          title={actionTarget?.kind === 'plan' ? 'Plan options' : 'Routine options'}
+          title="Plan options"
           testID="plans-options-sheet"
           actions={
-            actionTarget?.kind === 'routine'
+            actionTarget
               ? [
                   {
-                    label: 'Start',
-                    icon: 'play',
-                    onPress: () => startRoutine(actionTarget.item, false),
+                    label: 'Add routine',
+                    icon: 'add',
+                    onPress: () => addRoutine(actionTarget.item.id),
                   },
                   {
-                    label: 'Edit',
-                    icon: 'note',
-                    onPress: () => openRoutine(actionTarget.item, false),
-                  },
-                  {
-                    label: 'Duplicate',
-                    icon: 'duplicate',
-                    onPress: () => duplicateRoutine(actionTarget.item.id),
-                  },
-                  {
-                    label: 'Delete',
+                    label: 'Delete plan',
                     icon: 'trash',
                     tone: 'destructive' as const,
-                    onPress: () => deleteRoutine(actionTarget.item.id),
+                    onPress: () => deletePlan(actionTarget.item.id),
                   },
                 ]
-              : actionTarget
-                ? [
-                    {
-                      label: 'Add routine',
-                      icon: 'add',
-                      onPress: () => addRoutine(actionTarget.item.id),
-                    },
-                    {
-                      label: 'Delete plan',
-                      icon: 'trash',
-                      tone: 'destructive' as const,
-                      onPress: () => deletePlan(actionTarget.item.id),
-                    },
-                  ]
-                : []
+              : []
           }
         />
       </View>
@@ -241,7 +207,6 @@ function PlanCard({
   onAddRoutine,
   onOpenRoutine,
   onStartRoutine,
-  onRoutineActions,
   onDeleteRoutine,
   onOptions,
   onDelete,
@@ -251,7 +216,6 @@ function PlanCard({
   onAddRoutine: () => void;
   onOpenRoutine: (routine: WorkoutRoutine) => void;
   onStartRoutine: (routine: WorkoutRoutine) => void;
-  onRoutineActions: (routine: WorkoutRoutine) => void;
   onDeleteRoutine: (routine: WorkoutRoutine) => void;
   onOptions: (plan: WorkoutPlan) => void;
   onDelete: () => void;
@@ -267,22 +231,17 @@ function PlanCard({
     >
       {() => (
         <View style={styles.card}>
-          <View style={styles.planHeader}>
-            <View>
-              <Text style={styles.planName}>{plan.name}</Text>
-              <Text
-                style={styles.planSummary}
-              >{`${plan.routines.length} ${plan.routines.length === 1 ? 'routine' : 'routines'}`}</Text>
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Options for ${plan.name}`}
-              onPress={() => onOptions(plan)}
-              style={({ pressed }) => [styles.more, pressed && styles.pressed]}
-            >
-              <Icon name="ellipsis-horizontal" size={20} color={theme.slate} />
-            </Pressable>
-          </View>
+          <Pressable
+            testID={`plan-header-${plan.id}`}
+            accessibilityRole="button"
+            accessibilityLabel={`Open options for ${plan.name}`}
+            onPress={() => onOptions(plan)}
+            style={({ pressed }) => [styles.planHeader, pressed && styles.pressed]}
+          >
+            <Text style={styles.planName}>{plan.name}</Text>
+            <Icon name="chevron-forward" size={20} color={theme.slate} />
+          </Pressable>
+          {plan.routines.length > 0 && <View style={styles.planRoutineSeparation} />}
           {plan.routines.map((routine, index) => (
             <SwipeDelete
               key={routine.id}
@@ -298,7 +257,6 @@ function PlanCard({
                   last={index === plan.routines.length - 1}
                   onStart={() => onStartRoutine(routine)}
                   onPress={onOpen}
-                  onMore={() => onRoutineActions(routine)}
                 />
               )}
             </SwipeDelete>
@@ -324,14 +282,12 @@ function RoutineRow({
   last,
   onStart,
   onPress,
-  onMore,
 }: {
   routine: WorkoutRoutine;
   workoutTypes: WorkoutTypePreference[];
   last: boolean;
   onStart: () => void;
   onPress: () => void;
-  onMore: () => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -351,21 +307,16 @@ function RoutineRow({
         onPress={onPress}
         style={({ pressed }) => [styles.routineCopy, pressed && styles.pressed]}
       >
-        <Text style={styles.routineName} numberOfLines={1}>
-          {routine.name}
-        </Text>
-        <Text
-          style={styles.routineSummary}
-          numberOfLines={1}
-        >{`${routine.type} · ${routine.exercises.length} ${routine.exercises.length === 1 ? 'exercise' : 'exercises'}`}</Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`More options for ${routine.name}`}
-        onPress={onMore}
-        style={({ pressed }) => [styles.more, pressed && styles.pressed]}
-      >
-        <Icon name="ellipsis-horizontal" size={19} color={theme.slate} />
+        <View style={styles.routineText}>
+          <Text style={styles.routineName} numberOfLines={1}>
+            {routine.name}
+          </Text>
+          <Text
+            style={styles.routineSummary}
+            numberOfLines={1}
+          >{`${routine.type} · ${routine.exercises.length} ${routine.exercises.length === 1 ? 'exercise' : 'exercises'}`}</Text>
+        </View>
+        <Icon name="chevron-forward" size={19} color={theme.slate} />
       </Pressable>
     </View>
   );
@@ -521,14 +472,14 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     sectionTitle: { ...typeScale.sectionTitle, color: theme.slate },
     planList: { gap: 14 },
     planHeader: {
-      minHeight: 76,
+      minHeight: 56,
       paddingHorizontal: 16,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
     },
+    planRoutineSeparation: { height: 10, backgroundColor: theme.surfaceMuted },
     planName: { ...typeScale.cardTitle, color: theme.ink },
-    planSummary: { ...typeScale.supporting, color: theme.slate, marginTop: 2 },
     routineRow: {
       minHeight: 76,
       paddingHorizontal: 12,
@@ -545,10 +496,19 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       backgroundColor: theme.surfaceMuted,
       marginRight: 10,
     },
-    routineCopy: { flex: 1, minWidth: 0, justifyContent: 'center', minHeight: 52 },
+    routineCopy: {
+      flex: 1,
+      minWidth: 0,
+      minHeight: 62,
+      paddingRight: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    routineText: { flex: 1, minWidth: 0 },
     routineName: { ...typeScale.cardTitle, color: theme.ink },
     routineSummary: { ...typeScale.supporting, color: theme.slate, marginTop: 1 },
-    more: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
     addToPlan: {
       minHeight: 46,
       margin: 12,

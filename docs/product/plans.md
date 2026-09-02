@@ -1,10 +1,10 @@
 # Plans and routines
 
 - Plans contain ordered routines; a routine may also exist without a plan.
-- A routine holds a name, workout type, optional note and attributes, and a reusable exercise/set structure.
+- A routine starts with an empty name, a workout type, an optional centred note, optional named attributes whose values may be supplied later during a workout, and a reusable exercise/set structure. Its plan membership is not repeated as editor copy.
 - Users can create, edit, duplicate, move, delete, and start routines. Starting a routine creates an independent active workout, so later edits do not alter an in-progress session.
 - The Plans screen groups standalone routines and plans separately. Routine rows use their workout-type icon, and swiping left on a routine or plan reveals its destructive Delete action.
 - Routine and plan overflow actions use the shared Forge action sheet with labelled icon rows and a header Delete control instead of a platform-native alert. Routine actions are Start, Edit, Duplicate, and Delete; plan actions are Add routine and Delete plan.
 - Plans and routines are local-only and persist through the Forge repository boundary during the prototype-storage phase.
-- The Plans header action presents New workout, New routine, and New workout plan from an anchored menu. The Dashboard creation action routes into Plans and opens this same menu. New workout starts immediately; the other actions create their local draft destination.
+- The Plans header action presents New workout, New routine, and New workout plan from an anchored menu. The Dashboard creation action routes into Plans and opens this same menu. New workout starts immediately. New routines, including routines added to a plan, open as local editor drafts and are persisted only by an explicit Save; Cancel or Back asks to discard unsaved changes. Routine attributes are user-defined names with optional values, such as Mood or Location. Plan headers omit the routine count, use the standard 56 pt row height, and act as their options control; routine rows act as their editor control. Both use visible chevrons instead of overflow ellipses.
 - New standalone routines are created from that header action only; the Plans list does not expose a bottom creation button.

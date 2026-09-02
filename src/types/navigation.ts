@@ -18,7 +18,9 @@ export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<RootTabParamList> | undefined;
   WorkoutDetails: { workoutId: string };
   HistoryWorkoutEditor: { workoutId: string };
-  RoutineEditor: { routineId: string };
+  RoutineEditor:
+    | { mode: 'create'; planId?: string }
+    | { mode: 'edit'; routineId: string };
   GeneralSettings: undefined;
   ExerciseLibrary: undefined;
   ExerciseBrowser: { workoutTypeId?: string; custom?: boolean } | undefined;
