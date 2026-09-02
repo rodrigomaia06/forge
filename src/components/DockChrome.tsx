@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     // Float over the lower safe area without turning it into an empty band.
     // The vignette continues underneath the surface to the screen edge.
-    bottom: 14,
+    bottom: 22,
     alignItems: 'center',
     justifyContent: 'flex-end',
   },
