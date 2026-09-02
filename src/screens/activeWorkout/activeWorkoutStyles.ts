@@ -217,6 +217,8 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
     minHeight: 52,
     alignSelf: 'stretch',
     width: '100%',
+    borderStyle: 'dashed',
+    borderWidth: 1,
     marginTop: 2,
   },
   muted: { color: dashboardTheme.slate, ...typeScale.label, textAlign: 'center' },

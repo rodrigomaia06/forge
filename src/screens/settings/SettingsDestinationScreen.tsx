@@ -98,12 +98,14 @@ function About() {
         <Action
           title="Source code"
           icon="git"
+          iconSize={26}
           divider
           onPress={() => openExternal('https://github.com/rodrigomaia06/Forge')}
         />
         <Action
           title="License: GPL v3.0"
           icon="license"
+          iconSize={26}
           onPress={() => openExternal('https://github.com/rodrigomaia06/Forge/blob/main/LICENSE')}
         />
       </SettingsSection>
@@ -119,6 +121,7 @@ function Action({
   title,
   subtitle,
   icon,
+  iconSize,
   onPress,
   divider = false,
   destructive = false,
@@ -126,6 +129,7 @@ function Action({
   title: string;
   subtitle?: string;
   icon?: IconName;
+  iconSize?: number;
   onPress?: () => void;
   divider?: boolean;
   destructive?: boolean;
@@ -135,6 +139,7 @@ function Action({
       title={title}
       subtitle={subtitle}
       icon={icon}
+      iconSize={iconSize}
       destructive={destructive}
       disabled={!onPress}
       onPress={onPress ?? (() => undefined)}

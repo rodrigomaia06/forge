@@ -16,13 +16,16 @@ function trigger(
 
 export function lightHaptic(): void {
   trigger(
-    () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
+    () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid),
     Haptics.AndroidHaptics.Context_Click,
   );
 }
 
 export function selectionHaptic(): void {
-  trigger(() => Haptics.selectionAsync(), Haptics.AndroidHaptics.Segment_Tick);
+  trigger(
+    () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid),
+    Haptics.AndroidHaptics.Segment_Tick,
+  );
 }
 
 export function mediumHaptic(): void {

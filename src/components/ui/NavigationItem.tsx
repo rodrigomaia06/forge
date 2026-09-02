@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import {
   Animated as RNAnimated,
   Easing as RNEasing,
-  Platform,
   Pressable,
   StyleSheet,
 } from 'react-native';
@@ -107,7 +106,6 @@ export function NavigationItem({
           style={[
             styles.iconFrame,
             compact && styles.iconFrameCompact,
-            Platform.OS === 'android' && emphasis && !active && styles.androidPlayShadow,
             active && styles.activeIconFrame,
             active && compact && styles.activeIconFrameCompact,
             {
@@ -125,15 +123,6 @@ export function NavigationItem({
             },
           ]}
         >
-          {Platform.OS === 'ios' && emphasis && !active && (
-            <Icon
-              name={icon.replace('-outline', '') as import('../../types').IconName}
-              size={iconSize}
-              color="rgba(23,25,28,0.22)"
-              weight="thin"
-              style={styles.playIconShadow}
-            />
-          )}
           <Icon
             name={
               (active || emphasis
@@ -151,7 +140,6 @@ export function NavigationItem({
                   : theme.dockMuted || theme.slate
             }
             weight={emphasis ? 'thin' : active ? 'fill' : 'regular'}
-            style={Platform.OS === 'web' && emphasis && !active ? styles.playIcon : undefined}
           />
         </RNAnimated.View>
       </Pressable>
@@ -182,25 +170,6 @@ const styles = StyleSheet.create({
   iconFrameCompact: { width: 36, height: 36, borderRadius: 18 },
   activeItem: { width: '100%', marginHorizontal: 2 },
   emphasisItem: { width: '100%', marginHorizontal: 2 },
-  playIconShadow: {
-    position: 'absolute',
-    transform: [{ translateY: 2 }],
-  },
-  playIcon: {
-    filter: 'drop-shadow(0px 2px 3px rgba(23,25,28,0.45))',
-  },
-  androidPlayShadow: {
-    filter: [
-      {
-        dropShadow: {
-          offsetX: 0,
-          offsetY: 4,
-          standardDeviation: 4,
-          color: 'rgba(23,25,28,0.45)',
-        },
-      },
-    ],
-  },
   activeIconFrame: { width: 44, height: 44, borderRadius: 22 },
   activeIconFrameCompact: { width: 36, height: 36, borderRadius: 18 },
   inactiveLabel: { opacity: 0.68 },

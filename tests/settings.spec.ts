@@ -122,6 +122,16 @@ test.describe('Settings', () => {
     await expectRowHeight(page.getByRole('button', { name: 'Source code' }), 56);
   });
 
+  test('uses the enlarged semantic icon scale on Settings and About rows', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await expect(page.getByTestId('settings-main-exercises-row').locator('svg').first()).toHaveAttribute('width', '26');
+
+    await page.getByRole('button', { name: 'About' }).click();
+    await expect(page.getByRole('button', { name: 'Source code' }).locator('svg').first()).toHaveAttribute('width', '26');
+    await expect(page.getByRole('button', { name: 'License: GPL v3.0' }).locator('svg').first()).toHaveAttribute('width', '26');
+  });
+
   test('persists the first day of the week and applies it to the Calendar', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();

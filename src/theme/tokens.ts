@@ -46,6 +46,8 @@ export const lightTheme: ForgeTheme = {
   shadow: '#17191C',
   ...shared,
   calendarDay: '#FFFFFF',
+  selected: '#1D252D',
+  selectedText: '#FFFFFF',
   calendarWorkoutDay: 'rgba(31,41,50,0.07)',
   calendarWorkoutBorder: 'rgba(31,41,50,0.1)',
   cardShadowOpacity: 0.06,

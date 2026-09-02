@@ -24,6 +24,8 @@ test.describe('Dashboard dock geometry', () => {
     expect(dock.x + dock.width).toBeLessThanOrEqual(shell.x + shell.width);
     expect(dock.y).toBeGreaterThanOrEqual(shell.y);
     expect(dock.y + dock.height).toBeLessThanOrEqual(shell.y + shell.height);
+    expect(dock.width).toBeLessThanOrEqual(360);
+    expect(dock.width).toBeGreaterThanOrEqual(304);
     expect(dock.height).toBeGreaterThanOrEqual(60);
     expect(dock.height).toBeLessThanOrEqual(72);
 

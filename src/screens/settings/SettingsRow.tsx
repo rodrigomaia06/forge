@@ -39,6 +39,7 @@ interface SettingsRowProps {
   icon?: IconName;
   iconColor?: string;
   iconBackgroundColor?: string;
+  iconSize?: number;
   leading?: React.ReactNode;
   trailing?: React.ReactNode;
   disclosure?: boolean;
@@ -60,6 +61,7 @@ export function SettingsRow({
   icon,
   iconColor,
   iconBackgroundColor,
+  iconSize = 22,
   leading,
   trailing,
   disclosure = false,
@@ -83,11 +85,11 @@ export function SettingsRow({
         (icon ? (
           iconBackgroundColor ? (
             <View style={[styles.iconFrame, { backgroundColor: iconBackgroundColor }]}>
-              <Icon name={icon} size={22} color={iconColor ?? theme.textPrimary} />
+              <Icon name={icon} size={iconSize} color={iconColor ?? theme.textPrimary} />
             </View>
           ) : (
             <View style={styles.iconSlot}>
-              <Icon name={icon} size={22} color={iconColor ?? theme.textPrimary} />
+              <Icon name={icon} size={iconSize} color={iconColor ?? theme.textPrimary} />
             </View>
           )
         ) : null)}

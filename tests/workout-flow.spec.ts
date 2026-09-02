@@ -277,6 +277,12 @@ test.describe('Active workout flow', () => {
     await expect(page.getByLabel('Home indicator').last()).toBeVisible();
   });
 
+  test('uses a dashed outline for Add exercise', async ({ page }) => {
+    await page.goto('/');
+    await startBlankWorkout(page);
+    await expect(page.getByRole('button', { name: 'Add exercise' })).toHaveCSS('border-style', 'dashed');
+  });
+
   test('keeps the workout dock item available without a selection pill', async ({ page }) => {
     await page.goto('/');
     await startBlankWorkout(page);

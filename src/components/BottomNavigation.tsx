@@ -3,7 +3,9 @@ import { LayoutAnimation, Platform, UIManager, View, StyleSheet } from 'react-na
 import { StackActions, useNavigation, useRoute } from '@react-navigation/native';
 
 import { NavigationItem, selectionHaptic } from './ui';
+import { getWorkoutTypePresentation } from '../domain/workouts/presentation';
 import { colors } from '../theme/tokens';
+import { useSettings } from '../state/SettingsContext';
 import { useWorkouts } from '../state/WorkoutContext';
 import type { ForgeTheme, IconName, RootNavigationProp, RootStackParamList } from '../types';
 import type { RouteProp } from '@react-navigation/native';
@@ -26,7 +28,11 @@ export function BottomNavigation({
   const navigation = useNavigation<RootNavigationProp>();
   const route = useRoute<RouteProp<RootStackParamList>>();
   const activeWorkout = useWorkouts().activeWorkout;
+  const { preferences } = useSettings();
   const hasActiveWorkout = Boolean(activeWorkout);
+  const activeWorkoutIcon = activeWorkout
+    ? getWorkoutTypePresentation(activeWorkout.type, preferences.workoutTypes, theme, 1).icon
+    : 'fitness-outline';
   const workoutStartedNow =
     activeWorkout?.id !== undefined &&
     activeWorkout.id !== knownWorkoutId &&
@@ -44,7 +50,7 @@ export function BottomNavigation({
   const items: NavigationItemEntry[] = [
     ['home-outline', 'Dashboard', 'Dashboard', false],
     ['time-outline', 'History', 'History', false],
-    ...(activeWorkout ? [['play', 'Workout', 'ActiveWorkout', true] as NavigationItemEntry] : []),
+    ...(activeWorkout ? [[activeWorkoutIcon, 'Workout', 'ActiveWorkout', true] as NavigationItemEntry] : []),
     ['book', 'Plans', 'Plans', false],
     ['menu', 'Settings', 'Settings', false],
   ];

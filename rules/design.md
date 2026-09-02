@@ -16,7 +16,7 @@ Finite single-choice lists use the shared Forge selection primitives. Standalone
 
 Icon-only dismiss and navigation header actions use the shared 44 pt circular overlay surface, including its border, pressed state, haptic feedback, and accessible name.
 
-Bottom-attached modal sheets use the shared Forge sheet presentation for their backdrop, drag handle, dismissal motion, corner treatment, shadow, close control, and pressed feedback. When a sheet input opens the keyboard, the shared sheet synchronizes its animation with the keyboard, expands only to the top safe-area inset above it, keeps its normal rounded corners at both edges, meets the keyboard at its lower edge, and restores its compact height when the keyboard hides. Individual sheets may vary only their content and height.
+Bottom-attached modal sheets use the shared Forge sheet presentation for their backdrop, drag handle, dismissal motion, corner treatment, shadow, close control, and pressed feedback. When a sheet input opens the keyboard, the shared sheet synchronizes its animation with the keyboard, expands only to the top safe-area inset above it, keeps its normal rounded upper corners, and extends its sheet-coloured lower edge to meet the keyboard without a gap. It restores its compact height when the keyboard hides. Individual sheets may vary only their content and height.
 
 Use the shared grouped-card primitive whenever a feature presents related rows. It owns the common surface, border, radius, and shadow treatment in both themes; screens may not recreate a locally divergent card outline.
 

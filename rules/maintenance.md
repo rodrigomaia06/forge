@@ -75,6 +75,10 @@ Every implementation change must be verified, but verification should remain sco
 - Run the complete verification suite only when the change itself is repository-wide and the full suite is the smallest correct scope, or when the user explicitly requests it.
 - Report the exact checks executed and identify any affected behavior that could not be verified.
 
+## Explicit multi-item requests
+
+When a user supplies an explicit list of tasks, address the items in that order and confirm each one before moving to the next. Do not collapse the list into an unstructured aggregate.
+
 ## ADR threshold
 
 Create an ADR only when the decision is important enough that a future contributor would reasonably ask "why did we choose this instead of the alternatives?"

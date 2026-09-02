@@ -31,6 +31,7 @@ export function SettingsScreen({ navigation }: Props) {
           <SettingsSection>
             <SettingsRow
               icon="weight"
+              iconSize={26}
               title="Exercises"
               onPress={() => open('ExerciseLibrary')}
               disclosure
@@ -38,6 +39,7 @@ export function SettingsScreen({ navigation }: Props) {
             />
             <SettingsRow
               icon="task-list"
+              iconSize={26}
               title="Workout types"
               onPress={() => open('WorkoutTypes')}
               disclosure
@@ -46,6 +48,7 @@ export function SettingsScreen({ navigation }: Props) {
           <SettingsSection>
             <SettingsRow
               icon="settings"
+              iconSize={26}
               title="General"
               onPress={() => open('GeneralSettings')}
               disclosure
@@ -54,12 +57,14 @@ export function SettingsScreen({ navigation }: Props) {
           <SettingsSection>
             <SettingsRow
               icon="database-export"
+              iconSize={26}
               title="Backup & Export"
               onPress={() => open('BackupExport')}
               disclosure
             />
             <SettingsRow
               icon="clipboard"
+              iconSize={26}
               title="Logs"
               onPress={() => open('Logs')}
               disclosure
@@ -68,6 +73,7 @@ export function SettingsScreen({ navigation }: Props) {
           <SettingsSection>
             <SettingsRow
               icon="info"
+              iconSize={26}
               title="About"
               onPress={() => open('About')}
               disclosure

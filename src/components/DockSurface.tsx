@@ -35,8 +35,9 @@ export function DockSurface({
   const { width: viewportWidth } = useWindowDimensions();
   const internalProgress = useSharedValue(compact ? 1 : 0);
   const progress = compactProgress ?? internalProgress;
-  const expandedWidth = Math.min(viewportWidth * 0.88, 390);
-  const compactWidth = Math.min(viewportWidth * 0.68, 286);
+  // Keep a comfortable gap between the 44 pt hit areas while retaining a clear inset from iPhone edges.
+  const expandedWidth = Math.min(Math.max(viewportWidth * 0.82, 304), 360);
+  const compactWidth = Math.min(Math.max(viewportWidth * 0.62, 244), 270);
 
   useEffect(() => {
     if (compactProgress) return;
