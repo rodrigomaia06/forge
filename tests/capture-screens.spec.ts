@@ -72,6 +72,20 @@ test.describe('Forge screen captures', () => {
     await page.getByRole('button', { name: 'General' }).click();
     await expect(page.getByText('Calendar', { exact: true })).toBeVisible();
     await capture(page, 'general-settings');
+    await page.getByRole('button', { name: 'Appearance' }).click();
+    await capture(page, 'general-appearance-picker');
+    if ((page.viewportSize()?.width ?? 0) >= 768) {
+      await page.getByRole('radio', { name: 'Light' }).click();
+    } else {
+      await page.getByRole('radio', { name: 'Light' }).click();
+    }
+    await page.getByRole('button', { name: 'Default rest time' }).click();
+    await capture(page, 'general-default-rest-picker');
+    await page.getByRole('radio', { name: '00:30' }).dispatchEvent('click');
+    await page.getByRole('switch', { name: 'Unfinished workout reminder' }).click();
+    await page.getByRole('button', { name: 'Remind after' }).click();
+    await capture(page, 'general-reminder-picker');
+    await page.getByRole('radio', { name: '15 minutes' }).dispatchEvent('click');
 
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('button', { name: 'Exercises' }).click();
@@ -86,6 +100,13 @@ test.describe('Forge screen captures', () => {
     await capture(page, 'settings-exercise-filter-sheet');
 
     await page.getByRole('button', { name: 'Done' }).click();
+    await page.getByRole('button', { name: 'Bench Press, 4 variations' }).click();
+    await page.getByRole('button', { name: 'Standard' }).click();
+    await capture(page, 'settings-exercise-detail');
+    await page.getByRole('button', { name: 'Change rest time, currently Default' }).click();
+    await capture(page, 'settings-exercise-rest-picker');
+    await page.getByRole('button', { name: 'Use default rest time' }).click();
+    await page.getByLabel('Close exercise details').click();
     await page.getByRole('button', { name: 'Back to Exercises' }).click();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('button', { name: 'Workout types' }).click();

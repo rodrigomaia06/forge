@@ -1,39 +1,57 @@
-import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, UIManager, useWindowDimensions, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   AppScreen,
   Button,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
+  ForgeSingleSelectList,
   ForgeText as Text,
   ForgeTextInput as TextInput,
+  HeaderAction,
   Icon,
   lightHaptic,
   pressedFeedback,
   selectionHaptic,
 } from '../../components/ui';
+import type { ForgeSingleSelectOption } from '../../components/ui';
 import type { ExerciseCatalogItem } from '../../data/exerciseCatalog';
 import { useExerciseCatalog } from '../../state/ExerciseCatalogContext';
 import { useSettings } from '../../state/SettingsContext';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import type { RootStackParamList } from '../../types';
+import type { IconName, RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
+import { workoutTypeIcon } from './workoutTypeIcon';
 import {
   catalogFacets,
   filterCatalog,
   groupCatalogByMovement,
 } from '../../domain/exercises/catalogSelectors';
+import { REST_DURATION_OPTIONS } from '../../domain/rest/restDurationOptions';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseBrowser'>;
 type Filters = { types: string[]; equipment: string[]; categories: string[] };
+type DetailSheetView = 'details' | 'restTime';
+
+function formatPickerDuration(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  return `${String(minutes).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
+const restTimeOptions: readonly ForgeSingleSelectOption<number>[] = REST_DURATION_OPTIONS.map((seconds) => ({
+  value: seconds,
+  label: formatPickerDuration(seconds),
+  accessibilityLabel: `Rest duration ${formatPickerDuration(seconds)}`,
+}));
 
 export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const { preferences } = useSettings();
+  const { height: viewportHeight } = useWindowDimensions();
+  const { preferences, updatePreferences } = useSettings();
   const catalog = useExerciseCatalog();
   const fixedTypeId = route.params?.workoutTypeId;
   const customOnly = route.params?.custom === true;
@@ -43,8 +61,15 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [formParent, setFormParent] = useState<string | null | undefined>(undefined);
   const [name, setName] = useState('');
+  const [group, setGroup] = useState('');
+  const [equipmentValue, setEquipmentValue] = useState('Bodyweight');
+  const [primaryMuscle, setPrimaryMuscle] = useState('Accessories');
+  const [secondaryMuscles, setSecondaryMuscles] = useState<string[]>([]);
+  const [workoutTypeIds, setWorkoutTypeIds] = useState<string[]>(['strength']);
   const [editing, setEditing] = useState<ExerciseCatalogItem | null>(null);
   const [detail, setDetail] = useState<ExerciseCatalogItem | null>(null);
+  const [detailSheetView, setDetailSheetView] = useState<DetailSheetView>('details');
+  const savingVariation = useRef(false);
   const source = customOnly ? catalog.customExercises : catalog.exercises;
   const title = customOnly
     ? 'Custom exercises'
@@ -72,40 +97,101 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     [source, fixedTypeId, filters, query],
   );
   const groups = useMemo(() => groupCatalogByMovement(filtered), [filtered]);
-  const { equipment, categories } = catalogFacets(source);
+  const { equipment, categories } = catalogFacets(catalog.exercises);
+  const formEquipment = useMemo(() => {
+    if (!formParent) return [];
+    return Array.from(new Set(
+      [...catalog.exercises, ...catalog.customExercises]
+        .filter((item) => item.group === formParent)
+        .map((item) => item.equipment),
+    ));
+  }, [catalog.customExercises, catalog.exercises, formParent]);
+  const usesCustomEquipment = formParent !== null
+    && formParent !== undefined
+    && !formEquipment.includes(equipmentValue);
+  const isCustom = (item: ExerciseCatalogItem) => catalog.customExercises.some((custom) => custom.id === item.id);
+  const restOverride = (item: ExerciseCatalogItem) =>
+    isCustom(item) ? item.restSeconds : preferences.exerciseRestSeconds[item.id];
+  const restLabel = (item: ExerciseCatalogItem) => {
+    const value = restOverride(item);
+    return value === undefined ? 'Default' : `${Math.floor(value / 60)}:${String(value % 60).padStart(2, '0')}`;
+  };
   const openCreate = (parent: string | null) => {
     lightHaptic();
+    savingVariation.current = false;
+    const inherited = parent
+      ? [...catalog.exercises, ...catalog.customExercises].find((item) => item.group === parent)
+      : undefined;
     setEditing(null);
     setName('');
+    setGroup(parent ?? '');
+    setEquipmentValue(inherited?.equipment ?? 'Bodyweight');
+    setPrimaryMuscle(inherited?.primaryMuscle ?? 'Accessories');
+    setSecondaryMuscles(inherited?.secondaryMuscles ?? []);
+    setWorkoutTypeIds(inherited?.workoutTypeIds ?? (fixedTypeId ? [fixedTypeId] : ['strength']));
     setFormParent(parent);
   };
   const openEdit = (item: ExerciseCatalogItem) => {
     lightHaptic();
+    savingVariation.current = false;
     setDetail(null);
     setEditing(item);
     setName(item.variation || item.name);
+    setGroup(item.group);
+    setEquipmentValue(item.equipment);
+    setPrimaryMuscle(item.primaryMuscle);
+    setSecondaryMuscles(item.secondaryMuscles);
+    setWorkoutTypeIds(item.workoutTypeIds);
     setFormParent(item.group);
   };
-  const save = () => {
-    if (!name.trim()) return;
-    const parent = catalog.exercises.find((item) => item.group === formParent);
+  const save = (): boolean => {
+    if (!name.trim() || savingVariation.current) return false;
+    savingVariation.current = true;
+    const parent = catalog.exercises.find((item) => item.group === group);
     const exercise = {
       id: editing?.id ?? `custom-${Date.now()}`,
       name: name.trim(),
-      group: formParent || name.trim(),
+      group: group.trim() || name.trim(),
       variation: name.trim(),
-      equipment: editing?.equipment ?? parent?.equipment ?? 'Bodyweight',
-      category: editing?.category ?? parent?.category ?? 'Accessories',
+      equipment: equipmentValue.trim() || parent?.equipment || 'Bodyweight',
+      category: primaryMuscle,
       aliases: editing?.aliases ?? [],
-      workoutTypeIds:
-        editing?.workoutTypeIds ??
-        parent?.workoutTypeIds ??
-        (fixedTypeId ? [fixedTypeId] : ['strength']),
+      workoutTypeIds,
+      primaryMuscle,
+      secondaryMuscles,
+      restSeconds: editing?.restSeconds,
     };
     if (editing) catalog.updateCustomExercise(exercise);
     else catalog.addCustomExercise(exercise);
-    setFormParent(undefined);
-    setEditing(null);
+    return true;
+  };
+  const toggleSecondary = (value: string) => {
+    selectionHaptic();
+    setSecondaryMuscles((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
+  };
+  const toggleSection = (value: string) => {
+    selectionHaptic();
+    setWorkoutTypeIds((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
+  };
+  const setRestOverride = (item: ExerciseCatalogItem, seconds: number | undefined) => {
+    if (isCustom(item)) {
+      catalog.updateCustomExercise({ ...item, restSeconds: seconds });
+    } else {
+      const next = { ...preferences.exerciseRestSeconds };
+      if (seconds === undefined) delete next[item.id];
+      else next[item.id] = seconds;
+      updatePreferences({ exerciseRestSeconds: next });
+    }
+    setDetail((current) => current && current.id === item.id ? { ...current, restSeconds: seconds } : current);
+  };
+  const chooseRestOverride = (item: ExerciseCatalogItem, seconds: number | undefined) => {
+    if (restOverride(item) === seconds) return;
+    setRestOverride(item, seconds);
+  };
+  const transitionDetailSheet = (nextView: DetailSheetView) => {
+    if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setDetailSheetView(nextView);
   };
   return (
     <AppScreen backgroundColor={theme.background}>
@@ -115,14 +201,13 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
           navigation={navigation}
           backAccessibilityLabel="Back to Exercises"
           rightAction={
-            <Pressable
-              accessibilityRole="button"
+            <HeaderAction
               accessibilityLabel="Create custom exercise"
+              icon="add"
+              iconOnly
+              tone="accent"
               onPress={() => openCreate(null)}
-              style={styles.add}
-            >
-              <Icon name="add" size={21} color={theme.textPrimary} />
-            </Pressable>
+            />
           }
         />
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -139,18 +224,17 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
               />
             </View>
             {!customOnly && (
-              <Pressable
-                accessibilityRole="button"
+              <Button
                 accessibilityLabel="Filters"
+                label="Filters"
+                icon="filter"
+                variant="secondary"
+                tone="neutral"
                 onPress={() => {
-                  lightHaptic();
                   setFiltersOpen(true);
                 }}
                 style={styles.filters}
-              >
-                <Icon name="filter" size={18} color={theme.textPrimary} />
-                <Text style={styles.filtersText}>Filters</Text>
-              </Pressable>
+              />
             )}
           </View>
           {!customOnly && active > 0 && (
@@ -167,30 +251,26 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                 ] as const
               ).flatMap(([key, values]) =>
                 values.map((value) => (
-                  <Pressable
+                  <Button
                     key={`${key}-${value}`}
-                    accessibilityRole="button"
                     accessibilityLabel={`Remove ${value} filter`}
+                    label={visibleTypes.find((type) => type.id === value)?.name ?? value}
+                    icon="close"
+                    iconSize={14}
+                    variant="ghost"
                     onPress={() => toggle(key, value)}
                     style={styles.chip}
-                  >
-                    <Text style={styles.chipText}>
-                      {visibleTypes.find((type) => type.id === value)?.name ?? value}
-                    </Text>
-                    <Icon name="close" size={14} color={theme.textPrimary} />
-                  </Pressable>
+                  />
                 )),
               )}
-              <Pressable
-                accessibilityRole="button"
+              <Button
                 accessibilityLabel="Clear all filters"
+                label="Clear all"
+                variant="ghost"
                 onPress={() => {
-                  selectionHaptic();
                   setFilters({ types: [], equipment: [], categories: [] });
                 }}
-              >
-                <Text style={styles.clear}>Clear all</Text>
-              </Pressable>
+              />
             </ScrollView>
           )}
           {groups.map(([group, items]) => (
@@ -203,8 +283,12 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                 selectionHaptic();
                 setExpanded(expanded === group ? null : group);
               }}
-              onOpen={setDetail}
+              onOpen={(item) => {
+                setDetailSheetView('details');
+                setDetail(item);
+              }}
               onAdd={() => openCreate(group)}
+              isCustom={isCustom}
             />
           ))}
           {!groups.length && (
@@ -226,15 +310,14 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
               <View style={styles.sheetHeader}>
                 <Text style={styles.sheetTitle}>Filters</Text>
                 {active > 0 && (
-                  <Pressable
-                    accessibilityLabel="Clear all filters"
+                  <HeaderAction
+                    accessibilityLabel="Clear filters in sheet"
+                    label="Clear"
+                    icon="close"
                     onPress={() => {
-                      selectionHaptic();
                       setFilters({ types: [], equipment: [], categories: [] });
                     }}
-                  >
-                    <Text style={styles.clear}>Clear all</Text>
-                  </Pressable>
+                  />
                 )}
               </View>
               <ScrollView style={styles.filterScroll} contentContainerStyle={styles.filterContent}>
@@ -260,18 +343,23 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                 />
               </ScrollView>
               <View style={styles.footer}>
-                <Button label="Done" onPress={close} />
+                <Button label="Done" tone="success" onPress={close} />
               </View>
             </View>
           )}
         </ForgeBottomSheet>
         <ForgeBottomSheet
           visible={formParent !== undefined}
-          onClose={() => setFormParent(undefined)}
+          onClose={() => {
+            savingVariation.current = false;
+            setFormParent(undefined);
+            setEditing(null);
+          }}
           accessibilityLabel="Close custom exercise form"
+          surfaceTestID="custom-exercise-form-surface"
         >
           {(close) => (
-            <View style={styles.formSheet}>
+            <View style={[styles.formSheet, { height: Math.min(viewportHeight * 0.82, 640) }]}>
               <ForgeBottomSheetHandle />
               <View style={styles.sheetHeader}>
                 <Text style={styles.sheetTitle}>
@@ -281,8 +369,18 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                       ? 'Add variation'
                       : 'New custom exercise'}
                 </Text>
+                <HeaderAction
+                  accessibilityLabel="Save variation"
+                  icon="check"
+                  iconOnly
+                  tone="success"
+                  disabled={!name.trim()}
+                  onPress={() => {
+                    if (save()) close();
+                  }}
+                />
               </View>
-              <View style={styles.form}>
+              <ScrollView style={styles.formScroll} contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
                 <TextInput
                   accessibilityLabel="Exercise name"
                   value={name}
@@ -291,76 +389,230 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   placeholderTextColor={theme.muted}
                   style={styles.input}
                 />
-                <Text style={styles.meta}>
-                  {formParent
-                    ? `Added to ${formParent}.`
-                    : 'Create a new movement for your catalogue.'}
-                </Text>
-              </View>
-              <View style={styles.footer}>
-                <Button
-                  label={editing ? 'Save changes' : 'Save variation'}
-                  disabled={!name.trim()}
-                  onPress={() => {
-                    save();
-                    close();
-                  }}
-                />
-              </View>
+                {!formParent && <TextInput accessibilityLabel="Exercise category" value={group} onChangeText={setGroup} placeholder="Category" placeholderTextColor={theme.muted} style={styles.input} />}
+                {formParent ? (
+                  <>
+                    <Text style={styles.fieldLabel}>Equipment</Text>
+                    <View accessibilityRole="radiogroup" accessibilityLabel="Exercise equipment" style={styles.choiceWrap}>
+                      {formEquipment.map((item) => (
+                        <Choice
+                          key={item}
+                          label={item}
+                          accessibilityLabel={`Equipment ${item}`}
+                          role="radio"
+                          selected={equipmentValue === item}
+                          onPress={() => {
+                            selectionHaptic();
+                            setEquipmentValue(item);
+                          }}
+                        />
+                      ))}
+                      <Choice
+                        icon="add"
+                        label="Custom equipment"
+                        accessibilityLabel="Add custom equipment"
+                        role="radio"
+                        selected={usesCustomEquipment}
+                        onPress={() => {
+                          selectionHaptic();
+                          setEquipmentValue('');
+                        }}
+                      />
+                    </View>
+                    {usesCustomEquipment && (
+                      <TextInput
+                        accessibilityLabel="Custom equipment"
+                        value={equipmentValue}
+                        onChangeText={setEquipmentValue}
+                        placeholder="Custom equipment"
+                        placeholderTextColor={theme.muted}
+                        style={styles.input}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <TextInput accessibilityLabel="Exercise equipment" value={equipmentValue} onChangeText={setEquipmentValue} placeholder="Equipment" placeholderTextColor={theme.muted} style={styles.input} />
+                )}
+                <Text style={styles.fieldLabel}>Sections</Text>
+                <View style={styles.choiceWrap}>
+                  {visibleTypes.map((type) => <Choice key={type.id} icon={workoutTypeIcon(type)} label={type.name} accessibilityLabel={`Section ${type.name}`} selected={workoutTypeIds.includes(type.id)} onPress={() => toggleSection(type.id)} />)}
+                </View>
+                <Text style={styles.fieldLabel}>Primary muscle</Text>
+                <View style={styles.choiceWrap}>
+                  {categories.map((muscle) => <Choice key={muscle} label={muscle} accessibilityLabel={`Primary ${muscle}`} selected={primaryMuscle === muscle} onPress={() => { selectionHaptic(); setPrimaryMuscle(muscle); }} />)}
+                </View>
+                <Text style={styles.fieldLabel}>Secondary muscles</Text>
+                <View style={styles.choiceWrap}>
+                  {categories.filter((muscle) => muscle !== primaryMuscle).map((muscle) => <Choice key={muscle} label={muscle} accessibilityLabel={`Secondary ${muscle}`} selected={secondaryMuscles.includes(muscle)} onPress={() => toggleSecondary(muscle)} />)}
+                </View>
+              </ScrollView>
             </View>
           )}
         </ForgeBottomSheet>
         <ForgeBottomSheet
           visible={detail !== null}
-          onClose={() => setDetail(null)}
+          onClose={() => {
+            setDetail(null);
+            setDetailSheetView('details');
+          }}
+          onBackRequest={() => {
+            if (detailSheetView !== 'restTime') return false;
+            transitionDetailSheet('details');
+            return true;
+          }}
           accessibilityLabel="Close exercise details"
+          backdropTestID="exercise-detail-sheet-backdrop"
+          surfaceTestID="exercise-detail-sheet-surface"
         >
-          {(close) =>
-            detail && (
+          {(close) => detail && (detailSheetView === 'restTime' ? (
+            <View testID="exercise-rest-selection-view" style={styles.restTimeSheet}>
+              <ForgeBottomSheetHandle />
+              <View style={styles.restTimeHeader}>
+                <HeaderAction
+                  accessibilityLabel="Back to exercise details"
+                  icon="chevron-back"
+                  iconOnly
+                  onPress={() => transitionDetailSheet('details')}
+                  style={styles.restTimeBack}
+                />
+                <Text style={styles.restTimeTitle}>Rest Time</Text>
+                <View style={styles.restTimeHeaderSpacer} />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Use default rest time"
+                  accessibilityState={{ selected: restOverride(detail) === undefined }}
+                  onPress={() => {
+                    selectionHaptic();
+                    chooseRestOverride(detail, undefined);
+                    transitionDetailSheet('details');
+                  }}
+                  style={({ pressed }) => [
+                    styles.restTimeDefaultAction,
+                    restOverride(detail) === undefined && styles.restTimeDefaultActionSelected,
+                    pressed && pressedFeedback,
+                  ]}
+                >
+                  <Text style={styles.restTimeDefaultLabel}>Default</Text>
+                </Pressable>
+              </View>
+              <ForgeSingleSelectList<number>
+                testID="exercise-rest-selection-list"
+                options={restTimeOptions}
+                selectedValue={restOverride(detail) ?? -1}
+                maxVisibleRows={6}
+                onSelect={(value) => {
+                  chooseRestOverride(detail, value);
+                  transitionDetailSheet('details');
+                }}
+                onSelectedPress={() => transitionDetailSheet('details')}
+              />
+            </View>
+          ) : (
               <View style={styles.detailSheet}>
                 <ForgeBottomSheetHandle />
                 <View style={styles.sheetHeader}>
-                  <Text style={styles.sheetTitle}>{detail.variation || detail.name}</Text>
+                  <Text style={[styles.sheetTitle, styles.detailSheetTitle]}>{detail.variation || detail.name}</Text>
+                  {isCustom(detail) && (
+                    <HeaderAction
+                      accessibilityLabel="Delete variation"
+                      icon="trash"
+                      iconOnly
+                      tone="destructive"
+                      onPress={() => {
+                        catalog.removeCustomExercise(detail.id);
+                        close();
+                      }}
+                    />
+                  )}
                 </View>
-                <View style={styles.form}>
+                <View style={styles.detailContent}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Change rest time, currently ${restLabel(detail)}`}
+                    accessibilityHint="Opens the rest duration picker"
+                    onPress={() => {
+                      lightHaptic();
+                      transitionDetailSheet('restTime');
+                    }}
+                    style={({ pressed }) => [styles.detailRow, pressed && pressedFeedback]}
+                  >
+                    <Text style={styles.detailLabel}>Rest Time</Text>
+                    <View style={styles.detailAction}>
+                      <Text style={styles.detailSelectableValue}>{restLabel(detail)}</Text>
+                      <Icon name="chevron-forward" size={21} color={theme.textSecondary} />
+                    </View>
+                  </Pressable>
                   <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Equipment</Text>
-                    <Text style={styles.detailValue}>{detail.equipment}</Text>
+                    <Text style={styles.detailLabel}>Sections</Text>
+                    <View style={styles.sectionTypes}>
+                      {detail.workoutTypeIds.map((id) => {
+                        const type = preferences.workoutTypes.find((item) => item.id === id);
+                        return (
+                          <View key={id} testID={`exercise-section-type-${id}`} style={styles.sectionType}>
+                            <Icon name={type ? workoutTypeIcon(type) : 'layers'} size={18} color={theme.ink} />
+                            <Text style={styles.sectionTypeName}>{type?.name ?? id}</Text>
+                          </View>
+                        );
+                      })}
+                    </View>
                   </View>
                   <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Muscle group</Text>
-                    <Text style={styles.detailValue}>{detail.category}</Text>
+                    <Text style={styles.detailLabel}>Category</Text>
+                    <Text style={styles.detailValue}>{detail.group}</Text>
                   </View>
-                  {catalog.customExercises.some((item) => item.id === detail.id) ? (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Primary muscle</Text>
+                    <Text style={styles.detailValue}>{detail.primaryMuscle}</Text>
+                  </View>
+                  {detail.secondaryMuscles.length > 0 && <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Secondary muscles</Text>
+                    <Text style={styles.detailValue}>{detail.secondaryMuscles.join(', ')}</Text>
+                  </View>
+                  }
+                  {isCustom(detail) ? (
                     <>
                       <Button
                         label="Edit variation"
-                        variant="outline"
+                        variant="secondary"
+                        haptic="none"
+                        style={styles.editVariationAction}
                         onPress={() => {
                           close();
                           openEdit(detail);
-                        }}
-                      />
-                      <Button
-                        label="Delete variation"
-                        variant="outline"
-                        tone="destructive"
-                        labelColor={theme.textDestructive}
-                        onPress={() => {
-                          catalog.removeCustomExercise(detail.id);
-                          close();
                         }}
                       />
                     </>
                   ) : null}
                 </View>
               </View>
-            )
-          }
+            ))}
         </ForgeBottomSheet>
       </View>
     </AppScreen>
   );
+}
+
+function Choice({
+  label,
+  accessibilityLabel,
+  selected,
+  onPress,
+  icon,
+  role = 'checkbox',
+}: {
+  label: string;
+  accessibilityLabel: string;
+  selected: boolean;
+  onPress: () => void;
+  icon?: IconName;
+  role?: 'checkbox' | 'radio';
+}) {
+  const styles = useThemedStyles(createStyles);
+  const theme = useForgeTheme();
+  return <Pressable accessibilityRole={role} accessibilityLabel={accessibilityLabel} accessibilityState={{ checked: selected }} aria-checked={selected} onPress={onPress} style={({ pressed }) => [styles.choice, selected && { borderColor: theme.ink }, pressed && pressedFeedback]}>
+    {icon && <Icon name={icon} size={16} color={theme.ink} />}
+    <Text style={styles.choiceText}>{label}</Text>{selected && <Icon name="check" size={15} color={theme.ink} />}
+  </Pressable>;
 }
 
 function FilterSection({
@@ -403,6 +655,7 @@ function Movement({
   onToggle,
   onOpen,
   onAdd,
+  isCustom,
 }: {
   group: string;
   items: ExerciseCatalogItem[];
@@ -410,6 +663,7 @@ function Movement({
   onToggle: () => void;
   onOpen: (item: ExerciseCatalogItem) => void;
   onAdd: () => void;
+  isCustom: (item: ExerciseCatalogItem) => boolean;
 }) {
   const styles = useThemedStyles(createStyles);
   const theme = useForgeTheme();
@@ -438,8 +692,21 @@ function Movement({
               {item.equipment} · {item.category}
             </Text>
           </View>
-          <Icon name="chevron-forward" size={21} color={theme.textPrimary} />
+          <View style={styles.movementIcons}>
+            {isCustom(item) && <Icon name="note" size={17} color={theme.textSecondary} />}
+            <Icon name="chevron-forward" size={21} color={theme.textPrimary} />
+          </View>
         </Pressable>
+        <Button
+          accessibilityLabel={`Add variation to ${group}`}
+          label="Add variation"
+          icon="add"
+          iconSize={18}
+          variant="ghost"
+          tone="accent"
+          onPress={onAdd}
+          style={styles.singleAddVariation}
+        />
       </View>
     );
   }
@@ -483,21 +750,26 @@ function Movement({
                   ]}
                 >
                   <Text style={styles.variationName}>{item.variation || item.name}</Text>
-                  <Icon name="chevron-forward" size={17} color={theme.slate} />
+                  <View style={styles.variationIcons}>
+                    {isCustom(item) && <Icon name="note" size={16} color={theme.textSecondary} />}
+                    <Icon name="chevron-forward" size={17} color={theme.slate} />
+                  </View>
                 </Pressable>
               ))}
             </View>
           ))}
-          <Pressable
-            accessibilityRole="button"
+          <Button
             onPress={() => {
               onAdd();
             }}
+            accessibilityLabel={`Add variation to ${group}`}
+            label="Add variation"
+            icon="add"
+            iconSize={18}
+            variant="ghost"
+            tone="accent"
             style={styles.addVariation}
-          >
-            <Icon name="add" size={18} color={theme.textPrimary} />
-            <Text style={styles.addText}>Add variation</Text>
-          </Pressable>
+          />
         </View>
       )}
     </View>
@@ -507,14 +779,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
   StyleSheet.create({
     screen: { flex: 1 },
     content: { padding: 20, paddingTop: 22, paddingBottom: 40, gap: 14 },
-    add: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: theme.surface,
-    },
     searchRow: { flexDirection: 'row', gap: 8 },
     search: {
       flex: 1,
@@ -541,7 +805,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       borderWidth: 1,
       borderColor: theme.border,
     },
-    filtersText: { ...typeScale.controlLabel, color: theme.textPrimary },
     chips: { gap: 8, alignItems: 'center' },
     chip: {
       minHeight: 34,
@@ -554,8 +817,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       borderWidth: 1,
       borderColor: theme.border,
     },
-    chipText: { ...typeScale.label, color: theme.textPrimary },
-    clear: { ...typeScale.label, color: theme.inkInteractive },
     movement: {
       overflow: 'hidden',
       borderRadius: theme.cardRadius,
@@ -571,6 +832,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     },
     copy: { flex: 1 },
     movementName: { ...typeScale.cardTitle, color: theme.ink },
+    movementIcons: { flexDirection: 'row', alignItems: 'center', gap: 7 },
     meta: { ...typeScale.supporting, color: theme.slate, marginTop: 2 },
     variations: {
       padding: 14,
@@ -603,12 +865,37 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       borderColor: theme.divider,
     },
     variationName: { ...typeScale.body, color: theme.ink },
-    addVariation: { minHeight: 40, flexDirection: 'row', gap: 7, alignItems: 'center' },
-    addText: { ...typeScale.controlLabel, color: theme.textPrimary },
+    variationIcons: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+    addVariation: { alignSelf: 'flex-start', minHeight: 44, paddingHorizontal: 0 },
     empty: { paddingTop: 60, alignItems: 'center' },
     sheet: { height: '78%' },
-    formSheet: { height: '50%' },
-    detailSheet: { minHeight: 230 },
+    formSheet: {},
+    detailSheet: {},
+    restTimeSheet: { minHeight: 400 },
+    restTimeHeader: {
+      minHeight: 56,
+      paddingHorizontal: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    restTimeBack: { width: 44, height: 44, minWidth: 44, minHeight: 44 },
+    restTimeTitle: { flex: 1, textAlign: 'center', ...typeScale.headerTitle, color: theme.ink },
+    restTimeHeaderSpacer: { width: 44 },
+    restTimeDefaultAction: {
+      position: 'absolute',
+      right: 20,
+      minWidth: 80,
+      minHeight: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: theme.border,
+      backgroundColor: theme.surfaceMuted,
+      paddingHorizontal: 12,
+    },
+    restTimeDefaultActionSelected: { borderColor: theme.inkInteractive },
+    restTimeDefaultLabel: { ...typeScale.controlLabel, color: theme.textPrimary },
     detailRow: {
       minHeight: 44,
       flexDirection: 'row',
@@ -618,15 +905,21 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       borderColor: theme.divider,
     },
     detailLabel: { ...typeScale.label, color: theme.slate },
-    detailValue: { ...typeScale.body, color: theme.ink },
+    detailValue: { ...typeScale.body, color: theme.ink, textAlign: 'right', flexShrink: 1, marginLeft: 16 },
+    detailAction: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
+    detailSelectableValue: { ...typeScale.body, color: theme.textSecondary, textAlign: 'right', flexShrink: 1, marginLeft: 16 },
+    sectionTypes: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8, flexShrink: 1, marginLeft: 16 },
+    sectionType: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    sectionTypeName: { ...typeScale.body, color: theme.ink },
     sheetHeader: {
-      minHeight: 60,
+      minHeight: 56,
       paddingHorizontal: 20,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
     },
     sheetTitle: { ...typeScale.headerTitle, color: theme.ink },
+    detailSheetTitle: { flex: 1, minWidth: 0, marginRight: 12 },
     filterScroll: { flex: 1 },
     filterContent: { padding: 20, paddingTop: 4, gap: 22, paddingBottom: 24 },
     filterSection: { gap: 8 },
@@ -659,7 +952,10 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       borderTopWidth: StyleSheet.hairlineWidth,
       borderColor: theme.divider,
     },
-    form: { padding: 20, gap: 12 },
+    formScroll: { flex: 1 },
+    form: { padding: 20, gap: 12, paddingBottom: 28 },
+    detailContent: { paddingHorizontal: 20, paddingBottom: 12, paddingTop: 0, gap: 0 },
+    editVariationAction: { marginTop: 16, marginBottom: 8 },
     input: {
       minHeight: 48,
       paddingHorizontal: 14,
@@ -669,5 +965,16 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       borderColor: theme.divider,
       color: theme.ink,
       ...typeScale.body,
+    },
+    fieldLabel: { ...typeScale.label, color: theme.slate, marginTop: 5 },
+    choiceWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    choice: { minHeight: 38, paddingHorizontal: 11, borderRadius: 19, borderWidth: 1, borderColor: theme.divider, backgroundColor: theme.surfaceElevated, flexDirection: 'row', alignItems: 'center', gap: 5 },
+    choiceText: { ...typeScale.label, color: theme.ink },
+    singleAddVariation: {
+      alignSelf: 'flex-start',
+      minHeight: 44,
+      paddingHorizontal: 16,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.divider,
     },
   });

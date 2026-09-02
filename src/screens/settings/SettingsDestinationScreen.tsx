@@ -181,7 +181,6 @@ const styles = StyleSheet.create({
   actionCopy: { flex: 1, minWidth: 0 },
   actionTitle: { color: dashboardTheme.ink, ...typeScale.body },
   actionSubtitle: { marginTop: 2, color: dashboardTheme.slate, ...typeScale.caption },
-  destructive: { color: '#D64848' },
   divider: {
     position: 'absolute',
     right: 18,

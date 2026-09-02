@@ -12,7 +12,8 @@ import {
   AppScreen,
   ForgeCard,
   ForgeText as Text,
-  HeaderCircleAction,
+  ForgeSwitch,
+  HeaderAction,
   Icon,
   lightHaptic,
   mediumHaptic,
@@ -109,10 +110,12 @@ export function WorkoutTypesScreen({ navigation }: Props) {
           title="Workout types"
           navigation={navigation}
           rightAction={
-            <HeaderCircleAction
+            <HeaderAction
               accessibilityLabel="Add workout type"
               icon="add"
               iconSize={20}
+              iconOnly
+              tone="accent"
               onPress={add}
             />
           }
@@ -315,17 +318,7 @@ function SwipeTypeRow({
             <Text style={[styles.builtInText, { color: theme.textPrimary }]}>
               {hidden ? 'Show in workout pickers' : 'Hide from workout pickers'}
             </Text>
-            <View
-              style={[styles.switch, { backgroundColor: !hidden ? theme.marker : theme.divider }]}
-            >
-              <View
-                style={[
-                  styles.switchThumb,
-                  { backgroundColor: theme.surfaceElevated },
-                  !hidden && styles.switchThumbOn,
-                ]}
-              />
-            </View>
+            <ForgeSwitch value={!hidden} testID="workout-type-list-visibility-switch" />
           </Pressable>
           <View testID="workout-type-visibility-bottom-divider" style={styles.builtInDivider} />
         </>
@@ -356,18 +349,18 @@ const styles = StyleSheet.create({
   card,
   hiddenSection: { gap: 8 },
   sectionTitle: { ...typeScale.sectionTitle, color: dashboardTheme.slate },
-  swipe: { position: 'relative', overflow: 'hidden', backgroundColor: '#F6DCDD' },
+  swipe: { position: 'relative', overflow: 'hidden', backgroundColor: dashboardTheme.destructiveSurface },
   actionLayer: {
     position: 'absolute',
     top: 0,
     right: 0,
     bottom: 0,
     width: 72,
-    backgroundColor: '#F6DCDD',
+    backgroundColor: dashboardTheme.destructiveSurface,
   },
   swipeAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  swipeActionPressed: { backgroundColor: '#F1CED0' },
-  swipeActionText: { color: '#D64848', ...typeScale.caption },
+  swipeActionPressed: { backgroundColor: dashboardTheme.destructiveSurfacePressed },
+  swipeActionText: { color: dashboardTheme.textDestructive, ...typeScale.caption },
   rowSurface: { zIndex: 1, backgroundColor: dashboardTheme.surface },
   row: {
     minHeight: 54,
@@ -389,7 +382,4 @@ const styles = StyleSheet.create({
   },
   builtInDivider: { height: StyleSheet.hairlineWidth, backgroundColor: dashboardTheme.divider },
   builtInText: { flex: 1, ...typeScale.body },
-  switch: { width: 42, height: 26, padding: 3, borderRadius: 13 },
-  switchThumb: { width: 20, height: 20, borderRadius: 10 },
-  switchThumbOn: { alignSelf: 'flex-end' },
 });

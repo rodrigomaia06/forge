@@ -70,6 +70,49 @@ test.describe('Settings', () => {
     await expect(page.getByRole('radio', { name: 'Sunday' })).toBeVisible();
   });
 
+  test('uses the shared single-choice picker for General selections', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'General' }).click();
+
+    await page.getByRole('button', { name: 'Default rest time' }).click();
+    await expect(page.getByTestId('default-rest-selection-sheet')).toBeVisible();
+    const defaultRestList = page.getByTestId('default-rest-selection-list');
+    const defaultRestBox = await defaultRestList.boundingBox();
+    expect(defaultRestBox?.height ?? Infinity).toBeLessThanOrEqual(52 * 6 + 0.1);
+    expect(defaultRestBox?.height ?? 0).toBeGreaterThanOrEqual(52 * 4);
+    await expect(defaultRestList).toHaveAttribute('role', 'radiogroup');
+    await expect(page.getByRole('radio', { name: '01:30' })).toHaveAttribute('aria-checked', 'true');
+    await page.getByRole('radio', { name: '02:00' }).click();
+    await expect(page.getByTestId('default-rest-selection-sheet')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Default rest time' })).toContainText('02:00');
+    await page.getByRole('button', { name: 'Default rest time' }).click();
+    await expect(page.getByRole('radio', { name: '02:00' })).toHaveAttribute('aria-checked', 'true');
+    await page.getByRole('radio', { name: '02:00' }).click();
+
+    await page.getByRole('switch', { name: 'Unfinished workout reminder' }).click();
+    await page.getByRole('button', { name: 'Remind after' }).click();
+    await expect(page.getByTestId('reminder-selection-sheet')).toBeVisible();
+    const reminderList = page.getByTestId('reminder-selection-list');
+    const reminderBox = await reminderList.boundingBox();
+    expect(reminderBox?.height).toBeCloseTo(52 * 4, 0);
+    await page.getByRole('radio', { name: '1 hour' }).click();
+    await expect(page.getByTestId('reminder-selection-sheet')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Remind after' })).toContainText('1 hour');
+
+    await page.getByRole('button', { name: 'Appearance' }).click();
+    const viewport = page.viewportSize();
+    if ((viewport?.width ?? 0) >= 768) {
+      await expect(page.getByTestId('appearance-selection-sheet')).toHaveCount(0);
+    } else {
+      await expect(page.getByTestId('appearance-selection-sheet')).toBeVisible();
+      const appearanceBox = await page.getByTestId('appearance-selection-list').boundingBox();
+      expect(appearanceBox?.height).toBeCloseTo(52 * 3, 0);
+    }
+    await page.getByRole('radio', { name: 'Dark' }).click();
+    await expect(page.getByRole('button', { name: 'Appearance' })).toContainText('Dark');
+  });
+
   test('keeps a new workout type as a draft until Save', async ({ page }) => {
     await openWorkoutTypes(page);
     await expect(page.getByText('New type', { exact: true })).toHaveCount(0);

@@ -52,10 +52,31 @@ test('captures primary Forge surfaces in Dark appearance', async ({ page }) => {
   await page.getByRole('button', { name: 'Filters' }).click();
   await capture(page, 'exercise-filter-sheet');
   await page.getByRole('button', { name: 'Done' }).click();
+  await page.getByRole('button', { name: 'Bench Press, 4 variations' }).click();
+  await page.getByRole('button', { name: 'Standard' }).click();
+  await capture(page, 'exercise-detail');
+  await page.getByRole('button', { name: 'Change rest time, currently Default' }).click();
+  await capture(page, 'exercise-rest-picker');
+  await page.getByRole('button', { name: 'Use default rest time' }).click();
+  await page.getByLabel('Close exercise details').click();
   await page.getByRole('button', { name: 'Back to Exercises' }).click();
   await page.getByRole('button', { name: 'Back to Settings' }).click();
   await page.getByRole('button', { name: 'General' }).click();
   await capture(page, 'general');
+  await page.getByRole('button', { name: 'Appearance' }).click();
+  await capture(page, 'general-appearance-picker');
+  if ((page.viewportSize()?.width ?? 0) >= 768) {
+    await page.getByRole('radio', { name: 'Dark' }).click();
+  } else {
+    await page.getByRole('radio', { name: 'Dark' }).click();
+  }
+  await page.getByRole('button', { name: 'Default rest time' }).click();
+  await capture(page, 'general-default-rest-picker');
+  await page.getByRole('radio', { name: '00:30' }).dispatchEvent('click');
+  await page.getByRole('switch', { name: 'Unfinished workout reminder' }).click();
+  await page.getByRole('button', { name: 'Remind after' }).click();
+  await capture(page, 'general-reminder-picker');
+  await page.getByRole('radio', { name: '15 minutes' }).dispatchEvent('click');
   await page.getByRole('button', { name: 'Back to Settings' }).click();
   await page.getByRole('button', { name: 'Workout types' }).click();
   await capture(page, 'workout-types');

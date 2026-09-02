@@ -11,13 +11,16 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   AppScreen,
-  ForgeBottomSheet,
-  ForgeBottomSheetHandle,
+  ForgeListRow,
+  ForgeSelectionSheet,
+  ForgeSingleSelectList,
+  ForgeSwitch,
   ForgeText as Text,
   Icon,
   pressedFeedback,
   selectionHaptic,
 } from '../../components/ui';
+import type { ForgeSingleSelectOption } from '../../components/ui';
 import { useSettings } from '../../state/SettingsContext';
 import { dashboardTheme } from '../../theme/dashboardTheme';
 import { useForgeTheme } from '../../theme/ThemeProvider';
@@ -34,11 +37,29 @@ import { REST_DURATION_OPTIONS } from '../../domain/rest/restDurationOptions';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GeneralSettings'>;
 
+const appearanceOptions: readonly ForgeSingleSelectOption<AppearancePreference>[] = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'system', label: 'System' },
+];
+const reminderOptions: readonly ForgeSingleSelectOption<number>[] = [
+  { value: 900, label: '15 minutes' },
+  { value: 1800, label: '30 minutes' },
+  { value: 3600, label: '1 hour' },
+  { value: 7200, label: '2 hours' },
+];
+const restOptions: readonly ForgeSingleSelectOption<number>[] = REST_DURATION_OPTIONS.map((seconds) => ({
+  value: seconds,
+  label: formatRestDuration(seconds),
+}));
+
 export function GeneralSettingsScreen({ navigation }: Props) {
   const { preferences, updatePreferences } = useSettings();
   const theme = useForgeTheme();
   const { width } = useWindowDimensions();
   const [appearanceOpen, setAppearanceOpen] = React.useState(false);
+  const [defaultRestOpen, setDefaultRestOpen] = React.useState(false);
+  const [reminderOpen, setReminderOpen] = React.useState(false);
   const displayedWeight = useMemo(
     () =>
       preferences.units === 'imperial'
@@ -78,22 +99,11 @@ export function GeneralSettingsScreen({ navigation }: Props) {
                 { backgroundColor: theme.surfaceElevated, shadowColor: theme.shadow },
               ]}
             >
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Appearance"
-                accessibilityValue={{ text: capitalize(preferences.appearance) }}
-                onPress={() => {
-                  selectionHaptic();
-                  setAppearanceOpen(true);
-                }}
-                style={({ pressed }) => [styles.row, pressed && { backgroundColor: theme.pressed }]}
-              >
-                <Text style={[styles.rowTitle, { color: theme.textPrimary }]}>Appearance</Text>
-                <Text style={[styles.value, { color: theme.textSecondary }]}>
-                  {capitalize(preferences.appearance)}
-                </Text>
-                <Icon name="chevron-down" size={18} color={theme.textPrimary} />
-              </Pressable>
+              <ForgeListRow
+                label="Appearance"
+                value={capitalize(preferences.appearance)}
+                onPress={() => setAppearanceOpen(true)}
+              />
               {Platform.OS === 'web' && width >= 768 && appearanceOpen && (
                 <View
                   style={[
@@ -105,17 +115,15 @@ export function GeneralSettingsScreen({ navigation }: Props) {
                     },
                   ]}
                 >
-                  {(['light', 'dark', 'system'] as AppearancePreference[]).map((value) => (
-                    <Choice
-                      key={value}
-                      title={capitalize(value)}
-                      selected={preferences.appearance === value}
-                      onPress={() => {
-                        choose({ appearance: value });
-                        setAppearanceOpen(false);
-                      }}
-                    />
-                  ))}
+                  <ForgeSingleSelectList
+                    options={appearanceOptions}
+                    selectedValue={preferences.appearance}
+                    onSelect={(value) => {
+                      updatePreferences({ appearance: value });
+                      setAppearanceOpen(false);
+                    }}
+                    onSelectedPress={() => setAppearanceOpen(false)}
+                  />
                 </View>
               )}
             </View>
@@ -175,13 +183,10 @@ export function GeneralSettingsScreen({ navigation }: Props) {
             />
             {preferences.showRestTimer && (
               <>
-                <Choice
-                  title={`Default rest time · ${formatSeconds(preferences.defaultRestSeconds)}`}
-                  selected={false}
-                  onPress={() => {
-                    const at = REST_DURATION_OPTIONS.indexOf(preferences.defaultRestSeconds as typeof REST_DURATION_OPTIONS[number]);
-                    choose({ defaultRestSeconds: REST_DURATION_OPTIONS[(at + 1 + REST_DURATION_OPTIONS.length) % REST_DURATION_OPTIONS.length] });
-                  }}
+                <ForgeListRow
+                  label="Default rest time"
+                  value={formatRestDuration(preferences.defaultRestSeconds)}
+                  onPress={() => setDefaultRestOpen(true)}
                   divider
                 />
                 <Toggle
@@ -222,14 +227,10 @@ export function GeneralSettingsScreen({ navigation }: Props) {
               }
             />
             {preferences.unfinishedWorkoutReminderEnabled && (
-              <Choice
-                title={`Remind after · ${formatSeconds(preferences.unfinishedWorkoutReminderDelay)}`}
-                selected={false}
-                onPress={() => {
-                  const values = [900, 1800, 3600, 7200];
-                  const at = values.indexOf(preferences.unfinishedWorkoutReminderDelay);
-                  choose({ unfinishedWorkoutReminderDelay: values[(at + 1) % values.length] });
-                }}
+              <ForgeListRow
+                label="Remind after"
+                value={formatSeconds(preferences.unfinishedWorkoutReminderDelay)}
+                onPress={() => setReminderOpen(true)}
                 divider
               />
             )}
@@ -247,32 +248,39 @@ export function GeneralSettingsScreen({ navigation }: Props) {
             />
           </Group>
         </ScrollView>
-        <ForgeBottomSheet
+        <ForgeSelectionSheet
           visible={appearanceOpen && !(Platform.OS === 'web' && width >= 768)}
           onClose={() => setAppearanceOpen(false)}
           accessibilityLabel="Close appearance options"
-        >
-          {(close) => (
-            <View style={styles.appearanceSheet}>
-              <ForgeBottomSheetHandle />
-              <View style={styles.sheetTitleRow}>
-                <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>Appearance</Text>
-              </View>
-              {(['light', 'dark', 'system'] as AppearancePreference[]).map((value, index) => (
-                <Choice
-                  key={value}
-                  title={capitalize(value)}
-                  selected={preferences.appearance === value}
-                  divider={index < 2}
-                  onPress={() => {
-                    choose({ appearance: value });
-                    close();
-                  }}
-                />
-              ))}
-            </View>
-          )}
-        </ForgeBottomSheet>
+          title="Appearance"
+          options={appearanceOptions}
+          selectedValue={preferences.appearance}
+          onSelect={(value) => updatePreferences({ appearance: value })}
+          testID="appearance-selection-sheet"
+          listTestID="appearance-selection-list"
+        />
+        <ForgeSelectionSheet
+          visible={defaultRestOpen}
+          onClose={() => setDefaultRestOpen(false)}
+          accessibilityLabel="Close default rest time options"
+          title="Default rest time"
+          options={restOptions}
+          selectedValue={preferences.defaultRestSeconds}
+          onSelect={(value) => updatePreferences({ defaultRestSeconds: value })}
+          testID="default-rest-selection-sheet"
+          listTestID="default-rest-selection-list"
+        />
+        <ForgeSelectionSheet
+          visible={reminderOpen}
+          onClose={() => setReminderOpen(false)}
+          accessibilityLabel="Close reminder delay options"
+          title="Remind after"
+          options={reminderOptions}
+          selectedValue={preferences.unfinishedWorkoutReminderDelay}
+          onSelect={(value) => updatePreferences({ unfinishedWorkoutReminderDelay: value })}
+          testID="reminder-selection-sheet"
+          listTestID="reminder-selection-list"
+        />
       </View>
     </AppScreen>
   );
@@ -321,7 +329,7 @@ function Choice({
       style={({ pressed }) => [styles.row, pressed && { backgroundColor: theme.pressed }]}
     >
       <Text style={[styles.rowTitle, { color: theme.textPrimary }]}>{title}</Text>
-      {selected && <Icon name="check" size={20} color={theme.marker} weight="bold" />}
+      {selected && <Icon name="check" size={20} color={theme.inkInteractive} weight="bold" />}
       {divider && <View style={[styles.divider, { backgroundColor: theme.divider }]} />}
     </Pressable>
   );
@@ -347,15 +355,20 @@ function Toggle({
       style={({ pressed }) => [styles.row, pressed && { backgroundColor: theme.pressed }]}
     >
       <Text style={[styles.rowTitle, { color: theme.textPrimary }]}>{title}</Text>
-      <View style={[styles.switch, { backgroundColor: value ? theme.marker : theme.divider }]}>
-        <View style={[styles.thumb, { backgroundColor: theme.surface }, value && styles.thumbOn]} />
-      </View>
+      <ForgeSwitch value={value} testID={`general-switch-${title.replace(/\s+/g, '-').toLowerCase()}`} />
       {divider && <View style={[styles.divider, { backgroundColor: theme.divider }]} />}
     </Pressable>
   );
 }
 function formatSeconds(seconds: number) {
-  return seconds >= 3600 ? `${seconds / 3600} hours` : `${Math.round(seconds / 60)} min`;
+  if (seconds >= 3600) {
+    const hours = seconds / 3600;
+    return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+  }
+  return `${Math.round(seconds / 60)} min`;
+}
+function formatRestDuration(seconds: number) {
+  return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 }
 function capitalize(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
@@ -380,9 +393,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 8,
   },
-  appearanceSheet: { minHeight: 245 },
-  sheetTitleRow: { minHeight: 56, paddingHorizontal: 20, justifyContent: 'center' },
-  sheetTitle: { ...typeScale.headerTitle },
   groupTitle: { ...typeScale.label, marginLeft: 6 },
   card: {
     overflow: 'hidden',
@@ -412,8 +422,4 @@ const styles = StyleSheet.create({
   weightInput: { width: 76, minHeight: 40, textAlign: 'right', ...typeScale.body },
   unit: { ...typeScale.supporting },
   footer: { paddingHorizontal: 18, paddingBottom: 14, ...typeScale.caption },
-  switch: { width: 42, height: 26, padding: 3, borderRadius: 13 },
-  switchOn: {},
-  thumb: { width: 20, height: 20, borderRadius: 10 },
-  thumbOn: { alignSelf: 'flex-end' },
 });

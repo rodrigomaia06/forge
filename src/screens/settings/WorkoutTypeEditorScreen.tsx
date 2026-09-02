@@ -7,6 +7,7 @@ import {
   Button,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
+  ForgeSwitch,
   ForgeText as Text,
   ForgeTextInput as TextInput,
   HeaderAction,
@@ -171,6 +172,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
               iconOnly
               onPress={discardDraft}
               haptic="none"
+              tone="destructive"
             />
             <View
               testID="new-workout-type-title-wrap"
@@ -188,6 +190,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
               onPress={saveDraft}
               disabled={!draft?.name.trim()}
               haptic="none"
+              tone="success"
             />
             <HeaderEdge />
           </View>
@@ -293,9 +296,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
                       : 'Only new-workout pickers change. Existing workouts, routines, and plans keep this type.'}
                   </Text>
                 </View>
-                <View style={[styles.switch, type.hidden && styles.switchOn]}>
-                  <View style={[styles.switchThumb, type.hidden && styles.switchThumbOn]} />
-                </View>
+                <ForgeSwitch value={type.hidden === true} testID="workout-type-visibility-switch" />
               </Pressable>
             </View>
           )}
@@ -305,7 +306,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
               accessibilityLabel={destructiveLabel}
               icon={type.hidden ? 'check' : mustHide ? 'close' : 'trash'}
               variant="outline"
-              labelColor={type.hidden ? dashboardTheme.accent : '#D64848'}
+              tone={type.hidden ? 'neutral' : 'destructive'}
               onPress={() => {
                 if (type.hidden) {
                   lightHaptic();
@@ -313,7 +314,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
                 } else removeOrHide();
               }}
               theme={dashboardTheme}
-              style={[styles.destructive, !type.hidden && styles.destructiveBorder]}
+              style={styles.destructive}
             />
           )}
         </ScrollView>
@@ -339,6 +340,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
                       accessibilityRole="button"
                       accessibilityLabel={`Use custom color ${color}`}
                       accessibilityState={{ selected }}
+                      hitSlop={3}
                       onPress={() => {
                         selectionHaptic();
                         change({ color });
@@ -444,23 +446,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     copy: { flex: 1, minWidth: 0 },
     hideTitle: { color: dashboardTheme.ink, ...typeScale.body },
     hideCopy: { marginTop: 2, color: dashboardTheme.slate, ...typeScale.supporting },
-    switch: {
-      width: 42,
-      height: 26,
-      padding: 3,
-      borderRadius: 13,
-      backgroundColor: dashboardTheme.divider,
-    },
-    switchOn: { backgroundColor: dashboardTheme.accent },
-    switchThumb: {
-      width: 20,
-      height: 20,
-      borderRadius: 10,
-      backgroundColor: dashboardTheme.surface,
-    },
-    switchThumbOn: { alignSelf: 'flex-end' },
     destructive: { minHeight: 48 },
-    destructiveBorder: { borderColor: '#D64848' },
   });
 };
 
