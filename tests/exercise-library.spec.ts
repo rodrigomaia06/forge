@@ -80,7 +80,9 @@ test.describe('Exercise library', () => {
 
   test('adds a variation from a single exercise with its current equipment or a custom one', async ({ page }) => {
     await openAllExercises(page);
-    await expect(page.getByRole('button', { name: 'Add variation to Pec Deck' })).toHaveCSS('border-width', '2px');
+    const addVariation = page.getByRole('button', { name: 'Add variation to Pec Deck' });
+    await expect(addVariation).toHaveCSS('border-width', '1px');
+    await expect(addVariation).toHaveCSS('border-top-style', 'dashed');
     await page.getByRole('button', { name: 'Add variation to Pec Deck' }).click();
 
     const formSurface = page.getByTestId('custom-exercise-form-surface');

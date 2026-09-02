@@ -411,7 +411,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                 </Text>
                 <HeaderAction
                   accessibilityLabel="Save variation"
-                  icon="arrow-forward"
+                  icon="check"
                   iconOnly
                   variant="outline"
                   tone={name.trim() ? 'success' : 'neutral'}
@@ -996,7 +996,14 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     },
     variationName: { ...typeScale.cardTitle, color: theme.ink },
     variationIcons: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-    addVariation: { alignSelf: 'stretch', minHeight: 52, width: '100%' },
+    addVariation: {
+      alignSelf: 'stretch',
+      minHeight: 44,
+      width: '100%',
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderRadius: 12,
+    },
     empty: { paddingTop: 60, alignItems: 'center' },
     sheet: { alignSelf: 'stretch', flexShrink: 1 },
     formSheet: { alignSelf: 'stretch', flexShrink: 1 },
@@ -1166,8 +1173,11 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     choiceText: { ...typeScale.label, color: theme.ink },
     singleAddVariation: {
       alignSelf: 'stretch',
-      minHeight: 52,
+      minHeight: 44,
       margin: 12,
       width: 'auto',
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderRadius: 12,
     },
   });

@@ -402,7 +402,7 @@ export function AddExerciseSheet({
                 disabled={!selected.length}
                 onPress={submit}
                 theme={dashboardTheme}
-                icon="arrow-forward"
+                icon="check"
                 variant="outline"
                 tone={selected.length ? 'success' : 'neutral'}
                 style={styles.pickerSubmit}
