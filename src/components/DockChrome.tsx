@@ -122,9 +122,9 @@ const styles = StyleSheet.create({
   vignette: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 104, zIndex: 0 },
   dockLayer: {
     ...StyleSheet.absoluteFillObject,
-    // Keep the floating dock clear of the system edge. The scroll body remains
-    // visible beneath the vignette instead of reserving a separate tab-bar row.
-    bottom: 22,
+    // Float over the lower safe area without turning it into an empty band.
+    // The vignette continues underneath the surface to the screen edge.
+    bottom: 8,
     alignItems: 'center',
     justifyContent: 'flex-end',
   },

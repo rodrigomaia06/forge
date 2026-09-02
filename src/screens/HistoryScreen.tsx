@@ -43,7 +43,7 @@ export function HistoryScreen({
   const groups = useMemo(() => groupByPeriod(completedWorkouts), [completedWorkouts]);
   const [deleteRevealedId, setDeleteRevealedId] = useState<string | null>(null);
   return (
-    <AppScreen backgroundColor={theme.background}>
+    <AppScreen backgroundColor={theme.background} edges={['top']}>
       <View style={styles.screen}>
         <View testID="history-header" style={styles.header}>
           <ScreenTitle testID="history-title" color={theme.textPrimary}>

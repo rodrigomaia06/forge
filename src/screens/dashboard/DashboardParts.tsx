@@ -31,7 +31,7 @@ export function DashboardShell({
     navigation.navigate('Plans', { openCreation: true });
   };
   return (
-    <AppScreen testID="dashboard-app-screen" backgroundColor={theme.background}>
+    <AppScreen testID="dashboard-app-screen" backgroundColor={theme.background} edges={['top']}>
       <View
         testID="dashboard-shell"
         style={styles.appShell}

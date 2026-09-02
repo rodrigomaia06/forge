@@ -36,7 +36,7 @@ test.describe('Dashboard dock geometry', () => {
       throw new Error('Expected dashboard header and scroll geometry to be measurable');
     expect(header.y).toBe(scroll.y);
     expect(dock.y).toBeGreaterThanOrEqual(header.y + header.height);
-    expect(dock.y + dock.height).toBeLessThanOrEqual(viewport.height - 16);
+    expect(dock.y + dock.height).toBeLessThanOrEqual(viewport.height - 6);
     await expect(page.getByTestId('dashboard-header')).toHaveCSS('position', 'relative');
     await expect(page.getByTestId('dashboard-dock-vignette')).toBeVisible();
     await expect(page.getByTestId('dashboard-dock-home-indicator')).toBeVisible();

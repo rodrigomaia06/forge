@@ -81,7 +81,7 @@ export function PlansScreen({ navigation, route }: Props) {
   };
 
   return (
-    <AppScreen backgroundColor={theme.background}>
+    <AppScreen backgroundColor={theme.background} edges={['top']}>
       <View style={styles.screen}>
         <View style={styles.header}>
           <ScreenTitle color={theme.textPrimary}>Plans</ScreenTitle>

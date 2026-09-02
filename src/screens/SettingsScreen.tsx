@@ -18,7 +18,7 @@ export function SettingsScreen({ navigation }: Props) {
   };
 
   return (
-    <AppScreen backgroundColor={theme.background}>
+    <AppScreen backgroundColor={theme.background} edges={['top']}>
       <View style={styles.screen}>
         <View style={styles.header}>
           <ScreenTitle testID="settings-title" color={theme.textPrimary}>

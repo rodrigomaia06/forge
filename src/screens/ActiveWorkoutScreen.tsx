@@ -211,9 +211,10 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   };
 
   return (
-    <AppScreen
-      backgroundColor={theme.background}
-      style={[styles.screen, { backgroundColor: theme.background }]}
+      <AppScreen
+        backgroundColor={theme.background}
+        edges={['top']}
+        style={[styles.screen, { backgroundColor: theme.background }]}
     >
       <View style={styles.header}>
         <View style={styles.headerTop}>
