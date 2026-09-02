@@ -12,13 +12,17 @@ Use platform-specific behavior where it improves system integration, accessibili
 
 Use shared semantic tokens and reusable primitives for recurring color, typography, spacing, shape, and interaction roles. Avoid duplicating raw visual values across feature components when a shared semantic value already exists.
 
+Finite single-choice lists use the shared Forge selection primitives. Standalone choices use the Forge selection sheet; a value opened from an existing sheet replaces that sheet's content with an internal selection view and provides an explicit Back path to the prior content.
+
 Icon-only dismiss and navigation header actions use the shared 44 pt circular overlay surface, including its border, pressed state, haptic feedback, and accessible name.
 
 Bottom-attached modal sheets use the shared Forge sheet presentation for their backdrop, drag handle, dismissal motion, corner treatment, shadow, close control, and pressed feedback. Individual sheets may vary only their content and height.
 
 Use the shared grouped-card primitive whenever a feature presents related rows. It owns the common surface, border, radius, and shadow treatment in both themes; screens may not recreate a locally divergent card outline.
 
-Workout-type colors communicate workout-type data and contextual selection only. Neutral navigation, creation, disclosure, and secondary actions use Forge's neutral interactive/text tokens rather than a workout-type accent.
+Workout-type colors communicate workout-type data, swatches, charts, and contextual type selection only; they do not color generic Save, Finish, creation, navigation, or destructive actions. Shared controls use semantic Forge tones: Save, Done, and Finish use `success`; Start, Add, and New use `accent`; Discard, Delete, Remove, and destructive swipe actions use the destructive tokens; Back, Close, More, Filter, Skip, and reversible Hide remain neutral. Generic selected/toggle states use `inkInteractive`, while completed workout sets use `success`.
+
+Header actions use `HeaderAction` only: icon-only controls are 44 pt circles and labelled pills use `controlLabel`. Do not bypass its semantic tones with local colour or label-style props. Shared switches are presentational; their containing rows own touch handling, accessibility, and any haptic feedback.
 
 Do not copy exact visual constants from an external design guideline when the platform provides a semantic/system value or Forge already owns that visual decision.
 

@@ -20,9 +20,12 @@ export interface ForgeTheme {
   pressed: string;
   focus: string;
   shadow: string;
-  accent?: string;
-  inkInteractive?: string;
-  success?: string;
+  accent: string;
+  inkInteractive: string;
+  success: string;
+  onSuccess: string;
+  destructiveSurface: string;
+  destructiveSurfacePressed: string;
   calendarSurface?: string;
   calendarDay?: string;
   calendarWorkoutDay?: string;

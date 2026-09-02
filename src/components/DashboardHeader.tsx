@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { ForgeText as Text, HeaderCircleAction, ScreenTitle } from './ui';
+import { ForgeText as Text, HeaderAction, ScreenTitle } from './ui';
 import { spacing, typeScale } from '../theme/tokens';
 import type { ForgeTheme, IconName, IconWeight } from '../types';
 
@@ -41,11 +41,13 @@ export function DashboardHeader({
         )}
       </View>
       <View style={styles.actions}>
-        <HeaderCircleAction
+        <HeaderAction
           accessibilityLabel={action.accessibilityLabel}
           icon={action.icon}
           iconSize={action.iconSize}
           iconWeight={action.iconWeight}
+          iconOnly
+          tone="accent"
           onPress={onStart}
         />
       </View>

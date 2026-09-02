@@ -15,7 +15,6 @@ import {
   ForgeText as Text,
   ForgeTextInput as TextInput,
   HeaderAction,
-  HeaderCircleAction,
   Icon,
   lightHaptic,
   selectionHaptic,
@@ -80,7 +79,6 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
       { text: 'Cancel', style: 'cancel' },
     ]);
   const showRoutineOptions = (): void => {
-    selectionHaptic();
     Alert.alert(routine.name, undefined, [
       {
         text: routine.planId ? 'Move to standalone routines' : 'Move to a plan',
@@ -113,10 +111,11 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
               Edit routine
             </Text>
           </View>
-          <HeaderCircleAction
+          <HeaderAction
             accessibilityLabel="Routine options"
             icon="ellipsis-horizontal"
             iconSize={20}
+            iconOnly
             onPress={showRoutineOptions}
           />
         </View>
@@ -277,7 +276,7 @@ function RoutineExerciseRow({
         onPress={onRemove}
         style={({ pressed }) => [styles.remove, pressed && styles.pressed]}
       >
-        <Icon name="trash" size={17} color="#D64848" />
+        <Icon name="trash" size={17} color={theme.textDestructive} />
       </Pressable>
     </View>
   );

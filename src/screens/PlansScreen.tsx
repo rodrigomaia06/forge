@@ -7,7 +7,7 @@ import {
   AppScreen,
   Button,
   ForgeText as Text,
-  HeaderCircleAction,
+  HeaderAction,
   Icon,
   ScreenTitle,
   selectionHaptic,
@@ -87,9 +87,11 @@ export function PlansScreen({ navigation, route }: Props) {
       <View style={styles.screen}>
         <View style={styles.header}>
           <ScreenTitle color={theme.textPrimary}>Plans</ScreenTitle>
-          <HeaderCircleAction
+          <HeaderAction
             accessibilityLabel="Create workout, routine, or plan"
             icon="add"
+            iconOnly
+            tone="accent"
             onPress={() => setCreationOpen(true)}
           />
         </View>
@@ -297,15 +299,14 @@ function EmptyPlans({
       <Text style={styles.emptyText}>
         Save exercises and targets so your next workout is ready to start.
       </Text>
-      <Button label="New routine" onPress={onNewRoutine} theme={theme} />
-      <Pressable
-        accessibilityRole="button"
+      <Button label="New routine" tone="accent" onPress={onNewRoutine} theme={theme} />
+      <Button
         accessibilityLabel="New plan"
+        label="New plan"
+        tone="accent"
         onPress={onNewPlan}
-        style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressed]}
-      >
-        <Text style={styles.secondaryActionText}>New plan</Text>
-      </Pressable>
+        style={styles.secondaryAction}
+      />
     </View>
   );
 }

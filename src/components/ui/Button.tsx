@@ -18,7 +18,7 @@ interface ButtonProps {
   label?: string;
   accessibilityLabel?: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'outline';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
   icon?: IconName;
   iconSize?: number;
   iconWeight?: IconWeight;
@@ -26,9 +26,8 @@ interface ButtonProps {
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   labelStyle?: StyleProp<TextStyle>;
-  labelColor?: string;
   theme?: ForgeTheme;
-  tone?: 'neutral' | 'accent' | 'destructive';
+  tone?: 'neutral' | 'accent' | 'success' | 'destructive';
   haptic?: 'none' | 'light' | 'medium';
 }
 
@@ -44,7 +43,6 @@ export function Button({
   disabled = false,
   style,
   labelStyle,
-  labelColor,
   theme,
   tone,
   haptic,
@@ -53,14 +51,11 @@ export function Button({
   const resolvedTheme = theme ?? contextTheme ?? colors;
   const isPrimary = variant === 'primary';
   const isOutline = variant === 'outline';
+  const isGhost = variant === 'ghost';
   const resolvedTone = tone ?? (isPrimary ? 'accent' : 'neutral');
-  const textColor =
-    labelColor ||
-    (resolvedTone === 'accent'
-      ? resolvedTheme.primaryText
-      : resolvedTone === 'destructive'
-        ? resolvedTheme.textDestructive
-        : resolvedTheme.textPrimary);
+  const textColor = disabled || loading
+    ? resolvedTheme.textDisabled
+    : foregroundFor(resolvedTone, isPrimary, resolvedTheme);
 
   return (
     <Pressable
@@ -77,34 +72,11 @@ export function Button({
       style={({ pressed }) => [
         styles.base,
         isPrimary && styles.primary,
-        isPrimary
-          ? {
-              backgroundColor:
-                resolvedTone === 'accent' ? resolvedTheme.accent : resolvedTheme.surfaceElevated,
-              borderColor: resolvedTheme.border,
-            }
-          : isOutline
-            ? [
-                styles.outline,
-                {
-                  borderColor:
-                    resolvedTone === 'destructive'
-                      ? resolvedTheme.textDestructive
-                      : resolvedTone === 'accent'
-                        ? resolvedTheme.accent
-                        : resolvedTheme.border,
-                  backgroundColor: resolvedTheme.surface,
-                },
-              ]
-            : [
-                styles.secondary,
-                {
-                  borderColor: resolvedTheme.border,
-                  backgroundColor: resolvedTheme.surfaceElevated,
-                },
-              ],
-        disabled && styles.disabled,
-        pressed && styles.pressed,
+        buttonSurface(variant, resolvedTone, resolvedTheme),
+        isOutline && styles.outline,
+        isGhost && styles.ghost,
+        (disabled || loading) && [styles.disabled, { backgroundColor: resolvedTheme.surfaceMuted, borderColor: resolvedTheme.surfaceMuted }],
+        pressed && !(disabled || loading) && pressedSurface(variant, resolvedTone, resolvedTheme),
         style,
       ]}
     >
@@ -134,7 +106,50 @@ const styles = StyleSheet.create({
   primary: { minWidth: 92 },
   secondary: { borderWidth: 1 },
   outline: { borderWidth: 2 },
+  ghost: { borderWidth: 0 },
   label: typeScale.controlLabel,
-  disabled: { opacity: 0.45 },
-  pressed: { opacity: 0.65 },
+  disabled: { opacity: 1 },
 });
+
+function foregroundFor(tone: NonNullable<ButtonProps['tone']>, primary: boolean, theme: ForgeTheme): string {
+  if (primary && tone === 'accent') return theme.primaryText;
+  if (primary && tone === 'success') return theme.onSuccess;
+  if (tone === 'destructive') return theme.textDestructive;
+  if (tone === 'accent') return theme.accent;
+  if (tone === 'success') return theme.success;
+  return theme.textPrimary;
+}
+
+function buttonSurface(
+  variant: NonNullable<ButtonProps['variant']>,
+  tone: NonNullable<ButtonProps['tone']>,
+  theme: ForgeTheme,
+): ViewStyle {
+  if (variant === 'ghost') return { backgroundColor: 'transparent', borderColor: 'transparent' };
+  if (variant === 'primary') {
+    if (tone === 'accent') return { backgroundColor: theme.accent, borderColor: theme.accent };
+    if (tone === 'success') return { backgroundColor: theme.success, borderColor: theme.success };
+    if (tone === 'destructive') return { backgroundColor: theme.destructiveSurface, borderColor: theme.textDestructive };
+    return { backgroundColor: theme.surfaceElevated, borderColor: theme.border };
+  }
+  if (variant === 'outline') {
+    return {
+      backgroundColor: tone === 'destructive' ? theme.destructiveSurface : theme.surface,
+      borderColor: tone === 'destructive' ? theme.textDestructive : tone === 'accent' ? theme.accent : tone === 'success' ? theme.success : theme.border,
+    };
+  }
+  return {
+    backgroundColor: tone === 'destructive' ? theme.destructiveSurface : theme.surfaceElevated,
+    borderColor: tone === 'destructive' ? theme.textDestructive : theme.border,
+  };
+}
+
+function pressedSurface(
+  variant: NonNullable<ButtonProps['variant']>,
+  tone: NonNullable<ButtonProps['tone']>,
+  theme: ForgeTheme,
+): ViewStyle {
+  if (tone === 'destructive') return { backgroundColor: theme.destructiveSurfacePressed };
+  if (variant === 'ghost') return { backgroundColor: theme.pressed };
+  return { opacity: 0.76 };
+}
