@@ -76,6 +76,20 @@ test.describe('Plans and routines', () => {
       routine.getByRole('button', { name: 'Start Swipe routine' }).locator('svg'),
     ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Create standalone routine' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'More options for Swipe routine' }).click();
+    const routineOptions = page.getByTestId('plans-options-sheet');
+    await expect(
+      routineOptions.getByRole('button', { name: 'Start' }).locator('svg'),
+    ).toBeVisible();
+    await expect(routineOptions.getByRole('button', { name: 'Edit' }).locator('svg')).toBeVisible();
+    await expect(
+      routineOptions.getByRole('button', { name: 'Duplicate' }).locator('svg'),
+    ).toBeVisible();
+    await expect(
+      routineOptions.getByRole('button', { name: 'Delete' }).locator('svg'),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Dismiss plan options' }).click();
+    await expect(routineOptions).toHaveCount(0);
     await swipeLeftFrom(page, routine);
     const deleteRoutine = page.getByRole('button', { name: 'Delete Swipe routine' });
     await expect(deleteRoutine).toBeVisible();
@@ -91,6 +105,11 @@ test.describe('Plans and routines', () => {
     await swipeLeftFrom(page, plan);
     const deletePlan = page.getByRole('button', { name: 'Delete New plan' });
     await expect(deletePlan).toBeVisible();
+    const [planBox, deletePlanBox] = await Promise.all([
+      plan.boundingBox(),
+      deletePlan.boundingBox(),
+    ]);
+    expect(deletePlanBox?.height).toBeCloseTo(planBox?.height ?? 0, 0);
     await deletePlan.click();
     await expect(page.getByText('New plan', { exact: true })).toHaveCount(0);
   });

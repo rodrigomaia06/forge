@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -11,11 +11,14 @@ import Animated, {
 import {
   AnchoredActionPopover,
   AppScreen,
+  ForgeBottomSheet,
+  ForgeBottomSheetHandle,
   ForgeText as Text,
   HeaderAction,
   Icon,
   lightHaptic,
   mediumHaptic,
+  pressedFeedback,
   ScreenTitle,
   selectionHaptic,
 } from '../components/ui';
@@ -35,6 +38,8 @@ import type {
 import { workoutTypeIcon } from './settings/workoutTypeIcon';
 
 type Props = RootTabScreenProps<'Plans'>;
+type PlanActionTarget =
+  { kind: 'routine'; item: WorkoutRoutine } | { kind: 'plan'; item: WorkoutPlan };
 const swipeSpring = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
 
 export function PlansScreen({ navigation, route }: Props) {
@@ -52,6 +57,7 @@ export function PlansScreen({ navigation, route }: Props) {
   } = usePlans();
   const { startWorkout } = useWorkouts();
   const [creationOpen, setCreationOpen] = useState(false);
+  const [actionTarget, setActionTarget] = useState<PlanActionTarget | null>(null);
 
   useEffect(() => {
     if (!route.params?.openCreation) return;
@@ -77,13 +83,8 @@ export function PlansScreen({ navigation, route }: Props) {
     navigation.navigate('RoutineEditor', { routineId: routine.id });
   };
   const routineActions = (routine: WorkoutRoutine): void => {
-    Alert.alert(routine.name, undefined, [
-      { text: 'Start', onPress: () => startRoutine(routine) },
-      { text: 'Edit', onPress: () => openRoutine(routine) },
-      { text: 'Duplicate', onPress: () => duplicateRoutine(routine.id) },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteRoutine(routine.id) },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    lightHaptic();
+    setActionTarget({ kind: 'routine', item: routine });
   };
   const addPlan = (): void => {
     createPlan();
@@ -150,6 +151,10 @@ export function PlansScreen({ navigation, route }: Props) {
                     onStartRoutine={startRoutine}
                     onRoutineActions={routineActions}
                     onDeleteRoutine={(routine) => deleteRoutine(routine.id)}
+                    onOptions={(item) => {
+                      lightHaptic();
+                      setActionTarget({ kind: 'plan', item });
+                    }}
                     onDelete={() => deletePlan(plan.id)}
                   />
                 ))}
@@ -168,6 +173,80 @@ export function PlansScreen({ navigation, route }: Props) {
             { label: 'New workout plan', icon: 'layers', onPress: addPlan },
           ]}
         />
+        <ForgeBottomSheet
+          visible={actionTarget !== null}
+          onClose={() => setActionTarget(null)}
+          accessibilityLabel="Dismiss plan options"
+          surfaceTestID="plans-options-sheet"
+        >
+          {(close) =>
+            actionTarget ? (
+              <View style={styles.optionsSheet}>
+                <ForgeBottomSheetHandle />
+                <Text style={styles.optionsTitle}>{actionTarget.item.name}</Text>
+                <View style={styles.optionList}>
+                  {actionTarget.kind === 'routine' ? (
+                    <>
+                      <PlanOption
+                        label="Start"
+                        icon="play"
+                        onPress={() => {
+                          close();
+                          startRoutine(actionTarget.item);
+                        }}
+                      />
+                      <PlanOption
+                        label="Edit"
+                        icon="note"
+                        onPress={() => {
+                          close();
+                          openRoutine(actionTarget.item);
+                        }}
+                      />
+                      <PlanOption
+                        label="Duplicate"
+                        icon="duplicate"
+                        onPress={() => {
+                          duplicateRoutine(actionTarget.item.id);
+                          close();
+                        }}
+                      />
+                      <PlanOption
+                        label="Delete"
+                        icon="trash"
+                        destructive
+                        onPress={() => {
+                          deleteRoutine(actionTarget.item.id);
+                          close();
+                        }}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <PlanOption
+                        label="Add routine"
+                        icon="add"
+                        onPress={() => {
+                          close();
+                          addRoutine(actionTarget.item.id);
+                        }}
+                      />
+                      <PlanOption
+                        label="Delete plan"
+                        icon="trash"
+                        destructive
+                        onPress={() => {
+                          deletePlan(actionTarget.item.id);
+                          close();
+                        }}
+                      />
+                    </>
+                  )}
+                </View>
+              </View>
+            ) : null
+          }
+        </ForgeBottomSheet>
       </View>
     </AppScreen>
   );
@@ -191,6 +270,7 @@ function PlanCard({
   onStartRoutine,
   onRoutineActions,
   onDeleteRoutine,
+  onOptions,
   onDelete,
 }: {
   plan: WorkoutPlan;
@@ -200,24 +280,20 @@ function PlanCard({
   onStartRoutine: (routine: WorkoutRoutine) => void;
   onRoutineActions: (routine: WorkoutRoutine) => void;
   onDeleteRoutine: (routine: WorkoutRoutine) => void;
+  onOptions: (plan: WorkoutPlan) => void;
   onDelete: () => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const more = (): void =>
-    Alert.alert(plan.name, undefined, [
-      { text: 'Add routine', onPress: onAddRoutine },
-      { text: 'Delete plan', style: 'destructive', onPress: onDelete },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
   return (
-    <View style={styles.card}>
-      <SwipeDelete
-        accessibilityLabel={`Delete ${plan.name}`}
-        testID={`plan-swipe-${plan.id}`}
-        onDelete={onDelete}
-      >
-        {() => (
+    <SwipeDelete
+      accessibilityLabel={`Delete ${plan.name}`}
+      testID={`plan-swipe-${plan.id}`}
+      onDelete={onDelete}
+      rounded
+    >
+      {() => (
+        <View style={styles.card}>
           <View style={styles.planHeader}>
             <View>
               <Text style={styles.planName}>{plan.name}</Text>
@@ -228,44 +304,44 @@ function PlanCard({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Options for ${plan.name}`}
-              onPress={more}
+              onPress={() => onOptions(plan)}
               style={({ pressed }) => [styles.more, pressed && styles.pressed]}
             >
               <Icon name="ellipsis-horizontal" size={20} color={theme.slate} />
             </Pressable>
           </View>
-        )}
-      </SwipeDelete>
-      {plan.routines.map((routine, index) => (
-        <SwipeDelete
-          key={routine.id}
-          accessibilityLabel={`Delete ${routine.name}`}
-          testID={`routine-swipe-${routine.id}`}
-          onOpen={() => onOpenRoutine(routine)}
-          onDelete={() => onDeleteRoutine(routine)}
-        >
-          {(onOpen) => (
-            <RoutineRow
-              routine={routine}
-              workoutTypes={workoutTypes}
-              last={index === plan.routines.length - 1}
-              onStart={() => onStartRoutine(routine)}
-              onPress={onOpen}
-              onMore={() => onRoutineActions(routine)}
-            />
-          )}
-        </SwipeDelete>
-      ))}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Add routine to ${plan.name}`}
-        onPress={onAddRoutine}
-        style={({ pressed }) => [styles.addToPlan, pressed && styles.pressed]}
-      >
-        <Icon name="add" size={16} color={theme.textPrimary} />
-        <Text style={styles.addToPlanText}>Add routine</Text>
-      </Pressable>
-    </View>
+          {plan.routines.map((routine, index) => (
+            <SwipeDelete
+              key={routine.id}
+              accessibilityLabel={`Delete ${routine.name}`}
+              testID={`routine-swipe-${routine.id}`}
+              onOpen={() => onOpenRoutine(routine)}
+              onDelete={() => onDeleteRoutine(routine)}
+            >
+              {(onOpen) => (
+                <RoutineRow
+                  routine={routine}
+                  workoutTypes={workoutTypes}
+                  last={index === plan.routines.length - 1}
+                  onStart={() => onStartRoutine(routine)}
+                  onPress={onOpen}
+                  onMore={() => onRoutineActions(routine)}
+                />
+              )}
+            </SwipeDelete>
+          ))}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Add routine to ${plan.name}`}
+            onPress={onAddRoutine}
+            style={({ pressed }) => [styles.addToPlan, pressed && styles.pressed]}
+          >
+            <Icon name="add" size={16} color={theme.textPrimary} />
+            <Text style={styles.addToPlanText}>Add routine</Text>
+          </Pressable>
+        </View>
+      )}
+    </SwipeDelete>
   );
 }
 
@@ -321,6 +397,34 @@ function RoutineRow({
     </View>
   );
 }
+
+function PlanOption({
+  label,
+  icon,
+  destructive = false,
+  onPress,
+}: {
+  label: string;
+  icon: IconName;
+  destructive?: boolean;
+  onPress: () => void;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  const color = destructive ? theme.textDestructive : theme.textPrimary;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => [styles.optionRow, pressed && pressedFeedback]}
+    >
+      <Icon name={icon} size={20} color={color} />
+      <Text style={[styles.optionLabel, { color }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 function EmptyPlans() {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -353,12 +457,14 @@ function SwipeDelete({
   testID,
   onOpen,
   onDelete,
+  rounded = false,
   children,
 }: {
   accessibilityLabel: string;
   testID: string;
   onOpen?: () => void;
   onDelete: () => void;
+  rounded?: boolean;
   children: (onOpen: () => void) => React.ReactNode;
 }) {
   const theme = useForgeTheme();
@@ -408,7 +514,10 @@ function SwipeDelete({
 
   return (
     <GestureDetector gesture={pan}>
-      <View testID={testID} style={styles.swipeContainer}>
+      <View
+        testID={testID}
+        style={[styles.swipeContainer, rounded && styles.roundedSwipeContainer]}
+      >
         <View
           pointerEvents={revealed ? 'auto' : 'none'}
           style={[styles.deleteLayer, { backgroundColor: theme.destructiveSurface }]}
@@ -511,11 +620,32 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       textAlign: 'center',
       marginBottom: 8,
     },
+    optionsSheet: { paddingBottom: 20 },
+    optionsTitle: {
+      ...typeScale.headerTitle,
+      color: theme.ink,
+      textAlign: 'center',
+      marginTop: 8,
+      marginBottom: 16,
+      paddingHorizontal: spacing.screen,
+    },
+    optionList: { paddingHorizontal: spacing.screen, gap: 8 },
+    optionRow: {
+      minHeight: 48,
+      borderRadius: 14,
+      paddingHorizontal: 16,
+      gap: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.surfaceMuted,
+    },
+    optionLabel: { ...typeScale.controlLabel },
     swipeContainer: {
       overflow: 'hidden',
       position: 'relative',
       backgroundColor: theme.destructiveSurface,
     },
+    roundedSwipeContainer: { borderRadius: theme.cardRadius },
     deleteLayer: {
       position: 'absolute',
       top: 0,
