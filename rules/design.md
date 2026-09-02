@@ -16,7 +16,7 @@ Finite single-choice lists use the shared Forge selection primitives. Standalone
 
 Icon-only dismiss and navigation header actions use the shared 44 pt circular overlay surface, including its border, pressed state, haptic feedback, and accessible name.
 
-Bottom-attached modal sheets use the shared Forge sheet presentation for their backdrop, drag handle, dismissal motion, corner treatment, shadow, close control, and pressed feedback. When a sheet input opens the keyboard, the shared sheet synchronizes its animation with the keyboard, expands only to the top safe-area inset above it, keeps its normal rounded upper corners, meets the keyboard at its lower edge, and restores its compact height when the keyboard hides. Individual sheets may vary only their content and height.
+Bottom-attached modal sheets use the shared Forge sheet presentation for their backdrop, drag handle, dismissal motion, corner treatment, shadow, close control, and pressed feedback. When a sheet input opens the keyboard, the shared sheet synchronizes its animation with the keyboard, expands only to the top safe-area inset above it, keeps its normal rounded corners at both edges, meets the keyboard at its lower edge, and restores its compact height when the keyboard hides. Individual sheets may vary only their content and height.
 
 Use the shared grouped-card primitive whenever a feature presents related rows. It owns the common surface, border, radius, and shadow treatment in both themes; screens may not recreate a locally divergent card outline.
 
@@ -25,6 +25,8 @@ Controls use a monochrome neutral hierarchy by default. `actionPrimary`/`onActio
 Workout-type colours are data, not chrome. They may appear only in small type markers and badges, calendar markers, charts and legends, and the workout-type editor or colour selector. Do not use them for text, buttons, headers, navigation, checks, switches, metrics, or large decorative backgrounds. Resolve type-marker presentation through the shared workout-type presentation helper so saved custom colours and built-in fallbacks remain consistent.
 
 Header actions use `HeaderAction` only: icon-only controls are 44 pt circles and labelled pills use `controlLabel`. Their surface remains neutral unless the screen explicitly promotes the action or the action is directly destructive. Shared switches are presentational; their containing rows own touch handling, accessibility, and any haptic feedback.
+
+Primary dock icons use the shared navigation item and animate subtly between their standard size and a slightly enlarged selected state.
 
 All application icons are rendered through Forge's shared `Icon` adapter, backed by Tabler Icons. Choose the icon semantically for the action or content it represents; screens must not import a separate icon library directly.
 

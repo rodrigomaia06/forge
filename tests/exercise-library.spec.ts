@@ -94,8 +94,12 @@ test.describe('Exercise library', () => {
     await expect(page.getByRole('button', { name: 'Save variation' })).toBeDisabled();
     const machineEquipment = page.getByRole('radio', { name: 'Equipment Machine' });
     await expect(machineEquipment).toHaveAttribute('aria-checked', 'true');
+    await expect(machineEquipment.getByTestId('choice-selection-verified').first()).toBeVisible();
     await expect(page.getByRole('checkbox', { name: 'Section Strength' }).locator('svg').first()).toBeVisible();
     await page.getByRole('radio', { name: 'Add custom equipment' }).click();
+    await expect(
+      page.getByRole('radio', { name: 'Add custom equipment' }).getByTestId('choice-selection-note').first(),
+    ).toBeVisible();
     await page.getByRole('textbox', { name: 'Custom equipment' }).fill('Cable');
     await page.getByLabel('Exercise name').fill('Cable Pec Deck');
     await expect(page.getByRole('button', { name: 'Save variation' })).toBeEnabled();
@@ -129,8 +133,15 @@ test.describe('Exercise library', () => {
     await page.getByRole('button', { name: 'Custom exercises, 0 exercises' }).click();
     await page.getByRole('button', { name: 'Create custom exercise' }).click();
     await page.getByLabel('Exercise name').fill('Custom Row');
+    await page.getByLabel('Exercise category').fill('Bench');
+    await page.getByRole('button', { name: 'Use category Bench Press' }).click();
+    await expect(page.getByTestId('category-source-forge').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Use category Bench Press' })).toHaveCount(0);
     await page.getByLabel('Exercise category').fill('Rows');
     await expect(page.getByRole('button', { name: 'Add Rows as a custom category' })).toBeVisible();
+    await page.getByRole('button', { name: 'Add Rows as a custom category' }).click();
+    await expect(page.getByTestId('category-source-custom').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add Rows as a custom category' })).toHaveCount(0);
     await page.getByRole('checkbox', { name: 'Section Mobility' }).click();
     await page.getByRole('checkbox', { name: 'Primary Back' }).click();
     await page.getByRole('checkbox', { name: 'Secondary Biceps' }).click();

@@ -47,7 +47,7 @@ export function NavigationItem({
   useEffect(() => {
     RNAnimated.timing(activeProgress, {
       toValue: active ? 1 : 0,
-      duration: 140,
+      duration: 180,
       easing: RNEasing.out(RNEasing.cubic),
       useNativeDriver: true,
     }).start();
@@ -118,7 +118,7 @@ export function NavigationItem({
                     {
                       scale: activeProgress.interpolate({
                         inputRange: [0, 1],
-                        outputRange: [0.92, 1],
+                        outputRange: [0.96, 1.1],
                       }),
                     },
                   ],

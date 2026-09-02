@@ -46,6 +46,7 @@ import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseBrowser'>;
 type Filters = { types: string[]; equipment: string[]; categories: string[] };
 type DetailSheetView = 'details' | 'restTime';
+type CatalogSource = 'forge' | 'custom';
 
 function formatPickerDuration(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
@@ -75,6 +76,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const [formParent, setFormParent] = useState<string | null | undefined>(undefined);
   const [name, setName] = useState('');
   const [group, setGroup] = useState('');
+  const [categorySource, setCategorySource] = useState<CatalogSource | null>(null);
   const [equipmentValue, setEquipmentValue] = useState('Bodyweight');
   const [primaryMuscle, setPrimaryMuscle] = useState('Accessories');
   const [secondaryMuscles, setSecondaryMuscles] = useState<string[]>([]);
@@ -111,13 +113,29 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   );
   const groups = useMemo(() => groupCatalogByMovement(filtered), [filtered]);
   const { equipment, categories } = catalogFacets(catalog.exercises);
+  const forgeEquipmentOptions = useMemo(
+    () => Array.from(new Set(catalog.exercises.map((item) => item.equipment))),
+    [catalog.exercises],
+  );
+  const customEquipmentOptions = useMemo(
+    () => Array.from(new Set(catalog.customExercises.map((item) => item.equipment))),
+    [catalog.customExercises],
+  );
   const equipmentOptions = useMemo(
-    () => Array.from(new Set([...catalog.exercises, ...catalog.customExercises].map((item) => item.equipment))),
-    [catalog.customExercises, catalog.exercises],
+    () => Array.from(new Set([...forgeEquipmentOptions, ...customEquipmentOptions])),
+    [customEquipmentOptions, forgeEquipmentOptions],
+  );
+  const forgeCategoryOptions = useMemo(
+    () => Array.from(new Set(catalog.exercises.map((item) => item.group))),
+    [catalog.exercises],
+  );
+  const customCategoryOptions = useMemo(
+    () => Array.from(new Set(catalog.customExercises.map((item) => item.group))),
+    [catalog.customExercises],
   );
   const categoryOptions = useMemo(
-    () => Array.from(new Set([...catalog.exercises, ...catalog.customExercises].map((item) => item.group))).sort(),
-    [catalog.customExercises, catalog.exercises],
+    () => Array.from(new Set([...forgeCategoryOptions, ...customCategoryOptions])).sort(),
+    [customCategoryOptions, forgeCategoryOptions],
   );
   const formEquipment = useMemo(() => {
     if (!formParent) return [];
@@ -131,10 +149,23 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   }, [catalog.customExercises, catalog.exercises, formParent]);
   const selectableEquipment = formParent ? formEquipment : equipmentOptions;
   const usesCustomEquipment = !selectableEquipment.includes(equipmentValue);
+  const sourceForCategory = (value: string): CatalogSource =>
+    forgeCategoryOptions.some((item) => item.toLocaleLowerCase() === value.toLocaleLowerCase())
+      ? 'forge'
+      : 'custom';
+  const sourceForEquipment = (value: string): CatalogSource =>
+    forgeEquipmentOptions.some((item) => item.toLocaleLowerCase() === value.toLocaleLowerCase())
+      ? 'forge'
+      : 'custom';
   const categoryMatches = useMemo(() => {
     const query = group.trim().toLocaleLowerCase();
-    return query ? categoryOptions.filter((item) => item.toLocaleLowerCase().includes(query)).slice(0, 5) : [];
-  }, [categoryOptions, group]);
+    return query
+      ? categoryOptions
+          .filter((item) => item.toLocaleLowerCase().includes(query))
+          .slice(0, 5)
+          .map((item) => ({ label: item, source: sourceForCategory(item) }))
+      : [];
+  }, [categoryOptions, forgeCategoryOptions, group]);
   const isExistingCategory = categoryOptions.some(
     (item) => item.toLocaleLowerCase() === group.trim().toLocaleLowerCase(),
   );
@@ -157,6 +188,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     setEditing(null);
     setName('');
     setGroup(parent ?? '');
+    setCategorySource(parent ? sourceForCategory(parent) : null);
     setEquipmentValue(inherited?.equipment ?? 'Bodyweight');
     setPrimaryMuscle(inherited?.primaryMuscle ?? 'Accessories');
     setSecondaryMuscles(inherited?.secondaryMuscles ?? []);
@@ -170,6 +202,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     setEditing(item);
     setName(item.variation || item.name);
     setGroup(item.group);
+    setCategorySource(sourceForCategory(item.group));
     setEquipmentValue(item.equipment);
     setPrimaryMuscle(item.primaryMuscle);
     setSecondaryMuscles(item.secondaryMuscles);
@@ -442,40 +475,61 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                       <TextInput
                         accessibilityLabel="Exercise category"
                         value={group}
-                        onChangeText={setGroup}
+                        onChangeText={(value) => {
+                          setGroup(value);
+                          setCategorySource(null);
+                        }}
                         placeholder="Search or add a category"
                         placeholderTextColor={theme.muted}
                         style={styles.categorySearchInput}
                       />
+                      {categorySource && (
+                        <Icon
+                          name={categorySource === 'forge' ? 'verified' : 'note'}
+                          size={18}
+                          color={theme.slate}
+                          testID={`category-source-${categorySource}`}
+                        />
+                      )}
                     </View>
-                    {group.trim() ? (
+                    {group.trim() && !categorySource ? (
                       <View style={styles.categorySuggestions}>
-                        {categoryMatches.map((item) => (
+                        {categoryMatches.map(({ label, source }) => (
                           <Pressable
-                            key={item}
+                            key={label}
                             accessibilityRole="button"
-                            accessibilityLabel={`Use category ${item}`}
+                            accessibilityLabel={`Use category ${label}`}
                             onPress={() => {
                               selectionHaptic();
-                              setGroup(item);
+                              setGroup(label);
+                              setCategorySource(source);
                             }}
                             style={({ pressed }) => [styles.categorySuggestion, pressed && pressedFeedback]}
                           >
                             <Icon name="layers-outline" size={16} color={theme.slate} />
-                            <Text style={styles.categorySuggestionText}>{item}</Text>
+                            <Text style={styles.categorySuggestionText}>{label}</Text>
+                            <Icon
+                              name={source === 'forge' ? 'verified' : 'note'}
+                              size={16}
+                              color={theme.slate}
+                            />
                           </Pressable>
                         ))}
                         {!isExistingCategory && (
                           <Pressable
                             accessibilityRole="button"
                             accessibilityLabel={`Add ${group.trim()} as a custom category`}
-                            onPress={() => selectionHaptic()}
+                            onPress={() => {
+                              selectionHaptic();
+                              setCategorySource('custom');
+                            }}
                             style={({ pressed }) => [styles.categorySuggestion, pressed && pressedFeedback]}
                           >
                             <Icon name="add" size={17} color={theme.ink} />
                             <Text style={styles.categorySuggestionText}>
                               Add “{group.trim()}” as custom
                             </Text>
+                            <Icon name="note" size={16} color={theme.slate} />
                           </Pressable>
                         )}
                       </View>
@@ -496,6 +550,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                         accessibilityLabel={`Equipment ${item}`}
                         role="radio"
                         selected={equipmentValue === item}
+                        selectionIcon={sourceForEquipment(item) === 'forge' ? 'verified' : 'note'}
                         onPress={() => {
                           selectionHaptic();
                           setEquipmentValue(item);
@@ -508,6 +563,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                       accessibilityLabel="Add custom equipment"
                       role="radio"
                       selected={usesCustomEquipment}
+                      selectionIcon="note"
                       onPress={() => {
                         selectionHaptic();
                         setEquipmentValue('');
@@ -734,6 +790,7 @@ function Choice({
   selected,
   onPress,
   icon,
+  selectionIcon = 'check',
   role = 'checkbox',
 }: {
   label: string;
@@ -741,6 +798,7 @@ function Choice({
   selected: boolean;
   onPress: () => void;
   icon?: IconName;
+  selectionIcon?: IconName;
   role?: 'checkbox' | 'radio';
 }) {
   const styles = useThemedStyles(createStyles);
@@ -760,7 +818,14 @@ function Choice({
     >
       {icon && <Icon name={icon} size={16} color={theme.ink} />}
       <Text style={styles.choiceText}>{label}</Text>
-      {selected && <Icon name="check" size={15} color={theme.ink} />}
+      {selected && (
+        <Icon
+          name={selectionIcon}
+          size={15}
+          color={theme.ink}
+          testID={`choice-selection-${selectionIcon}`}
+        />
+      )}
     </Pressable>
   );
 }
@@ -1160,7 +1225,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderColor: theme.divider,
     },
-    categorySuggestionText: { ...typeScale.controlLabel, color: theme.ink, flexShrink: 1 },
+    categorySuggestionText: { ...typeScale.controlLabel, color: theme.ink, flex: 1 },
     fieldLabel: { ...typeScale.label, color: theme.slate, marginTop: 5 },
     choiceWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     choice: {

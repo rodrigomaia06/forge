@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import Animated, {
   Extrapolation,
   interpolate,

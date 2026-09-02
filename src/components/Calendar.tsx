@@ -1,13 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Platform, Pressable, View, useWindowDimensions } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { Animated, Easing, Pressable, View, useWindowDimensions } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { monthDays, workoutsByDate } from '../data/mockWorkouts';
 import { colors } from '../theme/tokens';
 import { getWorkoutTypePresentation } from '../domain/workouts/presentation';
-import { ForgeText as Text, Icon, pressedFeedback, pressedFeedbackSubtle } from './ui';
+import { ForgeText as Text, Icon, lightHaptic, pressedFeedback, pressedFeedbackSubtle } from './ui';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import type { ForgeTheme, WeekStartsOn, WorkoutMap, WorkoutTypePreference } from '../types';
@@ -207,7 +206,7 @@ function CalendarViewMenu({
 }
 
 function triggerLightHaptic() {
-  if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+  lightHaptic();
 }
 
 function CalendarContent({

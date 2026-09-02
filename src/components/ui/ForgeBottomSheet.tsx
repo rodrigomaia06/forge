@@ -236,6 +236,8 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     shadowOpacity: 0,
     shadowRadius: 0,
     elevation: 0,

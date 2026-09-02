@@ -73,7 +73,7 @@ export function BottomNavigation({
           emphasis={emphasis}
           onPress={() => goTo(screen)}
           theme={theme}
-          iconSize={compact ? (emphasis ? 26 : 19) : emphasis ? 38 : hasActiveWorkout ? 24 : 26}
+          iconSize={compact ? (emphasis ? 28 : 20) : emphasis ? 40 : hasActiveWorkout ? 26 : 28}
           enterFromBottom={emphasis && workoutStartedNow}
           compact={compact}
         />
