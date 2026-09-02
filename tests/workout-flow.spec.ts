@@ -403,7 +403,6 @@ test.describe('Active workout flow', () => {
     await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
     await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
     await expect(page.getByText('Exercise options', { exact: true })).toBeVisible();
-    await expect(page.getByText('EXERCISE', { exact: true })).toBeVisible();
     await expect(
       page.getByRole('button', { name: 'Remove Barbell Bench Press' }).locator('svg'),
     ).toHaveCount(1);

@@ -492,7 +492,6 @@ export function ExerciseOptionsSheet({
       onClose={onClose}
       accessibilityLabel="Close options"
       title="Exercise options"
-      context={{ eyebrow: 'EXERCISE', title: exercise.name, icon: 'fitness-outline' }}
       initialOffset={420}
       closeDistance={520}
       dismissThreshold={260}
@@ -533,7 +532,6 @@ export function WorkoutOptionsSheet({
       onClose={onClose}
       accessibilityLabel="Close workout options"
       title="Workout options"
-      context={{ eyebrow: 'WORKOUT', title: workoutName, icon: 'fitness-outline' }}
       initialOffset={320}
       closeDistance={320}
       dismissThreshold={160}

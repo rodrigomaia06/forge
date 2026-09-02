@@ -177,18 +177,6 @@ export function PlansScreen({ navigation, route }: Props) {
           onClose={() => setActionTarget(null)}
           accessibilityLabel="Dismiss plan options"
           title={actionTarget?.kind === 'plan' ? 'Plan options' : 'Routine options'}
-          context={
-            actionTarget
-              ? {
-                  eyebrow: actionTarget.kind === 'plan' ? 'PLAN' : 'ROUTINE',
-                  title: actionTarget.item.name,
-                  icon:
-                    actionTarget.kind === 'plan'
-                      ? 'layers'
-                      : getRoutineTypeIcon(actionTarget.item.type, preferences.workoutTypes),
-                }
-              : undefined
-          }
           testID="plans-options-sheet"
           actions={
             actionTarget?.kind === 'routine'

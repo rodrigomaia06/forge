@@ -21,19 +21,12 @@ export interface ForgeActionSheetAction {
   accessibilityLabel?: string;
 }
 
-export interface ForgeActionSheetContext {
-  eyebrow: string;
-  title: string;
-  icon: IconName;
-}
-
 interface ForgeActionSheetProps {
   visible: boolean;
   onClose: () => void;
   accessibilityLabel: string;
   title: string;
   actions: readonly ForgeActionSheetAction[];
-  context?: ForgeActionSheetContext;
   testID?: string;
   initialOffset?: number;
   closeDistance?: number;
@@ -47,7 +40,6 @@ export function ForgeActionSheet({
   accessibilityLabel,
   title,
   actions,
-  context,
   testID,
   initialOffset,
   closeDistance,
@@ -93,21 +85,6 @@ export function ForgeActionSheet({
               ) : undefined
             }
           />
-          {context ? (
-            <View testID={testID ? `${testID}-context` : undefined} style={styles.contextCard}>
-              <View style={[styles.contextIcon, { backgroundColor: theme.surfaceMuted }]}>
-                <Icon name={context.icon} size={22} color={theme.selectionIndicator} />
-              </View>
-              <View style={styles.contextCopy}>
-                <Text style={[styles.contextEyebrow, { color: theme.textSecondary }]}>
-                  {context.eyebrow}
-                </Text>
-                <Text numberOfLines={1} style={[styles.contextTitle, { color: theme.textPrimary }]}>
-                  {context.title}
-                </Text>
-              </View>
-            </View>
-          ) : null}
           {neutralActions.length > 0 && (
             <View style={[styles.actionList, { borderColor: theme.border }]}>
               {neutralActions.map((action, index) => (
@@ -196,30 +173,10 @@ function ActionRow({
 }
 
 const styles = StyleSheet.create({
-  sheet: { paddingBottom: 24 },
-  contextCard: {
-    minHeight: 58,
-    marginHorizontal: 20,
-    marginTop: 8,
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  contextIcon: {
-    width: 38,
-    height: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 11,
-  },
-  contextCopy: { flex: 1, minWidth: 0, gap: 2 },
-  contextEyebrow: { ...typeScale.label, letterSpacing: 0.7, fontWeight: '700' },
-  contextTitle: { ...typeScale.cardTitle },
+  sheet: { paddingBottom: 30 },
   actionList: {
     marginHorizontal: 20,
-    marginTop: 16,
+    marginTop: 12,
     overflow: 'hidden',
     borderWidth: 1,
     borderRadius: 16,
@@ -232,7 +189,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   actionRow: {
-    minHeight: 62,
+    minHeight: 68,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',

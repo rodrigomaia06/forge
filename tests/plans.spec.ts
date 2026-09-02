@@ -79,8 +79,6 @@ test.describe('Plans and routines', () => {
     await page.getByRole('button', { name: 'More options for Swipe routine' }).click();
     const routineOptions = page.getByTestId('plans-options-sheet');
     await expect(routineOptions.getByText('Routine options', { exact: true })).toBeVisible();
-    await expect(routineOptions.getByText('ROUTINE', { exact: true })).toBeVisible();
-    await expect(routineOptions.getByText('Swipe routine', { exact: true })).toBeVisible();
     await expect(routineOptions.getByRole('button', { name: 'Start' }).locator('svg')).toHaveCount(2);
     await expect(routineOptions.getByRole('button', { name: 'Edit' }).locator('svg')).toHaveCount(2);
     await expect(routineOptions.getByRole('button', { name: 'Duplicate' }).locator('svg')).toHaveCount(2);
@@ -114,8 +112,6 @@ test.describe('Plans and routines', () => {
     await page.getByRole('button', { name: 'Options for New plan' }).click();
     const planOptions = page.getByTestId('plans-options-sheet');
     await expect(planOptions.getByText('Plan options', { exact: true })).toBeVisible();
-    await expect(planOptions.getByText('PLAN', { exact: true })).toBeVisible();
-    await expect(planOptions.getByText('New plan', { exact: true })).toBeVisible();
     await expect(planOptions.getByRole('button', { name: 'Add routine' }).locator('svg')).toHaveCount(2);
     await expect(planOptions.getByRole('button', { name: 'Delete plan' }).locator('svg')).toHaveCount(1);
     await page.getByRole('button', { name: 'Dismiss plan options' }).click();
