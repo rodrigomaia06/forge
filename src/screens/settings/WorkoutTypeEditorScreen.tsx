@@ -172,7 +172,6 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
               iconOnly
               onPress={discardDraft}
               haptic="none"
-              tone="destructive"
             />
             <View
               testID="new-workout-type-title-wrap"
@@ -190,7 +189,6 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
               onPress={saveDraft}
               disabled={!draft?.name.trim()}
               haptic="none"
-              tone="success"
             />
             <HeaderEdge />
           </View>

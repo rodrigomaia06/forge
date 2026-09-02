@@ -65,6 +65,16 @@ Do not create commits around 2,000 changed lines. Before committing, inspect `gi
 - A larger commit is acceptable only when its parts cannot be reviewed, tested, or reverted meaningfully on their own; explain that constraint in the commit body.
 - If oversized commits are still local and the full behavior is preserved, rewrite them into smaller cohesive commits before sharing the branch.
 
+## Targeted verification
+
+Every implementation change must be verified, but verification should remain scoped to what changed.
+
+- Run the project typecheck for TypeScript changes, then run only the tests that directly cover the changed files, their affected consumers, and the behavior at risk.
+- Do not run unrelated test suites merely because they are available.
+- When a shared primitive changes, include representative consumers for each affected behavior or presentation mode; this can legitimately require several targeted test files.
+- Run the complete verification suite only when the change itself is repository-wide and the full suite is the smallest correct scope, or when the user explicitly requests it.
+- Report the exact checks executed and identify any affected behavior that could not be verified.
+
 ## ADR threshold
 
 Create an ADR only when the decision is important enough that a future contributor would reasonably ask "why did we choose this instead of the alternatives?"

@@ -40,11 +40,11 @@ Do not read `docs/archive/` or `docs/research/` as current requirements unless t
 
 ## Verification
 
-Use the smallest useful check during iteration. Before finishing a code change, run:
+Use the smallest useful check during iteration. Before finishing a TypeScript code change, run `npm run typecheck` and only the tests that directly cover the files, consumers, and behavior changed.
 
-`npm run verify`
+Do not run unrelated test suites by default. Use `npm run verify` only when the changed surface is genuinely repository-wide and the full suite is therefore the smallest correct scope, or when the user explicitly requests it.
 
-If verification cannot run, report exactly what was not run and why.
+If targeted verification cannot run or an affected area has no relevant test, report exactly what was not verified and why.
 
 ## Completion contract
 

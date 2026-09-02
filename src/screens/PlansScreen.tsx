@@ -91,7 +91,6 @@ export function PlansScreen({ navigation, route }: Props) {
             accessibilityLabel="Create workout, routine, or plan"
             icon="add"
             iconOnly
-            tone="accent"
             onPress={() => setCreationOpen(true)}
           />
         </View>
@@ -303,7 +302,8 @@ function EmptyPlans({
       <Button
         accessibilityLabel="New plan"
         label="New plan"
-        tone="accent"
+        variant="secondary"
+        tone="neutral"
         onPress={onNewPlan}
         style={styles.secondaryAction}
       />

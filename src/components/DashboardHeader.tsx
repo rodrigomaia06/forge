@@ -47,7 +47,6 @@ export function DashboardHeader({
           iconSize={action.iconSize}
           iconWeight={action.iconWeight}
           iconOnly
-          tone="accent"
           onPress={onStart}
         />
       </View>

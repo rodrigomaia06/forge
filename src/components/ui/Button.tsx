@@ -26,6 +26,7 @@ interface ButtonProps {
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   labelStyle?: StyleProp<TextStyle>;
+  contentColor?: string;
   theme?: ForgeTheme;
   tone?: 'neutral' | 'accent' | 'success' | 'destructive';
   haptic?: 'none' | 'light' | 'medium';
@@ -43,6 +44,7 @@ export function Button({
   disabled = false,
   style,
   labelStyle,
+  contentColor,
   theme,
   tone,
   haptic,
@@ -55,7 +57,7 @@ export function Button({
   const resolvedTone = tone ?? (isPrimary ? 'accent' : 'neutral');
   const textColor = disabled || loading
     ? resolvedTheme.textDisabled
-    : foregroundFor(resolvedTone, isPrimary, resolvedTheme);
+    : contentColor ?? foregroundFor(resolvedTone, isPrimary, resolvedTheme);
 
   return (
     <Pressable

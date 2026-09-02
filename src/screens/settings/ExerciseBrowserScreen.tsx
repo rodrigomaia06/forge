@@ -205,7 +205,6 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
               accessibilityLabel="Create custom exercise"
               icon="add"
               iconOnly
-              tone="accent"
               onPress={() => openCreate(null)}
             />
           }
@@ -343,7 +342,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                 />
               </ScrollView>
               <View style={styles.footer}>
-                <Button label="Done" tone="success" onPress={close} />
+                <Button label="Done" tone="accent" onPress={close} />
               </View>
             </View>
           )}
@@ -373,7 +372,6 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   accessibilityLabel="Save variation"
                   icon="check"
                   iconOnly
-                  tone="success"
                   disabled={!name.trim()}
                   onPress={() => {
                     if (save()) close();

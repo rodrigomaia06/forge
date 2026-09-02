@@ -20,9 +20,9 @@ Bottom-attached modal sheets use the shared Forge sheet presentation for their b
 
 Use the shared grouped-card primitive whenever a feature presents related rows. It owns the common surface, border, radius, and shadow treatment in both themes; screens may not recreate a locally divergent card outline.
 
-Workout-type colors communicate workout-type data, swatches, charts, and contextual type selection only; they do not color generic Save, Finish, creation, navigation, or destructive actions. Shared controls use semantic Forge tones: Save, Done, and Finish use `success`; Start, Add, and New use `accent`; Discard, Delete, Remove, and destructive swipe actions use the destructive tokens; Back, Close, More, Filter, Skip, and reversible Hide remain neutral. Generic selected/toggle states use `inkInteractive`, while completed workout sets use `success`.
+Controls use a neutral surface by default; color emphasis is a deliberate hierarchy decision, not something inferred mechanically from labels such as Save, Add, or Cancel. A screen should normally have at most one filled primary action. Contextual Save and Finish actions may use the current workout-type color when that reinforces the workout being edited. Destructive color is reserved for controls that directly delete, remove, or confirm discarding data; Back, Close, Cancel, More, Filter, Skip, and reversible Hide remain neutral. Generic selected/toggle states use `inkInteractive`, while completed workout sets use `success`.
 
-Header actions use `HeaderAction` only: icon-only controls are 44 pt circles and labelled pills use `controlLabel`. Do not bypass its semantic tones with local colour or label-style props. Shared switches are presentational; their containing rows own touch handling, accessibility, and any haptic feedback.
+Header actions use `HeaderAction` only: icon-only controls are 44 pt circles and labelled pills use `controlLabel`. Their surface remains neutral unless the screen explicitly promotes the action or the action is directly destructive. Shared switches are presentational; their containing rows own touch handling, accessibility, and any haptic feedback.
 
 Do not copy exact visual constants from an external design guideline when the platform provides a semantic/system value or Forge already owns that visual decision.
 

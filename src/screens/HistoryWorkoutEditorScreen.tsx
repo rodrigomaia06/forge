@@ -40,6 +40,7 @@ import {
   updateWorkoutSet,
 } from '../state/workoutMutations';
 import type { RootStackParamList, Workout } from '../types';
+import { contrastingIconColor, workoutTypeColor } from './activeWorkout/workoutTypeColor';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'HistoryWorkoutEditor'>;
 
@@ -120,6 +121,8 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         ? { ...current, startedAt: updated }
         : { ...current, completedAt: updated };
     });
+  const workoutColor = workoutTypeColor(draft.type);
+  const saveContentColor = contrastingIconColor(workoutColor);
   return (
     <AppScreen
       backgroundColor={theme.background}
@@ -133,7 +136,6 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
             label="Cancel"
             iconOnly
             onPress={discard}
-            tone="destructive"
           />
           <View style={styles.titleBlock}>
             <Text numberOfLines={1} style={styles.title}>
@@ -144,7 +146,10 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
             accessibilityLabel="Save workout"
             icon="check"
             label="Save"
-            tone="success"
+            variant="primary"
+            tone="accent"
+            accentColor={workoutColor}
+            contentColor={saveContentColor}
             onPress={save}
             haptic="none"
           />

@@ -12,7 +12,10 @@ interface HeaderActionProps {
   iconWeight?: IconWeight;
   onPress: () => void;
   iconOnly?: boolean;
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
   tone?: 'neutral' | 'accent' | 'success' | 'destructive';
+  accentColor?: string;
+  contentColor?: string;
   style?: StyleProp<ViewStyle>;
   disabled?: boolean;
   haptic?: 'none' | 'light' | 'medium';
@@ -26,7 +29,10 @@ export function HeaderAction({
   iconWeight = 'regular',
   onPress,
   iconOnly = false,
+  variant = 'secondary',
   tone = 'neutral',
+  accentColor,
+  contentColor,
   style,
   disabled = false,
   haptic,
@@ -38,14 +44,19 @@ export function HeaderAction({
       icon={icon}
       iconSize={iconSize}
       iconWeight={iconWeight}
-      variant={tone === 'neutral' ? 'secondary' : 'primary'}
+      variant={variant}
       onPress={onPress}
       disabled={disabled}
       haptic={haptic}
       tone={tone}
+      contentColor={contentColor}
       style={[
         styles.base,
         iconOnly && styles.iconOnly,
+        accentColor && !disabled && {
+          backgroundColor: accentColor,
+          borderColor: accentColor,
+        },
         style,
       ]}
     />

@@ -115,7 +115,6 @@ export function WorkoutTypesScreen({ navigation }: Props) {
               icon="add"
               iconSize={20}
               iconOnly
-              tone="accent"
               onPress={add}
             />
           }
