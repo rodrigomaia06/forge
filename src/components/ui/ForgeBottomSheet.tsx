@@ -49,6 +49,7 @@ interface ForgeBottomSheetProps {
   onCloseStart?: () => void;
   onBackRequest?: () => boolean;
   keyboardAvoiding?: boolean;
+  dismissTextKeyboardOnTap?: boolean;
   backdropTestID?: string;
   surfaceTestID?: string;
   dragArea?: (children: React.ReactNode) => React.ReactNode;
@@ -69,6 +70,7 @@ export function ForgeBottomSheet({
   onCloseStart,
   onBackRequest,
   keyboardAvoiding = true,
+  dismissTextKeyboardOnTap = true,
   backdropTestID,
   surfaceTestID,
   dragArea,
@@ -178,6 +180,15 @@ export function ForgeBottomSheet({
           onPress={() => close(true)}
           style={StyleSheet.absoluteFill}
         />
+        {keyboardVisible ? (
+          <View
+            pointerEvents="none"
+            style={[
+              styles.keyboardSurfaceFill,
+              { height: keyboardHeight, backgroundColor: theme.surfaceElevated },
+            ]}
+          />
+        ) : null}
         <View
           pointerEvents="box-none"
           style={styles.keyboardArea}
@@ -185,6 +196,8 @@ export function ForgeBottomSheet({
           <GestureDetector gesture={pan}>
             <Animated.View
               testID={surfaceTestID}
+              onStartShouldSetResponderCapture={() => keyboardVisible && dismissTextKeyboardOnTap}
+              onResponderRelease={() => Keyboard.dismiss()}
               style={[
                 styles.sheet,
                 { backgroundColor: theme.surfaceElevated, shadowColor: theme.shadow },
@@ -222,6 +235,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(23,25,28,0.24)',
   },
   keyboardArea: { flex: 1, justifyContent: 'flex-end' },
+  keyboardSurfaceFill: { position: 'absolute', right: 0, bottom: 0, left: 0 },
   sheet: {
     overflow: 'hidden',
     borderTopLeftRadius: 28,

@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
-  Keyboard,
   Pressable,
   StyleSheet,
   type TextInputProps,
@@ -60,6 +59,7 @@ export function SetDetailsCard({
   const workoutSheetStyles = useThemedStyles(createActiveWorkoutStyles);
   const styles = useThemedStyles(createStyles);
   const [infoOpen, setInfoOpen] = React.useState<'type' | 'target' | null>(null);
+  const [dismissTextKeyboardOnTap, setDismissTextKeyboardOnTap] = React.useState(true);
 
   const toggleInfo = (key: 'type' | 'target'): void => {
     selectionHaptic();
@@ -73,14 +73,12 @@ export function SetDetailsCard({
       accessibilityLabel="Close set details"
       testID="set-details-sheet"
       style={styles.setDetailsSheet}
+      dismissTextKeyboardOnTap={dismissTextKeyboardOnTap}
     >{(closeSheet) => <>
             <ForgeBottomSheetHandle />
-            <View onTouchStart={() => Keyboard.dismiss()} accessibilityLabel={`Details for set ${index + 1}`}>
+            <View accessibilityLabel={`Details for set ${index + 1}`}>
             <View
-              onTouchStart={() => {
-                setInfoOpen(null);
-                Keyboard.dismiss();
-              }}
+              onTouchStart={() => setInfoOpen(null)}
               style={[workoutSheetStyles.restTimerHeader, styles.topBar]}
             >
               {editable ? (
@@ -140,7 +138,10 @@ export function SetDetailsCard({
                       value={set.comment || ''}
                       onChangeText={(comment) => onChange({ comment })}
                       editable={editable}
-                      onFocus={() => setInfoOpen(null)}
+                      onFocus={() => {
+                        setDismissTextKeyboardOnTap(true);
+                        setInfoOpen(null);
+                      }}
                       onTouchStart={(event) => event.stopPropagation()}
                       maxLength={120}
                       placeholder="Add a comment..."
@@ -175,7 +176,10 @@ export function SetDetailsCard({
                       keyboardType="decimal-pad"
                       accessibilityLabel={`Next-time weight target for set ${index + 1}`}
                       onChangeText={(targetWeight) => onChange({ targetWeight })}
-                      onFocus={() => setInfoOpen(null)}
+                      onFocus={() => {
+                        setDismissTextKeyboardOnTap(false);
+                        setInfoOpen(null);
+                      }}
                       editable={editable}
                     />
                     <TargetRow
@@ -186,7 +190,10 @@ export function SetDetailsCard({
                       keyboardType="number-pad"
                       accessibilityLabel={`Next-time reps target for set ${index + 1}`}
                       onChangeText={(targetReps) => onChange({ targetReps })}
-                      onFocus={() => setInfoOpen(null)}
+                      onFocus={() => {
+                        setDismissTextKeyboardOnTap(false);
+                        setInfoOpen(null);
+                      }}
                       editable={editable}
                     />
                   </View>
