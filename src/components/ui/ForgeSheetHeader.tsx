@@ -10,6 +10,7 @@ interface ForgeSheetHeaderProps {
   title: string;
   onClose?: () => void;
   closeAccessibilityLabel?: string;
+  closePosition?: 'left' | 'right';
   leading?: ReactNode;
   trailing?: ReactNode;
   testID?: string;
@@ -20,6 +21,7 @@ export function ForgeSheetHeader({
   title,
   onClose,
   closeAccessibilityLabel,
+  closePosition = 'right',
   leading,
   trailing,
   testID,
@@ -27,13 +29,21 @@ export function ForgeSheetHeader({
   const theme = useForgeTheme();
   return (
     <View testID={testID} style={styles.header}>
-      <View style={styles.leading}>{leading}</View>
+      <View style={styles.leading}>
+        {closePosition === 'left' && onClose ? (
+          <SheetCloseButton
+            accessibilityLabel={closeAccessibilityLabel ?? `Close ${title}`}
+            onPress={onClose}
+          />
+        ) : null}
+        {leading}
+      </View>
       <Text numberOfLines={1} style={[styles.title, { color: theme.textPrimary }]}>
         {title}
       </Text>
       <View style={styles.trailing}>
         {trailing}
-        {onClose ? (
+        {closePosition === 'right' && onClose ? (
           <SheetCloseButton
             accessibilityLabel={closeAccessibilityLabel ?? `Close ${title}`}
             onPress={onClose}

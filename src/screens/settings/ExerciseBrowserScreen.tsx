@@ -717,6 +717,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   title={detail.variation || detail.name}
                   onClose={close}
                   closeAccessibilityLabel="Close exercise details"
+                  closePosition={isCustom(detail) ? 'left' : 'right'}
                   trailing={
                     isCustom(detail) ? (
                       <HeaderAction

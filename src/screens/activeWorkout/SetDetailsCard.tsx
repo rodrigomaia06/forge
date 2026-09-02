@@ -84,7 +84,8 @@ export function SetDetailsCard({
                 }
                 onClose={closeSheet}
                 closeAccessibilityLabel="Done"
-                leading={
+                closePosition={editable ? 'left' : 'right'}
+                trailing={
                   editable ? (
                     <HeaderAction
                       accessibilityLabel={`Delete set ${index + 1}`}

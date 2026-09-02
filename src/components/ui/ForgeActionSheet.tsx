@@ -6,6 +6,7 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
 import { ForgeBottomSheet, ForgeBottomSheetHandle } from './ForgeBottomSheet';
 import { ForgeText as Text } from './ForgeText';
+import { HeaderAction } from './HeaderAction';
 import { Icon } from './Icon';
 import { errorHaptic, selectionHaptic } from './haptics';
 import { pressedFeedback } from './pressFeedback';
@@ -55,6 +56,7 @@ export function ForgeActionSheet({
   const theme = useForgeTheme();
   const neutralActions = actions.filter((action) => (action.tone ?? 'neutral') === 'neutral');
   const destructiveActions = actions.filter((action) => action.tone === 'destructive');
+  const headerDestructiveAction = destructiveActions[0];
 
   return (
     <ForgeBottomSheet
@@ -69,16 +71,31 @@ export function ForgeActionSheet({
       {(close) => (
         <View style={styles.sheet}>
           <ForgeBottomSheetHandle />
-          <ForgeSheetHeader title={title} onClose={close} />
+          <ForgeSheetHeader
+            title={title}
+            onClose={close}
+            closePosition={headerDestructiveAction ? 'left' : 'right'}
+            trailing={
+              headerDestructiveAction ? (
+                <HeaderAction
+                  accessibilityLabel={headerDestructiveAction.accessibilityLabel ?? headerDestructiveAction.label}
+                  icon={headerDestructiveAction.icon}
+                  iconOnly
+                  tone="destructive"
+                  haptic="none"
+                  disabled={headerDestructiveAction.disabled}
+                  onPress={() => {
+                    errorHaptic();
+                    close();
+                    headerDestructiveAction.onPress();
+                  }}
+                />
+              ) : undefined
+            }
+          />
           {context ? (
-            <View
-              testID={testID ? `${testID}-context` : undefined}
-              style={[
-                styles.contextCard,
-                { backgroundColor: theme.surfaceMuted, borderColor: theme.border },
-              ]}
-            >
-              <View style={[styles.contextIcon, { borderColor: theme.border, backgroundColor: theme.surfaceElevated }]}>
+            <View testID={testID ? `${testID}-context` : undefined} style={styles.contextCard}>
+              <View style={[styles.contextIcon, { backgroundColor: theme.surfaceMuted }]}>
                 <Icon name={context.icon} size={22} color={theme.selectionIndicator} />
               </View>
               <View style={styles.contextCopy}>
@@ -103,14 +120,14 @@ export function ForgeActionSheet({
               ))}
             </View>
           )}
-          {destructiveActions.length > 0 && (
+          {destructiveActions.length > 1 && (
             <View
               style={[
                 styles.destructiveList,
                 { borderColor: theme.textDestructive, backgroundColor: theme.destructiveSurface },
               ]}
             >
-              {destructiveActions.map((action) => (
+              {destructiveActions.slice(1).map((action) => (
                 <ActionRow key={action.label} action={action} close={close} />
               ))}
             </View>
@@ -181,23 +198,21 @@ function ActionRow({
 const styles = StyleSheet.create({
   sheet: { paddingBottom: 24 },
   contextCard: {
-    minHeight: 72,
+    minHeight: 58,
     marginHorizontal: 20,
     marginTop: 8,
-    padding: 10,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderWidth: 1,
-    borderRadius: 16,
   },
   contextIcon: {
-    width: 42,
-    height: 42,
+    width: 38,
+    height: 38,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 12,
+    borderRadius: 11,
   },
   contextCopy: { flex: 1, minWidth: 0, gap: 2 },
   contextEyebrow: { ...typeScale.label, letterSpacing: 0.7, fontWeight: '700' },
