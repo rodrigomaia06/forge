@@ -271,10 +271,19 @@ test.describe('Active workout flow', () => {
 
   test('keeps the shared dock visible while a workout is active', async ({ page }) => {
     await page.goto('/');
+    const restingDock = await page.getByTestId('dashboard-dock-cylinder').boundingBox();
     await startBlankWorkout(page);
     await expect(page.getByRole('tab', { name: 'Dashboard' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Workout', exact: true })).toBeVisible();
     await expect(page.getByLabel('Home indicator').last()).toBeVisible();
+    await page.getByRole('tab', { name: 'Dashboard' }).click();
+    await page.waitForTimeout(300);
+    const activeDock = await page.getByTestId('dashboard-dock-cylinder').last().boundingBox();
+    expect(restingDock).not.toBeNull();
+    expect(activeDock).not.toBeNull();
+    if (!restingDock || !activeDock) throw new Error('Expected both dock widths to be measurable');
+    expect(activeDock.width).toBeGreaterThan(restingDock.width);
+    expect(activeDock.width).toBeLessThanOrEqual(390);
   });
 
   test('uses a dashed outline for Add exercise', async ({ page }) => {

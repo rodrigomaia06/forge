@@ -9,6 +9,7 @@ import {
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useSharedValue, withSpring } from 'react-native-reanimated';
 import { DockSurface } from './DockSurface';
+import { useWorkouts } from '../state/WorkoutContext';
 import { dashboardTheme } from '../theme/dashboardTheme';
 import type { ForgeTheme } from '../types';
 
@@ -42,6 +43,7 @@ export function DockChrome({
   compact = false,
   onInteract,
 }: DockChromeProps) {
+  const hasActiveWorkout = Boolean(useWorkouts().activeWorkout);
   const gradientId = `dockFade${slotTestID || cylinderTestID || 'shared'}`.replace(
     /[^a-zA-Z0-9]/g,
     '',
@@ -82,6 +84,7 @@ export function DockChrome({
           theme={theme}
           compact={compact}
           compactProgress={compactProgress}
+          activeWorkout={hasActiveWorkout}
           onNavigate={onInteract}
           dockRef={cylinderRef}
           onLayout={cylinderOnLayout}

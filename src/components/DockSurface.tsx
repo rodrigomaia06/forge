@@ -20,6 +20,7 @@ interface DockSurfaceProps {
   children?: ReactNode;
   compact?: boolean;
   compactProgress?: SharedValue<number>;
+  activeWorkout?: boolean;
   onNavigate?: () => void;
 }
 export function DockSurface({
@@ -30,14 +31,16 @@ export function DockSurface({
   children,
   compact = false,
   compactProgress,
+  activeWorkout = false,
   onNavigate,
 }: DockSurfaceProps) {
   const { width: viewportWidth } = useWindowDimensions();
   const internalProgress = useSharedValue(compact ? 1 : 0);
   const progress = compactProgress ?? internalProgress;
-  // Keep a comfortable gap between the 44 pt hit areas while retaining a clear inset from iPhone edges.
-  const expandedWidth = Math.min(Math.max(viewportWidth * 0.82, 304), 360);
+  const regularWidth = Math.min(Math.max(viewportWidth * 0.82, 304), 360);
+  const activeWorkoutWidth = Math.min(Math.max(viewportWidth * 0.88, 320), 390);
   const compactWidth = Math.min(Math.max(viewportWidth * 0.62, 244), 270);
+  const activeWorkoutProgress = useSharedValue(activeWorkout ? 1 : 0);
 
   useEffect(() => {
     if (compactProgress) return;
@@ -47,12 +50,26 @@ export function DockSurface({
     });
   }, [compact, compactProgress, internalProgress]);
 
+  useEffect(() => {
+    activeWorkoutProgress.value = withTiming(activeWorkout ? 1 : 0, {
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [activeWorkout, activeWorkoutProgress]);
+
   const surfaceAnimatedStyle = useAnimatedStyle(
-    () => ({
-      width: interpolate(progress.value, [0, 1], [expandedWidth, compactWidth]),
-      minHeight: interpolate(progress.value, [0, 1], [64, 48]),
-    }),
-    [compactWidth, expandedWidth],
+    () => {
+      const expandedWidth = interpolate(
+        activeWorkoutProgress.value,
+        [0, 1],
+        [regularWidth, activeWorkoutWidth],
+      );
+      return {
+        width: interpolate(progress.value, [0, 1], [expandedWidth, compactWidth]),
+        minHeight: interpolate(progress.value, [0, 1], [64, 48]),
+      };
+    },
+    [activeWorkoutWidth, compactWidth, regularWidth],
   );
 
   return (
