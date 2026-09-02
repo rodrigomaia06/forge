@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import {
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -11,18 +10,15 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   AppScreen,
-  ForgeListRow,
   ForgeSelectionSheet,
   ForgeSingleSelectList,
   ForgeSwitch,
   ForgeText as Text,
   Icon,
-  pressedFeedback,
   selectionHaptic,
 } from '../../components/ui';
 import type { ForgeSingleSelectOption } from '../../components/ui';
 import { useSettings } from '../../state/SettingsContext';
-import { dashboardTheme } from '../../theme/dashboardTheme';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
 import type {
@@ -33,6 +29,7 @@ import type {
   WeekStartsOn,
 } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
+import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 import { REST_DURATION_OPTIONS } from '../../domain/rest/restDurationOptions';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GeneralSettings'>;
@@ -48,10 +45,12 @@ const reminderOptions: readonly ForgeSingleSelectOption<number>[] = [
   { value: 3600, label: '1 hour' },
   { value: 7200, label: '2 hours' },
 ];
-const restOptions: readonly ForgeSingleSelectOption<number>[] = REST_DURATION_OPTIONS.map((seconds) => ({
-  value: seconds,
-  label: formatRestDuration(seconds),
-}));
+const restOptions: readonly ForgeSingleSelectOption<number>[] = REST_DURATION_OPTIONS.map(
+  (seconds) => ({
+    value: seconds,
+    label: formatRestDuration(seconds),
+  }),
+);
 
 export function GeneralSettingsScreen({ navigation }: Props) {
   const { preferences, updatePreferences } = useSettings();
@@ -91,51 +90,52 @@ export function GeneralSettingsScreen({ navigation }: Props) {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.group}>
-            <Text style={[styles.groupTitle, { color: theme.textSecondary }]}>Appearance</Text>
-            <View
-              style={[
-                styles.card,
-                { backgroundColor: theme.surfaceElevated, shadowColor: theme.shadow },
-              ]}
-            >
-              <ForgeListRow
-                label="Appearance"
-                value={capitalize(preferences.appearance)}
-                onPress={() => setAppearanceOpen(true)}
-              />
-              {Platform.OS === 'web' && width >= 768 && appearanceOpen && (
-                <View
-                  style={[
-                    styles.appearanceMenu,
-                    {
-                      backgroundColor: theme.surfaceElevated,
-                      borderColor: theme.border,
-                      shadowColor: theme.shadow,
-                    },
-                  ]}
-                >
-                  <ForgeSingleSelectList
-                    options={appearanceOptions}
-                    selectedValue={preferences.appearance}
-                    onSelect={(value) => {
-                      updatePreferences({ appearance: value });
-                      setAppearanceOpen(false);
-                    }}
-                    onSelectedPress={() => setAppearanceOpen(false)}
-                  />
-                </View>
-              )}
-            </View>
-            <Text style={[styles.betaNote, { color: theme.textSecondary }]}>
-              Dark and System are beta while the visual migration is completed.
-            </Text>
-          </View>
-          <Group title="Weight">
+          <SettingsSection
+            title="Appearance"
+            footer="Dark and System are beta while the visual migration is completed."
+          >
+            <SettingsRow
+              title="Appearance"
+              trailing={
+                <Text style={[styles.value, { color: theme.textSecondary }]}>
+                  {capitalize(preferences.appearance)}
+                </Text>
+              }
+              disclosure
+              onPress={() => setAppearanceOpen(true)}
+            />
+            {Platform.OS === 'web' && width >= 768 && appearanceOpen && (
+              <View
+                style={[
+                  styles.appearanceMenu,
+                  {
+                    backgroundColor: theme.surfaceElevated,
+                    borderColor: theme.border,
+                    shadowColor: theme.shadow,
+                  },
+                ]}
+              >
+                <ForgeSingleSelectList
+                  options={appearanceOptions}
+                  selectedValue={preferences.appearance}
+                  onSelect={(value) => {
+                    updatePreferences({ appearance: value });
+                    setAppearanceOpen(false);
+                  }}
+                  onSelectedPress={() => setAppearanceOpen(false)}
+                />
+              </View>
+            )}
+          </SettingsSection>
+          <SettingsSection
+            title="Weight"
+            footer="Used as the default for bodyweight exercises. Leave empty to keep it unset."
+          >
             <Choice
               title="Metric (kg)"
               selected={preferences.units === 'metric'}
               onPress={() => choose({ units: 'metric' as UnitsPreference })}
+              divider
             />
             <Choice
               title="Imperial (lb)"
@@ -143,51 +143,61 @@ export function GeneralSettingsScreen({ navigation }: Props) {
               onPress={() => choose({ units: 'imperial' as UnitsPreference })}
               divider
             />
-            <View style={styles.inputRow}>
-              <Text style={[styles.rowTitle, { color: theme.textPrimary }]}>Bodyweight</Text>
-              <TextInput
-                accessibilityLabel="Bodyweight"
-                value={displayedWeight ? String(displayedWeight) : ''}
-                onChangeText={setWeight}
-                keyboardType="decimal-pad"
-                placeholder="0"
-                placeholderTextColor={theme.textDisabled}
-                style={[styles.weightInput, { color: theme.textPrimary }]}
-              />
-              <Text style={[styles.unit, { color: theme.textSecondary }]}>
-                {preferences.units === 'imperial' ? 'lb' : 'kg'}
-              </Text>
-            </View>
-            <Text style={[styles.footer, { color: theme.textSecondary }]}>
-              Used as the default for bodyweight exercises. Leave empty to keep it unset.
-            </Text>
-          </Group>
-          <Group title="Calendar">
+            <SettingsRow
+              title="Bodyweight"
+              trailing={
+                <View style={styles.inputAction}>
+                  <TextInput
+                    accessibilityLabel="Bodyweight"
+                    value={displayedWeight ? String(displayedWeight) : ''}
+                    onChangeText={setWeight}
+                    keyboardType="decimal-pad"
+                    placeholder="0"
+                    placeholderTextColor={theme.textDisabled}
+                    style={[styles.weightInput, { color: theme.textPrimary }]}
+                  />
+                  <Text style={[styles.unit, { color: theme.textSecondary }]}>
+                    {preferences.units === 'imperial' ? 'lb' : 'kg'}
+                  </Text>
+                </View>
+              }
+            />
+          </SettingsSection>
+          <SettingsSection title="Calendar">
             <Choice
               title="Monday"
               selected={preferences.weekStartsOn === 1}
               onPress={() => choose({ weekStartsOn: 1 as WeekStartsOn })}
+              divider
             />
             <Choice
               title="Sunday"
               selected={preferences.weekStartsOn === 0}
               onPress={() => choose({ weekStartsOn: 0 as WeekStartsOn })}
-              divider
             />
-          </Group>
-          <Group title="Rest timer">
+          </SettingsSection>
+          <SettingsSection
+            title="Rest timer"
+            footer="These preferences are saved now; timer behavior remains unchanged in this release."
+          >
             <Toggle
               title="Rest timer"
               value={preferences.showRestTimer}
               onPress={() => choose({ showRestTimer: !preferences.showRestTimer })}
+              divider={preferences.showRestTimer}
             />
             {preferences.showRestTimer && (
               <>
-                <ForgeListRow
-                  label="Default rest time"
-                  value={formatRestDuration(preferences.defaultRestSeconds)}
+                <SettingsRow
+                  title="Default rest time"
+                  trailing={
+                    <Text style={[styles.value, { color: theme.textSecondary }]}>
+                      {formatRestDuration(preferences.defaultRestSeconds)}
+                    </Text>
+                  }
+                  disclosure
                   onPress={() => setDefaultRestOpen(true)}
-                  divider
+                  showDivider
                 />
                 <Toggle
                   title="Keep rest timer running"
@@ -195,28 +205,27 @@ export function GeneralSettingsScreen({ navigation }: Props) {
                   onPress={() =>
                     choose({ keepRestTimerRunning: !preferences.keepRestTimerRunning })
                   }
-                  divider
                 />
               </>
             )}
-            <Text style={[styles.footer, { color: theme.textSecondary }]}>
-              These preferences are saved now; timer behavior remains unchanged in this release.
-            </Text>
-          </Group>
-          <Group title="Rest timer alert">
+          </SettingsSection>
+          <SettingsSection title="Rest timer alert">
             <Toggle
               title="Sound"
               value={preferences.restTimerSound}
               onPress={() => choose({ restTimerSound: !preferences.restTimerSound })}
+              divider
             />
             <Toggle
               title="Haptic"
               value={preferences.restTimerHaptic}
               onPress={() => choose({ restTimerHaptic: !preferences.restTimerHaptic })}
-              divider
             />
-          </Group>
-          <Group title="Reminders">
+          </SettingsSection>
+          <SettingsSection
+            title="Reminders"
+            footer="Reminders are saved as a preference; notifications are not scheduled yet."
+          >
             <Toggle
               title="Unfinished workout reminder"
               value={preferences.unfinishedWorkoutReminderEnabled}
@@ -225,20 +234,22 @@ export function GeneralSettingsScreen({ navigation }: Props) {
                   unfinishedWorkoutReminderEnabled: !preferences.unfinishedWorkoutReminderEnabled,
                 })
               }
+              divider={preferences.unfinishedWorkoutReminderEnabled}
             />
             {preferences.unfinishedWorkoutReminderEnabled && (
-              <ForgeListRow
-                label="Remind after"
-                value={formatSeconds(preferences.unfinishedWorkoutReminderDelay)}
+              <SettingsRow
+                title="Remind after"
+                trailing={
+                  <Text style={[styles.value, { color: theme.textSecondary }]}>
+                    {formatSeconds(preferences.unfinishedWorkoutReminderDelay)}
+                  </Text>
+                }
+                disclosure
                 onPress={() => setReminderOpen(true)}
-                divider
               />
             )}
-            <Text style={[styles.footer, { color: theme.textSecondary }]}>
-              Reminders are saved as a preference; notifications are not scheduled yet.
-            </Text>
-          </Group>
-          <Group title="Workout name">
+          </SettingsSection>
+          <SettingsSection title="Workout name">
             <Toggle
               title="Show plan in workout name"
               value={preferences.showPlanInWorkoutTitle}
@@ -246,7 +257,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
                 choose({ showPlanInWorkoutTitle: !preferences.showPlanInWorkoutTitle })
               }
             />
-          </Group>
+          </SettingsSection>
         </ScrollView>
         <ForgeSelectionSheet
           visible={appearanceOpen && !(Platform.OS === 'web' && width >= 768)}
@@ -286,27 +297,6 @@ export function GeneralSettingsScreen({ navigation }: Props) {
   );
 }
 
-function Group({ title, children }: { title: string; children: React.ReactNode }) {
-  const theme = useForgeTheme();
-  return (
-    <View style={styles.group}>
-      <Text style={[styles.groupTitle, { color: theme.textSecondary }]}>{title}</Text>
-      <View
-        style={[
-          styles.card,
-          {
-            backgroundColor: theme.surfaceElevated,
-            borderColor: theme.border,
-            shadowColor: theme.shadow,
-            shadowOpacity: theme.cardShadowOpacity ?? 0.06,
-          },
-        ]}
-      >
-        {children}
-      </View>
-    </View>
-  );
-}
 function Choice({
   title,
   selected,
@@ -318,21 +308,22 @@ function Choice({
   onPress: () => void;
   divider?: boolean;
 }) {
-  const theme = useForgeTheme();
   return (
-    <Pressable
+    <SettingsRow
+      title={title}
       accessibilityRole="radio"
       accessibilityLabel={title}
       accessibilityState={{ checked: selected }}
-      aria-checked={selected}
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && { backgroundColor: theme.pressed }]}
-    >
-      <Text style={[styles.rowTitle, { color: theme.textPrimary }]}>{title}</Text>
-      {selected && <Icon name="check" size={20} color={theme.inkInteractive} weight="bold" />}
-      {divider && <View style={[styles.divider, { backgroundColor: theme.divider }]} />}
-    </Pressable>
+      haptic="none"
+      trailing={selected ? <ChoiceCheck /> : undefined}
+      showDivider={divider}
+    />
   );
+}
+function ChoiceCheck() {
+  const theme = useForgeTheme();
+  return <Icon name="check" size={20} color={theme.inkInteractive} weight="bold" />;
 }
 function Toggle({
   title,
@@ -345,19 +336,22 @@ function Toggle({
   onPress: () => void;
   divider?: boolean;
 }) {
-  const theme = useForgeTheme();
   return (
-    <Pressable
+    <SettingsRow
+      title={title}
       accessibilityRole="switch"
       accessibilityLabel={title}
       accessibilityState={{ checked: value }}
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && { backgroundColor: theme.pressed }]}
-    >
-      <Text style={[styles.rowTitle, { color: theme.textPrimary }]}>{title}</Text>
-      <ForgeSwitch value={value} testID={`general-switch-${title.replace(/\s+/g, '-').toLowerCase()}`} />
-      {divider && <View style={[styles.divider, { backgroundColor: theme.divider }]} />}
-    </Pressable>
+      haptic="none"
+      trailing={
+        <ForgeSwitch
+          value={value}
+          testID={`general-switch-${title.replace(/\s+/g, '-').toLowerCase()}`}
+        />
+      }
+      showDivider={divider}
+    />
   );
 }
 function formatSeconds(seconds: number) {
@@ -375,10 +369,13 @@ function capitalize(value: string) {
 }
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  content: { padding: 20, paddingTop: 24, paddingBottom: 44, gap: 22 },
-  group: { gap: 8 },
-  betaNote: { ...typeScale.caption, marginHorizontal: 6 },
-  value: { ...typeScale.supporting, marginRight: 8 },
+  content: {
+    padding: settingsLayout.screenPadding,
+    paddingTop: settingsLayout.contentTop,
+    paddingBottom: settingsLayout.contentBottom,
+    gap: settingsLayout.sectionGap,
+  },
+  value: { ...typeScale.supporting },
   appearanceMenu: {
     position: 'absolute',
     top: 54,
@@ -393,33 +390,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 8,
   },
-  groupTitle: { ...typeScale.label, marginLeft: 6 },
-  card: {
-    overflow: 'hidden',
-    borderRadius: dashboardTheme.cardRadius,
-    borderWidth: 1,
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-  },
-  row: { minHeight: 56, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center' },
-  rowTitle: { flex: 1, minWidth: 0, ...typeScale.body },
-  divider: {
-    position: 'absolute',
-    right: 18,
-    bottom: 0,
-    left: 18,
-    height: StyleSheet.hairlineWidth,
-  },
-  inputRow: {
-    minHeight: 56,
-    paddingHorizontal: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
+  inputAction: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   weightInput: { width: 76, minHeight: 40, textAlign: 'right', ...typeScale.body },
   unit: { ...typeScale.supporting },
-  footer: { paddingHorizontal: 18, paddingBottom: 14, ...typeScale.caption },
 });

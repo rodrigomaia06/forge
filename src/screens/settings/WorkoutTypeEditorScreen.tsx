@@ -5,6 +5,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   AppScreen,
   Button,
+  ForgeCard,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
   ForgeSwitch,
@@ -26,6 +27,7 @@ import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import type { RootStackParamList, WorkoutTypePreference } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
+import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutTypeEditor'>;
 const colors = [
@@ -199,7 +201,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
           />
         )}
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <View style={[styles.card, styles.identityCard]}>
+          <ForgeCard variant="elevated" style={styles.identityCard}>
             {builtIn ? (
               <Text style={styles.input}>{type.name}</Text>
             ) : (
@@ -228,55 +230,58 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
                 {type.source === 'builtIn' ? 'Included with Forge' : 'Created by you'}
               </Text>
             </View>
-          </View>
+          </ForgeCard>
           {!builtIn && (
-            <View style={styles.colorSection}>
-              <Text style={styles.sectionTitle}>Color</Text>
-              <View style={styles.card}>
-                {colors.map((choice, index) => (
-                  <React.Fragment key={choice.value}>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Use ${choice.name} color`}
-                      accessibilityState={{ selected: type.color.toUpperCase() === choice.value }}
-                      onPress={() => {
-                        selectionHaptic();
-                        change({ color: choice.value });
-                      }}
-                      style={({ pressed }) => [styles.colorRow, pressed && pressedFeedback]}
-                    >
-                      <View style={[styles.swatch, { backgroundColor: choice.value }]} />
-                      <Text style={styles.colorName}>{choice.name}</Text>
-                      {type.color.toUpperCase() === choice.value && (
-                        <Icon name="check" size={18} color={dashboardTheme.accent} weight="bold" />
-                      )}
-                    </Pressable>
-                    {index < colors.length - 1 && <View style={styles.rowDivider} />}
-                  </React.Fragment>
-                ))}
-                <View style={styles.rowDivider} />
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Choose custom workout type color"
-                  onPress={() => {
-                    lightHaptic();
-                    setCustomColorPickerOpen(true);
-                  }}
-                  style={({ pressed }) => [styles.customRow, pressed && pressedFeedback]}
-                >
-                  <View style={[styles.swatch, { backgroundColor: type.color }]} />
-                  <View style={styles.customCopy}>
-                    <Text style={styles.colorName}>Custom color</Text>
-                    <Text style={styles.customValue}>{type.color.toUpperCase()}</Text>
-                  </View>
-                  <Icon name="chevron-forward" size={18} color={dashboardTheme.slate} />
-                </Pressable>
-              </View>
-            </View>
+            <SettingsSection title="Color" cardStyle={styles.colorCard}>
+              {colors.map((choice, index) => (
+                <React.Fragment key={choice.value}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Use ${choice.name} color`}
+                    accessibilityState={{ selected: type.color.toUpperCase() === choice.value }}
+                    onPress={() => {
+                      selectionHaptic();
+                      change({ color: choice.value });
+                    }}
+                    style={({ pressed }) => [styles.colorRow, pressed && pressedFeedback]}
+                  >
+                    <View style={[styles.swatch, { backgroundColor: choice.value }]} />
+                    <Text style={styles.colorName}>{choice.name}</Text>
+                    {type.color.toUpperCase() === choice.value && (
+                      <Icon name="check" size={18} color={dashboardTheme.accent} weight="bold" />
+                    )}
+                  </Pressable>
+                  {index < colors.length - 1 && <View style={styles.rowDivider} />}
+                </React.Fragment>
+              ))}
+              <View style={styles.rowDivider} />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Choose custom workout type color"
+                onPress={() => {
+                  lightHaptic();
+                  setCustomColorPickerOpen(true);
+                }}
+                style={({ pressed }) => [styles.customRow, pressed && pressedFeedback]}
+              >
+                <View style={[styles.swatch, { backgroundColor: type.color }]} />
+                <View style={styles.customCopy}>
+                  <Text style={styles.colorName}>Custom color</Text>
+                  <Text style={styles.customValue}>{type.color.toUpperCase()}</Text>
+                </View>
+                <Icon name="chevron-forward" size={18} color={dashboardTheme.slate} />
+              </Pressable>
+            </SettingsSection>
           )}
           {!creating && (
-            <View style={styles.card}>
-              <Pressable
+            <SettingsSection>
+              <SettingsRow
+                title="Hide from workout pickers"
+                subtitle={
+                  type.hidden
+                    ? 'This type is hidden from new-workout pickers. Turn this off to show it again.'
+                    : 'Only new-workout pickers change. Existing workouts, routines, and plans keep this type.'
+                }
                 accessibilityRole="switch"
                 accessibilityLabel={`Hide ${type.name} from workout pickers`}
                 accessibilityState={{ checked: type.hidden === true }}
@@ -284,19 +289,15 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
                   selectionHaptic();
                   change({ hidden: !type.hidden });
                 }}
-                style={({ pressed }) => [styles.hideRow, pressed && pressedFeedback]}
-              >
-                <View style={styles.copy}>
-                  <Text style={styles.hideTitle}>Hide from workout pickers</Text>
-                  <Text style={styles.hideCopy}>
-                    {type.hidden
-                      ? 'This type is hidden from new-workout pickers. Turn this off to show it again.'
-                      : 'Only new-workout pickers change. Existing workouts, routines, and plans keep this type.'}
-                  </Text>
-                </View>
-                <ForgeSwitch value={type.hidden === true} testID="workout-type-visibility-switch" />
-              </Pressable>
-            </View>
+                haptic="none"
+                trailing={
+                  <ForgeSwitch
+                    value={type.hidden === true}
+                    testID="workout-type-visibility-switch"
+                  />
+                }
+              />
+            </SettingsSection>
           )}
           {!creating && !builtIn && (
             <Button
@@ -368,18 +369,6 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
 
 const createStyles = (theme: import('../../types').ForgeTheme) => {
   const dashboardTheme = theme;
-  const card = {
-    overflow: 'hidden',
-    borderRadius: dashboardTheme.cardRadius,
-    padding: 16,
-    gap: 9,
-    backgroundColor: dashboardTheme.surface,
-    shadowColor: dashboardTheme.shadow,
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-  } as const;
   return StyleSheet.create({
     screen: { flex: 1 },
     createHeader: {
@@ -399,12 +388,16 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    createTitle: { textAlign: 'center', color: dashboardTheme.ink, ...typeScale.sectionTitle },
-    content: { padding: 20, paddingTop: 20, paddingBottom: 40, gap: 18 },
-    card,
-    identityCard: { paddingVertical: 10, gap: 3 },
+    createTitle: { textAlign: 'center', color: dashboardTheme.ink, ...typeScale.headerTitle },
+    content: {
+      padding: settingsLayout.screenPadding,
+      paddingTop: settingsLayout.contentTop,
+      paddingBottom: settingsLayout.contentBottom,
+      gap: settingsLayout.sectionGap,
+    },
+    identityCard: { paddingHorizontal: 16, paddingVertical: 10, gap: 3 },
+    colorCard: { padding: 16, gap: 9 },
     label: { ...typeScale.label, color: dashboardTheme.slate },
-    sectionTitle: { ...typeScale.sectionTitle, color: dashboardTheme.slate },
     input: { minHeight: 38, paddingVertical: 0, color: dashboardTheme.ink, ...typeScale.cardTitle },
     divider: {
       height: StyleSheet.hairlineWidth,
@@ -414,7 +407,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     sourceRow: { minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: 7 },
     sourceIcon: { width: 20, alignItems: 'center' },
     source: { color: dashboardTheme.slate, ...typeScale.supporting },
-    colorSection: { gap: 8 },
     colorRow: { minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 10 },
     rowDivider: {
       height: StyleSheet.hairlineWidth,
@@ -440,10 +432,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     },
     colorChoiceSelected: { borderWidth: 3, borderColor: dashboardTheme.ink },
     colorChoicePressed: { opacity: 0.68 },
-    hideRow: { minHeight: 62, flexDirection: 'row', alignItems: 'center', gap: 12 },
-    copy: { flex: 1, minWidth: 0 },
-    hideTitle: { color: dashboardTheme.ink, ...typeScale.body },
-    hideCopy: { marginTop: 2, color: dashboardTheme.slate, ...typeScale.supporting },
     destructive: { minHeight: 48 },
   });
 };

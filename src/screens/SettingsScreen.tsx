@@ -3,12 +3,12 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { NavigationFooter } from '../components/NavigationFooter';
-import { AppScreen, ForgeCard, ScreenTitle } from '../components/ui';
+import { AppScreen, ScreenTitle } from '../components/ui';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { spacing } from '../theme/tokens';
 import type { RootStackParamList } from '../types';
-import { SettingsRow } from './settings/SettingsRow';
+import { SettingsRow, SettingsSection, settingsLayout } from './settings/SettingsRow';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
@@ -28,39 +28,48 @@ export function SettingsScreen({ navigation }: Props) {
           </ScreenTitle>
         </View>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <SettingsGroup>
+          <SettingsSection>
             <SettingsRow
               icon="fitness"
               title="Exercises"
               onPress={() => open('ExerciseLibrary')}
+              disclosure
               showDivider
+              testID="settings-main-exercises-row"
             />
-            <SettingsRow icon="book" title="Workout types" onPress={() => open('WorkoutTypes')} />
-          </SettingsGroup>
-          <SettingsGroup>
-            <SettingsRow icon="settings" title="General" onPress={() => open('GeneralSettings')} />
-          </SettingsGroup>
-          <SettingsGroup>
+            <SettingsRow
+              icon="book"
+              title="Workout types"
+              onPress={() => open('WorkoutTypes')}
+              disclosure
+            />
+          </SettingsSection>
+          <SettingsSection>
+            <SettingsRow
+              icon="settings"
+              title="General"
+              onPress={() => open('GeneralSettings')}
+              disclosure
+            />
+          </SettingsSection>
+          <SettingsSection>
             <SettingsRow
               icon="database-export"
               title="Backup & Export"
               onPress={() => open('BackupExport')}
+              disclosure
               showDivider
             />
-            <SettingsRow icon="clipboard" title="Logs" onPress={() => open('Logs')} />
-          </SettingsGroup>
-          <ForgeCard variant="elevated" style={styles.aboutCard}>
-            <SettingsRow icon="info" title="About" onPress={() => open('About')} />
-          </ForgeCard>
+            <SettingsRow icon="clipboard" title="Logs" onPress={() => open('Logs')} disclosure />
+          </SettingsSection>
+          <SettingsSection>
+            <SettingsRow icon="info" title="About" onPress={() => open('About')} disclosure />
+          </SettingsSection>
         </ScrollView>
         <NavigationFooter />
       </View>
     </AppScreen>
   );
-}
-
-function SettingsGroup({ children }: { children: React.ReactNode }) {
-  return <ForgeCard variant="elevated">{children}</ForgeCard>;
 }
 
 const createStyles = (theme: import('../types').ForgeTheme) =>
@@ -73,10 +82,9 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       backgroundColor: theme.background,
     },
     content: {
-      paddingHorizontal: spacing.screen,
-      paddingTop: 17,
-      paddingBottom: 112,
-      gap: 25,
+      paddingHorizontal: settingsLayout.screenPadding,
+      paddingTop: settingsLayout.contentTop,
+      paddingBottom: settingsLayout.rootContentBottom,
+      gap: settingsLayout.sectionGap,
     },
-    aboutCard: {},
   });

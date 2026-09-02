@@ -1,20 +1,12 @@
 import React from 'react';
-import {
-  FlatList,
-  Pressable,
-  StyleSheet,
-  View,
-  type ListRenderItemInfo,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { FlatList, Pressable, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
 import { ForgeBottomSheet, ForgeBottomSheetHandle } from './ForgeBottomSheet';
 import { ForgeText as Text } from './ForgeText';
 import { Icon } from './Icon';
-import { lightHaptic, selectionHaptic } from './haptics';
+import { selectionHaptic } from './haptics';
 import { pressedFeedback } from './pressFeedback';
 
 type SelectionValue = string | number;
@@ -49,9 +41,15 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
   testID,
 }: ForgeSingleSelectListProps<T>) {
   const hasDescriptions = options.some((option) => option.description);
-  const visibleRows = Math.min(options.length, Math.max(1, Math.min(DEFAULT_MAX_VISIBLE_ROWS, maxVisibleRows)));
+  const visibleRows = Math.min(
+    options.length,
+    Math.max(1, Math.min(DEFAULT_MAX_VISIBLE_ROWS, maxVisibleRows)),
+  );
   const virtualized = !hasDescriptions && options.length > visibleRows;
-  const selectedIndex = Math.max(0, options.findIndex((option) => option.value === selectedValue));
+  const selectedIndex = Math.max(
+    0,
+    options.findIndex((option) => option.value === selectedValue),
+  );
   const initialScrollIndex = Math.max(0, selectedIndex - Math.floor(visibleRows / 2));
   const renderOption = (option: ForgeSingleSelectOption<T>, index: number) => (
     <ForgeSelectionRow
@@ -130,10 +128,7 @@ function ForgeSelectionRow<T extends SelectionValue>({
         selectionHaptic();
         onSelect(option.value);
       }}
-      style={({ pressed }) => [
-        styles.selectionRow,
-        pressed && pressedFeedback,
-      ]}
+      style={({ pressed }) => [styles.selectionRow, pressed && pressedFeedback]}
     >
       <View style={styles.selectionCopy}>
         <Text
@@ -190,7 +185,12 @@ export function ForgeSelectionSheet<T extends SelectionValue>({
 }: ForgeSelectionSheetProps<T>) {
   const theme = useForgeTheme();
   return (
-    <ForgeBottomSheet visible={visible} onClose={onClose} accessibilityLabel={accessibilityLabel} testID={testID}>
+    <ForgeBottomSheet
+      visible={visible}
+      onClose={onClose}
+      accessibilityLabel={accessibilityLabel}
+      testID={testID}
+    >
       {() => (
         <View testID={testID ? `${testID}-surface` : undefined} style={styles.sheet}>
           <ForgeBottomSheetHandle />
@@ -214,49 +214,6 @@ export function ForgeSelectionSheet<T extends SelectionValue>({
   );
 }
 
-interface ForgeListRowProps {
-  label: string;
-  value?: string;
-  onPress: () => void;
-  accessibilityLabel?: string;
-  divider?: boolean;
-  style?: StyleProp<ViewStyle>;
-}
-
-/** Shared value/disclosure row for settings that open a selection surface. */
-export function ForgeListRow({
-  label,
-  value,
-  onPress,
-  accessibilityLabel = label,
-  divider = false,
-  style,
-}: ForgeListRowProps) {
-  const theme = useForgeTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      accessibilityValue={value ? { text: value } : undefined}
-      onPress={() => {
-        lightHaptic();
-        onPress();
-      }}
-      style={({ pressed }) => [styles.valueRow, style, pressed && { backgroundColor: theme.pressed }]}
-    >
-      <Text style={[styles.valueLabel, { color: theme.textPrimary }]}>{label}</Text>
-      {value && <Text style={[styles.valueText, { color: theme.textSecondary }]}>{value}</Text>}
-      <Icon name="chevron-forward" size={18} color={theme.textSecondary} />
-      {divider && <ForgeListSeparator inset />}
-    </Pressable>
-  );
-}
-
-export function ForgeListSeparator({ inset = false }: { inset?: boolean }) {
-  const theme = useForgeTheme();
-  return <View pointerEvents="none" style={[styles.separator, inset && styles.separatorInset, { backgroundColor: theme.divider }]} />;
-}
-
 const styles = StyleSheet.create({
   listViewport: { overflow: 'hidden' },
   virtualizedList: { flex: 1 },
@@ -271,13 +228,14 @@ const styles = StyleSheet.create({
   selectionLabel: { ...typeScale.body },
   selectionLabelEmphasized: { fontFamily: typeScale.display.fontFamily, fontWeight: '700' },
   selectionDescription: { ...typeScale.supporting },
-  selectionSeparator: { position: 'absolute', height: StyleSheet.hairlineWidth, right: 20, bottom: 0, left: 20 },
-  separator: { height: StyleSheet.hairlineWidth },
-  separatorInset: { position: 'absolute', right: 18, bottom: 0, left: 18 },
+  selectionSeparator: {
+    position: 'absolute',
+    height: StyleSheet.hairlineWidth,
+    right: 20,
+    bottom: 0,
+    left: 20,
+  },
   sheet: { flexShrink: 1 },
   sheetTitleRow: { minHeight: 56, paddingHorizontal: 20, justifyContent: 'center' },
   sheetTitle: { ...typeScale.headerTitle },
-  valueRow: { minHeight: 56, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  valueLabel: { flex: 1, minWidth: 0, ...typeScale.body },
-  valueText: { ...typeScale.supporting, textAlign: 'right' },
 });

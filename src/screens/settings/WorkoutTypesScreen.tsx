@@ -10,7 +10,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import {
   AppScreen,
-  ForgeCard,
   ForgeText as Text,
   ForgeSwitch,
   HeaderAction,
@@ -28,6 +27,7 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
 import type { RootStackParamList, WorkoutTypePreference } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
+import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutTypes'>;
 const colors = ['#7C8CF8', '#6BD48F', '#F27D7D', '#F4A261', '#B78AF0', '#9CA3AF'];
@@ -130,21 +130,19 @@ export function WorkoutTypesScreen({ navigation }: Props) {
             isReferenced={isReferenced}
           />
           {hidden.length > 0 && (
-            <View style={styles.hiddenSection}>
-              <Text style={styles.sectionTitle}>Hidden</Text>
-              <TypeList
-                types={hidden}
-                revealedId={null}
-                setRevealedId={() => undefined}
-                onOpen={(type) =>
-                  navigation.navigate('WorkoutTypeEditor', { workoutTypeId: type.id })
-                }
-                onRemove={remove}
-                onToggleVisibility={toggleBuiltInVisibility}
-                isReferenced={isReferenced}
-                hidden
-              />
-            </View>
+            <TypeList
+              title="Hidden"
+              types={hidden}
+              revealedId={null}
+              setRevealedId={() => undefined}
+              onOpen={(type) =>
+                navigation.navigate('WorkoutTypeEditor', { workoutTypeId: type.id })
+              }
+              onRemove={remove}
+              onToggleVisibility={toggleBuiltInVisibility}
+              isReferenced={isReferenced}
+              hidden
+            />
           )}
         </ScrollView>
       </View>
@@ -153,6 +151,7 @@ export function WorkoutTypesScreen({ navigation }: Props) {
 }
 
 function TypeList({
+  title,
   types,
   revealedId,
   setRevealedId,
@@ -162,6 +161,7 @@ function TypeList({
   isReferenced,
   hidden = false,
 }: {
+  title?: string;
   types: WorkoutTypePreference[];
   revealedId: string | null;
   setRevealedId: (id: string | null) => void;
@@ -172,8 +172,8 @@ function TypeList({
   hidden?: boolean;
 }) {
   return (
-    <ForgeCard style={styles.card}>
-      {types.map((type) => (
+    <SettingsSection title={title}>
+      {types.map((type, index) => (
         <React.Fragment key={type.id}>
           <SwipeTypeRow
             type={type}
@@ -188,10 +188,11 @@ function TypeList({
                 ? 'Hide'
                 : 'Delete'
             }
+            divider={index < types.length - 1}
           />
         </React.Fragment>
       ))}
-    </ForgeCard>
+    </SettingsSection>
   );
 }
 
@@ -204,6 +205,7 @@ function SwipeTypeRow({
   onRemove,
   onToggleVisibility,
   actionLabel,
+  divider,
 }: {
   type: WorkoutTypePreference;
   hidden: boolean;
@@ -213,6 +215,7 @@ function SwipeTypeRow({
   onRemove: () => void;
   onToggleVisibility: () => void;
   actionLabel: 'Hide' | 'Delete';
+  divider: boolean;
 }) {
   const theme = useForgeTheme();
   const width = 72;
@@ -244,32 +247,39 @@ function SwipeTypeRow({
     });
   const animated = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
   const content = (
-    <View style={[styles.swipe, { backgroundColor: type.source === 'builtIn' ? theme.surfaceElevated : theme.overlay }]}>
-      {type.source !== 'builtIn' && <View
-        pointerEvents={revealed ? 'auto' : 'none'}
-        style={[styles.actionLayer, { backgroundColor: theme.overlay }]}
-      >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${actionLabel} ${type.name}`}
-          onPress={onRemove}
-          style={({ pressed }) => [styles.swipeAction, pressed && styles.swipeActionPressed]}
+    <View
+      style={[
+        styles.swipe,
+        { backgroundColor: type.source === 'builtIn' ? theme.surfaceElevated : theme.overlay },
+      ]}
+    >
+      {type.source !== 'builtIn' && (
+        <View
+          pointerEvents={revealed ? 'auto' : 'none'}
+          style={[styles.actionLayer, { backgroundColor: theme.overlay }]}
         >
-          <Icon
-            name={actionLabel === 'Hide' ? 'close' : 'trash'}
-            size={18}
-            color={theme.textDestructive}
-          />
-          <Text style={[styles.swipeActionText, { color: theme.textDestructive }]}>
-            {actionLabel}
-          </Text>
-        </Pressable>
-      </View>}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${actionLabel} ${type.name}`}
+            onPress={onRemove}
+            style={({ pressed }) => [styles.swipeAction, pressed && styles.swipeActionPressed]}
+          >
+            <Icon
+              name={actionLabel === 'Hide' ? 'close' : 'trash'}
+              size={18}
+              color={theme.textDestructive}
+            />
+            <Text style={[styles.swipeActionText, { color: theme.textDestructive }]}>
+              {actionLabel}
+            </Text>
+          </Pressable>
+        </View>
+      )}
       <Animated.View
         style={[styles.rowSurface, { backgroundColor: theme.surfaceElevated }, animated]}
       >
-        <Pressable
-          accessibilityRole="button"
+        <SettingsRow
+          title={type.name}
           accessibilityLabel={`${type.name} workout type`}
           onPress={() => {
             if (suppress.current) {
@@ -284,42 +294,39 @@ function SwipeTypeRow({
               onOpen();
             }
           }}
-          style={({ pressed }) => [styles.row, pressed && { backgroundColor: theme.pressed }]}
-        >
-          <View style={[styles.swatch, { backgroundColor: type.color }]} />
-          <Text style={[styles.name, { color: theme.textPrimary }]} numberOfLines={1}>
-            {type.name}
-          </Text>
-          <Icon
-            name={type.source === 'builtIn' ? 'verified' : 'note'}
-            size={17}
-            color={theme.textSecondary}
-            accessibilityLabel={
-              type.source === 'builtIn' ? 'Included with Forge' : 'Created by you'
-            }
-          />
-          {hidden && <Text style={[styles.hidden, { color: theme.textSecondary }]}>Hidden</Text>}
-          <Icon name="chevron-forward" size={18} color={theme.textSecondary} />
-        </Pressable>
+          haptic="none"
+          leading={<View style={[styles.swatch, { backgroundColor: type.color }]} />}
+          trailing={
+            <>
+              <Icon
+                name={type.source === 'builtIn' ? 'verified' : 'note'}
+                size={17}
+                color={theme.textSecondary}
+                accessibilityLabel={
+                  type.source === 'builtIn' ? 'Included with Forge' : 'Created by you'
+                }
+              />
+              {hidden ? (
+                <Text style={[styles.hidden, { color: theme.textSecondary }]}>Hidden</Text>
+              ) : null}
+            </>
+          }
+          disclosure
+          showDivider={divider && !(type.source === 'builtIn' && expanded)}
+        />
       </Animated.View>
       {type.source === 'builtIn' && expanded && (
         <>
-          <Pressable
+          <SettingsRow
+            title={hidden ? 'Show in workout pickers' : 'Hide from workout pickers'}
             accessibilityRole="switch"
             accessibilityLabel={`${hidden ? 'Show' : 'Hide'} ${type.name} in workout pickers`}
             accessibilityState={{ checked: !hidden }}
             onPress={onToggleVisibility}
-            style={({ pressed }) => [
-              styles.builtInControl,
-              pressed && { backgroundColor: theme.pressed },
-            ]}
-          >
-            <Text style={[styles.builtInText, { color: theme.textPrimary }]}>
-              {hidden ? 'Show in workout pickers' : 'Hide from workout pickers'}
-            </Text>
-            <ForgeSwitch value={!hidden} testID="workout-type-list-visibility-switch" />
-          </Pressable>
-          <View testID="workout-type-visibility-bottom-divider" style={styles.builtInDivider} />
+            haptic="none"
+            trailing={<ForgeSwitch value={!hidden} testID="workout-type-list-visibility-switch" />}
+          />
+          <View testID="workout-type-visibility-bottom-divider" style={styles.testDivider} />
         </>
       )}
     </View>
@@ -331,24 +338,19 @@ function SwipeTypeRow({
   );
 }
 
-const card = {
-  overflow: 'hidden',
-  borderRadius: dashboardTheme.cardRadius,
-  borderWidth: 1,
-  backgroundColor: dashboardTheme.surface,
-  shadowColor: '#17191C',
-  shadowOpacity: 0.06,
-  shadowRadius: 10,
-  shadowOffset: { width: 0, height: 4 },
-  elevation: 2,
-} as const;
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  content: { padding: 20, paddingTop: 20, paddingBottom: 40, gap: 22 },
-  card,
-  hiddenSection: { gap: 8 },
-  sectionTitle: { ...typeScale.sectionTitle, color: dashboardTheme.slate },
-  swipe: { position: 'relative', overflow: 'hidden', backgroundColor: dashboardTheme.destructiveSurface },
+  content: {
+    padding: settingsLayout.screenPadding,
+    paddingTop: settingsLayout.contentTop,
+    paddingBottom: settingsLayout.contentBottom,
+    gap: settingsLayout.sectionGap,
+  },
+  swipe: {
+    position: 'relative',
+    overflow: 'hidden',
+    backgroundColor: dashboardTheme.destructiveSurface,
+  },
   actionLayer: {
     position: 'absolute',
     top: 0,
@@ -361,24 +363,7 @@ const styles = StyleSheet.create({
   swipeActionPressed: { backgroundColor: dashboardTheme.destructiveSurfacePressed },
   swipeActionText: { color: dashboardTheme.textDestructive, ...typeScale.caption },
   rowSurface: { zIndex: 1, backgroundColor: dashboardTheme.surface },
-  row: {
-    minHeight: 54,
-    paddingHorizontal: 16,
-    gap: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   swatch: { width: 13, height: 13, borderRadius: 7 },
-  name: { flex: 1, minWidth: 0, color: dashboardTheme.ink, ...typeScale.cardTitle },
   hidden: { color: dashboardTheme.slate, ...typeScale.caption },
-  builtInControl: {
-    minHeight: 54,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderColor: dashboardTheme.divider,
-  },
-  builtInDivider: { height: StyleSheet.hairlineWidth, backgroundColor: dashboardTheme.divider },
-  builtInText: { flex: 1, ...typeScale.body },
+  testDivider: { height: StyleSheet.hairlineWidth, backgroundColor: dashboardTheme.divider },
 });

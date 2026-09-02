@@ -1,5 +1,14 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, UIManager, useWindowDimensions, View } from 'react-native';
+import {
+  LayoutAnimation,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  UIManager,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   AppScreen,
@@ -31,6 +40,7 @@ import {
   groupCatalogByMovement,
 } from '../../domain/exercises/catalogSelectors';
 import { REST_DURATION_OPTIONS } from '../../domain/rest/restDurationOptions';
+import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseBrowser'>;
 type Filters = { types: string[]; equipment: string[]; categories: string[] };
@@ -41,11 +51,13 @@ function formatPickerDuration(seconds: number): string {
   return `${String(minutes).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
-const restTimeOptions: readonly ForgeSingleSelectOption<number>[] = REST_DURATION_OPTIONS.map((seconds) => ({
-  value: seconds,
-  label: formatPickerDuration(seconds),
-  accessibilityLabel: `Rest duration ${formatPickerDuration(seconds)}`,
-}));
+const restTimeOptions: readonly ForgeSingleSelectOption<number>[] = REST_DURATION_OPTIONS.map(
+  (seconds) => ({
+    value: seconds,
+    label: formatPickerDuration(seconds),
+    accessibilityLabel: `Rest duration ${formatPickerDuration(seconds)}`,
+  }),
+);
 
 export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const theme = useForgeTheme();
@@ -100,21 +112,25 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const { equipment, categories } = catalogFacets(catalog.exercises);
   const formEquipment = useMemo(() => {
     if (!formParent) return [];
-    return Array.from(new Set(
-      [...catalog.exercises, ...catalog.customExercises]
-        .filter((item) => item.group === formParent)
-        .map((item) => item.equipment),
-    ));
+    return Array.from(
+      new Set(
+        [...catalog.exercises, ...catalog.customExercises]
+          .filter((item) => item.group === formParent)
+          .map((item) => item.equipment),
+      ),
+    );
   }, [catalog.customExercises, catalog.exercises, formParent]);
-  const usesCustomEquipment = formParent !== null
-    && formParent !== undefined
-    && !formEquipment.includes(equipmentValue);
-  const isCustom = (item: ExerciseCatalogItem) => catalog.customExercises.some((custom) => custom.id === item.id);
+  const usesCustomEquipment =
+    formParent !== null && formParent !== undefined && !formEquipment.includes(equipmentValue);
+  const isCustom = (item: ExerciseCatalogItem) =>
+    catalog.customExercises.some((custom) => custom.id === item.id);
   const restOverride = (item: ExerciseCatalogItem) =>
     isCustom(item) ? item.restSeconds : preferences.exerciseRestSeconds[item.id];
   const restLabel = (item: ExerciseCatalogItem) => {
     const value = restOverride(item);
-    return value === undefined ? 'Default' : `${Math.floor(value / 60)}:${String(value % 60).padStart(2, '0')}`;
+    return value === undefined
+      ? 'Default'
+      : `${Math.floor(value / 60)}:${String(value % 60).padStart(2, '0')}`;
   };
   const openCreate = (parent: string | null) => {
     lightHaptic();
@@ -167,11 +183,15 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   };
   const toggleSecondary = (value: string) => {
     selectionHaptic();
-    setSecondaryMuscles((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
+    setSecondaryMuscles((current) =>
+      current.includes(value) ? current.filter((item) => item !== value) : [...current, value],
+    );
   };
   const toggleSection = (value: string) => {
     selectionHaptic();
-    setWorkoutTypeIds((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
+    setWorkoutTypeIds((current) =>
+      current.includes(value) ? current.filter((item) => item !== value) : [...current, value],
+    );
   };
   const setRestOverride = (item: ExerciseCatalogItem, seconds: number | undefined) => {
     if (isCustom(item)) {
@@ -182,7 +202,9 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
       else next[item.id] = seconds;
       updatePreferences({ exerciseRestSeconds: next });
     }
-    setDetail((current) => current && current.id === item.id ? { ...current, restSeconds: seconds } : current);
+    setDetail((current) =>
+      current && current.id === item.id ? { ...current, restSeconds: seconds } : current,
+    );
   };
   const chooseRestOverride = (item: ExerciseCatalogItem, seconds: number | undefined) => {
     if (restOverride(item) === seconds) return;
@@ -378,7 +400,11 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   }}
                 />
               </View>
-              <ScrollView style={styles.formScroll} contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
+              <ScrollView
+                style={styles.formScroll}
+                contentContainerStyle={styles.form}
+                keyboardShouldPersistTaps="handled"
+              >
                 <TextInput
                   accessibilityLabel="Exercise name"
                   value={name}
@@ -387,11 +413,24 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   placeholderTextColor={theme.muted}
                   style={styles.input}
                 />
-                {!formParent && <TextInput accessibilityLabel="Exercise category" value={group} onChangeText={setGroup} placeholder="Category" placeholderTextColor={theme.muted} style={styles.input} />}
+                {!formParent && (
+                  <TextInput
+                    accessibilityLabel="Exercise category"
+                    value={group}
+                    onChangeText={setGroup}
+                    placeholder="Category"
+                    placeholderTextColor={theme.muted}
+                    style={styles.input}
+                  />
+                )}
                 {formParent ? (
                   <>
                     <Text style={styles.fieldLabel}>Equipment</Text>
-                    <View accessibilityRole="radiogroup" accessibilityLabel="Exercise equipment" style={styles.choiceWrap}>
+                    <View
+                      accessibilityRole="radiogroup"
+                      accessibilityLabel="Exercise equipment"
+                      style={styles.choiceWrap}
+                    >
                       {formEquipment.map((item) => (
                         <Choice
                           key={item}
@@ -429,19 +468,56 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                     )}
                   </>
                 ) : (
-                  <TextInput accessibilityLabel="Exercise equipment" value={equipmentValue} onChangeText={setEquipmentValue} placeholder="Equipment" placeholderTextColor={theme.muted} style={styles.input} />
+                  <TextInput
+                    accessibilityLabel="Exercise equipment"
+                    value={equipmentValue}
+                    onChangeText={setEquipmentValue}
+                    placeholder="Equipment"
+                    placeholderTextColor={theme.muted}
+                    style={styles.input}
+                  />
                 )}
                 <Text style={styles.fieldLabel}>Sections</Text>
                 <View style={styles.choiceWrap}>
-                  {visibleTypes.map((type) => <Choice key={type.id} icon={workoutTypeIcon(type)} label={type.name} accessibilityLabel={`Section ${type.name}`} selected={workoutTypeIds.includes(type.id)} onPress={() => toggleSection(type.id)} />)}
+                  {visibleTypes.map((type) => (
+                    <Choice
+                      key={type.id}
+                      icon={workoutTypeIcon(type)}
+                      label={type.name}
+                      accessibilityLabel={`Section ${type.name}`}
+                      selected={workoutTypeIds.includes(type.id)}
+                      onPress={() => toggleSection(type.id)}
+                    />
+                  ))}
                 </View>
                 <Text style={styles.fieldLabel}>Primary muscle</Text>
                 <View style={styles.choiceWrap}>
-                  {categories.map((muscle) => <Choice key={muscle} label={muscle} accessibilityLabel={`Primary ${muscle}`} selected={primaryMuscle === muscle} onPress={() => { selectionHaptic(); setPrimaryMuscle(muscle); }} />)}
+                  {categories.map((muscle) => (
+                    <Choice
+                      key={muscle}
+                      label={muscle}
+                      accessibilityLabel={`Primary ${muscle}`}
+                      selected={primaryMuscle === muscle}
+                      onPress={() => {
+                        selectionHaptic();
+                        setPrimaryMuscle(muscle);
+                      }}
+                    />
+                  ))}
                 </View>
                 <Text style={styles.fieldLabel}>Secondary muscles</Text>
                 <View style={styles.choiceWrap}>
-                  {categories.filter((muscle) => muscle !== primaryMuscle).map((muscle) => <Choice key={muscle} label={muscle} accessibilityLabel={`Secondary ${muscle}`} selected={secondaryMuscles.includes(muscle)} onPress={() => toggleSecondary(muscle)} />)}
+                  {categories
+                    .filter((muscle) => muscle !== primaryMuscle)
+                    .map((muscle) => (
+                      <Choice
+                        key={muscle}
+                        label={muscle}
+                        accessibilityLabel={`Secondary ${muscle}`}
+                        selected={secondaryMuscles.includes(muscle)}
+                        onPress={() => toggleSecondary(muscle)}
+                      />
+                    ))}
                 </View>
               </ScrollView>
             </View>
@@ -462,54 +538,58 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
           backdropTestID="exercise-detail-sheet-backdrop"
           surfaceTestID="exercise-detail-sheet-surface"
         >
-          {(close) => detail && (detailSheetView === 'restTime' ? (
-            <View testID="exercise-rest-selection-view" style={styles.restTimeSheet}>
-              <ForgeBottomSheetHandle />
-              <View style={styles.restTimeHeader}>
-                <HeaderAction
-                  accessibilityLabel="Back to exercise details"
-                  icon="chevron-back"
-                  iconOnly
-                  onPress={() => transitionDetailSheet('details')}
-                  style={styles.restTimeBack}
-                />
-                <Text style={styles.restTimeTitle}>Rest Time</Text>
-                <View style={styles.restTimeHeaderSpacer} />
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Use default rest time"
-                  accessibilityState={{ selected: restOverride(detail) === undefined }}
-                  onPress={() => {
-                    selectionHaptic();
-                    chooseRestOverride(detail, undefined);
+          {(close) =>
+            detail &&
+            (detailSheetView === 'restTime' ? (
+              <View testID="exercise-rest-selection-view" style={styles.restTimeSheet}>
+                <ForgeBottomSheetHandle />
+                <View style={styles.restTimeHeader}>
+                  <HeaderAction
+                    accessibilityLabel="Back to exercise details"
+                    icon="chevron-back"
+                    iconOnly
+                    onPress={() => transitionDetailSheet('details')}
+                    style={styles.restTimeBack}
+                  />
+                  <Text style={styles.restTimeTitle}>Rest Time</Text>
+                  <View style={styles.restTimeHeaderSpacer} />
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Use default rest time"
+                    accessibilityState={{ selected: restOverride(detail) === undefined }}
+                    onPress={() => {
+                      selectionHaptic();
+                      chooseRestOverride(detail, undefined);
+                      transitionDetailSheet('details');
+                    }}
+                    style={({ pressed }) => [
+                      styles.restTimeDefaultAction,
+                      restOverride(detail) === undefined && styles.restTimeDefaultActionSelected,
+                      pressed && pressedFeedback,
+                    ]}
+                  >
+                    <Text style={styles.restTimeDefaultLabel}>Default</Text>
+                  </Pressable>
+                </View>
+                <ForgeSingleSelectList<number>
+                  testID="exercise-rest-selection-list"
+                  options={restTimeOptions}
+                  selectedValue={restOverride(detail) ?? -1}
+                  maxVisibleRows={6}
+                  onSelect={(value) => {
+                    chooseRestOverride(detail, value);
                     transitionDetailSheet('details');
                   }}
-                  style={({ pressed }) => [
-                    styles.restTimeDefaultAction,
-                    restOverride(detail) === undefined && styles.restTimeDefaultActionSelected,
-                    pressed && pressedFeedback,
-                  ]}
-                >
-                  <Text style={styles.restTimeDefaultLabel}>Default</Text>
-                </Pressable>
+                  onSelectedPress={() => transitionDetailSheet('details')}
+                />
               </View>
-              <ForgeSingleSelectList<number>
-                testID="exercise-rest-selection-list"
-                options={restTimeOptions}
-                selectedValue={restOverride(detail) ?? -1}
-                maxVisibleRows={6}
-                onSelect={(value) => {
-                  chooseRestOverride(detail, value);
-                  transitionDetailSheet('details');
-                }}
-                onSelectedPress={() => transitionDetailSheet('details')}
-              />
-            </View>
-          ) : (
+            ) : (
               <View style={styles.detailSheet}>
                 <ForgeBottomSheetHandle />
                 <View style={styles.sheetHeader}>
-                  <Text style={[styles.sheetTitle, styles.detailSheetTitle]}>{detail.variation || detail.name}</Text>
+                  <Text style={[styles.sheetTitle, styles.detailSheetTitle]}>
+                    {detail.variation || detail.name}
+                  </Text>
                   {isCustom(detail) && (
                     <HeaderAction
                       accessibilityLabel="Delete variation"
@@ -546,8 +626,16 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                       {detail.workoutTypeIds.map((id) => {
                         const type = preferences.workoutTypes.find((item) => item.id === id);
                         return (
-                          <View key={id} testID={`exercise-section-type-${id}`} style={styles.sectionType}>
-                            <Icon name={type ? workoutTypeIcon(type) : 'layers'} size={18} color={theme.ink} />
+                          <View
+                            key={id}
+                            testID={`exercise-section-type-${id}`}
+                            style={styles.sectionType}
+                          >
+                            <Icon
+                              name={type ? workoutTypeIcon(type) : 'layers'}
+                              size={18}
+                              color={theme.ink}
+                            />
                             <Text style={styles.sectionTypeName}>{type?.name ?? id}</Text>
                           </View>
                         );
@@ -562,11 +650,12 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                     <Text style={styles.detailLabel}>Primary muscle</Text>
                     <Text style={styles.detailValue}>{detail.primaryMuscle}</Text>
                   </View>
-                  {detail.secondaryMuscles.length > 0 && <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Secondary muscles</Text>
-                    <Text style={styles.detailValue}>{detail.secondaryMuscles.join(', ')}</Text>
-                  </View>
-                  }
+                  {detail.secondaryMuscles.length > 0 && (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Secondary muscles</Text>
+                      <Text style={styles.detailValue}>{detail.secondaryMuscles.join(', ')}</Text>
+                    </View>
+                  )}
                   {isCustom(detail) ? (
                     <>
                       <Button
@@ -583,7 +672,8 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   ) : null}
                 </View>
               </View>
-            ))}
+            ))
+          }
         </ForgeBottomSheet>
       </View>
     </AppScreen>
@@ -607,10 +697,24 @@ function Choice({
 }) {
   const styles = useThemedStyles(createStyles);
   const theme = useForgeTheme();
-  return <Pressable accessibilityRole={role} accessibilityLabel={accessibilityLabel} accessibilityState={{ checked: selected }} aria-checked={selected} onPress={onPress} style={({ pressed }) => [styles.choice, selected && { borderColor: theme.ink }, pressed && pressedFeedback]}>
-    {icon && <Icon name={icon} size={16} color={theme.ink} />}
-    <Text style={styles.choiceText}>{label}</Text>{selected && <Icon name="check" size={15} color={theme.ink} />}
-  </Pressable>;
+  return (
+    <Pressable
+      accessibilityRole={role}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ checked: selected }}
+      aria-checked={selected}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.choice,
+        selected && { borderColor: theme.ink },
+        pressed && pressedFeedback,
+      ]}
+    >
+      {icon && <Icon name={icon} size={16} color={theme.ink} />}
+      <Text style={styles.choiceText}>{label}</Text>
+      {selected && <Icon name="check" size={15} color={theme.ink} />}
+    </Pressable>
+  );
 }
 
 function FilterSection({
@@ -674,27 +778,17 @@ function Movement({
   if (items.length === 1) {
     const item = items[0];
     return (
-      <View style={styles.movement}>
-        <Pressable
-          accessibilityRole="button"
+      <SettingsSection>
+        <SettingsRow
+          title={group}
+          subtitle={`${item.equipment} · ${item.category}`}
           accessibilityLabel={`Open ${group}`}
-          onPress={() => {
-            lightHaptic();
-            onOpen(item);
-          }}
-          style={styles.movementRow}
-        >
-          <View style={styles.copy}>
-            <Text style={styles.movementName}>{group}</Text>
-            <Text style={styles.meta}>
-              {item.equipment} · {item.category}
-            </Text>
-          </View>
-          <View style={styles.movementIcons}>
-            {isCustom(item) && <Icon name="note" size={17} color={theme.textSecondary} />}
-            <Icon name="chevron-forward" size={21} color={theme.textPrimary} />
-          </View>
-        </Pressable>
+          onPress={() => onOpen(item)}
+          trailing={
+            isCustom(item) ? <Icon name="note" size={17} color={theme.textSecondary} /> : undefined
+          }
+          disclosure
+        />
         <Button
           accessibilityLabel={`Add variation to ${group}`}
           label="Add variation"
@@ -705,30 +799,26 @@ function Movement({
           onPress={onAdd}
           style={styles.singleAddVariation}
         />
-      </View>
+      </SettingsSection>
     );
   }
   return (
-    <View style={styles.movement}>
-      <Pressable
-        accessibilityRole="button"
+    <SettingsSection>
+      <SettingsRow
+        title={group}
+        subtitle={`${items.length} ${items.length === 1 ? 'variation' : 'variations'}`}
         accessibilityLabel={`${group}, ${items.length} variations`}
         accessibilityState={{ expanded }}
         onPress={onToggle}
-        style={styles.movementRow}
-      >
-        <View style={styles.copy}>
-          <Text style={styles.movementName}>{group}</Text>
-          <Text style={styles.meta}>
-            {items.length} {items.length === 1 ? 'variation' : 'variations'}
-          </Text>
-        </View>
-        <Icon
-          name={expanded ? 'chevron-down' : 'chevron-forward'}
-          size={21}
-          color={theme.textPrimary}
-        />
-      </Pressable>
+        haptic="none"
+        trailing={
+          <Icon
+            name={expanded ? 'chevron-down' : 'chevron-forward'}
+            size={18}
+            color={theme.textSecondary}
+          />
+        }
+      />
       {expanded && (
         <View style={styles.variations}>
           {equipment.map(([label, variants]) => (
@@ -770,13 +860,18 @@ function Movement({
           />
         </View>
       )}
-    </View>
+    </SettingsSection>
   );
 }
 const createStyles = (theme: import('../../types').ForgeTheme) =>
   StyleSheet.create({
     screen: { flex: 1 },
-    content: { padding: 20, paddingTop: 22, paddingBottom: 40, gap: 14 },
+    content: {
+      padding: settingsLayout.screenPadding,
+      paddingTop: settingsLayout.contentTop,
+      paddingBottom: settingsLayout.contentBottom,
+      gap: settingsLayout.listGap,
+    },
     searchRow: { flexDirection: 'row', gap: 8 },
     search: {
       flex: 1,
@@ -814,19 +909,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       backgroundColor: theme.surfaceElevated,
       borderWidth: 1,
       borderColor: theme.border,
-    },
-    movement: {
-      overflow: 'hidden',
-      borderRadius: theme.cardRadius,
-      backgroundColor: theme.surface,
-      borderWidth: 1,
-      borderColor: theme.border,
-    },
-    movementRow: {
-      minHeight: 76,
-      paddingHorizontal: 16,
-      flexDirection: 'row',
-      alignItems: 'center',
     },
     copy: { flex: 1 },
     movementName: { ...typeScale.cardTitle, color: theme.ink },
@@ -903,10 +985,29 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       borderColor: theme.divider,
     },
     detailLabel: { ...typeScale.label, color: theme.slate },
-    detailValue: { ...typeScale.body, color: theme.ink, textAlign: 'right', flexShrink: 1, marginLeft: 16 },
+    detailValue: {
+      ...typeScale.body,
+      color: theme.ink,
+      textAlign: 'right',
+      flexShrink: 1,
+      marginLeft: 16,
+    },
     detailAction: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
-    detailSelectableValue: { ...typeScale.body, color: theme.textSecondary, textAlign: 'right', flexShrink: 1, marginLeft: 16 },
-    sectionTypes: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8, flexShrink: 1, marginLeft: 16 },
+    detailSelectableValue: {
+      ...typeScale.body,
+      color: theme.textSecondary,
+      textAlign: 'right',
+      flexShrink: 1,
+      marginLeft: 16,
+    },
+    sectionTypes: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'flex-end',
+      gap: 8,
+      flexShrink: 1,
+      marginLeft: 16,
+    },
     sectionType: { flexDirection: 'row', alignItems: 'center', gap: 5 },
     sectionTypeName: { ...typeScale.body, color: theme.ink },
     sheetHeader: {
@@ -966,7 +1067,17 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     },
     fieldLabel: { ...typeScale.label, color: theme.slate, marginTop: 5 },
     choiceWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    choice: { minHeight: 38, paddingHorizontal: 11, borderRadius: 19, borderWidth: 1, borderColor: theme.divider, backgroundColor: theme.surfaceElevated, flexDirection: 'row', alignItems: 'center', gap: 5 },
+    choice: {
+      minHeight: 38,
+      paddingHorizontal: 11,
+      borderRadius: 19,
+      borderWidth: 1,
+      borderColor: theme.divider,
+      backgroundColor: theme.surfaceElevated,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
     choiceText: { ...typeScale.label, color: theme.ink },
     singleAddVariation: {
       alignSelf: 'flex-start',

@@ -1,6 +1,25 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('Settings', () => {
+  async function expectRowHeight(
+    locator: import('@playwright/test').Locator,
+    expectedHeight: number,
+  ): Promise<void> {
+    const box = await locator.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box?.height).toBeCloseTo(expectedHeight, 0);
+  }
+
+  async function expectFontSize(
+    locator: import('@playwright/test').Locator,
+    expectedSize: number,
+  ): Promise<void> {
+    await expect(locator).toBeVisible();
+    expect(await locator.evaluate((element) => window.getComputedStyle(element).fontSize)).toBe(
+      `${expectedSize}px`,
+    );
+  }
+
   async function openWorkoutTypes(page: import('@playwright/test').Page): Promise<void> {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
@@ -53,6 +72,56 @@ test.describe('Settings', () => {
     await expect(page.getByTestId('settings-detail-title')).toHaveText('About');
   });
 
+  test('uses one compact card and text scale across Settings screens', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+
+    const rootRow = page.getByTestId('settings-main-exercises-row');
+    await expectRowHeight(rootRow, 56);
+    await expectFontSize(page.getByTestId('settings-main-exercises-row-title'), 16);
+    const rootCard = await rootRow.evaluate((element) => {
+      const parent = element.parentElement;
+      const box = parent?.getBoundingClientRect();
+      return {
+        x: box?.x,
+        width: box?.width,
+        radius: parent ? window.getComputedStyle(parent).borderRadius : null,
+      };
+    });
+    expect(rootCard.x).toBeCloseTo(20, 0);
+    expect(rootCard.width).toBeCloseTo((page.viewportSize()?.width ?? 40) - 40, 0);
+    expect(rootCard.radius).toBe('24px');
+
+    await rootRow.click();
+    const libraryRow = page.getByTestId('exercise-library-type-strength');
+    await expectRowHeight(libraryRow, 68);
+    await expectFontSize(page.getByTestId('exercise-library-type-strength-title'), 16);
+    await page.getByRole('button', { name: 'All exercises, 21 exercises' }).click();
+    const movementRow = page.getByRole('button', { name: 'Bench Press, 4 variations' });
+    await expectRowHeight(movementRow, 68);
+    await expectFontSize(page.getByText('Bench Press', { exact: true }), 16);
+
+    await page.getByRole('button', { name: 'Back to Exercises' }).click();
+    await page.getByRole('button', { name: 'Back to Settings' }).click();
+    await page.getByRole('button', { name: 'Workout types' }).click();
+    await expectRowHeight(page.getByRole('button', { name: 'Strength workout type' }), 56);
+
+    await page.getByRole('button', { name: 'Back to Settings' }).click();
+    await page.getByRole('button', { name: 'General' }).click();
+    await expectRowHeight(page.getByRole('radio', { name: 'Metric (kg)' }), 56);
+    await expectFontSize(page.getByText('Metric (kg)', { exact: true }), 16);
+
+    await page.getByRole('button', { name: 'Back to Settings' }).click();
+    await page.getByRole('button', { name: 'Backup & Export' }).click();
+    await expectRowHeight(page.getByRole('button', { name: 'Create backup' }), 56);
+    await expectRowHeight(page.getByRole('button', { name: 'Export workout data' }), 68);
+    await expectFontSize(page.getByText('Create backup', { exact: true }), 16);
+
+    await page.getByRole('button', { name: 'Back to Settings' }).click();
+    await page.getByRole('button', { name: 'About' }).click();
+    await expectRowHeight(page.getByRole('button', { name: 'Source code' }), 56);
+  });
+
   test('persists the first day of the week and applies it to the Calendar', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
@@ -82,12 +151,18 @@ test.describe('Settings', () => {
     expect(defaultRestBox?.height ?? Infinity).toBeLessThanOrEqual(52 * 6 + 0.1);
     expect(defaultRestBox?.height ?? 0).toBeGreaterThanOrEqual(52 * 4);
     await expect(defaultRestList).toHaveAttribute('role', 'radiogroup');
-    await expect(page.getByRole('radio', { name: '01:30' })).toHaveAttribute('aria-checked', 'true');
+    await expect(page.getByRole('radio', { name: '01:30' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
     await page.getByRole('radio', { name: '02:00' }).click();
     await expect(page.getByTestId('default-rest-selection-sheet')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Default rest time' })).toContainText('02:00');
     await page.getByRole('button', { name: 'Default rest time' }).click();
-    await expect(page.getByRole('radio', { name: '02:00' })).toHaveAttribute('aria-checked', 'true');
+    await expect(page.getByRole('radio', { name: '02:00' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
     await page.getByRole('radio', { name: '02:00' }).click();
 
     await page.getByRole('switch', { name: 'Unfinished workout reminder' }).click();
