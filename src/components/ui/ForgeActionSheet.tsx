@@ -176,7 +176,9 @@ const styles = StyleSheet.create({
   sheet: { paddingBottom: 30 },
   actionList: {
     marginHorizontal: 20,
-    marginTop: 12,
+    // Keep the compact list close to the title after removing the contextual card.
+    // This changes its position, not the row density.
+    marginTop: 4,
     overflow: 'hidden',
     borderWidth: 1,
     borderRadius: 16,
@@ -189,7 +191,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   actionRow: {
-    minHeight: 68,
+    minHeight: 62,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
