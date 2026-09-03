@@ -183,9 +183,9 @@ export function PlansScreen({ navigation, route }: Props) {
           actions={
             actionTarget?.kind === 'routine'
               ? [
-                  { label: 'Visualize', icon: 'info', onPress: () => viewRoutine(actionTarget.item, false) },
-                  { label: 'Edit', icon: 'note', onPress: () => openRoutine(actionTarget.item, false) },
                   { label: 'Start', icon: 'play', onPress: () => startRoutine(actionTarget.item, false) },
+                  { label: 'Edit', icon: 'note', onPress: () => openRoutine(actionTarget.item, false) },
+                  { label: 'Visualize', icon: 'info', onPress: () => viewRoutine(actionTarget.item, false) },
                 ]
               : actionTarget
                 ? [

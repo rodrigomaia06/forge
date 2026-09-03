@@ -269,7 +269,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
               }}
               style={({ pressed }) => [styles.typeRow, pressed && styles.pressed]}
             >
-              <Text style={styles.fieldLabel}>Type</Text>
+              <Text style={styles.fieldLabel}>Workout type</Text>
               <View
                 style={[
                   styles.typeDot,
@@ -392,6 +392,8 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                     onDeleteRevealChange={(id, revealed) =>
                       setRevealedExerciseId(revealed ? id : null)
                     }
+                    collapsible
+                    showMoreOptions={false}
                     dragHandle={
                       <RoutineExerciseDragHandle
                         name={exercise.name}
@@ -401,15 +403,17 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                   />
                 );
               })}
-              {!viewing && <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Add exercises to routine"
-                onPress={() => setAddingExercises(true)}
-                style={({ pressed }) => [styles.addExercise, pressed && styles.pressed]}
-              >
-                <Icon name="add" size={17} color={theme.textPrimary} />
-                <Text style={styles.addExerciseText}>Add exercises</Text>
-              </Pressable>}
+              {!viewing && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Add exercises to routine"
+                  onPress={() => setAddingExercises(true)}
+                  style={({ pressed }) => [styles.addExercise, pressed && styles.pressed]}
+                >
+                  <Icon name="add" size={17} color={theme.textPrimary} />
+                  <Text style={styles.addExerciseText}>Add exercises</Text>
+                </Pressable>
+              )}
             </View>
           </View>
         </ScrollView>
@@ -705,13 +709,18 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       borderColor: theme.divider,
     },
     nameInput: {
-      ...typeScale.sectionTitle,
+      ...typeScale.headerTitle,
       color: theme.ink,
-      minHeight: 56,
+      minHeight: 68,
       paddingHorizontal: 16,
       paddingVertical: 0,
     },
-    fieldLabel: { ...typeScale.caption, color: theme.slate },
+    fieldLabel: {
+      ...typeScale.caption,
+      color: theme.slate,
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
+    },
     noteInput: {
       ...typeScale.body,
       color: theme.ink,
@@ -720,7 +729,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       paddingHorizontal: 16,
       paddingVertical: 10,
       textAlignVertical: 'center',
-      textAlign: 'center',
+      textAlign: 'left',
     },
     divider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.divider },
     typeRow: {
@@ -731,7 +740,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       gap: 8,
     },
     typeDot: { width: 10, height: 10, borderRadius: 5 },
-    typeValue: { ...typeScale.controlLabel, color: theme.ink, flex: 1 },
+    typeValue: { ...typeScale.body, color: theme.ink, flex: 1 },
     typeChevronExpanded: { transform: [{ rotate: '180deg' }] },
     typeChoices: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
     typeChoice: {
@@ -773,6 +782,11 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     },
     addExercise: {
       minHeight: 50,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: theme.textSecondary,
+      borderRadius: 14,
+      paddingHorizontal: 16,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',

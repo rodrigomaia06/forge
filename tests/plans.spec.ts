@@ -62,6 +62,17 @@ test.describe('Plans and routines', () => {
     await page.getByRole('button', { name: 'Routine actions for Upper body' }).click();
     const routineActions = page.getByTestId('plans-options-sheet');
     await expect(routineActions.getByText('Routine options', { exact: true })).toBeVisible();
+    await expect
+      .poll(() =>
+        routineActions
+          .locator('[role="button"]')
+          .evaluateAll((buttons) =>
+            buttons
+              .map((button) => button.getAttribute('aria-label'))
+              .filter((label): label is string => ['Start', 'Edit', 'Visualize'].includes(label ?? '')),
+          ),
+      )
+      .toEqual(['Start', 'Edit', 'Visualize']);
     await expect(routineActions.getByRole('button', { name: 'Visualize' }).locator('svg').first()).toBeVisible();
     await expect(routineActions.getByRole('button', { name: 'Edit' }).locator('svg').first()).toBeVisible();
     await expect(routineActions.getByRole('button', { name: 'Start' }).locator('svg').first()).toBeVisible();
@@ -196,9 +207,11 @@ test.describe('Plans and routines', () => {
 
     const exercise = page.getByTestId(/^routine-exercise-/);
     await expect(exercise).toHaveCount(1);
-    await expect(
-      exercise.getByRole('button', { name: 'More options for Barbell Bench Press' }),
-    ).toBeVisible();
+    const expandExercise = exercise.getByRole('button', { name: 'Expand Barbell Bench Press' });
+    await expect(expandExercise).toBeVisible();
+    await expect(exercise.getByRole('button', { name: 'More options for Barbell Bench Press' })).toHaveCount(0);
+    await expandExercise.click();
+    await expect(exercise.getByRole('button', { name: 'Add set to Barbell Bench Press' })).toBeVisible();
     await swipeLeftFrom(page, exercise);
     await expect(exercise.getByRole('button', { name: 'Delete Barbell Bench Press' })).toBeVisible();
   });

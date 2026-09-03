@@ -16,6 +16,9 @@ export interface ExerciseSectionProps {
   size?: 'standard' | 'large';
   dragHandle?: ReactNode;
   testID?: string;
+  /** Routine editor uses the same set editor under a compact expandable header. */
+  collapsible?: boolean;
+  showMoreOptions?: boolean;
 }
 
 export interface SwipeableSetRowProps {

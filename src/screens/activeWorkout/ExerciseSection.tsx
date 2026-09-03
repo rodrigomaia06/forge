@@ -39,12 +39,15 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   size = 'standard',
   dragHandle,
   testID,
+  collapsible = false,
+  showMoreOptions = true,
 }: ExerciseSectionProps) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const deleteActionWidth = 64;
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [openSetId, setOpenSetId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(!collapsible);
   const cardTranslateX = useSharedValue(deleteRevealed ? -deleteActionWidth : 0);
   const cardOpen = useSharedValue(deleteRevealed);
 
@@ -57,6 +60,10 @@ export const ExerciseSection = React.memo(function ExerciseSection({
       overshootClamping: true,
     });
   }, [cardOpen, cardTranslateX, deleteActionWidth, deleteRevealed]);
+
+  useEffect(() => {
+    setExpanded(!collapsible);
+  }, [collapsible]);
 
   const settleCard = (shouldOpen: boolean): void => {
     if (shouldOpen !== deleteRevealed) {
@@ -115,67 +122,110 @@ export const ExerciseSection = React.memo(function ExerciseSection({
           </Pressable>
         </View>
         <Animated.View style={[styles.exerciseSwipeContent, swipeContentStyle]}>
-          <View style={[styles.exerciseCard, size === 'large' && styles.exerciseCardLarge]}>
-            <View style={[styles.exerciseHeader, size === 'large' && styles.exerciseHeaderLarge]}>
-              {dragHandle}
-              <Text style={[styles.exerciseName, size === 'large' && styles.exerciseNameLarge]}>
-                {exercise.name}
-              </Text>
+          <View
+            style={[
+              styles.exerciseCard,
+              collapsible && styles.collapsibleExerciseCard,
+              size === 'large' && styles.exerciseCardLarge,
+            ]}
+          >
+            {collapsible ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`More options for ${exercise.name}`}
+                accessibilityLabel={`${expanded ? 'Collapse' : 'Expand'} ${exercise.name}`}
+                accessibilityState={{ expanded }}
                 onPress={() => {
                   selectionHaptic();
-                  setOptionsOpen(true);
+                  setExpanded((current) => !current);
                 }}
-                style={({ pressed }) => [styles.moreButton, pressed && pressedFeedback]}
+                style={({ pressed }) => [
+                  styles.exerciseHeader,
+                  styles.collapsibleExerciseHeader,
+                  pressed && pressedFeedback,
+                ]}
               >
-                <Icon name="ellipsis-horizontal" size={20} color={theme.ink} />
+                {dragHandle}
+                <View style={styles.collapsibleExerciseCopy}>
+                  <Text style={styles.exerciseName}>{exercise.name}</Text>
+                  <Text style={styles.collapsibleExerciseMeta}>
+                    {`${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'}`}
+                  </Text>
+                </View>
+                <Icon
+                  name="chevron-down"
+                  size={19}
+                  color={theme.slate}
+                  style={expanded ? styles.collapsibleChevronExpanded : undefined}
+                />
               </Pressable>
-            </View>
-            <View style={[styles.setHeader, size === 'large' && styles.setHeaderLarge]}>
-              <Text style={[styles.setHeaderText, styles.setColumn]}>Set</Text>
-              <Text style={[styles.setHeaderText, styles.previousColumn]}>Previous</Text>
-              <Text style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>KG</Text>
-              <Text style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>
-                Reps
-              </Text>
-              <View style={styles.checkColumn} />
-            </View>
-            {exercise.sets.map((set, setIndex) => (
-              <SwipeableSetRow
-                key={set.id}
-                set={set}
-                index={setIndex}
-                onChange={(changes) => updateSet(exercise.id, set.id, changes)}
-                onToggle={() => {
-                  lightHaptic();
-                  if (!set.completed) onSetCompleted();
-                  toggleSet(exercise.id, set.id);
-                }}
-                onDelete={() => {
-                  errorHaptic();
-                  animateSetRemoval();
-                  removeSet(exercise.id, set.id);
-                }}
-                deleteRevealed={openSetId === set.id}
-                onDeleteRevealChange={(revealed) => setOpenSetId(revealed ? set.id : null)}
-              />
-            ))}
-            <Button
-              accessibilityLabel={`Add set to ${exercise.name}`}
-              label="Add set"
-              icon="add"
-              iconSize={16}
-              variant="ghost"
-              haptic="none"
-              onPress={() => {
-                lightHaptic();
-                addSet(exercise.id);
-              }}
-              style={[styles.addSet, size === 'large' && styles.addSetLarge]}
-            />
-            {optionsOpen && (
+            ) : (
+              <View style={[styles.exerciseHeader, size === 'large' && styles.exerciseHeaderLarge]}>
+                {dragHandle}
+                <Text style={[styles.exerciseName, size === 'large' && styles.exerciseNameLarge]}>
+                  {exercise.name}
+                </Text>
+                {showMoreOptions && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`More options for ${exercise.name}`}
+                    onPress={() => {
+                      selectionHaptic();
+                      setOptionsOpen(true);
+                    }}
+                    style={({ pressed }) => [styles.moreButton, pressed && pressedFeedback]}
+                  >
+                    <Icon name="ellipsis-horizontal" size={20} color={theme.ink} />
+                  </Pressable>
+                )}
+              </View>
+            )}
+            {(!collapsible || expanded) && (
+              <View style={collapsible ? styles.collapsibleExerciseBody : undefined}>
+                <View style={[styles.setHeader, size === 'large' && styles.setHeaderLarge]}>
+                  <Text style={[styles.setHeaderText, styles.setColumn]}>Set</Text>
+                  <Text style={[styles.setHeaderText, styles.previousColumn]}>Previous</Text>
+                  <Text style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>KG</Text>
+                  <Text style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>
+                    Reps
+                  </Text>
+                  <View style={styles.checkColumn} />
+                </View>
+                {exercise.sets.map((set, setIndex) => (
+                  <SwipeableSetRow
+                    key={set.id}
+                    set={set}
+                    index={setIndex}
+                    onChange={(changes) => updateSet(exercise.id, set.id, changes)}
+                    onToggle={() => {
+                      lightHaptic();
+                      if (!set.completed) onSetCompleted();
+                      toggleSet(exercise.id, set.id);
+                    }}
+                    onDelete={() => {
+                      errorHaptic();
+                      animateSetRemoval();
+                      removeSet(exercise.id, set.id);
+                    }}
+                    deleteRevealed={openSetId === set.id}
+                    onDeleteRevealChange={(revealed) => setOpenSetId(revealed ? set.id : null)}
+                  />
+                ))}
+                <Button
+                  accessibilityLabel={`Add set to ${exercise.name}`}
+                  label="Add set"
+                  icon="add"
+                  iconSize={16}
+                  variant="ghost"
+                  haptic="none"
+                  onPress={() => {
+                    lightHaptic();
+                    addSet(exercise.id);
+                  }}
+                  style={[styles.addSet, size === 'large' && styles.addSetLarge]}
+                />
+              </View>
+            )}
+            {showMoreOptions && optionsOpen && (
               <ExerciseOptionsSheet
                 visible
                 exercise={exercise}
@@ -348,6 +398,12 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       elevation: 1,
     },
     exerciseCardLarge: { paddingTop: 8, paddingHorizontal: 16 },
+    collapsibleExerciseCard: {
+      overflow: 'hidden',
+      borderRadius: 16,
+      paddingTop: 0,
+      paddingHorizontal: 0,
+    },
     readOnlyExerciseCard: {
       overflow: 'hidden',
       borderWidth: 1,
@@ -395,6 +451,18 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       gap: 8,
     },
     exerciseHeaderLarge: { minHeight: 42 },
+    collapsibleExerciseHeader: {
+      minHeight: 60,
+      paddingHorizontal: 12,
+    },
+    collapsibleExerciseCopy: { flex: 1, minWidth: 0, gap: 1 },
+    collapsibleExerciseMeta: { ...typeScale.supporting, color: dashboardTheme.slate },
+    collapsibleChevronExpanded: { transform: [{ rotate: '180deg' }] },
+    collapsibleExerciseBody: {
+      paddingHorizontal: 12,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: dashboardTheme.divider,
+    },
     exerciseName: {
       flex: 1,
       color: dashboardTheme.ink,

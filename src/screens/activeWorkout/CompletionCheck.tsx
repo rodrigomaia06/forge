@@ -11,7 +11,7 @@ export function CompletionCheck({
 }: {
   selected: boolean;
   testID?: string;
-  tone?: 'success' | 'interactive';
+  tone?: 'success' | 'interactive' | 'selection';
 }) {
   const theme = useForgeTheme();
   const dashboardTheme = theme;
@@ -32,7 +32,13 @@ export function CompletionCheck({
       testID={testID}
       style={[
         styles.visual,
-        selected && (tone === 'success' ? styles.success : styles.interactive),
+        selected && (
+          tone === 'success'
+            ? styles.success
+            : tone === 'selection'
+              ? styles.selection
+              : styles.interactive
+        ),
         {
           transform: [
             {
@@ -52,7 +58,11 @@ export function CompletionCheck({
           ],
         }}
       >
-        <Icon name="check" size={15} color={dashboardTheme.surface} />
+        <Icon
+          name="check"
+          size={15}
+          color={tone === 'selection' ? dashboardTheme.success : dashboardTheme.surface}
+        />
       </Animated.View>
     </Animated.View>
   );
@@ -72,5 +82,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   },
   success: { backgroundColor: dashboardTheme.success, borderColor: dashboardTheme.success },
   interactive: { backgroundColor: dashboardTheme.selectionIndicator, borderColor: dashboardTheme.selectionIndicator },
+  selection: { borderColor: dashboardTheme.success, backgroundColor: 'transparent' },
   });
 };

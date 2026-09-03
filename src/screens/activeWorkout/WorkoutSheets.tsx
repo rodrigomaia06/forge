@@ -246,7 +246,7 @@ export function AddExerciseSheet({
                           </View>
                           <CompletionCheck
                             selected={isSelected}
-                            tone="interactive"
+                            tone="selection"
                             testID={`exercise-selection-${exercise.id}`}
                           />
                         </Pressable>
@@ -315,7 +315,7 @@ export function AddExerciseSheet({
                                   <Text style={styles.equipmentName}>{equipment}</Text>
                                   <CompletionCheck
                                     selected={isSelected}
-                                    tone="interactive"
+                                    tone="selection"
                                     testID={`exercise-selection-${exercise.id}`}
                                   />
                                 </Pressable>
@@ -376,7 +376,7 @@ export function AddExerciseSheet({
                                         <Text style={styles.variationName}>{label}</Text>
                                         <CompletionCheck
                                           selected={isSelected}
-                                          tone="interactive"
+                                          tone="selection"
                                           testID={`exercise-selection-${exercise.id}`}
                                         />
                                       </Pressable>
