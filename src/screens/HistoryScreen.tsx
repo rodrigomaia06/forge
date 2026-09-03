@@ -232,6 +232,7 @@ function TimelineRow({
             <Icon name="chevron-forward" size={17} color={theme.slate} />
           </Pressable>
         </ReanimatedSwipeable>
+        <View pointerEvents="none" style={styles.cardLeadingOutline} />
       </View>
     </View>
   );
@@ -356,7 +357,20 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     elevation: 2,
   },
   cardCompact: { minHeight: 64 },
-  pressed: { opacity: 0.72 },
+  pressed: { backgroundColor: theme.surfaceMuted },
+  cardLeadingOutline: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: historyCardRadius,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderLeftWidth: 1,
+    borderColor: theme.border,
+    borderTopLeftRadius: historyCardRadius,
+    borderBottomLeftRadius: historyCardRadius,
+  },
   typeIcon: {
     width: 44,
     height: 44,
