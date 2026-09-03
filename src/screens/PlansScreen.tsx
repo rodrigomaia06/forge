@@ -529,13 +529,14 @@ function SwipeDelete({
         <Animated.View
           style={[
             styles.swipeSurface,
-            rounded && revealed && styles.swipeSurfaceRounded,
+            rounded && styles.swipeSurfaceRounded,
             { backgroundColor: theme.surface },
             animatedStyle,
           ]}
         >
           {children(handleOpen)}
         </Animated.View>
+        {rounded ? <View pointerEvents="none" style={styles.cardLeadingOutline} /> : null}
       </View>
     </GestureDetector>
   );
@@ -668,5 +669,18 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       borderTopRightRadius: theme.cardRadius,
       borderBottomRightRadius: theme.cardRadius,
     },
-    pressed: { opacity: 0.58 },
+    pressed: { backgroundColor: theme.surfaceMuted },
+    cardLeadingOutline: {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      left: 0,
+      width: theme.cardRadius,
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      borderLeftWidth: 1,
+      borderColor: theme.border,
+      borderTopLeftRadius: theme.cardRadius,
+      borderBottomLeftRadius: theme.cardRadius,
+    },
   });

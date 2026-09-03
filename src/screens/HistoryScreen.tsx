@@ -357,7 +357,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     elevation: 2,
   },
   cardCompact: { minHeight: 64 },
-  pressed: { backgroundColor: theme.surfaceMuted },
+  pressed: { shadowOpacity: 0.08 },
   cardLeadingOutline: {
     position: 'absolute',
     top: 0,
