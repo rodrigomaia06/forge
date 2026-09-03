@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import DraggableFlatList, {
   ScaleDecorator,
@@ -8,6 +8,7 @@ import DraggableFlatList, {
 import {
   DraxHandle,
   DraxProvider,
+  DraxScrollView,
   SortableBoardContainer,
   SortableContainer,
   SortableItem,
@@ -16,10 +17,12 @@ import {
 } from 'react-native-drax';
 import Animated, {
   runOnJS,
+  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
+import type { SharedValue } from 'react-native-reanimated';
 
 import {
   AnchoredActionPopover,
@@ -83,12 +86,7 @@ export function PlansScreen({ navigation, route }: Props) {
   const [creationOpen, setCreationOpen] = useState(false);
   const [actionTarget, setActionTarget] = useState<PlanActionTarget | null>(null);
   const [headerElevated, setHeaderElevated] = useState(false);
-  const plansListRef = useRef<any>(null);
-  const routineScrollListeners = useRef(new Set<(offset: number) => void>());
-  const registerRoutineScrollListener = useCallback((listener: (offset: number) => void) => {
-    routineScrollListeners.current.add(listener);
-    return () => routineScrollListeners.current.delete(listener);
-  }, []);
+  const routineDragActive = useSharedValue(false);
   const board = useSortableBoard<WorkoutRoutine>({
     keyExtractor: (routine) => routine.id,
     onTransfer: ({ item, toContainerId, toIndex }) => {
@@ -97,7 +95,6 @@ export function PlansScreen({ navigation, route }: Props) {
   });
   const handlePlansScrollOffset = useCallback((offset: number): void => {
     setHeaderElevated(offset > 1);
-    routineScrollListeners.current.forEach((listener) => listener(offset));
   }, []);
   const hasPlanRoutines = plans.some((plan) => plan.routines.length > 0);
 
@@ -146,7 +143,15 @@ export function PlansScreen({ navigation, route }: Props) {
 
   return (
     <AppScreen backgroundColor={theme.background} edges={['top']}>
-      <DraxProvider style={styles.screen}>
+      <DraxProvider
+        style={styles.screen}
+        onDragStart={() => {
+          routineDragActive.value = true;
+        }}
+        onDragEnd={() => {
+          routineDragActive.value = false;
+        }}
+      >
         <SortableBoardContainer board={board} style={styles.screen}>
           <View style={styles.header}>
             <ScreenTitle color={theme.textPrimary}>Plans</ScreenTitle>
@@ -159,13 +164,13 @@ export function PlansScreen({ navigation, route }: Props) {
             {headerElevated ? <HeaderEdge /> : null}
           </View>
           <DraggableFlatList
-            ref={plansListRef}
             data={plans}
             keyExtractor={(plan) => plan.id}
             contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false}
             activationDistance={12}
             onScrollOffsetChange={handlePlansScrollOffset}
+            renderScrollComponent={(scrollProps) => <DraxScrollView {...scrollProps} />}
             ListHeaderComponent={
               <View style={styles.listHeader}>
                 {(standaloneRoutines.length > 0 || hasPlanRoutines) && (
@@ -175,8 +180,7 @@ export function PlansScreen({ navigation, route }: Props) {
                         columnId={standaloneRoutineColumnId}
                         routines={standaloneRoutines}
                         workoutTypes={preferences.workoutTypes}
-                        scrollRef={plansListRef}
-                        registerScrollListener={registerRoutineScrollListener}
+                        routineDragActive={routineDragActive}
                         onReorder={(routines) => reorderRoutines(routines)}
                         onOpenRoutine={routineActions}
                         onStartRoutine={startRoutine}
@@ -203,8 +207,7 @@ export function PlansScreen({ navigation, route }: Props) {
                   <PlanCard
                     plan={plan}
                     workoutTypes={preferences.workoutTypes}
-                    scrollRef={plansListRef}
-                    registerScrollListener={registerRoutineScrollListener}
+                    routineDragActive={routineDragActive}
                     onAddRoutine={() => addRoutine(plan.id)}
                     onOpenRoutine={routineActions}
                     onStartRoutine={startRoutine}
@@ -295,8 +298,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function PlanCard({
   plan,
   workoutTypes,
-  scrollRef,
-  registerScrollListener,
+  routineDragActive,
   onAddRoutine,
   onOpenRoutine,
   onStartRoutine,
@@ -309,8 +311,7 @@ function PlanCard({
 }: {
   plan: WorkoutPlan;
   workoutTypes: WorkoutTypePreference[];
-  scrollRef: React.RefObject<any>;
-  registerScrollListener: (listener: (offset: number) => void) => () => void;
+  routineDragActive: SharedValue<boolean>;
   onAddRoutine: () => void;
   onOpenRoutine: (routine: WorkoutRoutine) => void;
   onStartRoutine: (routine: WorkoutRoutine) => void;
@@ -329,11 +330,17 @@ function PlanCard({
       testID={`plan-swipe-${plan.id}`}
       onDelete={onDelete}
       rounded
+      dragActive={routineDragActive}
     >
       {() => (
         <View style={styles.card}>
           <View testID={`plan-header-${plan.id}`} style={styles.planHeader}>
-            <PlanDragHandle name={plan.name} onDrag={onDrag} disabled={dragging} />
+            <PlanDragHandle
+              name={plan.name}
+              onDrag={onDrag}
+              disabled={dragging}
+              routineDragActive={routineDragActive}
+            />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Open options for ${plan.name}`}
@@ -349,8 +356,7 @@ function PlanCard({
             columnId={planRoutineColumnId(plan.id)}
             routines={plan.routines}
             workoutTypes={workoutTypes}
-            scrollRef={scrollRef}
-            registerScrollListener={registerScrollListener}
+            routineDragActive={routineDragActive}
             onReorder={onReorderRoutines}
             onOpenRoutine={onOpenRoutine}
             onStartRoutine={onStartRoutine}
@@ -377,10 +383,12 @@ function PlanDragHandle({
   name,
   onDrag,
   disabled,
+  routineDragActive,
 }: {
   name: string;
   onDrag: () => void;
   disabled: boolean;
+  routineDragActive: SharedValue<boolean>;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -392,6 +400,7 @@ function PlanDragHandle({
       disabled={disabled}
       delayLongPress={180}
       onLongPress={() => {
+        if (routineDragActive.value) return;
         lightHaptic();
         onDrag();
       }}
@@ -417,8 +426,7 @@ function RoutineSortableColumn({
   columnId,
   routines,
   workoutTypes,
-  scrollRef,
-  registerScrollListener,
+  routineDragActive,
   onReorder,
   onOpenRoutine,
   onStartRoutine,
@@ -428,8 +436,7 @@ function RoutineSortableColumn({
   columnId: string;
   routines: WorkoutRoutine[];
   workoutTypes: WorkoutTypePreference[];
-  scrollRef: React.RefObject<any>;
-  registerScrollListener: (listener: (offset: number) => void) => () => void;
+  routineDragActive: SharedValue<boolean>;
   onReorder: (routines: WorkoutRoutine[]) => void;
   onOpenRoutine: (routine: WorkoutRoutine) => void;
   onStartRoutine: (routine: WorkoutRoutine) => void;
@@ -437,6 +444,7 @@ function RoutineSortableColumn({
   footer?: React.ReactNode;
 }) {
   const styles = useThemedStyles(createStyles);
+  const routineListRef = useRef<FlatList<WorkoutRoutine>>(null);
   const sortable = useSortableList({
     id: columnId,
     data: routines,
@@ -447,40 +455,55 @@ function RoutineSortableColumn({
     onReorder: ({ data }) => onReorder(data),
   });
 
-  useEffect(
-    () =>
-      registerScrollListener((offset) => {
-        sortable._internal.scrollPosition.value = { x: 0, y: offset };
-      }),
-    [registerScrollListener, sortable._internal.scrollPosition],
-  );
-
   return (
     <SortableContainer
       sortable={sortable}
-      scrollRef={scrollRef}
+      scrollRef={routineListRef}
       style={styles.routineSortableColumn}
+      draxViewProps={{ testID: `routine-column-${columnId}` }}
+      renderDropIndicator={() => (
+        <View testID={`routine-drop-indicator-${columnId}`} style={styles.routineDropIndicator} />
+      )}
     >
-      <View
-        onLayout={(event) => {
-          const { width, height } = event.nativeEvent.layout;
-          sortable.onContentSizeChange(width, height);
-        }}
-      >
-        {sortable.data.map((routine, index) => (
+      <Animated.FlatList
+        ref={routineListRef}
+        data={sortable.data}
+        keyExtractor={sortable.stableKeyExtractor}
+        style={styles.routineSortableList}
+        contentContainerStyle={styles.routineSortableListContent}
+        scrollEnabled={false}
+        removeClippedSubviews={false}
+        initialNumToRender={Math.max(1, routines.length)}
+        maxToRenderPerBatch={Math.max(1, routines.length)}
+        windowSize={Math.max(2, routines.length)}
+        onScroll={sortable.onScroll}
+        onContentSizeChange={sortable.onContentSizeChange}
+        renderItem={({ item: routine, index }) => (
           <SortableItem
-            key={routine.id}
             sortable={sortable}
             index={index}
+            testID={`routine-sortable-${routine.id}`}
             dragHandle
             dragActivationFailOffset={12}
-            hoverStyle={styles.routineDragHover}
+            hoverStyle={styles.routineDragHoverBase}
+            hoverDraggingStyle={styles.routineDragHover}
+            hoverDragReleasedStyle={styles.routineDragRelease}
+            snapDelay={0}
+            snapDuration={200}
+            renderHoverContent={() => (
+              <RoutineDragPreview
+                routine={routine}
+                workoutTypes={workoutTypes}
+                last={index === sortable.data.length - 1}
+              />
+            )}
           >
             <SwipeDelete
               accessibilityLabel={`Delete ${routine.name}`}
               testID={`routine-swipe-${routine.id}`}
               onOpen={() => onOpenRoutine(routine)}
               onDelete={() => onDeleteRoutine(routine)}
+              dragActive={routineDragActive}
             >
               {(handleOpen) => (
                 <RoutineRow
@@ -494,10 +517,27 @@ function RoutineSortableColumn({
               )}
             </SwipeDelete>
           </SortableItem>
-        ))}
-        {footer}
-      </View>
+        )}
+        ListFooterComponent={footer ? <>{footer}</> : null}
+      />
     </SortableContainer>
+  );
+}
+
+function RoutineDragPreview({
+  routine,
+  workoutTypes,
+  last,
+}: {
+  routine: WorkoutRoutine;
+  workoutTypes: WorkoutTypePreference[];
+  last: boolean;
+}) {
+  const styles = useThemedStyles(createStyles);
+  return (
+    <View testID={`routine-drag-preview-${routine.id}`} style={styles.routineDragPreview}>
+      <RoutineCardBody routine={routine} workoutTypes={workoutTypes} last={last} />
+    </View>
   );
 }
 
@@ -516,36 +556,81 @@ function RoutineRow({
   onPress: () => void;
   dragHandle?: React.ReactNode;
 }) {
+  return (
+    <RoutineCardBody
+      routine={routine}
+      workoutTypes={workoutTypes}
+      last={last}
+      onStart={onStart}
+      onPress={onPress}
+      dragHandle={dragHandle}
+    />
+  );
+}
+
+function RoutineCardBody({
+  routine,
+  workoutTypes,
+  last,
+  onStart,
+  onPress,
+  dragHandle,
+}: {
+  routine: WorkoutRoutine;
+  workoutTypes: WorkoutTypePreference[];
+  last: boolean;
+  onStart?: () => void;
+  onPress?: () => void;
+  dragHandle?: React.ReactNode;
+}) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const typeIcon = <Icon name={getRoutineTypeIcon(routine.type, workoutTypes)} size={21} color={theme.ink} />;
+  const copy = (
+    <>
+      <View style={styles.routineText}>
+        <Text style={styles.routineName} numberOfLines={1}>
+          {routine.name}
+        </Text>
+        <Text
+          style={styles.routineSummary}
+          numberOfLines={1}
+        >{`${routine.type} · ${routine.exercises.length} ${routine.exercises.length === 1 ? 'exercise' : 'exercises'}`}</Text>
+      </View>
+      <Icon name="chevron-forward" size={19} color={theme.slate} />
+    </>
+  );
   return (
     <View style={[styles.routineRow, !last && styles.divider]}>
-      {dragHandle}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Start ${routine.name}`}
-        onPress={onStart}
-        style={({ pressed }) => [styles.typeMarker, pressed && styles.pressed]}
-      >
-        <Icon name={getRoutineTypeIcon(routine.type, workoutTypes)} size={21} color={theme.ink} />
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Routine actions for ${routine.name}`}
-        onPress={onPress}
-        style={({ pressed }) => [styles.routineCopy, pressed && styles.pressed]}
-      >
-        <View style={styles.routineText}>
-          <Text style={styles.routineName} numberOfLines={1}>
-            {routine.name}
-          </Text>
-          <Text
-            style={styles.routineSummary}
-            numberOfLines={1}
-          >{`${routine.type} · ${routine.exercises.length} ${routine.exercises.length === 1 ? 'exercise' : 'exercises'}`}</Text>
+      {dragHandle ?? (
+        <View style={styles.routineDragHandle}>
+          <Icon name="drag" size={18} color={theme.muted} />
         </View>
-        <Icon name="chevron-forward" size={19} color={theme.slate} />
-      </Pressable>
+      )}
+      {onStart ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Start ${routine.name}`}
+          onPress={onStart}
+          style={({ pressed }) => [styles.typeMarker, pressed && styles.pressed]}
+        >
+          {typeIcon}
+        </Pressable>
+      ) : (
+        <View style={styles.typeMarker}>{typeIcon}</View>
+      )}
+      {onPress ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Routine actions for ${routine.name}`}
+          onPress={onPress}
+          style={({ pressed }) => [styles.routineCopy, pressed && styles.pressed]}
+        >
+          {copy}
+        </Pressable>
+      ) : (
+        <View style={styles.routineCopy}>{copy}</View>
+      )}
     </View>
   );
 }
@@ -600,6 +685,7 @@ function SwipeDelete({
   onOpen,
   onDelete,
   rounded = false,
+  dragActive,
   children,
 }: {
   accessibilityLabel: string;
@@ -607,6 +693,7 @@ function SwipeDelete({
   onOpen?: () => void;
   onDelete: () => void;
   rounded?: boolean;
+  dragActive?: SharedValue<boolean>;
   children: (onOpen: () => void) => React.ReactNode;
 }) {
   const theme = useForgeTheme();
@@ -622,6 +709,21 @@ function SwipeDelete({
     open.value = revealed;
     offset.value = withSpring(revealed ? -actionWidth : 0, swipeSpring);
   }, [offset, open, revealed]);
+
+  const close = useCallback(() => setRevealed(false), []);
+  const swipeBlocked = useSharedValue(false);
+
+  useAnimatedReaction(
+    () => dragActive?.value ?? false,
+    (active, previous) => {
+      if (!active || active === previous) return;
+      swipeBlocked.value = true;
+      open.value = false;
+      offset.value = withSpring(0, swipeSpring);
+      runOnJS(close)();
+    },
+    [close, dragActive, offset, open, swipeBlocked],
+  );
 
   const settle = (next: boolean, dragged: boolean): void => {
     if (dragged) suppressNextPress.current = true;
@@ -642,20 +744,25 @@ function SwipeDelete({
     .activeOffsetX([-8, 8])
     .failOffsetY([-12, 12])
     .onStart(() => {
+      swipeBlocked.value = dragActive?.value ?? false;
+      if (swipeBlocked.value) return;
       runOnJS(beginSwipe)();
     })
     .onUpdate((event) => {
+      if (swipeBlocked.value) return;
       if (!open.value && event.translationX >= 0) return;
       const initial = open.value ? -actionWidth : 0;
       offset.value = Math.max(-actionWidth, Math.min(0, initial + event.translationX));
     })
     .onEnd((event) => {
+      if (swipeBlocked.value) return;
       const initial = open.value ? -actionWidth : 0;
       const next = initial + event.translationX < -actionWidth * 0.55;
       runOnJS(settle)(next, Math.abs(event.translationX) > 6);
     });
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ translateX: offset.value }] }));
   const handleOpen = (): void => {
+    if (dragActive?.value) return;
     if (suppressNextPress.current) {
       suppressNextPress.current = false;
       return;
@@ -683,7 +790,7 @@ function SwipeDelete({
             accessibilityRole="button"
             accessibilityLabel={accessibilityLabel}
             onPress={() => {
-              if (suppressDeletePress.current) return;
+              if (dragActive?.value || suppressDeletePress.current) return;
               lightHaptic();
               onDelete();
             }}
@@ -784,7 +891,13 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
+    // FlatList defaults to flexing to the available vertical space. In a plan
+    // cell that makes an empty Drax destination consume the rest of the
+    // screen while it is measuring its incoming phantom. Keep every routine
+    // list content-sized; the column itself remains a valid 44 pt target.
     routineSortableColumn: { minHeight: 44 },
+    routineSortableList: { flexGrow: 0, flexShrink: 0 },
+    routineSortableListContent: { flexGrow: 0 },
     emptyRoutineDropZone: {
       minHeight: 60,
       margin: 10,
@@ -796,15 +909,34 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       justifyContent: 'center',
     },
     emptyRoutineDropText: { ...typeScale.label, color: theme.slate },
-    routineDragHover: {
+    routineDropIndicator: {
+      width: 28,
+      height: 3,
+      marginLeft: 20,
+      borderRadius: 2,
+      backgroundColor: theme.success,
+    },
+    routineDragPreview: {
+      alignSelf: 'stretch',
+    },
+    routineDragHoverBase: {
       borderRadius: 14,
-      backgroundColor: theme.surface,
+    },
+    routineDragHover: {
       shadowColor: theme.shadow,
       shadowOpacity: 0.26,
       shadowRadius: 12,
       shadowOffset: { width: 0, height: 7 },
       elevation: 10,
-      transform: [{ scale: 1.015 }],
+      transform: [{ scale: 1.02 }],
+    },
+    routineDragRelease: {
+      shadowColor: theme.shadow,
+      shadowOpacity: 0.18,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 6,
+      transform: [{ scale: 1.01 }],
     },
     divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
     typeMarker: {

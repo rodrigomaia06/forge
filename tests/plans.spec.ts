@@ -40,6 +40,35 @@ async function dragFromTo(
   await page.mouse.up();
 }
 
+async function beginDrag(
+  page: import('@playwright/test').Page,
+  source: import('@playwright/test').Locator,
+) {
+  const box = await source.boundingBox();
+  if (!box) throw new Error('Expected drag source to be measurable');
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(240);
+  return box;
+}
+
+async function createRoutine(page: import('@playwright/test').Page, name: string) {
+  await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
+  await page.getByTestId('plans-creation-popover').getByRole('button', { name: 'New routine' }).click();
+  await page.getByLabel('Routine name').fill(name);
+  await page.getByRole('button', { name: 'Save routine' }).click();
+}
+
+async function hoverForRoutine(
+  page: import('@playwright/test').Page,
+  name: string,
+): Promise<import('@playwright/test').Locator> {
+  const sortable = page.getByTestId(/^routine-sortable-/).filter({ hasText: name });
+  const testId = await sortable.getAttribute('data-testid');
+  if (!testId) throw new Error(`Expected sortable routine ID for ${name}`);
+  return page.getByTestId(`routine-drag-preview-${testId.slice('routine-sortable-'.length)}`);
+}
+
 test.describe('Plans and routines', () => {
   test('routes the Dashboard creation action into the Plans creation popover', async ({ page }) => {
     await page.goto('/');
@@ -91,19 +120,94 @@ test.describe('Plans and routines', () => {
 
     const dragHandle = page.getByRole('button', { name: 'Drag to reorder Transfer routine' });
     const planDropTarget = page.getByRole('button', { name: 'Add routine to New plan' });
-    await dragFromTo(page, dragHandle, planDropTarget);
-
     const planCard = page.getByTestId(/^plan-swipe-/);
+    const initialPlanBox = await planCard.boundingBox();
+    if (!initialPlanBox) throw new Error('Expected plan destination to be measurable');
+    const sourceBox = await page
+      .getByTestId(/^routine-sortable-/)
+      .filter({ hasText: 'Transfer routine' })
+      .boundingBox();
+    if (!sourceBox) throw new Error('Expected source routine to be measurable');
+    await beginDrag(page, dragHandle);
+    const hover = await hoverForRoutine(page, 'Transfer routine');
+    await expect(hover).toBeVisible();
+    const hoverBox = await hover.boundingBox();
+    expect(hoverBox?.width).toBeCloseTo(sourceBox.width * 1.02, 0);
+    expect(hoverBox?.height).toBeCloseTo(sourceBox.height * 1.02, 0);
+    const targetBox = await planDropTarget.boundingBox();
+    if (!targetBox) throw new Error('Expected plan drop target to be measurable');
+    await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, {
+      steps: 16,
+    });
+    await expect(hover).toBeVisible();
+    // The cross-list phantom may shift existing rows, but it must not make an
+    // empty plan card flex to the viewport height while a routine is held.
+    const hoveredPlanBox = await planCard.boundingBox();
+    expect(hoveredPlanBox?.height).toBeLessThanOrEqual(initialPlanBox.height + 2);
+    await page.mouse.up();
+
     await expect(planCard.getByText('Transfer routine', { exact: true })).toBeVisible();
     const standaloneDropTarget = page.getByText('Drop routine here', { exact: true });
     await expect(standaloneDropTarget).toBeVisible();
-    await dragFromTo(
-      page,
-      planCard.getByRole('button', { name: 'Drag to reorder Transfer routine' }),
-      standaloneDropTarget,
-    );
+    const standaloneColumn = page.getByTestId(`routine-column-standalone-routines`);
+    const initialStandaloneBox = await standaloneColumn.boundingBox();
+    if (!initialStandaloneBox) throw new Error('Expected standalone destination to be measurable');
+    const initialSourcePlanBox = await planCard.boundingBox();
+    if (!initialSourcePlanBox) throw new Error('Expected source plan to be measurable');
+    const routineHandle = planCard.getByRole('button', { name: 'Drag to reorder Transfer routine' });
+    await beginDrag(page, routineHandle);
+    const returnHover = await hoverForRoutine(page, 'Transfer routine');
+    const standaloneBox = await standaloneDropTarget.boundingBox();
+    if (!standaloneBox) throw new Error('Expected standalone drop target to be measurable');
+    await page.mouse.move(standaloneBox.x + standaloneBox.width / 2, standaloneBox.y + standaloneBox.height / 2, {
+      steps: 16,
+    });
+    await expect(returnHover).toBeVisible();
+    const hoveredStandaloneBox = await standaloneColumn.boundingBox();
+    expect(hoveredStandaloneBox?.height).toBeLessThanOrEqual(initialStandaloneBox.height + 2);
+    // Ejecting a routine from a plan also retains only its normal source-card
+    // footprint; its list must never grow into a blank viewport-sized area.
+    const hoveredSourcePlanBox = await planCard.boundingBox();
+    expect(hoveredSourcePlanBox?.height).toBeLessThanOrEqual(initialSourcePlanBox.height + 2);
+    await page.mouse.up();
     await expect(page.getByText('Transfer routine', { exact: true })).toHaveCount(1);
     await expect(standaloneDropTarget).toHaveCount(0);
+  });
+
+  test('reorders standalone routines while retaining a visible hover card', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await createRoutine(page, 'First routine');
+    await createRoutine(page, 'Second routine');
+
+    const firstHandle = page.getByRole('button', { name: 'Drag to reorder First routine' });
+    const secondRow = page.getByRole('button', { name: 'Routine actions for Second routine' });
+    const firstBox = await page
+      .getByTestId(/^routine-sortable-/)
+      .filter({ hasText: 'First routine' })
+      .boundingBox();
+    if (!firstBox) throw new Error('Expected first routine to be measurable');
+    await beginDrag(page, firstHandle);
+    const hover = await hoverForRoutine(page, 'First routine');
+    await expect(hover).toBeVisible();
+    const hoverBox = await hover.boundingBox();
+    expect(hoverBox?.width).toBeCloseTo(firstBox.width * 1.02, 0);
+
+    const secondBox = await secondRow.boundingBox();
+    if (!secondBox) throw new Error('Expected second routine to be measurable');
+    await page.mouse.move(secondBox.x + secondBox.width / 2, secondBox.y + secondBox.height / 2, {
+      steps: 16,
+    });
+    await page.mouse.up();
+
+    await expect
+      .poll(() =>
+        page
+          .getByRole('button', { name: /^Routine actions for / })
+          .evaluateAll((elements) => elements.map((element) => element.getAttribute('aria-label'))),
+      )
+      .toEqual(['Routine actions for Second routine', 'Routine actions for First routine']);
+    await expect(await hoverForRoutine(page, 'First routine')).toHaveCount(0);
   });
 
   test('creates a routine only after Save, edits it, and starts it as a workout', async ({
