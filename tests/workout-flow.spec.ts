@@ -162,26 +162,26 @@ test.describe('Active workout flow', () => {
     await page.getByRole('checkbox', { name: 'Complete set 1' }).click();
     await expect(page.getByLabel('Weight for set 1')).toHaveCSS(
       'border-top-color',
-      'rgb(255, 59, 48)',
+      'rgb(214, 72, 72)',
     );
     await expect(page.getByLabel('Reps for set 1')).toHaveCSS(
       'border-top-color',
-      'rgb(255, 59, 48)',
+      'rgb(214, 72, 72)',
     );
     await page.waitForTimeout(1300);
     await expect(page.getByLabel('Weight for set 1')).not.toHaveCSS(
       'border-top-color',
-      'rgb(255, 59, 48)',
+      'rgb(214, 72, 72)',
     );
     await expect(page.getByLabel('Reps for set 1')).not.toHaveCSS(
       'border-top-color',
-      'rgb(255, 59, 48)',
+      'rgb(214, 72, 72)',
     );
 
     await page.getByLabel('Weight for set 1').fill('60');
     await expect(page.getByLabel('Weight for set 1')).not.toHaveCSS(
       'border-top-color',
-      'rgb(255, 59, 48)',
+      'rgb(214, 72, 72)',
     );
     await page.getByLabel('Reps for set 1').fill('8');
     await page.getByRole('checkbox', { name: 'Complete set 1' }).click();

@@ -34,6 +34,7 @@ function SwipeableSetRowComponent({
   deleteRevealed,
   onDeleteRevealChange,
   showCompletion = true,
+  onInputFocus,
 }: SwipeableSetRowProps) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -204,6 +205,7 @@ function SwipeableSetRowComponent({
             onInputTouchStart={onInputTouchStart}
             onInputTouchMove={onInputTouchMove}
             onInputTouchEnd={onInputTouchEnd}
+            onInputFocus={onInputFocus}
             showCompletion={showCompletion}
           />
           {detailsOpen ? (

@@ -20,6 +20,7 @@ export function SetRow({
   onInputTouchStart,
   onInputTouchMove,
   onInputTouchEnd,
+  onInputFocus,
   showCompletion = true,
 }: SetRowProps) {
   const theme = useForgeTheme();
@@ -27,6 +28,7 @@ export function SetRow({
   const weightInvalidProgress = useRef(new Animated.Value(0)).current;
   const repsInvalidProgress = useRef(new Animated.Value(0)).current;
   const invalidTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const setRowRef = useRef<View>(null);
   const previous = set.previous || '—';
 
   useEffect(
@@ -79,9 +81,15 @@ export function SetRow({
     borderWidth: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 2] }),
     borderRadius: progress.interpolate({ inputRange: [0, 1], outputRange: [9, 8] }),
   });
+  const reportInputFocus = (): void => {
+    onInputFocus?.((onMeasured) => {
+      setRowRef.current?.measureInWindow((_x, y, _width, height) => onMeasured({ y, height }));
+    });
+  };
 
   return (
     <View
+      ref={setRowRef}
       style={[
         styles.setRow,
         set.completed && styles.setCompleted,
@@ -112,6 +120,7 @@ export function SetRow({
         onTouchStart={onInputTouchStart}
         onTouchMove={onInputTouchMove}
         onTouchEnd={onInputTouchEnd}
+        onFocus={reportInputFocus}
         keyboardType="decimal-pad"
         selectTextOnFocus={false}
         placeholder={set.targetWeight || '—'}
@@ -125,6 +134,7 @@ export function SetRow({
         onTouchStart={onInputTouchStart}
         onTouchMove={onInputTouchMove}
         onTouchEnd={onInputTouchEnd}
+        onFocus={reportInputFocus}
         keyboardType="number-pad"
         selectTextOnFocus={false}
         placeholder={set.targetReps || '—'}

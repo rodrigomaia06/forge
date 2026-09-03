@@ -140,6 +140,29 @@ test.describe('Plans and routines', () => {
     await expect(page.getByLabel('Finish workout')).toBeVisible();
   });
 
+  test('uses a Forge confirmation sheet to keep or discard an edited routine draft', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
+    await page
+      .getByTestId('plans-creation-popover')
+      .getByRole('button', { name: 'New routine' })
+      .click();
+    await page.getByLabel('Routine name').fill('Discarded routine');
+    await page.getByRole('button', { name: 'Cancel editing routine' }).click();
+
+    const confirmation = page.getByTestId('routine-confirmation-sheet');
+    await expect(confirmation.getByText('Discard changes?', { exact: true })).toBeVisible();
+    await expect(confirmation.getByRole('button', { name: 'Keep editing' })).toBeVisible();
+    await expect(confirmation.getByRole('button', { name: 'Discard changes', exact: true })).toBeVisible();
+    await confirmation.getByRole('button', { name: 'Keep editing' }).click();
+    await expect(page.getByLabel('Routine name')).toHaveValue('Discarded routine');
+
+    await page.getByRole('button', { name: 'Cancel editing routine' }).click();
+    await confirmation.getByRole('button', { name: 'Discard changes', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Routine actions for Discarded routine' })).toHaveCount(0);
+  });
+
   test('uses type icons and supports swipe deletion for routines and plans', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Plans' }).click();

@@ -43,6 +43,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   forceCollapsed = false,
   showMoreOptions = true,
   showSetCompletion = true,
+  onSetInputFocus,
 }: ExerciseSectionProps) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -238,6 +239,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     deleteRevealed={openSetId === set.id}
                     onDeleteRevealChange={(revealed) => setOpenSetId(revealed ? set.id : null)}
                     showCompletion={showSetCompletion}
+                    onInputFocus={onSetInputFocus}
                   />
                 ))}
                 <Button

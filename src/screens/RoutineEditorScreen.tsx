@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
   View,
 } from 'react-native';
+import type { FlatList as GestureHandlerFlatList } from 'react-native-gesture-handler';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { usePreventRemove } from '@react-navigation/native';
 import DraggableFlatList, {
@@ -32,6 +32,7 @@ import {
 } from '../components/ui';
 import { AddExerciseSheet } from './activeWorkout/WorkoutSheets';
 import { ExerciseSection } from './activeWorkout/ExerciseSection';
+import { useFocusedSetKeyboardLift } from './activeWorkout/useFocusedSetKeyboardLift';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
@@ -48,6 +49,12 @@ import type {
 type Props = NativeStackScreenProps<RootStackParamList, 'RoutineEditor'>;
 type AttributeSheetState = { originalLabel?: string; label: string; value: string } | null;
 type RoutineDraftChange = (update: (current: WorkoutRoutine) => WorkoutRoutine) => void;
+type RoutineConfirmation = {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+};
 
 export function RoutineEditorScreen({ navigation, route }: Props) {
   const theme = useForgeTheme();
@@ -77,6 +84,9 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
   const [revealedExerciseId, setRevealedExerciseId] = useState<string | null>(null);
   const [completedRoutineSetIds, setCompletedRoutineSetIds] = useState<string[]>([]);
   const [reorderingExercises, setReorderingExercises] = useState(false);
+  const [confirmation, setConfirmation] = useState<RoutineConfirmation | null>(null);
+  const exerciseListRef = React.useRef<GestureHandlerFlatList<WorkoutRoutine['exercises'][number]>>(null);
+  const { onSetInputFocus, onScrollOffsetChange } = useFocusedSetKeyboardLift(exerciseListRef);
 
   const dirty = Boolean(
     draft && initialDraft && JSON.stringify(draft) !== JSON.stringify(initialDraft),
@@ -87,10 +97,12 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
     setTimeout(action, 0);
   };
   const confirmDiscard = (onDiscard: () => void): void =>
-    Alert.alert('Discard changes?', 'Your edits to this routine will not be saved.', [
-      { text: 'Keep editing', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: () => leave(onDiscard) },
-    ]);
+    setConfirmation({
+      title: 'Discard changes?',
+      message: 'Your edits to this routine will not be saved.',
+      confirmLabel: 'Discard changes',
+      onConfirm: () => leave(onDiscard),
+    });
   usePreventRemove(dirty && !canLeave, ({ data }) => {
     confirmDiscard(() => navigation.dispatch(data.action));
   });
@@ -153,17 +165,15 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
     leave(() => navigation.goBack());
   };
   const confirmDelete = (): void =>
-    Alert.alert('Delete routine?', 'This cannot be undone.', [
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => leave(() => {
-          deleteRoutine(draft.id);
-          navigation.goBack();
-        }),
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    setConfirmation({
+      title: 'Delete routine?',
+      message: 'This cannot be undone.',
+      confirmLabel: 'Delete routine',
+      onConfirm: () => leave(() => {
+        deleteRoutine(draft.id);
+        navigation.goBack();
+      }),
+    });
   const openAttribute = (label?: string, value = ''): void => {
     setAttributeError(null);
     setAttributeSheet({ originalLabel: label, label: label ?? '', value });
@@ -239,6 +249,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
         forceCollapsed={reorderingExercises}
         showMoreOptions={false}
         showSetCompletion={false}
+        onSetInputFocus={onSetInputFocus}
         dragHandle={
           drag ? (
             <RoutineExerciseDragHandle
@@ -325,6 +336,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           </View>
         </View>
         <DraggableFlatList
+          ref={exerciseListRef}
           data={draft.exercises}
           keyExtractor={(exercise, index) => exercise.id ?? `routine-exercise-${index}`}
           contentContainerStyle={styles.content}
@@ -335,6 +347,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           dragItemOverflow
           extraData={reorderingExercises}
           animationConfig={{ damping: 28, stiffness: 340, mass: 0.65, overshootClamping: true }}
+          onScrollOffsetChange={onScrollOffsetChange}
           ListHeaderComponent={
             <View style={styles.listHeader}>
               <View style={styles.sessionCard}>
@@ -504,8 +517,62 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
             onDelete={attributeSheet.originalLabel ? removeAttribute : undefined}
           />
         ) : null}
+        {confirmation ? (
+          <RoutineConfirmationSheet
+            confirmation={confirmation}
+            onClose={() => setConfirmation(null)}
+            onConfirm={() => {
+              const action = confirmation.onConfirm;
+              setConfirmation(null);
+              action();
+            }}
+          />
+        ) : null}
       </KeyboardAvoidingView>
     </AppScreen>
+  );
+}
+
+function RoutineConfirmationSheet({
+  confirmation,
+  onClose,
+  onConfirm,
+}: {
+  confirmation: RoutineConfirmation;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const styles = useThemedStyles(createStyles);
+  return (
+    <ForgeBottomSheet
+      visible
+      onClose={onClose}
+      accessibilityLabel="Close confirmation"
+      surfaceTestID="routine-confirmation-sheet"
+    >
+      {(close) => (
+        <View style={styles.confirmationSheet}>
+          <ForgeBottomSheetHandle />
+          <ForgeSheetHeader title={confirmation.title} onClose={close} closePosition="left" />
+          <View style={styles.confirmationContent}>
+            <Text style={styles.confirmationMessage}>{confirmation.message}</Text>
+            <Button
+              accessibilityLabel="Keep editing"
+              label="Keep editing"
+              variant="secondary"
+              onPress={close}
+            />
+            <Button
+              accessibilityLabel={confirmation.confirmLabel}
+              label={confirmation.confirmLabel}
+              variant="outline"
+              tone="destructive"
+              onPress={onConfirm}
+            />
+          </View>
+        </View>
+      )}
+    </ForgeBottomSheet>
   );
 }
 
@@ -870,6 +937,9 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       flexBasis: 0,
       minWidth: 0,
     },
+    confirmationSheet: { paddingBottom: 28 },
+    confirmationContent: { paddingHorizontal: 20, paddingTop: 4, gap: 10 },
+    confirmationMessage: { ...typeScale.body, color: theme.slate, textAlign: 'center', marginBottom: 6 },
     unavailable: {
       flex: 1,
       justifyContent: 'center',

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
+import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
 import Animated, {
   runOnJS,
   useAnimatedScrollHandler,
@@ -28,6 +28,7 @@ import { ExerciseSection as ExtractedExerciseSection } from './activeWorkout/Exe
 import { AddExerciseSheet as ExtractedAddExerciseSheet } from './activeWorkout/WorkoutSheets';
 import { RestTimerIndicator, RestTimerSheet } from './activeWorkout/RestTimer';
 import { createActiveWorkoutStyles } from './activeWorkout/activeWorkoutStyles';
+import { useFocusedSetKeyboardLift } from './activeWorkout/useFocusedSetKeyboardLift';
 
 type ActiveWorkoutScreenProps = RootTabScreenProps<'ActiveWorkout'>;
 export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
@@ -53,8 +54,10 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [openExerciseId, setOpenExerciseId] = useState<string | null>(null);
   const timerLongPressRef = useRef(false);
+  const workoutListRef = useRef<FlatList<WorkoutExercise>>(null);
   const dockCompactOnUi = useSharedValue(false);
   const { setCompact: setDockCompact } = usePrimaryDock();
+  const { onSetInputFocus, onScrollOffsetChange } = useFocusedSetKeyboardLift(workoutListRef);
 
   const restCompletionNotified = useRef(false);
 
@@ -111,6 +114,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   useEffect(() => () => setDockCompact(false), [setDockCompact]);
   const workoutScrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
+      runOnJS(onScrollOffsetChange)(event.contentOffset.y);
       const nextCompact = event.contentOffset.y > 12;
       if (nextCompact !== dockCompactOnUi.value) {
         dockCompactOnUi.value = nextCompact;
@@ -141,6 +145,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
         updateSet={updateSet}
         toggleSet={toggleSet}
         onSetCompleted={startRestTimer}
+        onSetInputFocus={onSetInputFocus}
         deleteRevealed={openExerciseId === item.id}
         onDeleteRevealChange={handleExerciseDeleteReveal}
       />
@@ -153,6 +158,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
       removeSet,
       startRestTimer,
       toggleSet,
+      onSetInputFocus,
       updateSet,
     ],
   );
@@ -288,6 +294,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <Animated.FlatList
+          ref={workoutListRef}
           testID="active-workout-list"
           data={activeWorkout.exercises}
           renderItem={renderExercise}

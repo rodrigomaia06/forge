@@ -2,6 +2,9 @@ import type { GestureResponderEvent } from 'react-native';
 import type { ReactNode } from 'react';
 import type { WorkoutExercise, WorkoutSet, WorkoutSetChanges } from '../../types';
 
+export type SetInputFrame = { y: number; height: number };
+export type MeasureSetInput = (callback: (frame: SetInputFrame) => void) => void;
+
 export interface ExerciseSectionProps {
   exercise: WorkoutExercise;
   index: number;
@@ -23,6 +26,8 @@ export interface ExerciseSectionProps {
   showMoreOptions?: boolean;
   /** Routine drafts do not record completed sets. */
   showSetCompletion?: boolean;
+  /** Lets an owning editor keep a focused set input clear of its keyboard. */
+  onSetInputFocus?: (measure: MeasureSetInput) => void;
 }
 
 export interface SwipeableSetRowProps {
@@ -34,6 +39,7 @@ export interface SwipeableSetRowProps {
   deleteRevealed: boolean;
   onDeleteRevealChange: (revealed: boolean) => void;
   showCompletion?: boolean;
+  onInputFocus?: (measure: MeasureSetInput) => void;
 }
 
 export interface SetRowProps extends Omit<
@@ -44,6 +50,7 @@ export interface SetRowProps extends Omit<
   onInputTouchStart: (event: GestureResponderEvent) => void;
   onInputTouchMove: (event: GestureResponderEvent) => void;
   onInputTouchEnd: () => void;
+  onInputFocus?: (measure: MeasureSetInput) => void;
 }
 
 export interface RestTimerSheetProps {
