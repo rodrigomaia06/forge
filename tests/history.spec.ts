@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 const completedWorkouts = [
+  makeWorkout('empty-session', 'Recovery walk', 'Mobility', Date.UTC(2026, 7, 26, 18), 20, 0, 0),
   makeWorkout('muay-thai', 'Muay Thai', 'Martial arts', Date.UTC(2026, 7, 25, 18), 72, 3, 8),
   makeWorkout('pull-25', 'Pull - Extension', 'Strength', Date.UTC(2026, 7, 24, 18), 120, 7, 16),
   makeWorkout('push-20', 'Push - Shoulder', 'Strength', Date.UTC(2026, 7, 20, 18), 84, 4, 12),
@@ -35,6 +36,14 @@ test.describe('History screen', () => {
     await expect(page.getByText('7 exercises · 16 sets', { exact: true })).toBeVisible();
     await expect(page.getByText('1h 12m', { exact: true })).toBeVisible();
     expect(await page.locator('svg').count()).toBeGreaterThan(0);
+  });
+
+  test('omits the exercise summary when a completed workout has no exercises or sets', async ({
+    page,
+  }) => {
+    const card = page.getByTestId('history-timeline-empty-session');
+    await expect(card.getByRole('button', { name: 'Open Recovery walk' })).toContainText('Recovery walk');
+    await expect(card.getByText(/exercises.*sets/)).toHaveCount(0);
   });
 
   test('keeps history groups in descending order', async ({ page }) => {
@@ -121,7 +130,9 @@ test.describe('History screen', () => {
 
   test('keeps workout details read-only and expands exercises individually', async ({ page }) => {
     await page.getByRole('button', { name: 'Open Muay Thai' }).click();
-    await expect(page.getByText('Exercises', { exact: true })).toBeVisible();
+    await expect(
+      page.getByTestId('workout-details-summary').getByText('Exercises', { exact: true }),
+    ).toBeVisible();
     await expect(page.getByText('Volume', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Calories', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Expand Exercise 1' })).toHaveAttribute(
@@ -136,14 +147,20 @@ test.describe('History screen', () => {
     await expect(page.getByTestId('workout-details-set-muay-thai-set-0-0')).toContainText('60');
     await expect(page.getByTestId('workout-details-set-completion-muay-thai-set-0-0')).toHaveCSS(
       'background-color',
-      'rgb(98, 201, 138)',
+      'rgb(77, 123, 103)',
     );
     await expect(
       page.getByTestId('workout-details-set-completion-muay-thai-set-0-1'),
     ).not.toHaveCSS('background-color', 'rgb(98, 201, 138)');
     await expect(page.getByLabel('Workout options')).toBeVisible();
     await page.getByRole('button', { name: 'Open details for set 1' }).click();
-    await expect(page.getByText('History note', { exact: true })).toBeVisible();
+    const sheet = page.getByTestId('set-details-sheet');
+    await expect(sheet.getByText('Set 1', { exact: true })).toBeVisible();
+    await expect(sheet.getByText('History note', { exact: true })).toBeVisible();
+    await expect(sheet.getByText('No type recorded', { exact: true })).toBeVisible();
+    await expect(sheet.getByText('NEXT-TIME TARGET', { exact: true })).toBeVisible();
+    await expect(sheet.getByRole('radio')).toHaveCount(0);
+    await expect(sheet.getByRole('button', { name: 'Delete Set 1' })).toHaveCount(0);
     await expect(page.getByLabel('Comment for set 1')).toHaveCount(0);
   });
 

@@ -1,39 +1,40 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
   Pressable,
+  ScrollView,
   StyleSheet,
-  type TextInputProps,
-  type TextInput as NativeTextInput,
   View,
+  type TextInput as NativeTextInput,
+  type TextInputProps,
 } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
+
 import {
+  ForgeBottomSheet,
+  ForgeBottomSheetHandle,
+  ForgeCard,
+  ForgeSheetHeader,
   ForgeText as Text,
   ForgeTextInput as TextInput,
   HeaderAction,
-  Icon,
-  ForgeBottomSheet,
-  ForgeBottomSheetHandle,
-  ForgeSheetHeader,
-  pressedFeedback,
   pressedFeedbackSubtle,
 } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import { selectionHaptic } from './activeWorkoutFeedback';
 import type { WorkoutSet, WorkoutSetChanges } from '../../types';
+import { selectionHaptic } from './activeWorkoutFeedback';
 
-const TYPES = [
+const SET_TYPES = [
   { label: 'Warm Up', color: '#FF8A2A' },
   { label: 'Drop Set', color: '#9637DD' },
   { label: 'Failure', color: '#F0444D' },
   { label: 'Back-Off', color: '#2C78E8' },
-];
+] as const;
 
 interface SetDetailsCardProps {
   visible: boolean;
@@ -45,6 +46,7 @@ interface SetDetailsCardProps {
   editable?: boolean;
 }
 
+/** Detail editor shared by active-workout sets and read-only history sets. */
 export function SetDetailsCard({
   visible,
   set,
@@ -54,15 +56,9 @@ export function SetDetailsCard({
   onDone,
   editable = true,
 }: SetDetailsCardProps) {
-  const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const [infoOpen, setInfoOpen] = React.useState<'type' | 'target' | null>(null);
   const [dismissTextKeyboardOnTap, setDismissTextKeyboardOnTap] = React.useState(true);
-
-  const toggleInfo = (key: 'type' | 'target'): void => {
-    selectionHaptic();
-    setInfoOpen((current) => (current === key ? null : key));
-  };
+  const setLabel = `Set ${index + 1}`;
 
   return (
     <ForgeBottomSheet
@@ -72,256 +68,283 @@ export function SetDetailsCard({
       testID="set-details-sheet"
       style={styles.setDetailsSheet}
       dismissTextKeyboardOnTap={dismissTextKeyboardOnTap}
-    >{(closeSheet) => <>
-            <ForgeBottomSheetHandle />
-            <View accessibilityLabel={`Details for set ${index + 1}`}>
-            <View onTouchStart={() => setInfoOpen(null)} style={styles.topBar}>
-              <ForgeSheetHeader
-                title={
-                  set.weight || set.reps
-                    ? `${set.weight || ''}${set.weight ? ' kg' : ''}${set.weight && set.reps ? ' × ' : ''}${set.reps || ''}`
-                    : `Set ${index + 1}`
-                }
-                onClose={closeSheet}
-                closeAccessibilityLabel="Done"
-                closePosition={editable ? 'left' : 'right'}
-                trailing={
-                  editable ? (
-                    <HeaderAction
-                      accessibilityLabel={`Delete set ${index + 1}`}
-                      icon="trash"
-                      iconOnly
-                      tone="destructive"
-                      onPress={onDelete}
-                    />
-                  ) : undefined
-                }
-              />
-            </View>
-            <View style={styles.sheetContent}>
-              {editable ? (
-                <View style={[styles.section, styles.typeSection]}>
-                  <View style={styles.sectionHeader}>
-                    <Text style={styles.label}>TYPE</Text>
-                    <InfoButton label="Type help" onPress={() => toggleInfo('type')} />
-                  </View>
-                  <InfoPopover
-                    visible={infoOpen === 'type'}
-                    text="Choose a type to describe this set."
-                  />
-                  {TYPES.map((tag) => {
-                    const selected = set.tag === tag.label;
-                    return (
-                      <TypeOption
-                        key={tag.label}
-                        label={tag.label}
-                        color={tag.color}
-                        selected={selected}
-                        onPress={() => {
-                          setInfoOpen(null);
-                          selectionHaptic();
-                          onChange({ tag: selected ? '' : tag.label });
-                        }}
-                        disabled={!editable}
-                      />
-                    );
-                  })}
-                </View>
-              ) : (
-                <RecordedDetail label="TYPE" value={set.tag || 'No type recorded'} />
-              )}
-              {editable ? (
-                <View style={styles.section}>
-                  <Text style={[styles.label, styles.commentLabel]}>COMMENT</Text>
-                  <View style={styles.commentField}>
-                    <TextInput
-                      accessibilityLabel={`Comment for set ${index + 1}`}
-                      value={set.comment || ''}
-                      onChangeText={(comment) => onChange({ comment })}
-                      editable={editable}
-                      onFocus={() => {
-                        setDismissTextKeyboardOnTap(true);
-                        setInfoOpen(null);
-                      }}
-                      onTouchStart={(event) => event.stopPropagation()}
-                      maxLength={120}
-                      placeholder="Add a comment..."
-                      placeholderTextColor={theme.muted}
-                      style={styles.commentInput}
-                    />
-                    <Text style={styles.commentCount}>{`${(set.comment || '').length}/120`}</Text>
-                  </View>
-                </View>
-              ) : (
-                <RecordedDetail label="COMMENT" value={set.comment || 'No comment recorded'} />
-              )}
-              {editable ? (
-                <View style={[styles.section, styles.targetSection]}>
-                  <View style={[styles.sectionHeader, styles.targetHeader]}>
-                    <Text style={styles.label}>NEXT-TIME TARGET</Text>
-                    <InfoButton
-                      label="Next-time target help"
-                      onPress={() => toggleInfo('target')}
-                    />
-                  </View>
-                  <InfoPopover
-                    visible={infoOpen === 'target'}
-                    text="This target pre-fills the set next time. It does not change this set."
-                  />
-                  <View style={styles.targetCards}>
-                    <TargetRow
-                      label="Weight"
-                      value={set.targetWeight || ''}
-                      placeholder="—"
-                      unit="kg"
-                      keyboardType="decimal-pad"
-                      accessibilityLabel={`Next-time weight target for set ${index + 1}`}
-                      onChangeText={(targetWeight) => onChange({ targetWeight })}
-                      onFocus={() => {
-                        setDismissTextKeyboardOnTap(false);
-                        setInfoOpen(null);
-                      }}
-                      editable={editable}
-                    />
-                    <TargetRow
-                      label="Reps"
-                      value={set.targetReps || ''}
-                      placeholder="—"
-                      unit="reps"
-                      keyboardType="number-pad"
-                      accessibilityLabel={`Next-time reps target for set ${index + 1}`}
-                      onChangeText={(targetReps) => onChange({ targetReps })}
-                      onFocus={() => {
-                        setDismissTextKeyboardOnTap(false);
-                        setInfoOpen(null);
-                      }}
-                      editable={editable}
-                    />
-                  </View>
-                </View>
-              ) : (
-                <RecordedTarget set={set} />
-              )}
-            </View>
-            </View>
-    </>}</ForgeBottomSheet>
-  );
-}
-
-function InfoButton({ label, onPress }: { label: string; onPress: () => void }) {
-  const styles = useThemedStyles(createStyles);
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      hitSlop={11}
-      onPress={onPress}
-      style={({ pressed }) => [styles.helpButton, pressed && pressedFeedback]}
     >
-      <Text style={styles.helpText}>?</Text>
-    </Pressable>
+      {(closeSheet) => (
+        <>
+          <ForgeBottomSheetHandle />
+          <View accessibilityLabel={`Details for ${setLabel}`} style={styles.sheetBody}>
+            <ForgeSheetHeader
+              title={setLabel}
+              onClose={closeSheet}
+              closeAccessibilityLabel={editable ? `Close ${setLabel}` : `Close ${setLabel} details`}
+              closePosition={editable ? 'left' : 'right'}
+              trailing={
+                editable ? (
+                  <HeaderAction
+                    accessibilityLabel={`Delete ${setLabel}`}
+                    icon="trash"
+                    iconOnly
+                    tone="destructive"
+                    onPress={onDelete}
+                  />
+                ) : undefined
+              }
+            />
+            <ScrollView
+              style={styles.contentScroll}
+              contentContainerStyle={styles.sheetContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+            >
+              <SetTypeSection
+                value={set.tag || ''}
+                editable={editable}
+                onChange={(tag) => {
+                  selectionHaptic();
+                  onChange({ tag });
+                }}
+              />
+              <CommentSection
+                value={set.comment || ''}
+                editable={editable}
+                setLabel={setLabel}
+                onChange={(comment) => onChange({ comment })}
+                onTextFocus={() => setDismissTextKeyboardOnTap(true)}
+              />
+              <TargetsSection
+                set={set}
+                editable={editable}
+                setLabel={setLabel}
+                onChange={onChange}
+                onNumberFocus={() => setDismissTextKeyboardOnTap(false)}
+              />
+            </ScrollView>
+          </View>
+        </>
+      )}
+    </ForgeBottomSheet>
   );
 }
 
-function RecordedDetail({ label, value }: { label: string; value: string }) {
+function SetTypeSection({
+  value,
+  editable,
+  onChange,
+}: {
+  value: string;
+  editable: boolean;
+  onChange: (value: string) => void;
+}) {
   const styles = useThemedStyles(createStyles);
+  const theme = useForgeTheme();
+  const recordedType = SET_TYPES.find((type) => type.label === value);
+
   return (
-    <View style={styles.recordedSection}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.recordedValue}>{value}</Text>
+    <View style={styles.section}>
+      <Text style={styles.sectionLabel}>TYPE</Text>
+      {editable ? (
+        <ForgeCard
+          variant="outlined"
+          style={[styles.typeCard, value && styles.typeCardSelected]}
+        >
+          <View accessibilityRole="radiogroup" accessibilityLabel="Set type">
+            {SET_TYPES.map((type, typeIndex) => (
+              <SetTypeOption
+                key={type.label}
+                {...type}
+                selected={value === type.label}
+                first={typeIndex === 0}
+                last={typeIndex === SET_TYPES.length - 1}
+                showSeparator={typeIndex < SET_TYPES.length - 1}
+                onPress={() => onChange(value === type.label ? '' : type.label)}
+              />
+            ))}
+          </View>
+        </ForgeCard>
+      ) : (
+        <ForgeCard variant="outlined" style={styles.recordedCard}>
+          <View style={styles.recordedTypeRow}>
+            <View
+              style={[
+                styles.typeDot,
+                { backgroundColor: recordedType?.color ?? theme.marker ?? theme.slate },
+              ]}
+            />
+            <Text style={styles.recordedValue}>{value || 'No type recorded'}</Text>
+          </View>
+        </ForgeCard>
+      )}
     </View>
   );
 }
 
-function RecordedTarget({ set }: { set: WorkoutSet }) {
-  const styles = useThemedStyles(createStyles);
-  const target = [
-    set.targetWeight && `${set.targetWeight} kg`,
-    set.targetReps && `${set.targetReps} reps`,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-  return <RecordedDetail label="NEXT-TIME TARGET" value={target || 'No target recorded'} />;
-}
-
-function TypeOption({
+function SetTypeOption({
   label,
   color,
   selected,
+  first,
+  last,
+  showSeparator,
   onPress,
-  disabled = false,
 }: {
   label: string;
   color: string;
   selected: boolean;
+  first: boolean;
+  last: boolean;
+  showSeparator: boolean;
   onPress: () => void;
-  disabled?: boolean;
 }) {
   const styles = useThemedStyles(createStyles);
   const theme = useForgeTheme();
   const progress = useSharedValue(selected ? 1 : 0);
 
   useEffect(() => {
-    progress.value = withTiming(selected ? 1 : 0, { duration: 180 });
+    progress.value = withTiming(selected ? 1 : 0, { duration: 150 });
   }, [progress, selected]);
 
-  const selectedOverlayStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
-  const checkStyle = useAnimatedStyle(() => ({
+  const selectedStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
+  const radioDotStyle = useAnimatedStyle(() => ({
     opacity: progress.value,
-    transform: [{ scale: 0.65 + progress.value * 0.35 }],
+    transform: [{ scale: 0.7 + progress.value * 0.3 }],
   }));
 
   return (
     <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      accessibilityLabel={`${selected ? 'Remove' : 'Select'} ${label} type`}
+      accessibilityRole="radio"
+      accessibilityLabel={label}
+      accessibilityState={{ checked: selected }}
+      aria-checked={selected}
       onPress={onPress}
-      disabled={disabled}
-      style={({ pressed }) => [styles.tagRow, pressed && pressedFeedbackSubtle]}
+      style={({ pressed }) => [styles.typeRow, pressed && pressedFeedbackSubtle]}
     >
       <Animated.View
-        style={[styles.tagSelectedOverlay, styles.pointerEventsNone, selectedOverlayStyle]}
+        style={[
+          styles.selectedTypeOverlay,
+          first && styles.firstTypeSelection,
+          last && styles.lastTypeSelection,
+          selectedStyle,
+        ]}
       />
-      <View style={[styles.dot, { backgroundColor: color }]} />
-      <Text style={styles.tagText}>{label}</Text>
-      <Animated.View style={checkStyle}>
-        <Icon name="check" size={15} color={theme.marker} />
-      </Animated.View>
+      <View style={[styles.typeDot, { backgroundColor: color }]} />
+      <Text style={styles.typeText}>{label}</Text>
+      <View style={[styles.radio, { borderColor: selected ? (theme.marker ?? theme.success) : theme.slate }]}>
+        <Animated.View style={[styles.radioDot, radioDotStyle]} />
+      </View>
+      {showSeparator ? <View pointerEvents="none" style={styles.typeSeparator} /> : null}
     </Pressable>
   );
 }
 
-function InfoPopover({ visible, text }: { visible: boolean; text: string }) {
+function CommentSection({
+  value,
+  editable,
+  setLabel,
+  onChange,
+  onTextFocus,
+}: {
+  value: string;
+  editable: boolean;
+  setLabel: string;
+  onChange: (value: string) => void;
+  onTextFocus: () => void;
+}) {
   const styles = useThemedStyles(createStyles);
-  if (!visible) return null;
+  const theme = useForgeTheme();
+
   return (
-    <View style={[styles.infoPopover, styles.pointerEventsNone]}>
-      <Text style={styles.infoPopoverText}>{text}</Text>
+    <View style={styles.section}>
+      <Text style={styles.sectionLabel}>COMMENT</Text>
+      <ForgeCard variant="outlined" style={styles.commentCard}>
+        {editable ? (
+          <View style={styles.commentField}>
+            <TextInput
+              accessibilityLabel={`Comment for ${setLabel.toLowerCase()}`}
+              value={value}
+              onChangeText={onChange}
+              onFocus={onTextFocus}
+              onTouchStart={(event) => event.stopPropagation()}
+              maxLength={120}
+              placeholder="Add a comment..."
+              placeholderTextColor={theme.muted}
+              style={styles.commentInput}
+            />
+            <Text style={styles.commentCount}>{`${value.length}/120`}</Text>
+          </View>
+        ) : (
+          <Text style={styles.recordedValue}>{value || 'No comment recorded'}</Text>
+        )}
+      </ForgeCard>
     </View>
   );
 }
 
-function TargetRow({
+function TargetsSection({
+  set,
+  editable,
+  setLabel,
+  onChange,
+  onNumberFocus,
+}: {
+  set: WorkoutSet;
+  editable: boolean;
+  setLabel: string;
+  onChange: (changes: WorkoutSetChanges) => void;
+  onNumberFocus: () => void;
+}) {
+  const styles = useThemedStyles(createStyles);
+  return (
+    <View style={[styles.section, styles.targetSection]}>
+      <Text style={styles.sectionLabel}>NEXT-TIME TARGET</Text>
+      <View style={styles.targetCards}>
+        <TargetCard
+          label="Weight"
+          value={set.targetWeight || ''}
+          placeholder="—"
+          unit="kg"
+          editable={editable}
+          keyboardType="decimal-pad"
+          accessibilityLabel={`Next-time weight target for ${setLabel.toLowerCase()}`}
+          onChangeText={(targetWeight) => onChange({ targetWeight })}
+          onFocus={onNumberFocus}
+        />
+        <TargetCard
+          label="Reps"
+          value={set.targetReps || ''}
+          placeholder="—"
+          unit="reps"
+          editable={editable}
+          keyboardType="number-pad"
+          accessibilityLabel={`Next-time reps target for ${setLabel.toLowerCase()}`}
+          onChangeText={(targetReps) => onChange({ targetReps })}
+          onFocus={onNumberFocus}
+        />
+      </View>
+    </View>
+  );
+}
+
+function TargetCard({
   label,
   value,
   placeholder,
   unit,
+  editable,
   keyboardType,
   accessibilityLabel,
   onChangeText,
   onFocus,
-  editable = true,
 }: {
   label: string;
   value: string;
   placeholder: string;
   unit: string;
+  editable: boolean;
   keyboardType: TextInputProps['keyboardType'];
   accessibilityLabel: string;
   onChangeText: (value: string) => void;
   onFocus: () => void;
-  editable?: boolean;
 }) {
   const styles = useThemedStyles(createStyles);
   const theme = useForgeTheme();
@@ -332,217 +355,159 @@ function TargetRow({
   }, [value.length]);
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={focusInput}
-      disabled={!editable}
-      style={({ pressed }) => [styles.targetCard, pressed && pressedFeedbackSubtle]}
-    >
-      <View style={styles.targetCardHeader}>
+    <ForgeCard variant="outlined" style={styles.targetCard}>
+      <Pressable
+        accessibilityRole={editable ? 'button' : undefined}
+        accessibilityLabel={editable ? accessibilityLabel : undefined}
+        onPress={editable ? focusInput : undefined}
+        disabled={!editable}
+        style={({ pressed }) => [styles.targetPressable, pressed && pressedFeedbackSubtle]}
+      >
         <Text style={styles.targetLabel}>{label}</Text>
-      </View>
-      <View style={styles.targetValue}>
-        <TextInput
-          ref={inputRef}
-          accessibilityLabel={accessibilityLabel}
-          value={value}
-          selection={{ start: value.length, end: value.length }}
-          onChangeText={onChangeText}
-          editable={editable}
-          onFocus={() => {
-            onFocus();
-            requestAnimationFrame(() => inputRef.current?.setSelection(value.length, value.length));
-          }}
-          onTouchStart={(event) => event.stopPropagation()}
-          keyboardType={keyboardType}
-          inputMode={keyboardType === 'decimal-pad' ? 'decimal' : 'numeric'}
-          selectTextOnFocus={false}
-          placeholder={placeholder}
-          placeholderTextColor={theme.ink}
-          style={styles.targetInput}
-        />
-        <Text style={styles.targetUnit}>{unit}</Text>
-      </View>
-    </Pressable>
+        <View style={styles.targetValue}>
+          {editable ? (
+            <TextInput
+              ref={inputRef}
+              accessibilityLabel={accessibilityLabel}
+              value={value}
+              selection={{ start: value.length, end: value.length }}
+              onChangeText={onChangeText}
+              onFocus={() => {
+                onFocus();
+                requestAnimationFrame(() => inputRef.current?.setSelection(value.length, value.length));
+              }}
+              onTouchStart={(event) => event.stopPropagation()}
+              keyboardType={keyboardType}
+              inputMode={keyboardType === 'decimal-pad' ? 'decimal' : 'numeric'}
+              selectTextOnFocus={false}
+              placeholder={placeholder}
+              placeholderTextColor={theme.ink}
+              style={styles.targetInput}
+            />
+          ) : (
+            <Text style={styles.targetStaticValue}>{value || placeholder}</Text>
+          )}
+          <Text style={styles.targetUnit}>{unit}</Text>
+        </View>
+      </Pressable>
+    </ForgeCard>
   );
 }
 
-const createStyles = (theme: import('../../types').ForgeTheme) => {
-  const dashboardTheme = theme;
-  return StyleSheet.create({
-  pointerEventsNone: { pointerEvents: 'none' },
-  sheetContent: { flexGrow: 0 },
-  setDetailsSheet: {
-    minHeight: 0,
-    maxHeight: '100%',
-    paddingBottom: 20,
-  },
-  topBar: {
-    minHeight: 40,
-    marginHorizontal: 2,
-    position: 'relative',
-    transform: [{ translateY: -4 }],
-  },
-  setNumberBadge: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 18,
-    backgroundColor: dashboardTheme.surfaceMuted,
-  },
-  setNumberBadgeText: { color: dashboardTheme.ink, ...typeScale.cardTitle },
-  title: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    color: dashboardTheme.ink,
-    ...typeScale.sectionTitle,
-    textAlign: 'center',
-    zIndex: 1,
-  },
-  section: {
-    position: 'relative',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderBottomWidth: 1,
-    borderBottomColor: dashboardTheme.divider,
-  },
-  recordedSection: {
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: dashboardTheme.divider,
-  },
-  recordedValue: { color: dashboardTheme.ink, ...typeScale.body },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingRight: 7,
-    marginRight: -14,
-    transform: [{ translateX: -2 }],
-  },
-  typeSection: { position: 'relative' },
-  targetHeader: { paddingBottom: 6, position: 'relative' },
-  targetSection: { borderBottomWidth: 0 },
-  label: { color: dashboardTheme.slate, ...typeScale.label, transform: [{ translateX: -8 }] },
-  commentLabel: { transform: [{ translateX: -10 }] },
-  helpButton: {
-    width: 22,
-    height: 22,
-    borderWidth: 1.5,
-    borderColor: dashboardTheme.slate,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  helpText: { color: dashboardTheme.slate, ...typeScale.label },
-  infoPopover: {
-    position: 'absolute',
-    top: 30,
-    right: 14,
-    zIndex: 10,
-    maxWidth: 230,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 9,
-    backgroundColor: 'rgba(29,37,45,0.88)',
-    shadowColor: dashboardTheme.ink,
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
-  },
-  infoPopoverText: { color: dashboardTheme.surface, ...typeScale.caption },
-  tagRow: {
-    minHeight: 33,
-    alignSelf: 'stretch',
-    marginHorizontal: -14,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  tagSelectedOverlay: {
-    ...StyleSheet.absoluteFill,
-    borderRadius: 10,
-    backgroundColor: 'rgba(77,123,103,0.15)',
-  },
-  dot: { width: 12, height: 12, borderRadius: 6 },
-  tagText: { flex: 1, color: dashboardTheme.ink, ...typeScale.label },
-  commentInput: {
-    flex: 1,
-    height: 40,
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-    color: dashboardTheme.ink,
-    ...typeScale.label,
-    textAlignVertical: 'center',
-  },
-  commentField: {
-    height: 48,
-    marginTop: 4,
-    marginRight: -14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: dashboardTheme.divider,
-    borderRadius: 10,
-    backgroundColor: dashboardTheme.surface,
-  },
-  commentCount: { color: dashboardTheme.slate, ...typeScale.caption },
-  targetCards: {
-    flexDirection: 'row',
-    gap: 8,
-    marginRight: -14,
-  },
-  targetCard: {
-    flex: 1,
-    height: 52,
-    minWidth: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderWidth: 1,
-    borderColor: dashboardTheme.divider,
-    borderRadius: 10,
-    backgroundColor: dashboardTheme.surface,
-  },
-  targetCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  targetLabel: { color: dashboardTheme.ink, ...typeScale.label },
-  targetValue: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingLeft: 0,
-    gap: 2,
-  },
-  targetInput: {
-    width: 32,
-    minWidth: 32,
-    height: 27,
-    paddingHorizontal: 0,
-    borderWidth: 0,
-    backgroundColor: 'transparent',
-    color: dashboardTheme.ink,
-    ...typeScale.sectionTitle,
-    textAlign: 'right',
-    textAlignVertical: 'center',
-    paddingVertical: 2,
-  },
-  targetUnit: {
-    minWidth: 0,
-    color: dashboardTheme.muted,
-    ...typeScale.label,
-  },
+const createStyles = (theme: import('../../types').ForgeTheme) =>
+  StyleSheet.create({
+    setDetailsSheet: {
+      minHeight: 0,
+      maxHeight: '92%',
+      paddingBottom: 20,
+    },
+    sheetBody: { flexShrink: 1 },
+    contentScroll: { flexShrink: 1 },
+    sheetContent: {
+      paddingHorizontal: 20,
+      paddingBottom: 10,
+    },
+    section: { marginTop: 14 },
+    targetSection: { paddingBottom: 4 },
+    sectionLabel: {
+      marginBottom: 9,
+      color: theme.slate,
+      ...typeScale.label,
+    },
+    typeCard: { borderRadius: 16 },
+    typeCardSelected: { borderColor: theme.marker ?? theme.success },
+    typeRow: {
+      position: 'relative',
+      minHeight: 48,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      gap: 14,
+    },
+    selectedTypeOverlay: {
+      ...StyleSheet.absoluteFill,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      borderWidth: 1,
+      borderColor: theme.marker ?? theme.success,
+      backgroundColor: theme.successSurface,
+      borderRadius: 8,
+    },
+    firstTypeSelection: { borderTopLeftRadius: 15, borderTopRightRadius: 15 },
+    lastTypeSelection: { borderBottomLeftRadius: 15, borderBottomRightRadius: 15 },
+    typeSeparator: {
+      position: 'absolute',
+      right: 0,
+      bottom: 0,
+      left: 0,
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: theme.divider,
+    },
+    typeDot: { width: 14, height: 14, borderRadius: 7 },
+    typeText: { flex: 1, color: theme.ink, ...typeScale.body },
+    radio: {
+      width: 28,
+      height: 28,
+      borderWidth: 2,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    radioDot: {
+      width: 14,
+      height: 14,
+      borderRadius: 7,
+      backgroundColor: theme.marker ?? theme.success,
+    },
+    recordedCard: { minHeight: 56, borderRadius: 16, justifyContent: 'center' },
+    recordedTypeRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20 },
+    recordedValue: { color: theme.ink, ...typeScale.label },
+    commentCard: { minHeight: 56, borderRadius: 14, justifyContent: 'center' },
+    commentField: {
+      minHeight: 56,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      gap: 8,
+    },
+    commentInput: {
+      flex: 1,
+      minHeight: 48,
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+      color: theme.ink,
+      ...typeScale.label,
+      textAlignVertical: 'center',
+    },
+    commentCount: { color: theme.slate, ...typeScale.caption },
+    targetCards: { flexDirection: 'row', gap: 10 },
+    targetCard: { flex: 1, minWidth: 0, height: 56, borderRadius: 14 },
+    targetPressable: {
+      flex: 1,
+      minWidth: 0,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 14,
+      gap: 6,
+    },
+    targetLabel: { flexShrink: 1, color: theme.ink, ...typeScale.label },
+    targetValue: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 3 },
+    targetInput: {
+      width: 44,
+      minWidth: 32,
+      height: 40,
+      paddingHorizontal: 0,
+      paddingVertical: 2,
+      borderWidth: 0,
+      backgroundColor: 'transparent',
+      color: theme.ink,
+      ...typeScale.sectionTitle,
+      textAlign: 'right',
+      textAlignVertical: 'center',
+    },
+    targetStaticValue: { color: theme.ink, ...typeScale.sectionTitle },
+    targetUnit: { color: theme.muted, ...typeScale.label },
   });
-};

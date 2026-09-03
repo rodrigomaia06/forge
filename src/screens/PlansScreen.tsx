@@ -107,6 +107,7 @@ export function PlansScreen({ navigation, route }: Props) {
             accessibilityLabel="Create workout, routine, or plan"
             icon="add"
             iconOnly
+            variant="outline"
             onPress={() => setCreationOpen(true)}
           />
           {headerElevated ? <HeaderEdge /> : null}

@@ -140,6 +140,38 @@ test.describe('Plans and routines', () => {
     await expect(page.getByLabel('Finish workout')).toBeVisible();
   });
 
+  test('makes saved custom workout types selectable in the routine editor', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Workout types' }).click();
+    await page.getByRole('button', { name: 'Add workout type' }).click();
+    await page.getByLabel('Workout type name').fill('Recovery');
+    await page.getByRole('button', { name: 'Save workout type' }).click();
+    await page.getByRole('button', { name: 'Back to Settings' }).click();
+
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
+    await page
+      .getByTestId('plans-creation-popover')
+      .getByRole('button', { name: 'New routine' })
+      .click();
+    await page.getByRole('button', { name: 'Workout type, Strength' }).click();
+    await expect(page.getByTestId('routine-type-selection-sheet')).toBeVisible();
+    await expect(page.getByRole('radio', { name: 'Use Recovery workout type' })).toBeVisible();
+    await page.getByRole('radio', { name: 'Use Recovery workout type' }).click();
+    await expect(page.getByRole('button', { name: 'Workout type, Recovery' })).toBeVisible();
+    await page.getByLabel('Routine name').fill('Recovery routine');
+    await page.getByRole('button', { name: 'Save routine' }).click();
+    await page.getByRole('button', { name: 'Routine actions for Recovery routine' }).click();
+    await page.getByTestId('plans-options-sheet').getByRole('button', { name: 'Edit' }).click();
+    await page.getByRole('button', { name: 'Workout type, Recovery' }).click();
+    await page.getByRole('radio', { name: 'Use Strength workout type' }).click();
+    await expect(page.getByRole('button', { name: 'Workout type, Strength' })).toBeVisible();
+    await page.getByRole('button', { name: 'Workout type, Strength' }).click();
+    await page.getByRole('radio', { name: 'Use Recovery workout type' }).click();
+    await expect(page.getByRole('button', { name: 'Workout type, Recovery' })).toBeVisible();
+  });
+
   test('uses a centred Forge confirmation card to keep or discard an edited routine draft', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Plans' }).click();
@@ -313,7 +345,7 @@ test.describe('Plans and routines', () => {
     await expect(exercise.getByRole('checkbox')).toHaveCount(0);
     const [exerciseNameBox, setCountBox] = await Promise.all([
       exercise.getByText('Barbell Bench Press', { exact: true }).boundingBox(),
-      exercise.getByText('1 set', { exact: true }).boundingBox(),
+      exercise.getByText('3 sets', { exact: true }).boundingBox(),
     ]);
     expect((setCountBox?.y ?? 0) - (exerciseNameBox?.y ?? 0)).toBeLessThan(30);
     await expect(
@@ -325,6 +357,40 @@ test.describe('Plans and routines', () => {
     ).toBeVisible();
     await swipeRightFrom(page, exercise);
     await expect(exercise.getByText('Barbell Bench Press', { exact: true })).toBeVisible();
+  });
+
+  test('keeps routine view read-only and reserves exercise reordering for Edit', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
+    await page
+      .getByTestId('plans-creation-popover')
+      .getByRole('button', { name: 'New routine' })
+      .click();
+    await page.getByLabel('Routine name').fill('Read-only routine');
+    await page.getByRole('button', { name: 'Add exercises to routine' }).click();
+    await page.getByRole('button', { name: 'Bench Press, 4 variations', exact: true }).click();
+    await page.getByRole('button', { name: 'Barbell, 2 variations', exact: true }).click();
+    await page
+      .getByRole('checkbox', { name: 'Bench Press, Barbell, Standard' })
+      .click({ force: true });
+    await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
+    await page.getByRole('button', { name: 'Save routine' }).click();
+    await page.getByRole('button', { name: 'Routine actions for Read-only routine' }).click();
+    await page.getByTestId('plans-options-sheet').getByRole('button', { name: 'Visualize' }).click();
+
+    await expect(page.getByLabel('Routine name')).toHaveAttribute('readonly', '');
+    await expect(page.getByLabel('Routine note')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Workout type, Strength' }).locator('svg')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Add exercises to routine' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Drag to reorder Barbell Bench Press' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Expand Barbell Bench Press' }).click();
+    await expect(page.getByRole('button', { name: 'Add set to Barbell Bench Press' })).toHaveCount(0);
+    await expect(page.getByLabel('Weight for set 1')).toHaveCount(0);
+    await expect(page.locator('[data-testid^="workout-details-set-"]').first()).toHaveCSS(
+      'border-bottom-width',
+      '0px',
+    );
   });
 
   test('attaches a plan routine only after Save and uses a compact plan header', async ({

@@ -472,6 +472,25 @@ function DayCell({
     >
       <View style={styles.dateTouchTarget}>
         <Animated.View
+          testID={isSelected ? 'calendar-selected-ring' : undefined}
+          style={[
+            styles.selectionRing,
+            styles.pointerEventsNone,
+            { borderColor: theme.calendarSelectionRing ?? theme.selectionIndicator },
+            {
+              opacity: selectionProgress,
+              transform: [
+                {
+                  scale: selectionProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.86, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
+        <View
           style={[
             styles.daySurface,
             { backgroundColor: theme.calendarDay },
@@ -480,24 +499,13 @@ function DayCell({
               borderWidth: 1,
               borderColor: theme.calendarWorkoutBorder,
             },
-            isSelected && { backgroundColor: theme.selected, borderWidth: 0, shadowOpacity: 0 },
-            {
-              transform: [
-                {
-                  scale: selectionProgress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [1, 1.04],
-                  }),
-                },
-              ],
-            },
           ]}
         >
           <Text
             style={[
               styles.dayText,
               isSelected && styles.selectedDayText,
-              { color: isSelected ? theme.selectedText : theme.ink },
+              { color: theme.ink },
             ]}
           >
             {day}
@@ -507,19 +515,23 @@ function DayCell({
               {dayWorkouts.slice(0, 2).map((workout, markerIndex) => (
                 <View
                   key={markerIndex}
+                  testID={`calendar-marker-${day}-${markerIndex}`}
                   style={[
                     styles.marker,
                     {
-                      backgroundColor: isSelected
-                        ? theme.selectedText
-                        : getWorkoutTypePresentation(workout.type, workoutTypes, theme, 1).color,
+                      backgroundColor: getWorkoutTypePresentation(
+                        workout.type,
+                        workoutTypes,
+                        theme,
+                        1,
+                      ).color,
                     },
                   ]}
                 />
               ))}
             </View>
           )}
-        </Animated.View>
+        </View>
       </View>
     </Pressable>
   );

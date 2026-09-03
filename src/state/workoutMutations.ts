@@ -46,7 +46,12 @@ export function addExerciseToWorkout(workout: Workout | null, name: string): Wor
       {
         id: makeWorkoutId('exercise'),
         name: name.trim(),
-        sets: [{ id: makeWorkoutId('set'), weight: '', reps: '', completed: false }],
+        sets: Array.from({ length: 3 }, () => ({
+          id: makeWorkoutId('set'),
+          weight: '',
+          reps: '',
+          completed: false,
+        })),
       },
     ],
   };

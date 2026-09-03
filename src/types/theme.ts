@@ -33,6 +33,7 @@ export interface ForgeTheme {
   calendarDay?: string;
   calendarWorkoutDay?: string;
   calendarWorkoutBorder?: string;
+  calendarSelectionRing?: string;
   selected?: string;
   selectedText?: string;
   marker?: string;

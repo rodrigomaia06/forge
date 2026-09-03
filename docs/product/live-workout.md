@@ -5,5 +5,7 @@
 - Elapsed and rest timers derive from timestamps and refresh together once per second; active-workout persistence is debounced during ordinary edits, while finishing or cancelling remains immediate.
 - Sets and exercise cards reveal compact contextual delete actions with a left swipe; the action remains hidden in the resting state.
 - The Add exercises picker dismisses its keyboard when its list is touched or dragged, without preventing the requested list action.
+- Exercises added to a live workout or routine start with three empty sets.
 - If a focused weight or reps field would sit too close to the number keyboard, Live Workout and the Routine Editor temporarily scroll it into the comfortable middle of the visible area. They use native keyboard insets where available and their prior scroll position returns when the keyboard is dismissed.
+- Set options open in a Forge bottom sheet with a centred set number, an optional single set type, a comment, and equal-height Weight and Reps next-time target cards. The selected type can be tapped again to clear it; its success-colour selection extends to the outer border of the grouped type card. The same grouped layout appears in workout history as read-only values.
 - Live Workout and History workout detail reserve symmetric header space so titles remain centered. Back and Cancel are icon-only actions with accessible names; Finish and More retain visible labels.

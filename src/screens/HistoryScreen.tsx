@@ -57,7 +57,7 @@ export function HistoryScreen({
             iconSize={20}
             onPress={() => undefined}
             iconOnly
-            style={styles.filterButton}
+            variant="outline"
           />
           {headerElevated ? <HeaderEdge /> : null}
         </View>
@@ -142,6 +142,8 @@ function TimelineRow({
   const suppressNextPress = useRef(false);
   const date = new Date(workout.completedAt ?? workout.startedAt);
   const type = getWorkoutTypePresentation(workout.type, workoutTypes, theme, 0.14);
+  const setCount = countWorkoutSets(workout);
+  const hasExerciseSummary = workout.exercises.length > 0 && setCount > 0;
 
   React.useEffect(() => {
     cardOpen.value = deleteRevealed;
@@ -234,9 +236,11 @@ function TimelineRow({
                 <Text style={styles.name} numberOfLines={1}>
                   {workout.name}
                 </Text>
-                <Text style={styles.stats} numberOfLines={1}>
-                  {`${workout.exercises.length} exercises · ${countWorkoutSets(workout)} sets`}
-                </Text>
+                {hasExerciseSummary && (
+                  <Text style={styles.stats} numberOfLines={1}>
+                    {`${workout.exercises.length} exercises · ${setCount} sets`}
+                  </Text>
+                )}
               </View>
               <View style={styles.durationChip}>
                 <Icon name="time-outline" size={13} color={theme.ink} />
@@ -294,22 +298,6 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     backgroundColor: theme.background,
-  },
-  filterButton: {
-    width: 46,
-    height: 46,
-    minWidth: 46,
-    minHeight: 46,
-    paddingHorizontal: 0,
-    borderRadius: 23,
-    borderWidth: 1,
-    borderColor: theme.border,
-    backgroundColor: theme.surfaceElevated,
-    shadowColor: theme.shadow,
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
   },
   content: { paddingHorizontal: 16, paddingTop: 18, paddingBottom: forgeDockScrollInset, gap: 18 },
   group: { gap: 8 },

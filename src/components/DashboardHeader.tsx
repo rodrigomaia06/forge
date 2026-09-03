@@ -47,6 +47,7 @@ export function DashboardHeader({
           iconSize={action.iconSize}
           iconWeight={action.iconWeight}
           iconOnly
+          variant="outline"
           onPress={onStart}
         />
       </View>

@@ -56,9 +56,10 @@ export function AnchoredActionPopover({
 }
 
 const styles = StyleSheet.create({
-  pointerEventsBoxNone: { pointerEvents: 'box-none' },
+  pointerEventsBoxNone: { pointerEvents: 'box-none', zIndex: 4, elevation: 16 },
   popover: {
     position: 'absolute',
+    // Keep the menu just below the header action; it must never overlap the plus control.
     top: 62,
     right: 20,
     width: 216,

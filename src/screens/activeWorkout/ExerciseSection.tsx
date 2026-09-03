@@ -275,7 +275,14 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   );
 });
 
-export function ReadOnlyExerciseSection({ exercise }: { exercise: WorkoutExercise }) {
+export function ReadOnlyExerciseSection({
+  exercise,
+  minimal = false,
+}: {
+  exercise: WorkoutExercise;
+  /** Routine Visualize keeps the expanded set table visually inside its card. */
+  minimal?: boolean;
+}) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const [expanded, setExpanded] = useState(false);
@@ -293,7 +300,7 @@ export function ReadOnlyExerciseSection({ exercise }: { exercise: WorkoutExercis
           selectionHaptic();
           setExpanded((current) => !current);
         }}
-        style={styles.readOnlyExerciseHeader}
+        style={[styles.readOnlyExerciseHeader, minimal && styles.readOnlyMinimalExerciseHeader]}
       >
         <View style={styles.readOnlyExerciseCopy}>
           <Text numberOfLines={1} style={styles.readOnlyExerciseName}>
@@ -307,12 +314,11 @@ export function ReadOnlyExerciseSection({ exercise }: { exercise: WorkoutExercis
           name={expanded ? 'chevron-down' : 'chevron-forward'}
           size={20}
           color={theme.slate}
-          style={expanded ? styles.readOnlyExpandedChevron : undefined}
         />
       </Pressable>
       {expanded && (
-        <View style={styles.readOnlySets}>
-          <View style={styles.setHeader}>
+        <View style={[styles.readOnlySets, minimal && styles.readOnlyMinimalSets]}>
+          <View style={[styles.setHeader, minimal && styles.readOnlyMinimalSetHeader]}>
             <Text style={[styles.setHeaderText, styles.setColumn]}>Set</Text>
             <Text style={[styles.setHeaderText, styles.previousColumn]}>Previous</Text>
             <Text style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>KG</Text>
@@ -324,6 +330,7 @@ export function ReadOnlyExerciseSection({ exercise }: { exercise: WorkoutExercis
               key={set.id}
               set={set}
               index={index}
+              minimal={minimal}
               onOpenDetails={() => setOpenSetIndex(index)}
             />
           ))}
@@ -347,16 +354,21 @@ export function ReadOnlyExerciseSection({ exercise }: { exercise: WorkoutExercis
 function ReadOnlyHistorySetRow({
   set,
   index,
+  minimal = false,
   onOpenDetails,
 }: {
   set: WorkoutSet;
   index: number;
+  minimal?: boolean;
   onOpenDetails: () => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   return (
-    <View testID={`workout-details-set-${set.id}`} style={styles.readOnlySetRow}>
+    <View
+      testID={`workout-details-set-${set.id}`}
+      style={[styles.readOnlySetRow, minimal && styles.readOnlyMinimalSetRow]}
+    >
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Open details for set ${index + 1}`}
@@ -422,12 +434,13 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     deleteExerciseText: { color: dashboardTheme.textDestructive, ...typeScale.caption },
     exerciseCard: {
       backgroundColor: dashboardTheme.surface,
-      borderRadius: 0,
+      borderRadius: 16,
+      overflow: 'hidden',
       paddingTop: 4,
       paddingHorizontal: 12,
       paddingBottom: 0,
       borderWidth: 1,
-      borderColor: dashboardTheme.divider,
+      borderColor: dashboardTheme.border,
       shadowColor: dashboardTheme.ink,
       shadowOpacity: 0.06,
       shadowRadius: 5,
@@ -462,6 +475,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       paddingHorizontal: 12,
       paddingVertical: 8,
     },
+    // Routine Visualize is a read-only summary. Keep its rows compact while
+    // retaining the 44 pt tap target on the expandable exercise header.
+    readOnlyMinimalExerciseHeader: { minHeight: 48, paddingVertical: 4 },
     readOnlyExerciseCopy: {
       flex: 1,
       minWidth: 0,
@@ -479,8 +495,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       color: dashboardTheme.slate,
       ...typeScale.label,
     },
-    readOnlyExpandedChevron: { transform: [{ rotate: '180deg' }] },
     readOnlySets: { paddingHorizontal: 12, paddingBottom: 4 },
+    readOnlyMinimalSets: { paddingBottom: 0 },
     exerciseHeader: {
       minHeight: 30,
       flexDirection: 'row',
@@ -524,6 +540,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       borderBottomWidth: 1,
       borderBottomColor: dashboardTheme.divider,
     },
+    readOnlyMinimalSetHeader: { minHeight: 28, borderBottomWidth: 0 },
     setHeaderLarge: { minHeight: 34 },
     setHeaderText: { color: dashboardTheme.slate, ...typeScale.label, textAlign: 'center' },
     setColumn: { width: 46 },
@@ -545,6 +562,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       borderBottomWidth: 1,
       borderBottomColor: dashboardTheme.divider,
     },
+    readOnlyMinimalSetRow: { minHeight: 44, borderBottomWidth: 0 },
     setNumberWrap: { width: 46, height: 44, alignItems: 'center', justifyContent: 'center' },
     setNumber: {
       width: 30,

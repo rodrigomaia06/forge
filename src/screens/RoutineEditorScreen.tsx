@@ -32,7 +32,7 @@ import {
   successHaptic,
 } from '../components/ui';
 import { AddExerciseSheet } from './activeWorkout/WorkoutSheets';
-import { ExerciseSection } from './activeWorkout/ExerciseSection';
+import { ExerciseSection, ReadOnlyExerciseSection } from './activeWorkout/ExerciseSection';
 import { useFocusedSetKeyboardLift } from './activeWorkout/useFocusedSetKeyboardLift';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
@@ -45,6 +45,7 @@ import type {
   WorkoutExercise,
   WorkoutRoutine,
   WorkoutSetChanges,
+  WorkoutTypePreference,
 } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RoutineEditor'>;
@@ -129,7 +130,12 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
         ...names.map((name) => ({
           id: makeWorkoutId('routine-exercise'),
           name,
-          sets: [{ id: makeWorkoutId('routine-set'), weight: '', reps: '', targetReps: '8–12' }],
+          sets: Array.from({ length: 3 }, () => ({
+            id: makeWorkoutId('routine-set'),
+            weight: '',
+            reps: '',
+            targetReps: '8–12',
+          })),
         })),
       ],
     }));
@@ -222,6 +228,16 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
     isActive = false,
   ) => {
     const exerciseId = exercise.id ?? `routine-exercise-${index}`;
+    if (viewing) {
+      return (
+        <View style={styles.exerciseRow}>
+          <ReadOnlyExerciseSection
+            exercise={asWorkoutExercise(exercise, completedRoutineSetIds)}
+            minimal
+          />
+        </View>
+      );
+    }
     const section = (
       <ExerciseSection
         index={index}
@@ -252,11 +268,11 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
         showSetCompletion={false}
         onSetInputFocus={onSetInputFocus}
         dragHandle={
-          drag ? (
+          drag && !viewing ? (
             <RoutineExerciseDragHandle
               name={exercise.name}
               onDrag={() => beginRoutineExerciseDrag(drag)}
-              disabled={isActive || viewing}
+              disabled={isActive}
             />
           ) : undefined
         }
@@ -371,12 +387,22 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                   disabled={viewing}
                   onPress={() => {
                     selectionHaptic();
-                    setPickerOpen((current) => !current);
+                    setPickerOpen(true);
                   }}
-                  style={({ pressed }) => [styles.typeRow, pressed && styles.pressed]}
+                  style={({ pressed }) => [
+                    styles.typeRow,
+                    viewing && styles.viewTypeRow,
+                    !viewing && pressed && styles.pressed,
+                  ]}
                 >
                   <Text style={styles.typeLabel}>Type</Text>
-                  <View style={[styles.typeSelection, styles.pointerEventsNone]}>
+                  <View
+                    style={[
+                      styles.typeSelection,
+                      viewing && styles.viewTypeSelection,
+                      styles.pointerEventsNone,
+                    ]}
+                  >
                     <View
                       style={[
                         styles.typeDot,
@@ -389,54 +415,27 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                     />
                     <Text style={styles.typeValue}>{draft.type}</Text>
                   </View>
-                  <View style={[styles.typeChevron, styles.pointerEventsNone]}>
-                    <Icon
-                      name={pickerOpen ? 'chevron-down' : 'chevron-forward'}
-                      size={19}
-                      color={theme.slate}
-                    />
-                  </View>
+                  {!viewing && (
+                    <View style={[styles.typeChevron, styles.pointerEventsNone]}>
+                      <Icon name="chevron-forward" size={19} color={theme.slate} />
+                    </View>
+                  )}
                 </Pressable>
-                {pickerOpen && (
-                  <View style={styles.typeChoices}>
-                    {preferences.workoutTypes
-                      .filter((type) => !type.hidden || type.name === draft.type)
-                      .map((type, index) => (
-                        <Pressable
-                          key={type.id}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Use ${type.name} workout type`}
-                          onPress={() => {
-                            change((current) => ({ ...current, type: type.name }));
-                            setPickerOpen(false);
-                          }}
-                          style={({ pressed }) => [
-                            styles.typeChoice,
-                            index > 0 && styles.typeChoiceDivider,
-                            draft.type === type.name && styles.typeChoiceSelected,
-                            pressed && styles.pressed,
-                          ]}
-                        >
-                          <View style={[styles.choiceDot, { backgroundColor: type.color }]} />
-                          <Text style={styles.typeChoiceText}>{type.name}</Text>
-                          {draft.type === type.name && (
-                            <Icon name="check" size={17} color={theme.selectionIndicator} />
-                          )}
-                        </Pressable>
-                      ))}
-                  </View>
+                {(!viewing || draft.note) && (
+                  <>
+                    <View style={styles.divider} />
+                    <TextInput
+                      accessibilityLabel="Routine note"
+                      value={draft.note || ''}
+                      onChangeText={(note) => change((current) => ({ ...current, note }))}
+                      editable={!viewing}
+                      style={[styles.noteInput, { height: noteHeight }]}
+                      placeholder="Add a note"
+                      placeholderTextColor={theme.muted}
+                      multiline
+                    />
+                  </>
                 )}
-                <View style={styles.divider} />
-                <TextInput
-                  accessibilityLabel="Routine note"
-                  value={draft.note || ''}
-                  onChangeText={(note) => change((current) => ({ ...current, note }))}
-                  editable={!viewing}
-                  style={[styles.noteInput, { height: noteHeight }]}
-                  placeholder="Add a note"
-                  placeholderTextColor={theme.muted}
-                  multiline
-                />
                 {Object.entries(draft.attributes ?? {}).map(([label, value]) => (
                   <React.Fragment key={label}>
                     <View style={styles.divider} />
@@ -505,6 +504,16 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
         {addingExercises && (
           <AddExerciseSheet visible onClose={() => setAddingExercises(false)} onSubmit={addExercises} />
         )}
+        <RoutineTypePicker
+          visible={pickerOpen}
+          types={preferences.workoutTypes.filter((type) => !type.hidden || type.name === draft.type)}
+          selectedType={draft.type}
+          onClose={() => setPickerOpen(false)}
+          onSelect={(type) => {
+            change((current) => ({ ...current, type }));
+            setPickerOpen(false);
+          }}
+        />
         {attributeSheet ? (
           <AttributeEditorSheet
             value={attributeSheet}
@@ -539,6 +548,65 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
         ) : null}
       </KeyboardAvoidingView>
     </AppScreen>
+  );
+}
+
+function RoutineTypePicker({
+  visible,
+  types,
+  selectedType,
+  onClose,
+  onSelect,
+}: {
+  visible: boolean;
+  types: WorkoutTypePreference[];
+  selectedType: string;
+  onClose: () => void;
+  onSelect: (type: string) => void;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  return (
+    <ForgeBottomSheet
+      visible={visible}
+      onClose={onClose}
+      accessibilityLabel="Close workout type selection"
+      surfaceTestID="routine-type-selection-sheet"
+    >
+      {(close) => (
+        <View style={styles.typePicker}>
+          <ForgeBottomSheetHandle />
+          <ForgeSheetHeader title="Workout type" onClose={close} />
+          <View accessibilityRole="radiogroup" style={styles.typePickerList}>
+            {types.map((type, index) => {
+              const selected = type.name === selectedType;
+              return (
+                <Pressable
+                  key={type.id}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`Use ${type.name} workout type`}
+                  accessibilityState={{ selected, checked: selected }}
+                  onPress={() => {
+                    selectionHaptic();
+                    onSelect(type.name);
+                  }}
+                  style={({ pressed }) => [
+                    styles.typeChoice,
+                    index > 0 && styles.typeChoiceDivider,
+                    selected && styles.typeChoiceSelected,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <View style={[styles.choiceDot, { backgroundColor: type.color }]} />
+                  <Text style={styles.typeChoiceText}>{type.name}</Text>
+                  {selected && <Icon name="check" size={17} color={theme.success} weight="bold" />}
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      )}
+    </ForgeBottomSheet>
   );
 }
 
@@ -818,8 +886,15 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       justifyContent: 'center',
       gap: 2,
     },
+    viewTypeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
     typeDot: { width: 12, height: 12, borderRadius: 6 },
     typeSelection: { minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 9 },
+    viewTypeSelection: { flex: 1, justifyContent: 'flex-end' },
     typeValue: { ...typeScale.body, color: theme.ink, flexShrink: 1 },
     typeChevron: {
       position: 'absolute',
@@ -830,10 +905,13 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    typeChoices: {
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: theme.divider,
-      backgroundColor: theme.surface,
+    typePicker: { paddingBottom: 24 },
+    typePickerList: {
+      marginHorizontal: 20,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderRadius: 16,
+      borderColor: theme.border,
     },
     typeChoice: {
       minHeight: 56,

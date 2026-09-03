@@ -24,7 +24,21 @@ export const styles = StyleSheet.create({
   weekLabel: { flex: 1, textAlign: 'center', ...typeScale.caption },
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 6 },
   dayCell: { width: '14.2857%', height: 42, alignItems: 'center', justifyContent: 'center' },
-  dateTouchTarget: { width: '100%', height: 42, alignItems: 'center', justifyContent: 'center' },
+  dateTouchTarget: {
+    width: '100%',
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  selectionRing: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+  },
+  pointerEventsNone: { pointerEvents: 'none' },
   daySurface: {
     width: 34,
     height: 34,
