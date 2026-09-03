@@ -81,9 +81,11 @@ export interface PlansContextValue extends PlansState {
   ready: boolean;
   createPlan: (name?: string) => WorkoutPlan;
   updatePlan: (planId: string, update: (plan: WorkoutPlan) => WorkoutPlan) => void;
+  reorderPlans: (plans: WorkoutPlan[]) => void;
   deletePlan: (planId: string) => void;
   createRoutine: (options?: Partial<WorkoutRoutine>) => WorkoutRoutine;
   updateRoutine: (routineId: string, update: (routine: WorkoutRoutine) => WorkoutRoutine) => void;
+  reorderRoutines: (routines: WorkoutRoutine[], planId?: string) => void;
   deleteRoutine: (routineId: string) => void;
   duplicateRoutine: (routineId: string) => WorkoutRoutine | null;
   moveRoutine: (routineId: string, planId?: string) => void;

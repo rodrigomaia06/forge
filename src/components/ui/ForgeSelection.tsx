@@ -150,8 +150,10 @@ function ForgeSelectionRow<T extends SelectionValue>({
       {selected && <Icon name="check" size={22} color={theme.selectionIndicator} weight="bold" />}
       {showSeparator && (
         <View
-          pointerEvents="none"
-          style={[styles.selectionSeparator, { backgroundColor: theme.divider }]}
+          style={[
+            styles.selectionSeparator,
+            { backgroundColor: theme.divider, pointerEvents: 'none' },
+          ]}
         />
       )}
     </Pressable>

@@ -395,7 +395,7 @@ export function AddExerciseSheet({
               <Text style={styles.emptySearch}>No exercises found</Text>
             )}
           </ScrollView>
-          <View pointerEvents="none" style={styles.pickerCtaFade}>
+          <View style={[styles.pickerCtaFade, styles.pointerEventsNone]}>
             <Svg style={StyleSheet.absoluteFill}>
               <Defs>
                 <LinearGradient id="pickerCtaFade" x1="0" y1="0" x2="0" y2="1">
@@ -552,6 +552,7 @@ export function WorkoutOptionsSheet({
 const createStyles = (theme: import('../../types').ForgeTheme) => {
   const dashboardTheme = theme;
   return StyleSheet.create({
+    pointerEventsNone: { pointerEvents: 'none' },
     pickerBackdrop: {
       flex: 1,
       justifyContent: 'flex-end',

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, View, useWindowDimensions } from 'react-native';
+import { Animated, Easing, Platform, Pressable, View, useWindowDimensions } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -165,7 +165,7 @@ function CalendarViewMenu({
       toValue: 1,
       duration: 160,
       easing: Easing.out(Easing.quad),
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
     }).start();
   }, [progress]);
   return (
@@ -237,7 +237,7 @@ function CalendarContent({
       toValue: 1,
       duration: 180,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
     }).start();
   }, [view, progress]);
   return (
@@ -451,7 +451,7 @@ function DayCell({
       toValue: isSelected ? 1 : 0,
       duration: 160,
       easing: Easing.out(Easing.quad),
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
     }).start();
   }, [isSelected, selectionProgress]);
   return (

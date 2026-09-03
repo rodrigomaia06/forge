@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { AppScreen, ScreenTitle } from '../components/ui';
 import { useForgeTheme } from '../theme/ThemeProvider';
@@ -26,7 +26,7 @@ export function SettingsScreen({ navigation }: Props) {
             Settings
           </ScreenTitle>
         </View>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.content}>
           <SettingsSection>
             <SettingsRow
               icon="weight"
@@ -78,7 +78,7 @@ export function SettingsScreen({ navigation }: Props) {
               disclosure
             />
           </SettingsSection>
-        </ScrollView>
+        </View>
       </View>
     </AppScreen>
   );

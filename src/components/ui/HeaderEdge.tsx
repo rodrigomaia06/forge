@@ -7,7 +7,7 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 export function HeaderEdge() {
   const theme = useForgeTheme();
   return (
-    <View pointerEvents="none" style={styles.edge}>
+    <View style={[styles.edge, styles.pointerEventsNone]}>
       <View style={[styles.line, { backgroundColor: theme.divider }]} />
       <View style={[styles.shadow, { shadowColor: theme.shadow }]} />
     </View>
@@ -15,6 +15,7 @@ export function HeaderEdge() {
 }
 
 const styles = StyleSheet.create({
+  pointerEventsNone: { pointerEvents: 'none' },
   edge: {
     position: 'absolute',
     right: 0,

@@ -178,8 +178,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
             />
             <View
               testID="new-workout-type-title-wrap"
-              pointerEvents="none"
-              style={styles.createTitleWrap}
+              style={[styles.createTitleWrap, styles.pointerEventsNone]}
             >
               <Text numberOfLines={1} style={styles.createTitle}>
                 New workout type
@@ -375,6 +374,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
 const createStyles = (theme: import('../../types').ForgeTheme) => {
   const dashboardTheme = theme;
   return StyleSheet.create({
+    pointerEventsNone: { pointerEvents: 'none' },
     screen: { flex: 1 },
     createHeader: {
       height: 70,

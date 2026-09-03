@@ -43,6 +43,7 @@ export function HistoryScreen({
   const styles = useThemedStyles(createStyles);
   const groups = useMemo(() => groupByPeriod(completedWorkouts), [completedWorkouts]);
   const [deleteRevealedId, setDeleteRevealedId] = useState<string | null>(null);
+  const [headerElevated, setHeaderElevated] = useState(false);
   return (
     <AppScreen backgroundColor={theme.background} edges={['top']}>
       <View style={styles.screen}>
@@ -58,9 +59,14 @@ export function HistoryScreen({
             iconOnly
             style={styles.filterButton}
           />
-          <HeaderEdge />
+          {headerElevated ? <HeaderEdge /> : null}
         </View>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
+          scrollEventThrottle={16}
+        >
           {groups.length ? (
             groups.map((group) => (
               <View key={group.key} testID={`history-group-${group.key}`} style={styles.group}>
@@ -191,7 +197,12 @@ function TimelineRow({
       </View>
       <GestureDetector gesture={cardGesture}>
         <View testID={`history-swipe-${workout.id}`} style={styles.swipeContainer}>
-          <View pointerEvents={deleteRevealed ? 'auto' : 'none'} style={styles.deleteActionLayer}>
+          <View
+            style={[
+              styles.deleteActionLayer,
+              { pointerEvents: deleteRevealed ? 'auto' : 'none' },
+            ]}
+          >
             <Pressable
               testID={`history-delete-${workout.id}`}
               accessibilityRole="button"

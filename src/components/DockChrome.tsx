@@ -70,11 +70,10 @@ export function DockChrome({
       ref={slotRef}
       onLayout={onLayout}
       testID={slotTestID}
-      pointerEvents="box-none"
       onTouchStart={onInteract}
-      style={[styles.slot, style]}
+      style={[styles.slot, styles.pointerEventsBoxNone, style]}
     >
-      <Svg pointerEvents="none" testID={vignetteTestID} style={styles.vignette}>
+      <Svg testID={vignetteTestID} style={[styles.vignette, styles.pointerEventsNone]}>
         <Defs>
           <LinearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor={theme.background} stopOpacity="0" />
@@ -85,7 +84,7 @@ export function DockChrome({
         </Defs>
         <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${gradientId})`} />
       </Svg>
-      <View pointerEvents="box-none" style={styles.dockLayer}>
+      <View style={[styles.dockLayer, styles.pointerEventsBoxNone]}>
         <DockSurface
           theme={theme}
           compact={compact}
@@ -102,8 +101,11 @@ export function DockChrome({
         <View
           testID={indicatorTestID}
           accessibilityLabel="Home indicator"
-          pointerEvents="none"
-          style={[styles.homeIndicator, { backgroundColor: theme.dockForeground || theme.ink }]}
+          style={[
+            styles.homeIndicator,
+            styles.pointerEventsNone,
+            { backgroundColor: theme.dockForeground || theme.ink },
+          ]}
         />
       )}
     </View>
@@ -122,6 +124,8 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     zIndex: 10,
   },
+  pointerEventsNone: { pointerEvents: 'none' },
+  pointerEventsBoxNone: { pointerEvents: 'box-none' },
   vignette: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 104, zIndex: 0 },
   dockLayer: {
     ...StyleSheet.absoluteFill,

@@ -1,6 +1,6 @@
 # Plans and routines
 
-- Plans contain ordered routines; a routine may also exist without a plan.
+- Plans and their contained routines are ordered; a routine may also exist without a plan. Plans and routines can be reordered from their visible drag handles on the Plans root, and the resulting order persists.
 - A routine starts with an empty name, a workout type, an optional vertically centred note, optional named attributes whose values may be supplied later during a workout, and a reusable exercise/set structure. Its plan membership is not repeated as editor copy.
 - Users can create, visualize, edit, move, delete, and start routines. Starting a routine creates an independent active workout, so later edits do not alter an in-progress session.
 - The Plans screen groups standalone routines and plans separately. Routine rows use their workout-type icon, and swiping left on a routine or plan reveals its destructive Delete action.

@@ -183,7 +183,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     ...typeScale.label,
     textAlign: 'center',
   },
-  inputColumn: { width: 52 },
+  inputColumn: { width: 60 },
   input: {
     minHeight: 36,
     borderWidth: 1,

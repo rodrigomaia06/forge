@@ -33,6 +33,21 @@ export function PlansProvider({ children }: ChildrenProps) {
   const updatePlan = useCallback((planId: string, update: (plan: WorkoutPlan) => WorkoutPlan): void => {
     commit((current) => ({ ...current, plans: current.plans.map((plan) => plan.id === planId ? { ...update(plan), updatedAt: Date.now() } : plan) }));
   }, [commit]);
+  const reorderPlans = useCallback((plans: WorkoutPlan[]): void => {
+    commit((current) => {
+      if (
+        plans.length !== current.plans.length ||
+        plans.some((plan) => !current.plans.some((currentPlan) => currentPlan.id === plan.id))
+      ) {
+        return current;
+      }
+      const currentById = new Map(current.plans.map((plan) => [plan.id, plan]));
+      return {
+        ...current,
+        plans: plans.map((plan) => currentById.get(plan.id) ?? plan),
+      };
+    });
+  }, [commit]);
   const deletePlan = useCallback((planId: string): void => {
     commit((current) => {
       const plan = current.plans.find((item) => item.id === planId);
@@ -51,6 +66,30 @@ export function PlansProvider({ children }: ChildrenProps) {
       plans: current.plans.map((plan) => ({ ...plan, routines: plan.routines.map((routine) => routine.id === routineId ? { ...update(routine), updatedAt: Date.now() } : routine) })),
     }));
   }, [commit]);
+  const reorderRoutines = useCallback((routines: WorkoutRoutine[], planId?: string): void => {
+    commit((current) => {
+      const currentRoutines = planId
+        ? current.plans.find((plan) => plan.id === planId)?.routines
+        : current.standaloneRoutines;
+      if (
+        !currentRoutines ||
+        routines.length !== currentRoutines.length ||
+        routines.some((routine) => !currentRoutines.some((currentRoutine) => currentRoutine.id === routine.id))
+      ) {
+        return current;
+      }
+      const currentById = new Map(currentRoutines.map((routine) => [routine.id, routine]));
+      const ordered = routines.map((routine) => currentById.get(routine.id) ?? routine);
+      return planId
+        ? {
+            ...current,
+            plans: current.plans.map((plan) =>
+              plan.id === planId ? { ...plan, routines: ordered, updatedAt: Date.now() } : plan,
+            ),
+          }
+        : { ...current, standaloneRoutines: ordered };
+    });
+  }, [commit]);
   const moveRoutine = useCallback((routineId: string, planId?: string): void => {
     commit((current) => {
       const routine = current.standaloneRoutines.find((item) => item.id === routineId) ?? current.plans.flatMap((plan) => plan.routines).find((item) => item.id === routineId);
@@ -68,7 +107,7 @@ export function PlansProvider({ children }: ChildrenProps) {
     const copy = createRoutine({ ...source, id: undefined, name: `${source.name} copy`, planId: source.planId, exercises: source.exercises.map((exercise) => ({ ...exercise, id: undefined, sets: exercise.sets?.map((set) => ({ ...set, id: undefined })) })) });
     return copy;
   }, [createRoutine, findRoutine]);
-  const value = useMemo(() => ({ ...state, ready, createPlan, updatePlan, deletePlan, createRoutine, updateRoutine, deleteRoutine, duplicateRoutine, moveRoutine, findRoutine }), [state, ready, createPlan, updatePlan, deletePlan, createRoutine, updateRoutine, deleteRoutine, duplicateRoutine, moveRoutine, findRoutine]);
+  const value = useMemo(() => ({ ...state, ready, createPlan, updatePlan, reorderPlans, deletePlan, createRoutine, updateRoutine, reorderRoutines, deleteRoutine, duplicateRoutine, moveRoutine, findRoutine }), [state, ready, createPlan, updatePlan, reorderPlans, deletePlan, createRoutine, updateRoutine, reorderRoutines, deleteRoutine, duplicateRoutine, moveRoutine, findRoutine]);
   return <PlansContext.Provider value={value}>{children}</PlansContext.Provider>;
 }
 

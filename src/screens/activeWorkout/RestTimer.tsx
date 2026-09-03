@@ -241,7 +241,7 @@ export function RestDurationPicker({
 
   return (
     <View style={styles.durationPicker}>
-      <View pointerEvents="none" style={styles.durationSelection} />
+      <View style={[styles.durationSelection, styles.pointerEventsNone]} />
       <Animated.ScrollView
         ref={pickerRef}
         showsVerticalScrollIndicator={false}

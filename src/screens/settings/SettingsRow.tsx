@@ -110,9 +110,9 @@ export function SettingsRow({
       {disclosure ? <Icon name="chevron-forward" size={18} color={theme.textSecondary} /> : null}
       {showDivider ? (
         <View
-          pointerEvents="none"
           style={[
             styles.divider,
+            styles.pointerEventsNone,
             hasLeading && (iconBackgroundColor ? styles.framedDivider : styles.leadingDivider),
             { backgroundColor: theme.divider },
           ]}
@@ -212,6 +212,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       bottom: 0,
       left: 18,
     },
+    pointerEventsNone: { pointerEvents: 'none' },
     leadingDivider: { left: 54 },
     framedDivider: { left: 70 },
     section: { gap: 8 },

@@ -16,9 +16,9 @@ export function ForgeSwitch({ value, disabled = false, testID, style }: ForgeSwi
   return (
     <View
       testID={testID}
-      pointerEvents="none"
       style={[
         styles.track,
+        styles.pointerEventsNone,
         { backgroundColor: value ? theme.selectionIndicator : theme.surfaceMuted },
         disabled && styles.disabled,
         style,
@@ -36,6 +36,7 @@ export function ForgeSwitch({ value, disabled = false, testID, style }: ForgeSwi
 }
 
 const styles = StyleSheet.create({
+  pointerEventsNone: { pointerEvents: 'none' },
   track: { width: 48, height: 28, borderRadius: 14, padding: 2, justifyContent: 'center' },
   thumb: { width: 24, height: 24, borderRadius: 12 },
   thumbOn: { alignSelf: 'flex-end' },

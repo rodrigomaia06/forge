@@ -26,6 +26,7 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       backgroundColor: dashboardTheme.divider,
       zIndex: 2,
     },
+    pointerEventsNone: { pointerEvents: 'none' },
     headerTop: {
       height: 44,
       flexDirection: 'row',
@@ -37,9 +38,6 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       color: dashboardTheme.ink,
       ...typeScale.headerTitle,
       textAlign: 'center',
-      textShadowColor: 'rgba(23,25,28,0.08)',
-      textShadowOffset: { width: 0, height: 1 },
-      textShadowRadius: 1.2,
     },
     titleBlock: {
       position: 'absolute',

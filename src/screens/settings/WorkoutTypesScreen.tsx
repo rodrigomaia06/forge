@@ -255,8 +255,10 @@ function SwipeTypeRow({
     >
       {type.source !== 'builtIn' && (
         <View
-          pointerEvents={revealed ? 'auto' : 'none'}
-          style={[styles.actionLayer, { backgroundColor: theme.overlay }]}
+          style={[
+            styles.actionLayer,
+            { backgroundColor: theme.overlay, pointerEvents: revealed ? 'auto' : 'none' },
+          ]}
         >
           <Pressable
             accessibilityRole="button"

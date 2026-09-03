@@ -122,9 +122,9 @@ export function BottomNavigation({
     <View style={[styles.navigation, compact && styles.navigationCompact]}>
       <Animated.View
         testID="dashboard-nav-selection-pill"
-        pointerEvents="none"
         style={[
           styles.selectionPill,
+          styles.pointerEventsNone,
           compact && styles.selectionPillCompact,
           selectionIndicatorStyle,
           {
@@ -173,6 +173,7 @@ export function BottomNavigation({
 }
 
 const styles = StyleSheet.create({
+  pointerEventsNone: { pointerEvents: 'none' },
   navigation: {
     position: 'relative',
     zIndex: 1,

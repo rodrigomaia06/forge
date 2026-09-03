@@ -281,8 +281,7 @@ function TypeOption({
       style={({ pressed }) => [styles.tagRow, pressed && pressedFeedbackSubtle]}
     >
       <Animated.View
-        pointerEvents="none"
-        style={[styles.tagSelectedOverlay, selectedOverlayStyle]}
+        style={[styles.tagSelectedOverlay, styles.pointerEventsNone, selectedOverlayStyle]}
       />
       <View style={[styles.dot, { backgroundColor: color }]} />
       <Text style={styles.tagText}>{label}</Text>
@@ -297,7 +296,7 @@ function InfoPopover({ visible, text }: { visible: boolean; text: string }) {
   const styles = useThemedStyles(createStyles);
   if (!visible) return null;
   return (
-    <View pointerEvents="none" style={styles.infoPopover}>
+    <View style={[styles.infoPopover, styles.pointerEventsNone]}>
       <Text style={styles.infoPopoverText}>{text}</Text>
     </View>
   );
@@ -371,6 +370,7 @@ function TargetRow({
 const createStyles = (theme: import('../../types').ForgeTheme) => {
   const dashboardTheme = theme;
   return StyleSheet.create({
+  pointerEventsNone: { pointerEvents: 'none' },
   sheetContent: { flexGrow: 0 },
   setDetailsSheet: {
     minHeight: 0,

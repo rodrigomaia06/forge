@@ -29,7 +29,7 @@ export function AnchoredActionPopover({
   const theme = useForgeTheme();
   if (!visible) return null;
   return (
-    <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+    <View style={[StyleSheet.absoluteFill, styles.pointerEventsBoxNone]}>
       <Pressable accessibilityRole="button" accessibilityLabel="Dismiss actions" onPress={onClose} style={StyleSheet.absoluteFill} />
       <View testID={testID} style={[styles.popover, { backgroundColor: theme.surfaceElevated, borderColor: theme.border, shadowColor: theme.shadow }]}>
         {actions.map((action, index) => (
@@ -56,6 +56,7 @@ export function AnchoredActionPopover({
 }
 
 const styles = StyleSheet.create({
+  pointerEventsBoxNone: { pointerEvents: 'box-none' },
   popover: {
     position: 'absolute',
     top: 62,

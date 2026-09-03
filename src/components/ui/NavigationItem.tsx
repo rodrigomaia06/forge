@@ -1,5 +1,11 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated as RNAnimated, Easing as RNEasing, Pressable, StyleSheet } from 'react-native';
+import {
+  Animated as RNAnimated,
+  Easing as RNEasing,
+  Platform,
+  Pressable,
+  StyleSheet,
+} from 'react-native';
 import Animated, {
   Easing,
   cancelAnimation,
@@ -43,7 +49,7 @@ export function NavigationItem({
       toValue: active ? 1 : 0,
       duration: 180,
       easing: RNEasing.out(RNEasing.cubic),
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
     }).start();
   }, [active, activeProgress]);
 

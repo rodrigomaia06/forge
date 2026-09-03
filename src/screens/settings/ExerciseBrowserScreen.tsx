@@ -1107,8 +1107,10 @@ function SwipeCustomExerciseRow({
     <GestureDetector gesture={pan}>
       <View testID={`custom-exercise-swipe-${item.id}`} style={styles.customSwipe}>
         <View
-          pointerEvents={revealed ? 'auto' : 'none'}
-          style={[styles.customDeleteLayer, { backgroundColor: theme.destructiveSurface }]}
+          style={[
+            styles.customDeleteLayer,
+            { backgroundColor: theme.destructiveSurface, pointerEvents: revealed ? 'auto' : 'none' },
+          ]}
         >
           <Pressable
             accessibilityRole="button"

@@ -28,7 +28,7 @@ export function SettingsDetailHeader({
         iconOnly
         onPress={() => navigation.goBack()}
       />
-      <View style={styles.titleWrap} pointerEvents="none">
+      <View style={[styles.titleWrap, styles.pointerEventsNone]}>
         <Text
           testID="settings-detail-title"
           style={[styles.title, { color: theme.textPrimary }]}
@@ -44,6 +44,7 @@ export function SettingsDetailHeader({
 
 const createStyles = (theme: import('../../types').ForgeTheme) =>
   StyleSheet.create({
+    pointerEventsNone: { pointerEvents: 'none' },
     header: {
       height: 70,
       paddingHorizontal: 20,

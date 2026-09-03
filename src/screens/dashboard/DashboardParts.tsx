@@ -55,10 +55,9 @@ export function DashboardShell({
               style={styles.calendarMenuDismiss}
             />
             <View
-              pointerEvents="box-none"
               style={[
                 styles.calendarMenuPortal,
-                { top: calendarMenu.top, right: calendarMenu.right },
+                { top: calendarMenu.top, right: calendarMenu.right, pointerEvents: 'box-none' },
               ]}
             >
               {calendarMenu.content}

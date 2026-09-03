@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -52,6 +52,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   const [expanded, setExpanded] = useState(!collapsible);
   const cardTranslateX = useSharedValue(deleteRevealed ? -deleteActionWidth : 0);
   const cardOpen = useSharedValue(deleteRevealed);
+  const suppressDeletePress = useRef(false);
 
   useEffect(() => {
     cardOpen.value = deleteRevealed;
@@ -75,19 +76,29 @@ export const ExerciseSection = React.memo(function ExerciseSection({
     if (shouldOpen !== deleteRevealed) {
       mediumHaptic();
       onDeleteRevealChange(exercise.id, shouldOpen);
-      return;
+    } else {
+      cardTranslateX.value = withSpring(shouldOpen ? -deleteActionWidth : 0, {
+        damping: 22,
+        stiffness: 280,
+        mass: 0.65,
+        overshootClamping: true,
+      });
     }
-    cardTranslateX.value = withSpring(shouldOpen ? -deleteActionWidth : 0, {
-      damping: 22,
-      stiffness: 280,
-      mass: 0.65,
-      overshootClamping: true,
+    requestAnimationFrame(() => {
+      suppressDeletePress.current = false;
     });
+  };
+
+  const beginCardSwipe = (): void => {
+    suppressDeletePress.current = true;
   };
 
   const cardGesture = Gesture.Pan()
     .activeOffsetX([-8, 8])
     .failOffsetY([-12, 12])
+    .onStart(() => {
+      runOnJS(beginCardSwipe)();
+    })
     .onUpdate((gesture) => {
       if (!cardOpen.value && gesture.translationX >= 0) return;
       const base = cardOpen.value ? -deleteActionWidth : 0;
@@ -106,13 +117,16 @@ export const ExerciseSection = React.memo(function ExerciseSection({
     <GestureDetector gesture={cardGesture}>
       <View testID={testID} style={styles.exerciseSwipe}>
         <View
-          pointerEvents={deleteRevealed ? 'auto' : 'none'}
-          style={styles.deleteExerciseActionLayer}
+          style={[
+            styles.deleteExerciseActionLayer,
+            { pointerEvents: deleteRevealed ? 'auto' : 'none' },
+          ]}
         >
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Delete ${exercise.name}`}
             onPress={() => {
+              if (suppressDeletePress.current) return;
               errorHaptic();
               animateLayout();
               removeExercise(exercise.id);
@@ -127,7 +141,13 @@ export const ExerciseSection = React.memo(function ExerciseSection({
             <Text style={styles.deleteExerciseText}>Delete</Text>
           </Pressable>
         </View>
-        <Animated.View style={[styles.exerciseSwipeContent, swipeContentStyle]}>
+        <Animated.View
+          style={[
+            styles.exerciseSwipeContent,
+            deleteRevealed && styles.exerciseSwipeContentRevealed,
+            swipeContentStyle,
+          ]}
+        >
           <View
             style={[
               styles.exerciseCard,
@@ -159,7 +179,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     {`${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'}`}
                   </Text>
                 </View>
-                <View style={styles.collapsibleChevron} pointerEvents="none">
+                <View style={[styles.collapsibleChevron, styles.pointerEventsNone]}>
                   <Icon
                     name={expanded ? 'chevron-down' : 'chevron-forward'}
                     size={20}
@@ -376,6 +396,11 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       backgroundColor: dashboardTheme.destructiveSurface,
     },
     exerciseSwipeContent: { zIndex: 1, backgroundColor: dashboardTheme.surface },
+    exerciseSwipeContentRevealed: {
+      overflow: 'hidden',
+      borderTopRightRadius: 16,
+      borderBottomRightRadius: 16,
+    },
     deleteExerciseActionLayer: {
       position: 'absolute',
       top: 0,
@@ -469,6 +494,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     collapsibleExerciseName: { flex: 0, flexShrink: 1 },
     collapsibleExerciseMeta: { marginTop: 0, ...typeScale.supporting, color: dashboardTheme.slate },
     collapsibleChevron: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: -8 },
+    pointerEventsNone: { pointerEvents: 'none' },
     collapsibleExerciseBody: {
       paddingHorizontal: 12,
       paddingTop: 3,
@@ -500,7 +526,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     setHeaderText: { color: dashboardTheme.slate, ...typeScale.label, textAlign: 'center' },
     setColumn: { width: 46 },
     previousColumn: { flex: 1 },
-    inputColumn: { width: 52 },
+    inputColumn: { width: 60 },
     inputHeader: { textAlign: 'center' },
     checkColumn: { width: 44 },
     addSet: {

@@ -201,10 +201,7 @@ export function ForgeBottomSheet({
             ]}
           />
         ) : null}
-        <View
-          pointerEvents="box-none"
-          style={styles.keyboardArea}
-        >
+        <View style={[styles.keyboardArea, styles.pointerEventsBoxNone]}>
           <GestureDetector gesture={pan}>
             <Animated.View
               testID={surfaceTestID}
@@ -252,6 +249,7 @@ export function ForgeBottomSheetDragArea({ children }: { children: React.ReactNo
 }
 
 const styles = StyleSheet.create({
+  pointerEventsBoxNone: { pointerEvents: 'box-none' },
   backdrop: {
     ...StyleSheet.absoluteFill,
     justifyContent: 'flex-end',

@@ -281,7 +281,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
             <Text style={styles.timerLabel}>Rest</Text>
           </Pressable>
         </View>
-        <View pointerEvents="none" style={styles.headerSeparator} />
+        <View style={[styles.headerSeparator, styles.pointerEventsNone]} />
       </View>
       <KeyboardAvoidingView
         style={styles.keyboardArea}

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import DraggableFlatList, { ScaleDecorator, ShadowDecorator } from 'react-native-draggable-flatlist';
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -14,6 +15,7 @@ import {
   ForgeActionSheet,
   ForgeText as Text,
   HeaderAction,
+  HeaderEdge,
   Icon,
   lightHaptic,
   mediumHaptic,
@@ -50,12 +52,15 @@ export function PlansScreen({ navigation, route }: Props) {
     plans,
     standaloneRoutines,
     createPlan,
+    reorderPlans,
+    reorderRoutines,
     deletePlan,
     deleteRoutine,
   } = usePlans();
   const { startWorkout } = useWorkouts();
   const [creationOpen, setCreationOpen] = useState(false);
   const [actionTarget, setActionTarget] = useState<PlanActionTarget | null>(null);
+  const [headerElevated, setHeaderElevated] = useState(false);
 
   useEffect(() => {
     if (!route.params?.openCreation) return;
@@ -111,57 +116,83 @@ export function PlansScreen({ navigation, route }: Props) {
             iconOnly
             onPress={() => setCreationOpen(true)}
           />
+          {headerElevated ? <HeaderEdge /> : null}
         </View>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          {standaloneRoutines.length > 0 && (
-            <Section title="Routines">
-              <View style={styles.card}>
-                {standaloneRoutines.map((routine, index) => (
-                  <SwipeDelete
-                    key={routine.id}
-                    accessibilityLabel={`Delete ${routine.name}`}
-                    testID={`routine-swipe-${routine.id}`}
-                    onOpen={() => openRoutine(routine)}
-                    onDelete={() => deleteRoutine(routine.id)}
-                  >
-                    {() => (
-                      <RoutineRow
-                        routine={routine}
-                        workoutTypes={preferences.workoutTypes}
-                        last={index === standaloneRoutines.length - 1}
-                        onStart={() => startRoutine(routine)}
-                        onPress={() => routineActions(routine)}
-                      />
-                    )}
-                  </SwipeDelete>
-                ))}
-              </View>
-            </Section>
+        <DraggableFlatList
+          data={plans}
+          keyExtractor={(plan) => plan.id}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          activationDistance={12}
+          onScrollOffsetChange={(offset) => setHeaderElevated(offset > 1)}
+          ListHeaderComponent={
+            <View style={styles.listHeader}>
+              {standaloneRoutines.length > 0 && (
+                <Section title="Routines">
+                  <View style={styles.card}>
+                    <DraggableFlatList
+                      data={standaloneRoutines}
+                      keyExtractor={(routine) => routine.id}
+                      scrollEnabled={false}
+                      activationDistance={12}
+                      onDragEnd={({ data }) => reorderRoutines(data)}
+                      renderItem={({ item: routine, getIndex, drag, isActive }) => {
+                        const index = getIndex() ?? standaloneRoutines.indexOf(routine);
+                        return (
+                          <RoutineDragCell active={isActive}>
+                            <SwipeDelete
+                              accessibilityLabel={`Delete ${routine.name}`}
+                              testID={`routine-swipe-${routine.id}`}
+                              onOpen={() => openRoutine(routine)}
+                              onDelete={() => deleteRoutine(routine.id)}
+                            >
+                              {() => (
+                                <RoutineRow
+                                  routine={routine}
+                                  workoutTypes={preferences.workoutTypes}
+                                  last={index === standaloneRoutines.length - 1}
+                                  onStart={() => startRoutine(routine)}
+                                  onPress={() => routineActions(routine)}
+                                  onDrag={drag}
+                                  dragging={isActive}
+                                />
+                              )}
+                            </SwipeDelete>
+                          </RoutineDragCell>
+                        );
+                      }}
+                    />
+                  </View>
+                </Section>
+              )}
+              {plans.length > 0 ? <Text style={styles.sectionTitle}>Plans</Text> : null}
+            </View>
+          }
+          ListEmptyComponent={
+            !standaloneRoutines.length ? <EmptyPlans /> : null
+          }
+          onDragEnd={({ data }) => reorderPlans(data)}
+          renderItem={({ item: plan, drag, isActive }) => (
+            <View style={styles.planDragRow}>
+              <PlanCard
+                plan={plan}
+                workoutTypes={preferences.workoutTypes}
+                onAddRoutine={() => addRoutine(plan.id)}
+                onOpenRoutine={routineActions}
+                onStartRoutine={startRoutine}
+                onDeleteRoutine={(routine) => deleteRoutine(routine.id)}
+                onOptions={(item) => {
+                  lightHaptic();
+                  setActionTarget({ kind: 'plan', item });
+                }}
+                onDelete={() => deletePlan(plan.id)}
+                onDrag={drag}
+                dragging={isActive}
+                onReorderRoutines={(routines) => reorderRoutines(routines, plan.id)}
+              />
+            </View>
           )}
-          {plans.length > 0 && (
-            <Section title="Plans">
-              <View style={styles.planList}>
-                {plans.map((plan) => (
-                  <PlanCard
-                    key={plan.id}
-                    plan={plan}
-                    workoutTypes={preferences.workoutTypes}
-                    onAddRoutine={() => addRoutine(plan.id)}
-                    onOpenRoutine={routineActions}
-                    onStartRoutine={startRoutine}
-                    onDeleteRoutine={(routine) => deleteRoutine(routine.id)}
-                    onOptions={(item) => {
-                      lightHaptic();
-                      setActionTarget({ kind: 'plan', item });
-                    }}
-                    onDelete={() => deletePlan(plan.id)}
-                  />
-                ))}
-              </View>
-            </Section>
-          )}
-          {!plans.length && !standaloneRoutines.length && <EmptyPlans />}
-        </ScrollView>
+        />
         <AnchoredActionPopover
           visible={creationOpen}
           onClose={() => setCreationOpen(false)}
@@ -228,6 +259,9 @@ function PlanCard({
   onDeleteRoutine,
   onOptions,
   onDelete,
+  onDrag,
+  dragging,
+  onReorderRoutines,
 }: {
   plan: WorkoutPlan;
   workoutTypes: WorkoutTypePreference[];
@@ -237,6 +271,9 @@ function PlanCard({
   onDeleteRoutine: (routine: WorkoutRoutine) => void;
   onOptions: (plan: WorkoutPlan) => void;
   onDelete: () => void;
+  onDrag: () => void;
+  dragging: boolean;
+  onReorderRoutines: (routines: WorkoutRoutine[]) => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -249,35 +286,55 @@ function PlanCard({
     >
       {() => (
         <View style={styles.card}>
-          <Pressable
+          <View
             testID={`plan-header-${plan.id}`}
-            accessibilityRole="button"
-            accessibilityLabel={`Open options for ${plan.name}`}
-            onPress={() => onOptions(plan)}
-            style={({ pressed }) => [styles.planHeader, pressed && styles.pressed]}
+            style={styles.planHeader}
           >
-            <Text style={styles.planName}>{plan.name}</Text>
-            <Icon name="chevron-forward" size={20} color={theme.slate} />
-          </Pressable>
-          {plan.routines.length > 0 && <View style={styles.planRoutineSeparation} />}
-          {plan.routines.map((routine, index) => (
-            <SwipeDelete
-              key={routine.id}
-              accessibilityLabel={`Delete ${routine.name}`}
-              testID={`routine-swipe-${routine.id}`}
-              onDelete={() => onDeleteRoutine(routine)}
+            <PlanDragHandle name={plan.name} onDrag={onDrag} disabled={dragging} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Open options for ${plan.name}`}
+              onPress={() => onOptions(plan)}
+              style={({ pressed }) => [styles.planOptions, pressed && styles.pressed]}
             >
-              {() => (
-                <RoutineRow
-                  routine={routine}
-                  workoutTypes={workoutTypes}
-                  last={index === plan.routines.length - 1}
-                  onStart={() => onStartRoutine(routine)}
-                  onPress={() => onOpenRoutine(routine)}
-                />
-              )}
-            </SwipeDelete>
-          ))}
+              <Text style={styles.planName}>{plan.name}</Text>
+              <Icon name="chevron-forward" size={20} color={theme.slate} />
+            </Pressable>
+          </View>
+          {plan.routines.length > 0 && <View style={styles.planRoutineSeparation} />}
+          {plan.routines.length > 0 ? (
+            <DraggableFlatList
+              data={plan.routines}
+              keyExtractor={(routine) => routine.id}
+              scrollEnabled={false}
+              activationDistance={12}
+              onDragEnd={({ data }) => onReorderRoutines(data)}
+              renderItem={({ item: routine, getIndex, drag: dragRoutine, isActive }) => {
+                const index = getIndex() ?? plan.routines.indexOf(routine);
+                return (
+                  <RoutineDragCell active={isActive}>
+                    <SwipeDelete
+                      accessibilityLabel={`Delete ${routine.name}`}
+                      testID={`routine-swipe-${routine.id}`}
+                      onDelete={() => onDeleteRoutine(routine)}
+                    >
+                      {() => (
+                        <RoutineRow
+                          routine={routine}
+                          workoutTypes={workoutTypes}
+                          last={index === plan.routines.length - 1}
+                          onStart={() => onStartRoutine(routine)}
+                          onPress={() => onOpenRoutine(routine)}
+                          onDrag={dragRoutine}
+                          dragging={isActive}
+                        />
+                      )}
+                    </SwipeDelete>
+                  </RoutineDragCell>
+                );
+              }}
+            />
+          ) : null}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Add routine to ${plan.name}`}
@@ -293,23 +350,57 @@ function PlanCard({
   );
 }
 
+function PlanDragHandle({
+  name,
+  onDrag,
+  disabled,
+}: {
+  name: string;
+  onDrag: () => void;
+  disabled: boolean;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Drag to reorder ${name}`}
+      accessibilityHint="Hold, then drag to change plan order"
+      disabled={disabled}
+      delayLongPress={180}
+      onLongPress={() => {
+        lightHaptic();
+        onDrag();
+      }}
+      style={({ pressed }) => [styles.planDragHandle, pressed && styles.pressed]}
+    >
+      <Icon name="drag" size={19} color={theme.muted} />
+    </Pressable>
+  );
+}
+
 function RoutineRow({
   routine,
   workoutTypes,
   last,
   onStart,
   onPress,
+  onDrag,
+  dragging = false,
 }: {
   routine: WorkoutRoutine;
   workoutTypes: WorkoutTypePreference[];
   last: boolean;
   onStart: () => void;
   onPress: () => void;
+  onDrag?: () => void;
+  dragging?: boolean;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   return (
     <View style={[styles.routineRow, !last && styles.divider]}>
+      {onDrag ? <RoutineDragHandle name={routine.name} onDrag={onDrag} disabled={dragging} /> : null}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Start ${routine.name}`}
@@ -336,6 +427,47 @@ function RoutineRow({
         <Icon name="chevron-forward" size={19} color={theme.slate} />
       </Pressable>
     </View>
+  );
+}
+
+function RoutineDragCell({ active, children }: { active: boolean; children: React.ReactNode }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  return active ? (
+    <ShadowDecorator elevation={10} radius={14} color={theme.shadow} opacity={0.24}>
+      <ScaleDecorator activeScale={1.015}>{children}</ScaleDecorator>
+    </ShadowDecorator>
+  ) : (
+    <View>{children}</View>
+  );
+}
+
+function RoutineDragHandle({
+  name,
+  onDrag,
+  disabled,
+}: {
+  name: string;
+  onDrag: () => void;
+  disabled: boolean;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Drag to reorder ${name}`}
+      accessibilityHint="Hold, then drag to change routine order"
+      disabled={disabled}
+      delayLongPress={180}
+      onLongPress={() => {
+        lightHaptic();
+        onDrag();
+      }}
+      style={({ pressed }) => [styles.routineDragHandle, pressed && styles.pressed]}
+    >
+      <Icon name="drag" size={18} color={theme.muted} />
+    </Pressable>
   );
 }
 
@@ -388,6 +520,7 @@ function SwipeDelete({
   const offset = useSharedValue(0);
   const open = useSharedValue(false);
   const suppressNextPress = useRef(false);
+  const suppressDeletePress = useRef(false);
 
   useEffect(() => {
     open.value = revealed;
@@ -402,10 +535,19 @@ function SwipeDelete({
     } else {
       offset.value = withSpring(next ? -actionWidth : 0, swipeSpring);
     }
+    requestAnimationFrame(() => {
+      suppressDeletePress.current = false;
+    });
+  };
+  const beginSwipe = (): void => {
+    suppressDeletePress.current = true;
   };
   const pan = Gesture.Pan()
     .activeOffsetX([-8, 8])
     .failOffsetY([-12, 12])
+    .onStart(() => {
+      runOnJS(beginSwipe)();
+    })
     .onUpdate((event) => {
       if (!open.value && event.translationX >= 0) return;
       const initial = open.value ? -actionWidth : 0;
@@ -428,18 +570,18 @@ function SwipeDelete({
 
   return (
     <GestureDetector gesture={pan}>
-      <View
-        testID={testID}
-        style={[styles.swipeContainer, rounded && styles.roundedSwipeContainer]}
-      >
+      <View testID={testID} style={[styles.swipeContainer, rounded && styles.roundedSwipeContainer]}>
         <View
-          pointerEvents={revealed ? 'auto' : 'none'}
-          style={[styles.deleteLayer, { backgroundColor: theme.destructiveSurface }]}
+          style={[
+            styles.deleteLayer,
+            { backgroundColor: theme.destructiveSurface, pointerEvents: revealed ? 'auto' : 'none' },
+          ]}
         >
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={accessibilityLabel}
             onPress={() => {
+              if (suppressDeletePress.current) return;
               lightHaptic();
               onDelete();
             }}
@@ -450,7 +592,12 @@ function SwipeDelete({
           </Pressable>
         </View>
         <Animated.View
-          style={[styles.swipeSurface, { backgroundColor: theme.surface }, animatedStyle]}
+          style={[
+            styles.swipeSurface,
+            revealed && styles.swipeSurfaceRounded,
+            { backgroundColor: theme.surface },
+            animatedStyle,
+          ]}
         >
           {children(handleOpen)}
         </Animated.View>
@@ -473,24 +620,40 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     },
     screen: { flex: 1 },
     header: {
+      position: 'relative',
+      zIndex: 2,
       height: 70,
       paddingHorizontal: spacing.screen,
       alignItems: 'center',
       justifyContent: 'space-between',
       flexDirection: 'row',
+      backgroundColor: theme.background,
     },
     content: {
       paddingHorizontal: spacing.screen,
       paddingTop: 16,
       paddingBottom: forgeDockScrollInset,
-      gap: 28,
     },
+    listHeader: { gap: 28, paddingBottom: 11 },
     section: { gap: 11 },
     sectionTitle: { ...typeScale.sectionTitle, color: theme.slate },
-    planList: { gap: 14 },
+    planDragRow: { paddingBottom: 14 },
     planHeader: {
       minHeight: 56,
-      paddingHorizontal: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    planDragHandle: {
+      width: 44,
+      minHeight: 56,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    planOptions: {
+      flex: 1,
+      minWidth: 0,
+      minHeight: 56,
+      paddingRight: 16,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -506,6 +669,13 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       paddingHorizontal: 12,
       flexDirection: 'row',
       alignItems: 'center',
+    },
+    routineDragHandle: {
+      width: 32,
+      height: 52,
+      marginRight: 2,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
     typeMarker: {
@@ -571,5 +741,10 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     deleteActionPressed: { backgroundColor: theme.destructiveSurfacePressed },
     deleteText: { ...typeScale.caption, color: theme.textDestructive },
     swipeSurface: { zIndex: 1 },
+    swipeSurfaceRounded: {
+      overflow: 'hidden',
+      borderTopRightRadius: theme.cardRadius,
+      borderBottomRightRadius: theme.cardRadius,
+    },
     pressed: { opacity: 0.58 },
   });

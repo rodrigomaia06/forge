@@ -288,7 +288,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
             iconOnly
             onPress={discard}
           />
-          <View style={styles.headerTitleWrap} pointerEvents="none">
+          <View style={[styles.headerTitleWrap, styles.pointerEventsNone]}>
             <Text style={styles.headerTitle} numberOfLines={1}>
               {creating ? 'New routine' : viewing ? 'Routine' : 'Edit routine'}
             </Text>
@@ -359,7 +359,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                   style={({ pressed }) => [styles.typeRow, pressed && styles.pressed]}
                 >
                   <Text style={styles.typeLabel}>Type</Text>
-                  <View style={styles.typeSelection} pointerEvents="none">
+                  <View style={[styles.typeSelection, styles.pointerEventsNone]}>
                     <View
                       style={[
                         styles.typeDot,
@@ -372,7 +372,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                     />
                     <Text style={styles.typeValue}>{draft.type}</Text>
                   </View>
-                  <View style={styles.typeChevron} pointerEvents="none">
+                  <View style={[styles.typeChevron, styles.pointerEventsNone]}>
                     <Icon
                       name={pickerOpen ? 'chevron-down' : 'chevron-forward'}
                       size={19}
@@ -744,6 +744,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       borderBottomColor: theme.divider,
     },
     headerTitleWrap: { position: 'absolute', left: 74, right: 74, alignItems: 'center' },
+    pointerEventsNone: { pointerEvents: 'none' },
     headerTitle: { ...typeScale.headerTitle, color: theme.ink },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     content: { padding: 16, paddingBottom: 50 },

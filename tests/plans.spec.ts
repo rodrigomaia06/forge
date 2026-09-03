@@ -12,6 +12,18 @@ async function swipeLeftFrom(
   await page.mouse.up();
 }
 
+async function swipeRightFrom(
+  page: import('@playwright/test').Page,
+  locator: import('@playwright/test').Locator,
+) {
+  const box = await locator.boundingBox();
+  if (!box) throw new Error('Expected swipe target to be measurable');
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 100, box.y + box.height / 2, { steps: 8 });
+  await page.mouse.up();
+}
+
 test.describe('Plans and routines', () => {
   test('routes the Dashboard creation action into the Plans creation popover', async ({ page }) => {
     await page.goto('/');
@@ -235,6 +247,8 @@ test.describe('Plans and routines', () => {
     await expect(exercise.getByRole('button', { name: 'Add set to Barbell Bench Press' })).toBeVisible();
     await swipeLeftFrom(page, exercise);
     await expect(exercise.getByRole('button', { name: 'Delete Barbell Bench Press' })).toBeVisible();
+    await swipeRightFrom(page, exercise);
+    await expect(exercise.getByText('Barbell Bench Press', { exact: true })).toBeVisible();
   });
 
   test('attaches a plan routine only after Save and uses a compact plan header', async ({ page }) => {

@@ -143,10 +143,9 @@ function WorkoutSummaryCard({
   return (
     <View testID="workout-details-summary" onLayout={updateCardSize} style={styles.summaryCard}>
       <Svg
-        pointerEvents="none"
         width={cardSize.width}
         height={cardSize.height}
-        style={StyleSheet.absoluteFill}
+        style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}
       >
         <Defs>
           <LinearGradient id="workoutSummaryGradient" x1="0" y1="0" x2="1" y2="1">

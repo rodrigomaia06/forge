@@ -151,7 +151,12 @@ function SwipeableSetRowComponent({
   return (
     <GestureDetector gesture={deleteGesture}>
       <View style={styles.swipeRow}>
-      <View pointerEvents={deleteRevealed ? 'auto' : 'none'} style={styles.deleteActionLayer}>
+      <View
+        style={[
+          styles.deleteActionLayer,
+          { pointerEvents: deleteRevealed ? 'auto' : 'none' },
+        ]}
+      >
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Delete set ${index + 1}`}
@@ -162,7 +167,6 @@ function SwipeableSetRowComponent({
         </Pressable>
       </View>
       <Animated.View
-        pointerEvents="auto"
         accessibilityLabel={`Set ${index + 1}`}
         accessibilityActions={[{ name: 'delete', label: 'Delete set' }]}
         onAccessibilityAction={(event) => {
