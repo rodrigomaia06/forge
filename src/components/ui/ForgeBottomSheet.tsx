@@ -8,6 +8,7 @@ import {
   StyleSheet,
   UIManager,
   View,
+  useWindowDimensions,
   type KeyboardEvent,
   type StyleProp,
   type ViewStyle,
@@ -78,12 +79,14 @@ export function ForgeBottomSheet({
 }: ForgeBottomSheetProps) {
   const theme = useForgeTheme();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const translateY = useSharedValue(closeDistance);
   const backdropOpacity = useSharedValue(0);
   const closing = useSharedValue(false);
   const dragStart = useSharedValue(0);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [naturalSheetHeight, setNaturalSheetHeight] = useState(0);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
@@ -161,6 +164,14 @@ export function ForgeBottomSheet({
     });
   const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
   const backdropStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value }));
+  const keyboardBreathingRoom = 16;
+  const compactSheetFitsAboveKeyboard =
+    keyboardVisible &&
+    naturalSheetHeight > 0 &&
+    naturalSheetHeight + keyboardBreathingRoom <= windowHeight - keyboardHeight - insets.top;
+  const keyboardSurfaceFillHeight = keyboardHeight + insets.bottom + (
+    compactSheetFitsAboveKeyboard ? keyboardBreathingRoom : 0
+  );
 
   if (!visible) return null;
   return (
@@ -181,11 +192,12 @@ export function ForgeBottomSheet({
           style={StyleSheet.absoluteFill}
         />
         {keyboardVisible ? (
-          <View
-            pointerEvents="none"
+          <Pressable
+            accessible={false}
+            onPress={Keyboard.dismiss}
             style={[
               styles.keyboardSurfaceFill,
-              { height: keyboardHeight, backgroundColor: theme.surfaceElevated },
+              { height: keyboardSurfaceFillHeight, backgroundColor: theme.surfaceElevated },
             ]}
           />
         ) : null}
@@ -196,14 +208,25 @@ export function ForgeBottomSheet({
           <GestureDetector gesture={pan}>
             <Animated.View
               testID={surfaceTestID}
+              onLayout={(event) => {
+                if (!keyboardVisible) setNaturalSheetHeight(event.nativeEvent.layout.height);
+              }}
               onStartShouldSetResponderCapture={() => keyboardVisible && dismissTextKeyboardOnTap}
               onResponderRelease={() => Keyboard.dismiss()}
               style={[
                 styles.sheet,
                 { backgroundColor: theme.surfaceElevated, shadowColor: theme.shadow },
                 style,
-                keyboardVisible && styles.keyboardExpandedSheet,
-                keyboardVisible && { top: insets.top, bottom: keyboardHeight },
+                keyboardVisible && (compactSheetFitsAboveKeyboard
+                  ? styles.keyboardRaisedSheet
+                  : styles.keyboardExpandedSheet),
+                keyboardVisible && compactSheetFitsAboveKeyboard && {
+                  bottom: keyboardHeight + keyboardBreathingRoom,
+                },
+                keyboardVisible && !compactSheetFitsAboveKeyboard && {
+                  top: insets.top,
+                  bottom: keyboardHeight,
+                },
                 sheetStyle,
               ]}
             >
@@ -253,6 +276,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
     shadowRadius: 0,
     elevation: 0,
+  },
+  keyboardRaisedSheet: {
+    position: 'absolute',
+    right: 0,
+    left: 0,
   },
   handle: { width: 48, height: 5, borderRadius: 3, alignSelf: 'center', marginTop: 10, marginBottom: 4 },
 });

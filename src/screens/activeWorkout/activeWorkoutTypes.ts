@@ -18,7 +18,11 @@ export interface ExerciseSectionProps {
   testID?: string;
   /** Routine editor uses the same set editor under a compact expandable header. */
   collapsible?: boolean;
+  /** A parent reorder gesture collapses compact exercise cards before movement begins. */
+  forceCollapsed?: boolean;
   showMoreOptions?: boolean;
+  /** Routine drafts do not record completed sets. */
+  showSetCompletion?: boolean;
 }
 
 export interface SwipeableSetRowProps {
@@ -29,6 +33,7 @@ export interface SwipeableSetRowProps {
   onDelete: () => void;
   deleteRevealed: boolean;
   onDeleteRevealChange: (revealed: boolean) => void;
+  showCompletion?: boolean;
 }
 
 export interface SetRowProps extends Omit<

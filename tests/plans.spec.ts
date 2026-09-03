@@ -54,6 +54,15 @@ test.describe('Plans and routines', () => {
     await menu.getByRole('button', { name: 'New routine', exact: true }).click();
     await expect(page.getByText('New routine', { exact: true })).toBeVisible();
     await expect(page.getByLabel('Routine name')).toHaveValue('');
+    await expect(page.getByText('Type', { exact: true })).toBeVisible();
+    const [nameBox, typeBox, noteBox] = await Promise.all([
+      page.getByLabel('Routine name').boundingBox(),
+      page.getByRole('button', { name: 'Workout type, Strength' }).boundingBox(),
+      page.getByLabel('Routine note').boundingBox(),
+    ]);
+    expect(nameBox?.height).toBeCloseTo(52, 0);
+    expect(typeBox?.height).toBeCloseTo(56, 0);
+    expect(noteBox?.height).toBeCloseTo(52, 0);
     await expect(page.getByRole('button', { name: 'Save routine' })).toBeDisabled();
     await page.getByLabel('Routine name').fill('Upper body');
     await expect(page.getByRole('button', { name: 'Start Upper body' })).toHaveCount(0);
@@ -209,8 +218,20 @@ test.describe('Plans and routines', () => {
     await expect(exercise).toHaveCount(1);
     const expandExercise = exercise.getByRole('button', { name: 'Expand Barbell Bench Press' });
     await expect(expandExercise).toBeVisible();
+    await expect(expandExercise.locator('svg').last()).toBeVisible();
+    await expect(
+      exercise.getByRole('button', { name: 'Drag to reorder Barbell Bench Press' }),
+    ).toBeVisible();
     await expect(exercise.getByRole('button', { name: 'More options for Barbell Bench Press' })).toHaveCount(0);
     await expandExercise.click();
+    const collapseExercise = exercise.getByRole('button', { name: 'Collapse Barbell Bench Press' });
+    await expect(collapseExercise.locator('svg').last()).toBeVisible();
+    await expect(exercise.getByRole('checkbox')).toHaveCount(0);
+    const [exerciseNameBox, setCountBox] = await Promise.all([
+      exercise.getByText('Barbell Bench Press', { exact: true }).boundingBox(),
+      exercise.getByText('1 set', { exact: true }).boundingBox(),
+    ]);
+    expect((setCountBox?.y ?? 0) - (exerciseNameBox?.y ?? 0)).toBeLessThan(30);
     await expect(exercise.getByRole('button', { name: 'Add set to Barbell Bench Press' })).toBeVisible();
     await swipeLeftFrom(page, exercise);
     await expect(exercise.getByRole('button', { name: 'Delete Barbell Bench Press' })).toBeVisible();

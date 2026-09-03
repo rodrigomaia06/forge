@@ -20,6 +20,7 @@ export function SetRow({
   onInputTouchStart,
   onInputTouchMove,
   onInputTouchEnd,
+  showCompletion = true,
 }: SetRowProps) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -130,17 +131,19 @@ export function SetRow({
         style={[styles.input, styles.inputColumn, { borderColor: theme.divider }, invalidStyle(repsInvalidProgress)]}
       />
       <View style={styles.check}>
-        <Pressable
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: set.completed }}
-          accessibilityLabel={
-            set.completed ? `Set ${index + 1} completed` : `Complete set ${index + 1}`
-          }
-          onPress={handleToggle}
-          style={styles.checkPressable}
-        >
-          <CompletionCheck selected={set.completed} />
-        </Pressable>
+        {showCompletion ? (
+          <Pressable
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: set.completed }}
+            accessibilityLabel={
+              set.completed ? `Set ${index + 1} completed` : `Complete set ${index + 1}`
+            }
+            onPress={handleToggle}
+            style={styles.checkPressable}
+          >
+            <CompletionCheck selected={set.completed} />
+          </Pressable>
+        ) : null}
       </View>
       {set.comment ? (
         <Text style={styles.comment} numberOfLines={2}>

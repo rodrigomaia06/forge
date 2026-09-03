@@ -4,14 +4,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { usePreventRemove } from '@react-navigation/native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { runOnJS } from 'react-native-reanimated';
+import DraggableFlatList, {
+  ScaleDecorator,
+  ShadowDecorator,
+} from 'react-native-draggable-flatlist';
 
 import {
   AppScreen,
@@ -73,13 +74,14 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
   const [attributeError, setAttributeError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [canLeave, setCanLeave] = useState(false);
-  const [noteHeight, setNoteHeight] = useState(56);
   const [revealedExerciseId, setRevealedExerciseId] = useState<string | null>(null);
   const [completedRoutineSetIds, setCompletedRoutineSetIds] = useState<string[]>([]);
+  const [reorderingExercises, setReorderingExercises] = useState(false);
 
   const dirty = Boolean(
     draft && initialDraft && JSON.stringify(draft) !== JSON.stringify(initialDraft),
   );
+  const noteHeight = routineNoteHeight(draft?.note);
   const leave = (action: () => void): void => {
     setCanLeave(true);
     setTimeout(action, 0);
@@ -197,6 +199,81 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
     setAttributeSheet(null);
     errorHaptic();
   };
+  const beginRoutineExerciseDrag = (drag: () => void): void => {
+    setReorderingExercises(true);
+    setRevealedExerciseId(null);
+    requestAnimationFrame(() => requestAnimationFrame(drag));
+  };
+  const renderRoutineExercise = (
+    exercise: WorkoutRoutine['exercises'][number],
+    index: number,
+    drag?: () => void,
+    isActive = false,
+  ) => {
+    const exerciseId = exercise.id ?? `routine-exercise-${index}`;
+    const section = (
+      <ExerciseSection
+        index={index}
+        testID={`routine-exercise-${exerciseId}`}
+        exercise={asWorkoutExercise(exercise, completedRoutineSetIds)}
+        addSet={() => addRoutineSet(index, change)}
+        removeSet={(_, setId) => removeRoutineSet(index, setId, change)}
+        removeExercise={() =>
+          change((current) => ({
+            ...current,
+            exercises: current.exercises.filter((_, itemIndex) => itemIndex !== index),
+          }))
+        }
+        updateSet={(_, setId, changes) => updateRoutineSet(index, setId, changes, change)}
+        toggleSet={(_, setId) =>
+          setCompletedRoutineSetIds((current) =>
+            current.includes(setId)
+              ? current.filter((item) => item !== setId)
+              : [...current, setId],
+          )
+        }
+        onSetCompleted={() => undefined}
+        deleteRevealed={revealedExerciseId === exerciseId}
+        onDeleteRevealChange={(id, revealed) => setRevealedExerciseId(revealed ? id : null)}
+        collapsible
+        forceCollapsed={reorderingExercises}
+        showMoreOptions={false}
+        showSetCompletion={false}
+        dragHandle={
+          drag ? (
+            <RoutineExerciseDragHandle
+              name={exercise.name}
+              onDrag={() => beginRoutineExerciseDrag(drag)}
+              disabled={isActive || viewing}
+            />
+          ) : undefined
+        }
+      />
+    );
+    // Keep the inter-card spacing inside the draggable cell.  A FlatList
+    // separator is not included in the cell's measured height, which makes
+    // the dropped position drift upwards after a reorder.
+    return (
+      <View style={styles.exerciseRow}>
+        {drag ? (
+          <ShadowDecorator elevation={12} radius={14} color={theme.shadow} opacity={0.28}>
+            <ScaleDecorator activeScale={1.015}>{section}</ScaleDecorator>
+          </ShadowDecorator>
+        ) : section}
+      </View>
+    );
+  };
+  const addExercisesButton = !viewing ? (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Add exercises to routine"
+      onPress={() => setAddingExercises(true)}
+      style={({ pressed }) => [styles.addExercise, pressed && styles.pressed]}
+    >
+      <Icon name="add" size={17} color={theme.textPrimary} />
+      <Text style={styles.addExerciseText}>Add exercises</Text>
+    </Pressable>
+  ) : null;
 
   return (
     <AppScreen backgroundColor={theme.background}>
@@ -247,176 +324,148 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
             )}
           </View>
         </View>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <View style={styles.sessionCard}>
-            <TextInput
-              accessibilityLabel="Routine name"
-              value={draft.name}
-              onChangeText={(name) => change((current) => ({ ...current, name }))}
-              editable={!viewing}
-              style={styles.nameInput}
-              placeholder="Routine name"
-              placeholderTextColor={theme.muted}
-            />
-            <View style={styles.divider} />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Workout type, ${draft.type}`}
-              disabled={viewing}
-              onPress={() => {
-                selectionHaptic();
-                setPickerOpen((current) => !current);
-              }}
-              style={({ pressed }) => [styles.typeRow, pressed && styles.pressed]}
-            >
-              <Text style={styles.fieldLabel}>Workout type</Text>
-              <View
-                style={[
-                  styles.typeDot,
-                  {
-                    backgroundColor:
-                      preferences.workoutTypes.find((type) => type.name === draft.type)?.color ??
-                      theme.muted,
-                  },
-                ]}
-              />
-              <Text style={styles.typeValue}>{draft.type}</Text>
-              <Icon
-                name="chevron-down"
-                size={17}
-                color={theme.slate}
-                style={pickerOpen ? styles.typeChevronExpanded : undefined}
-              />
-            </Pressable>
-            {pickerOpen && (
-              <View style={styles.typeChoices}>
-                {preferences.workoutTypes
-                  .filter((type) => !type.hidden || type.name === draft.type)
-                  .map((type) => (
-                    <Pressable
-                      key={type.id}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Use ${type.name} workout type`}
-                      onPress={() => {
-                        change((current) => ({ ...current, type: type.name }));
-                        setPickerOpen(false);
-                      }}
-                      style={({ pressed }) => [styles.typeChoice, pressed && styles.pressed]}
-                    >
-                      <View style={[styles.choiceDot, { backgroundColor: type.color }]} />
-                      <Text style={styles.typeChoiceText}>{type.name}</Text>
-                      {draft.type === type.name && (
-                        <Icon name="check" size={17} color={theme.selectionIndicator} />
-                      )}
-                    </Pressable>
-                  ))}
-              </View>
-            )}
-            <View style={styles.divider} />
-            <TextInput
-              accessibilityLabel="Routine note"
-              value={draft.note || ''}
-              onChangeText={(note) => change((current) => ({ ...current, note }))}
-              editable={!viewing}
-              onContentSizeChange={(event) =>
-                setNoteHeight(Math.max(56, Math.min(120, event.nativeEvent.contentSize.height + 20)))
-              }
-              style={[styles.noteInput, { height: noteHeight }]}
-              placeholder="Add a note"
-              placeholderTextColor={theme.muted}
-              multiline
-            />
-            {Object.entries(draft.attributes ?? {}).map(([label, value]) => (
-              <React.Fragment key={label}>
+        <DraggableFlatList
+          data={draft.exercises}
+          keyExtractor={(exercise, index) => exercise.id ?? `routine-exercise-${index}`}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          activationDistance={12}
+          autoscrollThreshold={70}
+          autoscrollSpeed={120}
+          dragItemOverflow
+          extraData={reorderingExercises}
+          animationConfig={{ damping: 28, stiffness: 340, mass: 0.65, overshootClamping: true }}
+          ListHeaderComponent={
+            <View style={styles.listHeader}>
+              <View style={styles.sessionCard}>
+                <TextInput
+                  accessibilityLabel="Routine name"
+                  value={draft.name}
+                  onChangeText={(name) => change((current) => ({ ...current, name }))}
+                  editable={!viewing}
+                  style={styles.nameInput}
+                  placeholder="Routine name"
+                  placeholderTextColor={theme.muted}
+                />
                 <View style={styles.divider} />
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Edit ${label} attribute`}
+                  accessibilityLabel={`Workout type, ${draft.type}`}
                   disabled={viewing}
-                  onPress={() => openAttribute(label, value)}
-                  style={({ pressed }) => [styles.attributeRow, pressed && styles.pressed]}
+                  onPress={() => {
+                    selectionHaptic();
+                    setPickerOpen((current) => !current);
+                  }}
+                  style={({ pressed }) => [styles.typeRow, pressed && styles.pressed]}
                 >
-                  <Text style={styles.attributeLabel} numberOfLines={1}>{label}</Text>
-                  {value ? <Text style={styles.attributeValue} numberOfLines={1}>{value}</Text> : null}
-                  <Icon name="chevron-forward" size={17} color={theme.slate} />
+                  <Text style={styles.typeLabel}>Type</Text>
+                  <View style={styles.typeSelection} pointerEvents="none">
+                    <View
+                      style={[
+                        styles.typeDot,
+                        {
+                          backgroundColor:
+                            preferences.workoutTypes.find((type) => type.name === draft.type)?.color ??
+                            theme.muted,
+                        },
+                      ]}
+                    />
+                    <Text style={styles.typeValue}>{draft.type}</Text>
+                  </View>
+                  <View style={styles.typeChevron} pointerEvents="none">
+                    <Icon
+                      name={pickerOpen ? 'chevron-down' : 'chevron-forward'}
+                      size={19}
+                      color={theme.slate}
+                    />
+                  </View>
                 </Pressable>
-              </React.Fragment>
-            ))}
-            {!viewing && (
-              <>
+                {pickerOpen && (
+                  <View style={styles.typeChoices}>
+                    {preferences.workoutTypes
+                      .filter((type) => !type.hidden || type.name === draft.type)
+                      .map((type, index) => (
+                        <Pressable
+                          key={type.id}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Use ${type.name} workout type`}
+                          onPress={() => {
+                            change((current) => ({ ...current, type: type.name }));
+                            setPickerOpen(false);
+                          }}
+                          style={({ pressed }) => [
+                            styles.typeChoice,
+                            index > 0 && styles.typeChoiceDivider,
+                            draft.type === type.name && styles.typeChoiceSelected,
+                            pressed && styles.pressed,
+                          ]}
+                        >
+                          <View style={[styles.choiceDot, { backgroundColor: type.color }]} />
+                          <Text style={styles.typeChoiceText}>{type.name}</Text>
+                          {draft.type === type.name && (
+                            <Icon name="check" size={17} color={theme.selectionIndicator} />
+                          )}
+                        </Pressable>
+                      ))}
+                  </View>
+                )}
                 <View style={styles.divider} />
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Add attribute"
-                  onPress={() => openAttribute()}
-                  style={({ pressed }) => [styles.addAttribute, pressed && styles.pressed]}
-                >
-                  <Icon name="add" size={18} color={theme.textPrimary} />
-                  <Text style={styles.addAttributeText}>Add attribute</Text>
-                </Pressable>
-              </>
-            )}
-          </View>
-          {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
-          <View style={styles.exerciseSection}>
-            <Text style={styles.sectionTitle}>Exercises</Text>
-            <View pointerEvents={viewing ? 'none' : 'auto'} style={styles.exerciseList}>
-              {draft.exercises.map((exercise, index) => {
-                const exerciseId = exercise.id ?? `routine-exercise-${index}`;
-                return (
-                  <ExerciseSection
-                    key={exerciseId}
-                    index={index}
-                    testID={`routine-exercise-${exerciseId}`}
-                    exercise={asWorkoutExercise(exercise, completedRoutineSetIds)}
-                    addSet={() => addRoutineSet(index, change)}
-                    removeSet={(_, setId) => removeRoutineSet(index, setId, change)}
-                    removeExercise={() =>
-                      change((current) => ({
-                        ...current,
-                        exercises: current.exercises.filter((_, itemIndex) => itemIndex !== index),
-                      }))
-                    }
-                    updateSet={(_, setId, changes) =>
-                      updateRoutineSet(index, setId, changes, change)
-                    }
-                    toggleSet={(_, setId) =>
-                      setCompletedRoutineSetIds((current) =>
-                        current.includes(setId)
-                          ? current.filter((item) => item !== setId)
-                          : [...current, setId],
-                      )
-                    }
-                    onSetCompleted={() => undefined}
-                    deleteRevealed={revealedExerciseId === exerciseId}
-                    onDeleteRevealChange={(id, revealed) =>
-                      setRevealedExerciseId(revealed ? id : null)
-                    }
-                    collapsible
-                    showMoreOptions={false}
-                    dragHandle={
-                      <RoutineExerciseDragHandle
-                        name={exercise.name}
-                        onMove={(direction) => moveRoutineExercise(index, direction, change)}
-                      />
-                    }
-                  />
-                );
-              })}
-              {!viewing && (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Add exercises to routine"
-                  onPress={() => setAddingExercises(true)}
-                  style={({ pressed }) => [styles.addExercise, pressed && styles.pressed]}
-                >
-                  <Icon name="add" size={17} color={theme.textPrimary} />
-                  <Text style={styles.addExerciseText}>Add exercises</Text>
-                </Pressable>
-              )}
+                <TextInput
+                  accessibilityLabel="Routine note"
+                  value={draft.note || ''}
+                  onChangeText={(note) => change((current) => ({ ...current, note }))}
+                  editable={!viewing}
+                  style={[styles.noteInput, { height: noteHeight }]}
+                  placeholder="Add a note"
+                  placeholderTextColor={theme.muted}
+                  multiline
+                />
+                {Object.entries(draft.attributes ?? {}).map(([label, value]) => (
+                  <React.Fragment key={label}>
+                    <View style={styles.divider} />
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Edit ${label} attribute`}
+                      disabled={viewing}
+                      onPress={() => openAttribute(label, value)}
+                      style={({ pressed }) => [styles.attributeRow, pressed && styles.pressed]}
+                    >
+                      <Text style={styles.attributeLabel} numberOfLines={1}>{label}</Text>
+                      {value ? <Text style={styles.attributeValue} numberOfLines={1}>{value}</Text> : null}
+                      <Icon name="chevron-forward" size={17} color={theme.slate} />
+                    </Pressable>
+                  </React.Fragment>
+                ))}
+                {!viewing && (
+                  <>
+                    <View style={styles.divider} />
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Add attribute"
+                      onPress={() => openAttribute()}
+                      style={({ pressed }) => [styles.addAttribute, pressed && styles.pressed]}
+                    >
+                      <Icon name="add" size={18} color={theme.textPrimary} />
+                      <Text style={styles.addAttributeText}>Add attribute</Text>
+                    </Pressable>
+                  </>
+                )}
+              </View>
+              {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
+              <Text style={styles.sectionTitle}>Exercises</Text>
             </View>
-          </View>
-        </ScrollView>
+          }
+          ListFooterComponent={addExercisesButton}
+          ListFooterComponentStyle={styles.exerciseFooter}
+          onDragEnd={({ data }) => {
+            change((current) => ({ ...current, exercises: data }));
+            setReorderingExercises(false);
+          }}
+          renderItem={({ item: exercise, getIndex, drag, isActive }) => {
+            const index = getIndex() ?? draft.exercises.indexOf(exercise);
+            return index < 0 ? null : renderRoutineExercise(exercise, index, drag, isActive);
+          }}
+        />
         {!creating && !viewing && (
           <ForgeActionSheet
             visible={optionsOpen}
@@ -544,27 +593,30 @@ function AttributeEditorSheet({
 
 function RoutineExerciseDragHandle({
   name,
-  onMove,
+  onDrag,
+  disabled,
 }: {
   name: string;
-  onMove: (direction: -1 | 1) => void;
+  onDrag: () => void;
+  disabled: boolean;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const drag = Gesture.Pan()
-    .activateAfterLongPress(180)
-    .failOffsetX([-24, 24])
-    .onStart(() => runOnJS(lightHaptic)())
-    .onEnd((event) => {
-      if (event.translationY > 30) runOnJS(onMove)(1);
-      else if (event.translationY < -30) runOnJS(onMove)(-1);
-    });
   return (
-    <GestureDetector gesture={drag}>
-      <View accessibilityLabel={`Drag to reorder ${name}`} style={styles.routineDragHandle}>
-        <Icon name="drag" size={19} color={theme.muted} />
-      </View>
-    </GestureDetector>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Drag to reorder ${name}`}
+      accessibilityHint="Hold, then drag to change exercise order"
+      disabled={disabled}
+      delayLongPress={180}
+      onLongPress={() => {
+        lightHaptic();
+        onDrag();
+      }}
+      style={({ pressed }) => [styles.routineDragHandle, pressed && styles.pressed]}
+    >
+      <Icon name="drag" size={19} color={theme.muted} />
+    </Pressable>
   );
 }
 
@@ -642,20 +694,6 @@ function updateRoutineSet(
   }));
 }
 
-function moveRoutineExercise(
-  index: number,
-  direction: -1 | 1,
-  change: RoutineDraftChange,
-): void {
-  change((current) => {
-    const targetIndex = index + direction;
-    if (targetIndex < 0 || targetIndex >= current.exercises.length) return current;
-    const exercises = [...current.exercises];
-    const [moved] = exercises.splice(index, 1);
-    exercises.splice(targetIndex, 0, moved);
-    return { ...current, exercises };
-  });
-}
 
 function createRoutineDraft(planId?: string): WorkoutRoutine {
   const now = Date.now();
@@ -676,6 +714,14 @@ function cloneRoutine(routine: WorkoutRoutine): WorkoutRoutine {
 
 function optional(value?: string): string | undefined {
   return value?.trim() || undefined;
+}
+
+function routineNoteHeight(note?: string): number {
+  const visualLines = (note || '').split('\n').reduce(
+    (count, line) => count + Math.max(1, Math.ceil(line.length / 42)),
+    0,
+  );
+  return Math.max(52, Math.min(144, visualLines * 22 + 22));
 }
 
 function normalizeAttributes(attributes?: Record<string, string>): Record<string, string> | undefined {
@@ -700,7 +746,8 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     headerTitleWrap: { position: 'absolute', left: 74, right: 74, alignItems: 'center' },
     headerTitle: { ...typeScale.headerTitle, color: theme.ink },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    content: { padding: 16, paddingBottom: 50, gap: 12 },
+    content: { padding: 16, paddingBottom: 50 },
+    listHeader: { gap: 12, paddingBottom: 8 },
     sessionCard: {
       overflow: 'hidden',
       borderRadius: theme.cardRadius,
@@ -709,25 +756,23 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       borderColor: theme.divider,
     },
     nameInput: {
-      ...typeScale.headerTitle,
+      ...typeScale.body,
       color: theme.ink,
-      minHeight: 68,
+      minHeight: 52,
       paddingHorizontal: 16,
       paddingVertical: 0,
     },
-    fieldLabel: {
-      ...typeScale.caption,
+    typeLabel: {
+      ...typeScale.label,
       color: theme.slate,
-      letterSpacing: 0.5,
-      textTransform: 'uppercase',
     },
     noteInput: {
       ...typeScale.body,
       color: theme.ink,
-      minHeight: 56,
-      maxHeight: 96,
+      minHeight: 52,
+      maxHeight: 144,
       paddingHorizontal: 16,
-      paddingVertical: 10,
+      paddingVertical: 15,
       textAlignVertical: 'center',
       textAlign: 'left',
     },
@@ -735,23 +780,38 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     typeRow: {
       minHeight: 56,
       paddingHorizontal: 16,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
+      paddingVertical: 7,
+      justifyContent: 'center',
+      gap: 2,
     },
-    typeDot: { width: 10, height: 10, borderRadius: 5 },
-    typeValue: { ...typeScale.body, color: theme.ink, flex: 1 },
-    typeChevronExpanded: { transform: [{ rotate: '180deg' }] },
-    typeChoices: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
+    typeDot: { width: 12, height: 12, borderRadius: 6 },
+    typeSelection: { minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 9 },
+    typeValue: { ...typeScale.body, color: theme.ink, flexShrink: 1 },
+    typeChevron: {
+      position: 'absolute',
+      right: 8,
+      top: 6,
+      width: 44,
+      height: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    typeChoices: {
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.divider,
+      backgroundColor: theme.surfaceMuted,
+    },
     typeChoice: {
-      minHeight: 48,
+      minHeight: 56,
       paddingHorizontal: 16,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      gap: 10,
     },
-    choiceDot: { width: 9, height: 9, borderRadius: 5 },
-    typeChoiceText: { ...typeScale.body, color: theme.ink, flex: 1 },
+    typeChoiceDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
+    typeChoiceSelected: { backgroundColor: theme.surfaceInset },
+    choiceDot: { width: 11, height: 11, borderRadius: 6 },
+    typeChoiceText: { ...typeScale.controlLabel, color: theme.ink, flex: 1 },
     attributeRow: {
       minHeight: 56,
       paddingHorizontal: 16,
@@ -770,9 +830,9 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     },
     addAttributeText: { ...typeScale.controlLabel, color: theme.textPrimary },
     error: { ...typeScale.label, color: theme.textDestructive, paddingHorizontal: 4 },
-    exerciseSection: { gap: 8 },
     sectionTitle: { ...typeScale.sectionTitle, color: theme.slate },
-    exerciseList: { gap: 12 },
+    exerciseRow: { paddingBottom: 12 },
+    exerciseFooter: { marginTop: 0 },
     routineDragHandle: {
       width: 32,
       height: 44,

@@ -40,7 +40,9 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   dragHandle,
   testID,
   collapsible = false,
+  forceCollapsed = false,
   showMoreOptions = true,
+  showSetCompletion = true,
 }: ExerciseSectionProps) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -64,6 +66,10 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   useEffect(() => {
     setExpanded(!collapsible);
   }, [collapsible]);
+
+  useEffect(() => {
+    if (forceCollapsed) setExpanded(false);
+  }, [forceCollapsed]);
 
   const settleCard = (shouldOpen: boolean): void => {
     if (shouldOpen !== deleteRevealed) {
@@ -146,17 +152,20 @@ export const ExerciseSection = React.memo(function ExerciseSection({
               >
                 {dragHandle}
                 <View style={styles.collapsibleExerciseCopy}>
-                  <Text style={styles.exerciseName}>{exercise.name}</Text>
+                  <Text style={[styles.exerciseName, styles.collapsibleExerciseName]}>
+                    {exercise.name}
+                  </Text>
                   <Text style={styles.collapsibleExerciseMeta}>
                     {`${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'}`}
                   </Text>
                 </View>
-                <Icon
-                  name="chevron-down"
-                  size={19}
-                  color={theme.slate}
-                  style={expanded ? styles.collapsibleChevronExpanded : undefined}
-                />
+                <View style={styles.collapsibleChevron} pointerEvents="none">
+                  <Icon
+                    name={expanded ? 'chevron-down' : 'chevron-forward'}
+                    size={20}
+                    color={theme.slate}
+                  />
+                </View>
               </Pressable>
             ) : (
               <View style={[styles.exerciseHeader, size === 'large' && styles.exerciseHeaderLarge]}>
@@ -208,6 +217,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     }}
                     deleteRevealed={openSetId === set.id}
                     onDeleteRevealChange={(revealed) => setOpenSetId(revealed ? set.id : null)}
+                    showCompletion={showSetCompletion}
                   />
                 ))}
                 <Button
@@ -390,7 +400,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       paddingHorizontal: 12,
       paddingBottom: 0,
       borderWidth: 1,
-      borderColor: 'rgba(226,227,224,0.72)',
+      borderColor: dashboardTheme.divider,
       shadowColor: dashboardTheme.ink,
       shadowOpacity: 0.06,
       shadowRadius: 5,
@@ -407,7 +417,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     readOnlyExerciseCard: {
       overflow: 'hidden',
       borderWidth: 1,
-      borderColor: 'rgba(226,227,224,0.72)',
+      borderColor: dashboardTheme.divider,
       borderRadius: 16,
       backgroundColor: dashboardTheme.surface,
       shadowColor: dashboardTheme.ink,
@@ -452,16 +462,18 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     },
     exerciseHeaderLarge: { minHeight: 42 },
     collapsibleExerciseHeader: {
-      minHeight: 60,
+      minHeight: 64,
       paddingHorizontal: 12,
     },
-    collapsibleExerciseCopy: { flex: 1, minWidth: 0, gap: 1 },
-    collapsibleExerciseMeta: { ...typeScale.supporting, color: dashboardTheme.slate },
-    collapsibleChevronExpanded: { transform: [{ rotate: '180deg' }] },
+    collapsibleExerciseCopy: { flex: 1, minWidth: 0, justifyContent: 'center', gap: 0 },
+    collapsibleExerciseName: { flex: 0, flexShrink: 1 },
+    collapsibleExerciseMeta: { marginTop: 0, ...typeScale.supporting, color: dashboardTheme.slate },
+    collapsibleChevron: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: -8 },
     collapsibleExerciseBody: {
       paddingHorizontal: 12,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: dashboardTheme.divider,
+      paddingTop: 3,
+      borderTopWidth: 1,
+      borderTopColor: dashboardTheme.border,
     },
     exerciseName: {
       flex: 1,

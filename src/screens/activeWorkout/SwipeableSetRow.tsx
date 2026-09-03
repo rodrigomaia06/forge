@@ -33,6 +33,7 @@ function SwipeableSetRowComponent({
   onDelete,
   deleteRevealed,
   onDeleteRevealChange,
+  showCompletion = true,
 }: SwipeableSetRowProps) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -199,6 +200,7 @@ function SwipeableSetRowComponent({
             onInputTouchStart={onInputTouchStart}
             onInputTouchMove={onInputTouchMove}
             onInputTouchEnd={onInputTouchEnd}
+            showCompletion={showCompletion}
           />
           {detailsOpen ? (
             <SetDetailsCard
@@ -223,7 +225,8 @@ export const SwipeableSetRow = React.memo(
   (previous, next) =>
     previous.set === next.set &&
     previous.index === next.index &&
-    previous.deleteRevealed === next.deleteRevealed,
+    previous.deleteRevealed === next.deleteRevealed &&
+    previous.showCompletion === next.showCompletion,
 );
 
 const createStyles = (theme: import('../../types').ForgeTheme) => {
