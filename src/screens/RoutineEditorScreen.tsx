@@ -21,6 +21,7 @@ import {
   ForgeActionSheet,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
+  ForgeConfirmationDialog,
   ForgeSheetHeader,
   ForgeText as Text,
   ForgeTextInput as TextInput,
@@ -521,9 +522,14 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           />
         ) : null}
         {confirmation ? (
-          <RoutineConfirmationSheet
-            confirmation={confirmation}
-            onClose={() => setConfirmation(null)}
+          <ForgeConfirmationDialog
+            visible
+            title={confirmation.title}
+            message={confirmation.message}
+            cancelLabel="Keep editing"
+            confirmLabel={confirmation.confirmLabel}
+            testID="routine-confirmation-sheet"
+            onCancel={() => setConfirmation(null)}
             onConfirm={() => {
               const action = confirmation.onConfirm;
               setConfirmation(null);
@@ -533,49 +539,6 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
         ) : null}
       </KeyboardAvoidingView>
     </AppScreen>
-  );
-}
-
-function RoutineConfirmationSheet({
-  confirmation,
-  onClose,
-  onConfirm,
-}: {
-  confirmation: RoutineConfirmation;
-  onClose: () => void;
-  onConfirm: () => void;
-}) {
-  const styles = useThemedStyles(createStyles);
-  return (
-    <ForgeBottomSheet
-      visible
-      onClose={onClose}
-      accessibilityLabel="Close confirmation"
-      surfaceTestID="routine-confirmation-sheet"
-    >
-      {(close) => (
-        <View style={styles.confirmationSheet}>
-          <ForgeBottomSheetHandle />
-          <ForgeSheetHeader title={confirmation.title} onClose={close} closePosition="left" />
-          <View style={styles.confirmationContent}>
-            <Text style={styles.confirmationMessage}>{confirmation.message}</Text>
-            <Button
-              accessibilityLabel="Keep editing"
-              label="Keep editing"
-              variant="secondary"
-              onPress={close}
-            />
-            <Button
-              accessibilityLabel={confirmation.confirmLabel}
-              label={confirmation.confirmLabel}
-              variant="outline"
-              tone="destructive"
-              onPress={onConfirm}
-            />
-          </View>
-        </View>
-      )}
-    </ForgeBottomSheet>
   );
 }
 
@@ -940,9 +903,6 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       flexBasis: 0,
       minWidth: 0,
     },
-    confirmationSheet: { paddingBottom: 28 },
-    confirmationContent: { paddingHorizontal: 20, paddingTop: 4, gap: 10 },
-    confirmationMessage: { ...typeScale.body, color: theme.slate, textAlign: 'center', marginBottom: 6 },
     unavailable: {
       flex: 1,
       justifyContent: 'center',

@@ -140,7 +140,7 @@ test.describe('Plans and routines', () => {
     await expect(page.getByLabel('Finish workout')).toBeVisible();
   });
 
-  test('uses a Forge confirmation sheet to keep or discard an edited routine draft', async ({ page }) => {
+  test('uses a centred Forge confirmation card to keep or discard an edited routine draft', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Plans' }).click();
     await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
