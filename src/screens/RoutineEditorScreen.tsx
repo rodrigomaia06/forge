@@ -290,7 +290,8 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
     <AppScreen backgroundColor={theme.background}>
       <KeyboardAvoidingView
         style={[styles.screen, { backgroundColor: theme.background }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        enabled={Platform.OS !== 'ios'}
+        behavior={Platform.OS === 'android' ? 'height' : undefined}
       >
         <View style={styles.header}>
           <HeaderAction
@@ -341,6 +342,8 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           keyExtractor={(exercise, index) => exercise.id ?? `routine-exercise-${index}`}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+          scrollsChildToFocus
           activationDistance={12}
           autoscrollThreshold={70}
           autoscrollSpeed={120}

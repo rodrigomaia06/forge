@@ -291,7 +291,8 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
       </View>
       <KeyboardAvoidingView
         style={styles.keyboardArea}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        enabled={Platform.OS !== 'ios'}
+        behavior={Platform.OS === 'android' ? 'height' : undefined}
       >
         <Animated.FlatList
           ref={workoutListRef}
@@ -302,6 +303,8 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+          scrollsChildToFocus
           nestedScrollEnabled
           onScroll={workoutScrollHandler}
           scrollEventThrottle={16}
