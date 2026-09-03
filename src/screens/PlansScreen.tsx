@@ -1,28 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import DraggableFlatList, {
-  ScaleDecorator,
-  ShadowDecorator,
-} from 'react-native-draggable-flatlist';
-import {
-  DraxHandle,
-  DraxProvider,
-  DraxScrollView,
-  SortableBoardContainer,
-  SortableContainer,
-  SortableItem,
-  useSortableBoard,
-  useSortableList,
-} from 'react-native-drax';
 import Animated, {
   runOnJS,
-  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import type { SharedValue } from 'react-native-reanimated';
 
 import {
   AnchoredActionPopover,
@@ -57,46 +41,19 @@ type Props = RootTabScreenProps<'Plans'>;
 type PlanActionTarget =
   { kind: 'routine'; item: WorkoutRoutine } | { kind: 'plan'; item: WorkoutPlan };
 const swipeSpring = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
-const standaloneRoutineColumnId = 'standalone-routines';
-const planRoutineColumnId = (planId: string): string => `plan-routines:${planId}`;
-
-function planIdFromRoutineColumn(columnId: string): string | undefined {
-  return columnId === standaloneRoutineColumnId
-    ? undefined
-    : columnId.startsWith('plan-routines:')
-      ? columnId.slice('plan-routines:'.length)
-      : undefined;
-}
 
 export function PlansScreen({ navigation, route }: Props) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const { preferences } = useSettings();
-  const {
-    plans,
-    standaloneRoutines,
-    createPlan,
-    reorderPlans,
-    reorderRoutines,
-    moveRoutine,
-    deletePlan,
-    deleteRoutine,
-  } = usePlans();
+  const { plans, standaloneRoutines, createPlan, deletePlan, deleteRoutine } = usePlans();
   const { startWorkout } = useWorkouts();
   const [creationOpen, setCreationOpen] = useState(false);
   const [actionTarget, setActionTarget] = useState<PlanActionTarget | null>(null);
   const [headerElevated, setHeaderElevated] = useState(false);
-  const routineDragActive = useSharedValue(false);
-  const board = useSortableBoard<WorkoutRoutine>({
-    keyExtractor: (routine) => routine.id,
-    onTransfer: ({ item, toContainerId, toIndex }) => {
-      moveRoutine(item.id, planIdFromRoutineColumn(toContainerId), toIndex);
-    },
-  });
   const handlePlansScrollOffset = useCallback((offset: number): void => {
     setHeaderElevated(offset > 1);
   }, []);
-  const hasPlanRoutines = plans.some((plan) => plan.routines.length > 0);
 
   useEffect(() => {
     if (!route.params?.openCreation) return;
@@ -143,144 +100,126 @@ export function PlansScreen({ navigation, route }: Props) {
 
   return (
     <AppScreen backgroundColor={theme.background} edges={['top']}>
-      <DraxProvider
-        style={styles.screen}
-        onDragStart={() => {
-          routineDragActive.value = true;
-        }}
-        onDragEnd={() => {
-          routineDragActive.value = false;
-        }}
-      >
-        <SortableBoardContainer board={board} style={styles.screen}>
-          <View style={styles.header}>
-            <ScreenTitle color={theme.textPrimary}>Plans</ScreenTitle>
-            <HeaderAction
-              accessibilityLabel="Create workout, routine, or plan"
-              icon="add"
-              iconOnly
-              onPress={() => setCreationOpen(true)}
-            />
-            {headerElevated ? <HeaderEdge /> : null}
-          </View>
-          <DraggableFlatList
-            data={plans}
-            keyExtractor={(plan) => plan.id}
-            contentContainerStyle={styles.content}
-            showsVerticalScrollIndicator={false}
-            activationDistance={12}
-            onScrollOffsetChange={handlePlansScrollOffset}
-            renderScrollComponent={(scrollProps) => <DraxScrollView {...scrollProps} />}
-            ListHeaderComponent={
-              <View style={styles.listHeader}>
-                {(standaloneRoutines.length > 0 || hasPlanRoutines) && (
-                  <Section title="Routines">
-                    <View style={styles.card}>
-                      <RoutineSortableColumn
-                        columnId={standaloneRoutineColumnId}
-                        routines={standaloneRoutines}
-                        workoutTypes={preferences.workoutTypes}
-                        routineDragActive={routineDragActive}
-                        onReorder={(routines) => reorderRoutines(routines)}
-                        onOpenRoutine={routineActions}
-                        onStartRoutine={startRoutine}
-                        onDeleteRoutine={(routine) => deleteRoutine(routine.id)}
-                        footer={
-                          standaloneRoutines.length === 0 ? (
-                            <View style={styles.emptyRoutineDropZone}>
-                              <Text style={styles.emptyRoutineDropText}>Drop routine here</Text>
-                            </View>
-                          ) : undefined
-                        }
-                      />
-                    </View>
-                  </Section>
-                )}
-                {plans.length > 0 ? <Text style={styles.sectionTitle}>Plans</Text> : null}
-              </View>
-            }
-            ListEmptyComponent={!standaloneRoutines.length ? <EmptyPlans /> : null}
-            onDragEnd={({ data }) => reorderPlans(data)}
-            renderItem={({ item: plan, drag, isActive }) => (
-              <PlanDragCell active={isActive}>
-                <View style={styles.planDragRow}>
-                  <PlanCard
-                    plan={plan}
-                    workoutTypes={preferences.workoutTypes}
-                    routineDragActive={routineDragActive}
-                    onAddRoutine={() => addRoutine(plan.id)}
-                    onOpenRoutine={routineActions}
-                    onStartRoutine={startRoutine}
-                    onDeleteRoutine={(routine) => deleteRoutine(routine.id)}
-                    onOptions={(item) => {
-                      lightHaptic();
-                      setActionTarget({ kind: 'plan', item });
-                    }}
-                    onDelete={() => deletePlan(plan.id)}
-                    onDrag={drag}
-                    dragging={isActive}
-                    onReorderRoutines={(routines) => reorderRoutines(routines, plan.id)}
-                  />
+      <View style={styles.screen}>
+        <View style={styles.header}>
+          <ScreenTitle color={theme.textPrimary}>Plans</ScreenTitle>
+          <HeaderAction
+            accessibilityLabel="Create workout, routine, or plan"
+            icon="add"
+            iconOnly
+            onPress={() => setCreationOpen(true)}
+          />
+          {headerElevated ? <HeaderEdge /> : null}
+        </View>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          onScroll={(event) => handlePlansScrollOffset(event.nativeEvent.contentOffset.y)}
+          scrollEventThrottle={16}
+        >
+          <View style={styles.listHeader}>
+            {standaloneRoutines.length > 0 ? (
+              <Section title="Routines">
+                <View style={styles.card}>
+                  {standaloneRoutines.map((routine, index) => (
+                    <SwipeDelete
+                      key={routine.id}
+                      accessibilityLabel={`Delete ${routine.name}`}
+                      testID={`routine-swipe-${routine.id}`}
+                      onOpen={() => routineActions(routine)}
+                      onDelete={() => deleteRoutine(routine.id)}
+                    >
+                      {(handleOpen) => (
+                        <RoutineRow
+                          routine={routine}
+                          workoutTypes={preferences.workoutTypes}
+                          last={index === standaloneRoutines.length - 1}
+                          onStart={() => startRoutine(routine)}
+                          onPress={handleOpen}
+                        />
+                      )}
+                    </SwipeDelete>
+                  ))}
                 </View>
-              </PlanDragCell>
-            )}
-          />
-          <AnchoredActionPopover
-            visible={creationOpen}
-            onClose={() => setCreationOpen(false)}
-            testID="plans-creation-popover"
-            actions={[
-              { label: 'New workout', icon: 'fitness', onPress: startBlankWorkout },
-              { label: 'New routine', icon: 'book', onPress: () => addRoutine() },
-              { label: 'New workout plan', icon: 'layers', onPress: addPlan },
-            ]}
-          />
-          <ForgeActionSheet
-            visible={actionTarget !== null}
-            onClose={() => setActionTarget(null)}
-            accessibilityLabel={
-              actionTarget?.kind === 'routine' ? 'Dismiss routine options' : 'Dismiss plan options'
-            }
-            title={actionTarget?.kind === 'routine' ? 'Routine options' : 'Plan options'}
-            testID="plans-options-sheet"
-            actions={
-              actionTarget?.kind === 'routine'
+              </Section>
+            ) : null}
+            {plans.length > 0 ? <Text style={styles.sectionTitle}>Plans</Text> : null}
+          </View>
+          {plans.map((plan) => (
+            <View key={plan.id} style={styles.planRow}>
+              <PlanCard
+                plan={plan}
+                workoutTypes={preferences.workoutTypes}
+                onAddRoutine={() => addRoutine(plan.id)}
+                onOpenRoutine={routineActions}
+                onStartRoutine={startRoutine}
+                onDeleteRoutine={(routine) => deleteRoutine(routine.id)}
+                onOptions={(item) => {
+                  lightHaptic();
+                  setActionTarget({ kind: 'plan', item });
+                }}
+                onDelete={() => deletePlan(plan.id)}
+              />
+            </View>
+          ))}
+          {!standaloneRoutines.length && !plans.length ? <EmptyPlans /> : null}
+        </ScrollView>
+        <AnchoredActionPopover
+          visible={creationOpen}
+          onClose={() => setCreationOpen(false)}
+          testID="plans-creation-popover"
+          actions={[
+            { label: 'New workout', icon: 'fitness', onPress: startBlankWorkout },
+            { label: 'New routine', icon: 'book', onPress: () => addRoutine() },
+            { label: 'New workout plan', icon: 'layers', onPress: addPlan },
+          ]}
+        />
+        <ForgeActionSheet
+          visible={actionTarget !== null}
+          onClose={() => setActionTarget(null)}
+          accessibilityLabel={
+            actionTarget?.kind === 'routine' ? 'Dismiss routine options' : 'Dismiss plan options'
+          }
+          title={actionTarget?.kind === 'routine' ? 'Routine options' : 'Plan options'}
+          testID="plans-options-sheet"
+          actions={
+            actionTarget?.kind === 'routine'
+              ? [
+                  {
+                    label: 'Start',
+                    icon: 'play',
+                    onPress: () => startRoutine(actionTarget.item, false),
+                  },
+                  {
+                    label: 'Edit',
+                    icon: 'note',
+                    onPress: () => openRoutine(actionTarget.item, false),
+                  },
+                  {
+                    label: 'Visualize',
+                    icon: 'info',
+                    onPress: () => viewRoutine(actionTarget.item, false),
+                  },
+                ]
+              : actionTarget
                 ? [
                     {
-                      label: 'Start',
-                      icon: 'play',
-                      onPress: () => startRoutine(actionTarget.item, false),
+                      label: 'Add routine',
+                      icon: 'add',
+                      onPress: () => addRoutine(actionTarget.item.id),
                     },
                     {
-                      label: 'Edit',
-                      icon: 'note',
-                      onPress: () => openRoutine(actionTarget.item, false),
-                    },
-                    {
-                      label: 'Visualize',
-                      icon: 'info',
-                      onPress: () => viewRoutine(actionTarget.item, false),
+                      label: 'Delete plan',
+                      icon: 'trash',
+                      tone: 'destructive' as const,
+                      onPress: () => deletePlan(actionTarget.item.id),
                     },
                   ]
-                : actionTarget
-                  ? [
-                      {
-                        label: 'Add routine',
-                        icon: 'add',
-                        onPress: () => addRoutine(actionTarget.item.id),
-                      },
-                      {
-                        label: 'Delete plan',
-                        icon: 'trash',
-                        tone: 'destructive' as const,
-                        onPress: () => deletePlan(actionTarget.item.id),
-                      },
-                    ]
-                  : []
-            }
-          />
-        </SortableBoardContainer>
-      </DraxProvider>
+                : []
+          }
+        />
+      </View>
     </AppScreen>
   );
 }
@@ -298,29 +237,21 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function PlanCard({
   plan,
   workoutTypes,
-  routineDragActive,
   onAddRoutine,
   onOpenRoutine,
   onStartRoutine,
   onDeleteRoutine,
   onOptions,
   onDelete,
-  onDrag,
-  dragging,
-  onReorderRoutines,
 }: {
   plan: WorkoutPlan;
   workoutTypes: WorkoutTypePreference[];
-  routineDragActive: SharedValue<boolean>;
   onAddRoutine: () => void;
   onOpenRoutine: (routine: WorkoutRoutine) => void;
   onStartRoutine: (routine: WorkoutRoutine) => void;
   onDeleteRoutine: (routine: WorkoutRoutine) => void;
   onOptions: (plan: WorkoutPlan) => void;
   onDelete: () => void;
-  onDrag: () => void;
-  dragging: boolean;
-  onReorderRoutines: (routines: WorkoutRoutine[]) => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -330,214 +261,55 @@ function PlanCard({
       testID={`plan-swipe-${plan.id}`}
       onDelete={onDelete}
       rounded
-      dragActive={routineDragActive}
     >
       {() => (
         <View style={styles.card}>
-          <View testID={`plan-header-${plan.id}`} style={styles.planHeader}>
-            <PlanDragHandle
-              name={plan.name}
-              onDrag={onDrag}
-              disabled={dragging}
-              routineDragActive={routineDragActive}
-            />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Open options for ${plan.name}`}
-              onPress={() => onOptions(plan)}
-              style={({ pressed }) => [styles.planOptions, pressed && styles.pressed]}
-            >
-              <Text style={styles.planName}>{plan.name}</Text>
-              <Icon name="chevron-forward" size={20} color={theme.slate} />
-            </Pressable>
-          </View>
-          {plan.routines.length > 0 && <View style={styles.planRoutineSeparation} />}
-          <RoutineSortableColumn
-            columnId={planRoutineColumnId(plan.id)}
-            routines={plan.routines}
-            workoutTypes={workoutTypes}
-            routineDragActive={routineDragActive}
-            onReorder={onReorderRoutines}
-            onOpenRoutine={onOpenRoutine}
-            onStartRoutine={onStartRoutine}
-            onDeleteRoutine={onDeleteRoutine}
-            footer={
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Add routine to ${plan.name}`}
-                onPress={onAddRoutine}
-                style={({ pressed }) => [styles.addToPlan, pressed && styles.pressed]}
-              >
-                <Icon name="add" size={16} color={theme.textPrimary} />
-                <Text style={styles.addToPlanText}>Add routine</Text>
-              </Pressable>
-            }
-          />
-        </View>
-      )}
-    </SwipeDelete>
-  );
-}
-
-function PlanDragHandle({
-  name,
-  onDrag,
-  disabled,
-  routineDragActive,
-}: {
-  name: string;
-  onDrag: () => void;
-  disabled: boolean;
-  routineDragActive: SharedValue<boolean>;
-}) {
-  const theme = useForgeTheme();
-  const styles = useThemedStyles(createStyles);
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Drag to reorder ${name}`}
-      accessibilityHint="Hold, then drag to change plan order"
-      disabled={disabled}
-      delayLongPress={180}
-      onLongPress={() => {
-        if (routineDragActive.value) return;
-        lightHaptic();
-        onDrag();
-      }}
-      style={({ pressed }) => [styles.planDragHandle, pressed && styles.pressed]}
-    >
-      <Icon name="drag" size={19} color={theme.muted} />
-    </Pressable>
-  );
-}
-
-function PlanDragCell({ active, children }: { active: boolean; children: React.ReactNode }) {
-  const theme = useForgeTheme();
-  return active ? (
-    <ShadowDecorator elevation={10} radius={18} color={theme.shadow} opacity={0.24}>
-      <ScaleDecorator activeScale={1.015}>{children}</ScaleDecorator>
-    </ShadowDecorator>
-  ) : (
-    <View>{children}</View>
-  );
-}
-
-function RoutineSortableColumn({
-  columnId,
-  routines,
-  workoutTypes,
-  routineDragActive,
-  onReorder,
-  onOpenRoutine,
-  onStartRoutine,
-  onDeleteRoutine,
-  footer,
-}: {
-  columnId: string;
-  routines: WorkoutRoutine[];
-  workoutTypes: WorkoutTypePreference[];
-  routineDragActive: SharedValue<boolean>;
-  onReorder: (routines: WorkoutRoutine[]) => void;
-  onOpenRoutine: (routine: WorkoutRoutine) => void;
-  onStartRoutine: (routine: WorkoutRoutine) => void;
-  onDeleteRoutine: (routine: WorkoutRoutine) => void;
-  footer?: React.ReactNode;
-}) {
-  const styles = useThemedStyles(createStyles);
-  const routineListRef = useRef<FlatList<WorkoutRoutine>>(null);
-  const sortable = useSortableList({
-    id: columnId,
-    data: routines,
-    keyExtractor: (routine) => routine.id,
-    longPressDelay: 180,
-    lockToMainAxis: true,
-    animationConfig: 'gentle',
-    onReorder: ({ data }) => onReorder(data),
-  });
-
-  return (
-    <SortableContainer
-      sortable={sortable}
-      scrollRef={routineListRef}
-      style={styles.routineSortableColumn}
-      draxViewProps={{ testID: `routine-column-${columnId}` }}
-      renderDropIndicator={() => (
-        <View testID={`routine-drop-indicator-${columnId}`} style={styles.routineDropIndicator} />
-      )}
-    >
-      <Animated.FlatList
-        ref={routineListRef}
-        data={sortable.data}
-        keyExtractor={sortable.stableKeyExtractor}
-        style={styles.routineSortableList}
-        contentContainerStyle={styles.routineSortableListContent}
-        scrollEnabled={false}
-        removeClippedSubviews={false}
-        initialNumToRender={Math.max(1, routines.length)}
-        maxToRenderPerBatch={Math.max(1, routines.length)}
-        windowSize={Math.max(2, routines.length)}
-        onScroll={sortable.onScroll}
-        onContentSizeChange={sortable.onContentSizeChange}
-        renderItem={({ item: routine, index }) => (
-          <SortableItem
-            sortable={sortable}
-            index={index}
-            testID={`routine-sortable-${routine.id}`}
-            dragHandle
-            dragActivationFailOffset={12}
-            hoverStyle={styles.routineDragHoverBase}
-            hoverDraggingStyle={styles.routineDragHover}
-            hoverDragReleasedStyle={styles.routineDragRelease}
-            snapDelay={0}
-            snapDuration={200}
-            renderHoverContent={() => (
-              <RoutineDragPreview
-                routine={routine}
-                workoutTypes={workoutTypes}
-                last={index === sortable.data.length - 1}
-              />
-            )}
+          <Pressable
+            testID={`plan-header-${plan.id}`}
+            accessibilityRole="button"
+            accessibilityLabel={`Open options for ${plan.name}`}
+            onPress={() => onOptions(plan)}
+            style={({ pressed }) => [
+              styles.planHeader,
+              styles.planOptions,
+              pressed && styles.pressed,
+            ]}
           >
+            <Text style={styles.planName}>{plan.name}</Text>
+            <Icon name="chevron-forward" size={20} color={theme.slate} />
+          </Pressable>
+          {plan.routines.length > 0 && <View style={styles.planRoutineSeparation} />}
+          {plan.routines.map((routine, index) => (
             <SwipeDelete
+              key={routine.id}
               accessibilityLabel={`Delete ${routine.name}`}
               testID={`routine-swipe-${routine.id}`}
               onOpen={() => onOpenRoutine(routine)}
               onDelete={() => onDeleteRoutine(routine)}
-              dragActive={routineDragActive}
             >
               {(handleOpen) => (
                 <RoutineRow
                   routine={routine}
                   workoutTypes={workoutTypes}
-                  last={index === sortable.data.length - 1}
+                  last={index === plan.routines.length - 1}
                   onStart={() => onStartRoutine(routine)}
                   onPress={handleOpen}
-                  dragHandle={<RoutineDraxHandle name={routine.name} />}
                 />
               )}
             </SwipeDelete>
-          </SortableItem>
-        )}
-        ListFooterComponent={footer ? <>{footer}</> : null}
-      />
-    </SortableContainer>
-  );
-}
-
-function RoutineDragPreview({
-  routine,
-  workoutTypes,
-  last,
-}: {
-  routine: WorkoutRoutine;
-  workoutTypes: WorkoutTypePreference[];
-  last: boolean;
-}) {
-  const styles = useThemedStyles(createStyles);
-  return (
-    <View testID={`routine-drag-preview-${routine.id}`} style={styles.routineDragPreview}>
-      <RoutineCardBody routine={routine} workoutTypes={workoutTypes} last={last} />
-    </View>
+          ))}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Add routine to ${plan.name}`}
+            onPress={onAddRoutine}
+            style={({ pressed }) => [styles.addToPlan, pressed && styles.pressed]}
+          >
+            <Icon name="add" size={16} color={theme.textPrimary} />
+            <Text style={styles.addToPlanText}>Add routine</Text>
+          </Pressable>
+        </View>
+      )}
+    </SwipeDelete>
   );
 }
 
@@ -547,14 +319,12 @@ function RoutineRow({
   last,
   onStart,
   onPress,
-  dragHandle,
 }: {
   routine: WorkoutRoutine;
   workoutTypes: WorkoutTypePreference[];
   last: boolean;
   onStart: () => void;
   onPress: () => void;
-  dragHandle?: React.ReactNode;
 }) {
   return (
     <RoutineCardBody
@@ -563,7 +333,6 @@ function RoutineRow({
       last={last}
       onStart={onStart}
       onPress={onPress}
-      dragHandle={dragHandle}
     />
   );
 }
@@ -574,18 +343,18 @@ function RoutineCardBody({
   last,
   onStart,
   onPress,
-  dragHandle,
 }: {
   routine: WorkoutRoutine;
   workoutTypes: WorkoutTypePreference[];
   last: boolean;
   onStart?: () => void;
   onPress?: () => void;
-  dragHandle?: React.ReactNode;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const typeIcon = <Icon name={getRoutineTypeIcon(routine.type, workoutTypes)} size={21} color={theme.ink} />;
+  const typeIcon = (
+    <Icon name={getRoutineTypeIcon(routine.type, workoutTypes)} size={21} color={theme.ink} />
+  );
   const copy = (
     <>
       <View style={styles.routineText}>
@@ -602,11 +371,6 @@ function RoutineCardBody({
   );
   return (
     <View style={[styles.routineRow, !last && styles.divider]}>
-      {dragHandle ?? (
-        <View style={styles.routineDragHandle}>
-          <Icon name="drag" size={18} color={theme.muted} />
-        </View>
-      )}
       {onStart ? (
         <Pressable
           accessibilityRole="button"
@@ -632,23 +396,6 @@ function RoutineCardBody({
         <View style={styles.routineCopy}>{copy}</View>
       )}
     </View>
-  );
-}
-
-function RoutineDraxHandle({ name }: { name: string }) {
-  const styles = useThemedStyles(createStyles);
-  const theme = useForgeTheme();
-  return (
-    <DraxHandle style={styles.routineDragHandle}>
-      <View
-        accessibilityRole="button"
-        accessibilityLabel={`Drag to reorder ${name}`}
-        accessibilityHint="Hold, then drag to change routine order"
-        style={styles.routineDragHandleContent}
-      >
-        <Icon name="drag" size={18} color={theme.muted} />
-      </View>
-    </DraxHandle>
   );
 }
 
@@ -685,7 +432,6 @@ function SwipeDelete({
   onOpen,
   onDelete,
   rounded = false,
-  dragActive,
   children,
 }: {
   accessibilityLabel: string;
@@ -693,7 +439,6 @@ function SwipeDelete({
   onOpen?: () => void;
   onDelete: () => void;
   rounded?: boolean;
-  dragActive?: SharedValue<boolean>;
   children: (onOpen: () => void) => React.ReactNode;
 }) {
   const theme = useForgeTheme();
@@ -709,21 +454,6 @@ function SwipeDelete({
     open.value = revealed;
     offset.value = withSpring(revealed ? -actionWidth : 0, swipeSpring);
   }, [offset, open, revealed]);
-
-  const close = useCallback(() => setRevealed(false), []);
-  const swipeBlocked = useSharedValue(false);
-
-  useAnimatedReaction(
-    () => dragActive?.value ?? false,
-    (active, previous) => {
-      if (!active || active === previous) return;
-      swipeBlocked.value = true;
-      open.value = false;
-      offset.value = withSpring(0, swipeSpring);
-      runOnJS(close)();
-    },
-    [close, dragActive, offset, open, swipeBlocked],
-  );
 
   const settle = (next: boolean, dragged: boolean): void => {
     if (dragged) suppressNextPress.current = true;
@@ -744,25 +474,20 @@ function SwipeDelete({
     .activeOffsetX([-8, 8])
     .failOffsetY([-12, 12])
     .onStart(() => {
-      swipeBlocked.value = dragActive?.value ?? false;
-      if (swipeBlocked.value) return;
       runOnJS(beginSwipe)();
     })
     .onUpdate((event) => {
-      if (swipeBlocked.value) return;
       if (!open.value && event.translationX >= 0) return;
       const initial = open.value ? -actionWidth : 0;
       offset.value = Math.max(-actionWidth, Math.min(0, initial + event.translationX));
     })
     .onEnd((event) => {
-      if (swipeBlocked.value) return;
       const initial = open.value ? -actionWidth : 0;
       const next = initial + event.translationX < -actionWidth * 0.55;
       runOnJS(settle)(next, Math.abs(event.translationX) > 6);
     });
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ translateX: offset.value }] }));
   const handleOpen = (): void => {
-    if (dragActive?.value) return;
     if (suppressNextPress.current) {
       suppressNextPress.current = false;
       return;
@@ -790,7 +515,7 @@ function SwipeDelete({
             accessibilityRole="button"
             accessibilityLabel={accessibilityLabel}
             onPress={() => {
-              if (dragActive?.value || suppressDeletePress.current) return;
+              if (suppressDeletePress.current) return;
               lightHaptic();
               onDelete();
             }}
@@ -828,6 +553,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       elevation: 2,
     },
     screen: { flex: 1 },
+    scrollView: { flex: 1 },
     header: {
       position: 'relative',
       zIndex: 2,
@@ -846,23 +572,16 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     listHeader: { gap: 28, paddingBottom: 11 },
     section: { gap: 11 },
     sectionTitle: { ...typeScale.sectionTitle, color: theme.slate },
-    planDragRow: { paddingBottom: 14 },
+    planRow: { paddingBottom: 14 },
     planHeader: {
       minHeight: 56,
       flexDirection: 'row',
       alignItems: 'center',
     },
-    planDragHandle: {
-      width: 44,
-      minHeight: 56,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
     planOptions: {
-      flex: 1,
       minWidth: 0,
       minHeight: 56,
-      paddingRight: 16,
+      paddingHorizontal: 16,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -875,68 +594,9 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     planName: { ...typeScale.cardTitle, color: theme.ink },
     routineRow: {
       minHeight: 76,
-      paddingHorizontal: 12,
+      paddingHorizontal: 16,
       flexDirection: 'row',
       alignItems: 'center',
-    },
-    routineDragHandle: {
-      width: 32,
-      height: 52,
-      marginRight: 2,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    routineDragHandleContent: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    // FlatList defaults to flexing to the available vertical space. In a plan
-    // cell that makes an empty Drax destination consume the rest of the
-    // screen while it is measuring its incoming phantom. Keep every routine
-    // list content-sized; the column itself remains a valid 44 pt target.
-    routineSortableColumn: { minHeight: 44 },
-    routineSortableList: { flexGrow: 0, flexShrink: 0 },
-    routineSortableListContent: { flexGrow: 0 },
-    emptyRoutineDropZone: {
-      minHeight: 60,
-      margin: 10,
-      borderRadius: 14,
-      borderWidth: 1,
-      borderStyle: 'dashed',
-      borderColor: theme.divider,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    emptyRoutineDropText: { ...typeScale.label, color: theme.slate },
-    routineDropIndicator: {
-      width: 28,
-      height: 3,
-      marginLeft: 20,
-      borderRadius: 2,
-      backgroundColor: theme.success,
-    },
-    routineDragPreview: {
-      alignSelf: 'stretch',
-    },
-    routineDragHoverBase: {
-      borderRadius: 14,
-    },
-    routineDragHover: {
-      shadowColor: theme.shadow,
-      shadowOpacity: 0.26,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 7 },
-      elevation: 10,
-      transform: [{ scale: 1.02 }],
-    },
-    routineDragRelease: {
-      shadowColor: theme.shadow,
-      shadowOpacity: 0.18,
-      shadowRadius: 8,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 6,
-      transform: [{ scale: 1.01 }],
     },
     divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
     typeMarker: {
