@@ -870,7 +870,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     typeChoices: {
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: theme.divider,
-      backgroundColor: theme.surfaceMuted,
+      backgroundColor: theme.surface,
     },
     typeChoice: {
       minHeight: 56,
@@ -880,7 +880,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       gap: 10,
     },
     typeChoiceDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
-    typeChoiceSelected: { backgroundColor: theme.surfaceInset },
+    typeChoiceSelected: { backgroundColor: theme.surfaceElevated },
     choiceDot: { width: 11, height: 11, borderRadius: 6 },
     typeChoiceText: { ...typeScale.controlLabel, color: theme.ink, flex: 1 },
     attributeRow: {
