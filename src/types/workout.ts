@@ -88,7 +88,7 @@ export interface PlansContextValue extends PlansState {
   reorderRoutines: (routines: WorkoutRoutine[], planId?: string) => void;
   deleteRoutine: (routineId: string) => void;
   duplicateRoutine: (routineId: string) => WorkoutRoutine | null;
-  moveRoutine: (routineId: string, planId?: string) => void;
+  moveRoutine: (routineId: string, planId?: string, targetIndex?: number) => void;
   findRoutine: (routineId: string) => WorkoutRoutine | undefined;
 }
 export interface StartWorkoutOptions {

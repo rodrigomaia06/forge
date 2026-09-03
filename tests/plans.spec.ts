@@ -24,6 +24,22 @@ async function swipeRightFrom(
   await page.mouse.up();
 }
 
+async function dragFromTo(
+  page: import('@playwright/test').Page,
+  source: import('@playwright/test').Locator,
+  target: import('@playwright/test').Locator,
+) {
+  const [sourceBox, targetBox] = await Promise.all([source.boundingBox(), target.boundingBox()]);
+  if (!sourceBox || !targetBox) throw new Error('Expected drag source and target to be measurable');
+  await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(240);
+  await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, {
+    steps: 16,
+  });
+  await page.mouse.up();
+}
+
 test.describe('Plans and routines', () => {
   test('routes the Dashboard creation action into the Plans creation popover', async ({ page }) => {
     await page.goto('/');
@@ -55,7 +71,44 @@ test.describe('Plans and routines', () => {
     await expect(page.getByRole('button', { name: 'Finish workout' })).toBeVisible();
   });
 
-  test('creates a routine only after Save, edits it, and starts it as a workout', async ({ page }) => {
+  test('moves a routine between the standalone list and a plan by drag and drop', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
+    await page
+      .getByTestId('plans-creation-popover')
+      .getByRole('button', { name: 'New routine' })
+      .click();
+    await page.getByLabel('Routine name').fill('Transfer routine');
+    await page.getByRole('button', { name: 'Save routine' }).click();
+    await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
+    await page
+      .getByTestId('plans-creation-popover')
+      .getByRole('button', { name: 'New workout plan' })
+      .click();
+
+    const dragHandle = page.getByRole('button', { name: 'Drag to reorder Transfer routine' });
+    const planDropTarget = page.getByRole('button', { name: 'Add routine to New plan' });
+    await dragFromTo(page, dragHandle, planDropTarget);
+
+    const planCard = page.getByTestId(/^plan-swipe-/);
+    await expect(planCard.getByText('Transfer routine', { exact: true })).toBeVisible();
+    const standaloneDropTarget = page.getByText('Drop routine here', { exact: true });
+    await expect(standaloneDropTarget).toBeVisible();
+    await dragFromTo(
+      page,
+      planCard.getByRole('button', { name: 'Drag to reorder Transfer routine' }),
+      standaloneDropTarget,
+    );
+    await expect(page.getByText('Transfer routine', { exact: true })).toHaveCount(1);
+    await expect(standaloneDropTarget).toHaveCount(0);
+  });
+
+  test('creates a routine only after Save, edits it, and starts it as a workout', async ({
+    page,
+  }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Plans' }).click();
     await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
@@ -90,13 +143,21 @@ test.describe('Plans and routines', () => {
           .evaluateAll((buttons) =>
             buttons
               .map((button) => button.getAttribute('aria-label'))
-              .filter((label): label is string => ['Start', 'Edit', 'Visualize'].includes(label ?? '')),
+              .filter((label): label is string =>
+                ['Start', 'Edit', 'Visualize'].includes(label ?? ''),
+              ),
           ),
       )
       .toEqual(['Start', 'Edit', 'Visualize']);
-    await expect(routineActions.getByRole('button', { name: 'Visualize' }).locator('svg').first()).toBeVisible();
-    await expect(routineActions.getByRole('button', { name: 'Edit' }).locator('svg').first()).toBeVisible();
-    await expect(routineActions.getByRole('button', { name: 'Start' }).locator('svg').first()).toBeVisible();
+    await expect(
+      routineActions.getByRole('button', { name: 'Visualize' }).locator('svg').first(),
+    ).toBeVisible();
+    await expect(
+      routineActions.getByRole('button', { name: 'Edit' }).locator('svg').first(),
+    ).toBeVisible();
+    await expect(
+      routineActions.getByRole('button', { name: 'Start' }).locator('svg').first(),
+    ).toBeVisible();
     await routineActions.getByRole('button', { name: 'Edit' }).click();
     await expect(routineActions).toHaveCount(0);
     await page.getByLabel('Routine name').fill('Upper body updated');
@@ -140,8 +201,12 @@ test.describe('Plans and routines', () => {
     await page.getByRole('button', { name: 'Open options for New plan' }).click();
     const planOptions = page.getByTestId('plans-options-sheet');
     await expect(planOptions.getByText('Plan options', { exact: true })).toBeVisible();
-    await expect(planOptions.getByRole('button', { name: 'Add routine' }).locator('svg')).toHaveCount(2);
-    await expect(planOptions.getByRole('button', { name: 'Delete plan' }).locator('svg')).toHaveCount(1);
+    await expect(
+      planOptions.getByRole('button', { name: 'Add routine' }).locator('svg'),
+    ).toHaveCount(2);
+    await expect(
+      planOptions.getByRole('button', { name: 'Delete plan' }).locator('svg'),
+    ).toHaveCount(1);
     await page.getByRole('button', { name: 'Dismiss plan options' }).click();
     await expect(planOptions).toHaveCount(0);
     const plan = page.locator('[data-testid^="plan-swipe-"]').first();
@@ -157,7 +222,9 @@ test.describe('Plans and routines', () => {
     await expect(page.getByText('New plan', { exact: true })).toHaveCount(0);
   });
 
-  test('uses the shared action sheet for persisted routine-editor overflow actions', async ({ page }) => {
+  test('uses the shared action sheet for persisted routine-editor overflow actions', async ({
+    page,
+  }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Plans' }).click();
     await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
@@ -178,15 +245,21 @@ test.describe('Plans and routines', () => {
     await page.getByRole('button', { name: 'Routine options', exact: true }).click();
     const routineOptions = page.getByTestId('routine-options-sheet');
     await expect(routineOptions.getByText('Routine options', { exact: true })).toBeVisible();
-    await expect(routineOptions.getByRole('button', { name: 'Move to a plan' }).locator('svg')).toHaveCount(2);
-    await expect(routineOptions.getByRole('button', { name: 'Delete routine' }).locator('svg')).toHaveCount(1);
+    await expect(
+      routineOptions.getByRole('button', { name: 'Move to a plan' }).locator('svg'),
+    ).toHaveCount(2);
+    await expect(
+      routineOptions.getByRole('button', { name: 'Delete routine' }).locator('svg'),
+    ).toHaveCount(1);
     await page.getByRole('button', { name: 'Move to a plan' }).click();
     await expect(routineOptions).toHaveCount(0);
     await expect(page.getByText('Part of New plan', { exact: true })).toHaveCount(0);
     await page.getByRole('button', { name: 'Save routine' }).click();
   });
 
-  test('adds, edits, and removes routine attributes in the local editor draft', async ({ page }) => {
+  test('adds, edits, and removes routine attributes in the local editor draft', async ({
+    page,
+  }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Plans' }).click();
     await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
@@ -209,7 +282,9 @@ test.describe('Plans and routines', () => {
     await expect(page.getByText('Attributes routine', { exact: true })).toBeVisible();
   });
 
-  test('uses the Live Workout exercise picker and supports opening and swiping routine exercises', async ({ page }) => {
+  test('uses the Live Workout exercise picker and supports opening and swiping routine exercises', async ({
+    page,
+  }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Plans' }).click();
     await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
@@ -234,7 +309,9 @@ test.describe('Plans and routines', () => {
     await expect(
       exercise.getByRole('button', { name: 'Drag to reorder Barbell Bench Press' }),
     ).toBeVisible();
-    await expect(exercise.getByRole('button', { name: 'More options for Barbell Bench Press' })).toHaveCount(0);
+    await expect(
+      exercise.getByRole('button', { name: 'More options for Barbell Bench Press' }),
+    ).toHaveCount(0);
     await expandExercise.click();
     const collapseExercise = exercise.getByRole('button', { name: 'Collapse Barbell Bench Press' });
     await expect(collapseExercise.locator('svg').last()).toBeVisible();
@@ -244,14 +321,20 @@ test.describe('Plans and routines', () => {
       exercise.getByText('1 set', { exact: true }).boundingBox(),
     ]);
     expect((setCountBox?.y ?? 0) - (exerciseNameBox?.y ?? 0)).toBeLessThan(30);
-    await expect(exercise.getByRole('button', { name: 'Add set to Barbell Bench Press' })).toBeVisible();
+    await expect(
+      exercise.getByRole('button', { name: 'Add set to Barbell Bench Press' }),
+    ).toBeVisible();
     await swipeLeftFrom(page, exercise);
-    await expect(exercise.getByRole('button', { name: 'Delete Barbell Bench Press' })).toBeVisible();
+    await expect(
+      exercise.getByRole('button', { name: 'Delete Barbell Bench Press' }),
+    ).toBeVisible();
     await swipeRightFrom(page, exercise);
     await expect(exercise.getByText('Barbell Bench Press', { exact: true })).toBeVisible();
   });
 
-  test('attaches a plan routine only after Save and uses a compact plan header', async ({ page }) => {
+  test('attaches a plan routine only after Save and uses a compact plan header', async ({
+    page,
+  }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Plans' }).click();
     await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
