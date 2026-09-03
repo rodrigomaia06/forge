@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   },
   vignette: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 104, zIndex: 0 },
   dockLayer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     // Float over the lower safe area without turning it into an empty band.
     // The vignette continues underneath the surface to the screen edge.
     bottom: 22,

@@ -20,7 +20,7 @@ export function ForgeThemeProvider({ children }: ChildrenProps) {
     // React Native Web resolves the scheme through CSS/media queries; the
     // native override is only available on iOS and Android.
     if (Platform.OS !== 'web') {
-      Appearance.setColorScheme(preferences.appearance === 'system' ? null : preferences.appearance);
+      Appearance.setColorScheme(preferences.appearance === 'system' ? 'unspecified' : preferences.appearance);
     }
   }, [preferences.appearance, theme]);
   return <ForgeThemeContext.Provider value={theme}>{children}</ForgeThemeContext.Provider>;

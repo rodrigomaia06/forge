@@ -467,7 +467,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     gap: 10,
   },
   tagSelectedOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 10,
     backgroundColor: 'rgba(77,123,103,0.15)',
   },

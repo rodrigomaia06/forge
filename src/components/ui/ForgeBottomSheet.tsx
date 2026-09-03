@@ -230,7 +230,7 @@ export function ForgeBottomSheetDragArea({ children }: { children: React.ReactNo
 
 const styles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(23,25,28,0.24)',
   },

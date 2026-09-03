@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, {
   Extrapolation,
   interpolate,
@@ -191,7 +191,7 @@ export function RestDurationPicker({
   onSelect: (duration: number) => void;
 }) {
   const styles = useThemedStyles(createActiveWorkoutStyles);
-  const pickerRef = useRef<React.ElementRef<typeof Animated.ScrollView>>(null);
+  const pickerRef = useRef<ScrollView>(null);
   const selectedIndex = Math.max(0, REST_DURATION_OPTIONS.indexOf(selectedDuration as typeof REST_DURATION_OPTIONS[number]));
   const lastHapticIndex = useRef(selectedIndex);
   const programmaticScroll = useRef(false);
