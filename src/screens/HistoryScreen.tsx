@@ -1,12 +1,8 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
+import ReanimatedSwipeable, {
+  type SwipeableMethods,
+} from 'react-native-gesture-handler/ReanimatedSwipeable';
 import {
   AppScreen,
   Button,
@@ -82,9 +78,12 @@ export function HistoryScreen({
                       navigation.navigate('WorkoutDetails', { workoutId: workout.id });
                     }}
                     deleteRevealed={deleteRevealedId === workout.id}
-                    onDeleteRevealChange={(revealed) =>
-                      setDeleteRevealedId(revealed ? workout.id : null)
-                    }
+                    onDeleteRevealChange={(revealed) => {
+                      setDeleteRevealedId((current) => {
+                        if (revealed) return workout.id;
+                        return current === workout.id ? null : current;
+                      });
+                    }}
                     onDelete={() => {
                       animateLayout();
                       errorHaptic();
@@ -135,10 +134,7 @@ function TimelineRow({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const deleteActionWidth = 64;
-  const cardTranslateX = useSharedValue(deleteRevealed ? -deleteActionWidth : 0);
-  const cardOpen = useSharedValue(deleteRevealed);
-  const dragDetected = useSharedValue(false);
+  const swipeableRef = useRef<SwipeableMethods>(null);
   const suppressNextPress = useRef(false);
   const date = new Date(workout.completedAt ?? workout.startedAt);
   const type = getWorkoutTypePresentation(workout.type, workoutTypes, theme, 0.14);
@@ -146,47 +142,14 @@ function TimelineRow({
   const hasExerciseSummary = workout.exercises.length > 0 && setCount > 0;
 
   React.useEffect(() => {
-    cardOpen.value = deleteRevealed;
-    cardTranslateX.value = withSpring(deleteRevealed ? -deleteActionWidth : 0, swipeSpring);
-  }, [cardOpen, cardTranslateX, deleteRevealed]);
-
-  const settleCard = (shouldOpen: boolean, dragged: boolean): void => {
-    if (dragged) suppressNextPress.current = true;
-    if (shouldOpen !== deleteRevealed) {
-      mediumHaptic();
-      onDeleteRevealChange(shouldOpen);
-      return;
-    }
-    cardTranslateX.value = withSpring(shouldOpen ? -deleteActionWidth : 0, swipeSpring);
-  };
-  const cardGesture = Gesture.Pan()
-    .activeOffsetX([-8, 8])
-    .failOffsetY([-12, 12])
-    .onBegin(() => {
-      dragDetected.value = false;
-    })
-    .onUpdate((gesture) => {
-      if (Math.abs(gesture.translationX) > 6) dragDetected.value = true;
-      if (!cardOpen.value && gesture.translationX >= 0) return;
-      const base = cardOpen.value ? -deleteActionWidth : 0;
-      cardTranslateX.value = Math.max(-deleteActionWidth, Math.min(0, base + gesture.translationX));
-    })
-    .onEnd((gesture) => {
-      const offset = (cardOpen.value ? -deleteActionWidth : 0) + gesture.translationX;
-      runOnJS(settleCard)(
-        Math.max(-deleteActionWidth, Math.min(0, offset)) < -42,
-        dragDetected.value,
-      );
-    });
-  const swipeContentStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: cardTranslateX.value }],
-  }));
+    if (!deleteRevealed) swipeableRef.current?.close();
+  }, [deleteRevealed]);
 
   return (
     <View
       testID={`history-timeline-${workout.id}`}
       accessibilityLabel="History timeline"
-      style={styles.timelineRow}
+      style={[styles.timelineRow, !hasExerciseSummary && styles.timelineRowCompact]}
     >
       <View style={styles.dateColumn}>
         <Text style={styles.weekday}>{date.toLocaleDateString('en-GB', { weekday: 'short' })}</Text>
@@ -197,65 +160,85 @@ function TimelineRow({
         <View style={[styles.railLine, first && styles.railLineFirst]} />
         <View style={[styles.marker, first && styles.markerActive]} />
       </View>
-      <GestureDetector gesture={cardGesture}>
-        <View testID={`history-swipe-${workout.id}`} style={styles.swipeContainer}>
-          <View
-            style={[
-              styles.deleteActionLayer,
-              { pointerEvents: deleteRevealed ? 'auto' : 'none' },
+      <View testID={`history-swipe-${workout.id}`} style={styles.swipeShell}>
+        <ReanimatedSwipeable
+          ref={swipeableRef}
+          containerStyle={styles.swipeContainer}
+          childrenContainerStyle={styles.swipeContent}
+          friction={1.35}
+          rightThreshold={32}
+          overshootRight={false}
+          animationOptions={swipeSpring}
+          onSwipeableOpenStartDrag={() => {
+            suppressNextPress.current = true;
+          }}
+          onSwipeableWillOpen={() => {
+            mediumHaptic();
+          }}
+          onSwipeableOpen={() => onDeleteRevealChange(true)}
+          onSwipeableClose={() => onDeleteRevealChange(false)}
+          renderRightActions={() => (
+            <View style={styles.deleteActionLayer}>
+              <Pressable
+                testID={`history-delete-${workout.id}`}
+                accessibilityRole="button"
+                accessibilityLabel={`Delete ${workout.name}`}
+                onPress={onDelete}
+                style={({ pressed }) => [styles.deleteAction, pressed && styles.deleteActionPressed]}
+              >
+                <Icon name="trash" size={18} color={theme.textDestructive} />
+                <Text style={styles.deleteActionText}>Delete</Text>
+              </Pressable>
+            </View>
+          )}
+        >
+          <Pressable
+            testID={`history-card-${workout.id}`}
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${workout.name}`}
+            onPress={() => {
+              if (suppressNextPress.current) {
+                suppressNextPress.current = false;
+                return;
+              }
+              onPress();
+            }}
+            style={({ pressed }) => [
+              styles.card,
+              !hasExerciseSummary && styles.cardCompact,
+              pressed && styles.pressed,
             ]}
           >
-            <Pressable
-              testID={`history-delete-${workout.id}`}
-              accessibilityRole="button"
-              accessibilityLabel={`Delete ${workout.name}`}
-              onPress={onDelete}
-              style={({ pressed }) => [styles.deleteAction, pressed && styles.deleteActionPressed]}
+            <View
+              testID={`history-type-icon-${workout.id}`}
+              style={[styles.typeIcon, { backgroundColor: type.background }]}
             >
-              <Icon name="trash" size={18} color={theme.textDestructive} />
-              <Text style={styles.deleteActionText}>Delete</Text>
-            </Pressable>
-          </View>
-          <Animated.View style={[styles.swipeContent, swipeContentStyle]}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Open ${workout.name}`}
-              onPress={() => {
-                if (suppressNextPress.current) {
-                  suppressNextPress.current = false;
-                  return;
-                }
-                onPress();
-              }}
-              style={({ pressed }) => [styles.card, pressed && styles.pressed]}
-            >
-              <View style={[styles.typeIcon, { backgroundColor: type.background }]}>
-                <Icon name={type.icon} size={19} color={type.color} />
-              </View>
-              <View style={styles.cardCopy}>
-                <Text style={styles.name} numberOfLines={1}>
-                  {workout.name}
+              <Icon name={type.icon} size={22} color={type.color} />
+            </View>
+            <View style={styles.cardCopy}>
+              <Text style={styles.name} numberOfLines={1}>
+                {workout.name}
+              </Text>
+              {hasExerciseSummary && (
+                <Text style={styles.stats} numberOfLines={1}>
+                  {`${workout.exercises.length} exercises · ${setCount} sets`}
                 </Text>
-                {hasExerciseSummary && (
-                  <Text style={styles.stats} numberOfLines={1}>
-                    {`${workout.exercises.length} exercises · ${setCount} sets`}
-                  </Text>
-                )}
-              </View>
-              <View style={styles.durationChip}>
-                <Icon name="time-outline" size={13} color={theme.ink} />
-                <Text style={styles.durationText}>{formatCompactDuration(workout.durationSeconds)}</Text>
-              </View>
-              <Icon name="chevron-forward" size={17} color={theme.slate} />
-            </Pressable>
-          </Animated.View>
-        </View>
-      </GestureDetector>
+              )}
+            </View>
+            <View style={styles.durationChip}>
+              <Icon name="time-outline" size={13} color={theme.ink} />
+              <Text style={styles.durationText}>{formatCompactDuration(workout.durationSeconds)}</Text>
+            </View>
+            <Icon name="chevron-forward" size={17} color={theme.slate} />
+          </Pressable>
+        </ReanimatedSwipeable>
+      </View>
     </View>
   );
 }
 
 const swipeSpring = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
+const historyCardRadius = 16;
 
 function groupByPeriod(workouts: Workout[]): HistoryGroup[] {
   const current = startOfWeek(new Date());
@@ -307,6 +290,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     ...typeScale.supporting,
   },
   timelineRow: { minHeight: 76, flexDirection: 'row', alignItems: 'stretch' },
+  timelineRowCompact: { minHeight: 64 },
   dateColumn: { width: 47, alignItems: 'flex-end', paddingTop: 14, paddingRight: 5 },
   weekday: { color: theme.slate, ...typeScale.caption },
   day: { color: theme.ink, ...typeScale.metricMedium },
@@ -331,25 +315,29 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     backgroundColor: theme.background,
   },
   markerActive: { borderColor: theme.ink, backgroundColor: theme.ink },
+  swipeShell: { flex: 1, minWidth: 0, alignSelf: 'stretch' },
   swipeContainer: {
     flex: 1,
     position: 'relative',
     overflow: 'hidden',
-    borderRadius: 16,
-    backgroundColor: theme.destructiveSurface,
+    borderRadius: historyCardRadius,
+    alignSelf: 'stretch',
   },
   deleteActionLayer: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    width: 64,
+    // The action overlaps the card radius beneath the translated card so its
+    // red surface fills the full trailing curve instead of leaving a gap.
+    width: 64 + historyCardRadius,
+    marginLeft: -historyCardRadius,
+    paddingLeft: historyCardRadius,
+    alignSelf: 'stretch',
     backgroundColor: theme.destructiveSurface,
   },
   deleteAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
   deleteActionPressed: { backgroundColor: theme.destructiveSurfacePressed },
   deleteActionText: { color: theme.textDestructive, ...typeScale.caption },
-  swipeContent: { zIndex: 1, backgroundColor: theme.surface },
+  // The card is the moving surface. Its border and curve travel with it while
+  // the red delete layer remains behind the exposed trailing edge.
+  swipeContent: { zIndex: 1, flex: 1, alignSelf: 'stretch' },
   card: {
     flex: 1,
     minHeight: 76,
@@ -359,7 +347,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: theme.border,
-    borderRadius: 16,
+    borderRadius: historyCardRadius,
     backgroundColor: theme.surface,
     shadowColor: theme.shadow,
     shadowOpacity: 0.12,
@@ -367,13 +355,14 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
+  cardCompact: { minHeight: 64 },
   pressed: { opacity: 0.72 },
   typeIcon: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 18,
+    borderRadius: 22,
   },
   cardCopy: { flex: 1, minWidth: 0, justifyContent: 'center' },
   name: { color: theme.ink, ...typeScale.cardTitle },

@@ -145,7 +145,6 @@ export const ExerciseSection = React.memo(function ExerciseSection({
         <Animated.View
           style={[
             styles.exerciseSwipeContent,
-            deleteRevealed && styles.exerciseSwipeContentRevealed,
             swipeContentStyle,
           ]}
         >
@@ -409,12 +408,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       borderRadius: 16,
       backgroundColor: dashboardTheme.destructiveSurface,
     },
-    exerciseSwipeContent: { zIndex: 1, backgroundColor: dashboardTheme.surface },
-    exerciseSwipeContentRevealed: {
-      overflow: 'hidden',
-      borderTopRightRadius: 16,
-      borderBottomRightRadius: 16,
-    },
+    // The exercise card owns its rounded surface. A transparent motion layer
+    // preserves that curve while the destructive action is revealed behind it.
+    exerciseSwipeContent: { zIndex: 1, flex: 1, alignSelf: 'stretch' },
     deleteExerciseActionLayer: {
       position: 'absolute',
       top: 0,

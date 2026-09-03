@@ -529,7 +529,7 @@ function SwipeDelete({
         <Animated.View
           style={[
             styles.swipeSurface,
-            revealed && styles.swipeSurfaceRounded,
+            rounded && revealed && styles.swipeSurfaceRounded,
             { backgroundColor: theme.surface },
             animatedStyle,
           ]}
@@ -662,7 +662,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     deleteAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
     deleteActionPressed: { backgroundColor: theme.destructiveSurfacePressed },
     deleteText: { ...typeScale.caption, color: theme.textDestructive },
-    swipeSurface: { zIndex: 1 },
+    swipeSurface: { zIndex: 1, flex: 1, alignSelf: 'stretch' },
     swipeSurfaceRounded: {
       overflow: 'hidden',
       borderTopRightRadius: theme.cardRadius,

@@ -1218,7 +1218,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     customSwipe: {
       position: 'relative',
       overflow: 'hidden',
-      backgroundColor: theme.destructiveSurface,
     },
     customDeleteLayer: {
       position: 'absolute',
@@ -1230,7 +1229,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     customDeleteAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
     customDeletePressed: { backgroundColor: theme.destructiveSurfacePressed },
     customDeleteText: { color: theme.textDestructive, ...typeScale.caption },
-    customSwipeSurface: { zIndex: 1, backgroundColor: theme.surfaceElevated },
+    customSwipeSurface: { zIndex: 1, flex: 1, alignSelf: 'stretch', backgroundColor: theme.surfaceElevated },
     addVariation: {
       alignSelf: 'stretch',
       height: 38,

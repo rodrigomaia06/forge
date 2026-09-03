@@ -412,13 +412,16 @@ test.describe('Active workout flow', () => {
 
     await expect(page.getByRole('button', { name: 'Delete set 1' })).toBeVisible();
     await page.getByRole('button', { name: 'Delete set 1' }).click();
-    await expect(page.getByLabel('Weight for set 1')).toHaveCount(0);
+    await expect(page.getByLabel(/^Weight for set/)).toHaveCount(2);
   });
 
   test('removes the exercise card when its last set is deleted', async ({ page }) => {
     await startEmptyWorkoutWithExercise(page);
-    await swipeLeftFrom(page, page.getByLabel('Weight for set 1'));
-    await page.getByRole('button', { name: 'Delete set 1' }).click();
+    for (const remaining of [2, 1, 0]) {
+      await swipeLeftFrom(page, page.getByLabel('Weight for set 1'));
+      await page.getByRole('button', { name: 'Delete set 1' }).click();
+      await expect(page.getByLabel(/^Weight for set/)).toHaveCount(remaining);
+    }
     await expect(page.getByText('Barbell Bench Press', { exact: true })).toHaveCount(0);
   });
 
@@ -427,7 +430,7 @@ test.describe('Active workout flow', () => {
     await swipeLeftFrom(page, page.getByLabel('Weight for set 1'));
     await expect(page.getByRole('button', { name: 'Delete set 1' })).toBeVisible();
     await page.getByRole('button', { name: 'Delete set 1' }).click();
-    await expect(page.getByLabel('Weight for set 1')).toHaveCount(0);
+    await expect(page.getByLabel(/^Weight for set/)).toHaveCount(2);
   });
 
   test('reveals delete action when swiping from a reps input', async ({ page }) => {
@@ -435,6 +438,6 @@ test.describe('Active workout flow', () => {
     await swipeLeftFrom(page, page.getByLabel('Reps for set 1'));
     await expect(page.getByRole('button', { name: 'Delete set 1' })).toBeVisible();
     await page.getByRole('button', { name: 'Delete set 1' }).click();
-    await expect(page.getByLabel('Reps for set 1')).toHaveCount(0);
+    await expect(page.getByLabel(/^Reps for set/)).toHaveCount(2);
   });
 });

@@ -248,16 +248,13 @@ function SwipeTypeRow({
   const animated = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
   const content = (
     <View
-      style={[
-        styles.swipe,
-        { backgroundColor: type.source === 'builtIn' ? theme.surfaceElevated : theme.overlay },
-      ]}
+      style={styles.swipe}
     >
       {type.source !== 'builtIn' && (
         <View
           style={[
             styles.actionLayer,
-            { backgroundColor: theme.overlay, pointerEvents: revealed ? 'auto' : 'none' },
+            { backgroundColor: theme.destructiveSurface, pointerEvents: revealed ? 'auto' : 'none' },
           ]}
         >
           <Pressable
@@ -351,7 +348,6 @@ const styles = StyleSheet.create({
   swipe: {
     position: 'relative',
     overflow: 'hidden',
-    backgroundColor: dashboardTheme.destructiveSurface,
   },
   actionLayer: {
     position: 'absolute',
@@ -364,7 +360,7 @@ const styles = StyleSheet.create({
   swipeAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
   swipeActionPressed: { backgroundColor: dashboardTheme.destructiveSurfacePressed },
   swipeActionText: { color: dashboardTheme.textDestructive, ...typeScale.caption },
-  rowSurface: { zIndex: 1, backgroundColor: dashboardTheme.surface },
+  rowSurface: { zIndex: 1, flex: 1, alignSelf: 'stretch', backgroundColor: dashboardTheme.surface },
   swatch: { width: 13, height: 13, borderRadius: 7 },
   hidden: { color: dashboardTheme.slate, ...typeScale.caption },
   testDivider: { height: StyleSheet.hairlineWidth, backgroundColor: dashboardTheme.divider },

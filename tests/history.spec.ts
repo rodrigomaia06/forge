@@ -35,6 +35,8 @@ test.describe('History screen', () => {
     await expect(page.getByText('3 exercises · 8 sets', { exact: true })).toBeVisible();
     await expect(page.getByText('7 exercises · 16 sets', { exact: true })).toBeVisible();
     await expect(page.getByText('1h 12m', { exact: true })).toBeVisible();
+    const typeIcon = await page.getByTestId('history-type-icon-empty-session').boundingBox();
+    expect(typeIcon?.width).toBeCloseTo(44, 0);
     expect(await page.locator('svg').count()).toBeGreaterThan(0);
   });
 
@@ -44,6 +46,19 @@ test.describe('History screen', () => {
     const card = page.getByTestId('history-timeline-empty-session');
     await expect(card.getByRole('button', { name: 'Open Recovery walk' })).toContainText('Recovery walk');
     await expect(card.getByText(/exercises.*sets/)).toHaveCount(0);
+    const [compactCard, detailedCard] = await Promise.all([
+      card.getByRole('button', { name: 'Open Recovery walk' }).boundingBox(),
+      page.getByRole('button', { name: 'Open Muay Thai' }).boundingBox(),
+    ]);
+    expect(compactCard?.height).toBeCloseTo(64, 0);
+    expect(detailedCard?.height).toBeCloseTo(76, 0);
+  });
+
+  test('keeps History cards at the full available row width', async ({ page }) => {
+    const card = await page.getByRole('button', { name: 'Open Muay Thai' }).boundingBox();
+    const viewportWidth = page.viewportSize()?.width;
+    if (!card || !viewportWidth) throw new Error('Expected the History card and viewport to be measurable');
+    expect(card.x + card.width).toBeGreaterThanOrEqual(viewportWidth - 17);
   });
 
   test('keeps history groups in descending order', async ({ page }) => {
@@ -124,6 +139,19 @@ test.describe('History screen', () => {
     await page.mouse.down();
     await page.mouse.move(box.x - 90, box.y + box.height / 2, { steps: 8 });
     await page.mouse.up();
+    const deleteAction = page.getByRole('button', { name: 'Delete Muay Thai' });
+    await expect(deleteAction).toBeVisible();
+    const [surfaceBox, deleteBox] = await Promise.all([
+      page.getByTestId('history-card-muay-thai').boundingBox(),
+      deleteAction.boundingBox(),
+    ]);
+    expect(
+      (surfaceBox?.x ?? 0) + (surfaceBox?.width ?? 0) - (deleteBox?.x ?? 0),
+    ).toBeCloseTo(0, 0);
+    await expect(page.getByTestId('history-card-muay-thai')).toHaveCSS(
+      'border-top-right-radius',
+      '16px',
+    );
     await expect(page.getByTestId('history-header')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Back to History' })).toHaveCount(0);
   });

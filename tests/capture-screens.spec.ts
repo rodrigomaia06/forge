@@ -39,6 +39,12 @@ async function seedHistory(page: Page): Promise<void> {
   }, completedWorkouts);
 }
 
+async function enableDark(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance: 'dark' }));
+  });
+}
+
 async function capture(page: Page, name: string): Promise<void> {
   // Let short entrance/layout animations settle so captures show final UI, not an in-between frame.
   await page.waitForTimeout(250);
@@ -121,9 +127,53 @@ test.describe('Forge screen captures', () => {
     await expect(page.getByRole('button', { name: 'Open Upper push' })).toBeVisible();
     await capture(page, 'history');
 
+    const historyCard = page.getByRole('button', { name: 'Open Upper push' });
+    const historyCardBox = await historyCard.boundingBox();
+    if (!historyCardBox) throw new Error('Expected History card to be measurable');
+    await page.mouse.move(
+      historyCardBox.x + historyCardBox.width / 2,
+      historyCardBox.y + historyCardBox.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(historyCardBox.x - 90, historyCardBox.y + historyCardBox.height / 2, {
+      steps: 8,
+    });
+    await page.mouse.up();
+    await expect(page.getByRole('button', { name: 'Delete Upper push' })).toBeVisible();
+    await capture(page, 'history-swipe-delete');
+
+    await page.mouse.move(
+      historyCardBox.x + historyCardBox.width / 2 - 64,
+      historyCardBox.y + historyCardBox.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      historyCardBox.x + historyCardBox.width / 2 + 32,
+      historyCardBox.y + historyCardBox.height / 2,
+      { steps: 8 },
+    );
+    await page.mouse.up();
+    await expect(page.getByRole('button', { name: 'Delete Upper push' })).toBeHidden();
+
     await page.getByRole('button', { name: 'Open Upper push' }).click();
     await expect(page.getByTestId('workout-details-summary')).toBeVisible();
     await capture(page, 'workout-detail');
+  });
+
+  test('captures the dark History swipe-delete surface', async ({ page }) => {
+    await enableDark(page);
+    await seedHistory(page);
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'History' }).click();
+    const historyCard = page.getByRole('button', { name: 'Open Upper push' });
+    const box = await historyCard.boundingBox();
+    if (!box) throw new Error('Expected History card to be measurable');
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x - 90, box.y + box.height / 2, { steps: 8 });
+    await page.mouse.up();
+    await expect(page.getByRole('button', { name: 'Delete Upper push' })).toBeVisible();
+    await capture(page, 'history-swipe-delete-dark');
   });
 
   test('captures the History workout editor', async ({ page }) => {
