@@ -4,6 +4,7 @@ import { FlatList, Pressable, StyleSheet, View, type ListRenderItemInfo } from '
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
 import { ForgeBottomSheet, ForgeBottomSheetHandle } from './ForgeBottomSheet';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ForgeText as Text } from './ForgeText';
 import { ForgeSheetHeader } from './ForgeSheetHeader';
 import { Icon } from './Icon';
@@ -186,6 +187,7 @@ export function ForgeSelectionSheet<T extends SelectionValue>({
   testID,
   listTestID,
 }: ForgeSelectionSheetProps<T>) {
+  const insets = useSafeAreaInsets();
   return (
     <ForgeBottomSheet
       visible={visible}
@@ -194,7 +196,10 @@ export function ForgeSelectionSheet<T extends SelectionValue>({
       testID={testID}
     >
       {(close) => (
-        <View testID={testID ? `${testID}-surface` : undefined} style={styles.sheet}>
+        <View
+          testID={testID ? `${testID}-surface` : undefined}
+          style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 24) }]}
+        >
           <ForgeBottomSheetHandle />
           <ForgeSheetHeader title={title} onClose={close} />
           <ForgeSingleSelectList

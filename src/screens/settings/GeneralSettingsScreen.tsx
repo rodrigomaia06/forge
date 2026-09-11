@@ -28,10 +28,10 @@ import type {
   UnitsPreference,
   WeekStartsOn,
 } from '../../types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 import { REST_DURATION_OPTIONS } from '../../domain/rest/restDurationOptions';
-import { forgeDockScrollInset } from '../../components/DockChrome';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GeneralSettings'>;
 
@@ -57,9 +57,11 @@ export function GeneralSettingsScreen({ navigation }: Props) {
   const { preferences, updatePreferences } = useSettings();
   const theme = useForgeTheme();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const [appearanceOpen, setAppearanceOpen] = React.useState(false);
   const [defaultRestOpen, setDefaultRestOpen] = React.useState(false);
   const [reminderOpen, setReminderOpen] = React.useState(false);
+  const [headerElevated, setHeaderElevated] = React.useState(false);
   const displayedWeight = useMemo(
     () =>
       preferences.units === 'imperial'
@@ -83,13 +85,15 @@ export function GeneralSettingsScreen({ navigation }: Props) {
     });
   };
   return (
-    <AppScreen backgroundColor={theme.background}>
+    <AppScreen backgroundColor={theme.background} edges={['top']}>
       <View style={[styles.screen, { backgroundColor: theme.background }]}>
-        <SettingsDetailHeader title="General" navigation={navigation} />
+        <SettingsDetailHeader title="General" navigation={navigation} elevated={headerElevated} />
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
+          scrollEventThrottle={16}
         >
           <SettingsSection
             title="Appearance"
@@ -250,15 +254,6 @@ export function GeneralSettingsScreen({ navigation }: Props) {
               />
             )}
           </SettingsSection>
-          <SettingsSection title="Workout name">
-            <Toggle
-              title="Show plan in workout name"
-              value={preferences.showPlanInWorkoutTitle}
-              onPress={() =>
-                choose({ showPlanInWorkoutTitle: !preferences.showPlanInWorkoutTitle })
-              }
-            />
-          </SettingsSection>
         </ScrollView>
         <ForgeSelectionSheet
           visible={appearanceOpen && !(Platform.OS === 'web' && width >= 768)}
@@ -373,7 +368,6 @@ const styles = StyleSheet.create({
   content: {
     padding: settingsLayout.screenPadding,
     paddingTop: settingsLayout.contentTop,
-    paddingBottom: forgeDockScrollInset,
     gap: settingsLayout.sectionGap,
   },
   value: { ...typeScale.supporting },

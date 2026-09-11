@@ -15,7 +15,6 @@ export const defaultSettingsPreferences: SettingsPreferences = {
   restTimerHaptic: true,
   unfinishedWorkoutReminderEnabled: false,
   unfinishedWorkoutReminderDelay: 1800,
-  showPlanInWorkoutTitle: true,
   exerciseRestSeconds: {},
   workoutTypes: [
     { id: 'strength', name: 'Strength', color: '#687CF2', source: 'builtIn' },
@@ -42,7 +41,6 @@ export async function loadSettingsPreferences(): Promise<SettingsPreferences> {
     restTimerHaptic: parsed.restTimerHaptic !== false,
     unfinishedWorkoutReminderEnabled: parsed.unfinishedWorkoutReminderEnabled === true,
     unfinishedWorkoutReminderDelay: [900, 1800, 3600, 7200].includes(parsed.unfinishedWorkoutReminderDelay as number) ? parsed.unfinishedWorkoutReminderDelay as number : 1800,
-    showPlanInWorkoutTitle: parsed.showPlanInWorkoutTitle !== false,
     exerciseRestSeconds:
       parsed.exerciseRestSeconds && typeof parsed.exerciseRestSeconds === 'object'
         ? Object.fromEntries(

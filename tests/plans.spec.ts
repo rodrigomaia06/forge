@@ -426,5 +426,7 @@ test.describe('Plans and routines', () => {
     await expect(routineActions.getByRole('button', { name: 'Visualize' })).toBeVisible();
     await expect(routineActions.getByRole('button', { name: 'Edit' })).toBeVisible();
     await expect(routineActions.getByRole('button', { name: 'Start' })).toBeVisible();
+    await routineActions.getByRole('button', { name: 'Start' }).click();
+    await expect(page.getByText('New plan — Plan draft', { exact: true })).toBeVisible();
   });
 });

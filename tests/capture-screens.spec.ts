@@ -67,7 +67,7 @@ test.describe('Forge screen captures', () => {
       .getByTestId('plans-creation-popover')
       .getByRole('button', { name: 'New routine', exact: true })
       .click();
-    await expect(page.getByText('Edit routine', { exact: true })).toBeVisible();
+    await expect(page.getByLabel('Routine name')).toBeVisible();
     await capture(page, 'routine-editor');
     await page.getByRole('button', { name: 'Back to Plans' }).click();
 

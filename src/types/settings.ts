@@ -22,7 +22,6 @@ export interface SettingsPreferences {
   restTimerHaptic: boolean;
   unfinishedWorkoutReminderEnabled: boolean;
   unfinishedWorkoutReminderDelay: number;
-  showPlanInWorkoutTitle: boolean;
   /** Built-in exercise rest-time overrides; omitted keys inherit the General default. */
   exerciseRestSeconds: Record<string, number>;
   workoutTypes: WorkoutTypePreference[];

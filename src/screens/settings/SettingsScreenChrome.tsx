@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { HeaderAction, ForgeText as Text } from '../../components/ui';
+import { HeaderAction, HeaderEdge, ForgeText as Text } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
@@ -11,11 +11,13 @@ export function SettingsDetailHeader({
   navigation,
   rightAction,
   backAccessibilityLabel = 'Back to Settings',
+  elevated = false,
 }: {
   title: string;
   navigation: { goBack: () => void };
   rightAction?: React.ReactNode;
   backAccessibilityLabel?: string;
+  elevated?: boolean;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -38,6 +40,7 @@ export function SettingsDetailHeader({
         </Text>
       </View>
       <View style={styles.spacer}>{rightAction}</View>
+      {elevated ? <HeaderEdge /> : null}
     </View>
   );
 }
@@ -46,6 +49,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
   StyleSheet.create({
     pointerEventsNone: { pointerEvents: 'none' },
     header: {
+      position: 'relative',
+      zIndex: 2,
       height: 70,
       paddingHorizontal: 20,
       alignItems: 'center',

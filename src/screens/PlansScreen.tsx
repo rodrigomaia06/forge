@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -43,6 +43,7 @@ type PlanActionTarget =
 const swipeSpring = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
 
 export function PlansScreen({ navigation, route }: Props) {
+  const { width } = useWindowDimensions();
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const { preferences } = useSettings();
@@ -51,6 +52,7 @@ export function PlansScreen({ navigation, route }: Props) {
   const [creationOpen, setCreationOpen] = useState(false);
   const [actionTarget, setActionTarget] = useState<PlanActionTarget | null>(null);
   const [headerElevated, setHeaderElevated] = useState(false);
+  const usesCompactCreationSheet = width < 768;
   const handlePlansScrollOffset = useCallback((offset: number): void => {
     setHeaderElevated(offset > 1);
   }, []);
@@ -63,8 +65,11 @@ export function PlansScreen({ navigation, route }: Props) {
 
   const startRoutine = (routine: WorkoutRoutine, withHaptic = true): void => {
     if (withHaptic) selectionHaptic();
+    const planName = routine.planId
+      ? plans.find((plan) => plan.id === routine.planId)?.name
+      : undefined;
     startWorkout({
-      name: routine.name,
+      name: planName ? `${planName} — ${routine.name}` : routine.name,
       type: routine.type,
       note: routine.note,
       attributes: routine.attributes,
@@ -167,8 +172,20 @@ export function PlansScreen({ navigation, route }: Props) {
           {!standaloneRoutines.length && !plans.length ? <EmptyPlans /> : null}
         </ScrollView>
         <AnchoredActionPopover
-          visible={creationOpen}
+          visible={creationOpen && !usesCompactCreationSheet}
           onClose={() => setCreationOpen(false)}
+          testID="plans-creation-popover"
+          actions={[
+            { label: 'New workout', icon: 'fitness', onPress: startBlankWorkout },
+            { label: 'New routine', icon: 'book', onPress: () => addRoutine() },
+            { label: 'New workout plan', icon: 'layers', onPress: addPlan },
+          ]}
+        />
+        <ForgeActionSheet
+          visible={creationOpen && usesCompactCreationSheet}
+          onClose={() => setCreationOpen(false)}
+          accessibilityLabel="Dismiss creation options"
+          title="Create"
           testID="plans-creation-popover"
           actions={[
             { label: 'New workout', icon: 'fitness', onPress: startBlankWorkout },
