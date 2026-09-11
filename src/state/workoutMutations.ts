@@ -18,6 +18,7 @@ export function createWorkout(options: StartWorkoutOptions): Workout {
     routineId: options.routineId,
     planId: options.planId,
     attributes: options.attributes,
+    attributeIcons: options.attributeIcons,
     exercises: (options.exercises || []).map((exercise) => ({
       id: exercise.id || makeWorkoutId('exercise'),
       exerciseId: exercise.exerciseId,

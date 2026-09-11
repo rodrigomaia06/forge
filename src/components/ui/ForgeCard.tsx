@@ -9,7 +9,8 @@ export function ForgeCard({
 }: {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
-  variant?: 'outlined' | 'elevated';
+  /** An inset card sits one semantic surface below an enclosing sheet or card. */
+  variant?: 'outlined' | 'elevated' | 'inset';
 }) {
   const theme = useForgeTheme();
   return (
@@ -17,11 +18,11 @@ export function ForgeCard({
       style={[
         styles.card,
         {
-          backgroundColor: theme.surfaceElevated,
+          backgroundColor: variant === 'inset' ? theme.surface : theme.surfaceElevated,
           borderColor: theme.border,
           shadowColor: theme.shadow,
           shadowOpacity: theme.cardShadowOpacity ?? 0.06,
-          borderWidth: variant === 'outlined' ? 1 : 0,
+          borderWidth: variant === 'elevated' ? 0 : 1,
         },
         style,
       ]}

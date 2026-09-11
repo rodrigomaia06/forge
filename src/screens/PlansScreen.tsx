@@ -72,7 +72,11 @@ export function PlansScreen({ navigation, route }: Props) {
       name: planName ? `${planName} — ${routine.name}` : routine.name,
       type: routine.type,
       note: routine.note,
-      attributes: routine.attributes,
+      // A routine owns the reusable field names. Each workout starts its own blank values.
+      attributes: routine.attributes
+        ? Object.fromEntries(Object.keys(routine.attributes).map((label) => [label, '']))
+        : undefined,
+      attributeIcons: routine.attributeIcons,
       routineId: routine.id,
       planId: routine.planId,
       exercises: routine.exercises,

@@ -316,6 +316,32 @@ test.describe('Plans and routines', () => {
     await expect(page.getByText('Attributes routine', { exact: true })).toBeVisible();
   });
 
+  test('copies routine attribute names into a live workout with blank, editable values', async ({
+    page,
+  }, testInfo) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
+    await page.getByTestId('plans-creation-popover').getByRole('button', { name: 'New routine' }).click();
+    await page.getByLabel('Routine name').fill('Attribute template');
+    await page.getByRole('button', { name: 'Add attribute' }).click();
+    await page.getByLabel('Attribute label').fill('Mood');
+    await page.getByLabel('Attribute value').fill('Template value');
+    await page.getByRole('button', { name: 'Save attribute' }).click();
+    // Re-focus the virtualized header field before saving on compact web profiles.
+    await page.getByLabel('Routine name').fill('Attribute template');
+    await page.getByRole('button', { name: 'Save routine' }).click();
+    await page.getByRole('button', { name: 'Start Attribute template' }).click();
+
+    const mood = page.getByLabel('Mood value');
+    await expect(mood).toHaveValue('');
+    await expect(page.getByText('Attributes', { exact: true })).toHaveCount(0);
+    await page.waitForTimeout(220);
+    await page.screenshot({ path: testInfo.outputPath('live-workout-attributes-no-heading.png') });
+    await mood.fill('Focused');
+    await expect(mood).toHaveValue('Focused');
+  });
+
   test('uses the Live Workout exercise picker and supports opening and swiping routine exercises', async ({
     page,
   }) => {

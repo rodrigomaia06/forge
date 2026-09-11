@@ -38,7 +38,7 @@ import {
   type CatalogFilterState,
 } from '../../components/ui';
 
-export function AddExerciseSheet({
+export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   visible,
   onClose,
   onSubmit,
@@ -85,24 +85,30 @@ export function AddExerciseSheet({
       },
     ];
   }, [exerciseCatalog, preferences.workoutTypes]);
-  const filteredExercises = filterCatalog(exerciseCatalog, {
-    query,
-    types: filters.types,
-    equipment: filters.equipment,
-    exerciseCategories: filters.exerciseCategories,
-    includeGroupInSearch: false,
-  });
-  const categories = [...new Set(filteredExercises.map((exercise) => exercise.category))];
-  const groupedExercises = categories.map((category) => ({
-    category,
-    groups: [
-      ...new Set(
-        filteredExercises
-          .filter((exercise) => exercise.category === category)
-          .map((exercise) => exercise.group),
-      ),
-    ],
-  }));
+  const filteredExercises = useMemo(
+    () => filterCatalog(exerciseCatalog, {
+      query,
+      types: filters.types,
+      equipment: filters.equipment,
+      exerciseCategories: filters.exerciseCategories,
+      includeGroupInSearch: false,
+    }),
+    [exerciseCatalog, filters.equipment, filters.exerciseCategories, filters.types, query],
+  );
+  const groupedExercises = useMemo(() => {
+    const categories = new Map<string, Map<string, ExerciseCatalogItem[]>>();
+    filteredExercises.forEach((exercise) => {
+      const groups = categories.get(exercise.category) ?? new Map<string, ExerciseCatalogItem[]>();
+      const variations = groups.get(exercise.group) ?? [];
+      variations.push(exercise);
+      groups.set(exercise.group, variations);
+      categories.set(exercise.category, groups);
+    });
+    return [...categories].map(([category, groups]) => ({
+      category,
+      groups: [...groups].map(([group, variations]) => ({ group, variations })),
+    }));
+  }, [filteredExercises]);
   const activeFilterCount = catalogFilterCount(filters);
   const toggleExercise = (exercise: ExerciseCatalogItem): void => {
     lightHaptic();
@@ -237,10 +243,7 @@ export function AddExerciseSheet({
               <View key={category}>
                 <Text style={styles.categoryTitle}>{category}</Text>
                 <View style={styles.categoryCard}>
-                  {groups.map((group, groupIndex) => {
-                    const variations = filteredExercises.filter(
-                      (exercise) => exercise.category === category && exercise.group === group,
-                    );
+                  {groups.map(({ group, variations }, groupIndex) => {
                     const selectedCount = variations.filter((exercise) =>
                       selected.includes(exercise.id),
                     ).length;
@@ -450,7 +453,7 @@ export function AddExerciseSheet({
     </ForgeBottomSheet>
     </>
   );
-}
+});
 
 function AnimatedChevron({ expanded }: { expanded: boolean }) {
   const theme = useForgeTheme();

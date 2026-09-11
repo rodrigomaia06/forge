@@ -1,3 +1,5 @@
+import type { IconName } from './icons';
+
 export type WorkoutType = 'Strength' | 'Court sport' | 'Mobility' | 'Cardio' | string;
 
 export type ExerciseSetMetric = 'reps' | 'time' | 'timeRange' | 'distance';
@@ -48,6 +50,8 @@ export interface Workout {
   routineId?: string;
   planId?: string;
   attributes?: Record<string, string>;
+  /** Presentation chosen for a user-defined attribute. Existing records omit this safely. */
+  attributeIcons?: Record<string, IconName>;
 }
 
 export interface WorkoutSetInput {
@@ -78,6 +82,7 @@ export interface WorkoutRoutine {
   type: WorkoutType;
   note?: string;
   attributes?: Record<string, string>;
+  attributeIcons?: Record<string, IconName>;
   exercises: WorkoutExerciseInput[];
   planId?: string;
   createdAt: number;
@@ -119,6 +124,7 @@ export interface StartWorkoutOptions {
   routineId?: string;
   planId?: string;
   attributes?: Record<string, string>;
+  attributeIcons?: Record<string, IconName>;
 }
 export interface WorkoutState {
   activeWorkout: Workout | null;

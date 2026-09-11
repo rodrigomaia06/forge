@@ -33,6 +33,29 @@ async function swipeLeftFrom(page: Page, locator: Locator): Promise<void> {
 }
 
 test.describe('Active workout flow', () => {
+  test('edits live workout metadata as a single draft', async ({ page }, testInfo) => {
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.goto('/');
+    await startBlankWorkout(page);
+    await expect(page.getByRole('button', { name: 'Edit live workout' })).toBeVisible();
+    await page.getByRole('button', { name: 'Edit live workout' }).click();
+    await expect(page.getByText('Edit workout', { exact: true })).toBeVisible();
+    await page.getByLabel('Workout name').fill('Upper body');
+    await page.getByRole('button', { name: 'Choose workout type' }).click();
+    await page.screenshot({ path: testInfo.outputPath('live-workout-type-picker-selected.png') });
+    await page.getByRole('radio', { name: 'Cardio' }).click();
+    await page.getByLabel('Workout note').fill('Easy pace');
+    await page.getByRole('button', { name: 'Add attribute' }).click();
+    await page.getByLabel('Attribute label').fill('Mood');
+    await page.getByLabel('Attribute value').fill('Focused');
+    await page.getByRole('button', { name: 'Choose attribute icon' }).click();
+    await page.getByRole('radio', { name: 'Use activity icon' }).click();
+    await page.getByRole('button', { name: 'Save attribute' }).click();
+    await page.screenshot({ path: testInfo.outputPath('live-workout-editor-dark.png') });
+    await page.getByRole('button', { name: 'Save live workout changes' }).click();
+    await expect(page.getByText('Upper body', { exact: true })).toBeVisible();
+  });
+
   test('starts, records an exercise and finishes a workout', async ({ page }) => {
     await page.goto('/');
 
@@ -100,6 +123,22 @@ test.describe('Active workout flow', () => {
     await expect(
       page.getByRole('checkbox', { name: 'Bench Press, Barbell, Close grip' }),
     ).toBeVisible();
+  });
+
+  test('opens the pre-derived Add Exercises catalogue promptly', async ({ page }, testInfo) => {
+    await page.goto('/');
+    await startBlankWorkout(page);
+    const picker = page.getByTestId('add-exercise-sheet-surface');
+    const openedAt = performance.now();
+    await page.getByRole('button', { name: 'Add exercise' }).click();
+    await expect(picker).toBeVisible();
+    await expect.poll(async () => (await picker.boundingBox())?.y ?? Infinity).toBeLessThan(
+      (page.viewportSize()?.height ?? 0) - 280,
+    );
+    expect(performance.now() - openedAt).toBeLessThan(900);
+    await expect.poll(async () => picker.getByRole('button').count()).toBeGreaterThan(3);
+    await page.waitForTimeout(220);
+    await page.screenshot({ path: testInfo.outputPath('add-exercises-catalogue-ready.png') });
   });
 
   test('stages Live Workout filters without losing selected exercises', async ({ page }, testInfo) => {
