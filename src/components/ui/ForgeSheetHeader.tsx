@@ -14,6 +14,7 @@ interface ForgeSheetHeaderProps {
   leading?: ReactNode;
   trailing?: ReactNode;
   testID?: string;
+  horizontalInset?: number;
 }
 
 /** Shared title bar for Forge's bottom-attached sheets. */
@@ -25,11 +26,12 @@ export function ForgeSheetHeader({
   leading,
   trailing,
   testID,
+  horizontalInset = 20,
 }: ForgeSheetHeaderProps) {
   const theme = useForgeTheme();
   return (
-    <View testID={testID} style={styles.header}>
-      <View style={styles.leading}>
+    <View testID={testID} style={[styles.header, { paddingHorizontal: horizontalInset }]}>
+      <View style={[styles.leading, { left: horizontalInset }]}>
         {closePosition === 'left' && onClose ? (
           <SheetCloseButton
             accessibilityLabel={closeAccessibilityLabel ?? `Close ${title}`}
@@ -41,7 +43,7 @@ export function ForgeSheetHeader({
       <Text numberOfLines={1} style={[styles.title, { color: theme.textPrimary }]}>
         {title}
       </Text>
-      <View style={styles.trailing}>
+      <View style={[styles.trailing, { right: horizontalInset }]}>
         {trailing}
         {closePosition === 'right' && onClose ? (
           <SheetCloseButton

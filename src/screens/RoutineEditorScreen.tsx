@@ -26,6 +26,7 @@ import {
   ForgeText as Text,
   ForgeTextInput as TextInput,
   HeaderAction,
+  HeaderEdge,
   Icon,
   lightHaptic,
   selectionHaptic,
@@ -87,9 +88,17 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
   const [revealedExerciseId, setRevealedExerciseId] = useState<string | null>(null);
   const [completedRoutineSetIds, setCompletedRoutineSetIds] = useState<string[]>([]);
   const [reorderingExercises, setReorderingExercises] = useState(false);
+  const [headerElevated, setHeaderElevated] = useState(false);
   const [confirmation, setConfirmation] = useState<RoutineConfirmation | null>(null);
   const exerciseListRef = React.useRef<GestureHandlerFlatList<WorkoutRoutine['exercises'][number]>>(null);
   const { onSetInputFocus, onScrollOffsetChange } = useFocusedSetKeyboardLift(exerciseListRef);
+  const handleRoutineScrollOffset = (offset: number) => {
+    onScrollOffsetChange(offset);
+    setHeaderElevated((current) => {
+      const next = offset > 1;
+      return current === next ? current : next;
+    });
+  };
 
   const dirty = Boolean(
     draft && initialDraft && JSON.stringify(draft) !== JSON.stringify(initialDraft),
@@ -356,6 +365,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
               />
             )}
           </View>
+          {headerElevated ? <HeaderEdge /> : null}
         </View>
         <DraggableFlatList
           ref={exerciseListRef}
@@ -371,7 +381,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           dragItemOverflow
           extraData={reorderingExercises}
           animationConfig={{ damping: 28, stiffness: 340, mass: 0.65, overshootClamping: true }}
-          onScrollOffsetChange={onScrollOffsetChange}
+          onScrollOffsetChange={handleRoutineScrollOffset}
           ListHeaderComponent={
             <View style={styles.listHeader}>
               <View style={styles.sessionCard}>

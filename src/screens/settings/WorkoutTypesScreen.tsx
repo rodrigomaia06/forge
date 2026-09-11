@@ -39,6 +39,7 @@ export function WorkoutTypesScreen({ navigation }: Props) {
   const { activeWorkout, completedWorkouts } = useWorkouts();
   const { plans, standaloneRoutines } = usePlans();
   const [revealedId, setRevealedId] = useState<string | null>(null);
+  const [headerElevated, setHeaderElevated] = useState(false);
   const visible = useMemo(
     () => preferences.workoutTypes.filter((type) => !type.hidden),
     [preferences.workoutTypes],
@@ -109,6 +110,7 @@ export function WorkoutTypesScreen({ navigation }: Props) {
         <SettingsDetailHeader
           title="Workout types"
           navigation={navigation}
+          elevated={headerElevated}
           rightAction={
             <HeaderAction
               accessibilityLabel="Add workout type"
@@ -119,7 +121,12 @@ export function WorkoutTypesScreen({ navigation }: Props) {
             />
           }
         />
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
+          scrollEventThrottle={16}
+        >
           <TypeList
             types={visible}
             revealedId={revealedId}

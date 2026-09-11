@@ -97,7 +97,9 @@ export const ExerciseSection = React.memo(function ExerciseSection({
 
   const cardGesture = Gesture.Pan()
     .activeOffsetX([-8, 8])
-    .failOffsetY([-12, 12])
+    // Vertical intent must fail this horizontal-delete recognizer promptly;
+    // otherwise a slightly diagonal scroll can leave the card under the finger.
+    .failOffsetY([-6, 6])
     .onStart(() => {
       runOnJS(beginCardSwipe)();
     })
@@ -161,6 +163,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 accessibilityRole="button"
                 accessibilityLabel={`${expanded ? 'Collapse' : 'Expand'} ${exercise.name}`}
                 accessibilityState={{ expanded }}
+                unstable_pressDelay={80}
                 onPress={() => {
                   selectionHaptic();
                   setExpanded((current) => !current);
@@ -297,6 +300,7 @@ export function ReadOnlyExerciseSection({
         accessibilityLabel={`${expanded ? 'Collapse' : 'Expand'} ${exercise.name}`}
         accessibilityState={{ expanded }}
         aria-expanded={expanded}
+        unstable_pressDelay={80}
         onPress={() => {
           selectionHaptic();
           setExpanded((current) => !current);

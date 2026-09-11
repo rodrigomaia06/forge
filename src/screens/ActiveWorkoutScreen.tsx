@@ -10,6 +10,7 @@ import {
   Button,
   ForgeText as Text,
   HeaderAction,
+  HeaderEdge,
   Icon,
   pressedFeedback,
 } from '../components/ui';
@@ -18,7 +19,7 @@ import { useWorkouts } from '../state/WorkoutContext';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import type { RootTabScreenProps, Workout, WorkoutExercise } from '../types';
-import { animateLayout, lightHaptic, successHaptic } from './activeWorkout/activeWorkoutFeedback';
+import { lightHaptic, successHaptic } from './activeWorkout/activeWorkoutFeedback';
 import {
   formatElapsed,
   formatRest,
@@ -53,6 +54,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   const [restSheetOpen, setRestSheetOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [openExerciseId, setOpenExerciseId] = useState<string | null>(null);
+  const [headerElevated, setHeaderElevated] = useState(false);
   const timerLongPressRef = useRef(false);
   const workoutListRef = useRef<FlatList<WorkoutExercise>>(null);
   const dockCompactOnUi = useSharedValue(false);
@@ -111,10 +113,17 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     (nextCompact: boolean): void => setDockCompact(nextCompact),
     [setDockCompact],
   );
+  const handleWorkoutScrollOffset = useCallback((offset: number) => {
+    onScrollOffsetChange(offset);
+    setHeaderElevated((current) => {
+      const next = offset > 1;
+      return current === next ? current : next;
+    });
+  }, [onScrollOffsetChange]);
   useEffect(() => () => setDockCompact(false), [setDockCompact]);
   const workoutScrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
-      runOnJS(onScrollOffsetChange)(event.contentOffset.y);
+      runOnJS(handleWorkoutScrollOffset)(event.contentOffset.y);
       const nextCompact = event.contentOffset.y > 12;
       if (nextCompact !== dockCompactOnUi.value) {
         dockCompactOnUi.value = nextCompact;
@@ -287,7 +296,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
             <Text style={styles.timerLabel}>Rest</Text>
           </Pressable>
         </View>
-        <View style={[styles.headerSeparator, styles.pointerEventsNone]} />
+        {headerElevated ? <HeaderEdge /> : null}
       </View>
       <KeyboardAvoidingView
         style={styles.keyboardArea}
@@ -316,7 +325,6 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
               iconSize={17}
               variant="outline"
               onPress={() => {
-                animateLayout();
                 setSheetOpen(true);
               }}
               style={styles.addExercise}
@@ -324,13 +332,11 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
           }
         />
       </KeyboardAvoidingView>
-      {sheetOpen && (
-        <ExtractedAddExerciseSheet
-          visible
-          onClose={handleAddExerciseClose}
-          onSubmit={handleAddExercises}
-        />
-      )}
+      <ExtractedAddExerciseSheet
+        visible={sheetOpen}
+        onClose={handleAddExerciseClose}
+        onSubmit={handleAddExercises}
+      />
       {restSheetOpen && (
         <RestTimerSheet
           visible

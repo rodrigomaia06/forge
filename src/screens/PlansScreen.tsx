@@ -286,6 +286,7 @@ function PlanCard({
             testID={`plan-header-${plan.id}`}
             accessibilityRole="button"
             accessibilityLabel={`Open options for ${plan.name}`}
+            unstable_pressDelay={80}
             onPress={() => onOptions(plan)}
             style={({ pressed }) => [
               styles.planHeader,
@@ -405,6 +406,7 @@ function RoutineCardBody({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Routine actions for ${routine.name}`}
+          unstable_pressDelay={80}
           onPress={onPress}
           style={({ pressed }) => [styles.routineCopy, pressed && styles.pressed]}
         >

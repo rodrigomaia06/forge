@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Keyboard, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -12,6 +11,8 @@ import {
   ForgeActionSheet,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
+  ForgeCatalogFilterContent,
+  ForgeFloatingCta,
   ForgeSheetHeader,
   ForgeText as Text,
   ForgeTextInput as TextInput,
@@ -23,11 +24,18 @@ import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import type { ExerciseCatalogItem } from '../../data/exerciseCatalog';
 import { useExerciseCatalog } from '../../state/ExerciseCatalogContext';
+import { useSettings } from '../../state/SettingsContext';
 import { CompletionCheck } from './CompletionCheck';
 import { animateLayout, lightHaptic, mediumHaptic, selectionHaptic } from './activeWorkoutFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { WorkoutExercise } from '../../types';
-import { filterCatalog, groupCatalogByEquipment } from '../../domain/exercises/catalogSelectors';
+import { catalogFacets, filterCatalog, groupCatalogByEquipment } from '../../domain/exercises/catalogSelectors';
+import {
+  catalogFilterCount,
+  emptyCatalogFilters,
+  type CatalogFilterFacet,
+  type CatalogFilterState,
+} from '../../components/ui';
 
 export function AddExerciseSheet({
   visible,
@@ -39,19 +47,48 @@ export function AddExerciseSheet({
   onSubmit: (exercises: ExerciseCatalogItem[]) => void;
 }) {
   const { exercises: exerciseCatalog } = useExerciseCatalog();
+  const { preferences } = useSettings();
   const theme = useForgeTheme();
   const dashboardTheme = theme;
   const styles = useThemedStyles(createStyles);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [filters, setFilters] = useState<CatalogFilterState>(emptyCatalogFilters());
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [expandedEquipment, setExpandedEquipment] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
+  const filterFacets = useMemo<CatalogFilterFacet[]>(() => {
+    const optionsFor = (draft: CatalogFilterState, includeEquipment: boolean) => {
+      const scoped = filterCatalog(exerciseCatalog, {
+        types: draft.types,
+        equipment: includeEquipment ? draft.equipment : [],
+        includeGroupInSearch: false,
+      });
+      return scoped;
+    };
+    return [
+      {
+        key: 'types', title: 'Workout type', icon: 'layers',
+        options: preferences.workoutTypes.filter((type) => !type.hidden).map((type) => ({ value: type.id, label: type.name })),
+      },
+      {
+        key: 'equipment', title: 'Equipment', icon: 'fitness-outline',
+        options: catalogFacets(exerciseCatalog).equipment.map((value) => ({ value, label: value })),
+        optionsFor: (draft) => catalogFacets(optionsFor(draft, false)).equipment.map((value) => ({ value, label: value })),
+      },
+      {
+        key: 'exerciseCategories', title: 'Category', icon: 'activity',
+        options: [...new Set(exerciseCatalog.map((exercise) => exercise.category))].sort().map((value) => ({ value, label: value })),
+        optionsFor: (draft) => [...new Set(optionsFor(draft, true).map((exercise) => exercise.category))].sort().map((value) => ({ value, label: value })),
+      },
+    ];
+  }, [exerciseCatalog, preferences.workoutTypes]);
   const filteredExercises = filterCatalog(exerciseCatalog, {
     query,
-    exerciseCategories: categoryFilter ? [categoryFilter] : [],
+    types: filters.types,
+    equipment: filters.equipment,
+    exerciseCategories: filters.exerciseCategories,
     includeGroupInSearch: false,
   });
   const categories = [...new Set(filteredExercises.map((exercise) => exercise.category))];
@@ -65,7 +102,7 @@ export function AddExerciseSheet({
       ),
     ],
   }));
-  const activeFilterCount = categoryFilter ? 1 : 0;
+  const activeFilterCount = catalogFilterCount(filters);
   const toggleExercise = (exercise: ExerciseCatalogItem): void => {
     lightHaptic();
     setSelected((current) =>
@@ -79,7 +116,7 @@ export function AddExerciseSheet({
     setQuery('');
     setSelected([]);
     setFiltersOpen(false);
-    setCategoryFilter(null);
+    setFilters(emptyCatalogFilters());
     setExpandedGroup(null);
     setExpandedEquipment(null);
   };
@@ -90,7 +127,7 @@ export function AddExerciseSheet({
     setQuery('');
     setSelected([]);
     setFiltersOpen(false);
-    setCategoryFilter(null);
+    setFilters(emptyCatalogFilters());
     setExpandedGroup(null);
     setExpandedEquipment(null);
     mediumHaptic();
@@ -98,6 +135,7 @@ export function AddExerciseSheet({
   };
 
   return (
+    <>
     <ForgeBottomSheet
       visible={visible}
       onClose={onClose}
@@ -107,16 +145,33 @@ export function AddExerciseSheet({
       closeDistance={520}
       dismissThreshold={260}
       keyboardAvoiding
+      surfaceTestID="add-exercise-sheet-surface"
       style={styles.pickerSheet}
     >
       {(closeSheet) => (
         <>
           <ForgeBottomSheetHandle />
+          {filtersOpen ? (
+            <View style={styles.filterSheetFill}>
+              <ForgeCatalogFilterContent
+                filters={filters}
+                facets={filterFacets}
+                fill
+                onCancel={() => setFiltersOpen(false)}
+                onApply={(next) => {
+                  setFilters(next);
+                  setFiltersOpen(false);
+                }}
+              />
+            </View>
+          ) : (
+            <>
           <View style={styles.pickerDragArea}>
             <ForgeSheetHeader
               title="Add exercises"
               onClose={closeSheet}
               closeAccessibilityLabel="Close add exercises"
+              horizontalInset={0}
             />
           </View>
           <View style={styles.searchRow}>
@@ -148,12 +203,12 @@ export function AddExerciseSheet({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Filters${activeFilterCount ? `, ${activeFilterCount} active` : ''}`}
-              onPress={() => {
-                selectionHaptic();
-                animateLayout();
-                setFiltersOpen((current) => !current);
-              }}
-              style={({ pressed }) => [styles.filterButton, pressed && styles.filterButtonPressed]}
+              onPress={() => setFiltersOpen(true)}
+              style={({ pressed }) => [
+                styles.filterButton,
+                activeFilterCount > 0 && styles.filterButtonActive,
+                pressed && styles.filterButtonPressed,
+              ]}
             >
               <Icon name="filter" size={17} color={dashboardTheme.ink} />
               <Text style={styles.filterText}>Filters</Text>
@@ -164,36 +219,6 @@ export function AddExerciseSheet({
               )}
             </Pressable>
           </View>
-          {filtersOpen && (
-            <View style={styles.filterPanel}>
-              <Text style={styles.filterPanelTitle}>Category</Text>
-              <View style={styles.filterChoices}>
-                {['All', ...new Set(exerciseCatalog.map((exercise) => exercise.category))].map(
-                  (category) => {
-                    const active = category === (categoryFilter || 'All');
-                    return (
-                      <Pressable
-                        key={category}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Filter ${category}`}
-                        onPress={() => {
-                          selectionHaptic();
-                          setCategoryFilter(category === 'All' ? null : category);
-                        }}
-                        style={[styles.filterChoice, active && styles.filterChoiceActive]}
-                      >
-                        <Text
-                          style={[styles.filterChoiceText, active && styles.filterChoiceTextActive]}
-                        >
-                          {category}
-                        </Text>
-                      </Pressable>
-                    );
-                  },
-                )}
-              </View>
-            </View>
-          )}
           <ScrollView
             style={styles.pickerList}
             contentContainerStyle={[
@@ -230,6 +255,7 @@ export function AddExerciseSheet({
                           accessibilityRole="checkbox"
                           accessibilityLabel={`${group}, variation`}
                           accessibilityState={{ checked: isSelected }}
+                          unstable_pressDelay={80}
                           onPress={() => toggleExercise(exercise)}
                           style={({ pressed }) => [
                             styles.groupRow,
@@ -256,6 +282,7 @@ export function AddExerciseSheet({
                         <Pressable
                           accessibilityRole="button"
                           accessibilityLabel={`${group}, ${variations.length} variations`}
+                          unstable_pressDelay={80}
                           onPress={() => {
                             selectionHaptic();
                             animateLayout();
@@ -303,6 +330,7 @@ export function AddExerciseSheet({
                                   accessibilityRole="checkbox"
                                   accessibilityLabel={`${group}, ${equipment}`}
                                   accessibilityState={{ checked: isSelected }}
+                                  unstable_pressDelay={80}
                                   onPress={() => toggleExercise(exercise)}
                                   style={({ pressed }) => [
                                     styles.equipmentRow,
@@ -325,6 +353,7 @@ export function AddExerciseSheet({
                                 <Pressable
                                   accessibilityRole="button"
                                   accessibilityLabel={`${equipment}, ${exercises.length} variations`}
+                                  unstable_pressDelay={80}
                                   onPress={() => {
                                     selectionHaptic();
                                     animateLayout();
@@ -364,6 +393,7 @@ export function AddExerciseSheet({
                                         accessibilityRole="checkbox"
                                         accessibilityLabel={`${group}, ${equipment}, ${label}`}
                                         accessibilityState={{ checked: isSelected }}
+                                        unstable_pressDelay={80}
                                         onPress={() => toggleExercise(exercise)}
                                         style={({ pressed }) => [
                                           styles.subVariationRow,
@@ -390,43 +420,33 @@ export function AddExerciseSheet({
               </View>
             ))}
             {!filteredExercises.length && (
-              <Text style={styles.emptySearch}>No exercises found</Text>
+              <View style={styles.emptyState}>
+                <Text style={styles.emptySearch}>{query && activeFilterCount ? 'No exercises match this search and filters' : query ? 'No exercises match this search' : 'No exercises match these filters'}</Text>
+                {(query || activeFilterCount > 0) && (
+                  <Button
+                    label={activeFilterCount > 0 ? 'Clear filters' : 'Clear search'}
+                    variant="ghost"
+                    onPress={() => activeFilterCount > 0 ? setFilters(emptyCatalogFilters()) : setQuery('')}
+                  />
+                )}
+              </View>
             )}
           </ScrollView>
-          <View style={[styles.pickerCtaFade, styles.pointerEventsNone]}>
-            <Svg style={StyleSheet.absoluteFill}>
-              <Defs>
-                <LinearGradient id="pickerCtaFade" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0" stopColor={dashboardTheme.surface} stopOpacity="0" />
-                  <Stop offset="0.38" stopColor={dashboardTheme.surface} stopOpacity="0.48" />
-                  <Stop offset="0.72" stopColor={dashboardTheme.surface} stopOpacity="0.9" />
-                  <Stop offset="1" stopColor={dashboardTheme.surface} stopOpacity="1" />
-                </LinearGradient>
-              </Defs>
-              <Rect x="0" y="0" width="100%" height="100%" fill="url(#pickerCtaFade)" />
-            </Svg>
-          </View>
-          <Animated.View
-            style={[
-              styles.pickerCtaDock,
-              { bottom: 0, paddingBottom: Math.max(8, insets.bottom - 4) },
-            ]}
-          >
-            <Button
-              label={`Add exercises${selected.length ? ` (${selected.length})` : ''}`}
-              accessibilityLabel="Confirm selected exercises"
-              disabled={!selected.length}
-              onPress={submit}
-              theme={dashboardTheme}
-              icon="check"
-              variant="outline"
-              tone={selected.length ? 'success' : 'neutral'}
-              style={styles.pickerSubmit}
-            />
-          </Animated.View>
+          <ForgeFloatingCta
+            label={`Add exercises${selected.length ? ` (${selected.length})` : ''}`}
+            accessibilityLabel="Confirm selected exercises"
+            disabled={!selected.length}
+            onPress={submit}
+            theme={dashboardTheme}
+            icon="check"
+            tone={selected.length ? 'success' : 'neutral'}
+          />
+            </>
+          )}
         </>
       )}
     </ForgeBottomSheet>
+    </>
   );
 }
 
@@ -550,7 +570,6 @@ export function WorkoutOptionsSheet({
 const createStyles = (theme: import('../../types').ForgeTheme) => {
   const dashboardTheme = theme;
   return StyleSheet.create({
-    pointerEventsNone: { pointerEvents: 'none' },
     pickerBackdrop: {
       flex: 1,
       justifyContent: 'flex-end',
@@ -575,6 +594,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       justifyContent: 'space-between',
     },
     pickerDragArea: { marginHorizontal: -20, paddingHorizontal: 20 },
+    // Normal flow deliberately shares the Add Exercises header origin, which
+    // keeps both X controls in the exact same screen position.
+    filterSheetFill: { flex: 1, alignSelf: 'stretch', marginHorizontal: -20, marginBottom: -12 },
     pickerTitle: { color: dashboardTheme.ink, ...typeScale.headerTitle },
     searchRow: {
       flexDirection: 'row',
@@ -610,6 +632,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       backgroundColor: dashboardTheme.surfaceMuted,
     },
     filterButtonPressed: { opacity: 0.7 },
+    filterButtonActive: { borderWidth: 1, borderColor: dashboardTheme.selectionIndicator },
     filterText: { color: dashboardTheme.ink, ...typeScale.label },
     filterBadge: {
       minWidth: 18,
@@ -766,27 +789,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       ...typeScale.cardTitle,
       textAlign: 'center',
     },
-    pickerSubmit: {
-      marginTop: 0,
-      minHeight: 46,
-      borderRadius: 16,
-    },
-    pickerCtaFade: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
-      height: 142,
-      zIndex: 1,
-    },
-    pickerCtaDock: {
-      position: 'absolute',
-      left: 20,
-      right: 20,
-      paddingTop: 8,
-      backgroundColor: 'transparent',
-      borderRadius: 18,
-      zIndex: 2,
-    },
+    emptyState: { alignItems: 'center', paddingHorizontal: 20 },
   });
 };

@@ -79,6 +79,10 @@ Every implementation change must be verified, but verification should remain sco
 
 Use the machine's available capacity to reduce verification time. Automated checks run with their maximum safe concurrency by default (for example, Playwright uses all available workers). Restrict work to a serial or lower-concurrency run only when a test, shared resource, or tool requires exclusive access.
 
+### Visual verification
+
+For a visual, layout, gesture, or interaction report, capture and inspect targeted screenshots of the changed state before completion. Keep screenshots narrowly scoped to the reported condition; do not substitute unrelated full-app captures. Use available CPU, browser workers, and other local resources to the highest safe level needed for useful verification, reducing concurrency only for a concrete shared-resource constraint.
+
 ## Explicit multi-item requests
 
 When a user supplies an explicit list of tasks, address the items in that order and confirm each one before moving to the next. Do not collapse the list into an unstructured aggregate.

@@ -22,6 +22,7 @@ import {
   Button,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
+  ForgeCatalogFilterSheet,
   ForgeSheetHeader,
   ForgeSingleSelectList,
   ForgeText as Text,
@@ -32,6 +33,12 @@ import {
   mediumHaptic,
   pressedFeedback,
   selectionHaptic,
+} from '../../components/ui';
+import {
+  catalogFilterCount,
+  emptyCatalogFilters,
+  type CatalogFilterFacet,
+  type CatalogFilterState,
 } from '../../components/ui';
 import { forgeSheetHeader } from '../../components/ui/ForgeBottomSheet';
 import type { ForgeSingleSelectOption } from '../../components/ui';
@@ -53,7 +60,6 @@ import { REST_DURATION_OPTIONS } from '../../domain/rest/restDurationOptions';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseBrowser'>;
-type Filters = { types: string[]; equipment: string[]; categories: string[] };
 type DetailSheetView = 'details' | 'restTime';
 type CatalogSource = 'forge' | 'custom';
 
@@ -83,8 +89,9 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const fixedTypeId = route.params?.workoutTypeId;
   const customOnly = route.params?.custom === true;
   const [query, setQuery] = useState('');
-  const [filters, setFilters] = useState<Filters>({ types: [], equipment: [], categories: [] });
+  const [filters, setFilters] = useState<CatalogFilterState>(emptyCatalogFilters());
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [headerElevated, setHeaderElevated] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [formParent, setFormParent] = useState<string | null | undefined>(undefined);
   const [name, setName] = useState('');
@@ -104,29 +111,53 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     ? 'Custom exercises'
     : (preferences.workoutTypes.find((item) => item.id === fixedTypeId)?.name ?? 'All exercises');
   const visibleTypes = preferences.workoutTypes.filter((item) => !item.hidden);
-  const toggle = (key: keyof Filters, value: string) => {
-    selectionHaptic();
-    setFilters((current) => ({
-      ...current,
-      [key]: current[key].includes(value)
-        ? current[key].filter((item) => item !== value)
-        : [...current[key], value],
-    }));
-  };
-  const active = filters.types.length + filters.equipment.length + filters.categories.length;
+  const active = catalogFilterCount(filters);
   const filtered = useMemo(
     () =>
       filterCatalog(source, {
         query,
         types: filters.types,
         equipment: filters.equipment,
-        categories: filters.categories,
+        exerciseCategories: filters.exerciseCategories,
         includeGroupInSearch: true,
       }).filter((item) => !fixedTypeId || item.workoutTypeIds.includes(fixedTypeId)),
     [source, fixedTypeId, filters, query],
   );
   const groups = useMemo(() => groupCatalogByMovement(filtered), [filtered]);
-  const { equipment, categories } = catalogFacets(catalog.exercises);
+  const { equipment } = catalogFacets(source);
+  const { categories: muscles } = catalogFacets(catalog.exercises);
+  const filterFacets = useMemo<CatalogFilterFacet[]>(() => {
+    const scoped = (draft: CatalogFilterState, includeEquipment: boolean) =>
+      filterCatalog(source, {
+        types: fixedTypeId ? [fixedTypeId] : draft.types,
+        equipment: includeEquipment ? draft.equipment : [],
+        includeGroupInSearch: false,
+      });
+    const typeFacet: CatalogFilterFacet = {
+      key: 'types',
+      title: 'Workout type',
+      icon: 'layers',
+      options: visibleTypes.map((item) => ({ value: item.id, label: item.name })),
+      readOnly: Boolean(fixedTypeId),
+    };
+    const common: CatalogFilterFacet[] = [
+      {
+        key: 'equipment', title: 'Equipment', icon: 'fitness-outline',
+        options: equipment.map((value) => ({ value, label: value })),
+        optionsFor: (draft) => catalogFacets(scoped(draft, false)).equipment.map((value) => ({ value, label: value })),
+      },
+      {
+        key: 'exerciseCategories', title: 'Category', icon: 'activity',
+        options: [...new Set(source.map((item) => item.category))].sort().map((value) => ({ value, label: value })),
+        optionsFor: (draft) => [...new Set(scoped(draft, true).map((item) => item.category))].sort().map((value) => ({ value, label: value })),
+      },
+    ];
+    return [typeFacet, ...common];
+  }, [equipment, fixedTypeId, source, visibleTypes]);
+  const editableFilterFacets = useMemo(
+    () => filterFacets.filter((facet) => !facet.readOnly),
+    [filterFacets],
+  );
   const forgeEquipmentOptions = equipment;
   const customEquipmentOptions = useMemo(
     () => catalogFacets(catalog.customExercises).equipment,
@@ -290,6 +321,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
         <SettingsDetailHeader
           title={title}
           navigation={navigation}
+          elevated={headerElevated}
           backAccessibilityLabel="Back to Exercises"
           rightAction={
             <HeaderAction
@@ -300,7 +332,12 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
             />
           }
         />
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
+          scrollEventThrottle={16}
+        >
           <View style={styles.searchRow}>
             <View style={styles.search}>
               <Icon name="search" size={20} color={theme.slate} />
@@ -315,7 +352,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
             </View>
             {!customOnly && (
               <Button
-                accessibilityLabel="Filters"
+                accessibilityLabel={`Filters${active ? `, ${active} active` : ''}`}
                 label="Filters"
                 icon="filter"
                 variant="secondary"
@@ -323,46 +360,10 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                 onPress={() => {
                   setFiltersOpen(true);
                 }}
-                style={styles.filters}
+                style={[styles.filters, active > 0 && styles.filtersActive]}
               />
             )}
           </View>
-          {!customOnly && active > 0 && (
-            <ScrollView
-              horizontal
-              contentContainerStyle={styles.chips}
-              showsHorizontalScrollIndicator={false}
-            >
-              {(
-                [
-                  ['types', filters.types],
-                  ['equipment', filters.equipment],
-                  ['categories', filters.categories],
-                ] as const
-              ).flatMap(([key, values]) =>
-                values.map((value) => (
-                  <Button
-                    key={`${key}-${value}`}
-                    accessibilityLabel={`Remove ${value} filter`}
-                    label={visibleTypes.find((type) => type.id === value)?.name ?? value}
-                    icon="close"
-                    iconSize={14}
-                    variant="ghost"
-                    onPress={() => toggle(key, value)}
-                    style={styles.chip}
-                  />
-                )),
-              )}
-              <Button
-                accessibilityLabel="Clear all filters"
-                label="Clear all"
-                variant="ghost"
-                onPress={() => {
-                  setFilters({ types: [], equipment: [], categories: [] });
-                }}
-              />
-            </ScrollView>
-          )}
           {groups.map(([group, items]) => (
             <Movement
               key={group}
@@ -385,67 +386,19 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
           {!groups.length && (
             <View style={styles.empty}>
               <Text style={styles.movementName}>No exercises found</Text>
-              <Text style={styles.meta}>Try removing a filter or create a custom exercise.</Text>
+              <Text style={styles.meta}>{query && active ? 'Try clearing the search or filters.' : query ? 'Try clearing the search.' : 'Try clearing filters or creating a custom exercise.'}</Text>
+              {(query || active > 0) && <Button label={active ? 'Clear filters' : 'Clear search'} variant="ghost" onPress={() => active ? setFilters(emptyCatalogFilters()) : setQuery('')} />}
             </View>
           )}
         </ScrollView>
-        <ForgeBottomSheet
+        {!customOnly && <ForgeCatalogFilterSheet
           testID="exercise-filter-sheet"
           visible={filtersOpen}
+          filters={filters}
+          facets={editableFilterFacets}
+          onApply={setFilters}
           onClose={() => setFiltersOpen(false)}
-          accessibilityLabel="Close exercise filters"
-        >
-          {(close) => (
-            <View style={[styles.sheet, { maxHeight: Math.min(viewportHeight * 0.82, 680) }]}>
-              <ForgeBottomSheetHandle />
-              <ForgeSheetHeader
-                title="Filters"
-                onClose={close}
-                closeAccessibilityLabel="Close exercise filters"
-                trailing={
-                  active > 0 ? (
-                    <HeaderAction
-                      accessibilityLabel="Clear filters in sheet"
-                      label="Clear"
-                      icon="close"
-                      onPress={() => {
-                        setFilters({ types: [], equipment: [], categories: [] });
-                      }}
-                    />
-                  ) : undefined
-                }
-              />
-              <ScrollView style={styles.filterScroll} contentContainerStyle={styles.filterContent}>
-                {!fixedTypeId && (
-                  <FilterSection
-                    title="Workout type"
-                    icon="layers"
-                    values={visibleTypes.map((item) => [item.id, item.name])}
-                    selected={filters.types}
-                    onToggle={(value) => toggle('types', value)}
-                  />
-                )}
-                <FilterSection
-                  title="Equipment"
-                  icon="fitness-outline"
-                  values={equipment.map((value) => [value, value])}
-                  selected={filters.equipment}
-                  onToggle={(value) => toggle('equipment', value)}
-                />
-                <FilterSection
-                  title="Muscle group"
-                  icon="activity"
-                  values={categories.map((value) => [value, value])}
-                  selected={filters.categories}
-                  onToggle={(value) => toggle('categories', value)}
-                />
-              </ScrollView>
-              <View style={styles.footer}>
-                <Button label="Done" onPress={close} />
-              </View>
-            </View>
-          )}
-        </ForgeBottomSheet>
+        />}
         <ForgeBottomSheet
           visible={formParent !== undefined}
           onClose={() => {
@@ -637,7 +590,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                 </View>
                 <Text style={styles.fieldLabel}>Primary muscle</Text>
                 <View style={styles.choiceWrap}>
-                  {categories.map((muscle) => (
+                  {muscles.map((muscle) => (
                     <Choice
                       key={muscle}
                       label={muscle}
@@ -652,7 +605,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                 </View>
                 <Text style={styles.fieldLabel}>Secondary muscles</Text>
                 <View style={styles.choiceWrap}>
-                  {categories
+                  {muscles
                     .filter((muscle) => muscle !== primaryMuscle)
                     .map((muscle) => (
                       <Choice
@@ -1201,6 +1154,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       borderWidth: 1,
       borderColor: theme.border,
     },
+    filtersActive: { borderColor: theme.selectionIndicator, backgroundColor: theme.surfaceMuted },
     chips: { gap: 8, alignItems: 'center' },
     chip: {
       minHeight: 34,

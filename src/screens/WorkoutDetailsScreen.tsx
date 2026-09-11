@@ -33,6 +33,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
   const { ready, completedWorkouts, deleteCompletedWorkout } = useWorkouts();
   const { preferences } = useSettings();
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [headerElevated, setHeaderElevated] = useState(false);
   const workout = completedWorkouts.find((item) => item.id === route.params.workoutId);
   const returnToHistory = (): void => {
     if (navigation.canGoBack()) navigation.goBack();
@@ -75,7 +76,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
               returnToHistory();
             }}
           />
-          <HeaderEdge />
+          {headerElevated ? <HeaderEdge /> : null}
           <View style={styles.headerCopy}>
             <Text style={styles.headerTitle} numberOfLines={1}>
               {workout.name}
@@ -90,7 +91,12 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
             }}
           />
         </View>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
+          scrollEventThrottle={16}
+        >
           <WorkoutSummaryCard workout={workout} workoutTypes={preferences.workoutTypes} />
           <View style={styles.exerciseList}>
             {workout.exercises.map((exercise) => (

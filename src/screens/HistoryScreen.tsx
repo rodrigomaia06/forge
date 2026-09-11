@@ -203,6 +203,7 @@ function TimelineRow({
             testID={`history-card-${workout.id}`}
             accessibilityRole="button"
             accessibilityLabel={`Open ${workout.name}`}
+            unstable_pressDelay={80}
             onPress={() => {
               if (suppressNextPress.current) {
                 suppressNextPress.current = false;

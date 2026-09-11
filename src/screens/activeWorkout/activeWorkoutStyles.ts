@@ -17,15 +17,6 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       borderBottomWidth: 0,
       backgroundColor: dashboardTheme.background,
     },
-    headerSeparator: {
-      position: 'absolute',
-      right: 0,
-      bottom: -1,
-      left: 0,
-      height: 1,
-      backgroundColor: dashboardTheme.divider,
-      zIndex: 2,
-    },
     pointerEventsNone: { pointerEvents: 'none' },
     headerTop: {
       height: 44,

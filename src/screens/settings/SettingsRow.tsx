@@ -136,6 +136,8 @@ export function SettingsRow({
       accessibilityState={{ ...accessibilityState, disabled }}
       disabled={disabled}
       testID={testID}
+      // Let vertical drag recognition win before a full row looks selected.
+      unstable_pressDelay={80}
       onPress={() => {
         if (haptic === 'light') lightHaptic();
         if (haptic === 'selection') selectionHaptic();

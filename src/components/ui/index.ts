@@ -16,9 +16,18 @@ export {
   ForgeBottomSheetDragArea,
   ForgeBottomSheetHandle,
 } from './ForgeBottomSheet';
+export { ForgeFloatingCta } from './ForgeFloatingCta';
 export { ForgeSelectionSheet, ForgeSingleSelectList } from './ForgeSelection';
 export type { ForgeSingleSelectOption } from './ForgeSelection';
 export { ForgeCard } from './ForgeCard';
+export {
+  ForgeCatalogFilterSheet,
+  ForgeCatalogFilterContent,
+  ForgeCatalogFilterTokens,
+  catalogFilterCount,
+  emptyCatalogFilters,
+} from './ForgeCatalogFilters';
+export type { CatalogFilterFacet, CatalogFilterKey, CatalogFilterOption, CatalogFilterState } from './ForgeCatalogFilters';
 export { pressedFeedback, pressedFeedbackSubtle } from './pressFeedback';
 export { Icon } from './Icon';
 export { NavigationItem } from './NavigationItem';

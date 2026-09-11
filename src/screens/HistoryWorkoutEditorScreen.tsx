@@ -52,6 +52,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [openExerciseId, setOpenExerciseId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [headerElevated, setHeaderElevated] = useState(false);
 
   const returnToHistory = (): void => {
     if (navigation.canGoBack()) navigation.goBack();
@@ -147,13 +148,18 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
             haptic="none"
           />
         </View>
-        <HeaderEdge />
+        {headerElevated ? <HeaderEdge /> : null}
       </View>
       <KeyboardAvoidingView
         style={styles.keyboardArea}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
+          scrollEventThrottle={16}
+        >
           <View style={styles.formCard}>
             <View style={styles.identityGroup}>
               <TextInput

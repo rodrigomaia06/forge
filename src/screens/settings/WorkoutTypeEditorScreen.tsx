@@ -68,6 +68,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
     : undefined;
   const type = creating ? draft : storedType;
   const [customColorPickerOpen, setCustomColorPickerOpen] = useState(false);
+  const [headerElevated, setHeaderElevated] = useState(false);
   const referenced = useMemo(() => {
     if (!type) return false;
     const workouts = [activeWorkout, ...completedWorkouts]
@@ -192,15 +193,21 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
               disabled={!draft?.name.trim()}
               haptic="none"
             />
-            <HeaderEdge />
+            {headerElevated ? <HeaderEdge /> : null}
           </View>
         ) : (
           <SettingsDetailHeader
             title={type.name.trim() || 'Workout type'}
             navigation={navigation}
+            elevated={headerElevated}
           />
         )}
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
+          scrollEventThrottle={16}
+        >
           <ForgeCard variant="elevated" style={styles.identityCard}>
             {builtIn ? (
               <Text style={styles.input}>{type.name}</Text>

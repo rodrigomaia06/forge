@@ -14,6 +14,7 @@ type Props = NativeStackScreenProps<RootStackParamList, DestinationRoute>;
 
 export function SettingsDestinationScreen({ navigation, route }: Props) {
   const theme = useForgeTheme();
+  const [headerElevated, setHeaderElevated] = React.useState(false);
   const title = {
     ExerciseLibrary: 'Exercises',
     WorkoutTypes: 'Workout types',
@@ -24,8 +25,13 @@ export function SettingsDestinationScreen({ navigation, route }: Props) {
   return (
     <AppScreen backgroundColor={theme.background}>
       <View style={[styles.screen, { backgroundColor: theme.background }]}>
-        <SettingsDetailHeader title={title} navigation={navigation} />
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <SettingsDetailHeader title={title} navigation={navigation} elevated={headerElevated} />
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
+          scrollEventThrottle={16}
+        >
           {route.name === 'BackupExport' ? (
             <BackupExport />
           ) : route.name === 'About' ? (

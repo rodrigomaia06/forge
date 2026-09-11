@@ -19,6 +19,7 @@ export function ExerciseLibraryScreen({ navigation }: Props) {
   const styles = useThemedStyles(createStyles);
   const { preferences } = useSettings();
   const { exercises, customExercises } = useExerciseCatalog();
+  const [headerElevated, setHeaderElevated] = React.useState(false);
   const visibleTypes = useMemo(
     () => preferences.workoutTypes.filter((type) => !type.hidden),
     [preferences.workoutTypes],
@@ -27,8 +28,13 @@ export function ExerciseLibraryScreen({ navigation }: Props) {
   return (
     <AppScreen backgroundColor={theme.background}>
       <View style={styles.screen}>
-        <SettingsDetailHeader title="Exercises" navigation={navigation} />
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <SettingsDetailHeader title="Exercises" navigation={navigation} elevated={headerElevated} />
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
+          scrollEventThrottle={16}
+        >
           <SettingsSection>
             {visibleTypes.map((type, index) => {
               const count = exercises.filter((exercise) =>

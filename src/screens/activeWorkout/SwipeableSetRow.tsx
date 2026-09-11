@@ -134,7 +134,7 @@ function SwipeableSetRowComponent({
 
   const deleteGesture = Gesture.Pan()
     .activeOffsetX([-6, 6])
-    .failOffsetY([-12, 12])
+    .failOffsetY([-6, 6])
     .onUpdate((gesture) => {
       if (!deleteOpen.value && gesture.translationX >= 0) return;
       const base = deleteOpen.value ? -DELETE_ACTION_WIDTH : 0;
