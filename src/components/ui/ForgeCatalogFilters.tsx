@@ -5,7 +5,7 @@ import { typeScale } from '../../theme/tokens';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { Button } from './Button';
-import { ForgeBottomSheet, ForgeBottomSheetDragArea, ForgeBottomSheetHandle } from './ForgeBottomSheet';
+import { ForgeBottomSheet, ForgeBottomSheetHandle } from './ForgeBottomSheet';
 import { ForgeFloatingCta } from './ForgeFloatingCta';
 import { ForgeSheetHeader } from './ForgeSheetHeader';
 import { ForgeText as Text } from './ForgeText';
@@ -130,10 +130,10 @@ export function ForgeCatalogFilterContent({
   return (
     <View style={fill ? styles.sheetFill : styles.sheet}>
       {headerWithDragHandle ? (
-        <ForgeBottomSheetDragArea>
+        <>
           <ForgeBottomSheetHandle />
           {header}
-        </ForgeBottomSheetDragArea>
+        </>
       ) : header}
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {facets.map((facet) => (

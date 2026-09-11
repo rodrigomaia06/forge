@@ -256,6 +256,7 @@ export function ForgeBottomSheetHandle() {
 
 export function ForgeBottomSheetDragArea({ children }: { children: React.ReactNode }) {
   const pan = useContext(SheetDragContext);
+  const isInsideDragArea = useContext(SheetDragAreaContext);
   const area = (
     <SheetDragAreaContext.Provider value>
       <View testID="forge-sheet-drag-area" collapsable={false} style={styles.dragArea}>
@@ -263,7 +264,7 @@ export function ForgeBottomSheetDragArea({ children }: { children: React.ReactNo
       </View>
     </SheetDragAreaContext.Provider>
   );
-  return pan ? <GestureDetector gesture={pan}>{area}</GestureDetector> : area;
+  return pan && !isInsideDragArea ? <GestureDetector gesture={pan}>{area}</GestureDetector> : area;
 }
 
 const styles = StyleSheet.create({

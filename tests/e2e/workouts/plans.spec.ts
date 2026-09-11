@@ -328,18 +328,36 @@ test.describe('Plans and routines', () => {
     await page.getByLabel('Attribute label').fill('Mood');
     await page.getByLabel('Attribute value').fill('Template value');
     await page.getByRole('button', { name: 'Save attribute' }).click();
+    await page.getByRole('button', { name: 'Add attribute' }).click();
+    await page.getByLabel('Attribute label').fill('Location');
+    await page.getByRole('button', { name: 'Save attribute' }).click();
     // Re-focus the virtualized header field before saving on compact web profiles.
     await page.getByLabel('Routine name').fill('Attribute template');
     await page.getByRole('button', { name: 'Save routine' }).click();
     await page.getByRole('button', { name: 'Start Attribute template' }).click();
 
     const mood = page.getByLabel('Mood value');
+    const location = page.getByLabel('Location value');
+    const liveWorkoutList = page.getByTestId('active-workout-list');
     await expect(mood).toHaveValue('');
-    await expect(page.getByText('Attributes', { exact: true })).toHaveCount(0);
+    await expect(location).toHaveValue('');
+    await expect(liveWorkoutList.getByText('Attributes', { exact: true })).toBeVisible();
+    await expect(liveWorkoutList.getByText('Mood', { exact: true })).toBeVisible();
+    await expect(liveWorkoutList.getByText('Location', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('live-attribute-icon-Mood').first()).toBeVisible();
+    await expect(liveWorkoutList.getByText('Exercises', { exact: true })).toHaveCount(0);
     await page.waitForTimeout(220);
-    await page.screenshot({ path: testInfo.outputPath('live-workout-attributes-no-heading.png') });
+    await page.screenshot({ path: testInfo.outputPath('live-workout-attributes-compact.png') });
     await mood.fill('Focused');
     await expect(mood).toHaveValue('Focused');
+    await location.fill('Home gym');
+    await expect(location).toHaveValue('Home gym');
+    await page.getByRole('button', { name: 'Add exercise' }).click();
+    await page.getByRole('checkbox', { name: 'Elliptical, variation' }).click();
+    await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
+    await expect(liveWorkoutList.getByText('Exercises', { exact: true })).toBeVisible();
+    await page.waitForTimeout(220);
+    await page.screenshot({ path: testInfo.outputPath('live-workout-attributes-and-exercises.png') });
   });
 
   test('uses the Live Workout exercise picker and supports opening and swiping routine exercises', async ({

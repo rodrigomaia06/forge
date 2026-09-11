@@ -172,16 +172,16 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
               />
             </View>
           ) : (
-            <>
-          <ForgeBottomSheetDragArea>
-            <ForgeBottomSheetHandle />
-            <ForgeSheetHeader
-              title="Add exercises"
-              onClose={closeSheet}
-              closeAccessibilityLabel="Close add exercises"
-              horizontalInset={0}
-            />
-          </ForgeBottomSheetDragArea>
+          <>
+            <ForgeBottomSheetDragArea>
+              <ForgeBottomSheetHandle />
+              <ForgeSheetHeader
+                title="Add exercises"
+                onClose={closeSheet}
+                closeAccessibilityLabel="Close add exercises"
+                horizontalInset={0}
+              />
+            </ForgeBottomSheetDragArea>
           <View style={styles.searchRow}>
             <View style={styles.searchField}>
               <Icon name="search" size={22} color={dashboardTheme.slate} />

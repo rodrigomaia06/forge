@@ -47,5 +47,19 @@ export type IconName =
   | 'arrow-down'
   | 'drag'
   | 'git'
-  | 'license';
+  | 'license'
+  | 'location'
+  | 'mood'
+  | 'focus'
+  | 'heart'
+  | 'energy'
+  | 'sleep'
+  | 'recovery'
+  | 'weather'
+  | 'temperature'
+  | 'hydration'
+  | 'nutrition'
+  | 'music'
+  | 'shoe'
+  | 'goal';
 export type IconWeight = 'thin' | 'regular' | 'bold' | 'fill';

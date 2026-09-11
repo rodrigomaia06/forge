@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
+import { ForgeBottomSheetDragArea } from './ForgeBottomSheet';
 import { ForgeText as Text } from './ForgeText';
 import { SheetCloseButton } from './SheetCloseButton';
 
@@ -30,6 +31,7 @@ export function ForgeSheetHeader({
 }: ForgeSheetHeaderProps) {
   const theme = useForgeTheme();
   return (
+    <ForgeBottomSheetDragArea>
     <View testID={testID} style={[styles.header, { paddingHorizontal: horizontalInset }]}>
       <View style={[styles.leading, { left: horizontalInset }]}>
         {closePosition === 'left' && onClose ? (
@@ -53,6 +55,7 @@ export function ForgeSheetHeader({
         ) : null}
       </View>
     </View>
+    </ForgeBottomSheetDragArea>
   );
 }
 

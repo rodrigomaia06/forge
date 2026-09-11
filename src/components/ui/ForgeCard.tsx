@@ -6,17 +6,21 @@ export function ForgeCard({
   children,
   style,
   variant = 'outlined',
+  size = 'standard',
 }: {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   /** An inset card sits one semantic surface below an enclosing sheet or card. */
   variant?: 'outlined' | 'elevated' | 'inset';
+  /** Compact grouped rows retain Forge card treatment with a smaller corner radius. */
+  size?: 'standard' | 'compact';
 }) {
   const theme = useForgeTheme();
   return (
     <View
       style={[
         styles.card,
+        size === 'compact' && styles.compact,
         {
           backgroundColor: variant === 'inset' ? theme.surface : theme.surfaceElevated,
           borderColor: theme.border,
@@ -41,4 +45,5 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
   },
+  compact: { borderRadius: 18 },
 });
