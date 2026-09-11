@@ -7,6 +7,7 @@ import { WorkoutRow } from '../../components/WorkoutRow';
 import { AppScreen, Button, ForgeText as Text, lightHaptic } from '../../components/ui';
 import { useLayoutProbe } from '../../debug/layoutProbe';
 import { useSettings } from '../../state/SettingsContext';
+import { useWorkouts } from '../../state/WorkoutContext';
 import type { ReactElement, ReactNode } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { ScrollView as ScrollViewType, StyleProp, ViewStyle } from 'react-native';
@@ -166,14 +167,15 @@ export function DashboardContextCard({
   icons?: boolean;
 }) {
   const { preferences } = useSettings();
+  const { completedWorkouts } = useWorkouts();
   const contextProbe = useLayoutProbe('dashboard-context-card', {
     background: theme.calendarSurface,
   });
-  const typeSummary = summarizeWorkoutTypes(preferences.workoutTypes, theme);
+  const typeSummary = summarizeWorkoutTypes(preferences.workoutTypes, theme, completedWorkouts);
   const metrics = [
-    ['3', 'workouts this week'],
-    ['8', 'workouts this month'],
-    ['8 h 06', 'training time'],
+    [String(completedWorkouts.length), 'completed workouts'],
+    [String(typeSummary.length), 'workout types'],
+    [formatTotalDuration(completedWorkouts), 'training time'],
   ];
 
   return (
@@ -247,6 +249,11 @@ export function DashboardContextCard({
       </View>
     </View>
   );
+}
+
+function formatTotalDuration(workouts: import('../../types').Workout[]): string {
+  const minutes = Math.round(workouts.reduce((total, workout) => total + (workout.durationSeconds ?? 0), 0) / 60);
+  return minutes >= 60 ? `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}` : `${minutes}m`;
 }
 
 export function DashboardScroll({

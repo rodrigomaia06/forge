@@ -1,5 +1,10 @@
 export type WorkoutType = 'Strength' | 'Court sport' | 'Mobility' | 'Cardio' | string;
 
+export type ExerciseSetMetric = 'reps' | 'time' | 'timeRange' | 'distance';
+export type SetMeasurementKind = 'reps' | 'weight' | 'addedWeight' | 'duration' | 'distance' | 'rpe';
+export interface SetMeasurement { id: string; kind: SetMeasurementKind; unit: 'count' | 'kg' | 'sec' | 'km' | 'rpe'; value: number; }
+export interface SetTarget { id: string; kind: SetMeasurementKind; unit: SetMeasurement['unit']; minValue?: number; maxValue?: number; }
+
 export interface WorkoutSet {
   id: string;
   weight: string;
@@ -10,6 +15,8 @@ export interface WorkoutSet {
   tag?: string;
   comment?: string;
   completed: boolean;
+  measurements?: SetMeasurement[];
+  targets?: SetTarget[];
 }
 
 export interface WorkoutExercise {
@@ -18,6 +25,7 @@ export interface WorkoutExercise {
   name: string;
   note?: string;
   supersetId?: string;
+  metric?: ExerciseSetMetric;
   sets: WorkoutSet[];
 }
 
@@ -45,6 +53,7 @@ export interface WorkoutSetInput {
   previous?: string;
   targetWeight?: string;
   targetReps?: string;
+  targets?: SetTarget[];
 }
 
 export interface WorkoutExerciseInput {
@@ -53,6 +62,7 @@ export interface WorkoutExerciseInput {
   name: string;
   note?: string;
   supersetId?: string;
+  metric?: ExerciseSetMetric;
   sets?: WorkoutSetInput[];
 }
 export interface WorkoutRoutine {

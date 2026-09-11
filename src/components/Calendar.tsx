@@ -3,7 +3,6 @@ import { Animated, Easing, Platform, Pressable, View, useWindowDimensions } from
 import { useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { monthDays, workoutsByDate } from '../data/mockWorkouts';
 import { colors } from '../theme/tokens';
 import { getWorkoutTypePresentation } from '../domain/workouts/presentation';
 import { ForgeText as Text, Icon, lightHaptic, pressedFeedback, pressedFeedbackSubtle } from './ui';
@@ -52,7 +51,7 @@ export function Calendar({
   selectedDay,
   setSelectedDay,
   theme = colors,
-  workoutMap = workoutsByDate,
+  workoutMap = {},
   viewMenuOpen,
   onViewMenuOpenChange,
   onMenuStateChange,
@@ -309,7 +308,7 @@ function MonthView({
         {Array.from({ length: leadingBlanks }, (_, index) => (
           <View key={`blank-${index}`} style={styles.dayCell} />
         ))}
-        {monthDays.map((day) => (
+        {Array.from({ length: 31 }, (_, index) => index + 1).map((day) => (
           <DayCell
             key={day}
             day={day}

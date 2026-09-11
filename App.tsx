@@ -15,6 +15,7 @@ import { SettingsProvider } from './src/state/SettingsContext';
 import { PlansProvider } from './src/state/PlansContext';
 import { ForgeThemeProvider } from './src/theme/ThemeProvider';
 import { ExerciseCatalogProvider } from './src/state/ExerciseCatalogContext';
+import { ForgeLoadingScreen } from './src/components/ForgeLoadingScreen';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -24,7 +25,7 @@ export default function App() {
     Manrope_700Bold,
   });
 
-  if (!fontsLoaded) return null;
+  if (!fontsLoaded) return <ForgeLoadingScreen />;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

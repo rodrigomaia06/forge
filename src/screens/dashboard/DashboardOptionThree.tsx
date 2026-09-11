@@ -7,7 +7,6 @@ import {
   DashboardShell,
   DashboardWorkoutCard,
 } from './DashboardParts';
-import { workoutsByDate } from '../../data/mockWorkouts';
 import { dashboardTheme } from '../../theme/dashboardTheme';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useWorkouts } from '../../state/WorkoutContext';
@@ -28,7 +27,7 @@ export function DashboardOptionThree({
     if (route?.params?.selectedDay) setSelectedDay(route.params.selectedDay);
   }, [route?.params?.selectedDay]);
   const workoutMap = useMemo(() => {
-    const map = { ...workoutsByDate };
+    const map: Record<number, typeof completedWorkouts> = {};
     completedWorkouts.forEach((workout) => {
       const day = new Date(workout.completedAt || workout.startedAt).getDate();
       map[day] = [...(map[day] || []), workout];

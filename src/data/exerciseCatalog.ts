@@ -1,3 +1,5 @@
+import { bundledExercises } from './catalog/loadCatalog';
+
 export interface ExerciseCatalogItem {
   id: string;
   name: string;
@@ -216,8 +218,10 @@ const strengthMuscles: Record<string, Pick<ExerciseCatalogItem, 'primaryMuscle' 
   'romanian-deadlift': { primaryMuscle: 'Hamstrings', secondaryMuscles: ['Glutes', 'Back'] },
 };
 
-export const exerciseCatalog: ExerciseCatalogItem[] = strengthCatalog.map((exercise) => ({
+const baselineCatalog = bundledExercises as ExerciseCatalogItem[];
+
+export const exerciseCatalog: ExerciseCatalogItem[] = [...baselineCatalog, ...strengthCatalog.map((exercise) => ({
   ...exercise,
   ...strengthMuscles[exercise.id],
   workoutTypeIds: ['strength'],
-}));
+}))].filter((exercise, index, all) => all.findIndex((item) => item.id === exercise.id) === index);

@@ -1,13 +1,11 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ExerciseCatalogItem } from './exerciseCatalog';
-
-const CUSTOM_EXERCISES_KEY = '@forge/custom-exercises';
+import { database } from './database';
 
 export async function loadCustomExercises(): Promise<ExerciseCatalogItem[]> {
-  const value = await AsyncStorage.getItem(CUSTOM_EXERCISES_KEY);
-  if (!value) return [];
+  const rows = await (await database()).getAllAsync<{ value_json: string }>('SELECT value_json FROM custom_exercises WHERE archived = 0');
+  if (!rows.length) return [];
   try {
-    const parsed = JSON.parse(value) as unknown[];
+    const parsed = rows.map((row) => JSON.parse(row.value_json)) as unknown[];
     return Array.isArray(parsed)
       ? parsed.flatMap((item) => {
           if (!item || typeof item !== 'object') return [];
@@ -31,6 +29,10 @@ export async function loadCustomExercises(): Promise<ExerciseCatalogItem[]> {
   } catch { return []; }
 }
 
-export function saveCustomExercises(exercises: ExerciseCatalogItem[]): Promise<void> {
-  return AsyncStorage.setItem(CUSTOM_EXERCISES_KEY, JSON.stringify(exercises));
+export async function saveCustomExercises(exercises: ExerciseCatalogItem[]): Promise<void> {
+  const db = await database();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('DELETE FROM custom_exercises');
+    for (const exercise of exercises) await db.runAsync('INSERT INTO custom_exercises (id, archived, value_json) VALUES (?, 0, ?)', exercise.id, JSON.stringify(exercise));
+  });
 }

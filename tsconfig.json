@@ -5,6 +5,7 @@
     "noEmit": true,
     "moduleResolution": "bundler",
     "allowJs": false,
+    "resolveJsonModule": true,
     "skipLibCheck": true,
     "types": ["node"]
   },

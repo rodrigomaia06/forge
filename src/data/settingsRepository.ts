@@ -1,10 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { SettingsPreferences } from '../types';
-
-const SETTINGS_PREFERENCES_KEY = '@forge/settings-preferences';
+import { database } from './database';
 
 export const defaultSettingsPreferences: SettingsPreferences = {
-  appearance: 'light',
+  appearance: 'system',
   units: 'metric',
   bodyweightKg: 0,
   weekStartsOn: 1,
@@ -21,16 +19,18 @@ export const defaultSettingsPreferences: SettingsPreferences = {
     { id: 'mobility', name: 'Mobility', color: '#62C98A', source: 'builtIn' },
     { id: 'cardio', name: 'Cardio', color: '#EF715F', source: 'builtIn' },
     { id: 'court-sport', name: 'Court sport', color: '#E3A346', source: 'builtIn' },
+    { id: 'martial-arts', name: 'Martial arts', color: '#C56BE6', source: 'builtIn' },
   ],
 };
 
 export async function loadSettingsPreferences(): Promise<SettingsPreferences> {
-  const value = await AsyncStorage.getItem(SETTINGS_PREFERENCES_KEY);
-  if (!value) return defaultSettingsPreferences;
+  const row = await (await database()).getFirstAsync<{ value_json: string }>('SELECT value_json FROM preferences WHERE id = 1');
+  if (!row) return defaultSettingsPreferences;
+  const value = row.value_json;
 
   const parsed = JSON.parse(value) as Partial<SettingsPreferences>;
   return {
-    appearance: parsed.appearance === 'dark' || parsed.appearance === 'system' ? parsed.appearance : 'light',
+    appearance: parsed.appearance === 'light' || parsed.appearance === 'dark' || parsed.appearance === 'system' ? parsed.appearance : 'system',
     units: parsed.units === 'imperial' ? parsed.units : 'metric',
     bodyweightKg: typeof parsed.bodyweightKg === 'number' && parsed.bodyweightKg >= 0 ? parsed.bodyweightKg : 0,
     weekStartsOn: parsed.weekStartsOn === 0 ? 0 : 1,
@@ -50,7 +50,7 @@ export async function loadSettingsPreferences(): Promise<SettingsPreferences> {
           )
         : {},
     workoutTypes: Array.isArray(parsed.workoutTypes)
-      ? parsed.workoutTypes.flatMap((item) =>
+      ? ([...parsed.workoutTypes.flatMap((item) =>
           typeof item?.id === 'string' && typeof item.name === 'string' && typeof item.color === 'string'
             ? [{
                 id: item.id,
@@ -65,11 +65,16 @@ export async function loadSettingsPreferences(): Promise<SettingsPreferences> {
                     : 'custom',
               }]
             : [],
-        )
+        ), ...defaultSettingsPreferences.workoutTypes.filter((defaultType) => !parsed.workoutTypes?.some((item) => item?.id === defaultType.id))] as SettingsPreferences['workoutTypes'])
       : defaultSettingsPreferences.workoutTypes,
   };
 }
 
-export function saveSettingsPreferences(preferences: SettingsPreferences): Promise<void> {
-  return AsyncStorage.setItem(SETTINGS_PREFERENCES_KEY, JSON.stringify(preferences));
+export async function saveSettingsPreferences(preferences: SettingsPreferences): Promise<void> {
+  const db = await database();
+  await db.runAsync('INSERT OR REPLACE INTO preferences (id, value_json) VALUES (1, ?)', JSON.stringify(preferences));
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('DELETE FROM workout_types');
+    for (const [position, type] of preferences.workoutTypes.entries()) await db.runAsync('INSERT INTO workout_types (id, archived, position, value_json) VALUES (?, ?, ?, ?)', type.id, type.hidden ? 1 : 0, position, JSON.stringify(type));
+  });
 }
