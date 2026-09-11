@@ -151,20 +151,39 @@ test.describe('Active workout flow', () => {
     await expect(page.getByText('Add exercises (1)', { exact: true })).toBeVisible();
   });
 
-  test('dismisses the Add Exercises picker from its drag tab, not its scrolling catalogue', async ({ page }) => {
+  test('dismisses Add Exercises from its full header drag zone, not its scrolling catalogue', async ({ page }) => {
     await page.goto('/');
     await startBlankWorkout(page);
     await page.getByRole('button', { name: 'Add exercise' }).click();
     const sheet = page.getByTestId('add-exercise-sheet-surface');
     await expect(sheet).toBeVisible();
+    const dragArea = page.getByTestId('forge-sheet-drag-area');
+    await expect(dragArea).toBeVisible();
+    const title = dragArea.getByText('Add exercises', { exact: true });
+    const titleBox = await title.boundingBox();
+    expect(titleBox).not.toBeNull();
     const tab = page.getByTestId('forge-sheet-drag-tab');
     const tabBox = await tab.boundingBox();
-    expect(tabBox).not.toBeNull();
     await page.mouse.move((tabBox?.x ?? 0) + (tabBox?.width ?? 0) / 2, (tabBox?.y ?? 0) + 10);
     await page.mouse.down();
     await page.mouse.move((tabBox?.x ?? 0) + (tabBox?.width ?? 0) / 2, (tabBox?.y ?? 0) + 360, { steps: 12 });
     await page.mouse.up();
     await expect(sheet).toHaveCount(0);
+  });
+
+  test('dismisses the entire picker when embedded Filters is dragged down', async ({ page }) => {
+    await page.goto('/');
+    await startBlankWorkout(page);
+    await page.getByRole('button', { name: 'Add exercise' }).click();
+    await page.getByRole('button', { name: 'Filters' }).click();
+    const title = page.getByText('Filters', { exact: true });
+    const titleBox = await title.boundingBox();
+    expect(titleBox).not.toBeNull();
+    await page.mouse.move((titleBox?.x ?? 0) + (titleBox?.width ?? 0) / 2, (titleBox?.y ?? 0) + (titleBox?.height ?? 0) / 2);
+    await page.mouse.down();
+    await page.mouse.move((titleBox?.x ?? 0) + (titleBox?.width ?? 0) / 2, (titleBox?.y ?? 0) + 360, { steps: 12 });
+    await page.mouse.up();
+    await expect(page.getByTestId('add-exercise-sheet-surface')).toHaveCount(0);
   });
 
   test('keeps variation counts legible in Dark appearance', async ({ page }) => {

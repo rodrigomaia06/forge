@@ -138,6 +138,10 @@ export function WorkoutProvider({ children }: ChildrenProps) {
     setActiveWorkout((current) => toggleWorkoutSet(current, exerciseId, setId));
   }, []);
 
+  const updateActiveWorkout = useCallback((update: (workout: Workout) => Workout): void => {
+    setActiveWorkout((current) => current ? update(current) : current);
+  }, []);
+
   const cancelWorkout = useCallback((): void => {
     persistActiveWorkoutNow(null);
     setActiveWorkout(null);
@@ -189,6 +193,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
       removeExercise,
       updateSet,
       toggleSet,
+      updateActiveWorkout,
       cancelWorkout,
       finishWorkout,
       deleteCompletedWorkout,
@@ -205,6 +210,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
       removeExercise,
       updateSet,
       toggleSet,
+      updateActiveWorkout,
       cancelWorkout,
       finishWorkout,
       deleteCompletedWorkout,

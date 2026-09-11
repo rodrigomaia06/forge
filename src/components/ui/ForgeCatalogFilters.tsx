@@ -5,7 +5,7 @@ import { typeScale } from '../../theme/tokens';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { Button } from './Button';
-import { ForgeBottomSheet, ForgeBottomSheetHandle } from './ForgeBottomSheet';
+import { ForgeBottomSheet, ForgeBottomSheetDragArea, ForgeBottomSheetHandle } from './ForgeBottomSheet';
 import { ForgeFloatingCta } from './ForgeFloatingCta';
 import { ForgeSheetHeader } from './ForgeSheetHeader';
 import { ForgeText as Text } from './ForgeText';
@@ -62,10 +62,13 @@ export function ForgeCatalogFilterSheet({
       dismissThreshold={220}
     >
       {(close) => (
-        <>
-          <ForgeBottomSheetHandle />
-          <ForgeCatalogFilterContent filters={filters} facets={facets} onApply={(next) => { onApply(next); close(); }} onCancel={close} />
-        </>
+        <ForgeCatalogFilterContent
+          filters={filters}
+          facets={facets}
+          headerWithDragHandle
+          onApply={(next) => { onApply(next); close(); }}
+          onCancel={close}
+        />
       )}
     </ForgeBottomSheet>
   );
@@ -78,6 +81,7 @@ export function ForgeCatalogFilterContent({
   onApply,
   onCancel,
   fill = false,
+  headerWithDragHandle = false,
 }: {
   filters: CatalogFilterState;
   facets: CatalogFilterFacet[];
@@ -85,6 +89,8 @@ export function ForgeCatalogFilterContent({
   onCancel: () => void;
   /** Fill a parent sheet instead of creating a second sheet-sized region. */
   fill?: boolean;
+  /** Make the handle and header one safe downward-drag target. */
+  headerWithDragHandle?: boolean;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -113,14 +119,22 @@ export function ForgeCatalogFilterContent({
       return key === 'types' || key === 'equipment' ? reconcileDependentChoices(next) : next;
     });
   };
-  return (
-    <View style={fill ? styles.sheetFill : styles.sheet}>
-      <ForgeSheetHeader
+  const header = (
+    <ForgeSheetHeader
         title="Filters"
         onClose={onCancel}
         closeAccessibilityLabel="Cancel exercise filters"
         leading={count > 0 ? <Button accessibilityLabel="Clear filter draft" label="Clear" variant="secondary" onPress={() => setDraft(emptyCatalogFilters())} style={styles.clearDraft} /> : undefined}
-      />
+    />
+  );
+  return (
+    <View style={fill ? styles.sheetFill : styles.sheet}>
+      {headerWithDragHandle ? (
+        <ForgeBottomSheetDragArea>
+          <ForgeBottomSheetHandle />
+          {header}
+        </ForgeBottomSheetDragArea>
+      ) : header}
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {facets.map((facet) => (
           <View key={facet.key} style={styles.facet}>

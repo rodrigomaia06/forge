@@ -26,8 +26,8 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 import { lightHaptic } from './haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const noop = () => undefined;
 const SheetDragContext = createContext<ReturnType<typeof Gesture.Pan> | null>(null);
+const SheetDragAreaContext = createContext(false);
 /** Shared sheet-header geometry keeps titles and close actions aligned. */
 export const forgeSheetHeader = {
   height: 56,
@@ -49,6 +49,8 @@ interface ForgeBottomSheetProps {
   initialOffset?: number;
   dismissThreshold?: number;
   onCloseStart?: () => void;
+  /** Handles a downward drag without dismissing this modal (for an embedded child sheet). */
+  onDragDismiss?: () => void;
   onBackRequest?: () => boolean;
   keyboardAvoiding?: boolean;
   dismissTextKeyboardOnTap?: boolean;
@@ -72,6 +74,7 @@ export function ForgeBottomSheet({
   initialOffset = closeDistance,
   dismissThreshold = 190,
   onCloseStart,
+  onDragDismiss,
   onBackRequest,
   keyboardAvoiding = true,
   dismissTextKeyboardOnTap = true,
@@ -158,12 +161,14 @@ export function ForgeBottomSheet({
       if (closing.value) return;
       const projected = Math.max(0, dragStart.value + event.translationY + event.velocityY * 0.12);
       if (projected >= dismissThreshold || event.velocityY > 900) {
-        closing.value = true;
-        runOnJS(onCloseStart ?? noop)();
-        translateY.value = withTiming(closeDistance, { duration: 200 }, (finished) => {
-          if (finished) runOnJS(finishClose)();
-        });
-        backdropOpacity.value = withTiming(0, { duration: 160 });
+        if (onDragDismiss) {
+          runOnJS(onDragDismiss)();
+          translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.8 });
+          return;
+        }
+        // Keep drag dismissal on the same JS path as the close button and backdrop.
+        // It avoids web gesture callbacks bypassing parent state updates.
+        runOnJS(close)(false);
       } else {
         translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.8 });
       }
@@ -248,16 +253,25 @@ export function ForgeBottomSheet({
 export function ForgeBottomSheetHandle() {
   const theme = useForgeTheme();
   const pan = useContext(SheetDragContext);
+  const isInsideDragArea = useContext(SheetDragAreaContext);
   const handle = (
     <View testID="forge-sheet-drag-tab" collapsable={false} style={styles.handleTouchArea}>
       <View style={[styles.handle, { backgroundColor: theme.divider }]} />
     </View>
   );
-  return pan ? <GestureDetector gesture={pan}>{handle}</GestureDetector> : handle;
+  return pan && !isInsideDragArea ? <GestureDetector gesture={pan}>{handle}</GestureDetector> : handle;
 }
 
 export function ForgeBottomSheetDragArea({ children }: { children: React.ReactNode }) {
-  return <View>{children}</View>;
+  const pan = useContext(SheetDragContext);
+  const area = (
+    <SheetDragAreaContext.Provider value>
+      <View testID="forge-sheet-drag-area" collapsable={false} style={styles.dragArea}>
+        {children}
+      </View>
+    </SheetDragAreaContext.Provider>
+  );
+  return pan ? <GestureDetector gesture={pan}>{area}</GestureDetector> : area;
 }
 
 const styles = StyleSheet.create({
@@ -303,4 +317,5 @@ const styles = StyleSheet.create({
     marginBottom: -10,
   },
   handle: { width: 48, height: 5, borderRadius: 3 },
+  dragArea: { alignSelf: 'stretch' },
 });

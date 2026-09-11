@@ -7,8 +7,8 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 export function HeaderEdge() {
   const theme = useForgeTheme();
   return (
-    <View style={[styles.edge, styles.pointerEventsNone]}>
-      <View style={[styles.line, { backgroundColor: theme.divider }]} />
+    <View testID="header-edge" style={[styles.edge, styles.pointerEventsNone]}>
+      <View style={[styles.line, { backgroundColor: theme.border }]} />
       <View style={[styles.shadow, { shadowColor: theme.shadow }]} />
     </View>
   );

@@ -11,6 +11,10 @@ import {
   ForgeText as Text,
   HeaderAction,
   HeaderEdge,
+  ForgeBottomSheet,
+  ForgeFloatingCta,
+  ForgeSheetHeader,
+  ForgeTextInput,
   Icon,
   pressedFeedback,
 } from '../components/ui';
@@ -44,6 +48,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     removeExercise,
     updateSet,
     toggleSet,
+    updateActiveWorkout,
     cancelWorkout,
     finishWorkout,
   } = useWorkouts();
@@ -55,6 +60,9 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [openExerciseId, setOpenExerciseId] = useState<string | null>(null);
   const [headerElevated, setHeaderElevated] = useState(false);
+  const [editingWorkout, setEditingWorkout] = useState(false);
+  const [workoutNameDraft, setWorkoutNameDraft] = useState('');
+  const [workoutNoteDraft, setWorkoutNoteDraft] = useState('');
   const timerLongPressRef = useRef(false);
   const workoutListRef = useRef<FlatList<WorkoutExercise>>(null);
   const dockCompactOnUi = useSharedValue(false);
@@ -224,6 +232,17 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     cancelWorkout();
     returnToDashboard(null);
   };
+  const openWorkoutEditor = (): void => {
+    setWorkoutNameDraft(activeWorkout.name);
+    setWorkoutNoteDraft(activeWorkout.note);
+    setEditingWorkout(true);
+  };
+  const saveWorkoutEditor = (): void => {
+    const name = workoutNameDraft.trim();
+    if (!name) return;
+    updateActiveWorkout((current) => ({ ...current, name, note: workoutNoteDraft.trim() }));
+    setEditingWorkout(false);
+  };
 
   return (
     <AppScreen
@@ -239,6 +258,13 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
             label="Cancel"
             iconOnly
             onPress={handleCancel}
+          />
+          <HeaderAction
+            accessibilityLabel="Edit live workout"
+            icon="note"
+            iconOnly
+            onPress={openWorkoutEditor}
+            style={{ marginLeft: 8 }}
           />
           <View style={styles.titleBlock}>
             <View
@@ -337,6 +363,21 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
         onClose={handleAddExerciseClose}
         onSubmit={handleAddExercises}
       />
+      <ForgeBottomSheet
+        visible={editingWorkout}
+        onClose={() => setEditingWorkout(false)}
+        accessibilityLabel="Close edit live workout"
+        initialOffset={360}
+        closeDistance={360}
+        style={{ paddingHorizontal: 20, paddingBottom: 12 }}
+      >
+        <ForgeSheetHeader title="Edit workout" onClose={() => setEditingWorkout(false)} />
+        <Text style={styles.timerLabel}>Name</Text>
+        <ForgeTextInput value={workoutNameDraft} onChangeText={setWorkoutNameDraft} accessibilityLabel="Workout name" style={{ marginTop: 6 }} />
+        <Text style={[styles.timerLabel, { marginTop: 16 }]}>Note</Text>
+        <ForgeTextInput value={workoutNoteDraft} onChangeText={setWorkoutNoteDraft} accessibilityLabel="Workout note" multiline style={{ marginTop: 6, minHeight: 78 }} />
+        <ForgeFloatingCta label="Save changes" accessibilityLabel="Save live workout changes" onPress={saveWorkoutEditor} disabled={!workoutNameDraft.trim()} tone="success" />
+      </ForgeBottomSheet>
       {restSheetOpen && (
         <RestTimerSheet
           visible

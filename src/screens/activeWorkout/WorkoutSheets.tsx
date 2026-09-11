@@ -10,6 +10,7 @@ import {
   Button,
   ForgeActionSheet,
   ForgeBottomSheet,
+  ForgeBottomSheetDragArea,
   ForgeBottomSheetHandle,
   ForgeCatalogFilterContent,
   ForgeFloatingCta,
@@ -140,6 +141,7 @@ export function AddExerciseSheet({
       visible={visible}
       onClose={onClose}
       onCloseStart={reset}
+      onDragDismiss={() => { reset(); onClose(); }}
       accessibilityLabel="Close add exercises"
       initialOffset={520}
       closeDistance={520}
@@ -150,13 +152,13 @@ export function AddExerciseSheet({
     >
       {(closeSheet) => (
         <>
-          <ForgeBottomSheetHandle />
           {filtersOpen ? (
             <View style={styles.filterSheetFill}>
               <ForgeCatalogFilterContent
                 filters={filters}
                 facets={filterFacets}
                 fill
+                headerWithDragHandle
                 onCancel={() => setFiltersOpen(false)}
                 onApply={(next) => {
                   setFilters(next);
@@ -166,14 +168,15 @@ export function AddExerciseSheet({
             </View>
           ) : (
             <>
-          <View style={styles.pickerDragArea}>
+          <ForgeBottomSheetDragArea>
+            <ForgeBottomSheetHandle />
             <ForgeSheetHeader
               title="Add exercises"
               onClose={closeSheet}
               closeAccessibilityLabel="Close add exercises"
               horizontalInset={0}
             />
-          </View>
+          </ForgeBottomSheetDragArea>
           <View style={styles.searchRow}>
             <View style={styles.searchField}>
               <Icon name="search" size={22} color={dashboardTheme.slate} />
@@ -593,7 +596,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       alignItems: 'center',
       justifyContent: 'space-between',
     },
-    pickerDragArea: { marginHorizontal: -20, paddingHorizontal: 20 },
     // Normal flow deliberately shares the Add Exercises header origin, which
     // keeps both X controls in the exact same screen position.
     filterSheetFill: { flex: 1, alignSelf: 'stretch', marginHorizontal: -20, marginBottom: -12 },
