@@ -590,7 +590,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       backgroundColor: dashboardTheme.surface,
       position: 'relative',
     },
-    catalogueDivider: { height: 1, marginTop: 10, backgroundColor: dashboardTheme.border },
+    catalogueDivider: { height: 1, backgroundColor: dashboardTheme.border },
     pickerHeader: {
       height: forgeSheetHeader.height,
       flexDirection: 'row',
@@ -670,7 +670,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       color: dashboardTheme.ink,
       ...typeScale.label,
     },
-    pickerList: { flex: 1, marginTop: 10 },
+    pickerList: { flex: 1 },
     pickerListContent: { paddingBottom: 22 },
     categoryTitle: {
       marginTop: 14,
