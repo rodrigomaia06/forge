@@ -169,14 +169,12 @@ export function AddExerciseSheet({
             <>
           <ForgeBottomSheetDragArea>
             <ForgeBottomSheetHandle />
-            <View style={styles.sheetHeaderDivider}>
-              <ForgeSheetHeader
-                title="Add exercises"
-                onClose={closeSheet}
-                closeAccessibilityLabel="Close add exercises"
-                horizontalInset={0}
-              />
-            </View>
+            <ForgeSheetHeader
+              title="Add exercises"
+              onClose={closeSheet}
+              closeAccessibilityLabel="Close add exercises"
+              horizontalInset={0}
+            />
           </ForgeBottomSheetDragArea>
           <View style={styles.searchRow}>
             <View style={styles.searchField}>
@@ -223,6 +221,7 @@ export function AddExerciseSheet({
               )}
             </Pressable>
           </View>
+          <View pointerEvents="none" style={styles.catalogueDivider} />
           <ScrollView
             style={styles.pickerList}
             contentContainerStyle={[
@@ -591,7 +590,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       backgroundColor: dashboardTheme.surface,
       position: 'relative',
     },
-    sheetHeaderDivider: { borderBottomWidth: 1, borderBottomColor: dashboardTheme.border },
+    catalogueDivider: { height: 1, marginTop: 10, backgroundColor: dashboardTheme.border },
     pickerHeader: {
       height: forgeSheetHeader.height,
       flexDirection: 'row',
