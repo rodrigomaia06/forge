@@ -1,13 +1,13 @@
 import { expect, test } from '@playwright/test';
-import { REST_DURATION_OPTIONS } from '../src/domain/rest/restDurationOptions';
-import { catalogFacets, filterCatalog, groupCatalogByEquipment, groupCatalogByMovement } from '../src/domain/exercises/catalogSelectors';
-import { exerciseCatalog } from '../src/data/exerciseCatalog';
-import { countWorkoutSets, formatCompactDuration, getWorkoutTypePresentation } from '../src/domain/workouts/presentation';
-import { defaultSettingsPreferences } from '../src/data/settingsDefaults';
-import { lightTheme } from '../src/theme/tokens';
-import { bundledExercises, bundledLegacyIdMap, bundledCatalogVersion } from '../src/data/catalog/loadCatalog';
-import { trackingFields } from '../src/domain/exercises/tracking';
-import { createWorkout } from '../src/state/workoutMutations';
+import { REST_DURATION_OPTIONS } from '../../src/domain/rest/restDurationOptions';
+import { catalogFacets, filterCatalog, groupCatalogByEquipment, groupCatalogByMovement } from '../../src/domain/exercises/catalogSelectors';
+import { exerciseCatalog } from '../../src/data/exerciseCatalog';
+import { countWorkoutSets, formatCompactDuration, getWorkoutTypePresentation } from '../../src/domain/workouts/presentation';
+import { defaultSettingsPreferences } from '../../src/data/settingsDefaults';
+import { lightTheme } from '../../src/theme/tokens';
+import { bundledExercises, bundledLegacyIdMap, bundledCatalogVersion } from '../../src/data/catalog/loadCatalog';
+import { trackingFields } from '../../src/domain/exercises/tracking';
+import { createWorkout } from '../../src/state/workoutMutations';
 
 test('formats compact workout durations and counts sets', () => {
   expect([0, 59, 3600, 4320].map(formatCompactDuration)).toEqual(['1m', '1m', '1h', '1h 12m']);

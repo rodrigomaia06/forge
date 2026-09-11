@@ -20,7 +20,7 @@ async function openAllExercises(page: import('@playwright/test').Page) {
 }
 
 test.describe('Exercise library', () => {
-  test('groups movement variations and applies multi-select facets', async ({ page }) => {
+  test('groups movement variations and stages multi-select facets before applying them', async ({ page }) => {
     await openAllExercises(page);
     await expect(page.getByTestId('settings-detail-title').last()).toHaveText('All exercises');
     await expect(page.getByRole('button', { name: 'Bench Press, 4 variations' })).toBeVisible();
@@ -31,11 +31,19 @@ test.describe('Exercise library', () => {
     await expect(page.getByRole('button', { name: 'Open Pec Deck' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Filters' }).click();
-    await expect(page.getByRole('checkbox', { name: 'Machine', exact: true })).toHaveCSS('min-height', '38px');
-    await page.getByRole('checkbox', { name: 'Machine', exact: true }).click();
-    await page.getByRole('button', { name: 'Done' }).click();
-    await expect(page.getByRole('button', { name: 'Remove Machine filter' })).toBeVisible();
-    await page.getByRole('button', { name: 'Clear all filters' }).click();
+    const machine = page.getByRole('checkbox', { name: 'Filter Equipment: Machine' });
+    await expect(machine).toHaveCSS('min-height', '44px');
+    await machine.click();
+    await page.getByRole('button', { name: 'Cancel exercise filters' }).click();
+    await expect(page.getByRole('button', { name: 'Remove Machine filter' })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Filters' }).click();
+    await page.getByRole('checkbox', { name: 'Filter Equipment: Machine' }).click();
+    await page.getByRole('checkbox', { name: 'Filter Category: Chest' }).click();
+    await page.getByRole('button', { name: 'Apply (2)' }).click();
+    await expect(page.getByRole('button', { name: 'Filters, 2 active' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Remove Machine filter' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Clear all filters' })).toHaveCount(0);
   });
 
   test('shows built-in exercise metadata and persists its rest override', async ({ page }) => {

@@ -19,6 +19,7 @@ async function startBlankWorkout(page: Page): Promise<void> {
     .getByTestId('plans-creation-popover')
     .getByRole('button', { name: 'New workout', exact: true })
     .click();
+  await expect(page.getByRole('button', { name: 'Add exercise' })).toBeVisible();
 }
 
 async function swipeLeftFrom(page: Page, locator: Locator): Promise<void> {
@@ -99,6 +100,71 @@ test.describe('Active workout flow', () => {
     await expect(
       page.getByRole('checkbox', { name: 'Bench Press, Barbell, Close grip' }),
     ).toBeVisible();
+  });
+
+  test('stages Live Workout filters without losing selected exercises', async ({ page }, testInfo) => {
+    await page.goto('/');
+    await startBlankWorkout(page);
+    await page.getByRole('button', { name: 'Add exercise' }).click();
+    await page.getByLabel('Search exercises').fill('elliptical');
+    const elliptical = page.getByRole('checkbox', { name: 'Elliptical, variation' });
+    await elliptical.click();
+    await expect(page.getByText('Add exercises (1)', { exact: true })).toBeVisible();
+
+    const addExerciseSheet = page.getByTestId('add-exercise-sheet-surface');
+    await expect(addExerciseSheet).toHaveCount(1);
+    await page.mouse.move(196, 450);
+    await page.mouse.down();
+    await page.mouse.move(196, 790, { steps: 10 });
+    await page.mouse.up();
+    await expect(addExerciseSheet).toHaveCount(1);
+    const addCloseBox = await addExerciseSheet
+      .getByRole('button', { name: 'Close add exercises' })
+      .boundingBox();
+    await page.getByRole('button', { name: 'Filters' }).click();
+    const apply = page.getByRole('button', { name: 'Apply' });
+    await expect(apply).toBeVisible();
+    await expect(apply).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Cancel', exact: true })).toHaveCount(0);
+    await expect(addExerciseSheet).toHaveCount(1);
+    const filterClose = page.getByRole('button', { name: 'Cancel exercise filters' });
+    const filterCloseBox = await filterClose.boundingBox();
+    expect(filterCloseBox?.x ?? Infinity).toBeCloseTo(addCloseBox?.x ?? -Infinity, 0);
+    expect(filterCloseBox?.y ?? Infinity).toBeCloseTo(addCloseBox?.y ?? -Infinity, 0);
+    const applyBox = await apply.boundingBox();
+    expect((page.viewportSize()?.height ?? Infinity) - ((applyBox?.y ?? 0) + (applyBox?.height ?? 0))).toBeLessThanOrEqual(24);
+    await page.screenshot({ path: testInfo.outputPath('live-workout-filter-sheet.png') });
+    await page.getByRole('checkbox', { name: 'Filter Equipment: Machine' }).click();
+    await expect(page.getByRole('button', { name: 'Apply (1)' })).toBeEnabled();
+    await page.screenshot({ path: testInfo.outputPath('live-workout-filter-apply-selected.png') });
+    await filterClose.click();
+    await expect(page.getByLabel('Filters')).toBeVisible();
+    await expect(addExerciseSheet).toHaveCount(1);
+
+    await page.getByRole('button', { name: 'Filters' }).click();
+    await page.getByRole('checkbox', { name: 'Filter Equipment: Machine' }).click();
+    await page.getByRole('checkbox', { name: 'Filter Category: Chest' }).click();
+    await page.getByRole('button', { name: 'Apply (2)' }).click();
+    await expect(page.getByLabel('Filters, 2 active')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Remove Machine filter' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Clear all filters' })).toHaveCount(0);
+    await expect(page.getByText('Add exercises (1)', { exact: true })).toBeVisible();
+  });
+
+  test('dismisses the Add Exercises picker from its drag tab, not its scrolling catalogue', async ({ page }) => {
+    await page.goto('/');
+    await startBlankWorkout(page);
+    await page.getByRole('button', { name: 'Add exercise' }).click();
+    const sheet = page.getByTestId('add-exercise-sheet-surface');
+    await expect(sheet).toBeVisible();
+    const tab = page.getByTestId('forge-sheet-drag-tab');
+    const tabBox = await tab.boundingBox();
+    expect(tabBox).not.toBeNull();
+    await page.mouse.move((tabBox?.x ?? 0) + (tabBox?.width ?? 0) / 2, (tabBox?.y ?? 0) + 10);
+    await page.mouse.down();
+    await page.mouse.move((tabBox?.x ?? 0) + (tabBox?.width ?? 0) / 2, (tabBox?.y ?? 0) + 360, { steps: 12 });
+    await page.mouse.up();
+    await expect(sheet).toHaveCount(0);
   });
 
   test('keeps variation counts legible in Dark appearance', async ({ page }) => {
