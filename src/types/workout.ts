@@ -26,8 +26,12 @@ export interface WorkoutExercise {
   note?: string;
   supersetId?: string;
   metric?: ExerciseSetMetric;
+  exerciseSnapshot?: ExerciseSnapshot;
+  trackingType?: TrackingType;
   sets: WorkoutSet[];
 }
+export type TrackingType = 'weight-reps' | 'bodyweight-reps' | 'weighted-bodyweight' | 'assisted-bodyweight' | 'reps-only' | 'duration' | 'duration-weight' | 'distance-duration' | 'weight-distance';
+export interface ExerciseSnapshot { id?: string; name: string; catalogueVersion?: number; trackingType: TrackingType; familyId?: string; equipment?: string[]; workoutTypeIds?: string[]; category?: string; bodyRegion?: string; primaryMuscle?: string; secondaryMuscles?: string[]; aliases?: string[]; searchTerms?: string[]; movementPattern?: string; }
 
 export interface Workout {
   id: string;
@@ -54,6 +58,7 @@ export interface WorkoutSetInput {
   targetWeight?: string;
   targetReps?: string;
   targets?: SetTarget[];
+  measurements?: SetMeasurement[];
 }
 
 export interface WorkoutExerciseInput {
@@ -63,6 +68,8 @@ export interface WorkoutExerciseInput {
   note?: string;
   supersetId?: string;
   metric?: ExerciseSetMetric;
+  exerciseSnapshot?: ExerciseSnapshot;
+  trackingType?: TrackingType;
   sets?: WorkoutSetInput[];
 }
 export interface WorkoutRoutine {
@@ -125,11 +132,13 @@ export interface WorkoutSetChanges {
   targetReps?: string;
   tag?: string;
   comment?: string;
+  measurements?: SetMeasurement[];
+  targets?: SetTarget[];
 }
 export interface WorkoutContextValue extends WorkoutState {
   ready: boolean;
   startWorkout: (options?: StartWorkoutOptions) => Workout;
-  addExercise: (name: string) => void;
+  addExercise: (exercise: WorkoutExerciseInput | string) => void;
   addSet: (exerciseId: string) => void;
   removeSet: (exerciseId: string, setId: string) => void;
   removeExercise: (exerciseId: string) => void;

@@ -35,7 +35,7 @@ import {
 } from '../../components/ui';
 import { forgeSheetHeader } from '../../components/ui/ForgeBottomSheet';
 import type { ForgeSingleSelectOption } from '../../components/ui';
-import type { ExerciseCatalogItem } from '../../data/exerciseCatalog';
+import { catalogTaxonomies, type ExerciseCatalogItem } from '../../data/exerciseCatalog';
 import { useExerciseCatalog } from '../../state/ExerciseCatalogContext';
 import { useSettings } from '../../state/SettingsContext';
 import { useForgeTheme } from '../../theme/ThemeProvider';
@@ -60,6 +60,9 @@ type CatalogSource = 'forge' | 'custom';
 function formatPickerDuration(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
   return `${String(minutes).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+}
+function formatTrackingType(type: ExerciseCatalogItem['trackingType']): string {
+  return (type ?? 'weight-reps').split('-').map((part) => part === 'reps' ? 'reps' : part[0].toUpperCase() + part.slice(1)).join(' + ');
 }
 
 const restTimeOptions: readonly ForgeSingleSelectOption<number>[] = REST_DURATION_OPTIONS.map(
@@ -89,6 +92,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const [categorySource, setCategorySource] = useState<CatalogSource | null>(null);
   const [equipmentValue, setEquipmentValue] = useState('Bodyweight');
   const [primaryMuscle, setPrimaryMuscle] = useState('Accessories');
+  const [exerciseCategory, setExerciseCategory] = useState('Full Body');
   const [secondaryMuscles, setSecondaryMuscles] = useState<string[]>([]);
   const [workoutTypeIds, setWorkoutTypeIds] = useState<string[]>(['strength']);
   const [editing, setEditing] = useState<ExerciseCatalogItem | null>(null);
@@ -123,12 +127,9 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   );
   const groups = useMemo(() => groupCatalogByMovement(filtered), [filtered]);
   const { equipment, categories } = catalogFacets(catalog.exercises);
-  const forgeEquipmentOptions = useMemo(
-    () => Array.from(new Set(catalog.exercises.map((item) => item.equipment))),
-    [catalog.exercises],
-  );
+  const forgeEquipmentOptions = equipment;
   const customEquipmentOptions = useMemo(
-    () => Array.from(new Set(catalog.customExercises.map((item) => item.equipment))),
+    () => catalogFacets(catalog.customExercises).equipment,
     [catalog.customExercises],
   );
   const equipmentOptions = useMemo(
@@ -146,6 +147,13 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const categoryOptions = useMemo(
     () => Array.from(new Set([...forgeCategoryOptions, ...customCategoryOptions])).sort(),
     [customCategoryOptions, forgeCategoryOptions],
+  );
+  const taxonomyCategoryOptions = useMemo(
+    () =>
+      catalogTaxonomies.categories.flatMap((value) =>
+        typeof value === 'string' ? [] : [value.label],
+      ),
+    [],
   );
   const formEquipment = useMemo(() => {
     if (!formParent) return [];
@@ -201,6 +209,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     setCategorySource(parent ? sourceForCategory(parent) : null);
     setEquipmentValue(inherited?.equipment ?? 'Bodyweight');
     setPrimaryMuscle(inherited?.primaryMuscle ?? 'Accessories');
+    setExerciseCategory(inherited?.category ?? 'Full Body');
     setSecondaryMuscles(inherited?.secondaryMuscles ?? []);
     setWorkoutTypeIds(inherited?.workoutTypeIds ?? (fixedTypeId ? [fixedTypeId] : ['strength']));
     setFormParent(parent);
@@ -215,6 +224,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     setCategorySource(sourceForCategory(item.group));
     setEquipmentValue(item.equipment);
     setPrimaryMuscle(item.primaryMuscle);
+    setExerciseCategory(item.category);
     setSecondaryMuscles(item.secondaryMuscles);
     setWorkoutTypeIds(item.workoutTypeIds);
     setFormParent(item.group);
@@ -229,7 +239,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
       group: group.trim() || name.trim(),
       variation: name.trim(),
       equipment: equipmentValue.trim() || parent?.equipment || 'Bodyweight',
-      category: primaryMuscle,
+      category: exerciseCategory,
       aliases: editing?.aliases ?? [],
       workoutTypeIds,
       primaryMuscle,
@@ -489,16 +499,28 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                 />
                 {!formParent && (
                   <>
+                    <Text style={styles.fieldLabel}>Exercise category</Text>
+                    <ForgeSingleSelectList<string>
+                      options={taxonomyCategoryOptions.map((item) => ({
+                        value: item,
+                        label: item,
+                        accessibilityLabel: `Exercise category ${item}`,
+                      }))}
+                      selectedValue={exerciseCategory}
+                      maxVisibleRows={5}
+                      onSelect={setExerciseCategory}
+                    />
+                    <Text style={styles.fieldLabel}>Movement family</Text>
                     <View style={styles.categorySearch}>
                       <Icon name="search" size={19} color={theme.slate} />
                       <TextInput
-                        accessibilityLabel="Exercise category"
+                        accessibilityLabel="Exercise movement family"
                         value={group}
                         onChangeText={(value) => {
                           setGroup(value);
                           setCategorySource(null);
                         }}
-                        placeholder="Search or add a category"
+                        placeholder="Search or add a movement family"
                         placeholderTextColor={theme.muted}
                         style={styles.categorySearchInput}
                       />
@@ -517,7 +539,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                           <Pressable
                             key={label}
                             accessibilityRole="button"
-                            accessibilityLabel={`Use category ${label}`}
+                            accessibilityLabel={`Use movement family ${label}`}
                             onPress={() => {
                               selectionHaptic();
                               setGroup(label);
@@ -537,7 +559,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                         {!isExistingCategory && (
                           <Pressable
                             accessibilityRole="button"
-                            accessibilityLabel={`Add ${group.trim()} as a custom category`}
+                            accessibilityLabel={`Add ${group.trim()} as a custom movement family`}
                             onPress={() => {
                               selectionHaptic();
                               setCategorySource('custom');
@@ -546,7 +568,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                           >
                             <Icon name="add" size={17} color={theme.ink} />
                             <Text style={styles.categorySuggestionText}>
-                              Add “{group.trim()}” as custom
+                              Add “{group.trim()}” as custom family
                             </Text>
                             <Icon name="note" size={16} color={theme.slate} />
                           </Pressable>
@@ -600,14 +622,14 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   />
                   )}
                 </>
-                <Text style={styles.fieldLabel}>Sections</Text>
+                <Text style={styles.fieldLabel}>Workout types</Text>
                 <View style={styles.choiceWrap}>
                   {visibleTypes.map((type) => (
                     <Choice
                       key={type.id}
                       icon={workoutTypeIcon(type)}
                       label={type.name}
-                      accessibilityLabel={`Section ${type.name}`}
+                      accessibilityLabel={`Workout type ${type.name}`}
                       selected={workoutTypeIds.includes(type.id)}
                       onPress={() => toggleSection(type.id)}
                     />
@@ -751,7 +773,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                     </View>
                   </Pressable>
                   <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Sections</Text>
+                    <Text style={styles.detailLabel}>Workout types</Text>
                     <View style={styles.sectionTypes}>
                       {detail.workoutTypeIds.map((id) => {
                         const type = preferences.workoutTypes.find((item) => item.id === id);
@@ -774,7 +796,19 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   </View>
                   <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Category</Text>
+                    <Text style={styles.detailValue}>{detail.category}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Equipment</Text>
+                    <Text style={styles.detailValue}>{detail.equipment}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Movement family</Text>
                     <Text style={styles.detailValue}>{detail.group}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Tracking</Text>
+                    <Text style={styles.detailValue}>{formatTrackingType(detail.trackingType)}</Text>
                   </View>
                   <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Primary muscle</Text>

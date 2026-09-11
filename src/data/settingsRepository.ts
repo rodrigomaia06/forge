@@ -1,27 +1,7 @@
 import type { SettingsPreferences } from '../types';
-import { database } from './database';
-
-export const defaultSettingsPreferences: SettingsPreferences = {
-  appearance: 'system',
-  units: 'metric',
-  bodyweightKg: 0,
-  weekStartsOn: 1,
-  showRestTimer: true,
-  defaultRestSeconds: 90,
-  keepRestTimerRunning: false,
-  restTimerSound: true,
-  restTimerHaptic: true,
-  unfinishedWorkoutReminderEnabled: false,
-  unfinishedWorkoutReminderDelay: 1800,
-  exerciseRestSeconds: {},
-  workoutTypes: [
-    { id: 'strength', name: 'Strength', color: '#687CF2', source: 'builtIn' },
-    { id: 'mobility', name: 'Mobility', color: '#62C98A', source: 'builtIn' },
-    { id: 'cardio', name: 'Cardio', color: '#EF715F', source: 'builtIn' },
-    { id: 'court-sport', name: 'Court sport', color: '#E3A346', source: 'builtIn' },
-    { id: 'martial-arts', name: 'Martial arts', color: '#C56BE6', source: 'builtIn' },
-  ],
-};
+import { database, withDatabaseTransaction } from './database';
+export { defaultSettingsPreferences } from './settingsDefaults';
+import { defaultSettingsPreferences } from './settingsDefaults';
 
 export async function loadSettingsPreferences(): Promise<SettingsPreferences> {
   const row = await (await database()).getFirstAsync<{ value_json: string }>('SELECT value_json FROM preferences WHERE id = 1');
@@ -71,9 +51,8 @@ export async function loadSettingsPreferences(): Promise<SettingsPreferences> {
 }
 
 export async function saveSettingsPreferences(preferences: SettingsPreferences): Promise<void> {
-  const db = await database();
-  await db.runAsync('INSERT OR REPLACE INTO preferences (id, value_json) VALUES (1, ?)', JSON.stringify(preferences));
-  await db.withTransactionAsync(async () => {
+  await withDatabaseTransaction(async (db) => {
+    await db.runAsync('INSERT OR REPLACE INTO preferences (id, value_json) VALUES (1, ?)', JSON.stringify(preferences));
     await db.runAsync('DELETE FROM workout_types');
     for (const [position, type] of preferences.workoutTypes.entries()) await db.runAsync('INSERT INTO workout_types (id, archived, position, value_json) VALUES (?, ?, ?, ?)', type.id, type.hidden ? 1 : 0, position, JSON.stringify(type));
   });

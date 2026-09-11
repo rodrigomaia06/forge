@@ -40,6 +40,7 @@ import { typeScale } from '../theme/tokens';
 import { usePlans } from '../state/PlansContext';
 import { useSettings } from '../state/SettingsContext';
 import { makeWorkoutId } from '../state/workoutMutations';
+import type { ExerciseCatalogItem } from '../data/exerciseCatalog';
 import type {
   RootStackParamList,
   WorkoutExercise,
@@ -121,15 +122,18 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
     setDraft((current) => (current ? update(current) : current));
     setError(null);
   };
-  const addExercises = (names: string[]): void => {
+  const addExercises = (exercises: ExerciseCatalogItem[]): void => {
     lightHaptic();
     change((current) => ({
       ...current,
       exercises: [
         ...current.exercises,
-        ...names.map((name) => ({
+        ...exercises.map((exercise) => ({
           id: makeWorkoutId('routine-exercise'),
-          name,
+          exerciseId: exercise.id,
+          name: exercise.name,
+          trackingType: exercise.trackingType,
+          exerciseSnapshot: { id: exercise.id, name: exercise.name, catalogueVersion: 3, trackingType: exercise.trackingType ?? 'weight-reps', familyId: exercise.familyId, equipment: exercise.equipmentIds, workoutTypeIds: exercise.workoutTypeIds, category: exercise.category, bodyRegion: exercise.bodyRegion, primaryMuscle: exercise.primaryMuscle, secondaryMuscles: exercise.secondaryMuscles, aliases: exercise.aliases, searchTerms: exercise.searchTerms, movementPattern: exercise.movementPattern },
           sets: Array.from({ length: 3 }, () => ({
             id: makeWorkoutId('routine-set'),
             weight: '',

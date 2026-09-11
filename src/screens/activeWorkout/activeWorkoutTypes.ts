@@ -40,6 +40,7 @@ export interface SwipeableSetRowProps {
   onDeleteRevealChange: (revealed: boolean) => void;
   showCompletion?: boolean;
   onInputFocus?: (measure: MeasureSetInput) => void;
+  trackingType?: import('../../types').TrackingType;
 }
 
 export interface SetRowProps extends Omit<

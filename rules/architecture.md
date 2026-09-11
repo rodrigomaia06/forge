@@ -20,6 +20,8 @@ A migration requires an explicit task or an approved architectural decision.
 
 UI components and screens should not directly own durable storage mechanics. Keep persistence access behind data/repository modules so storage technology can change without rewriting presentation code.
 
+Bundled exercise catalogues are immutable versioned release snapshots. SQLite seeds each release as Forge-owned baseline data, upgrades only those baseline rows, and never overwrites custom exercises, preferences, routines, or workout history. Completed workouts retain exercise and set snapshots so catalogue releases cannot reinterpret recorded history. Forge serializes all SQLite transactions through the repository boundary because providers share one native database connection.
+
 ## Navigation boundary
 
 Keep application navigation structure owned by navigation-focused modules. Screens may request navigation but should not independently redefine the application's global navigation model.

@@ -30,19 +30,22 @@ export function WorkoutProvider({ children }: ChildrenProps) {
   const activeSaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeWriteQueueRef = React.useRef<Promise<void>>(Promise.resolve());
   const skipNextActivePersistenceRef = React.useRef(false);
-  const queueActiveSave = useCallback((workout: Workout | null): void => {
+  const activeHydratedRef = React.useRef(false);
+  const completedHydratedRef = React.useRef(false);
+  const queueActiveSave = useCallback((workout: Workout | null): Promise<void> => {
     activeWriteQueueRef.current = activeWriteQueueRef.current
       .catch(() => undefined)
       .then(() => saveActiveWorkout(workout));
+    return activeWriteQueueRef.current;
   }, []);
   const persistActiveWorkoutNow = useCallback(
-    (workout: Workout | null): void => {
+    (workout: Workout | null): Promise<void> => {
       if (activeSaveTimerRef.current) {
         clearTimeout(activeSaveTimerRef.current);
         activeSaveTimerRef.current = null;
       }
       skipNextActivePersistenceRef.current = true;
-      queueActiveSave(workout);
+      return queueActiveSave(workout);
     },
     [queueActiveSave],
   );
@@ -64,6 +67,10 @@ export function WorkoutProvider({ children }: ChildrenProps) {
 
   useEffect(() => {
     if (!ready) return undefined;
+    if (!activeHydratedRef.current) {
+      activeHydratedRef.current = true;
+      return undefined;
+    }
     if (activeSaveTimerRef.current) clearTimeout(activeSaveTimerRef.current);
     if (skipNextActivePersistenceRef.current) {
       skipNextActivePersistenceRef.current = false;
@@ -83,22 +90,29 @@ export function WorkoutProvider({ children }: ChildrenProps) {
   }, [activeWorkout, queueActiveSave, ready]);
 
   useEffect(() => {
-    if (ready) saveCompletedWorkouts(completedWorkouts);
+    if (!ready) return;
+    if (!completedHydratedRef.current) {
+      completedHydratedRef.current = true;
+      return;
+    }
+    void saveCompletedWorkouts(completedWorkouts);
   }, [completedWorkouts, ready]);
 
   const startWorkout = useCallback(
     (options: StartWorkoutOptions = {}): Workout => {
       if (activeWorkout) return activeWorkout;
       const workout = createWorkout(options);
+      // Starting is a durable state transition, not an ordinary debounced edit.
       setActiveWorkout(workout);
+      void persistActiveWorkoutNow(workout);
       return workout;
     },
-    [activeWorkout],
+    [activeWorkout, persistActiveWorkoutNow],
   );
 
-  const addExercise = useCallback((name: string): void => {
-    if (!name.trim()) return;
-    setActiveWorkout((current) => addExerciseToWorkout(current, name));
+  const addExercise = useCallback((exercise: import('../types').WorkoutExerciseInput | string): void => {
+    if (!(typeof exercise === 'string' ? exercise : exercise.name).trim()) return;
+    setActiveWorkout((current) => addExerciseToWorkout(current, exercise));
   }, []);
 
   const addSet = useCallback((exerciseId: string): void => {

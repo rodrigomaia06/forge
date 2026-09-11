@@ -107,7 +107,7 @@ test.describe('Exercise library', () => {
     const machineEquipment = page.getByRole('radio', { name: 'Equipment Machine' });
     await expect(machineEquipment).toHaveAttribute('aria-checked', 'true');
     await expect(machineEquipment.getByTestId('choice-selection-verified').first()).toBeVisible();
-    await expect(page.getByRole('checkbox', { name: 'Section Strength' }).locator('svg').first()).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: 'Workout type Strength' }).locator('svg').first()).toBeVisible();
     await page.getByRole('radio', { name: 'Add custom equipment' }).click();
     await expect(
       page.getByRole('radio', { name: 'Add custom equipment' }).getByTestId('choice-selection-note').first(),
@@ -163,16 +163,16 @@ test.describe('Exercise library', () => {
     await page.getByRole('button', { name: 'Custom exercises, 0 exercises' }).click();
     await page.getByRole('button', { name: 'Create custom exercise' }).click();
     await page.getByLabel('Exercise name').fill('Custom Row');
-    await page.getByLabel('Exercise category').fill('Bench');
-    await page.getByRole('button', { name: 'Use category Bench Press' }).click();
+    await page.getByLabel('Exercise movement family').fill('Bench');
+    await page.getByRole('button', { name: 'Use movement family Bench Press' }).click();
     await expect(page.getByTestId('category-source-forge').first()).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Use category Bench Press' })).toHaveCount(0);
-    await page.getByLabel('Exercise category').fill('Rows');
-    await expect(page.getByRole('button', { name: 'Add Rows as a custom category' })).toBeVisible();
-    await page.getByRole('button', { name: 'Add Rows as a custom category' }).click();
+    await expect(page.getByRole('button', { name: 'Use movement family Bench Press' })).toHaveCount(0);
+    await page.getByLabel('Exercise movement family').fill('Rows');
+    await expect(page.getByRole('button', { name: 'Add Rows as a custom movement family' })).toBeVisible();
+    await page.getByRole('button', { name: 'Add Rows as a custom movement family' }).click();
     await expect(page.getByTestId('category-source-custom').first()).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Add Rows as a custom category' })).toHaveCount(0);
-    await page.getByRole('checkbox', { name: 'Section Mobility' }).click();
+    await expect(page.getByRole('button', { name: 'Add Rows as a custom movement family' })).toHaveCount(0);
+    await page.getByRole('checkbox', { name: 'Workout type Mobility' }).click();
     await page.getByRole('checkbox', { name: 'Primary Back' }).click();
     await page.getByRole('checkbox', { name: 'Secondary Biceps' }).click();
     await page.getByRole('button', { name: 'Save variation' }).click();

@@ -26,8 +26,9 @@ import {
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import type { WorkoutSet, WorkoutSetChanges } from '../../types';
+import type { SetMeasurementKind, TrackingType, WorkoutSet, WorkoutSetChanges } from '../../types';
 import { selectionHaptic } from './activeWorkoutFeedback';
+import { measurementUnit, trackingFieldLabel, trackingFields } from '../../domain/exercises/tracking';
 
 const SET_TYPES = [
   { label: 'Warm Up', color: '#FF8A2A' },
@@ -44,6 +45,7 @@ interface SetDetailsCardProps {
   onDelete: () => void;
   onDone: () => void;
   editable?: boolean;
+  trackingType?: TrackingType;
 }
 
 /** Detail editor shared by active-workout sets and read-only history sets. */
@@ -55,6 +57,7 @@ export function SetDetailsCard({
   onDelete,
   onDone,
   editable = true,
+  trackingType = 'weight-reps',
 }: SetDetailsCardProps) {
   const styles = useThemedStyles(createStyles);
   const [dismissTextKeyboardOnTap, setDismissTextKeyboardOnTap] = React.useState(true);
@@ -114,6 +117,7 @@ export function SetDetailsCard({
               />
               <TargetsSection
                 set={set}
+                trackingType={trackingType}
                 editable={editable}
                 setLabel={setLabel}
                 onChange={onChange}
@@ -282,12 +286,14 @@ function CommentSection({
 
 function TargetsSection({
   set,
+  trackingType,
   editable,
   setLabel,
   onChange,
   onNumberFocus,
 }: {
   set: WorkoutSet;
+  trackingType: TrackingType;
   editable: boolean;
   setLabel: string;
   onChange: (changes: WorkoutSetChanges) => void;
@@ -298,31 +304,41 @@ function TargetsSection({
     <View style={[styles.section, styles.targetSection]}>
       <Text style={styles.sectionLabel}>NEXT-TIME TARGET</Text>
       <View style={styles.targetCards}>
-        <TargetCard
-          label="Weight"
-          value={set.targetWeight || ''}
-          placeholder="—"
-          unit="kg"
-          editable={editable}
-          keyboardType="decimal-pad"
-          accessibilityLabel={`Next-time weight target for ${setLabel.toLowerCase()}`}
-          onChangeText={(targetWeight) => onChange({ targetWeight })}
-          onFocus={onNumberFocus}
-        />
-        <TargetCard
-          label="Reps"
-          value={set.targetReps || ''}
-          placeholder="—"
-          unit="reps"
-          editable={editable}
-          keyboardType="number-pad"
-          accessibilityLabel={`Next-time reps target for ${setLabel.toLowerCase()}`}
-          onChangeText={(targetReps) => onChange({ targetReps })}
-          onFocus={onNumberFocus}
-        />
+        {trackingFields[trackingType].map((kind) => (
+          <TargetCard
+            key={kind}
+            label={trackingFieldLabel(trackingType, kind)}
+            value={targetText(set, kind)}
+            placeholder="—"
+            unit={targetUnitLabel(kind)}
+            editable={editable}
+            keyboardType={kind === 'reps' || kind === 'duration' ? 'number-pad' : 'decimal-pad'}
+            accessibilityLabel={`Next-time ${trackingFieldLabel(trackingType, kind).toLowerCase()} target for ${setLabel.toLowerCase()}`}
+            onChangeText={(value) => onChange({
+              ...(kind === 'reps' ? { targetReps: value } : kind === 'weight' || kind === 'addedWeight' ? { targetWeight: value } : {}),
+              targets: updateTargets(set, kind, value),
+            })}
+            onFocus={onNumberFocus}
+          />
+        ))}
       </View>
     </View>
   );
+}
+
+function targetText(set: WorkoutSet, kind: SetMeasurementKind): string {
+  const target = set.targets?.find((item) => item.kind === kind);
+  if (target?.minValue !== undefined) return target.maxValue !== undefined && target.maxValue !== target.minValue ? `${target.minValue}–${target.maxValue}` : String(target.minValue);
+  return kind === 'reps' ? set.targetReps ?? '' : kind === 'weight' || kind === 'addedWeight' ? set.targetWeight ?? '' : '';
+}
+function targetUnitLabel(kind: SetMeasurementKind): string {
+  return kind === 'reps' ? 'reps' : measurementUnit[kind];
+}
+function updateTargets(set: WorkoutSet, kind: SetMeasurementKind, text: string): NonNullable<WorkoutSet['targets']> {
+  const values = text.split(/[-–—]/).map((value) => Number(value.trim())).filter(Number.isFinite);
+  const retained = (set.targets ?? []).filter((target) => target.kind !== kind);
+  if (!values.length) return retained;
+  return [...retained, { id: `${set.id}-target-${kind}`, kind, unit: measurementUnit[kind], minValue: values[0], maxValue: values[1] ?? values[0] }];
 }
 
 function TargetCard({

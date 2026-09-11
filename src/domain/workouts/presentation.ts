@@ -2,9 +2,15 @@ import type { ForgeTheme, IconName, Workout, WorkoutTypePreference } from '../..
 
 const FALLBACK_TYPES: Record<string, { icon: IconName; color: string }> = {
   strength: { icon: 'fitness-outline', color: '#687CF2' },
+  calisthenics: { icon: 'activity', color: '#4D9C8A' },
   mobility: { icon: 'stretching', color: '#62C98A' },
   cardio: { icon: 'running', color: '#EF715F' },
+  functional: { icon: 'task-list', color: '#B27BDA' },
+  'olympic weightlifting': { icon: 'weight', color: '#5478D8' },
+  plyometrics: { icon: 'activity', color: '#D78543' },
   'court sport': { icon: 'tennis-ball', color: '#E3A346' },
+  'field sport': { icon: 'basketball', color: '#4C9B5D' },
+  'martial arts': { icon: 'warm-up', color: '#C56BE6' },
 };
 
 export function formatCompactDuration(seconds = 0): string {

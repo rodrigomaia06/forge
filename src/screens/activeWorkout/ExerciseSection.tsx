@@ -25,6 +25,7 @@ import { SetDetailsCard } from './SetDetailsCard';
 import { ExerciseOptionsSheet } from './WorkoutSheets';
 import type { ExerciseSectionProps } from './activeWorkoutTypes';
 import type { WorkoutExercise, WorkoutSet } from '../../types';
+import { measurementText, trackingFieldLabel, trackingFields } from '../../domain/exercises/tracking';
 
 export const ExerciseSection = React.memo(function ExerciseSection({
   exercise,
@@ -213,10 +214,9 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 <View style={[styles.setHeader, size === 'large' && styles.setHeaderLarge]}>
                   <Text style={[styles.setHeaderText, styles.setColumn]}>Set</Text>
                   <Text style={[styles.setHeaderText, styles.previousColumn]}>Previous</Text>
-                  <Text style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>KG</Text>
-                  <Text style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>
-                    Reps
-                  </Text>
+                  {trackingFields[exercise.trackingType ?? 'weight-reps'].map((kind) => (
+                    <Text key={kind} style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>{trackingFieldLabel(exercise.trackingType ?? 'weight-reps', kind)}</Text>
+                  ))}
                   <View style={styles.checkColumn} />
                 </View>
                 {exercise.sets.map((set, setIndex) => (
@@ -238,6 +238,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     deleteRevealed={openSetId === set.id}
                     onDeleteRevealChange={(revealed) => setOpenSetId(revealed ? set.id : null)}
                     showCompletion={showSetCompletion}
+                    trackingType={exercise.trackingType}
                     onInputFocus={onSetInputFocus}
                   />
                 ))}
@@ -287,6 +288,7 @@ export function ReadOnlyExerciseSection({
   const [expanded, setExpanded] = useState(false);
   const [openSetIndex, setOpenSetIndex] = useState<number | null>(null);
   const openSet = openSetIndex === null ? null : exercise.sets[openSetIndex];
+  const trackingType = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType ?? 'weight-reps';
 
   return (
     <View testID={`history-exercise-${exercise.id}`} style={styles.readOnlyExerciseCard}>
@@ -320,8 +322,9 @@ export function ReadOnlyExerciseSection({
           <View style={[styles.setHeader, minimal && styles.readOnlyMinimalSetHeader]}>
             <Text style={[styles.setHeaderText, styles.setColumn]}>Set</Text>
             <Text style={[styles.setHeaderText, styles.previousColumn]}>Previous</Text>
-            <Text style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>KG</Text>
-            <Text style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>Reps</Text>
+            {trackingFields[trackingType].map((kind) => (
+              <Text key={kind} style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>{trackingFieldLabel(trackingType, kind)}</Text>
+            ))}
             <View style={styles.checkColumn} />
           </View>
           {exercise.sets.map((set, index) => (
@@ -330,6 +333,7 @@ export function ReadOnlyExerciseSection({
               set={set}
               index={index}
               minimal={minimal}
+              trackingType={trackingType}
               onOpenDetails={() => setOpenSetIndex(index)}
             />
           ))}
@@ -344,6 +348,7 @@ export function ReadOnlyExerciseSection({
           onChange={() => undefined}
           onDelete={() => undefined}
           onDone={() => setOpenSetIndex(null)}
+          trackingType={trackingType}
         />
       )}
     </View>
@@ -354,11 +359,13 @@ function ReadOnlyHistorySetRow({
   set,
   index,
   minimal = false,
+  trackingType,
   onOpenDetails,
 }: {
   set: WorkoutSet;
   index: number;
   minimal?: boolean;
+  trackingType: import('../../types').TrackingType;
   onOpenDetails: () => void;
 }) {
   const theme = useForgeTheme();
@@ -383,12 +390,11 @@ function ReadOnlyHistorySetRow({
       <Text style={styles.previous} numberOfLines={1}>
         {set.previous || '—'}
       </Text>
-      <View style={[styles.readOnlyInput, styles.inputColumn]}>
-        <Text style={styles.readOnlyInputText}>{set.weight || '—'}</Text>
-      </View>
-      <View style={[styles.readOnlyInput, styles.inputColumn]}>
-        <Text style={styles.readOnlyInputText}>{set.reps || '—'}</Text>
-      </View>
+      {trackingFields[trackingType].map((kind) => (
+        <View key={kind} style={[styles.readOnlyInput, styles.inputColumn]}>
+          <Text style={styles.readOnlyInputText}>{measurementText(set, kind) || '—'}</Text>
+        </View>
+      ))}
       <View style={styles.check}>
         <CompletionCheck
           selected={set.completed}

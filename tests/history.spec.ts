@@ -1,12 +1,16 @@
 import { expect, test } from '@playwright/test';
 
+const today = new Date();
+const todayAtSixPmUtc = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 18);
+const daysAgo = (days: number): number => todayAtSixPmUtc - days * 24 * 60 * 60 * 1000;
+
 const completedWorkouts = [
-  makeWorkout('empty-session', 'Recovery walk', 'Mobility', Date.UTC(2026, 7, 26, 18), 20, 0, 0),
-  makeWorkout('muay-thai', 'Muay Thai', 'Martial arts', Date.UTC(2026, 7, 25, 18), 72, 3, 8),
-  makeWorkout('pull-25', 'Pull - Extension', 'Strength', Date.UTC(2026, 7, 24, 18), 120, 7, 16),
-  makeWorkout('push-20', 'Push - Shoulder', 'Strength', Date.UTC(2026, 7, 20, 18), 84, 4, 12),
-  makeWorkout('push-16', 'Push - Chest', 'Strength', Date.UTC(2026, 7, 16, 18), 92, 6, 16),
-  makeWorkout('pull-11', 'Pull - Extension', 'Strength', Date.UTC(2026, 7, 11, 18), 4, 4, 10),
+  makeWorkout('empty-session', 'Recovery walk', 'Mobility', daysAgo(2), 20, 0, 0),
+  makeWorkout('muay-thai', 'Muay Thai', 'Martial arts', daysAgo(3), 72, 3, 8),
+  makeWorkout('pull-25', 'Pull - Extension', 'Strength', daysAgo(4), 120, 7, 16),
+  makeWorkout('push-20', 'Push - Shoulder', 'Strength', daysAgo(8), 84, 4, 12),
+  makeWorkout('push-16', 'Push - Chest', 'Strength', daysAgo(12), 92, 6, 16),
+  makeWorkout('pull-11', 'Pull - Extension', 'Strength', daysAgo(17), 4, 4, 10),
 ];
 
 test.describe('History screen', () => {
@@ -31,7 +35,7 @@ test.describe('History screen', () => {
     await expect(page.getByText('Last week', { exact: true })).toBeVisible();
     await expect(page.getByText('2 weeks ago', { exact: true })).toBeVisible();
     await expect(page.getByText('Muay Thai', { exact: true }).last()).toBeVisible();
-    await expect(page.getByText('Martial arts', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Martial arts', { exact: true })).toBeVisible();
     await expect(page.getByText('3 exercises · 8 sets', { exact: true })).toBeVisible();
     await expect(page.getByText('7 exercises · 16 sets', { exact: true })).toBeVisible();
     await expect(page.getByText('1h 12m', { exact: true })).toBeVisible();

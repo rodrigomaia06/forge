@@ -1,5 +1,5 @@
 import type { PlansState, WorkoutPlan } from '../types';
-import { database } from './database';
+import { database, withDatabaseTransaction } from './database';
 const EMPTY: PlansState = { plans: [], standaloneRoutines: [] };
 
 export async function loadPlansState(): Promise<PlansState> {
@@ -14,8 +14,7 @@ export async function loadPlansState(): Promise<PlansState> {
 }
 
 export async function savePlansState(state: PlansState): Promise<void> {
-  const db = await database();
-  await db.withTransactionAsync(async () => {
+  await withDatabaseTransaction(async (db) => {
     await db.runAsync('DELETE FROM routines'); await db.runAsync('DELETE FROM plans');
     for (const [position, plan] of state.plans.entries()) await db.runAsync('INSERT INTO plans (id, position, value_json) VALUES (?, ?, ?)', plan.id, position, JSON.stringify({ ...plan, routines: undefined }));
     for (const [position, routine] of [...state.standaloneRoutines, ...state.plans.flatMap((plan) => plan.routines)].entries()) await db.runAsync('INSERT INTO routines (id, plan_id, position, value_json) VALUES (?, ?, ?, ?)', routine.id, routine.planId ?? null, position, JSON.stringify(routine));

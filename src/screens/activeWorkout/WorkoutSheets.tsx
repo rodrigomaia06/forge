@@ -36,7 +36,7 @@ export function AddExerciseSheet({
 }: {
   visible: boolean;
   onClose: () => void;
-  onSubmit: (names: string[]) => void;
+  onSubmit: (exercises: ExerciseCatalogItem[]) => void;
 }) {
   const { exercises: exerciseCatalog } = useExerciseCatalog();
   const theme = useForgeTheme();
@@ -51,7 +51,7 @@ export function AddExerciseSheet({
   const insets = useSafeAreaInsets();
   const filteredExercises = filterCatalog(exerciseCatalog, {
     query,
-    categories: categoryFilter ? [categoryFilter] : [],
+    exerciseCategories: categoryFilter ? [categoryFilter] : [],
     includeGroupInSearch: false,
   });
   const categories = [...new Set(filteredExercises.map((exercise) => exercise.category))];
@@ -84,10 +84,8 @@ export function AddExerciseSheet({
     setExpandedEquipment(null);
   };
   const submit = (): void => {
-    const names = exerciseCatalog
-      .filter((exercise) => selected.includes(exercise.id))
-      .map((exercise) => exercise.name);
-    if (!names.length) return;
+    const exercises = exerciseCatalog.filter((exercise) => selected.includes(exercise.id));
+    if (!exercises.length) return;
     Keyboard.dismiss();
     setQuery('');
     setSelected([]);
@@ -96,7 +94,7 @@ export function AddExerciseSheet({
     setExpandedGroup(null);
     setExpandedEquipment(null);
     mediumHaptic();
-    onSubmit(names);
+    onSubmit(exercises);
   };
 
   return (

@@ -301,9 +301,9 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
       <AddExerciseSheet
         visible={addExerciseOpen}
         onClose={() => setAddExerciseOpen(false)}
-        onSubmit={(names) => {
-          names.forEach((name) =>
-            updateDraft((current) => addExerciseToWorkout(current, name) as Workout),
+        onSubmit={(exercises) => {
+          exercises.forEach((exercise) =>
+            updateDraft((current) => addExerciseToWorkout(current, { exerciseId: exercise.id, name: exercise.name, trackingType: exercise.trackingType, exerciseSnapshot: { id: exercise.id, name: exercise.name, catalogueVersion: 3, trackingType: exercise.trackingType ?? 'weight-reps' } }) as Workout),
           );
           setAddExerciseOpen(false);
         }}

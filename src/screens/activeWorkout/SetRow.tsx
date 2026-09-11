@@ -7,6 +7,7 @@ import { typeScale } from '../../theme/tokens';
 import { errorHaptic } from './activeWorkoutFeedback';
 import { CompletionCheck } from './CompletionCheck';
 import type { SetRowProps } from './activeWorkoutTypes';
+import { measurementText, trackingFieldLabel, trackingFields, updateMeasurement } from '../../domain/exercises/tracking';
 
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
@@ -22,6 +23,7 @@ export function SetRow({
   onInputTouchEnd,
   onInputFocus,
   showCompletion = true,
+  trackingType = 'weight-reps',
 }: SetRowProps) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -55,8 +57,9 @@ export function SetRow({
 
   const handleToggle = (): void => {
     if (!set.completed) {
-      const missingWeight = !String(set.weight || '').trim();
-      const missingReps = !String(set.reps || '').trim();
+      const required = trackingFields[trackingType];
+      const missingWeight = required.some((kind) => kind !== 'reps' && !measurementText(set, kind).trim());
+      const missingReps = required.includes('reps') && !measurementText(set, 'reps').trim();
       if (missingWeight || missingReps) {
         animateInvalidField('weight', missingWeight ? 1 : 0);
         animateInvalidField('reps', missingReps ? 1 : 0);
@@ -112,34 +115,11 @@ export function SetRow({
       <Text style={styles.previous} numberOfLines={1}>
         {previous}
       </Text>
-      <AnimatedTextInput
-        accessibilityLabel={`Weight for set ${index + 1}`}
-        value={String(set.weight)}
-        selection={{ start: String(set.weight).length, end: String(set.weight).length }}
-        onChangeText={(weight: string) => updateField('weight', weight)}
-        onTouchStart={onInputTouchStart}
-        onTouchMove={onInputTouchMove}
-        onTouchEnd={onInputTouchEnd}
-        onFocus={reportInputFocus}
-        keyboardType="decimal-pad"
-        selectTextOnFocus={false}
-        placeholder={set.targetWeight || '—'}
-        style={[styles.input, styles.inputColumn, { borderColor: theme.divider }, invalidStyle(weightInvalidProgress)]}
-      />
-      <AnimatedTextInput
-        accessibilityLabel={`Reps for set ${index + 1}`}
-        value={String(set.reps)}
-        selection={{ start: String(set.reps).length, end: String(set.reps).length }}
-        onChangeText={(reps: string) => updateField('reps', reps)}
-        onTouchStart={onInputTouchStart}
-        onTouchMove={onInputTouchMove}
-        onTouchEnd={onInputTouchEnd}
-        onFocus={reportInputFocus}
-        keyboardType="number-pad"
-        selectTextOnFocus={false}
-        placeholder={set.targetReps || '—'}
-        style={[styles.input, styles.inputColumn, { borderColor: theme.divider }, invalidStyle(repsInvalidProgress)]}
-      />
+      {trackingFields[trackingType].map((kind) => {
+        const value = measurementText(set, kind);
+        const legacy = kind === 'reps' ? { reps: value } : kind === 'weight' || kind === 'addedWeight' ? { weight: value } : {};
+        return <AnimatedTextInput key={kind} accessibilityLabel={`${trackingFieldLabel(trackingType, kind)} for set ${index + 1}`} value={value} selection={{ start: value.length, end: value.length }} onChangeText={(text: string) => onChange({ ...legacy, measurements: updateMeasurement(set, kind, text) })} onTouchStart={onInputTouchStart} onTouchMove={onInputTouchMove} onTouchEnd={onInputTouchEnd} onFocus={reportInputFocus} keyboardType={kind === 'reps' || kind === 'duration' ? 'number-pad' : 'decimal-pad'} selectTextOnFocus={false} placeholder="—" style={[styles.input, styles.inputColumn, { borderColor: theme.divider }, invalidStyle(kind === 'reps' ? repsInvalidProgress : weightInvalidProgress)]} />;
+      })}
       <View style={styles.check}>
         {showCompletion ? (
           <Pressable

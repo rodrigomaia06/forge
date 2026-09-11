@@ -1,4 +1,4 @@
-import type { StartWorkoutOptions, Workout, WorkoutSetChanges } from '../types';
+import type { StartWorkoutOptions, Workout, WorkoutExerciseInput, WorkoutSetChanges } from '../types';
 
 export function makeWorkoutId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -24,6 +24,8 @@ export function createWorkout(options: StartWorkoutOptions): Workout {
       name: exercise.name,
       note: exercise.note,
       supersetId: exercise.supersetId,
+      trackingType: exercise.trackingType,
+      exerciseSnapshot: exercise.exerciseSnapshot,
       sets: (exercise.sets || []).map((set) => ({
         id: set.id || makeWorkoutId('set'),
         weight: set.weight || '',
@@ -31,21 +33,27 @@ export function createWorkout(options: StartWorkoutOptions): Workout {
         previous: set.previous,
         targetWeight: set.targetWeight,
         targetReps: set.targetReps,
+        measurements: set.measurements,
+        targets: set.targets,
         completed: false,
       })),
     })),
   };
 }
 
-export function addExerciseToWorkout(workout: Workout | null, name: string): Workout | null {
-  if (!workout || !name.trim()) return workout;
+export function addExerciseToWorkout(workout: Workout | null, input: WorkoutExerciseInput | string): Workout | null {
+  const exercise = typeof input === 'string' ? { name: input } : input;
+  if (!workout || !exercise.name.trim()) return workout;
   return {
     ...workout,
     exercises: [
       ...workout.exercises,
       {
         id: makeWorkoutId('exercise'),
-        name: name.trim(),
+        exerciseId: exercise.exerciseId,
+        name: exercise.name.trim(),
+        trackingType: exercise.trackingType ?? 'weight-reps',
+        exerciseSnapshot: exercise.exerciseSnapshot,
         sets: Array.from({ length: 3 }, () => ({
           id: makeWorkoutId('set'),
           weight: '',

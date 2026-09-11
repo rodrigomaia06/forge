@@ -127,9 +127,9 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   }, []);
   const handleAddExerciseClose = useCallback(() => setSheetOpen(false), []);
   const handleAddExercises = useCallback(
-    (names: string[]) => {
+    (exercises: import('../data/exerciseCatalog').ExerciseCatalogItem[]) => {
       lightHaptic();
-      names.forEach((name) => addExercise(name));
+      exercises.forEach((exercise) => addExercise({ exerciseId: exercise.id, name: exercise.name, trackingType: exercise.trackingType, exerciseSnapshot: { id: exercise.id, name: exercise.name, catalogueVersion: 3, trackingType: exercise.trackingType ?? 'weight-reps', familyId: exercise.familyId, equipment: exercise.equipmentIds, workoutTypeIds: exercise.workoutTypeIds, category: exercise.category, bodyRegion: exercise.bodyRegion, primaryMuscle: exercise.primaryMuscle, secondaryMuscles: exercise.secondaryMuscles, aliases: exercise.aliases, searchTerms: exercise.searchTerms, movementPattern: exercise.movementPattern } }));
       setSheetOpen(false);
     },
     [addExercise],
