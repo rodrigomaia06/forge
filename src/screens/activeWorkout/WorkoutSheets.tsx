@@ -221,7 +221,6 @@ export function AddExerciseSheet({
               )}
             </Pressable>
           </View>
-          <View pointerEvents="none" style={styles.catalogueDivider} />
           <ScrollView
             style={styles.pickerList}
             contentContainerStyle={[
@@ -590,7 +589,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       backgroundColor: dashboardTheme.surface,
       position: 'relative',
     },
-    catalogueDivider: { height: 1, backgroundColor: dashboardTheme.border },
     pickerHeader: {
       height: forgeSheetHeader.height,
       flexDirection: 'row',
@@ -605,6 +603,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
+      marginBottom: 10,
     },
     searchField: {
       flex: 1,
@@ -670,7 +669,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       color: dashboardTheme.ink,
       ...typeScale.label,
     },
-    pickerList: { flex: 1 },
+    pickerList: { flex: 1, borderTopWidth: 1, borderTopColor: dashboardTheme.border },
     pickerListContent: { paddingBottom: 22 },
     categoryTitle: {
       marginTop: 14,
