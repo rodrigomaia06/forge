@@ -25,6 +25,13 @@ async function swipeRightFrom(
 }
 
 test.describe('Plans and routines', () => {
+  test('renders an illustration while Plans is empty', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await expect(page.getByTestId('plans-empty-illustration')).toBeVisible();
+    await expect(page.getByText('Build your first routine', { exact: true })).toBeVisible();
+  });
+
   test('routes the Dashboard creation action into the Plans creation popover', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Start workout' }).click();

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -405,7 +405,13 @@ function EmptyPlans() {
   const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.empty}>
-      <Icon name="book" size={32} color={theme.muted} />
+      <Image
+        testID="plans-empty-illustration"
+        source={require('../../assets/illustrations/empty-plans.png')}
+        style={[styles.emptyIllustration, { tintColor: theme.muted }]}
+        resizeMode="contain"
+        accessible={false}
+      />
       <Text style={styles.emptyTitle}>Build your first routine</Text>
       <Text style={styles.emptyText}>
         Use the add button above to create a routine or workout plan.
@@ -637,8 +643,9 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       borderRadius: 14,
     },
     addToPlanText: { ...typeScale.controlLabel, color: theme.textPrimary },
-    empty: { alignItems: 'center', paddingHorizontal: 28, paddingTop: 92, gap: 12 },
-    emptyTitle: { ...typeScale.sectionTitle, color: theme.ink, marginTop: 4 },
+    empty: { alignItems: 'center', paddingHorizontal: 28, paddingTop: 79, gap: 8 },
+    emptyIllustration: { width: 210, height: 150, marginBottom: -14, opacity: 0.78 },
+    emptyTitle: { ...typeScale.sectionTitle, color: theme.ink },
     emptyText: {
       ...typeScale.body,
       color: theme.slate,

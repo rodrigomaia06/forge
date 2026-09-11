@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import ReanimatedSwipeable, {
   type SwipeableMethods,
 } from 'react-native-gesture-handler/ReanimatedSwipeable';
@@ -96,6 +96,13 @@ export function HistoryScreen({
             ))
           ) : (
             <View style={styles.empty}>
+              <Image
+                testID="history-empty-illustration"
+                source={require('../../assets/illustrations/empty-history.png')}
+                style={[styles.emptyIllustration, { tintColor: theme.muted }]}
+                resizeMode="contain"
+                accessible={false}
+              />
               <Text style={styles.emptyTitle}>No completed workouts</Text>
               <Text style={styles.emptySubtitle}>Finish a workout and it will appear here.</Text>
               <Button
@@ -391,8 +398,14 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     backgroundColor: theme.surfaceMuted,
   },
   durationText: { color: theme.ink, ...typeScale.caption },
-  empty: { alignItems: 'center', paddingVertical: 60, gap: 5 },
+  empty: { alignItems: 'center', paddingVertical: 52, gap: 8 },
+  emptyIllustration: { width: 250, height: 179, marginBottom: -18, opacity: 0.78 },
   emptyTitle: { color: theme.ink, ...typeScale.sectionTitle },
-  emptySubtitle: { color: theme.slate, ...typeScale.label },
+  emptySubtitle: {
+    ...typeScale.body,
+    color: theme.slate,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
   emptyAction: { marginTop: 14 },
 });

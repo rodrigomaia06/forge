@@ -198,6 +198,7 @@ test.describe('History screen', () => {
     });
     await page.reload();
     await page.getByRole('tab', { name: 'History' }).click();
+    await expect(page.getByTestId('history-empty-illustration')).toBeVisible();
     await expect(page.getByText('No completed workouts', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Start a workout' })).toBeVisible();
   });

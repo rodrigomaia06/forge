@@ -75,6 +75,10 @@ Every implementation change must be verified, but verification should remain sco
 - Run the complete verification suite only when the change itself is repository-wide and the full suite is the smallest correct scope, or when the user explicitly requests it.
 - Report the exact checks executed and identify any affected behavior that could not be verified.
 
+### Verification capacity
+
+Use the machine's available capacity to reduce verification time. Automated checks run with their maximum safe concurrency by default (for example, Playwright uses all available workers). Restrict work to a serial or lower-concurrency run only when a test, shared resource, or tool requires exclusive access.
+
 ## Explicit multi-item requests
 
 When a user supplies an explicit list of tasks, address the items in that order and confirm each one before moving to the next. Do not collapse the list into an unstructured aggregate.

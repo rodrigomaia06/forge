@@ -2,6 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
+  fullyParallel: true,
+  workers: '100%',
   outputDir: 'tests/results/artifacts',
   reporter: [['list'], ['html', { outputFolder: 'tests/results/report', open: 'never' }]],
   projects: [
