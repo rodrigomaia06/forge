@@ -49,8 +49,6 @@ interface ForgeBottomSheetProps {
   initialOffset?: number;
   dismissThreshold?: number;
   onCloseStart?: () => void;
-  /** Handles a downward drag without dismissing this modal (for an embedded child sheet). */
-  onDragDismiss?: () => void;
   onBackRequest?: () => boolean;
   keyboardAvoiding?: boolean;
   dismissTextKeyboardOnTap?: boolean;
@@ -59,6 +57,8 @@ interface ForgeBottomSheetProps {
   dragArea?: (children: React.ReactNode) => React.ReactNode;
   /** Disable for sheets whose primary content is a tall vertical scroller. */
   dragEnabled?: boolean;
+  /** Mount hidden sheet content ahead of interaction when a picker must open instantly. */
+  preload?: boolean;
   testID?: string;
 }
 
@@ -74,7 +74,6 @@ export function ForgeBottomSheet({
   initialOffset = closeDistance,
   dismissThreshold = 190,
   onCloseStart,
-  onDragDismiss,
   onBackRequest,
   keyboardAvoiding = true,
   dismissTextKeyboardOnTap = true,
@@ -82,6 +81,7 @@ export function ForgeBottomSheet({
   surfaceTestID,
   dragArea,
   dragEnabled = true,
+  preload = false,
   testID,
 }: ForgeBottomSheetProps) {
   const theme = useForgeTheme();
@@ -161,11 +161,6 @@ export function ForgeBottomSheet({
       if (closing.value) return;
       const projected = Math.max(0, dragStart.value + event.translationY + event.velocityY * 0.12);
       if (projected >= dismissThreshold || event.velocityY > 900) {
-        if (onDragDismiss) {
-          runOnJS(onDragDismiss)();
-          translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.8 });
-          return;
-        }
         // Keep drag dismissal on the same JS path as the close button and backdrop.
         // It avoids web gesture callbacks bypassing parent state updates.
         runOnJS(close)(false);
@@ -184,7 +179,7 @@ export function ForgeBottomSheet({
     compactSheetFitsAboveKeyboard ? keyboardBreathingRoom : 0
   );
 
-  if (!visible) return null;
+  if (!visible && !preload) return null;
   return (
     <Modal
       visible

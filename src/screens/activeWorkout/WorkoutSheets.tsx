@@ -141,11 +141,11 @@ export function AddExerciseSheet({
       visible={visible}
       onClose={onClose}
       onCloseStart={reset}
-      onDragDismiss={() => { reset(); onClose(); }}
       accessibilityLabel="Close add exercises"
       initialOffset={520}
       closeDistance={520}
       dismissThreshold={260}
+      preload
       keyboardAvoiding
       surfaceTestID="add-exercise-sheet-surface"
       style={styles.pickerSheet}
@@ -170,12 +170,14 @@ export function AddExerciseSheet({
             <>
           <ForgeBottomSheetDragArea>
             <ForgeBottomSheetHandle />
-            <ForgeSheetHeader
-              title="Add exercises"
-              onClose={closeSheet}
-              closeAccessibilityLabel="Close add exercises"
-              horizontalInset={0}
-            />
+            <View style={styles.sheetHeaderDivider}>
+              <ForgeSheetHeader
+                title="Add exercises"
+                onClose={closeSheet}
+                closeAccessibilityLabel="Close add exercises"
+                horizontalInset={0}
+              />
+            </View>
           </ForgeBottomSheetDragArea>
           <View style={styles.searchRow}>
             <View style={styles.searchField}>
@@ -590,6 +592,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       backgroundColor: dashboardTheme.surface,
       position: 'relative',
     },
+    sheetHeaderDivider: { borderBottomWidth: 1, borderBottomColor: dashboardTheme.border },
     pickerHeader: {
       height: forgeSheetHeader.height,
       flexDirection: 'row',

@@ -252,20 +252,21 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     >
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <HeaderAction
-            accessibilityLabel="Cancel workout"
-            icon="close"
-            label="Cancel"
-            iconOnly
-            onPress={handleCancel}
-          />
-          <HeaderAction
-            accessibilityLabel="Edit live workout"
-            icon="note"
-            iconOnly
-            onPress={openWorkoutEditor}
-            style={{ marginLeft: 8 }}
-          />
+          <View style={styles.headerLeadingActions}>
+            <HeaderAction
+              accessibilityLabel="Cancel workout"
+              icon="close"
+              label="Cancel"
+              iconOnly
+              onPress={handleCancel}
+            />
+            <HeaderAction
+              accessibilityLabel="Edit live workout"
+              icon="note"
+              iconOnly
+              onPress={openWorkoutEditor}
+            />
+          </View>
           <View style={styles.titleBlock}>
             <View
               style={styles.titleWrap}
