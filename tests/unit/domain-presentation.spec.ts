@@ -7,7 +7,7 @@ import { defaultSettingsPreferences } from '../../src/data/settingsDefaults';
 import { lightTheme } from '../../src/theme/tokens';
 import { bundledExercises, bundledLegacyIdMap, bundledCatalogVersion } from '../../src/data/catalog/loadCatalog';
 import { trackingFields } from '../../src/domain/exercises/tracking';
-import { createWorkout } from '../../src/state/workoutMutations';
+import { addExercisesToWorkout, createWorkout } from '../../src/state/workoutMutations';
 
 test('formats compact workout durations and counts sets', () => {
   expect([0, 59, 3600, 4320].map(formatCompactDuration)).toEqual(['1m', '1m', '1h', '1h 12m']);
@@ -74,6 +74,25 @@ test('tracking modes specify only their applicable measurements and retain an ex
   const exercise = bundledExercises.find((item) => item.id === 'parallel-bar-dip')!;
   const workout = createWorkout({ exercises: [{ exerciseId: exercise.id, name: exercise.name, trackingType: exercise.trackingType, exerciseSnapshot: { id: exercise.id, name: exercise.name, catalogueVersion: 3, trackingType: exercise.trackingType } }] });
   expect(workout.exercises[0]).toMatchObject({ exerciseId: 'parallel-bar-dip', trackingType: exercise.trackingType, exerciseSnapshot: { id: 'parallel-bar-dip', catalogueVersion: 3 } });
+});
+
+test('adds picker selections in one immutable workout update with three empty sets each', () => {
+  const source = createWorkout({ exercises: [{ name: 'Existing' }] });
+  const next = addExercisesToWorkout(source, [
+    { exerciseId: 'bench', name: 'Bench Press', trackingType: 'weight-reps', exerciseSnapshot: { id: 'bench', name: 'Bench Press', catalogueVersion: 3, trackingType: 'weight-reps' } },
+    { exerciseId: 'walk', name: 'Walk', trackingType: 'duration', exerciseSnapshot: { id: 'walk', name: 'Walk', catalogueVersion: 3, trackingType: 'duration' } },
+  ]);
+
+  expect(next).not.toBe(source);
+  expect(next?.exercises).toHaveLength(3);
+  expect(next?.exercises.slice(1)).toEqual(expect.arrayContaining([
+    expect.objectContaining({ exerciseId: 'bench', trackingType: 'weight-reps', exerciseSnapshot: expect.objectContaining({ id: 'bench', catalogueVersion: 3 }) }),
+    expect.objectContaining({ exerciseId: 'walk', trackingType: 'duration', exerciseSnapshot: expect.objectContaining({ id: 'walk', catalogueVersion: 3 }) }),
+  ]));
+  expect(next?.exercises.slice(1).every((exercise) => exercise.sets.length === 3)).toBe(true);
+  expect(next?.exercises.slice(1).flatMap((exercise) => exercise.sets)).toEqual(
+    expect.arrayContaining([expect.objectContaining({ weight: '', reps: '', completed: false })]),
+  );
 });
 
 test('v3 multi-equipment facets remain individual taxonomy labels', () => {

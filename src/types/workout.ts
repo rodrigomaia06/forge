@@ -145,6 +145,7 @@ export interface WorkoutContextValue extends WorkoutState {
   ready: boolean;
   startWorkout: (options?: StartWorkoutOptions) => Workout;
   addExercise: (exercise: WorkoutExerciseInput | string) => void;
+  addExercises: (exercises: readonly WorkoutExerciseInput[]) => void;
   addSet: (exerciseId: string) => void;
   removeSet: (exerciseId: string, setId: string) => void;
   removeExercise: (exerciseId: string) => void;

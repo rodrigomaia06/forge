@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Keyboard, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { FlatList, Keyboard, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -10,7 +10,6 @@ import {
   Button,
   ForgeActionSheet,
   ForgeBottomSheet,
-  ForgeBottomSheetDragArea,
   ForgeBottomSheetHandle,
   ForgeCatalogFilterContent,
   ForgeFloatingCta,
@@ -38,6 +37,11 @@ import {
   type CatalogFilterState,
 } from '../../components/ui';
 
+type CatalogCategoryData = {
+  category: string;
+  groups: { group: string; variations: ExerciseCatalogItem[] }[];
+};
+
 export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   visible,
   onClose,
@@ -53,7 +57,7 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   const dashboardTheme = theme;
   const styles = useThemedStyles(createStyles);
   const [query, setQuery] = useState('');
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<CatalogFilterState>(emptyCatalogFilters());
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
@@ -95,7 +99,7 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
     }),
     [exerciseCatalog, filters.equipment, filters.exerciseCategories, filters.types, query],
   );
-  const groupedExercises = useMemo(() => {
+  const groupedExercises = useMemo<CatalogCategoryData[]>(() => {
     const categories = new Map<string, Map<string, ExerciseCatalogItem[]>>();
     filteredExercises.forEach((exercise) => {
       const groups = categories.get(exercise.category) ?? new Map<string, ExerciseCatalogItem[]>();
@@ -110,29 +114,41 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
     }));
   }, [filteredExercises]);
   const activeFilterCount = catalogFilterCount(filters);
-  const toggleExercise = (exercise: ExerciseCatalogItem): void => {
+  const toggleExercise = useCallback((exercise: ExerciseCatalogItem): void => {
     lightHaptic();
-    setSelected((current) =>
-      current.includes(exercise.id)
-        ? current.filter((id) => id !== exercise.id)
-        : [...current, exercise.id],
-    );
-  };
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(exercise.id)) next.delete(exercise.id);
+      else next.add(exercise.id);
+      return next;
+    });
+  }, []);
+  const toggleGroup = useCallback((key: string, expanded: boolean): void => {
+    selectionHaptic();
+    animateLayout();
+    setExpandedGroup(expanded ? null : key);
+    setExpandedEquipment(null);
+  }, []);
+  const toggleEquipment = useCallback((key: string, expanded: boolean): void => {
+    selectionHaptic();
+    animateLayout();
+    setExpandedEquipment(expanded ? null : key);
+  }, []);
   const reset = (): void => {
     Keyboard.dismiss();
     setQuery('');
-    setSelected([]);
+    setSelected(new Set());
     setFiltersOpen(false);
     setFilters(emptyCatalogFilters());
     setExpandedGroup(null);
     setExpandedEquipment(null);
   };
   const submit = (): void => {
-    const exercises = exerciseCatalog.filter((exercise) => selected.includes(exercise.id));
+    const exercises = exerciseCatalog.filter((exercise) => selected.has(exercise.id));
     if (!exercises.length) return;
     Keyboard.dismiss();
     setQuery('');
-    setSelected([]);
+    setSelected(new Set());
     setFiltersOpen(false);
     setFilters(emptyCatalogFilters());
     setExpandedGroup(null);
@@ -173,15 +189,13 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
             </View>
           ) : (
           <>
-            <ForgeBottomSheetDragArea>
-              <ForgeBottomSheetHandle />
-              <ForgeSheetHeader
-                title="Add exercises"
-                onClose={closeSheet}
-                closeAccessibilityLabel="Close add exercises"
-                horizontalInset={0}
-              />
-            </ForgeBottomSheetDragArea>
+            <ForgeBottomSheetHandle />
+            <ForgeSheetHeader
+              title="Add exercises"
+              onClose={closeSheet}
+              closeAccessibilityLabel="Close add exercises"
+              horizontalInset={0}
+            />
           <View style={styles.searchRow}>
             <View style={styles.searchField}>
               <Icon name="search" size={22} color={dashboardTheme.slate} />
@@ -227,8 +241,16 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
               )}
             </Pressable>
           </View>
-          <ScrollView
+          <FlatList
+            testID="add-exercise-catalogue"
             style={styles.pickerList}
+            data={groupedExercises}
+            keyExtractor={(item) => item.category}
+            initialNumToRender={3}
+            maxToRenderPerBatch={2}
+            updateCellsBatchingPeriod={32}
+            windowSize={5}
+            removeClippedSubviews={Platform.OS !== 'web'}
             contentContainerStyle={[
               styles.pickerListContent,
               { paddingBottom: 108 + insets.bottom },
@@ -238,193 +260,19 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
             onScrollBeginDrag={Keyboard.dismiss}
             onTouchStart={Keyboard.dismiss}
             showsVerticalScrollIndicator={false}
-          >
-            {groupedExercises.map(({ category, groups }) => (
-              <View key={category}>
-                <Text style={styles.categoryTitle}>{category}</Text>
-                <View style={styles.categoryCard}>
-                  {groups.map(({ group, variations }, groupIndex) => {
-                    const selectedCount = variations.filter((exercise) =>
-                      selected.includes(exercise.id),
-                    ).length;
-                    const expanded = expandedGroup === `${category}-${group}`;
-                    const equipmentGroups = groupCatalogByEquipment(variations).map(
-                      ([equipment, exercises]) => ({ equipment, exercises }),
-                    );
-                    if (variations.length === 1) {
-                      const exercise = variations[0];
-                      const isSelected = selected.includes(exercise.id);
-                      return (
-                        <Pressable
-                          key={group}
-                          accessibilityRole="checkbox"
-                          accessibilityLabel={`${group}, variation`}
-                          accessibilityState={{ checked: isSelected }}
-                          unstable_pressDelay={80}
-                          onPress={() => toggleExercise(exercise)}
-                          style={({ pressed }) => [
-                            styles.groupRow,
-                            styles.singleGroupRow,
-                            groupIndex > 0 && styles.groupRowDivider,
-                            isSelected && styles.singleGroupRowSelected,
-                            pressed && styles.groupRowPressed,
-                          ]}
-                        >
-                          <View style={styles.exerciseOptionCopy}>
-                            <Text style={styles.groupName}>{group}</Text>
-                          </View>
-                          <CompletionCheck
-                            selected={isSelected}
-                            tone="selection"
-                            testID={`exercise-selection-${exercise.id}`}
-                          />
-                        </Pressable>
-                      );
-                    }
-
-                    return (
-                      <View key={group} style={styles.exerciseGroup}>
-                        <Pressable
-                          accessibilityRole="button"
-                          accessibilityLabel={`${group}, ${variations.length} variations`}
-                          unstable_pressDelay={80}
-                          onPress={() => {
-                            selectionHaptic();
-                            animateLayout();
-                            setExpandedGroup(expanded ? null : `${category}-${group}`);
-                            setExpandedEquipment(null);
-                          }}
-                          style={({ pressed }) => [
-                            styles.groupRow,
-                            groupIndex > 0 && styles.groupRowDivider,
-                            pressed && styles.groupRowPressed,
-                          ]}
-                        >
-                          <View style={styles.exerciseOptionCopy}>
-                            <Text style={styles.groupName}>{group}</Text>
-                            <Text style={styles.groupMeta}>{variations.length} variations</Text>
-                          </View>
-                          <View style={styles.groupActions}>
-                            <View
-                              testID={`exercise-group-count-${group}`}
-                              style={[
-                                styles.groupCount,
-                                selectedCount > 0 && styles.groupCountActive,
-                              ]}
-                            >
-                              <AnimatedCount count={selectedCount} />
-                            </View>
-                            <AnimatedChevron expanded={expanded} />
-                          </View>
-                        </Pressable>
-                        {expanded &&
-                          equipmentGroups.map(({ equipment, exercises }) => {
-                            const equipmentSelectedCount = exercises.filter((exercise) =>
-                              selected.includes(exercise.id),
-                            ).length;
-                            const hasSubVariations = exercises.length > 1;
-                            const equipmentKey = `${category}-${group}-${equipment}`;
-                            const equipmentExpanded = expandedEquipment === equipmentKey;
-
-                            if (!hasSubVariations) {
-                              const exercise = exercises[0];
-                              const isSelected = selected.includes(exercise.id);
-                              return (
-                                <Pressable
-                                  key={equipment}
-                                  accessibilityRole="checkbox"
-                                  accessibilityLabel={`${group}, ${equipment}`}
-                                  accessibilityState={{ checked: isSelected }}
-                                  unstable_pressDelay={80}
-                                  onPress={() => toggleExercise(exercise)}
-                                  style={({ pressed }) => [
-                                    styles.equipmentRow,
-                                    isSelected && styles.equipmentRowSelected,
-                                    pressed && styles.exerciseOptionPressed,
-                                  ]}
-                                >
-                                  <Text style={styles.equipmentName}>{equipment}</Text>
-                                  <CompletionCheck
-                                    selected={isSelected}
-                                    tone="selection"
-                                    testID={`exercise-selection-${exercise.id}`}
-                                  />
-                                </Pressable>
-                              );
-                            }
-
-                            return (
-                              <View key={equipment} style={styles.equipmentGroup}>
-                                <Pressable
-                                  accessibilityRole="button"
-                                  accessibilityLabel={`${equipment}, ${exercises.length} variations`}
-                                  unstable_pressDelay={80}
-                                  onPress={() => {
-                                    selectionHaptic();
-                                    animateLayout();
-                                    setExpandedEquipment(equipmentExpanded ? null : equipmentKey);
-                                  }}
-                                  style={({ pressed }) => [
-                                    styles.equipmentRow,
-                                    pressed && styles.exerciseOptionPressed,
-                                  ]}
-                                >
-                                  <View style={styles.exerciseOptionCopy}>
-                                    <Text style={styles.equipmentName}>{equipment}</Text>
-                                    <Text style={styles.equipmentMeta}>
-                                      {exercises.length} variations
-                                    </Text>
-                                  </View>
-                                  <View style={styles.groupActions}>
-                                    <View
-                                      testID={`exercise-equipment-count-${group}-${equipment}`}
-                                      style={[
-                                        styles.groupCount,
-                                        equipmentSelectedCount > 0 && styles.groupCountActive,
-                                      ]}
-                                    >
-                                      <AnimatedCount count={equipmentSelectedCount} />
-                                    </View>
-                                    <AnimatedChevron expanded={equipmentExpanded} />
-                                  </View>
-                                </Pressable>
-                                {equipmentExpanded &&
-                                  exercises.map((exercise) => {
-                                    const isSelected = selected.includes(exercise.id);
-                                    const label = exercise.variation || exercise.name;
-                                    return (
-                                      <Pressable
-                                        key={exercise.id}
-                                        accessibilityRole="checkbox"
-                                        accessibilityLabel={`${group}, ${equipment}, ${label}`}
-                                        accessibilityState={{ checked: isSelected }}
-                                        unstable_pressDelay={80}
-                                        onPress={() => toggleExercise(exercise)}
-                                        style={({ pressed }) => [
-                                          styles.subVariationRow,
-                                          isSelected && styles.subVariationRowSelected,
-                                          pressed && styles.exerciseOptionPressed,
-                                        ]}
-                                      >
-                                        <Text style={styles.variationName}>{label}</Text>
-                                        <CompletionCheck
-                                          selected={isSelected}
-                                          tone="selection"
-                                          testID={`exercise-selection-${exercise.id}`}
-                                        />
-                                      </Pressable>
-                                    );
-                                  })}
-                              </View>
-                            );
-                          })}
-                      </View>
-                    );
-                  })}
-                </View>
-              </View>
-            ))}
-            {!filteredExercises.length && (
+            renderItem={({ item }) => (
+              <CatalogCategory
+                category={item.category}
+                groups={item.groups}
+                selected={selected}
+                expandedGroup={expandedGroup}
+                expandedEquipment={expandedEquipment}
+                onToggleExercise={toggleExercise}
+                onToggleGroup={toggleGroup}
+                onToggleEquipment={toggleEquipment}
+              />
+            )}
+            ListEmptyComponent={!filteredExercises.length ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptySearch}>{query && activeFilterCount ? 'No exercises match this search and filters' : query ? 'No exercises match this search' : 'No exercises match these filters'}</Text>
                 {(query || activeFilterCount > 0) && (
@@ -435,16 +283,16 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
                   />
                 )}
               </View>
-            )}
-          </ScrollView>
+            ) : null}
+          />
           <ForgeFloatingCta
-            label={`Add exercises${selected.length ? ` (${selected.length})` : ''}`}
+            label={`Add exercises${selected.size ? ` (${selected.size})` : ''}`}
             accessibilityLabel="Confirm selected exercises"
-            disabled={!selected.length}
+            disabled={!selected.size}
             onPress={submit}
             theme={dashboardTheme}
             icon="check"
-            tone={selected.length ? 'success' : 'neutral'}
+            tone={selected.size ? 'success' : 'neutral'}
           />
             </>
           )}
@@ -452,6 +300,190 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
       )}
     </ForgeBottomSheet>
     </>
+  );
+});
+
+const CatalogCategory = React.memo(function CatalogCategory({
+  category,
+  groups,
+  selected,
+  expandedGroup,
+  expandedEquipment,
+  onToggleExercise,
+  onToggleGroup,
+  onToggleEquipment,
+}: {
+  category: string;
+  groups: CatalogCategoryData['groups'];
+  selected: ReadonlySet<string>;
+  expandedGroup: string | null;
+  expandedEquipment: string | null;
+  onToggleExercise: (exercise: ExerciseCatalogItem) => void;
+  onToggleGroup: (key: string, expanded: boolean) => void;
+  onToggleEquipment: (key: string, expanded: boolean) => void;
+}) {
+  const styles = useThemedStyles(createStyles);
+
+  return (
+    <View>
+      <Text style={styles.categoryTitle}>{category}</Text>
+      <View style={styles.categoryCard}>
+        {groups.map(({ group, variations }, groupIndex) => {
+          const groupKey = `${category}-${group}`;
+          const expanded = expandedGroup === groupKey;
+          const selectedCount = variations.filter((exercise) => selected.has(exercise.id)).length;
+          const equipmentGroups = expanded
+            ? groupCatalogByEquipment(variations).map(([equipment, exercises]) => ({ equipment, exercises }))
+            : [];
+
+          if (variations.length === 1) {
+            const exercise = variations[0];
+            const isSelected = selected.has(exercise.id);
+            return (
+              <Pressable
+                key={group}
+                accessibilityRole="checkbox"
+                accessibilityLabel={`${group}, variation`}
+                accessibilityState={{ checked: isSelected }}
+                unstable_pressDelay={80}
+                onPress={() => onToggleExercise(exercise)}
+                style={({ pressed }) => [
+                  styles.groupRow,
+                  styles.singleGroupRow,
+                  groupIndex > 0 && styles.groupRowDivider,
+                  isSelected && styles.singleGroupRowSelected,
+                  pressed && styles.groupRowPressed,
+                ]}
+              >
+                <View style={styles.exerciseOptionCopy}>
+                  <Text style={styles.groupName}>{group}</Text>
+                </View>
+                <CompletionCheck
+                  selected={isSelected}
+                  tone="selection"
+                  testID={`exercise-selection-${exercise.id}`}
+                />
+              </Pressable>
+            );
+          }
+
+          return (
+            <View key={group} style={styles.exerciseGroup}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${group}, ${variations.length} variations`}
+                unstable_pressDelay={80}
+                onPress={() => onToggleGroup(groupKey, expanded)}
+                style={({ pressed }) => [
+                  styles.groupRow,
+                  groupIndex > 0 && styles.groupRowDivider,
+                  pressed && styles.groupRowPressed,
+                ]}
+              >
+                <View style={styles.exerciseOptionCopy}>
+                  <Text style={styles.groupName}>{group}</Text>
+                  <Text style={styles.groupMeta}>{variations.length} variations</Text>
+                </View>
+                <View style={styles.groupActions}>
+                  <View
+                    testID={`exercise-group-count-${group}`}
+                    style={[styles.groupCount, selectedCount > 0 && styles.groupCountActive]}
+                  >
+                    <AnimatedCount count={selectedCount} />
+                  </View>
+                  <AnimatedChevron expanded={expanded} />
+                </View>
+              </Pressable>
+              {equipmentGroups.map(({ equipment, exercises }) => {
+                const equipmentSelectedCount = exercises.filter((exercise) => selected.has(exercise.id)).length;
+                const hasSubVariations = exercises.length > 1;
+                const equipmentKey = `${groupKey}-${equipment}`;
+                const equipmentExpanded = expandedEquipment === equipmentKey;
+
+                if (!hasSubVariations) {
+                  const exercise = exercises[0];
+                  const isSelected = selected.has(exercise.id);
+                  return (
+                    <Pressable
+                      key={equipment}
+                      accessibilityRole="checkbox"
+                      accessibilityLabel={`${group}, ${equipment}`}
+                      accessibilityState={{ checked: isSelected }}
+                      unstable_pressDelay={80}
+                      onPress={() => onToggleExercise(exercise)}
+                      style={({ pressed }) => [
+                        styles.equipmentRow,
+                        isSelected && styles.equipmentRowSelected,
+                        pressed && styles.exerciseOptionPressed,
+                      ]}
+                    >
+                      <Text style={styles.equipmentName}>{equipment}</Text>
+                      <CompletionCheck
+                        selected={isSelected}
+                        tone="selection"
+                        testID={`exercise-selection-${exercise.id}`}
+                      />
+                    </Pressable>
+                  );
+                }
+
+                return (
+                  <View key={equipment} style={styles.equipmentGroup}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`${equipment}, ${exercises.length} variations`}
+                      unstable_pressDelay={80}
+                      onPress={() => onToggleEquipment(equipmentKey, equipmentExpanded)}
+                      style={({ pressed }) => [styles.equipmentRow, pressed && styles.exerciseOptionPressed]}
+                    >
+                      <View style={styles.exerciseOptionCopy}>
+                        <Text style={styles.equipmentName}>{equipment}</Text>
+                        <Text style={styles.equipmentMeta}>{exercises.length} variations</Text>
+                      </View>
+                      <View style={styles.groupActions}>
+                        <View
+                          testID={`exercise-equipment-count-${group}-${equipment}`}
+                          style={[styles.groupCount, equipmentSelectedCount > 0 && styles.groupCountActive]}
+                        >
+                          <AnimatedCount count={equipmentSelectedCount} />
+                        </View>
+                        <AnimatedChevron expanded={equipmentExpanded} />
+                      </View>
+                    </Pressable>
+                    {equipmentExpanded && exercises.map((exercise) => {
+                      const isSelected = selected.has(exercise.id);
+                      const label = exercise.variation || exercise.name;
+                      return (
+                        <Pressable
+                          key={exercise.id}
+                          accessibilityRole="checkbox"
+                          accessibilityLabel={`${group}, ${equipment}, ${label}`}
+                          accessibilityState={{ checked: isSelected }}
+                          unstable_pressDelay={80}
+                          onPress={() => onToggleExercise(exercise)}
+                          style={({ pressed }) => [
+                            styles.subVariationRow,
+                            isSelected && styles.subVariationRowSelected,
+                            pressed && styles.exerciseOptionPressed,
+                          ]}
+                        >
+                          <Text style={styles.variationName}>{label}</Text>
+                          <CompletionCheck
+                            selected={isSelected}
+                            tone="selection"
+                            testID={`exercise-selection-${exercise.id}`}
+                          />
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                );
+              })}
+            </View>
+          );
+        })}
+      </View>
+    </View>
   );
 });
 

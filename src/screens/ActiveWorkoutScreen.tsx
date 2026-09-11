@@ -27,7 +27,7 @@ import { useWorkouts } from '../state/WorkoutContext';
 import { useSettings } from '../state/SettingsContext';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
-import type { RootTabScreenProps, Workout, WorkoutExercise } from '../types';
+import type { RootTabScreenProps, Workout, WorkoutExercise, WorkoutSetChanges } from '../types';
 import { lightHaptic, mediumHaptic, successHaptic } from './activeWorkout/activeWorkoutFeedback';
 import {
   formatElapsed,
@@ -49,7 +49,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   const {
     activeWorkout,
     ready,
-    addExercise,
+    addExercises,
     addSet,
     removeSet,
     removeExercise,
@@ -65,7 +65,6 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   const [restSelection, setRestSelection] = useState(90);
   const [restSheetOpen, setRestSheetOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [openExerciseId, setOpenExerciseId] = useState<string | null>(null);
   const [headerElevated, setHeaderElevated] = useState(false);
   const [editingWorkout, setEditingWorkout] = useState(false);
   const [workoutNameDraft, setWorkoutNameDraft] = useState('');
@@ -77,11 +76,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   const [editorView, setEditorView] = useState<'form' | 'type-picker'>('form');
   const [attributeDraft, setAttributeDraft] = useState<{ original?: string; label: string; value: string; icon: import('../types').IconName } | null>(null);
   const timerLongPressRef = useRef(false);
-  const workoutListRef = useRef<FlatList<WorkoutExercise>>(null);
-  const dockCompactOnUi = useSharedValue(false);
-  const { setCompact: setDockCompact } = usePrimaryDock();
   const { preferences } = useSettings();
-  const { onSetInputFocus, onScrollOffsetChange } = useFocusedSetKeyboardLift(workoutListRef);
 
   const restCompletionNotified = useRef(false);
 
@@ -131,67 +126,18 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     lightHaptic();
     setRestEndsAt(null);
   };
-  const handleDockCompactChange = useCallback(
-    (nextCompact: boolean): void => setDockCompact(nextCompact),
-    [setDockCompact],
-  );
-  const handleWorkoutScrollOffset = useCallback((offset: number) => {
-    onScrollOffsetChange(offset);
-    setHeaderElevated((current) => {
-      const next = offset > 1;
-      return current === next ? current : next;
-    });
-  }, [onScrollOffsetChange]);
-  useEffect(() => () => setDockCompact(false), [setDockCompact]);
-  const workoutScrollHandler = useAnimatedScrollHandler({
-    onScroll: (event) => {
-      runOnJS(handleWorkoutScrollOffset)(event.contentOffset.y);
-      const nextCompact = event.contentOffset.y > 12;
-      if (nextCompact !== dockCompactOnUi.value) {
-        dockCompactOnUi.value = nextCompact;
-        runOnJS(handleDockCompactChange)(nextCompact);
-      }
-    },
-  });
-  const handleExerciseDeleteReveal = useCallback((exerciseId: string, revealed: boolean): void => {
-    setOpenExerciseId(revealed ? exerciseId : null);
-  }, []);
   const handleAddExerciseClose = useCallback(() => setSheetOpen(false), []);
+  const openAddExercise = useCallback(() => setSheetOpen(true), []);
+  const handleWorkoutScrollOffset = useCallback((offset: number) => {
+    setHeaderElevated(offset > 1);
+  }, []);
   const handleAddExercises = useCallback(
     (exercises: import('../data/exerciseCatalog').ExerciseCatalogItem[]) => {
       lightHaptic();
-      exercises.forEach((exercise) => addExercise({ exerciseId: exercise.id, name: exercise.name, trackingType: exercise.trackingType, exerciseSnapshot: { id: exercise.id, name: exercise.name, catalogueVersion: 3, trackingType: exercise.trackingType ?? 'weight-reps', familyId: exercise.familyId, equipment: exercise.equipmentIds, workoutTypeIds: exercise.workoutTypeIds, category: exercise.category, bodyRegion: exercise.bodyRegion, primaryMuscle: exercise.primaryMuscle, secondaryMuscles: exercise.secondaryMuscles, aliases: exercise.aliases, searchTerms: exercise.searchTerms, movementPattern: exercise.movementPattern } }));
+      addExercises(exercises.map((exercise) => ({ exerciseId: exercise.id, name: exercise.name, trackingType: exercise.trackingType, exerciseSnapshot: { id: exercise.id, name: exercise.name, catalogueVersion: 3, trackingType: exercise.trackingType ?? 'weight-reps', familyId: exercise.familyId, equipment: exercise.equipmentIds, workoutTypeIds: exercise.workoutTypeIds, category: exercise.category, bodyRegion: exercise.bodyRegion, primaryMuscle: exercise.primaryMuscle, secondaryMuscles: exercise.secondaryMuscles, aliases: exercise.aliases, searchTerms: exercise.searchTerms, movementPattern: exercise.movementPattern } })));
       setSheetOpen(false);
     },
-    [addExercise],
-  );
-  const renderExercise = useCallback(
-    ({ item, index }: { item: WorkoutExercise; index: number }) => (
-      <ExtractedExerciseSection
-        exercise={item}
-        index={index}
-        addSet={addSet}
-        removeSet={removeSet}
-        removeExercise={removeExercise}
-        updateSet={updateSet}
-        toggleSet={toggleSet}
-        onSetCompleted={startRestTimer}
-        onSetInputFocus={onSetInputFocus}
-        deleteRevealed={openExerciseId === item.id}
-        onDeleteRevealChange={handleExerciseDeleteReveal}
-      />
-    ),
-    [
-      addSet,
-      handleExerciseDeleteReveal,
-      openExerciseId,
-      removeExercise,
-      removeSet,
-      startRestTimer,
-      toggleSet,
-      onSetInputFocus,
-      updateSet,
-    ],
+    [addExercises],
   );
   const returnToDashboard = (finished: Workout | null): void =>
     navigation.navigate(
@@ -272,14 +218,6 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     updateActiveWorkout((current) => ({ ...current, name, type: workoutTypeDraft, note: workoutNoteDraft.trim(), attributes: Object.keys(attributes).length ? attributes : undefined, attributeIcons: Object.keys(attributeIcons).length ? attributeIcons : undefined }));
     setEditingWorkout(false);
   };
-  const updateLiveAttribute = (label: string, value: string): void => {
-    updateActiveWorkout((current) => ({
-      ...current,
-      attributes: { ...(current.attributes ?? {}), [label]: value },
-    }));
-  };
-  const liveAttributeEntries = Object.entries(activeWorkout.attributes ?? {});
-
   return (
     <AppScreen
       backgroundColor={theme.background}
@@ -361,73 +299,18 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
         </View>
         {headerElevated ? <HeaderEdge /> : null}
       </View>
-      <KeyboardAvoidingView
-        style={styles.keyboardArea}
-        enabled={Platform.OS !== 'ios'}
-        behavior={Platform.OS === 'android' ? 'height' : undefined}
-      >
-        <Animated.FlatList
-          ref={workoutListRef}
-          testID="active-workout-list"
-          data={activeWorkout.exercises}
-          renderItem={renderExercise}
-          keyExtractor={(exercise) => exercise.id}
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
-          scrollsChildToFocus
-          nestedScrollEnabled
-          onScroll={workoutScrollHandler}
-          scrollEventThrottle={16}
-          ListHeaderComponent={
-            liveAttributeEntries.length || activeWorkout.exercises.length ? (
-              <View style={styles.listSectionHeader}>
-                {liveAttributeEntries.length ? (
-                  <View style={styles.liveAttributesSection}>
-                    <Text style={styles.listSectionTitle}>Attributes</Text>
-                    <ForgeCard variant="outlined" size="compact">
-                      {liveAttributeEntries.map(([label, value], index) => (
-                        <View key={label} style={[styles.liveAttributeRow, index > 0 && styles.joinedAttributeRow]}>
-                            <Icon
-                              testID={`live-attribute-icon-${label}`}
-                              name={activeWorkout.attributeIcons?.[label] ?? 'note'}
-                              size={20}
-                              color={theme.textPrimary}
-                            />
-                            <Text style={styles.liveAttributeLabel} numberOfLines={1}>{label}</Text>
-                      <ForgeTextInput
-                        accessibilityLabel={`${label} value`}
-                        value={value}
-                        onChangeText={(nextValue) => updateLiveAttribute(label, nextValue)}
-                        placeholder="Add value"
-                        placeholderTextColor={theme.textDisabled}
-                        style={styles.liveAttributeInput}
-                      />
-                        </View>
-                      ))}
-                    </ForgeCard>
-                  </View>
-                ) : null}
-                {activeWorkout.exercises.length ? <Text style={styles.listSectionTitle}>Exercises</Text> : null}
-              </View>
-            ) : null
-          }
-          ListFooterComponent={
-            <Button
-              accessibilityLabel="Add exercise"
-              label="Add exercise"
-              icon="add"
-              iconSize={17}
-              variant="outline"
-              onPress={() => {
-                setSheetOpen(true);
-              }}
-              style={styles.addExercise}
-            />
-          }
-        />
-      </KeyboardAvoidingView>
+      <LiveWorkoutExerciseList
+        workout={activeWorkout}
+        addSet={addSet}
+        removeSet={removeSet}
+        removeExercise={removeExercise}
+        updateSet={updateSet}
+        toggleSet={toggleSet}
+        updateActiveWorkout={updateActiveWorkout}
+        onSetCompleted={startRestTimer}
+        onOpenAddExercise={openAddExercise}
+        onScrollOffsetChange={handleWorkoutScrollOffset}
+      />
       <ExtractedAddExerciseSheet
         visible={sheetOpen}
         onClose={handleAddExerciseClose}
@@ -541,6 +424,150 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     </AppScreen>
   );
 }
+
+const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
+  workout,
+  addSet,
+  removeSet,
+  removeExercise,
+  updateSet,
+  toggleSet,
+  updateActiveWorkout,
+  onSetCompleted,
+  onOpenAddExercise,
+  onScrollOffsetChange,
+}: {
+  workout: Workout;
+  addSet: (exerciseId: string) => void;
+  removeSet: (exerciseId: string, setId: string) => void;
+  removeExercise: (exerciseId: string) => void;
+  updateSet: (exerciseId: string, setId: string, changes: WorkoutSetChanges) => void;
+  toggleSet: (exerciseId: string, setId: string) => void;
+  updateActiveWorkout: (update: (workout: Workout) => Workout) => void;
+  onSetCompleted: (duration?: number) => void;
+  onOpenAddExercise: () => void;
+  onScrollOffsetChange: (offset: number) => void;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createActiveWorkoutStyles);
+  const [openExerciseId, setOpenExerciseId] = useState<string | null>(null);
+  const workoutListRef = useRef<FlatList<WorkoutExercise>>(null);
+  const dockCompactOnUi = useSharedValue(false);
+  const { setCompact: setDockCompact } = usePrimaryDock();
+  const { onSetInputFocus, onScrollOffsetChange: recordScrollOffset } = useFocusedSetKeyboardLift(workoutListRef);
+  const handleDockCompactChange = useCallback((nextCompact: boolean): void => setDockCompact(nextCompact), [setDockCompact]);
+  const handleWorkoutScrollOffset = useCallback((offset: number): void => {
+    recordScrollOffset(offset);
+    onScrollOffsetChange(offset);
+  }, [onScrollOffsetChange, recordScrollOffset]);
+  useEffect(() => () => setDockCompact(false), [setDockCompact]);
+  const workoutScrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      runOnJS(handleWorkoutScrollOffset)(event.contentOffset.y);
+      const nextCompact = event.contentOffset.y > 12;
+      if (nextCompact !== dockCompactOnUi.value) {
+        dockCompactOnUi.value = nextCompact;
+        runOnJS(handleDockCompactChange)(nextCompact);
+      }
+    },
+  });
+  const handleExerciseDeleteReveal = useCallback((exerciseId: string, revealed: boolean): void => {
+    setOpenExerciseId(revealed ? exerciseId : null);
+  }, []);
+  const updateLiveAttribute = useCallback((label: string, value: string): void => {
+    updateActiveWorkout((current) => ({
+      ...current,
+      attributes: { ...(current.attributes ?? {}), [label]: value },
+    }));
+  }, [updateActiveWorkout]);
+  const renderExercise = useCallback(
+    ({ item, index }: { item: WorkoutExercise; index: number }) => (
+      <ExtractedExerciseSection
+        exercise={item}
+        index={index}
+        addSet={addSet}
+        removeSet={removeSet}
+        removeExercise={removeExercise}
+        updateSet={updateSet}
+        toggleSet={toggleSet}
+        onSetCompleted={onSetCompleted}
+        onSetInputFocus={onSetInputFocus}
+        deleteRevealed={openExerciseId === item.id}
+        onDeleteRevealChange={handleExerciseDeleteReveal}
+      />
+    ),
+    [addSet, handleExerciseDeleteReveal, onSetCompleted, onSetInputFocus, openExerciseId, removeExercise, removeSet, toggleSet, updateSet],
+  );
+  const liveAttributeEntries = Object.entries(workout.attributes ?? {});
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.keyboardArea}
+      enabled={Platform.OS !== 'ios'}
+      behavior={Platform.OS === 'android' ? 'height' : undefined}
+    >
+      <Animated.FlatList
+        ref={workoutListRef}
+        testID="active-workout-list"
+        data={workout.exercises}
+        renderItem={renderExercise}
+        keyExtractor={(exercise) => exercise.id}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+        scrollsChildToFocus
+        nestedScrollEnabled
+        onScroll={workoutScrollHandler}
+        scrollEventThrottle={16}
+        ListHeaderComponent={
+          liveAttributeEntries.length || workout.exercises.length ? (
+            <View style={styles.listSectionHeader}>
+              {liveAttributeEntries.length ? (
+                <View style={styles.liveAttributesSection}>
+                  <Text style={styles.listSectionTitle}>Attributes</Text>
+                  <ForgeCard variant="outlined" size="compact">
+                    {liveAttributeEntries.map(([label, value], index) => (
+                      <View key={label} style={[styles.liveAttributeRow, index > 0 && styles.joinedAttributeRow]}>
+                        <Icon
+                          testID={`live-attribute-icon-${label}`}
+                          name={workout.attributeIcons?.[label] ?? 'note'}
+                          size={20}
+                          color={theme.textPrimary}
+                        />
+                        <Text style={styles.liveAttributeLabel} numberOfLines={1}>{label}</Text>
+                        <ForgeTextInput
+                          accessibilityLabel={`${label} value`}
+                          value={value}
+                          onChangeText={(nextValue) => updateLiveAttribute(label, nextValue)}
+                          placeholder="Add value"
+                          placeholderTextColor={theme.textDisabled}
+                          style={styles.liveAttributeInput}
+                        />
+                      </View>
+                    ))}
+                  </ForgeCard>
+                </View>
+              ) : null}
+              {workout.exercises.length ? <Text style={styles.listSectionTitle}>Exercises</Text> : null}
+            </View>
+          ) : null
+        }
+        ListFooterComponent={
+          <Button
+            accessibilityLabel="Add exercise"
+            label="Add exercise"
+            icon="add"
+            iconSize={17}
+            variant="outline"
+            onPress={onOpenAddExercise}
+            style={styles.addExercise}
+          />
+        }
+      />
+    </KeyboardAvoidingView>
+  );
+});
 
 function LiveWorkoutAttributeSheet({
   value,

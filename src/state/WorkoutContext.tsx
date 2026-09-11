@@ -9,10 +9,12 @@ import type {
   StartWorkoutOptions,
   Workout,
   WorkoutContextValue,
+  WorkoutExerciseInput,
   WorkoutSetChanges,
 } from '../types';
 import {
   addExerciseToWorkout,
+  addExercisesToWorkout,
   addSetToWorkout,
   createWorkout,
   removeExerciseFromWorkout,
@@ -110,9 +112,14 @@ export function WorkoutProvider({ children }: ChildrenProps) {
     [activeWorkout, persistActiveWorkoutNow],
   );
 
-  const addExercise = useCallback((exercise: import('../types').WorkoutExerciseInput | string): void => {
+  const addExercise = useCallback((exercise: WorkoutExerciseInput | string): void => {
     if (!(typeof exercise === 'string' ? exercise : exercise.name).trim()) return;
     setActiveWorkout((current) => addExerciseToWorkout(current, exercise));
+  }, []);
+
+  const addExercises = useCallback((exercises: readonly WorkoutExerciseInput[]): void => {
+    if (!exercises.length) return;
+    setActiveWorkout((current) => addExercisesToWorkout(current, exercises));
   }, []);
 
   const addSet = useCallback((exerciseId: string): void => {
@@ -188,6 +195,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
       completedWorkouts,
       startWorkout,
       addExercise,
+      addExercises,
       addSet,
       removeSet,
       removeExercise,
@@ -205,6 +213,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
       completedWorkouts,
       startWorkout,
       addExercise,
+      addExercises,
       addSet,
       removeSet,
       removeExercise,

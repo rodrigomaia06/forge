@@ -43,26 +43,35 @@ export function createWorkout(options: StartWorkoutOptions): Workout {
 }
 
 export function addExerciseToWorkout(workout: Workout | null, input: WorkoutExerciseInput | string): Workout | null {
-  const exercise = typeof input === 'string' ? { name: input } : input;
-  if (!workout || !exercise.name.trim()) return workout;
+  return addExercisesToWorkout(workout, [input]);
+}
+
+/** Adds picker selections in one workout update so multi-select does not cascade renders. */
+export function addExercisesToWorkout(
+  workout: Workout | null,
+  inputs: readonly (WorkoutExerciseInput | string)[],
+): Workout | null {
+  if (!workout) return workout;
+  const exercises = inputs
+    .map((input) => (typeof input === 'string' ? { name: input } : input))
+    .filter((exercise) => exercise.name.trim())
+    .map((exercise) => ({
+      id: makeWorkoutId('exercise'),
+      exerciseId: exercise.exerciseId,
+      name: exercise.name.trim(),
+      trackingType: exercise.trackingType ?? 'weight-reps',
+      exerciseSnapshot: exercise.exerciseSnapshot,
+      sets: Array.from({ length: 3 }, () => ({
+        id: makeWorkoutId('set'),
+        weight: '',
+        reps: '',
+        completed: false,
+      })),
+    }));
+  if (!exercises.length) return workout;
   return {
     ...workout,
-    exercises: [
-      ...workout.exercises,
-      {
-        id: makeWorkoutId('exercise'),
-        exerciseId: exercise.exerciseId,
-        name: exercise.name.trim(),
-        trackingType: exercise.trackingType ?? 'weight-reps',
-        exerciseSnapshot: exercise.exerciseSnapshot,
-        sets: Array.from({ length: 3 }, () => ({
-          id: makeWorkoutId('set'),
-          weight: '',
-          reps: '',
-          completed: false,
-        })),
-      },
-    ],
+    exercises: [...workout.exercises, ...exercises],
   };
 }
 

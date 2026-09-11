@@ -4,12 +4,31 @@ async function startEmptyWorkoutWithExercise(page: Page): Promise<void> {
   await page.goto('/');
   await startBlankWorkout(page);
   await page.getByRole('button', { name: 'Add exercise' }).click();
-  await page.getByRole('button', { name: 'Bench Press, 4 variations', exact: true }).click();
-  await page.getByRole('button', { name: 'Barbell, 2 variations', exact: true }).click();
-  await page
-    .getByRole('checkbox', { name: 'Bench Press, Barbell, Standard' })
-    .click({ force: true });
+  await selectStandardBarbellBenchPress(page);
   await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
+}
+
+async function selectStandardBarbellBenchPress(page: Page): Promise<void> {
+  await page.getByLabel('Search exercises').fill('barbell bench press');
+  await page
+    .getByRole('checkbox', { name: 'Bench Press, variation' })
+    .click({ force: true });
+}
+
+async function revealCatalogueItem(page: Page, locator: Locator): Promise<void> {
+  const catalogue = page.getByTestId('add-exercise-catalogue');
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    if (await locator.count()) {
+      await expect(locator).toBeVisible();
+      return;
+    }
+    const box = await catalogue.boundingBox();
+    if (!box) throw new Error('Expected the add-exercise catalogue to be measurable');
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.wheel(0, 460);
+    await page.waitForTimeout(40);
+  }
+  await expect(locator).toBeVisible();
 }
 
 async function startBlankWorkout(page: Page): Promise<void> {
@@ -98,11 +117,7 @@ test.describe('Active workout flow', () => {
     await expect(page.getByText('Rest', { exact: true })).toBeVisible();
 
     await page.getByRole('button', { name: 'Add exercise' }).click();
-    await page.getByRole('button', { name: 'Bench Press, 4 variations', exact: true }).click();
-    await page.getByRole('button', { name: 'Barbell, 2 variations', exact: true }).click();
-    await page
-      .getByRole('checkbox', { name: 'Bench Press, Barbell, Standard' })
-      .click({ force: true });
+    await selectStandardBarbellBenchPress(page);
     await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
 
     await expect(page.getByText('Barbell Bench Press', { exact: true })).toBeVisible();
@@ -123,44 +138,48 @@ test.describe('Active workout flow', () => {
     await startBlankWorkout(page);
     await page.getByRole('button', { name: 'Add exercise' }).click();
 
+    const search = page.getByLabel('Search exercises');
+    const benchPress = page.getByRole('button', { name: 'Bench Press, 6 variations', exact: true });
+    await revealCatalogueItem(page, benchPress);
     await expect(page.getByText('Chest', { exact: true })).toBeVisible();
     await expect(page.getByText('Chest · 12', { exact: true })).toHaveCount(0);
     await expect(
-      page.getByRole('button', { name: 'Bench Press, 4 variations', exact: true }),
+      benchPress,
     ).toBeVisible();
 
-    const search = page.getByLabel('Search exercises');
     await search.fill('pec');
     await expect(page.getByRole('button', { name: 'Clear exercise search' })).toBeVisible();
     await page.getByRole('button', { name: 'Clear exercise search' }).click();
     await expect(search).toHaveValue('');
 
-    const pecDeck = page.getByRole('checkbox', { name: 'Pec Deck, variation' });
-    await pecDeck.scrollIntoViewIfNeeded();
+    await search.fill('pec deck');
+    const pecDeck = page.getByRole('checkbox', { name: 'Chest Fly, variation' });
+    await revealCatalogueItem(page, pecDeck);
     await pecDeck.click();
     await expect(page.getByText('Add exercises (1)', { exact: true })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Bench Press, 4 variations', exact: true }).click();
-    await expect(
-      page.getByRole('button', { name: 'Barbell, 2 variations', exact: true }),
-    ).toBeVisible();
-    await page.getByRole('button', { name: 'Barbell, 2 variations', exact: true }).click();
-    await expect(
-      page.getByRole('checkbox', { name: 'Bench Press, Barbell, Close grip' }),
-    ).toBeVisible();
+    await search.fill('bench press');
+    await revealCatalogueItem(page, benchPress);
+    await benchPress.click();
+    await expect(page.getByRole('checkbox')).toHaveCount(7);
   });
 
   test('opens the pre-derived Add Exercises catalogue promptly', async ({ page }, testInfo) => {
     await page.goto('/');
     await startBlankWorkout(page);
     const picker = page.getByTestId('add-exercise-sheet-surface');
-    const openedAt = performance.now();
+    await page.evaluate(() => performance.mark('add-exercise-open'));
     await page.getByRole('button', { name: 'Add exercise' }).click();
     await expect(picker).toBeVisible();
     await expect.poll(async () => (await picker.boundingBox())?.y ?? Infinity).toBeLessThan(
-      (page.viewportSize()?.height ?? 0) - 280,
+      (page.viewportSize()?.height ?? 0) * 0.1 + 8,
     );
-    expect(performance.now() - openedAt).toBeLessThan(900);
+    await expect(page.getByLabel('Search exercises')).toBeEditable();
+    const pickerReadyMs = await page.evaluate(() => {
+      const openedAt = performance.getEntriesByName('add-exercise-open').at(-1)?.startTime ?? 0;
+      return performance.now() - openedAt;
+    });
+    expect(pickerReadyMs).toBeLessThan(600);
     await expect.poll(async () => picker.getByRole('button').count()).toBeGreaterThan(3);
     await page.waitForTimeout(220);
     await page.screenshot({ path: testInfo.outputPath('add-exercises-catalogue-ready.png') });
@@ -221,6 +240,9 @@ test.describe('Active workout flow', () => {
     await page.getByRole('button', { name: 'Add exercise' }).click();
     const sheet = page.getByTestId('add-exercise-sheet-surface');
     await expect(sheet).toBeVisible();
+    await expect.poll(async () => (await sheet.boundingBox())?.y ?? Infinity).toBeLessThan(
+      (page.viewportSize()?.height ?? 0) * 0.1 + 8,
+    );
     const title = page.getByText('Add exercises', { exact: true }).first();
     const titleBox = await title.boundingBox();
     expect(titleBox).not.toBeNull();
@@ -247,12 +269,11 @@ test.describe('Active workout flow', () => {
   });
 
   test('keeps variation counts legible in Dark appearance', async ({ page }) => {
-    await page.addInitScript(() => {
-      localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance: 'dark' }));
-    });
+    await page.emulateMedia({ colorScheme: 'dark' });
     await page.goto('/');
     await startBlankWorkout(page);
     await page.getByRole('button', { name: 'Add exercise' }).click();
+    await page.getByLabel('Search exercises').fill('bench');
 
     const count = page.getByTestId('exercise-group-count-Bench Press');
     await expect(count).toHaveCSS('background-color', 'rgb(42, 47, 52)');
@@ -524,11 +545,7 @@ test.describe('Active workout flow', () => {
     await page.goto('/');
     await startBlankWorkout(page);
     await page.getByRole('button', { name: 'Add exercise' }).click();
-    await page.getByRole('button', { name: 'Bench Press, 4 variations', exact: true }).click();
-    await page.getByRole('button', { name: 'Barbell, 2 variations', exact: true }).click();
-    await page
-      .getByRole('checkbox', { name: 'Bench Press, Barbell, Standard' })
-      .click({ force: true });
+    await selectStandardBarbellBenchPress(page);
     await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
     await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
     await expect(page.getByText('Exercise options', { exact: true })).toBeVisible();
