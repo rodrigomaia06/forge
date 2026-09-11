@@ -603,7 +603,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
-      marginBottom: 10,
     },
     searchField: {
       flex: 1,
@@ -669,7 +668,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       color: dashboardTheme.ink,
       ...typeScale.label,
     },
-    pickerList: { flex: 1, borderTopWidth: 1, borderTopColor: dashboardTheme.border },
+    pickerList: { flex: 1, marginTop: 10 },
     pickerListContent: { paddingBottom: 22 },
     categoryTitle: {
       marginTop: 14,

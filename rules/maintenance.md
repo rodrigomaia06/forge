@@ -47,6 +47,10 @@ Delete obsolete temporary documentation instead of maintaining a generic memory 
 
 ## Commit organization
 
+Do not create a Git commit unless the user explicitly asks for one in the current
+conversation. Staging and verification may be performed when appropriate, but
+leave uncommitted changes available for the user to review until requested.
+
 When a change is large or spans multiple responsibilities, divide it into commits by
 cohesive concern rather than committing the entire change as one mixed unit.
 

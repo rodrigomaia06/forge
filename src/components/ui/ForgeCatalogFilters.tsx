@@ -132,9 +132,9 @@ export function ForgeCatalogFilterContent({
       {headerWithDragHandle ? (
         <ForgeBottomSheetDragArea>
           <ForgeBottomSheetHandle />
-          <View style={styles.headerDivider}>{header}</View>
+          {header}
         </ForgeBottomSheetDragArea>
-      ) : <View style={styles.headerDivider}>{header}</View>}
+      ) : header}
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {facets.map((facet) => (
           <View key={facet.key} style={styles.facet}>
@@ -240,7 +240,6 @@ const createStyles = (theme: ReturnType<typeof useForgeTheme>) => StyleSheet.cre
   sheetFill: { flex: 1, alignSelf: 'stretch' },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 142, gap: 16 },
-  headerDivider: { borderBottomWidth: 1, borderBottomColor: theme.border },
   facet: { gap: 7 },
   heading: { minHeight: 28, flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { ...typeScale.sectionTitle, color: theme.slate },
