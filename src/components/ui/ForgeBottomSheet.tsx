@@ -57,8 +57,6 @@ interface ForgeBottomSheetProps {
   dragArea?: (children: React.ReactNode) => React.ReactNode;
   /** Disable for sheets whose primary content is a tall vertical scroller. */
   dragEnabled?: boolean;
-  /** Mount hidden sheet content ahead of interaction when a picker must open instantly. */
-  preload?: boolean;
   testID?: string;
 }
 
@@ -81,7 +79,6 @@ export function ForgeBottomSheet({
   surfaceTestID,
   dragArea,
   dragEnabled = true,
-  preload = false,
   testID,
 }: ForgeBottomSheetProps) {
   const theme = useForgeTheme();
@@ -179,7 +176,7 @@ export function ForgeBottomSheet({
     compactSheetFitsAboveKeyboard ? keyboardBreathingRoom : 0
   );
 
-  if (!visible && !preload) return null;
+  if (!visible) return null;
   return (
     <Modal
       visible

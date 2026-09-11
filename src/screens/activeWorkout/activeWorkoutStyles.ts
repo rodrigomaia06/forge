@@ -24,7 +24,7 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       alignItems: 'center',
       justifyContent: 'space-between',
     },
-    headerLeadingActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    headerLeadingActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     headerTitle: {
       maxWidth: '100%',
       color: dashboardTheme.ink,
@@ -36,7 +36,7 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       top: 0,
       right: 100,
       bottom: 0,
-      left: 100,
+      left: 104,
       alignItems: 'center',
       justifyContent: 'center',
     },

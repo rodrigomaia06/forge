@@ -145,7 +145,6 @@ export function AddExerciseSheet({
       initialOffset={520}
       closeDistance={520}
       dismissThreshold={260}
-      preload
       keyboardAvoiding
       surfaceTestID="add-exercise-sheet-surface"
       style={styles.pickerSheet}
