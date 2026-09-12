@@ -159,7 +159,9 @@ export function WorkoutProvider({ children }: ChildrenProps) {
     const finished = {
       ...activeWorkout,
       completedAt: Date.now(),
-      durationSeconds: Math.max(1, Math.round((Date.now() - activeWorkout.startedAt) / 1000)),
+      durationSeconds: activeWorkout.automaticTimeTracking === false
+        ? Math.max(1, activeWorkout.durationSeconds ?? 0)
+        : Math.max(1, Math.round((Date.now() - activeWorkout.startedAt) / 1000)),
     };
     setCompletedWorkouts((current) => [finished, ...current]);
     persistActiveWorkoutNow(null);

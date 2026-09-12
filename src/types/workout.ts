@@ -42,6 +42,8 @@ export interface Workout {
   startedAt: number;
   completedAt: number | null;
   durationSeconds?: number;
+  /** Legacy workouts omit this and therefore continue tracking automatically. */
+  automaticTimeTracking?: boolean;
   location?: string;
   mood?: string;
   note: string;

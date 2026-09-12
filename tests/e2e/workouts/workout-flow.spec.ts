@@ -281,7 +281,7 @@ test.describe('Active workout flow', () => {
     await expect(count.getByText('0', { exact: true })).toHaveCSS('color', 'rgb(195, 200, 204)');
   });
 
-  test('starts the rest timer from the workout header', async ({ page }) => {
+  test('starts the rest timer from the workout header', async ({ page }, testInfo) => {
     await page.goto('/');
     await startBlankWorkout(page);
 
@@ -289,6 +289,8 @@ test.describe('Active workout flow', () => {
     await expect(restTimer).toBeVisible();
     await restTimer.click();
     await expect(page.getByText('Rest timer', { exact: true })).toBeVisible();
+    const pickerSheet = page.getByTestId('rest-timer-sheet-surface');
+    const pickerHeight = await pickerSheet.boundingBox().then((box) => box?.height ?? 0);
     const closeRestTimer = page.getByRole('button', { name: 'Close rest timer' }).last();
     await expect(closeRestTimer).toHaveCSS('width', '44px');
     await expect(closeRestTimer).toHaveCSS('height', '44px');
@@ -304,9 +306,87 @@ test.describe('Active workout flow', () => {
     await expect(page.getByRole('button', { name: /Rest timer,/ })).toBeVisible();
     await expect(page.getByRole('dialog').getByText(/01:2[0-9]/)).toBeVisible();
     await expect(page.getByText('remaining', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('rest-timer-progress-ring')).toBeVisible();
+    await expect.poll(async () => (await page.getByTestId('rest-timer-sheet-surface').boundingBox())?.height ?? Infinity).toBeLessThan(pickerHeight);
+    await page.screenshot({ path: testInfo.outputPath('rest-timer-compact.png') });
+    const progressArc = page.getByTestId('rest-timer-progress-ring').locator('circle').last();
+    const progressBeforeAdjustment = await progressArc.getAttribute('stroke-dashoffset');
     await page.getByRole('button', { name: 'Increase rest by 15 seconds' }).click();
-    await page.getByRole('button', { name: 'Skip rest timer' }).click();
+    await expect(progressArc).not.toHaveAttribute('stroke-dashoffset', progressBeforeAdjustment ?? '');
+    const stopTimer = page.getByRole('button', { name: 'Stop rest timer' });
+    await expect(stopTimer).toHaveCSS('background-color', 'rgb(246, 220, 221)');
+    await expect(stopTimer).toHaveCSS('border-color', 'rgb(214, 72, 72)');
+    await stopTimer.click();
     await expect(page.getByRole('button', { name: 'Start rest timer' }).first()).toBeVisible();
+  });
+
+  test('opens a compact Workout duration sheet from elapsed time', async ({ page }, testInfo) => {
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.goto('/');
+    await startBlankWorkout(page);
+
+    await page.getByRole('button', { name: 'Open workout duration' }).click();
+    const sheet = page.getByTestId('workout-duration-sheet-surface');
+    await expect(sheet).toBeVisible();
+    await expect(page.getByText('Workout duration', { exact: true })).toBeVisible();
+    await expect(page.getByText('Automatic Time Tracking', { exact: true })).toBeVisible();
+    await expect(page.getByText('Keeps track of your workout duration')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Choose workout start date' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Choose workout start time' })).toBeVisible();
+    const startDate = page.getByRole('button', { name: 'Choose workout start date' });
+    const dateBeforeDraft = await startDate.textContent();
+    await startDate.click();
+    const datePicker = page.getByTestId('workout-duration-date-picker');
+    await expect(datePicker).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath('workout-duration-date-picker.png') });
+    await datePicker.getByRole('button', { name: 'Next month' }).click();
+    await datePicker.getByRole('button', { name: /^Select / }).first().click();
+    await page.getByRole('button', { name: 'Back to workout duration' }).click();
+    await expect(startDate).toHaveText(dateBeforeDraft ?? '');
+    await startDate.click();
+    await page.getByTestId('workout-duration-date-picker').getByRole('button', { name: 'Next month' }).click();
+    await page.getByTestId('workout-duration-date-picker').getByRole('button', { name: /^Select / }).first().click();
+    await page.getByRole('button', { name: 'Save workout start time' }).click();
+    await expect(startDate).not.toHaveText(dateBeforeDraft ?? '');
+    await page.getByRole('button', { name: 'Choose workout start time' }).click();
+    const timePicker = page.getByTestId('workout-duration-time-picker');
+    await expect(timePicker).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath('workout-duration-time-picker.png') });
+    const hourOptions = timePicker.getByTestId('forge-time-hours-wheel').getByRole('radio');
+    await expect(hourOptions).toHaveCount(24);
+    await hourOptions.nth(0).click();
+    const done = page.getByRole('button', { name: 'Save workout start time' });
+    await expect(done).toBeVisible();
+    await expect(done).toHaveCSS('height', '44px');
+    await page.getByRole('button', { name: 'Back to workout duration' }).click();
+    const tracking = page.getByRole('switch', { name: 'Automatic Time Tracking' });
+    await expect(tracking).toHaveAttribute('aria-checked', 'true');
+    await tracking.click();
+    await expect(tracking).toHaveAttribute('aria-checked', 'false');
+    await tracking.click();
+    await expect(tracking).toHaveAttribute('aria-checked', 'true');
+    await page.getByRole('button', { name: 'Reset Start Time' }).click();
+    const resetConfirmation = page.getByTestId('reset-start-time-confirmation');
+    await expect(resetConfirmation).toBeVisible();
+    await resetConfirmation.getByRole('button', { name: 'Reset start time' }).click();
+    await expect(resetConfirmation).toBeHidden();
+    await expect(sheet).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath('workout-duration-compact.png') });
+  });
+
+  test('confirms before discarding an active workout', async ({ page }) => {
+    await page.goto('/');
+    await startBlankWorkout(page);
+
+    await page.getByRole('button', { name: 'Cancel workout' }).click();
+    const confirmation = page.getByTestId('discard-live-workout-confirmation');
+    await expect(confirmation).toBeVisible();
+    await confirmation.getByRole('button', { name: 'Keep working out' }).click();
+    await expect(confirmation).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Add exercise' })).toBeVisible();
+    await page.getByRole('button', { name: 'Cancel workout' }).click();
+    await confirmation.getByRole('button', { name: 'Discard workout' }).click();
+    await expect(page.getByRole('button', { name: 'Start workout' })).toBeVisible();
   });
 
   test('selects a rest duration by tapping a picker value', async ({ page }) => {

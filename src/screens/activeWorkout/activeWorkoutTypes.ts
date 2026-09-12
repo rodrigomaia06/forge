@@ -64,5 +64,5 @@ export interface RestTimerSheetProps {
   onSelect: (duration: number) => void;
   onStart: () => void;
   onAdjust: (amount: number) => void;
-  onSkip: () => void;
+  onStop: () => void;
 }

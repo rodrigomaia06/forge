@@ -61,6 +61,7 @@ export function ForgeConfirmationDialog({
               label={cancelLabel}
               variant="primary"
               onPress={onCancel}
+              haptic="light"
               style={styles.action}
             />
             <Button
@@ -69,6 +70,7 @@ export function ForgeConfirmationDialog({
               variant="outline"
               tone="destructive"
               onPress={onConfirm}
+              haptic="medium"
               style={styles.action}
             />
           </View>

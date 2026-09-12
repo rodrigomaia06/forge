@@ -16,6 +16,7 @@ import {
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
   ForgeCard,
+  ForgeConfirmationDialog,
   ForgeFloatingCta,
   ForgeSheetHeader,
   ForgeTextInput,
@@ -37,6 +38,7 @@ import {
 import { ExerciseSection as ExtractedExerciseSection } from './activeWorkout/ExerciseSection';
 import { AddExerciseSheet as ExtractedAddExerciseSheet } from './activeWorkout/WorkoutSheets';
 import { RestTimerIndicator, RestTimerSheet } from './activeWorkout/RestTimer';
+import { WorkoutDurationSheet } from './activeWorkout/WorkoutDurationSheet';
 import { createActiveWorkoutStyles } from './activeWorkout/activeWorkoutStyles';
 import { useFocusedSetKeyboardLift } from './activeWorkout/useFocusedSetKeyboardLift';
 import { typeScale } from '../theme/tokens';
@@ -64,6 +66,8 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   const [restDuration, setRestDuration] = useState(60);
   const [restSelection, setRestSelection] = useState(90);
   const [restSheetOpen, setRestSheetOpen] = useState(false);
+  const [durationSheetOpen, setDurationSheetOpen] = useState(false);
+  const [discardConfirmationOpen, setDiscardConfirmationOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [headerElevated, setHeaderElevated] = useState(false);
   const [editingWorkout, setEditingWorkout] = useState(false);
@@ -81,7 +85,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   const restCompletionNotified = useRef(false);
 
   useEffect(() => {
-    if (!activeWorkout) return undefined;
+    if (!activeWorkout || activeWorkout.automaticTimeTracking === false) return undefined;
     const update = () => setNow(Date.now());
     update();
     const timer = setInterval(update, 1000);
@@ -98,7 +102,9 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   }, [now, restEndsAt]);
 
   const elapsed = activeWorkout
-    ? Math.max(0, Math.floor((now - activeWorkout.startedAt) / 1000))
+    ? activeWorkout.automaticTimeTracking === false
+      ? activeWorkout.durationSeconds ?? 0
+      : Math.max(0, Math.floor((now - activeWorkout.startedAt) / 1000))
     : 0;
   const restRemaining = restEndsAt ? Math.max(0, Math.ceil((restEndsAt - now) / 1000)) : 0;
   const restRunning = restEndsAt !== null && restRemaining > 0;
@@ -119,12 +125,41 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   const adjustRestTimer = (amount: number): void => {
     lightHaptic();
     const adjustedAt = Date.now();
+    const currentRemaining = restEndsAt ? Math.max(0, Math.ceil((restEndsAt - adjustedAt) / 1000)) : 0;
+    const nextRemaining = Math.max(0, currentRemaining + amount);
     setNow(adjustedAt);
-    setRestEndsAt((current) => Math.max(adjustedAt, (current ?? adjustedAt) + amount * 1000));
+    setRestDuration((currentDuration) => Math.max(1, currentDuration + nextRemaining - currentRemaining));
+    setRestEndsAt(adjustedAt + nextRemaining * 1000);
   };
-  const skipRestTimer = () => {
+  const stopRestTimer = () => {
     lightHaptic();
     setRestEndsAt(null);
+  };
+  const setAutomaticTimeTracking = (enabled: boolean): void => {
+    lightHaptic();
+    const changedAt = Date.now();
+    updateActiveWorkout((current) => {
+      const frozenSeconds = current.automaticTimeTracking === false
+        ? current.durationSeconds ?? 0
+        : Math.max(0, Math.floor((changedAt - current.startedAt) / 1000));
+      return enabled
+        ? { ...current, automaticTimeTracking: true, startedAt: changedAt - frozenSeconds * 1000, durationSeconds: undefined }
+        : { ...current, automaticTimeTracking: false, durationSeconds: frozenSeconds };
+    });
+    setNow(changedAt);
+  };
+  const resetWorkoutStartTime = (): void => {
+    const resetAt = Date.now();
+    updateActiveWorkout((current) => ({
+      ...current,
+      startedAt: resetAt,
+      durationSeconds: current.automaticTimeTracking === false ? 0 : undefined,
+    }));
+    setNow(resetAt);
+  };
+  const setWorkoutStartTime = (startedAt: number): void => {
+    updateActiveWorkout((current) => ({ ...current, startedAt }));
+    setNow(Date.now());
   };
   const handleAddExerciseClose = useCallback(() => setSheetOpen(false), []);
   const openAddExercise = useCallback(() => setSheetOpen(true), []);
@@ -188,10 +223,11 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     returnToDashboard(finished);
   };
 
-  const handleCancel = (): void => {
+  const discardWorkout = (): void => {
     cancelWorkout();
     returnToDashboard(null);
   };
+  const handleCancel = (): void => setDiscardConfirmationOpen(true);
   const openWorkoutEditor = (): void => {
     setWorkoutNameDraft(activeWorkout.name);
     setWorkoutNoteDraft(activeWorkout.note);
@@ -261,11 +297,16 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
           />
         </View>
         <View style={styles.elapsedPanel}>
-          <View style={styles.elapsedInfo}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open workout duration"
+          onPress={() => setDurationSheetOpen(true)}
+          style={({ pressed }) => [styles.elapsedInfo, pressed && pressedFeedback]}
+        >
             <Icon name="time-outline" size={22} color={theme.slate} />
             <Text style={styles.elapsedValue}>{formatElapsed(elapsed)}</Text>
             <Text style={styles.timerLabel}>Elapsed</Text>
-          </View>
+          </Pressable>
           <View style={styles.timerDivider} />
           <Pressable
             accessibilityRole="button"
@@ -315,6 +356,29 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
         visible={sheetOpen}
         onClose={handleAddExerciseClose}
         onSubmit={handleAddExercises}
+      />
+      <WorkoutDurationSheet
+        visible={durationSheetOpen}
+        startedAt={activeWorkout.startedAt}
+        automaticTracking={activeWorkout.automaticTimeTracking !== false}
+        weekStartsOn={preferences.weekStartsOn}
+        onClose={() => setDurationSheetOpen(false)}
+        onAutomaticTrackingChange={setAutomaticTimeTracking}
+        onStartedAtChange={setWorkoutStartTime}
+        onResetStartTime={resetWorkoutStartTime}
+      />
+      <ForgeConfirmationDialog
+        visible={discardConfirmationOpen}
+        title="Discard workout?"
+        message="Your active workout and its progress will be discarded."
+        cancelLabel="Keep working out"
+        confirmLabel="Discard workout"
+        onCancel={() => setDiscardConfirmationOpen(false)}
+        onConfirm={() => {
+          setDiscardConfirmationOpen(false);
+          discardWorkout();
+        }}
+        testID="discard-live-workout-confirmation"
       />
       <ForgeBottomSheet
         visible={editingWorkout}
@@ -418,7 +482,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
           onSelect={setRestSelection}
           onStart={() => startRestTimer(restSelection)}
           onAdjust={adjustRestTimer}
-          onSkip={skipRestTimer}
+          onStop={stopRestTimer}
         />
       )}
     </AppScreen>

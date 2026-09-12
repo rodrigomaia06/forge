@@ -61,27 +61,34 @@ export function RestTimerSheet({
   onSelect,
   onStart,
   onAdjust,
-  onSkip,
+  onStop,
 }: RestTimerSheetProps) {
-  const theme = useForgeTheme();
   const styles = useThemedStyles(createActiveWorkoutStyles);
   return (
-    <ForgeBottomSheet visible={visible} onClose={onClose} accessibilityLabel="Close rest timer" initialOffset={420} closeDistance={520} dismissThreshold={260} backdropTestID="rest-timer-backdrop" style={styles.restTimerSheet}>{(closeSheet) => <>
-            <ForgeBottomSheetHandle />
-            <View style={styles.sheetDragArea}>
-              <ForgeSheetHeader
-                title="Rest timer"
-                onClose={closeSheet}
-                closeAccessibilityLabel="Close rest timer"
-              />
-            </View>
+    <ForgeBottomSheet
+      visible={visible}
+      onClose={onClose}
+      accessibilityLabel="Close rest timer"
+      initialOffset={420}
+      closeDistance={520}
+      dismissThreshold={260}
+      backdropTestID="rest-timer-backdrop"
+      surfaceTestID="rest-timer-sheet-surface"
+      style={[styles.restTimerSheet, running ? styles.restTimerSheetActive : styles.restTimerSheetPicker]}
+    >{(closeSheet) => <>
+          <ForgeBottomSheetHandle />
+          <ForgeSheetHeader
+            title="Rest timer"
+            onClose={closeSheet}
+            closeAccessibilityLabel="Close rest timer"
+          />
           {running ? (
             <ActiveRestTimer
               remaining={remaining}
               duration={duration}
               onAdjust={onAdjust}
-              onSkip={() => {
-                onSkip();
+              onStop={() => {
+                onStop();
                 closeSheet();
               }}
             />
@@ -105,12 +112,12 @@ function ActiveRestTimer({
   remaining,
   duration,
   onAdjust,
-  onSkip,
+  onStop,
 }: {
   remaining: number;
   duration: number;
   onAdjust: (amount: number) => void;
-  onSkip: () => void;
+  onStop: () => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createActiveWorkoutStyles);
@@ -122,7 +129,7 @@ function ActiveRestTimer({
 
   return (
     <View style={styles.activeRestTimer}>
-      <View style={styles.progressRing}>
+      <View testID="rest-timer-progress-ring" style={styles.progressRing}>
         <Svg width={220} height={220} viewBox="0 0 220 220">
           <Circle
             cx="110"
@@ -162,14 +169,14 @@ function ActiveRestTimer({
         >
           <Text style={styles.restQuickText}>− 15s</Text>
         </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Skip rest timer"
-          onPress={onSkip}
-          style={({ pressed }) => [styles.restQuickButton, pressed && styles.restButtonPressed]}
-        >
-          <Text style={styles.restQuickText}>Skip</Text>
-        </Pressable>
+        <Button
+          accessibilityLabel="Stop rest timer"
+          label="Stop timer"
+          variant="outline"
+          tone="destructive"
+          onPress={onStop}
+          style={styles.restQuickStopButton}
+        />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Increase rest by 15 seconds"
