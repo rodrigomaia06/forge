@@ -27,6 +27,7 @@ export function SettingsDestinationScreen({ navigation, route }: Props) {
       <View style={[styles.screen, { backgroundColor: theme.background }]}>
         <SettingsDetailHeader title={title} navigation={navigation} elevated={headerElevated} />
         <ScrollView
+          style={styles.scroll}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
@@ -156,6 +157,7 @@ function Action({
 }
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  scroll: { flex: 1 },
   content: {
     padding: settingsLayout.screenPadding,
     paddingTop: settingsLayout.contentTop,

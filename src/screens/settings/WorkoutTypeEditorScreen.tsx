@@ -182,6 +182,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
           />
         )}
         <ScrollView
+          style={styles.scroll}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -407,6 +408,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   return StyleSheet.create({
     pointerEventsNone: { pointerEvents: 'none' },
     screen: { flex: 1 },
+    scroll: { flex: 1 },
     createHeader: {
       height: 70,
       paddingHorizontal: 20,

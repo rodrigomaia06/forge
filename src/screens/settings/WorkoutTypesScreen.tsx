@@ -99,6 +99,7 @@ export function WorkoutTypesScreen({ navigation }: Props) {
         />
         <ScrollView
           testID="workout-types-scroll"
+          style={styles.scroll}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           directionalLockEnabled
@@ -361,6 +362,7 @@ function SwipeTypeRow({
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  scroll: { flex: 1 },
   content: {
     padding: settingsLayout.screenPadding,
     paddingTop: settingsLayout.contentTop,

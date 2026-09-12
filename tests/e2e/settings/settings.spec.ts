@@ -39,14 +39,18 @@ test.describe('Settings', () => {
     });
   }
 
-  async function scrollListDown(
-    page: import('@playwright/test').Page,
-    locator: import('@playwright/test').Locator,
-  ): Promise<void> {
-    const box = await locator.boundingBox();
-    if (!box) throw new Error('Expected a Settings list to be measurable');
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.7);
-    await page.mouse.wheel(0, Math.max(180, box.height * 0.5));
+  async function scrollListDown(locator: import('@playwright/test').Locator): Promise<void> {
+    await locator.evaluate((element) => {
+      const nodes: HTMLElement[] = [element as HTMLElement, ...Array.from(element.querySelectorAll<HTMLElement>('*'))];
+      for (let parent = element.parentElement; parent; parent = parent.parentElement) nodes.push(parent);
+      const scroller = nodes.find((node) => {
+        const style = window.getComputedStyle(node);
+        return node.scrollHeight > node.clientHeight + 24 && /auto|scroll/.test(style.overflowY);
+      });
+      if (!scroller) throw new Error('Expected a vertically scrollable Settings list');
+      scroller.scrollBy({ top: Math.max(180, scroller.clientHeight * 0.5) });
+      scroller.dispatchEvent(new Event('scroll', { bubbles: true }));
+    });
   }
 
   test('shows grouped settings and opens each destination', async ({ page }) => {
@@ -56,14 +60,14 @@ test.describe('Settings', () => {
     await expect(page.getByTestId('settings-title')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Exercises' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Workout types' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Daily measurements' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Measurements' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'General' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Backup & Export' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Logs' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'About' })).toBeVisible();
     const workoutTypesBox = await page.getByRole('button', { name: 'Workout types' }).boundingBox();
-    const dailyMeasurementsBox = await page.getByRole('button', { name: 'Daily measurements' }).boundingBox();
-    expect(workoutTypesBox?.y ?? Infinity).toBeLessThan(dailyMeasurementsBox?.y ?? -Infinity);
+    const measurementsBox = await page.getByRole('button', { name: 'Measurements' }).boundingBox();
+    expect(workoutTypesBox?.y ?? Infinity).toBeLessThan(measurementsBox?.y ?? -Infinity);
 
     await page.getByRole('button', { name: 'Exercises' }).click();
     await expect(page.getByTestId('settings-detail-title')).toHaveText('Exercises');
@@ -99,12 +103,12 @@ test.describe('Settings', () => {
     await expect(page.getByTestId('settings-detail-title')).toHaveText('About');
   });
 
-  test('starts Daily measurements empty, then records and persists body weight with history', async ({ page }) => {
+  test('starts Measurements empty, then records and persists body weight with history', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
-    await page.getByRole('button', { name: 'Daily measurements' }).click();
+    await page.getByRole('button', { name: 'Measurements' }).click();
 
-    await expect(page.getByTestId('settings-detail-title')).toHaveText('Daily measurements');
+    await expect(page.getByTestId('settings-detail-title')).toHaveText('Measurements');
     await expect(page.getByRole('button', { name: 'Record body weight' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Add measure', exact: true }).last().click();
     const addClose = page.getByTestId('forge-sheet-drag-area').getByRole('button', { name: 'Close Add measure' });
@@ -130,7 +134,7 @@ test.describe('Settings', () => {
 
     await page.reload();
     await page.getByRole('tab', { name: 'Settings' }).click();
-    await page.getByRole('button', { name: 'Daily measurements' }).click();
+    await page.getByRole('button', { name: 'Measurements' }).click();
     await expect(page.getByText('81.4 kg').first()).toBeVisible();
     await expect(page.getByText('History', { exact: true }).last()).toBeVisible();
   });
@@ -138,7 +142,7 @@ test.describe('Settings', () => {
   test('keeps measures user-defined and lets the user choose their chart colour', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
-    await page.getByRole('button', { name: 'Daily measurements' }).click();
+    await page.getByRole('button', { name: 'Measurements' }).click();
 
     await page.getByRole('button', { name: 'Add measure', exact: true }).last().click();
     await expect(page.getByText('SUGGESTED', { exact: true })).toHaveCount(0);
@@ -156,18 +160,20 @@ test.describe('Settings', () => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Exercises' }).click();
+    await page.getByRole('button', { name: 'Strength, 255 exercises' }).click();
 
-    const exerciseLibrary = page.getByTestId('exercise-library-scroll');
-    const exerciseLibraryBefore = await scrollTop(exerciseLibrary);
-    await scrollListDown(page, exerciseLibrary);
-    await expect.poll(() => scrollTop(exerciseLibrary)).toBeGreaterThan(exerciseLibraryBefore + 20);
+    const exerciseBrowser = page.getByTestId('exercise-browser-scroll');
+    const exerciseBrowserBefore = await scrollTop(exerciseBrowser);
+    await scrollListDown(exerciseBrowser);
+    await expect.poll(() => scrollTop(exerciseBrowser)).toBeGreaterThan(exerciseBrowserBefore + 20);
 
+    await page.getByRole('button', { name: 'Back to Exercises' }).click();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
-    await page.getByRole('button', { name: 'Workout types' }).click();
-    const workoutTypes = page.getByTestId('workout-types-scroll');
-    const workoutTypesBefore = await scrollTop(workoutTypes);
-    await scrollListDown(page, workoutTypes);
-    await expect.poll(() => scrollTop(workoutTypes)).toBeGreaterThan(workoutTypesBefore + 20);
+    await page.getByRole('button', { name: 'General' }).click();
+    const generalSettings = page.getByTestId('general-settings-scroll');
+    const generalSettingsBefore = await scrollTop(generalSettings);
+    await scrollListDown(generalSettings);
+    await expect.poll(() => scrollTop(generalSettings)).toBeGreaterThan(generalSettingsBefore + 20);
   });
 
   test('uses the shared Settings row scale across root and nested cards', async ({ page }) => {

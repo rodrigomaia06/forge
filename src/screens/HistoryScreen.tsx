@@ -58,6 +58,7 @@ export function HistoryScreen({
           {headerElevated ? <HeaderEdge /> : null}
         </View>
         <ScrollView
+          style={styles.scroll}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
@@ -292,6 +293,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     paddingHorizontal: 20,
     backgroundColor: theme.background,
   },
+  scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 18, paddingBottom: forgeDockScrollInset, gap: 18 },
   group: { gap: 8 },
   groupTitle: {

@@ -32,6 +32,7 @@ export function ExerciseLibraryScreen({ navigation }: Props) {
         <SettingsDetailHeader title="Exercises" navigation={navigation} elevated={headerElevated} />
         <ScrollView
           testID="exercise-library-scroll"
+          style={styles.scroll}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           directionalLockEnabled
@@ -124,6 +125,7 @@ function LibraryRow({
 const createStyles = (theme: import('../../types').ForgeTheme) =>
   StyleSheet.create({
     screen: { flex: 1 },
+    scroll: { flex: 1 },
     content: {
       padding: settingsLayout.screenPadding,
       paddingTop: settingsLayout.contentTop,

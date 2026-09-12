@@ -92,6 +92,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
           />
         </View>
         <ScrollView
+          style={styles.scroll}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
@@ -307,6 +308,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     headerTitle: { color: theme.ink, ...typeScale.headerTitle, textAlign: 'center' },
     // Details are presented above the tab navigator, so they do not reserve
     // space for the floating primary dock.
+    scroll: { flex: 1 },
     content: { padding: 16, paddingBottom: 32, gap: 12 },
     summaryCard: {
       overflow: 'hidden',
