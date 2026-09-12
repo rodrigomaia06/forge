@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
+import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -174,7 +175,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
     <AppScreen backgroundColor={theme.background} edges={['top']}>
       <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <SettingsDetailHeader
-        title="Daily measurements"
+        title="Measurements"
         navigation={navigation}
         elevated={headerElevated}
         rightAction={
@@ -187,6 +188,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
         }
       />
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 44 }]}
         showsVerticalScrollIndicator={false}
         directionalLockEnabled
@@ -195,8 +197,49 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
         onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
         scrollEventThrottle={16}
       >
-        {selected ? (
+        {preferences.dailyMeasurementDefinitions.length ? (
           <>
+            <SettingsSection title="Measurements">
+              {preferences.dailyMeasurementDefinitions.map((definition, index) => (
+                <SettingsRow
+                  key={definition.id}
+                  title={definition.name}
+                  subtitle={definition.unit || undefined}
+                  icon={definition.icon}
+                  iconColor={definition.color}
+                  iconBackgroundColor={`${definition.color}24`}
+                  showDivider={index < preferences.dailyMeasurementDefinitions.length - 1}
+                  accessibilityState={{ selected: definition.id === selected?.id }}
+                  onPress={() => { selectionHaptic(); setSelectedId(definition.id); }}
+                  trailing={definition.id === selected?.id ? <Icon name="check" size={19} color={theme.selectionIndicator} weight="bold" /> : undefined}
+                  style={definition.id === selected?.id ? styles.selectedDefinition : undefined}
+                />
+              ))}
+            </SettingsSection>
+            <Button
+              label="Add measure"
+              icon="add"
+              variant="outline"
+              onPress={() => setMetricOpen(true)}
+              style={styles.addMetric}
+            />
+          </>
+        ) : (
+          <Button
+            label="Add measure"
+            icon="add"
+            variant="outline"
+            onPress={() => setMetricOpen(true)}
+            style={styles.addMetric}
+          />
+        )}
+        {selected ? (
+          <Animated.View
+            key={selected.id}
+            entering={FadeInRight.duration(180)}
+            exiting={FadeOutLeft.duration(120)}
+            style={styles.selectedMetricContent}
+          >
             <View style={styles.metricHeading}>
               <View style={[styles.metricIcon, { backgroundColor: `${selected.color}24` }]}>
                 <Icon name={selected.icon} size={22} color={selected.color} />
@@ -248,25 +291,8 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                 style={styles.recordEmpty}
               />
             )}
-          </>
+          </Animated.View>
         ) : null}
-        {preferences.dailyMeasurementDefinitions.length ? <SettingsSection title="Measures">
-          {preferences.dailyMeasurementDefinitions.map((definition, index) => (
-            <SettingsRow
-              key={definition.id}
-              title={definition.name}
-              subtitle={definition.unit || undefined}
-              icon={definition.icon}
-              iconColor={definition.color}
-              iconBackgroundColor={`${definition.color}24`}
-              showDivider={index < preferences.dailyMeasurementDefinitions.length - 1}
-              accessibilityState={{ selected: definition.id === selected?.id }}
-              onPress={() => { selectionHaptic(); setSelectedId(definition.id); }}
-              trailing={definition.id === selected?.id ? <Icon name="check" size={19} color={theme.selectionIndicator} weight="bold" /> : undefined}
-              style={definition.id === selected?.id ? styles.selectedDefinition : undefined}
-            />
-          ))}
-        </SettingsSection> : null}
         {historyEntries.length ? (
           <SettingsSection title="History">
             {historyEntries.map((entry, index) => (
@@ -280,13 +306,6 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
             ))}
           </SettingsSection>
         ) : null}
-        <Button
-          label="Add measure"
-          icon="add"
-          variant="outline"
-          onPress={() => setMetricOpen(true)}
-          style={styles.addMetric}
-        />
       </ScrollView>
       <ForgeBottomSheet
         visible={recordOpen}
@@ -467,6 +486,7 @@ function MeasurementChart({
 
 const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.create({
   screen: { flex: 1 },
+  scroll: { flex: 1 },
   content: { padding: settingsLayout.screenPadding, paddingTop: settingsLayout.contentTop, gap: 20 },
   metricHeading: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 12 },
   metricIcon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
@@ -486,6 +506,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   chartAxis: { ...typeScale.caption, color: theme.textSecondary },
   historyValue: { ...typeScale.cardTitle, color: theme.textPrimary },
   selectedDefinition: { backgroundColor: theme.successSurface },
+  selectedMetricContent: { gap: 14 },
   recordEmpty: { minHeight: 50, borderRadius: 16 },
   addMetric: { minHeight: 48, borderStyle: 'dashed', borderColor: theme.border },
   recordSheet: { minHeight: 315, paddingBottom: 92 },

@@ -46,7 +46,7 @@ export function SettingsScreen({ navigation }: Props) {
             <SettingsRow
               icon="measure"
               iconSize={26}
-              title="Daily measurements"
+              title="Measurements"
               onPress={() => open('DailyMeasurements')}
               disclosure
             />
