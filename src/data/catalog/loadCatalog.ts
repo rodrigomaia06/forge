@@ -16,6 +16,7 @@ type CatalogSource = { version: number; schemaVersion: string; counts: { exercis
 function ids(values: string[] | CatalogTaxonomyLabel[]): Set<string> { return new Set(values.map((value) => typeof value === 'string' ? value : value.id)); }
 function reference(value: string, set: Set<string>, field: string, id: string): void { if (!set.has(value)) throw new Error(`Bundled exercise ${id} has unknown ${field}: ${value}.`); }
 function strings(value: unknown): value is string[] { return Array.isArray(value) && value.every((item) => typeof item === 'string' && item.trim().length > 0); }
+function normalizeIdentity(value: string): string { return value.trim().replace(/\s+/g, ' ').toLowerCase(); }
 
 /** Validates the immutable release artifact before it is exposed to the app or SQLite. */
 export function validateCatalog(candidate: CatalogSource = source as CatalogSource): BundledExercise[] {
@@ -24,15 +25,28 @@ export function validateCatalog(candidate: CatalogSource = source as CatalogSour
   if (required.some((key) => !Array.isArray(candidate.taxonomies?.[key]))) throw new Error('Bundled catalogue taxonomy is incomplete.');
   const refs = Object.fromEntries(required.map((key) => [key, ids(candidate.taxonomies[key])])) as Record<string, Set<string>>;
   if (refs.workoutTypes.size !== 10 || TRACKING_TYPES.some((type) => !refs.trackingTypes.has(type))) throw new Error('Bundled catalogue tracking or workout-type taxonomy is invalid.');
-  const seen = new Set<string>();
+  const seenIds = new Set<string>();
+  const seenNames = new Set<string>();
+  const seenPickerKeys = new Set<string>();
   for (const exercise of candidate.exercises) {
-    if (!exercise.id || !exercise.name || !exercise.familyId || seen.has(exercise.id)) throw new Error(`Invalid or duplicate bundled exercise: ${exercise.id}.`);
-    seen.add(exercise.id);
+    if (!exercise.id || !exercise.name?.trim() || !exercise.familyId || seenIds.has(exercise.id)) throw new Error(`Invalid or duplicate bundled exercise: ${exercise.id}.`);
+    seenIds.add(exercise.id);
+    const normalizedName = normalizeIdentity(exercise.name);
+    if (seenNames.has(normalizedName)) throw new Error(`Bundled exercise ${exercise.id} has a duplicate exercise name.`);
+    seenNames.add(normalizedName);
     reference(exercise.category, refs.categories, 'category', exercise.id); reference(exercise.bodyRegion, refs.bodyRegions, 'body region', exercise.id); reference(exercise.primaryMuscle, refs.muscles, 'primary muscle', exercise.id); reference(exercise.primaryEquipment, refs.equipment, 'primary equipment', exercise.id); reference(exercise.trackingType, refs.trackingTypes, 'tracking type', exercise.id); reference(exercise.movementPattern, refs.movementPatterns, 'movement pattern', exercise.id); reference(exercise.mechanics, refs.mechanics, 'mechanics', exercise.id); reference(exercise.laterality, refs.laterality, 'laterality', exercise.id);
     if (!strings(exercise.equipment) || !exercise.equipment.length || !strings(exercise.workoutTypeIds) || !exercise.workoutTypeIds.length || (exercise.aliases !== undefined && !strings(exercise.aliases)) || !strings(exercise.searchTerms) || (exercise.secondaryMuscles !== undefined && !strings(exercise.secondaryMuscles))) throw new Error(`Bundled exercise ${exercise.id} has incomplete arrays.`);
     exercise.equipment.forEach((value) => reference(value, refs.equipment, 'equipment', exercise.id)); exercise.workoutTypeIds.forEach((value) => reference(value, refs.workoutTypes, 'workout type', exercise.id)); (exercise.secondaryMuscles ?? []).forEach((value) => reference(value, refs.muscles, 'secondary muscle', exercise.id));
+    if (exercise.variation && normalizeIdentity(exercise.variation) === normalizedName) throw new Error(`Bundled exercise ${exercise.id} repeats its name as a variation.`);
+    const pickerKey = [
+      normalizeIdentity(exercise.group),
+      exercise.equipment.map(normalizeIdentity).sort().join('|'),
+      normalizeIdentity(exercise.variation || exercise.name),
+    ].join('::');
+    if (seenPickerKeys.has(pickerKey)) throw new Error(`Bundled exercise ${exercise.id} duplicates a picker variation.`);
+    seenPickerKeys.add(pickerKey);
   }
-  for (const [legacy, current] of Object.entries(candidate.legacyIdMap ?? {})) if (!legacy || !seen.has(current)) throw new Error(`Invalid legacy catalogue mapping: ${legacy}.`);
+  for (const [legacy, current] of Object.entries(candidate.legacyIdMap ?? {})) if (!legacy || !seenIds.has(current)) throw new Error(`Invalid legacy catalogue mapping: ${legacy}.`);
   return candidate.exercises.map((exercise) => ({ ...exercise, aliases: exercise.aliases ?? [], secondaryMuscles: exercise.secondaryMuscles ?? [] }));
 }
 export const bundledCatalogVersion = source.version;

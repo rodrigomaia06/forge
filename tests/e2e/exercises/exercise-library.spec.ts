@@ -23,8 +23,8 @@ test.describe('Exercise library', () => {
   test('groups movement variations and stages multi-select facets before applying them', async ({ page }) => {
     await openAllExercises(page);
     await expect(page.getByTestId('settings-detail-title').last()).toHaveText('All exercises');
-    await expect(page.getByRole('button', { name: 'Bench Press, 4 variations' })).toBeVisible();
-    await page.getByRole('button', { name: 'Bench Press, 4 variations' }).click();
+    await expect(page.getByRole('button', { name: 'Bench Press & 4 variations' })).toBeVisible();
+    await page.getByRole('button', { name: 'Bench Press & 4 variations' }).click();
     await expect(page.getByText('Close grip', { exact: true })).toBeVisible();
 
     await page.getByLabel('Search exercises').fill('Pec Deck');
@@ -48,7 +48,7 @@ test.describe('Exercise library', () => {
 
   test('shows built-in exercise metadata and persists its rest override', async ({ page }) => {
     await openAllExercises(page);
-    await page.getByRole('button', { name: 'Bench Press, 4 variations' }).click();
+    await page.getByRole('button', { name: 'Bench Press & 4 variations' }).click();
     await page.getByRole('button', { name: 'Standard' }).click();
     await expect(page.getByText('Category', { exact: true })).toBeVisible();
     await expect(page.getByText('Bench Press', { exact: true }).last()).toBeVisible();
@@ -125,7 +125,7 @@ test.describe('Exercise library', () => {
     await expect(page.getByRole('button', { name: 'Save variation' })).toBeEnabled();
     await page.getByRole('button', { name: 'Save variation' }).click();
 
-    const pecDeck = page.getByRole('button', { name: /^Pec Deck, [2-9]\d* variations$/ });
+    const pecDeck = page.getByRole('button', { name: /^Pec Deck & [2-9]\d* variations$/ });
     await expect(pecDeck).toBeVisible();
     await pecDeck.click();
     await expect(page.getByText('Cable Pec Deck', { exact: true })).toHaveCount(1);

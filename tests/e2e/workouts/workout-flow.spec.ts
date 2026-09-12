@@ -22,13 +22,42 @@ async function revealCatalogueItem(page: Page, locator: Locator): Promise<void> 
       await expect(locator).toBeVisible();
       return;
     }
-    const box = await catalogue.boundingBox();
-    if (!box) throw new Error('Expected the add-exercise catalogue to be measurable');
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    await page.mouse.wheel(0, 460);
+    await scrollCatalogueUp(page);
     await page.waitForTimeout(40);
   }
   await expect(locator).toBeVisible();
+}
+
+async function catalogueScrollMetrics(page: Page): Promise<{ scrollTop: number; x: number; y: number; width: number; height: number }> {
+  const catalogue = page.getByTestId('add-exercise-catalogue');
+  return catalogue.evaluate((element) => {
+    const nodes: HTMLElement[] = [element as HTMLElement, ...Array.from(element.querySelectorAll<HTMLElement>('*'))];
+    for (let parent = element.parentElement; parent; parent = parent.parentElement) nodes.push(parent);
+    const scroller = nodes.find((node) => {
+      const style = window.getComputedStyle(node);
+      return node.scrollHeight > node.clientHeight + 24 && /auto|scroll/.test(style.overflowY);
+    });
+    if (!scroller) throw new Error('Expected the add-exercise catalogue to expose a vertical scroll container');
+    const rect = scroller.getBoundingClientRect();
+    return { scrollTop: scroller.scrollTop, x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+  });
+}
+
+async function scrollCatalogueUp(page: Page): Promise<void> {
+  const catalogue = page.getByTestId('add-exercise-catalogue');
+  const before = await catalogueScrollMetrics(page);
+  const after = await catalogue.evaluate((element) => {
+    const nodes: HTMLElement[] = [element as HTMLElement, ...Array.from(element.querySelectorAll<HTMLElement>('*'))];
+    for (let parent = element.parentElement; parent; parent = parent.parentElement) nodes.push(parent);
+    const scroller = nodes.find((node) => {
+      const style = window.getComputedStyle(node);
+      return node.scrollHeight > node.clientHeight + 24 && /auto|scroll/.test(style.overflowY);
+    });
+    if (!scroller) throw new Error('Expected the add-exercise catalogue to expose a vertical scroll container');
+    scroller.scrollBy({ top: Math.max(180, scroller.clientHeight * 0.62) });
+    return scroller.scrollTop;
+  });
+  expect(after).toBeGreaterThan(before.scrollTop + 24);
 }
 
 async function startBlankWorkout(page: Page): Promise<void> {
@@ -121,8 +150,9 @@ test.describe('Active workout flow', () => {
     await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
 
     await expect(page.getByText('Barbell Bench Press', { exact: true })).toBeVisible();
-    await expect(page.getByLabel(/^Weight for set/)).toHaveCount(3);
-    await page.getByLabel('Weight for set 1').fill('60');
+    await expect(page.getByText('Flat · Barbell', { exact: true })).toBeVisible();
+    await expect(page.getByLabel(/^Kg for set/)).toHaveCount(3);
+    await page.getByLabel('Kg for set 1').fill('60');
     await page.getByLabel('Reps for set 1').fill('8');
     await page.getByLabel('Complete set 1').click();
 
@@ -139,7 +169,7 @@ test.describe('Active workout flow', () => {
     await page.getByRole('button', { name: 'Add exercise' }).click();
 
     const search = page.getByLabel('Search exercises');
-    const benchPress = page.getByRole('button', { name: 'Bench Press, 6 variations', exact: true });
+    const benchPress = page.getByRole('button', { name: 'Bench Press & 3 variations', exact: true });
     await revealCatalogueItem(page, benchPress);
     await expect(page.getByText('Chest', { exact: true })).toBeVisible();
     await expect(page.getByText('Chest · 12', { exact: true })).toHaveCount(0);
@@ -161,7 +191,43 @@ test.describe('Active workout flow', () => {
     await search.fill('bench press');
     await revealCatalogueItem(page, benchPress);
     await benchPress.click();
-    await expect(page.getByRole('checkbox')).toHaveCount(7);
+    await expect(page.getByRole('checkbox')).toHaveCount(5);
+  });
+
+  test('distinguishes assisted machine movements and avoids repeating variation metadata', async ({ page }, testInfo) => {
+    await page.goto('/');
+    await startBlankWorkout(page);
+    await page.getByRole('button', { name: 'Add exercise' }).click();
+
+    const search = page.getByLabel('Search exercises');
+    await search.fill('dip');
+    const dip = page.getByRole('button', { name: 'Dip & 4 variations', exact: true });
+    await revealCatalogueItem(page, dip);
+    await dip.click();
+    await expect(page.getByRole('checkbox', { name: 'Dip, Machine · Assisted' })).toBeVisible();
+
+    await search.fill('weighted dip');
+    await page.getByRole('checkbox', { name: 'Dip, variation' }).click({ force: true });
+    await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
+    await expect(page.getByText('Weighted Dip', { exact: true })).toBeVisible();
+    await expect(page.getByText('Dip Bars', { exact: true })).toBeVisible();
+    await expect(page.getByText('Weighted · Dip Bars', { exact: true })).toHaveCount(0);
+    await page.screenshot({ path: testInfo.outputPath('weighted-dip-metadata.png'), fullPage: true });
+  });
+
+  test('keeps the picker open and exposes selectable exercises after catalogue scrolling', async ({ page }) => {
+    await page.goto('/');
+    await startBlankWorkout(page);
+    await page.getByRole('button', { name: 'Add exercise' }).click();
+
+    const picker = page.getByTestId('add-exercise-sheet-surface');
+    await scrollCatalogueUp(page);
+
+    await expect(picker).toBeVisible();
+    const revealedSelection = page.getByTestId('add-exercise-catalogue').getByRole('checkbox').first();
+    await expect(revealedSelection).toBeVisible();
+    await revealedSelection.click();
+    await expect(page.getByText('Add exercises (1)', { exact: true })).toBeVisible();
   });
 
   test('opens the pre-derived Add Exercises catalogue promptly', async ({ page }, testInfo) => {
@@ -170,17 +236,25 @@ test.describe('Active workout flow', () => {
     const picker = page.getByTestId('add-exercise-sheet-surface');
     await page.evaluate(() => performance.mark('add-exercise-open'));
     await page.getByRole('button', { name: 'Add exercise' }).click();
-    await expect(picker).toBeVisible();
-    await expect.poll(async () => (await picker.boundingBox())?.y ?? Infinity).toBeLessThan(
-      (page.viewportSize()?.height ?? 0) * 0.1 + 8,
-    );
-    await expect(page.getByLabel('Search exercises')).toBeEditable();
-    const pickerReadyMs = await page.evaluate(() => {
-      const openedAt = performance.getEntriesByName('add-exercise-open').at(-1)?.startTime ?? 0;
-      return performance.now() - openedAt;
+    const pickerReadyMs = await page.evaluate(async () => {
+      const openedAt = performance.getEntriesByName('add-exercise-open').at(-1)?.startTime ?? performance.now();
+      return new Promise<number>((resolve, reject) => {
+        const deadline = performance.now() + 1_500;
+        const check = () => {
+          const surface = document.querySelector('[data-testid="add-exercise-sheet-surface"]');
+          const search = document.querySelector('[aria-label="Search exercises"]') as HTMLInputElement | null;
+          const settled = surface && surface.getBoundingClientRect().y < window.innerHeight * 0.1 + 8;
+          const usable = Boolean(search && !search.disabled && surface && surface.querySelectorAll('[role="button"]').length > 3);
+          if (settled && usable) return resolve(performance.now() - openedAt);
+          if (performance.now() >= deadline) return reject(new Error('The Add Exercises picker did not become settled and usable.'));
+          requestAnimationFrame(check);
+        };
+        requestAnimationFrame(check);
+      });
     });
-    expect(pickerReadyMs).toBeLessThan(600);
-    await expect.poll(async () => picker.getByRole('button').count()).toBeGreaterThan(3);
+    expect(pickerReadyMs).toBeLessThanOrEqual(600);
+    await expect(picker).toBeVisible();
+    await expect(page.getByLabel('Search exercises')).toBeEditable();
     await page.waitForTimeout(220);
     await page.screenshot({ path: testInfo.outputPath('add-exercises-catalogue-ready.png') });
   });

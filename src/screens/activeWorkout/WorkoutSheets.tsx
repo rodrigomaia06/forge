@@ -29,7 +29,8 @@ import { CompletionCheck } from './CompletionCheck';
 import { animateLayout, lightHaptic, mediumHaptic, selectionHaptic } from './activeWorkoutFeedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { WorkoutExercise } from '../../types';
-import { catalogFacets, filterCatalog, groupCatalogByEquipment } from '../../domain/exercises/catalogSelectors';
+import { catalogFacets, filterCatalog, groupCatalogByPrimaryEquipment } from '../../domain/exercises/catalogSelectors';
+import { formatPickerPrimaryEquipment } from '../../domain/exercises/exercisePresentation';
 import {
   catalogFilterCount,
   emptyCatalogFilters,
@@ -115,6 +116,7 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   }, [filteredExercises]);
   const activeFilterCount = catalogFilterCount(filters);
   const toggleExercise = useCallback((exercise: ExerciseCatalogItem): void => {
+    Keyboard.dismiss();
     lightHaptic();
     setSelected((current) => {
       const next = new Set(current);
@@ -124,12 +126,14 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
     });
   }, []);
   const toggleGroup = useCallback((key: string, expanded: boolean): void => {
+    Keyboard.dismiss();
     selectionHaptic();
     animateLayout();
     setExpandedGroup(expanded ? null : key);
     setExpandedEquipment(null);
   }, []);
   const toggleEquipment = useCallback((key: string, expanded: boolean): void => {
+    Keyboard.dismiss();
     selectionHaptic();
     animateLayout();
     setExpandedEquipment(expanded ? null : key);
@@ -164,10 +168,12 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
       onClose={onClose}
       onCloseStart={reset}
       accessibilityLabel="Close add exercises"
-      initialOffset={520}
+      initialOffset={360}
       closeDistance={520}
       dismissThreshold={260}
       keyboardAvoiding
+      // The catalogue owns vertical drags, including when the search keyboard is open.
+      dismissTextKeyboardOnTap={false}
       surfaceTestID="add-exercise-sheet-surface"
       style={styles.pickerSheet}
     >
@@ -258,7 +264,6 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
             keyboardDismissMode="on-drag"
             keyboardShouldPersistTaps="handled"
             onScrollBeginDrag={Keyboard.dismiss}
-            onTouchStart={Keyboard.dismiss}
             showsVerticalScrollIndicator={false}
             renderItem={({ item }) => (
               <CatalogCategory
@@ -333,7 +338,7 @@ const CatalogCategory = React.memo(function CatalogCategory({
           const expanded = expandedGroup === groupKey;
           const selectedCount = variations.filter((exercise) => selected.has(exercise.id)).length;
           const equipmentGroups = expanded
-            ? groupCatalogByEquipment(variations).map(([equipment, exercises]) => ({ equipment, exercises }))
+            ? groupCatalogByPrimaryEquipment(variations).map(([equipment, exercises]) => ({ equipment, exercises }))
             : [];
 
           if (variations.length === 1) {
@@ -371,7 +376,7 @@ const CatalogCategory = React.memo(function CatalogCategory({
             <View key={group} style={styles.exerciseGroup}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`${group}, ${variations.length} variations`}
+                accessibilityLabel={`${group} & ${variations.length} variations`}
                 unstable_pressDelay={80}
                 onPress={() => onToggleGroup(groupKey, expanded)}
                 style={({ pressed }) => [
@@ -402,12 +407,13 @@ const CatalogCategory = React.memo(function CatalogCategory({
 
                 if (!hasSubVariations) {
                   const exercise = exercises[0];
+                  const equipmentLabel = formatPickerPrimaryEquipment(exercise, equipment);
                   const isSelected = selected.has(exercise.id);
                   return (
                     <Pressable
                       key={equipment}
                       accessibilityRole="checkbox"
-                      accessibilityLabel={`${group}, ${equipment}`}
+                      accessibilityLabel={`${group}, ${equipmentLabel}`}
                       accessibilityState={{ checked: isSelected }}
                       unstable_pressDelay={80}
                       onPress={() => onToggleExercise(exercise)}
@@ -417,7 +423,7 @@ const CatalogCategory = React.memo(function CatalogCategory({
                         pressed && styles.exerciseOptionPressed,
                       ]}
                     >
-                      <Text style={styles.equipmentName}>{equipment}</Text>
+                      <Text style={styles.equipmentName}>{equipmentLabel}</Text>
                       <CompletionCheck
                         selected={isSelected}
                         tone="selection"
@@ -431,7 +437,7 @@ const CatalogCategory = React.memo(function CatalogCategory({
                   <View key={equipment} style={styles.equipmentGroup}>
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`${equipment}, ${exercises.length} variations`}
+                      accessibilityLabel={`${equipment} & ${exercises.length} variations`}
                       unstable_pressDelay={80}
                       onPress={() => onToggleEquipment(equipmentKey, equipmentExpanded)}
                       style={({ pressed }) => [styles.equipmentRow, pressed && styles.exerciseOptionPressed]}

@@ -26,6 +26,7 @@ import { ExerciseOptionsSheet } from './WorkoutSheets';
 import type { ExerciseSectionProps } from './activeWorkoutTypes';
 import type { WorkoutExercise, WorkoutSet } from '../../types';
 import { measurementText, trackingFieldLabel, trackingFields } from '../../domain/exercises/tracking';
+import { formatExerciseMetadata } from '../../domain/exercises/exercisePresentation';
 
 export const ExerciseSection = React.memo(function ExerciseSection({
   exercise,
@@ -43,6 +44,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   collapsible = false,
   forceCollapsed = false,
   showMoreOptions = true,
+  showCatalogMetadata = false,
   showSetCompletion = true,
   onSetInputFocus,
 }: ExerciseSectionProps) {
@@ -55,6 +57,9 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   const cardTranslateX = useSharedValue(deleteRevealed ? -deleteActionWidth : 0);
   const cardOpen = useSharedValue(deleteRevealed);
   const suppressDeletePress = useRef(false);
+  const catalogMetadata = showCatalogMetadata
+    ? formatExerciseMetadata(exercise.exerciseSnapshot)
+    : null;
 
   useEffect(() => {
     cardOpen.value = deleteRevealed;
@@ -192,11 +197,18 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 </View>
               </Pressable>
             ) : (
-              <View style={[styles.exerciseHeader, size === 'large' && styles.exerciseHeaderLarge]}>
+              <View style={[styles.exerciseHeader, catalogMetadata && styles.exerciseHeaderWithMetadata, size === 'large' && styles.exerciseHeaderLarge]}>
                 {dragHandle}
-                <Text style={[styles.exerciseName, size === 'large' && styles.exerciseNameLarge]}>
-                  {exercise.name}
-                </Text>
+                <View style={styles.exerciseCopy}>
+                  <Text style={[styles.exerciseName, size === 'large' && styles.exerciseNameLarge]}>
+                    {exercise.name}
+                  </Text>
+                  {catalogMetadata && (
+                    <Text numberOfLines={1} style={styles.exerciseMetadata}>
+                      {catalogMetadata}
+                    </Text>
+                  )}
+                </View>
                 {showMoreOptions && (
                   <Pressable
                     accessibilityRole="button"
@@ -510,6 +522,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       gap: 8,
     },
     exerciseHeaderLarge: { minHeight: 42 },
+    exerciseHeaderWithMetadata: { minHeight: 48, paddingVertical: 4 },
     collapsibleExerciseHeader: {
       minHeight: 64,
       paddingHorizontal: 12,
@@ -526,10 +539,11 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       borderTopColor: dashboardTheme.border,
     },
     exerciseName: {
-      flex: 1,
       color: dashboardTheme.ink,
       ...typeScale.cardTitle,
     },
+    exerciseCopy: { flex: 1, minWidth: 0, justifyContent: 'center' },
+    exerciseMetadata: { marginTop: 1, color: dashboardTheme.slate, ...typeScale.supporting },
     exerciseNameLarge: typeScale.sectionTitle,
     moreButton: {
       width: 44,

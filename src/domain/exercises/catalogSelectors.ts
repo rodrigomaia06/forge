@@ -30,6 +30,18 @@ export function groupCatalogByMovement(items: ExerciseCatalogItem[]): [string, E
   return Object.entries(items.reduce<Record<string, ExerciseCatalogItem[]>>((groups, item) => { (groups[item.group] ??= []).push(item); return groups; }, {}));
 }
 
-export function groupCatalogByEquipment(items: ExerciseCatalogItem[]): [string, ExerciseCatalogItem[]][] {
-  return Object.entries(items.reduce<Record<string, ExerciseCatalogItem[]>>((groups, item) => { (groups[item.equipment] ??= []).push(item); return groups; }, {}));
+/**
+ * The picker exposes the load-bearing equipment as its child hierarchy. Support
+ * equipment stays on the catalogue item for filtering, search, and snapshots.
+ */
+export function groupCatalogByPrimaryEquipment(items: ExerciseCatalogItem[]): [string, ExerciseCatalogItem[]][] {
+  const groups = items.reduce<Record<string, ExerciseCatalogItem[]>>((current, item) => {
+    const primaryEquipment = item.primaryEquipment ?? item.equipment;
+    (current[primaryEquipment] ??= []).push(item);
+    return current;
+  }, {});
+  return Object.entries(groups).map(([equipment, exercises]) => [
+    taxonomyLabel('equipment', equipment),
+    exercises,
+  ]);
 }

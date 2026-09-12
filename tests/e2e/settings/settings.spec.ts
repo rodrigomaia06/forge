@@ -40,12 +40,12 @@ test.describe('Settings', () => {
 
     await page.getByRole('button', { name: 'Exercises' }).click();
     await expect(page.getByTestId('settings-detail-title')).toHaveText('Exercises');
-    await expect(page.getByRole('button', { name: 'All exercises, 21 exercises' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Strength, 21 exercises' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Mobility, 0 exercises' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Cardio, 0 exercises' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Court sport, 0 exercises' })).toBeVisible();
-    await page.getByRole('button', { name: 'Strength, 21 exercises' }).click();
+    await expect(page.getByRole('button', { name: 'All exercises, 381 exercises' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Strength, 255 exercises' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Mobility, 37 exercises' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cardio, 37 exercises' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Court sport, 13 exercises' })).toBeVisible();
+    await page.getByRole('button', { name: 'Strength, 255 exercises' }).click();
     await expect(page.getByTestId('settings-detail-title').last()).toHaveText('Strength');
     await page.getByRole('button', { name: 'Back to Exercises' }).click();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
@@ -96,8 +96,8 @@ test.describe('Settings', () => {
     const libraryRow = page.getByTestId('exercise-library-type-strength');
     await expectRowHeight(libraryRow, 68);
     await expectFontSize(page.getByTestId('exercise-library-type-strength-title'), 16);
-    await page.getByRole('button', { name: 'All exercises, 21 exercises' }).click();
-    const movementRow = page.getByRole('button', { name: 'Bench Press, 4 variations' });
+    await page.getByRole('button', { name: 'All exercises, 381 exercises' }).click();
+    const movementRow = page.getByRole('button', { name: 'Bench Press & 4 variations' });
     await expectRowHeight(movementRow, 68);
     await expectFontSize(page.getByText('Bench Press', { exact: true }), 16);
 

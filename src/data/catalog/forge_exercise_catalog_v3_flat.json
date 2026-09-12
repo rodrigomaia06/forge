@@ -576,7 +576,6 @@
         "bike"
       ],
       "primaryEquipment": "bike",
-      "variation": "Air Bike",
       "primaryMuscle": "cardiovascular",
       "secondaryMuscles": [
         "quads",
@@ -645,7 +644,6 @@
         "mat"
       ],
       "primaryEquipment": "mat",
-      "variation": "Animal Flow",
       "primaryMuscle": "full-body",
       "workoutTypeIds": [
         "mobility"
@@ -1575,8 +1573,8 @@
     {
       "id": "floor-press-barbell",
       "name": "Barbell Floor Press",
-      "familyId": "bench-press",
-      "group": "Bench Press",
+      "familyId": "floor-press",
+      "group": "Floor Press",
       "category": "chest",
       "bodyRegion": "upper-body",
       "equipment": [
@@ -2235,7 +2233,6 @@
         "none"
       ],
       "primaryEquipment": "none",
-      "variation": "Bear Crawl",
       "primaryMuscle": "cardiovascular",
       "secondaryMuscles": [
         "full-body"
@@ -2505,7 +2502,6 @@
         "box"
       ],
       "primaryEquipment": "box",
-      "variation": "Box Jump",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "glutes",
@@ -2641,7 +2637,6 @@
         "none"
       ],
       "primaryEquipment": "none",
-      "variation": "Broad Jump",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "glutes",
@@ -3209,7 +3204,6 @@
         "bench"
       ],
       "primaryEquipment": "cable",
-      "variation": "Cable Skull Crusher",
       "primaryMuscle": "triceps",
       "workoutTypeIds": [
         "strength"
@@ -3368,7 +3362,6 @@
         "none"
       ],
       "primaryEquipment": "none",
-      "variation": "Calf Stretch",
       "primaryMuscle": "calves",
       "secondaryMuscles": [
         "tibialis"
@@ -3432,7 +3425,6 @@
         "mat"
       ],
       "primaryEquipment": "mat",
-      "variation": "Cat-Cow",
       "primaryMuscle": "lower-back",
       "secondaryMuscles": [
         "abs",
@@ -3569,7 +3561,6 @@
         "mat"
       ],
       "primaryEquipment": "mat",
-      "variation": "Child's Pose",
       "primaryMuscle": "lower-back",
       "secondaryMuscles": [
         "abs",
@@ -3639,7 +3630,6 @@
         "mini-band"
       ],
       "primaryEquipment": "mini-band",
-      "variation": "Clamshell",
       "primaryMuscle": "abductors",
       "secondaryMuscles": [
         "glutes"
@@ -3703,7 +3693,6 @@
         "barbell"
       ],
       "primaryEquipment": "barbell",
-      "variation": "Clean and Jerk",
       "primaryMuscle": "full-body",
       "secondaryMuscles": [
         "front-delts",
@@ -4118,7 +4107,6 @@
         "pull-up-bar"
       ],
       "primaryEquipment": "pull-up-bar",
-      "variation": "Dead Hang",
       "primaryMuscle": "forearms",
       "secondaryMuscles": [
         "traps"
@@ -4356,7 +4344,6 @@
         "box"
       ],
       "primaryEquipment": "box",
-      "variation": "Depth Jump",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "glutes",
@@ -4628,8 +4615,8 @@
     {
       "id": "floor-press-dumbbell",
       "name": "Dumbbell Floor Press",
-      "familyId": "bench-press",
-      "group": "Bench Press",
+      "familyId": "floor-press",
+      "group": "Floor Press",
       "category": "chest",
       "bodyRegion": "upper-body",
       "equipment": [
@@ -5246,7 +5233,6 @@
         "bench"
       ],
       "primaryEquipment": "dumbbell",
-      "variation": "Dumbbell Skull Crusher",
       "primaryMuscle": "triceps",
       "workoutTypeIds": [
         "strength"
@@ -6011,7 +5997,6 @@
         "mat"
       ],
       "primaryEquipment": "mat",
-      "variation": "Frog Stretch",
       "primaryMuscle": "glutes",
       "secondaryMuscles": [
         "adductors",
@@ -6391,7 +6376,6 @@
         "heavy-bag"
       ],
       "primaryEquipment": "heavy-bag",
-      "variation": "Heavy Bag",
       "primaryMuscle": "full-body",
       "secondaryMuscles": [
         "front-delts",
@@ -6424,7 +6408,6 @@
         "none"
       ],
       "primaryEquipment": "none",
-      "variation": "High Knees",
       "primaryMuscle": "cardiovascular",
       "secondaryMuscles": [
         "full-body"
@@ -6455,7 +6438,6 @@
         "mat"
       ],
       "primaryEquipment": "mat",
-      "variation": "High Plank",
       "primaryMuscle": "abs",
       "secondaryMuscles": [
         "obliques",
@@ -7151,7 +7133,6 @@
         "none"
       ],
       "primaryEquipment": "none",
-      "variation": "Jumping Jacks",
       "primaryMuscle": "cardiovascular",
       "secondaryMuscles": [
         "full-body"
@@ -7703,7 +7684,6 @@
         "none"
       ],
       "primaryEquipment": "none",
-      "variation": "Lateral Bound",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "glutes",
@@ -7987,8 +7967,8 @@
     {
       "id": "machine-chest-press",
       "name": "Machine Chest Press",
-      "familyId": "bench-press",
-      "group": "Bench Press",
+      "familyId": "chest-press",
+      "group": "Chest Press",
       "category": "chest",
       "bodyRegion": "upper-body",
       "equipment": [
@@ -8580,7 +8560,6 @@
         "none"
       ],
       "primaryEquipment": "none",
-      "variation": "Mountain Climber",
       "primaryMuscle": "cardiovascular",
       "secondaryMuscles": [
         "full-body"
@@ -9685,7 +9664,6 @@
         "barbell"
       ],
       "primaryEquipment": "barbell",
-      "variation": "Push Jerk",
       "primaryMuscle": "full-body",
       "secondaryMuscles": [
         "front-delts",
@@ -9719,7 +9697,6 @@
         "barbell"
       ],
       "primaryEquipment": "barbell",
-      "variation": "Push Press",
       "primaryMuscle": "full-body",
       "secondaryMuscles": [
         "front-delts",
@@ -9819,7 +9796,6 @@
         "rack"
       ],
       "primaryEquipment": "barbell",
-      "variation": "Rack Pull",
       "primaryMuscle": "hamstrings",
       "secondaryMuscles": [
         "glutes",
@@ -10232,7 +10208,6 @@
         "pull-up-bar"
       ],
       "primaryEquipment": "pull-up-bar",
-      "variation": "Scapular Pull-Up",
       "primaryMuscle": "front-delts",
       "secondaryMuscles": [
         "rear-delts",
@@ -10265,7 +10240,6 @@
         "none"
       ],
       "primaryEquipment": "none",
-      "variation": "Scapular Push-Up",
       "primaryMuscle": "front-delts",
       "secondaryMuscles": [
         "rear-delts",
@@ -10434,7 +10408,6 @@
         "none"
       ],
       "primaryEquipment": "none",
-      "variation": "Shadowboxing",
       "primaryMuscle": "full-body",
       "secondaryMuscles": [
         "front-delts",
@@ -10535,7 +10508,6 @@
         "track"
       ],
       "primaryEquipment": "track",
-      "variation": "Shuttle Run",
       "primaryMuscle": "cardiovascular",
       "secondaryMuscles": [
         "full-body"
@@ -11551,7 +11523,6 @@
         "barbell"
       ],
       "primaryEquipment": "barbell",
-      "variation": "Split Jerk",
       "primaryMuscle": "full-body",
       "secondaryMuscles": [
         "front-delts",
@@ -11585,7 +11556,6 @@
         "track"
       ],
       "primaryEquipment": "track",
-      "variation": "Sprint",
       "primaryMuscle": "cardiovascular",
       "secondaryMuscles": [
         "quads",
@@ -11622,7 +11592,6 @@
         "none"
       ],
       "primaryEquipment": "none",
-      "variation": "Squat Jump",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "glutes",
@@ -12280,7 +12249,6 @@
         "mat"
       ],
       "primaryEquipment": "mat",
-      "variation": "Thoracic Rotation",
       "primaryMuscle": "lower-back",
       "secondaryMuscles": [
         "abs",
@@ -12627,7 +12595,6 @@
         "none"
       ],
       "primaryEquipment": "none",
-      "variation": "Tuck Jump",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "glutes",
@@ -12827,7 +12794,6 @@
         "medicine-ball"
       ],
       "primaryEquipment": "medicine-ball",
-      "variation": "Wall Ball",
       "primaryMuscle": "full-body",
       "secondaryMuscles": [
         "abs",
@@ -12896,7 +12862,6 @@
         "none"
       ],
       "primaryEquipment": "none",
-      "variation": "Wall Slides",
       "primaryMuscle": "front-delts",
       "secondaryMuscles": [
         "rear-delts",
@@ -12964,7 +12929,6 @@
         "pull-up-bar"
       ],
       "primaryEquipment": "pull-up-bar",
-      "variation": "Weighted Chin-Up",
       "primaryMuscle": "lats",
       "secondaryMuscles": [
         "biceps",

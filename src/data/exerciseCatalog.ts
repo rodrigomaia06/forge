@@ -12,7 +12,7 @@ export function taxonomyLabel(kind: 'categories' | 'muscles' | 'equipment', id: 
 }
 export const exerciseCatalog: ExerciseCatalogItem[] = bundledExercises.map((exercise) => ({
   ...exercise,
-  equipment: exercise.equipment.map((id) => taxonomyLabel('equipment', id)).join(', '),
+  equipment: exercise.equipment.map((id) => taxonomyLabel('equipment', id)).join(' & '),
   equipmentIds: exercise.equipment,
   category: taxonomyLabel('categories', exercise.category),
   primaryMuscle: taxonomyLabel('muscles', exercise.primaryMuscle),

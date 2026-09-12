@@ -53,6 +53,7 @@ import {
 } from '../state/workoutMutations';
 import type { RootStackParamList, Workout } from '../types';
 import { workoutTypeIcon } from './settings/workoutTypeIcon';
+import { createExerciseSnapshot } from '../domain/exercises/exerciseSnapshot';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'HistoryWorkoutEditor'>;
 
@@ -380,7 +381,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         onClose={() => setAddExerciseOpen(false)}
         onSubmit={(exercises) => {
           exercises.forEach((exercise) =>
-            updateDraft((current) => addExerciseToWorkout(current, { exerciseId: exercise.id, name: exercise.name, trackingType: exercise.trackingType, exerciseSnapshot: { id: exercise.id, name: exercise.name, catalogueVersion: 3, trackingType: exercise.trackingType ?? 'weight-reps' } }) as Workout),
+            updateDraft((current) => addExerciseToWorkout(current, { exerciseId: exercise.id, name: exercise.name, trackingType: exercise.trackingType, exerciseSnapshot: createExerciseSnapshot(exercise) }) as Workout),
           );
           setAddExerciseOpen(false);
         }}

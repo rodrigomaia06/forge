@@ -110,7 +110,7 @@ test.describe('Forge screen captures', () => {
     await capture(page, 'settings-exercise-filter-sheet');
 
     await page.getByRole('button', { name: 'Done' }).click();
-    await page.getByRole('button', { name: 'Bench Press, 4 variations' }).click();
+    await page.getByRole('button', { name: 'Bench Press & 4 variations' }).click();
     await page.getByRole('button', { name: 'Standard' }).click();
     await capture(page, 'settings-exercise-detail');
     await page.getByRole('button', { name: 'Change rest time, currently Default' }).click();
@@ -221,12 +221,16 @@ test.describe('Forge screen captures', () => {
     await capture(page, 'live-workout');
 
     await page.getByRole('button', { name: 'Add exercise' }).click();
-    await page.getByRole('button', { name: 'Bench Press, 4 variations', exact: true }).click();
-    await page.getByRole('button', { name: 'Barbell, 2 variations', exact: true }).click();
+    await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
+    await capture(page, 'add-exercises-catalogue');
+    await page.getByLabel('Search exercises').fill('bench press');
+    await page.getByRole('button', { name: 'Bench Press & 3 variations', exact: true }).click();
+    await capture(page, 'add-exercises-bench-press');
     await page
-      .getByRole('checkbox', { name: 'Bench Press, Barbell, Standard' })
+      .getByRole('checkbox', { name: 'Bench Press, Barbell' })
       .click({ force: true });
     await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
+    await capture(page, 'live-workout-exercise-metadata');
     await page.getByLabel('Open details for set 1').click();
     await expect(page.getByText('TYPE', { exact: true })).toBeVisible();
     await capture(page, 'set-options');

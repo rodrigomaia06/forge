@@ -33,7 +33,7 @@ export interface WorkoutExercise {
   sets: WorkoutSet[];
 }
 export type TrackingType = 'weight-reps' | 'bodyweight-reps' | 'weighted-bodyweight' | 'assisted-bodyweight' | 'reps-only' | 'duration' | 'duration-weight' | 'distance-duration' | 'weight-distance';
-export interface ExerciseSnapshot { id?: string; name: string; catalogueVersion?: number; trackingType: TrackingType; familyId?: string; equipment?: string[]; workoutTypeIds?: string[]; category?: string; bodyRegion?: string; primaryMuscle?: string; secondaryMuscles?: string[]; aliases?: string[]; searchTerms?: string[]; movementPattern?: string; }
+export interface ExerciseSnapshot { id?: string; name: string; catalogueVersion?: number; trackingType: TrackingType; familyId?: string; group?: string; variation?: string; equipment?: string[]; primaryEquipment?: string; workoutTypeIds?: string[]; category?: string; bodyRegion?: string; primaryMuscle?: string; secondaryMuscles?: string[]; aliases?: string[]; searchTerms?: string[]; movementPattern?: string; }
 
 export interface Workout {
   id: string;

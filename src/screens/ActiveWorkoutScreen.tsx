@@ -44,6 +44,7 @@ import { createActiveWorkoutStyles } from './activeWorkout/activeWorkoutStyles';
 import { useFocusedSetKeyboardLift } from './activeWorkout/useFocusedSetKeyboardLift';
 import { typeScale } from '../theme/tokens';
 import { calendarDateKey } from '../domain/workouts/calendarDate';
+import { createExerciseSnapshot } from '../domain/exercises/exerciseSnapshot';
 import { workoutTypeIcon } from './settings/workoutTypeIcon';
 
 type ActiveWorkoutScreenProps = RootTabScreenProps<'ActiveWorkout'>;
@@ -172,7 +173,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   const handleAddExercises = useCallback(
     (exercises: import('../data/exerciseCatalog').ExerciseCatalogItem[]) => {
       lightHaptic();
-      addExercises(exercises.map((exercise) => ({ exerciseId: exercise.id, name: exercise.name, trackingType: exercise.trackingType, exerciseSnapshot: { id: exercise.id, name: exercise.name, catalogueVersion: 3, trackingType: exercise.trackingType ?? 'weight-reps', familyId: exercise.familyId, equipment: exercise.equipmentIds, workoutTypeIds: exercise.workoutTypeIds, category: exercise.category, bodyRegion: exercise.bodyRegion, primaryMuscle: exercise.primaryMuscle, secondaryMuscles: exercise.secondaryMuscles, aliases: exercise.aliases, searchTerms: exercise.searchTerms, movementPattern: exercise.movementPattern } })));
+      addExercises(exercises.map((exercise) => ({ exerciseId: exercise.id, name: exercise.name, trackingType: exercise.trackingType, exerciseSnapshot: createExerciseSnapshot(exercise) })));
       setSheetOpen(false);
     },
     [addExercises],
@@ -566,6 +567,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
         updateSet={updateSet}
         toggleSet={toggleSet}
         onSetCompleted={onSetCompleted}
+        showCatalogMetadata
         onSetInputFocus={onSetInputFocus}
         deleteRevealed={openExerciseId === item.id}
         onDeleteRevealChange={handleExerciseDeleteReveal}

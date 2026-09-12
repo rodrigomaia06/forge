@@ -42,6 +42,7 @@ import { typeScale } from '../theme/tokens';
 import { usePlans } from '../state/PlansContext';
 import { useSettings } from '../state/SettingsContext';
 import { makeWorkoutId } from '../state/workoutMutations';
+import { createExerciseSnapshot } from '../domain/exercises/exerciseSnapshot';
 import type { ExerciseCatalogItem } from '../data/exerciseCatalog';
 import type {
   RootStackParamList,
@@ -142,7 +143,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           exerciseId: exercise.id,
           name: exercise.name,
           trackingType: exercise.trackingType,
-          exerciseSnapshot: { id: exercise.id, name: exercise.name, catalogueVersion: 3, trackingType: exercise.trackingType ?? 'weight-reps', familyId: exercise.familyId, equipment: exercise.equipmentIds, workoutTypeIds: exercise.workoutTypeIds, category: exercise.category, bodyRegion: exercise.bodyRegion, primaryMuscle: exercise.primaryMuscle, secondaryMuscles: exercise.secondaryMuscles, aliases: exercise.aliases, searchTerms: exercise.searchTerms, movementPattern: exercise.movementPattern },
+          exerciseSnapshot: createExerciseSnapshot(exercise),
           sets: Array.from({ length: 3 }, () => ({
             id: makeWorkoutId('routine-set'),
             weight: '',

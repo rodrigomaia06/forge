@@ -24,6 +24,8 @@ export interface ExerciseSectionProps {
   /** A parent reorder gesture collapses compact exercise cards before movement begins. */
   forceCollapsed?: boolean;
   showMoreOptions?: boolean;
+  /** Live Workout presents saved catalogue variation and primary equipment beneath the canonical name. */
+  showCatalogMetadata?: boolean;
   /** Routine drafts do not record completed sets. */
   showSetCompletion?: boolean;
   /** Lets an owning editor keep a focused set input clear of its keyboard. */

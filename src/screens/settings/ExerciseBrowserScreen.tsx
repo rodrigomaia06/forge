@@ -959,7 +959,7 @@ function Movement({
       <SettingsRow
         title={group}
         subtitle={`${items.length} ${items.length === 1 ? 'variation' : 'variations'}`}
-        accessibilityLabel={`${group}, ${items.length} variations`}
+        accessibilityLabel={`${group} & ${items.length} variations`}
         accessibilityState={{ expanded }}
         onPress={onToggle}
         haptic="none"

@@ -1,13 +1,16 @@
 import { expect, test } from '@playwright/test';
 import { REST_DURATION_OPTIONS } from '../../src/domain/rest/restDurationOptions';
-import { catalogFacets, filterCatalog, groupCatalogByEquipment, groupCatalogByMovement } from '../../src/domain/exercises/catalogSelectors';
-import { exerciseCatalog } from '../../src/data/exerciseCatalog';
+import { catalogFacets, filterCatalog, groupCatalogByPrimaryEquipment, groupCatalogByMovement } from '../../src/domain/exercises/catalogSelectors';
+import { exerciseCatalog, taxonomyLabel } from '../../src/data/exerciseCatalog';
 import { countWorkoutSets, formatCompactDuration, getWorkoutTypePresentation } from '../../src/domain/workouts/presentation';
 import { defaultSettingsPreferences } from '../../src/data/settingsDefaults';
 import { lightTheme } from '../../src/theme/tokens';
-import { bundledExercises, bundledLegacyIdMap, bundledCatalogVersion } from '../../src/data/catalog/loadCatalog';
+import { bundledExercises, bundledLegacyIdMap, bundledCatalogVersion, validateCatalog } from '../../src/data/catalog/loadCatalog';
+import catalogSource from '../../src/data/catalog/forge_exercise_catalog_v3_flat.json';
 import { trackingFields } from '../../src/domain/exercises/tracking';
 import { addExercisesToWorkout, createWorkout } from '../../src/state/workoutMutations';
+import { createExerciseSnapshot } from '../../src/domain/exercises/exerciseSnapshot';
+import { formatExerciseMetadata, formatPickerPrimaryEquipment } from '../../src/domain/exercises/exercisePresentation';
 
 test('formats compact workout durations and counts sets', () => {
   expect([0, 59, 3600, 4320].map(formatCompactDuration)).toEqual(['1m', '1m', '1h', '1h 12m']);
@@ -46,26 +49,74 @@ test('presents saved, fallback, custom, and unknown workout types consistently',
 
 test('filters and groups exercise catalog entries without changing feature selection state', () => {
   const items = [
-    { id: 'bench', name: 'Close grip', group: 'Bench Press', equipment: 'Barbell', category: 'Chest', primaryMuscle: 'Triceps', secondaryMuscles: ['Chest'], aliases: ['press'], workoutTypeIds: ['strength'] },
-    { id: 'pec', name: 'Pec Deck', group: 'Pec Deck', equipment: 'Machine', category: 'Chest', primaryMuscle: 'Chest', secondaryMuscles: [], aliases: ['fly'], workoutTypeIds: ['strength'] },
+    { id: 'bench', name: 'Close grip', group: 'Bench Cluster', equipment: 'Barbell & Bench', equipmentIds: ['barbell', 'bench'], primaryEquipment: 'barbell', category: 'Chest', primaryMuscle: 'Triceps', secondaryMuscles: ['Chest'], aliases: ['press'], workoutTypeIds: ['strength'] },
+    { id: 'pec', name: 'Pec Deck', group: 'Pec Deck', equipment: 'Machine', equipmentIds: ['machine'], primaryEquipment: 'machine', category: 'Chest', primaryMuscle: 'Chest', secondaryMuscles: [], aliases: ['fly'], workoutTypeIds: ['strength'] },
   ];
-  expect(filterCatalog(items, { query: 'bench', includeGroupInSearch: false })).toHaveLength(0);
-  expect(filterCatalog(items, { query: 'bench press', includeGroupInSearch: true })).toHaveLength(1);
+  expect(filterCatalog(items, { query: 'cluster', includeGroupInSearch: false })).toHaveLength(0);
+  expect(filterCatalog(items, { query: 'bench cluster', includeGroupInSearch: true })).toHaveLength(1);
   expect(filterCatalog(items, { query: 'fly', equipment: ['Machine'], categories: ['Chest'] })).toEqual([items[1]]);
   expect(filterCatalog(items, { categories: ['Triceps'] })).toEqual([items[0]]);
   expect(filterCatalog(items, { exerciseCategories: ['Chest'] })).toEqual(items);
   expect(filterCatalog([...items, { ...items[0], id: 'conditioning-press', category: 'Cardio' }], { exerciseCategories: ['Chest'] })).toEqual(items);
   expect(filterCatalog(items, { query: 'triceps' })).toEqual([items[0]]);
-  expect(catalogFacets(items)).toEqual({ equipment: ['Barbell', 'Machine'], categories: ['Chest', 'Triceps'] });
-  expect(groupCatalogByMovement(items).map(([name]) => name)).toEqual(['Bench Press', 'Pec Deck']);
-  expect(groupCatalogByEquipment(items).map(([name]) => name)).toEqual(['Barbell', 'Machine']);
+  expect(catalogFacets(items)).toEqual({ equipment: ['Barbell', 'Bench', 'Machine'], categories: ['Chest', 'Triceps'] });
+  expect(groupCatalogByMovement(items).map(([name]) => name)).toEqual(['Bench Cluster', 'Pec Deck']);
+  expect(groupCatalogByPrimaryEquipment(items).map(([name]) => name)).toEqual(['Barbell', 'Machine']);
+  // Support equipment remains an all-equipment filter even though the hierarchy shows Barbell.
+  expect(filterCatalog(items, { equipment: ['Bench'] })).toEqual([items[0]]);
 });
 
-test('ships the validated v3 baseline, legacy dips mapping, and all built-in workout types', () => {
+test('ships the validated v3 baseline, unique picker identities, and all built-in workout types', () => {
   expect(bundledCatalogVersion).toBe(3);
+  expect(bundledExercises).toHaveLength(381);
   expect(new Set(bundledExercises.map((exercise) => exercise.id)).size).toBe(381);
+  const normalize = (value: string) => value.trim().replace(/\s+/g, ' ').toLowerCase();
+  expect(new Set(bundledExercises.map((exercise) => normalize(exercise.name))).size).toBe(381);
+  expect(bundledExercises.some((exercise) => exercise.variation && normalize(exercise.variation) === normalize(exercise.name))).toBe(false);
+  const pickerKeys = bundledExercises.map((exercise) => [
+    normalize(exercise.group),
+    [...exercise.equipment].map(normalize).sort().join('|'),
+    normalize(exercise.variation || exercise.name),
+  ].join('::'));
+  expect(new Set(pickerKeys).size).toBe(381);
+  const byId = new Map(bundledExercises.map((exercise) => [exercise.id, exercise]));
+  expect([...byId.values()].filter((exercise) => exercise.group === 'Bench Press').map((exercise) => exercise.id).sort()).toEqual([
+    'barbell-bench-press',
+    'dumbbell-bench-press',
+    'smith-machine-bench-press',
+  ]);
+  expect(byId.get('floor-press-barbell')).toMatchObject({ familyId: 'floor-press', group: 'Floor Press' });
+  expect(byId.get('floor-press-dumbbell')).toMatchObject({ familyId: 'floor-press', group: 'Floor Press' });
+  expect(byId.get('machine-chest-press')).toMatchObject({ familyId: 'chest-press', group: 'Chest Press' });
+  const benchPresses = exerciseCatalog.filter((exercise) => exercise.group === 'Bench Press');
+  expect(groupCatalogByPrimaryEquipment(benchPresses).map(([equipment]) => equipment)).toEqual([
+    'Barbell',
+    'Dumbbell',
+    'Smith Machine',
+  ]);
+  expect(filterCatalog(exerciseCatalog, { equipment: ['Bench'] }).map((exercise) => exercise.id)).toContain('barbell-bench-press');
   expect(bundledLegacyIdMap.dips).toBe('parallel-bar-dip');
   expect(defaultSettingsPreferences.workoutTypes.map((type) => type.id)).toEqual(['strength', 'calisthenics', 'cardio', 'mobility', 'functional', 'olympic-weightlifting', 'plyometrics', 'court-sport', 'field-sport', 'martial-arts']);
+});
+
+test('rejects duplicate catalogue names and picker labels before release data is exposed', () => {
+  const [first] = catalogSource.exercises;
+  const duplicateName = {
+    ...catalogSource,
+    exercises: catalogSource.exercises.map((exercise, index) => index === 1 ? { ...first, id: 'duplicate-name', name: ` ${first.name} ` } : exercise),
+  };
+  const duplicatePickerLabel = {
+    ...catalogSource,
+    exercises: catalogSource.exercises.map((exercise, index) => index === 1 ? { ...first, id: 'duplicate-picker-label', name: 'Different exercise', variation: first.variation ?? first.name } : exercise),
+  };
+  const redundantVariation = {
+    ...catalogSource,
+    exercises: catalogSource.exercises.map((exercise, index) => index === 0 ? { ...exercise, variation: exercise.name } : exercise),
+  };
+
+  expect(() => validateCatalog(duplicateName as Parameters<typeof validateCatalog>[0])).toThrow('duplicate exercise name');
+  expect(() => validateCatalog(duplicatePickerLabel as Parameters<typeof validateCatalog>[0])).toThrow('duplicates a picker variation');
+  expect(() => validateCatalog(redundantVariation as Parameters<typeof validateCatalog>[0])).toThrow('repeats its name as a variation');
 });
 
 test('tracking modes specify only their applicable measurements and retain an exercise snapshot', () => {
@@ -74,6 +125,45 @@ test('tracking modes specify only their applicable measurements and retain an ex
   const exercise = bundledExercises.find((item) => item.id === 'parallel-bar-dip')!;
   const workout = createWorkout({ exercises: [{ exerciseId: exercise.id, name: exercise.name, trackingType: exercise.trackingType, exerciseSnapshot: { id: exercise.id, name: exercise.name, catalogueVersion: 3, trackingType: exercise.trackingType } }] });
   expect(workout.exercises[0]).toMatchObject({ exerciseId: 'parallel-bar-dip', trackingType: exercise.trackingType, exerciseSnapshot: { id: 'parallel-bar-dip', catalogueVersion: 3 } });
+});
+
+test('snapshots keep variation and primary-equipment metadata while legacy cards remain name-only', () => {
+  const bench = exerciseCatalog.find((exercise) => exercise.id === 'barbell-bench-press')!;
+  const weightedDip = exerciseCatalog.find((exercise) => exercise.id === 'weighted-dip')!;
+  const assistedDip = exerciseCatalog.find((exercise) => exercise.id === 'assisted-dip')!;
+  expect(createExerciseSnapshot(bench)).toMatchObject({
+    group: 'Bench Press',
+    variation: 'Flat',
+    primaryEquipment: 'barbell',
+  });
+  expect(formatExerciseMetadata(createExerciseSnapshot(bench))).toBe('Flat · Barbell');
+  expect(formatExerciseMetadata(createExerciseSnapshot(weightedDip))).toBe('Dip Bars');
+  expect(formatExerciseMetadata(createExerciseSnapshot(assistedDip))).toBe('Machine');
+  expect(formatPickerPrimaryEquipment(assistedDip, 'Machine')).toBe('Machine · Assisted');
+  const weightedExercises = exerciseCatalog.filter((exercise) => /\bweighted\b/i.test(exercise.name));
+  expect(weightedExercises).not.toHaveLength(0);
+  for (const exercise of weightedExercises) {
+    expect(formatExerciseMetadata(createExerciseSnapshot(exercise))?.toLocaleLowerCase()).not.toMatch(/^weighted\b/);
+  }
+  for (const exercise of exerciseCatalog) {
+    const metadata = formatExerciseMetadata(createExerciseSnapshot(exercise));
+    const equipment = taxonomyLabel('equipment', exercise.primaryEquipment ?? '');
+    const variation = (exercise.variation ?? '')
+      .replace(new RegExp(equipment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig'), '')
+      .replace(/[·,–—-]+/g, ' ')
+      .trim();
+    const variationWords = variation.toLocaleLowerCase().match(/[a-z0-9]+/g) ?? [];
+    const titleWords = new Set(exercise.name.toLocaleLowerCase().match(/[a-z0-9]+/g) ?? []);
+    if (variationWords.length && variationWords.every((word) => titleWords.has(word))) {
+      expect(metadata?.split(' · ').filter((part) => part !== equipment)).not.toContain(variation);
+    }
+  }
+  const assistedExercises = exerciseCatalog.filter((exercise) => exercise.trackingType === 'assisted-bodyweight');
+  expect(assistedExercises).toHaveLength(5);
+  for (const exercise of assistedExercises) {
+    expect(formatPickerPrimaryEquipment(exercise, exercise.primaryEquipment ?? exercise.equipment)).toMatch(/ · Assisted$/);
+  }
+  expect(formatExerciseMetadata({ name: 'Legacy Bench Press', trackingType: 'weight-reps' })).toBeNull();
 });
 
 test('adds picker selections in one immutable workout update with three empty sets each', () => {
@@ -98,6 +188,6 @@ test('adds picker selections in one immutable workout update with three empty se
 test('v3 multi-equipment facets remain individual taxonomy labels', () => {
   const multiEquipment = exerciseCatalog.find((exercise) => (exercise.equipmentIds?.length ?? 0) > 1)!;
   const facets = catalogFacets([multiEquipment]);
-  expect(facets.equipment).toEqual(multiEquipment.equipment.split(', ').sort());
+  expect(facets.equipment).toEqual(multiEquipment.equipment.split(' & ').sort());
   expect(facets.equipment).not.toContain(multiEquipment.equipment);
 });

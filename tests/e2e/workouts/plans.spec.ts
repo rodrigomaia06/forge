@@ -374,8 +374,8 @@ test.describe('Plans and routines', () => {
       .click();
     await page.getByLabel('Routine name').fill('Exercise routine');
     await page.getByRole('button', { name: 'Add exercises to routine' }).click();
-    await page.getByRole('button', { name: 'Bench Press, 4 variations', exact: true }).click();
-    await page.getByRole('button', { name: 'Barbell, 2 variations', exact: true }).click();
+    await page.getByRole('button', { name: 'Bench Press & 4 variations', exact: true }).click();
+    await page.getByRole('button', { name: 'Barbell & 2 variations', exact: true }).click();
     await page
       .getByRole('checkbox', { name: 'Bench Press, Barbell, Standard' })
       .click({ force: true });
@@ -422,8 +422,8 @@ test.describe('Plans and routines', () => {
       .click();
     await page.getByLabel('Routine name').fill('Read-only routine');
     await page.getByRole('button', { name: 'Add exercises to routine' }).click();
-    await page.getByRole('button', { name: 'Bench Press, 4 variations', exact: true }).click();
-    await page.getByRole('button', { name: 'Barbell, 2 variations', exact: true }).click();
+    await page.getByRole('button', { name: 'Bench Press & 4 variations', exact: true }).click();
+    await page.getByRole('button', { name: 'Barbell & 2 variations', exact: true }).click();
     await page
       .getByRole('checkbox', { name: 'Bench Press, Barbell, Standard' })
       .click({ force: true });
