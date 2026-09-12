@@ -172,7 +172,9 @@ export function ForgeCatalogFilterContent({
     <View testID="catalog-filter-content" style={[
       fill ? styles.sheetFill : activeFacet ? styles.sheetTall : styles.sheetCompact,
       !fill && activeFacet ? { height: Math.min(viewportHeight * 0.82, 640) } : undefined,
-      !fill && !activeFacet ? { minHeight: Math.min(viewportHeight * 0.56, 440) } : undefined,
+      // Keep the summary sheet compact without changing the shared sheet
+      // primitive. Choice lists retain their separate tall scrolling layout.
+      !fill && !activeFacet ? { height: Math.min(viewportHeight * 0.46, 460) } : undefined,
     ]}>
       {headerWithDragHandle ? (
         <>
@@ -181,9 +183,11 @@ export function ForgeCatalogFilterContent({
         </>
       ) : header}
       <ScrollView
-        style={styles.scroll}
+        style={[styles.scroll, !activeFacet && styles.rootScroll]}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        scrollEnabled={Boolean(activeFacet)}
+        bounces={Boolean(activeFacet)}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
         directionalLockEnabled
@@ -335,6 +339,7 @@ const createStyles = (theme: ReturnType<typeof useForgeTheme>) => StyleSheet.cre
   // React Native retains percentage dimensions in some native style merges.
   sheetFill: { flex: 1, alignSelf: 'stretch' },
   scroll: { flexGrow: 0, flexShrink: 1 },
+  rootScroll: { flex: 1, minHeight: 0 },
   content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 156, gap: 10 },
   facetCard: { overflow: 'hidden', borderRadius: 20, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface },
   facetRow: { minHeight: 68, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
