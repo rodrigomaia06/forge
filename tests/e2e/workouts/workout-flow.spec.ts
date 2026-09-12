@@ -279,9 +279,9 @@ test.describe('Active workout flow', () => {
       .getByRole('button', { name: 'Close add exercises' })
       .boundingBox();
     await page.getByRole('button', { name: 'Filters' }).click();
-    const apply = page.getByRole('button', { name: 'Apply' });
+    const apply = page.getByRole('button', { name: 'Show all exercises' });
     await expect(apply).toBeVisible();
-    await expect(apply).toBeDisabled();
+    await expect(apply).toBeEnabled();
     await expect(page.getByRole('button', { name: 'Cancel', exact: true })).toHaveCount(0);
     await expect(addExerciseSheet).toHaveCount(1);
     const filterClose = page.getByRole('button', { name: 'Cancel exercise filters' });
@@ -291,6 +291,7 @@ test.describe('Active workout flow', () => {
     const applyBox = await apply.boundingBox();
     expect((page.viewportSize()?.height ?? Infinity) - ((applyBox?.y ?? 0) + (applyBox?.height ?? 0))).toBeLessThanOrEqual(24);
     await page.screenshot({ path: testInfo.outputPath('live-workout-filter-sheet.png') });
+    await page.getByRole('button', { name: 'Edit Equipment filter, Any' }).click();
     await page.getByRole('checkbox', { name: 'Filter Equipment: Machine' }).click();
     await expect(page.getByRole('button', { name: 'Apply (1)' })).toBeEnabled();
     await page.screenshot({ path: testInfo.outputPath('live-workout-filter-apply-selected.png') });
@@ -299,7 +300,10 @@ test.describe('Active workout flow', () => {
     await expect(addExerciseSheet).toHaveCount(1);
 
     await page.getByRole('button', { name: 'Filters' }).click();
+    await page.getByRole('button', { name: 'Edit Equipment filter, Any' }).click();
     await page.getByRole('checkbox', { name: 'Filter Equipment: Machine' }).click();
+    await page.getByRole('button', { name: 'Back to filters' }).click();
+    await page.getByRole('button', { name: 'Edit Category filter, Any' }).click();
     await page.getByRole('checkbox', { name: 'Filter Category: Chest' }).click();
     await page.getByRole('button', { name: 'Apply (2)' }).click();
     await expect(page.getByLabel('Filters, 2 active')).toBeVisible();

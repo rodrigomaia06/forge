@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import type { IconName } from '../../types';
 import { typeScale } from '../../theme/tokens';
 import { useForgeTheme } from '../../theme/ThemeProvider';
@@ -94,9 +94,14 @@ export function ForgeCatalogFilterContent({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const { height: viewportHeight } = useWindowDimensions();
   const [draft, setDraft] = useState<CatalogFilterState>(filters);
+  const [activeFacetKey, setActiveFacetKey] = useState<CatalogFilterKey | null>(null);
   const count = catalogFilterCount(draft);
-  useEffect(() => setDraft(filters), [filters]);
+  useEffect(() => {
+    setDraft(filters);
+    setActiveFacetKey(null);
+  }, [filters]);
   const choicesFor = (facet: CatalogFilterFacet, next: CatalogFilterState) =>
     facet.optionsFor?.(next) ?? facet.options;
   const reconcileDependentChoices = (next: CatalogFilterState): CatalogFilterState => {
@@ -119,56 +124,116 @@ export function ForgeCatalogFilterContent({
       return key === 'types' || key === 'equipment' ? reconcileDependentChoices(next) : next;
     });
   };
+  const activeFacet = activeFacetKey
+    ? facets.find((facet) => facet.key === activeFacetKey) ?? null
+    : null;
   const header = (
     <ForgeSheetHeader
-        title="Filters"
-        onClose={onCancel}
-        closeAccessibilityLabel="Cancel exercise filters"
-        leading={count > 0 ? <Button accessibilityLabel="Clear filter draft" label="Clear" variant="secondary" onPress={() => setDraft(emptyCatalogFilters())} style={styles.clearDraft} /> : undefined}
+      title={activeFacet?.title ?? 'Filters'}
+      onClose={onCancel}
+      closeAccessibilityLabel="Cancel exercise filters"
+      leading={activeFacet ? (
+        <Button
+          accessibilityLabel="Back to filters"
+          label="Back"
+          icon="chevron-back"
+          iconSize={18}
+          variant="outline"
+          onPress={() => setActiveFacetKey(null)}
+          style={styles.backAction}
+        />
+      ) : undefined}
+      trailing={!activeFacet && count > 0 ? (
+        <Button
+          accessibilityLabel="Clear filters"
+          label="Clear"
+          variant="outline"
+          onPress={() => setDraft(emptyCatalogFilters())}
+          style={styles.headerClear}
+        />
+      ) : undefined}
     />
   );
   return (
-    <View style={fill ? styles.sheetFill : styles.sheet}>
+    <View style={[
+      fill ? styles.sheetFill : activeFacet ? styles.sheetTall : styles.sheetCompact,
+      !fill && activeFacet ? { height: Math.min(viewportHeight * 0.82, 640) } : undefined,
+    ]}>
       {headerWithDragHandle ? (
         <>
           <ForgeBottomSheetHandle />
           {header}
         </>
       ) : header}
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {facets.map((facet) => (
-          <View key={facet.key} style={styles.facet}>
-            <View style={styles.heading}>
-              <Icon name={facet.icon} size={18} color={theme.ink} />
-              <Text style={styles.title}>{facet.title}</Text>
-            </View>
-            <View style={styles.options}>
-              {choicesFor(facet, draft).map((option) => {
-                const selected = draft[facet.key].includes(option.value);
-                return (
-                  <Pressable
-                    key={option.value}
-                    accessibilityRole="checkbox"
-                    accessibilityLabel={`Filter ${facet.title}: ${option.label}`}
-                    accessibilityState={{ checked: selected }}
-                    unstable_pressDelay={80}
-                    onPress={() => toggle(facet.key, option.value)}
-                    style={({ pressed }) => [styles.option, selected && { borderColor: theme.selectionIndicator, backgroundColor: theme.surfaceMuted }, pressed && pressedFeedback]}
-                  >
-                    <Text style={styles.optionText}>{option.label}</Text>
-                    {selected && <Icon name="check" size={16} color={theme.ink} />}
-                  </Pressable>
-                );
-              })}
-            </View>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
+        directionalLockEnabled
+      >
+        {activeFacet ? (
+          <View style={styles.choiceCard} accessibilityLabel={`${activeFacet.title} filter choices`}>
+            {choicesFor(activeFacet, draft).map((option, index, options) => {
+              const selected = draft[activeFacet.key].includes(option.value);
+              return (
+                <Pressable
+                  key={option.value}
+                  accessibilityRole="checkbox"
+                  accessibilityLabel={`Filter ${activeFacet.title}: ${option.label}`}
+                  accessibilityState={{ checked: selected }}
+                  unstable_pressDelay={80}
+                  onPress={() => toggle(activeFacet.key, option.value)}
+                  style={({ pressed }) => [
+                    styles.choice,
+                    selected && { backgroundColor: theme.successSurface },
+                    pressed && pressedFeedback,
+                  ]}
+                >
+                  <Text style={styles.choiceText}>{option.label}</Text>
+                  {selected ? <Icon name="check" size={20} color={theme.selectionIndicator} weight="bold" /> : null}
+                  {index < options.length - 1 ? <View style={[styles.separator, { backgroundColor: theme.divider }]} /> : null}
+                </Pressable>
+              );
+            })}
           </View>
-        ))}
+        ) : (
+          <View style={styles.facetCard}>
+            {facets.map((facet, index) => {
+              const selected = draft[facet.key];
+              const summary = selected.length
+                ? selected.length === 1
+                  ? facet.options.find((option) => option.value === selected[0])?.label ?? '1 selected'
+                  : `${selected.length} selected`
+                : 'Any';
+              return (
+                <Pressable
+                  key={facet.key}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Edit ${facet.title} filter, ${summary}`}
+                  onPress={() => { selectionHaptic(); setActiveFacetKey(facet.key); }}
+                  style={({ pressed }) => [styles.facetRow, pressed && pressedFeedback]}
+                >
+                  <View style={[styles.facetIcon, { backgroundColor: theme.surfaceMuted }]}>
+                    <Icon name={facet.icon} size={19} color={theme.textPrimary} />
+                  </View>
+                  <View style={styles.facetCopy}>
+                    <Text style={styles.facetTitle}>{facet.title}</Text>
+                    <Text style={styles.facetSummary}>{summary}</Text>
+                  </View>
+                  <Icon name="chevron-forward" size={19} color={theme.textSecondary} />
+                  {index < facets.length - 1 ? <View style={[styles.separator, styles.facetSeparator, { backgroundColor: theme.divider }]} /> : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
       </ScrollView>
       <ForgeFloatingCta
-        label={count ? `Apply (${count})` : 'Apply'}
-        accessibilityLabel={count ? `Apply (${count})` : 'Apply'}
+        label={count ? `Apply (${count})` : 'Show all'}
+        accessibilityLabel={count ? `Apply (${count})` : 'Show all exercises'}
         onPress={() => onApply(draft)}
-        disabled={count === 0}
         tone="success"
       />
     </View>
@@ -234,30 +299,26 @@ export function ForgeCatalogFilterTokens({
 }
 
 const createStyles = (theme: ReturnType<typeof useForgeTheme>) => StyleSheet.create({
-  sheet: { height: '82%' },
+  sheetTall: { alignSelf: 'stretch' },
+  sheetCompact: { minHeight: 366 },
   // This is intentionally a separate style, rather than an override of `sheet`.
   // React Native retains percentage dimensions in some native style merges.
   sheetFill: { flex: 1, alignSelf: 'stretch' },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 142, gap: 16 },
-  facet: { gap: 7 },
-  heading: { minHeight: 28, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { ...typeScale.sectionTitle, color: theme.slate },
-  options: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  option: {
-    minHeight: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 6,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: 19,
-    backgroundColor: theme.surface,
-  },
-  optionText: { ...typeScale.label, color: theme.ink },
-  clearDraft: { paddingHorizontal: 14, borderRadius: 22 },
+  content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 64, gap: 10 },
+  facetCard: { overflow: 'hidden', borderRadius: 20, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface },
+  facetRow: { minHeight: 68, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  facetIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  facetCopy: { flex: 1, minWidth: 0 },
+  facetTitle: { ...typeScale.cardTitle, color: theme.textPrimary },
+  facetSummary: { ...typeScale.supporting, color: theme.textSecondary, marginTop: 1 },
+  choiceCard: { overflow: 'hidden', borderRadius: 20, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface },
+  choice: { minHeight: 56, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  choiceText: { flex: 1, ...typeScale.cardTitle, color: theme.textPrimary },
+  separator: { position: 'absolute', right: 16, bottom: 0, left: 16, height: StyleSheet.hairlineWidth, pointerEvents: 'none' },
+  facetSeparator: { left: 64 },
+  headerClear: { minHeight: 38, borderRadius: 14, paddingHorizontal: 12 },
+  backAction: { minHeight: 38, borderRadius: 14, paddingHorizontal: 12 },
   tokenBar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   tokenScroll: { flex: 1 },
   tokens: { gap: 8, alignItems: 'center', paddingVertical: 2 },

@@ -47,13 +47,13 @@ test('captures primary Forge surfaces in Dark appearance', async ({ page }) => {
   await capture(page, 'settings');
   await page.getByRole('button', { name: 'Exercises' }).click();
   await capture(page, 'exercise-library');
-  await page.getByRole('button', { name: 'All exercises, 21 exercises' }).click();
+  await page.getByRole('button', { name: 'All exercises, 381 exercises' }).click();
   await capture(page, 'exercise-browser');
   await page.getByRole('button', { name: 'Filters' }).click();
   await capture(page, 'exercise-filter-sheet');
-  await page.getByRole('button', { name: 'Done' }).click();
-  await page.getByRole('button', { name: 'Bench Press & 4 variations' }).click();
-  await page.getByRole('button', { name: 'Standard' }).click();
+  await page.getByRole('button', { name: 'Show all exercises' }).click();
+  await page.getByRole('button', { name: 'Bench Press & 3 variations' }).click();
+  await page.getByRole('button', { name: 'Open Flat' }).first().click();
   await capture(page, 'exercise-detail');
   await page.getByRole('button', { name: 'Change rest time, currently Default' }).click();
   await capture(page, 'exercise-rest-picker');

@@ -102,16 +102,16 @@ test.describe('Forge screen captures', () => {
     await expect(page.getByTestId('settings-detail-title')).toHaveText('Exercises');
     await capture(page, 'settings-exercises');
 
-    await page.getByRole('button', { name: 'All exercises, 21 exercises' }).click();
+    await page.getByRole('button', { name: 'All exercises, 381 exercises' }).click();
     await expect(page.getByTestId('settings-detail-title').last()).toHaveText('All exercises');
     await capture(page, 'settings-exercise-browser');
     await page.getByRole('button', { name: 'Filters' }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await capture(page, 'settings-exercise-filter-sheet');
 
-    await page.getByRole('button', { name: 'Done' }).click();
-    await page.getByRole('button', { name: 'Bench Press & 4 variations' }).click();
-    await page.getByRole('button', { name: 'Standard' }).click();
+    await page.getByRole('button', { name: 'Show all exercises' }).click();
+    await page.getByRole('button', { name: 'Bench Press & 3 variations' }).click();
+    await page.getByRole('button', { name: 'Open Flat' }).first().click();
     await capture(page, 'settings-exercise-detail');
     await page.getByRole('button', { name: 'Change rest time, currently Default' }).click();
     await capture(page, 'settings-exercise-rest-picker');

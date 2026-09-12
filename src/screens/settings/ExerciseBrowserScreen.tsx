@@ -22,7 +22,9 @@ import {
   Button,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
+  ForgeCard,
   ForgeCatalogFilterSheet,
+  ForgeFloatingCta,
   ForgeSheetHeader,
   ForgeSingleSelectList,
   ForgeText as Text,
@@ -61,6 +63,14 @@ import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseBrowser'>;
 type DetailSheetView = 'details' | 'restTime';
+type ExerciseFormView =
+  | 'details'
+  | 'category'
+  | 'family'
+  | 'equipment'
+  | 'workoutTypes'
+  | 'primaryMuscle'
+  | 'secondaryMuscles';
 type CatalogSource = 'forge' | 'custom';
 
 function formatPickerDuration(seconds: number): string {
@@ -94,6 +104,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const [headerElevated, setHeaderElevated] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [formParent, setFormParent] = useState<string | null | undefined>(undefined);
+  const [formView, setFormView] = useState<ExerciseFormView>('details');
   const [name, setName] = useState('');
   const [group, setGroup] = useState('');
   const [categorySource, setCategorySource] = useState<CatalogSource | null>(null);
@@ -125,6 +136,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   );
   const groups = useMemo(() => groupCatalogByMovement(filtered), [filtered]);
   const { equipment } = catalogFacets(source);
+  const { equipment: forgeEquipment } = catalogFacets(catalog.exercises);
   const { categories: muscles } = catalogFacets(catalog.exercises);
   const filterFacets = useMemo<CatalogFilterFacet[]>(() => {
     const scoped = (draft: CatalogFilterState, includeEquipment: boolean) =>
@@ -158,7 +170,9 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     () => filterFacets.filter((facet) => !facet.readOnly),
     [filterFacets],
   );
-  const forgeEquipmentOptions = equipment;
+  // A new custom exercise can choose from the full Forge catalogue even when
+  // this browser is scoped to an empty custom-only source.
+  const forgeEquipmentOptions = forgeEquipment;
   const customEquipmentOptions = useMemo(
     () => catalogFacets(catalog.customExercises).equipment,
     [catalog.customExercises],
@@ -235,6 +249,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
       ? [...catalog.exercises, ...catalog.customExercises].find((item) => item.group === parent)
       : undefined;
     setEditing(null);
+    setFormView('details');
     setName('');
     setGroup(parent ?? '');
     setCategorySource(parent ? sourceForCategory(parent) : null);
@@ -249,6 +264,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     lightHaptic();
     savingVariation.current = false;
     setDetail(null);
+    setFormView('details');
     setEditing(item);
     setName(item.variation || item.name);
     setGroup(item.group);
@@ -335,6 +351,8 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          directionalLockEnabled
           onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
           scrollEventThrottle={16}
         >
@@ -405,220 +423,233 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
             savingVariation.current = false;
             setFormParent(undefined);
             setEditing(null);
+            setFormView('details');
+          }}
+          onBackRequest={() => {
+            if (formView === 'details') return false;
+            setFormView('details');
+            return true;
           }}
           accessibilityLabel="Close custom exercise form"
           surfaceTestID="custom-exercise-form-surface"
           keyboardAvoiding
         >
           {(close) => (
-            <View style={[styles.formSheet, { maxHeight: Math.min(viewportHeight * 0.82, 640) }]}>
+            <View style={[styles.formSheet, { height: Math.min(viewportHeight * 0.82, 640) }]}>
               <ForgeBottomSheetHandle />
               <ForgeSheetHeader
-                title={
-                  editing
+                title={formView === 'details'
+                  ? editing
                     ? 'Edit variation'
                     : formParent
                       ? 'Add variation'
                       : 'New custom exercise'
-                }
+                  : formView === 'category'
+                    ? 'Exercise category'
+                    : formView === 'family'
+                      ? 'Movement family'
+                      : formView === 'equipment'
+                        ? 'Equipment'
+                        : formView === 'workoutTypes'
+                          ? 'Workout types'
+                          : formView === 'primaryMuscle'
+                            ? 'Primary muscle'
+                            : 'Secondary muscles'}
                 onClose={close}
                 closeAccessibilityLabel="Close custom exercise form"
-                trailing={
-                  <HeaderAction
-                    accessibilityLabel="Save variation"
-                    icon="check"
-                    iconOnly
+                leading={formView !== 'details' ? (
+                  <Button
+                    accessibilityLabel="Back to exercise form"
+                    label="Back"
+                    icon="chevron-back"
+                    iconSize={18}
                     variant="outline"
-                    tone={name.trim() ? 'success' : 'neutral'}
-                    disabled={!name.trim()}
-                    onPress={() => {
-                      if (save()) close();
-                    }}
+                    onPress={() => setFormView('details')}
+                    style={styles.formBackAction}
                   />
-                }
+                ) : undefined}
               />
-              <ScrollView
-                style={styles.formScroll}
-                contentContainerStyle={styles.form}
-                keyboardShouldPersistTaps="handled"
-              >
-                <TextInput
-                  accessibilityLabel="Exercise name"
-                  value={name}
-                  onChangeText={setName}
-                  placeholder={formParent ? 'Variation name' : 'Exercise name'}
-                  placeholderTextColor={theme.muted}
-                  style={styles.input}
-                />
-                {!formParent && (
-                  <>
-                    <Text style={styles.fieldLabel}>Exercise category</Text>
-                    <ForgeSingleSelectList<string>
-                      options={taxonomyCategoryOptions.map((item) => ({
-                        value: item,
-                        label: item,
-                        accessibilityLabel: `Exercise category ${item}`,
-                      }))}
-                      selectedValue={exerciseCategory}
-                      maxVisibleRows={5}
-                      disableVirtualization
-                      onSelect={setExerciseCategory}
-                    />
-                    <Text style={styles.fieldLabel}>Movement family</Text>
-                    <View style={styles.categorySearch}>
-                      <Icon name="search" size={19} color={theme.slate} />
-                      <TextInput
-                        accessibilityLabel="Exercise movement family"
-                        value={group}
-                        onChangeText={(value) => {
-                          setGroup(value);
-                          setCategorySource(null);
-                        }}
-                        placeholder="Search or add a movement family"
-                        placeholderTextColor={theme.muted}
-                        style={styles.categorySearchInput}
-                      />
-                      {categorySource && (
-                        <Icon
-                          name={categorySource === 'forge' ? 'verified' : 'note'}
-                          size={18}
-                          color={theme.slate}
-                          testID={`category-source-${categorySource}`}
-                        />
-                      )}
-                    </View>
-                    {group.trim() && !categorySource ? (
-                      <View style={styles.categorySuggestions}>
-                        {categoryMatches.map(({ label, source }) => (
-                          <Pressable
-                            key={label}
-                            accessibilityRole="button"
-                            accessibilityLabel={`Use movement family ${label}`}
-                            onPress={() => {
-                              selectionHaptic();
-                              setGroup(label);
-                              setCategorySource(source);
-                            }}
-                            style={({ pressed }) => [styles.categorySuggestion, pressed && pressedFeedback]}
-                          >
-                            <Icon name="layers-outline" size={16} color={theme.slate} />
-                            <Text style={styles.categorySuggestionText}>{label}</Text>
-                            <Icon
-                              name={source === 'forge' ? 'verified' : 'note'}
-                              size={16}
-                              color={theme.slate}
-                            />
-                          </Pressable>
-                        ))}
-                        {!isExistingCategory && (
-                          <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel={`Add ${group.trim()} as a custom movement family`}
-                            onPress={() => {
-                              selectionHaptic();
-                              setCategorySource('custom');
-                            }}
-                            style={({ pressed }) => [styles.categorySuggestion, pressed && pressedFeedback]}
-                          >
-                            <Icon name="add" size={17} color={theme.ink} />
-                            <Text style={styles.categorySuggestionText}>
-                              Add “{group.trim()}” as custom family
-                            </Text>
-                            <Icon name="note" size={16} color={theme.slate} />
-                          </Pressable>
-                        )}
-                      </View>
-                    ) : null}
-                  </>
-                )}
+              {formView === 'details' ? (
                 <>
-                  <Text style={styles.fieldLabel}>Equipment</Text>
-                  <View
-                    accessibilityRole="radiogroup"
-                    accessibilityLabel="Exercise equipment"
-                    style={styles.choiceWrap}
+                  <ScrollView
+                    style={styles.formScroll}
+                    contentContainerStyle={styles.form}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="on-drag"
+                    directionalLockEnabled
                   >
-                    {selectableEquipment.map((item) => (
-                      <Choice
-                        key={item}
-                        label={item}
-                        accessibilityLabel={`Equipment ${item}`}
-                        role="radio"
-                        selected={equipmentValue === item}
-                        selectionIcon={sourceForEquipment(item) === 'forge' ? 'verified' : 'note'}
-                        onPress={() => {
-                          selectionHaptic();
-                          setEquipmentValue(item);
-                        }}
+                    <Text style={styles.fieldLabel}>NAME</Text>
+                    <ForgeCard variant="inset" style={styles.formInputCard}>
+                      <TextInput
+                        accessibilityLabel="Exercise name"
+                        value={name}
+                        onChangeText={setName}
+                        placeholder={formParent ? 'Variation name' : 'Exercise name'}
+                        placeholderTextColor={theme.muted}
+                        style={styles.formNameInput}
                       />
-                    ))}
-                    <Choice
-                      icon="add"
-                      label="Custom equipment"
-                      accessibilityLabel="Add custom equipment"
-                      role="radio"
-                      selected={usesCustomEquipment}
-                      selectionIcon="note"
-                      onPress={() => {
-                        selectionHaptic();
-                        setEquipmentValue('');
-                      }}
-                    />
-                  </View>
-                  {usesCustomEquipment && (
-                  <TextInput
-                    accessibilityLabel="Custom equipment"
-                    value={equipmentValue}
-                    onChangeText={setEquipmentValue}
-                    placeholder="Custom equipment"
-                    placeholderTextColor={theme.muted}
-                    style={styles.input}
+                    </ForgeCard>
+                    {!formParent ? (
+                      <SettingsSection title="Movement" cardStyle={styles.formSectionCard}>
+                        <SettingsRow
+                          title="Exercise category"
+                          trailing={<Text style={styles.formValue}>{exerciseCategory}</Text>}
+                          disclosure
+                          onPress={() => setFormView('category')}
+                        />
+                        <SettingsRow
+                          title="Movement family"
+                          subtitle={group ? undefined : 'Choose or create a family'}
+                          trailing={group ? <Text style={styles.formValue}>{group}</Text> : undefined}
+                          disclosure
+                          onPress={() => setFormView('family')}
+                        />
+                      </SettingsSection>
+                    ) : null}
+                    <SettingsSection title="Setup" cardStyle={styles.formSectionCard}>
+                      <SettingsRow
+                        title="Equipment"
+                        trailing={<Text style={styles.formValue}>{equipmentValue || 'Custom'}</Text>}
+                        disclosure
+                        onPress={() => setFormView('equipment')}
+                      />
+                    </SettingsSection>
+                    <SettingsSection title="Training" cardStyle={styles.formSectionCard}>
+                      <SettingsRow
+                        title="Workout types"
+                        trailing={<Text style={styles.formValue}>{workoutTypeIds.length ? `${workoutTypeIds.length} selected` : 'None'}</Text>}
+                        disclosure
+                        onPress={() => setFormView('workoutTypes')}
+                      />
+                      <SettingsRow
+                        title="Primary muscle"
+                        trailing={<Text style={styles.formValue}>{primaryMuscle}</Text>}
+                        disclosure
+                        onPress={() => setFormView('primaryMuscle')}
+                      />
+                      <SettingsRow
+                        title="Secondary muscles"
+                        trailing={<Text style={styles.formValue}>{secondaryMuscles.length ? `${secondaryMuscles.length} selected` : 'None'}</Text>}
+                        disclosure
+                        onPress={() => setFormView('secondaryMuscles')}
+                      />
+                    </SettingsSection>
+                  </ScrollView>
+                  <ForgeFloatingCta
+                    label={editing ? 'Save variation' : 'Add exercise'}
+                    accessibilityLabel="Save variation"
+                    disabled={!name.trim()}
+                    tone="success"
+                    onPress={() => { if (save()) close(); }}
                   />
-                  )}
                 </>
-                <Text style={styles.fieldLabel}>Workout types</Text>
-                <View style={styles.choiceWrap}>
-                  {visibleTypes.map((type) => (
-                    <Choice
+              ) : (
+                <ScrollView
+                  style={styles.formScroll}
+                  contentContainerStyle={styles.formPickerContent}
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode="on-drag"
+                  directionalLockEnabled
+                >
+                  {formView === 'family' ? (
+                    <>
+                      <View style={styles.categorySearch}>
+                        <Icon name="search" size={19} color={theme.slate} />
+                        <TextInput
+                          autoFocus
+                          accessibilityLabel="Exercise movement family"
+                          value={group}
+                          onChangeText={(value) => { setGroup(value); setCategorySource(null); }}
+                          placeholder="Search or add a movement family"
+                          placeholderTextColor={theme.muted}
+                          style={styles.categorySearchInput}
+                        />
+                      </View>
+                      <ExerciseFormOptionList
+                        options={categoryMatches.length ? categoryMatches : categoryOptions.map((label) => ({ label, source: sourceForCategory(label) }))}
+                        selected={group}
+                        accessibilityPrefix="Use movement family"
+                        onSelect={(value, source) => { setGroup(value); setCategorySource(source); setFormView('details'); }}
+                        sourceIcon
+                      />
+                      {group.trim() && !isExistingCategory ? (
+                        <FormChoiceRow
+                          label={`Add “${group.trim()}” as a custom family`}
+                          icon="add"
+                          accessibilityLabel={`Add ${group.trim()} as a custom movement family`}
+                          onPress={() => { setCategorySource('custom'); setFormView('details'); }}
+                        />
+                      ) : null}
+                    </>
+                  ) : null}
+                  {formView === 'category' ? (
+                    <ExerciseFormOptionList
+                      options={taxonomyCategoryOptions.map((label) => ({ label, source: 'forge' as const }))}
+                      selected={exerciseCategory}
+                      accessibilityPrefix="Exercise category"
+                      onSelect={(value) => { setExerciseCategory(value); setFormView('details'); }}
+                    />
+                  ) : null}
+                  {formView === 'equipment' ? (
+                    <>
+                      {usesCustomEquipment ? (
+                        <TextInput
+                          autoFocus
+                          accessibilityLabel="Custom equipment"
+                          value={equipmentValue}
+                          onChangeText={setEquipmentValue}
+                          placeholder="Custom equipment"
+                          placeholderTextColor={theme.muted}
+                          style={styles.input}
+                        />
+                      ) : null}
+                      <ExerciseFormOptionList
+                        options={selectableEquipment.map((label) => ({ label, source: sourceForEquipment(label) }))}
+                        selected={usesCustomEquipment ? undefined : equipmentValue}
+                        accessibilityPrefix="Equipment"
+                        onSelect={(value) => { setEquipmentValue(value); setFormView('details'); }}
+                        sourceIcon
+                      />
+                      <FormChoiceRow
+                        label="Custom equipment"
+                        icon="add"
+                        selected={usesCustomEquipment}
+                        accessibilityLabel="Add custom equipment"
+                        onPress={() => setEquipmentValue('')}
+                      />
+                    </>
+                  ) : null}
+                  {formView === 'workoutTypes' ? visibleTypes.map((type) => (
+                    <FormChoiceRow
                       key={type.id}
-                      icon={workoutTypeIcon(type)}
                       label={type.name}
-                      accessibilityLabel={`Workout type ${type.name}`}
+                      icon={workoutTypeIcon(type)}
                       selected={workoutTypeIds.includes(type.id)}
+                      role="checkbox"
+                      accessibilityLabel={`Workout type ${type.name}`}
                       onPress={() => toggleSection(type.id)}
                     />
-                  ))}
-                </View>
-                <Text style={styles.fieldLabel}>Primary muscle</Text>
-                <View style={styles.choiceWrap}>
-                  {muscles.map((muscle) => (
-                    <Choice
+                  )) : null}
+                  {formView === 'primaryMuscle' ? (
+                    <ExerciseFormOptionList
+                      options={muscles.map((label) => ({ label, source: 'forge' as const }))}
+                      selected={primaryMuscle}
+                      accessibilityPrefix="Primary"
+                      onSelect={(value) => { setPrimaryMuscle(value); setSecondaryMuscles((current) => current.filter((item) => item !== value)); setFormView('details'); }}
+                    />
+                  ) : null}
+                  {formView === 'secondaryMuscles' ? muscles.filter((muscle) => muscle !== primaryMuscle).map((muscle) => (
+                    <FormChoiceRow
                       key={muscle}
                       label={muscle}
-                      accessibilityLabel={`Primary ${muscle}`}
-                      selected={primaryMuscle === muscle}
-                      onPress={() => {
-                        selectionHaptic();
-                        setPrimaryMuscle(muscle);
-                      }}
+                      selected={secondaryMuscles.includes(muscle)}
+                      role="checkbox"
+                      accessibilityLabel={`Secondary ${muscle}`}
+                      onPress={() => toggleSecondary(muscle)}
                     />
-                  ))}
-                </View>
-                <Text style={styles.fieldLabel}>Secondary muscles</Text>
-                <View style={styles.choiceWrap}>
-                  {muscles
-                    .filter((muscle) => muscle !== primaryMuscle)
-                    .map((muscle) => (
-                      <Choice
-                        key={muscle}
-                        label={muscle}
-                        accessibilityLabel={`Secondary ${muscle}`}
-                        selected={secondaryMuscles.includes(muscle)}
-                        onPress={() => toggleSecondary(muscle)}
-                      />
-                    ))}
-                </View>
-              </ScrollView>
+                  )) : null}
+                </ScrollView>
+              )}
             </View>
           )}
         </ForgeBottomSheet>
@@ -798,21 +829,19 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   );
 }
 
-function Choice({
+function FormChoiceRow({
   label,
   accessibilityLabel,
-  selected,
+  selected = false,
   onPress,
   icon,
-  selectionIcon = 'check',
-  role = 'checkbox',
+  role = 'radio',
 }: {
   label: string;
   accessibilityLabel: string;
-  selected: boolean;
+  selected?: boolean;
   onPress: () => void;
   icon?: IconName;
-  selectionIcon?: IconName;
   role?: 'checkbox' | 'radio';
 }) {
   const styles = useThemedStyles(createStyles);
@@ -823,72 +852,53 @@ function Choice({
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ checked: selected }}
       aria-checked={selected}
-      onPress={onPress}
+      onPress={() => {
+        selectionHaptic();
+        onPress();
+      }}
       style={({ pressed }) => [
-        styles.choice,
-        selected && { borderColor: theme.ink },
+        styles.formChoice,
+        selected && { backgroundColor: theme.successSurface },
         pressed && pressedFeedback,
       ]}
     >
-      {icon && <Icon name={icon} size={16} color={theme.ink} />}
-      <Text style={styles.choiceText}>{label}</Text>
-      {selected && (
-        <Icon
-          name={selectionIcon}
-          size={15}
-          color={theme.ink}
-          testID={`choice-selection-${selectionIcon}`}
-        />
-      )}
+      {icon && <Icon name={icon} size={18} color={theme.textPrimary} />}
+      <Text style={styles.formChoiceText}>{label}</Text>
+      {selected ? <Icon name="check" size={20} color={theme.selectionIndicator} weight="bold" testID="choice-selection-check" /> : null}
     </Pressable>
   );
 }
 
-function FilterSection({
-  title,
-  icon,
-  values,
+function ExerciseFormOptionList({
+  options,
   selected,
-  onToggle,
+  accessibilityPrefix,
+  onSelect,
+  sourceIcon = false,
 }: {
-  title: string;
-  icon: IconName;
-  values: string[][];
-  selected: string[];
-  onToggle: (value: string) => void;
+  options: { label: string; source: CatalogSource }[];
+  selected?: string;
+  accessibilityPrefix: string;
+  onSelect: (value: string, source: CatalogSource) => void;
+  sourceIcon?: boolean;
 }) {
   const styles = useThemedStyles(createStyles);
-  const theme = useForgeTheme();
   return (
-      <View style={styles.filterSection}>
-      <View style={styles.filterHeading}>
-        <Icon name={icon} size={18} color={theme.ink} />
-        <Text style={styles.filterTitle}>{title}</Text>
-      </View>
-      <View style={styles.filterChoices}>
-        {values.map(([value, label]) => {
-          const isSelected = selected.includes(value);
-          return (
-            <Pressable
-              key={value}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: isSelected }}
-              onPress={() => onToggle(value)}
-              style={({ pressed }) => [
-                styles.filterChoice,
-                isSelected && { borderColor: theme.selectionIndicator },
-                pressed && pressedFeedback,
-              ]}
-            >
-              <Text style={styles.filterChoiceText}>{label}</Text>
-              {isSelected && <Icon name="check" size={15} color={theme.ink} />}
-            </Pressable>
-          );
-        })}
-      </View>
+    <View style={styles.formChoiceList} accessibilityRole="radiogroup">
+      {options.map((option) => (
+        <FormChoiceRow
+          key={option.label}
+          label={option.label}
+          icon={sourceIcon ? (option.source === 'forge' ? 'verified' : 'note') : undefined}
+          selected={selected === option.label}
+          accessibilityLabel={`${accessibilityPrefix} ${option.label}`}
+          onPress={() => onSelect(option.label, option.source)}
+        />
+      ))}
     </View>
   );
 }
+
 function Movement({
   group,
   items,
@@ -1068,8 +1078,9 @@ function SwipeCustomExerciseRow({
     offset.value = withSpring(next ? -actionWidth : 0, swipeSpring);
   };
   const pan = Gesture.Pan()
-    .activeOffsetX([-8, 8])
-    .failOffsetY([-12, 12])
+    // Do not let a diagonal list scroll activate this horizontal delete gesture.
+    .activeOffsetX([-16, 16])
+    .failOffsetY([-6, 6])
     .onUpdate((event) => {
       if (!open.value && event.translationX >= 0) return;
       const initial = open.value ? -actionWidth : 0;
@@ -1307,22 +1318,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     detailSheetTitle: { flex: 1, minWidth: 0, marginRight: 12 },
     filterScroll: { flexGrow: 0, flexShrink: 1 },
     filterContent: { padding: 20, paddingTop: 4, gap: 16, paddingBottom: 20 },
-    filterSection: { gap: 8 },
-    filterHeading: { minHeight: 28, flexDirection: 'row', alignItems: 'center', gap: 8 },
-    filterTitle: { ...typeScale.sectionTitle, color: theme.slate },
-    filterChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    filterChoice: {
-      minHeight: 38,
-      paddingHorizontal: 11,
-      borderRadius: 19,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 5,
-      backgroundColor: theme.surfaceElevated,
-      borderWidth: 1,
-      borderColor: theme.divider,
-    },
-    filterChoiceText: { ...typeScale.label, color: theme.ink },
     footer: {
       padding: 16,
       paddingTop: 10,
@@ -1330,7 +1325,21 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       borderColor: theme.divider,
     },
     formScroll: { flexGrow: 0, flexShrink: 1 },
-    form: { padding: 20, gap: 12, paddingBottom: 28 },
+    form: { padding: 20, gap: 18, paddingBottom: 128 },
+    formPickerContent: { padding: 20, gap: 12, paddingBottom: 36 },
+    formBackAction: { minHeight: 36, paddingHorizontal: 10, borderRadius: 18 },
+    formInputCard: { overflow: 'hidden', borderRadius: 16 },
+    formNameInput: { minHeight: 52, paddingHorizontal: 14, color: theme.ink, ...typeScale.body },
+    formSectionCard: {
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: theme.border,
+      backgroundColor: theme.surface,
+    },
+    formValue: { ...typeScale.supporting, color: theme.textSecondary, textAlign: 'right', maxWidth: 130 },
+    formChoiceList: { overflow: 'hidden', borderRadius: 20, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface },
+    formChoice: { minHeight: 56, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    formChoiceText: { flex: 1, ...typeScale.cardTitle, color: theme.textPrimary },
     detailContent: { paddingHorizontal: 20, paddingBottom: 12, paddingTop: 0, gap: 0 },
     editVariationAction: { marginTop: 16, marginBottom: 8 },
     input: {
@@ -1355,37 +1364,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       borderColor: theme.divider,
     },
     categorySearchInput: { flex: 1, paddingVertical: 0, color: theme.ink, ...typeScale.body },
-    categorySuggestions: {
-      overflow: 'hidden',
-      borderRadius: 14,
-      borderWidth: 1,
-      borderColor: theme.divider,
-      backgroundColor: theme.surfaceElevated,
-    },
-    categorySuggestion: {
-      minHeight: 44,
-      paddingHorizontal: 14,
-      gap: 8,
-      flexDirection: 'row',
-      alignItems: 'center',
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderColor: theme.divider,
-    },
-    categorySuggestionText: { ...typeScale.controlLabel, color: theme.ink, flex: 1 },
     fieldLabel: { ...typeScale.label, color: theme.slate, marginTop: 5 },
-    choiceWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    choice: {
-      minHeight: 38,
-      paddingHorizontal: 11,
-      borderRadius: 19,
-      borderWidth: 1,
-      borderColor: theme.divider,
-      backgroundColor: theme.surfaceElevated,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 5,
-    },
-    choiceText: { ...typeScale.label, color: theme.ink },
     singleAddVariation: {
       alignSelf: 'stretch',
       height: 38,
