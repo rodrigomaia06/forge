@@ -327,7 +327,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
             <HeaderAction
               accessibilityLabel="Create custom exercise"
               icon="add"
-              iconOnly
+              label="Add"
               onPress={() => openCreate(null)}
             />
           }
@@ -353,7 +353,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
             {!customOnly && (
               <Button
                 accessibilityLabel={`Filters${active ? `, ${active} active` : ''}`}
-                label="Filters"
+                label={active ? `Filters (${active})` : 'Filters'}
                 icon="filter"
                 variant="secondary"
                 tone="neutral"
@@ -461,6 +461,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                       }))}
                       selectedValue={exerciseCategory}
                       maxVisibleRows={5}
+                      disableVirtualization
                       onSelect={setExerciseCategory}
                     />
                     <Text style={styles.fieldLabel}>Movement family</Text>
@@ -1125,7 +1126,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     content: {
       padding: settingsLayout.screenPadding,
       paddingTop: settingsLayout.contentTop,
-      paddingBottom: settingsLayout.contentBottom,
+      paddingBottom: 112,
       gap: settingsLayout.listGap,
     },
     searchRow: { flexDirection: 'row', gap: 8 },
