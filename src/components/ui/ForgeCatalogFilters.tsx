@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import type { IconName } from '../../types';
 import { typeScale } from '../../theme/tokens';
@@ -101,6 +101,10 @@ export function ForgeCatalogFilterContent({
   const [draft, setDraft] = useState<CatalogFilterState>(filters);
   const [activeFacetKey, setActiveFacetKey] = useState<CatalogFilterKey | null>(null);
   const [choiceQuery, setChoiceQuery] = useState('');
+  // Keep the native input responsive while a longer option list catches up.
+  // This is local in-memory filtering, so it remains live rather than waiting
+  // for an arbitrary debounce delay.
+  const deferredChoiceQuery = useDeferredValue(choiceQuery);
   const count = catalogFilterCount(draft);
   const hasDraftChanges = (['types', 'equipment', 'exerciseCategories'] as const).some(
     (key) => draft[key].length !== filters[key].length || draft[key].some((value) => !filters[key].includes(value)),
@@ -135,11 +139,13 @@ export function ForgeCatalogFilterContent({
   const activeFacet = activeFacetKey
     ? facets.find((facet) => facet.key === activeFacetKey) ?? null
     : null;
-  const visibleChoices = activeFacet
-    ? choicesFor(activeFacet, draft).filter((option) =>
-      option.label.toLocaleLowerCase().includes(choiceQuery.trim().toLocaleLowerCase()),
-    )
-    : [];
+  const visibleChoices = useMemo(() => {
+    if (!activeFacet) return [];
+    const normalizedQuery = deferredChoiceQuery.trim().toLocaleLowerCase();
+    return choicesFor(activeFacet, draft).filter((option) =>
+      option.label.toLocaleLowerCase().includes(normalizedQuery),
+    );
+  }, [activeFacet, deferredChoiceQuery, draft]);
   const header = (
     <ForgeSheetHeader
       title={activeFacet?.title ?? 'Filters'}

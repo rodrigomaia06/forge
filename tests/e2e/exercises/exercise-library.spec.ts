@@ -71,12 +71,12 @@ test.describe('Exercise library', () => {
     await page.getByRole('button', { name: 'Create custom exercise' }).click();
 
     await page.getByRole('button', { name: 'Exercise category' }).click();
-    const fullBody = page.getByRole('radio', { name: 'Target area Full Body' });
+    const fullBody = page.getByRole('radio', { name: 'Category Full Body' });
     await expect(fullBody).toHaveAttribute('aria-checked', 'true');
-    await page.getByLabel('Search target areas').fill('Chest');
-    await expect(page.getByRole('radio', { name: 'Target area Chest' })).toBeVisible();
+    await page.getByLabel('Search categories').fill('Chest');
+    await expect(page.getByRole('radio', { name: 'Category Chest' })).toBeVisible();
     await expect(fullBody).toHaveCount(0);
-    await page.getByLabel('Search target areas').fill('Full Body');
+    await page.getByLabel('Search categories').fill('Full Body');
     await expect(fullBody).toHaveAttribute('aria-checked', 'true');
     await page.getByRole('button', { name: 'Back to exercise form' }).click();
 

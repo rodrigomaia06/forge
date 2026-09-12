@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   LayoutAnimation,
   Platform,
@@ -101,6 +101,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const fixedTypeId = route.params?.workoutTypeId;
   const customOnly = route.params?.custom === true;
   const [query, setQuery] = useState('');
+  const deferredQuery = useDeferredValue(query);
   const [filters, setFilters] = useState<CatalogFilterState>(emptyCatalogFilters());
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [headerElevated, setHeaderElevated] = useState(false);
@@ -108,6 +109,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const [formParent, setFormParent] = useState<string | null | undefined>(undefined);
   const [formView, setFormView] = useState<ExerciseFormView>('details');
   const [selectorQuery, setSelectorQuery] = useState('');
+  const deferredSelectorQuery = useDeferredValue(selectorQuery);
   const [showOptionalDetails, setShowOptionalDetails] = useState(false);
   const [name, setName] = useState('');
   const [group, setGroup] = useState('');
@@ -130,13 +132,13 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const filtered = useMemo(
     () =>
       filterCatalog(source, {
-        query,
+        query: deferredQuery,
         types: filters.types,
         equipment: filters.equipment,
         exerciseCategories: filters.exerciseCategories,
         includeGroupInSearch: true,
       }).filter((item) => !fixedTypeId || item.workoutTypeIds.includes(fixedTypeId)),
-    [source, fixedTypeId, filters, query],
+    [source, fixedTypeId, filters, deferredQuery],
   );
   const groups = useMemo(() => groupCatalogByMovement(filtered), [filtered]);
   const { equipment } = catalogFacets(source);
@@ -237,17 +239,17 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     (item) => item.toLocaleLowerCase() === group.trim().toLocaleLowerCase(),
   );
   const filteredCategoryOptions = useMemo(() => {
-    const normalized = selectorQuery.trim().toLocaleLowerCase();
+    const normalized = deferredSelectorQuery.trim().toLocaleLowerCase();
     return normalized
       ? taxonomyCategoryOptions.filter((item) => item.toLocaleLowerCase().includes(normalized))
       : taxonomyCategoryOptions;
-  }, [selectorQuery, taxonomyCategoryOptions]);
+  }, [deferredSelectorQuery, taxonomyCategoryOptions]);
   const filteredEquipmentOptions = useMemo(() => {
-    const normalized = selectorQuery.trim().toLocaleLowerCase();
+    const normalized = deferredSelectorQuery.trim().toLocaleLowerCase();
     return normalized
       ? selectableEquipment.filter((item) => item.toLocaleLowerCase().includes(normalized))
       : selectableEquipment;
-  }, [selectableEquipment, selectorQuery]);
+  }, [selectableEquipment, deferredSelectorQuery]);
   const isCustom = (item: ExerciseCatalogItem) =>
     catalog.customExercises.some((custom) => custom.id === item.id);
   const restOverride = (item: ExerciseCatalogItem) =>
@@ -508,7 +510,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                       ? 'Add variation'
                       : 'New exercise'
                     : formView === 'category'
-                    ? 'Target area'
+                    ? 'Category'
                     : formView === 'family'
                       ? 'Exercise group'
                       : formView === 'equipment'
@@ -562,7 +564,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                       {!formParent ? (
                         <FormLinkCard
                           icon="activity"
-                          label="Target area"
+                          label="Category"
                           value={exerciseCategory}
                           accessibilityLabel="Exercise category"
                           onPress={() => {
@@ -676,13 +678,13 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                         autoFocus
                         value={selectorQuery}
                         onChangeText={setSelectorQuery}
-                        accessibilityLabel="Search target areas"
-                        placeholder="Search target areas"
+                        accessibilityLabel="Search categories"
+                        placeholder="Search categories"
                       />
                       <ExerciseFormOptionList
                         options={filteredCategoryOptions.map((label) => ({ label, source: 'forge' as const }))}
                         selected={exerciseCategory}
-                        accessibilityPrefix="Target area"
+                        accessibilityPrefix="Category"
                         onSelect={(value) => { setExerciseCategory(value); transitionFormView('details'); }}
                       />
                     </>
