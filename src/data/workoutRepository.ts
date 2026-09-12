@@ -21,3 +21,16 @@ export async function saveCompletedWorkouts(workouts: Workout[]): Promise<void> 
     for (const workout of workouts) await db.runAsync('INSERT INTO workouts (id, is_active, completed_at, started_at, value_json) VALUES (?, 0, ?, ?, ?)', workout.id, workout.completedAt, workout.startedAt, JSON.stringify(workout));
   });
 }
+
+/** Adds one completed workout without replacing the existing history archive. */
+export async function appendCompletedWorkout(workout: Workout): Promise<void> {
+  await withDatabaseTransaction(async (db) => {
+    await db.runAsync(
+      'INSERT INTO workouts (id, is_active, completed_at, started_at, value_json) VALUES (?, 0, ?, ?, ?)',
+      workout.id,
+      workout.completedAt,
+      workout.startedAt,
+      JSON.stringify(workout),
+    );
+  });
+}

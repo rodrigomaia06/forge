@@ -11,8 +11,8 @@ const completedWorkouts = [
     completedAt: Date.UTC(2026, 7, 24, 8, 14),
     durationSeconds: 52 * 60,
     averageRestSeconds: 83,
-    location: 'Gym',
-    mood: 'Great',
+    attributes: { Location: 'Gym', Mood: 'Great' },
+    attributeIcons: { Location: 'location', Mood: 'mood' },
     note: 'Felt strong. Good pump.',
     exercises: [
       {
@@ -52,6 +52,10 @@ async function capture(page: Page, name: string): Promise<void> {
 }
 
 test.describe('Forge screen captures', () => {
+  test.beforeEach(async ({}, testInfo) => {
+    test.skip(testInfo.project.name !== 'iphone-air', 'Product visual captures use the iPhone profile.');
+  });
+
   test('captures Dashboard, Plans and Settings', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByTestId('dashboard-header-title')).toBeVisible();
@@ -177,14 +181,33 @@ test.describe('Forge screen captures', () => {
   });
 
   test('captures the History workout editor', async ({ page }) => {
-    await seedHistory(page);
     await page.goto('/');
-    await page.getByRole('tab', { name: 'History' }).click();
-    await page.getByRole('button', { name: 'Open Upper push' }).click();
-    await page.getByRole('button', { name: 'Workout options' }).click();
-    await page.getByRole('button', { name: 'Edit workout' }).click();
+    await openHistoricalEditorCapture(page);
     await expect(page.getByLabel('Workout name')).toBeVisible();
     await capture(page, 'history-workout-editor');
+  });
+
+  test('captures the dark History workout editor', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'General' }).click();
+    await page.getByRole('button', { name: 'Appearance' }).click();
+    await page.getByRole('radio', { name: 'Dark' }).click();
+    await page.getByRole('button', { name: 'Back to Settings' }).click();
+    await page.getByRole('tab', { name: 'Dashboard' }).click();
+    await openHistoricalEditorCapture(page);
+    await expect(page.getByLabel('Workout name')).toBeVisible();
+    await capture(page, 'history-workout-editor-dark');
+  });
+
+  test('captures the historical workout source chooser', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Add historical workout' }).click();
+    const sourceChooser = page.getByTestId('historical-workout-source-chooser');
+    await expect(sourceChooser).toBeVisible();
+    await expect(sourceChooser.getByText('Add historical workout', { exact: true })).toBeVisible();
+    await expect(sourceChooser.getByText('From routine or plan', { exact: true })).toBeVisible();
+    await capture(page, 'historical-workout-source-chooser');
   });
 
   test('captures Live Workout and set options', async ({ page }) => {
@@ -209,3 +232,14 @@ test.describe('Forge screen captures', () => {
     await capture(page, 'set-options');
   });
 });
+
+async function openHistoricalEditorCapture(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Add historical workout' }).click();
+  await page.getByRole('button', { name: 'Blank workout' }).click();
+  await page.getByLabel('Workout name').fill('Upper push');
+  await page.getByLabel('Notes').fill('Felt strong. Good pump.');
+  await page.getByRole('button', { name: 'Add attribute' }).click();
+  await page.getByLabel('Attribute label').fill('Readiness');
+  await page.getByLabel('Attribute value').fill('High');
+  await page.getByRole('button', { name: 'Save attribute' }).click();
+}

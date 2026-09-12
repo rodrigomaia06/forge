@@ -111,6 +111,7 @@ export function PlansProvider({ children }: ChildrenProps) {
         type: options.type || 'Strength',
         note: options.note,
         attributes: options.attributes,
+        attributeIcons: options.attributeIcons,
         exercises: options.exercises || [],
         planId: options.planId,
         createdAt: now,

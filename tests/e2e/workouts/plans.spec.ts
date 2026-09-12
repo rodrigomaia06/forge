@@ -312,6 +312,8 @@ test.describe('Plans and routines', () => {
     await page.getByRole('button', { name: 'Edit Mood attribute' }).click();
     await page.getByRole('button', { name: 'Remove attribute' }).click();
     await expect(page.getByRole('button', { name: 'Edit Mood attribute' })).toHaveCount(0);
+    // Re-focus the virtualized header field after nested sheets on compact web.
+    await page.getByLabel('Routine name').fill('Attributes routine');
     await page.getByRole('button', { name: 'Save routine' }).click();
     await expect(page.getByText('Attributes routine', { exact: true })).toBeVisible();
   });

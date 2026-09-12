@@ -12,8 +12,6 @@ export function createWorkout(options: StartWorkoutOptions): Workout {
     startedAt: Date.now(),
     completedAt: null,
     note: options.note || '',
-    location: options.location,
-    mood: options.mood,
     averageRestSeconds: options.averageRestSeconds,
     routineId: options.routineId,
     planId: options.planId,

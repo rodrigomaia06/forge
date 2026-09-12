@@ -23,6 +23,13 @@ export { ForgeSelectionSheet, ForgeSingleSelectList } from './ForgeSelection';
 export type { ForgeSingleSelectOption } from './ForgeSelection';
 export { ForgeCard } from './ForgeCard';
 export {
+  ForgeAttributeEditorSheet,
+  ForgeEditorBackButton,
+  ForgeSwipeableAttributeRow,
+  ForgeWorkoutTypePicker,
+} from './ForgeWorkoutEditorControls';
+export type { ForgeAttributeDraft } from './ForgeWorkoutEditorControls';
+export {
   ForgeCatalogFilterSheet,
   ForgeCatalogFilterContent,
   ForgeCatalogFilterTokens,

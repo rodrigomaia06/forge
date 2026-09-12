@@ -1,11 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, KeyboardAvoidingView, PanResponder, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, {
   runOnJS,
   useAnimatedScrollHandler,
-  useAnimatedStyle,
   useSharedValue,
-  withSpring,
 } from 'react-native-reanimated';
 import {
   AppScreen,
@@ -20,6 +18,9 @@ import {
   ForgeFloatingCta,
   ForgeSheetHeader,
   ForgeTextInput,
+  ForgeAttributeEditorSheet,
+  ForgeSwipeableAttributeRow,
+  ForgeWorkoutTypePicker,
   Icon,
   pressedFeedback,
 } from '../components/ui';
@@ -29,7 +30,7 @@ import { useSettings } from '../state/SettingsContext';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import type { RootTabScreenProps, Workout, WorkoutExercise, WorkoutSetChanges } from '../types';
-import { lightHaptic, mediumHaptic, successHaptic } from './activeWorkout/activeWorkoutFeedback';
+import { lightHaptic, successHaptic } from './activeWorkout/activeWorkoutFeedback';
 import {
   formatElapsed,
   formatRest,
@@ -42,6 +43,7 @@ import { WorkoutDurationSheet } from './activeWorkout/WorkoutDurationSheet';
 import { createActiveWorkoutStyles } from './activeWorkout/activeWorkoutStyles';
 import { useFocusedSetKeyboardLift } from './activeWorkout/useFocusedSetKeyboardLift';
 import { typeScale } from '../theme/tokens';
+import { calendarDateKey } from '../domain/workouts/calendarDate';
 import { workoutTypeIcon } from './settings/workoutTypeIcon';
 
 type ActiveWorkoutScreenProps = RootTabScreenProps<'ActiveWorkout'>;
@@ -68,6 +70,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   const [restSheetOpen, setRestSheetOpen] = useState(false);
   const [durationSheetOpen, setDurationSheetOpen] = useState(false);
   const [discardConfirmationOpen, setDiscardConfirmationOpen] = useState(false);
+  const [emptyFinishConfirmationOpen, setEmptyFinishConfirmationOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [headerElevated, setHeaderElevated] = useState(false);
   const [editingWorkout, setEditingWorkout] = useState(false);
@@ -177,7 +180,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   const returnToDashboard = (finished: Workout | null): void =>
     navigation.navigate(
       'Dashboard',
-      finished?.completedAt ? { selectedDay: new Date(finished.completedAt).getDate() } : undefined,
+      finished?.completedAt ? { selectedDate: calendarDateKey(finished.completedAt) } : undefined,
     );
 
   if (!ready)
@@ -204,18 +207,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
 
   const handleFinish = () => {
     if (!activeWorkout.exercises.length) {
-      Alert.alert('Finish empty workout?', 'No workout will be saved.', [
-        { text: 'Keep working out', style: 'cancel' },
-        {
-          text: 'Leave',
-          style: 'destructive',
-          onPress: () => {
-            finishWorkout();
-            successHaptic();
-            returnToDashboard(null);
-          },
-        },
-      ]);
+      setEmptyFinishConfirmationOpen(true);
       return;
     }
     successHaptic();
@@ -300,7 +292,10 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Open workout duration"
-          onPress={() => setDurationSheetOpen(true)}
+          onPress={() => {
+            lightHaptic();
+            setDurationSheetOpen(true);
+          }}
           style={({ pressed }) => [styles.elapsedInfo, pressed && pressedFeedback]}
         >
             <Icon name="time-outline" size={22} color={theme.slate} />
@@ -380,6 +375,21 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
         }}
         testID="discard-live-workout-confirmation"
       />
+      <ForgeConfirmationDialog
+        visible={emptyFinishConfirmationOpen}
+        title="Finish empty workout?"
+        message="No workout will be saved."
+        cancelLabel="Keep working out"
+        confirmLabel="Leave workout"
+        onCancel={() => setEmptyFinishConfirmationOpen(false)}
+        onConfirm={() => {
+          setEmptyFinishConfirmationOpen(false);
+          finishWorkout();
+          successHaptic();
+          returnToDashboard(null);
+        }}
+        testID="finish-empty-workout-confirmation"
+      />
       <ForgeBottomSheet
         visible={editingWorkout}
         onClose={() => setEditingWorkout(false)}
@@ -388,12 +398,13 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
         closeDistance={360}
         style={editorStyles.sheet}
       >
-        {attributeDraft ? <LiveWorkoutAttributeSheet value={attributeDraft} onClose={() => setAttributeDraft(null)} onSave={(next) => { const label = next.label.trim(); if (!label || (label !== next.original && attributesDraft[label] !== undefined)) return; setAttributesDraft((current) => { const copy = { ...current }; if (next.original) delete copy[next.original]; copy[label] = next.value.trim(); return copy; }); setAttributeIconsDraft((current) => { const copy = { ...current }; if (next.original) delete copy[next.original]; copy[label] = next.icon; return copy; }); setAttributeDraft(null); }} onDelete={attributeDraft.original ? () => { setAttributesDraft((current) => { const copy = { ...current }; delete copy[attributeDraft.original!]; return copy; }); setAttributeIconsDraft((current) => { const copy = { ...current }; delete copy[attributeDraft.original!]; return copy; }); setAttributeDraft(null); } : undefined} /> : editorView === 'type-picker' ? <LiveWorkoutTypePicker
+        {attributeDraft ? <ForgeAttributeEditorSheet value={attributeDraft} onClose={() => setAttributeDraft(null)} onSave={(next) => { const label = next.label.trim(); if (!label || (label !== next.original && attributesDraft[label] !== undefined)) return; setAttributesDraft((current) => { const copy = { ...current }; if (next.original) delete copy[next.original]; copy[label] = next.value.trim(); return copy; }); setAttributeIconsDraft((current) => { const copy = { ...current }; if (next.original) delete copy[next.original]; copy[label] = next.icon; return copy; }); setAttributeDraft(null); }} onDelete={attributeDraft.original ? () => { setAttributesDraft((current) => { const copy = { ...current }; delete copy[attributeDraft.original!]; return copy; }); setAttributeIconsDraft((current) => { const copy = { ...current }; delete copy[attributeDraft.original!]; return copy; }); setAttributeDraft(null); } : undefined} /> : editorView === 'type-picker' ? <ForgeWorkoutTypePicker
           selectedType={workoutTypeDraft}
           workoutTypes={preferences.workoutTypes.filter((type) => !type.hidden)}
           onBack={() => setEditorView('form')}
           onClose={() => setEditingWorkout(false)}
           onSelect={(type) => { setWorkoutTypeDraft(type); setEditorView('form'); }}
+          iconForType={workoutTypeIcon}
         /> : <>
         <ForgeBottomSheetHandle />
         <ForgeSheetHeader title="Edit workout" onClose={() => setEditingWorkout(false)} />
@@ -432,7 +443,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
           <Text style={[editorStyles.label, { color: theme.slate }]}>Custom attributes</Text>
           <ForgeCard variant="inset">
             {Object.entries(attributesDraft).map(([label, value], index) => (
-              <SwipeableWorkoutAttributeRow
+              <ForgeSwipeableAttributeRow
                 key={label}
                 label={label}
                 value={value}
@@ -632,213 +643,6 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
     </KeyboardAvoidingView>
   );
 });
-
-function LiveWorkoutAttributeSheet({
-  value,
-  onClose,
-  onSave,
-  onDelete,
-}: {
-  value: { original?: string; label: string; value: string; icon: import('../types').IconName };
-  onClose: () => void;
-  onSave: (value: { original?: string; label: string; value: string; icon: import('../types').IconName }) => void;
-  onDelete?: () => void;
-}) {
-  const theme = useForgeTheme();
-  const [draft, setDraft] = useState(value);
-  const [selectingIcon, setSelectingIcon] = useState(false);
-  const icons: import('../types').IconName[] = [
-    'mood', 'focus', 'energy', 'recovery', 'sleep', 'heart', 'location', 'home',
-    'weather', 'temperature', 'hydration', 'nutrition', 'music', 'shoe', 'goal',
-    'note', 'calendar', 'time', 'measure', 'settings',
-  ];
-  return (
-    <>
-      <ForgeBottomSheetHandle />
-      <ForgeSheetHeader
-        title={value.original ? 'Edit attribute' : 'Add attribute'}
-        onClose={undefined}
-        closePosition={onDelete ? 'left' : 'right'}
-        leading={<SheetBackButton onPress={onClose} />}
-        trailing={onDelete ? <HeaderAction accessibilityLabel="Remove attribute" icon="trash" iconOnly tone="destructive" haptic="none" onPress={onDelete} /> : undefined}
-      />
-      <ScrollView style={editorStyles.editorScroll} contentContainerStyle={editorStyles.editorContent} keyboardShouldPersistTaps="handled">
-        <View style={editorStyles.formSection}>
-          <Text style={[editorStyles.label, { color: theme.slate }]}>Attribute name</Text>
-          <ForgeCard variant="inset" style={editorStyles.fieldCard}>
-            <ForgeTextInput accessibilityLabel="Attribute label" value={draft.label} onChangeText={(label) => setDraft((current) => ({ ...current, label }))} placeholder="Name" placeholderTextColor={theme.textDisabled} style={[editorStyles.input, { color: theme.textPrimary }]} />
-          </ForgeCard>
-        </View>
-        <View style={editorStyles.formSection}>
-          <Text style={[editorStyles.label, { color: theme.slate }]}>Value</Text>
-          <ForgeCard variant="inset" style={editorStyles.fieldCard}>
-            <ForgeTextInput accessibilityLabel="Attribute value" value={draft.value} onChangeText={(nextValue) => setDraft((current) => ({ ...current, value: nextValue }))} placeholder="Value (optional)" placeholderTextColor={theme.textDisabled} style={[editorStyles.input, { color: theme.textPrimary }]} />
-          </ForgeCard>
-        </View>
-        <View style={editorStyles.formSection}>
-          <Text style={[editorStyles.label, { color: theme.slate }]}>Icon</Text>
-          <ForgeCard variant="inset">
-            <Pressable accessibilityRole="button" accessibilityLabel="Choose attribute icon" onPress={() => setSelectingIcon((current) => !current)} style={editorStyles.row}>
-              <Icon name={draft.icon} size={22} color={theme.textPrimary} />
-              <Text style={[editorStyles.rowLabel, { color: theme.textPrimary }]}>Choose icon</Text>
-              <Icon name={selectingIcon ? 'chevron-down' : 'chevron-forward'} size={20} color={theme.slate} />
-            </Pressable>
-            {selectingIcon ? <View style={[editorStyles.iconChoices, { borderTopColor: theme.divider }]} accessibilityRole="radiogroup">
-              {icons.map((icon) => <Pressable key={icon} accessibilityRole="radio" accessibilityLabel={`Use ${icon} icon`} accessibilityState={{ checked: icon === draft.icon }} onPress={() => { setDraft((current) => ({ ...current, icon })); setSelectingIcon(false); }} style={({ pressed }) => [editorStyles.iconChoice, pressed && pressedFeedback]}><Icon name={icon} size={22} color={theme.textPrimary} />{icon === draft.icon ? <Icon name="check" size={16} color={theme.selectionIndicator} weight="bold" /> : null}</Pressable>)}
-            </View> : null}
-          </ForgeCard>
-        </View>
-      </ScrollView>
-      <ForgeFloatingCta label="Save attribute" accessibilityLabel="Save attribute" onPress={() => onSave(draft)} disabled={!draft.label.trim()} tone="success" />
-    </>
-  );
-}
-
-function SwipeableWorkoutAttributeRow({
-  label,
-  value,
-  icon,
-  divider,
-  onEdit,
-  onDelete,
-}: {
-  label: string;
-  value: string;
-  icon: import('../types').IconName;
-  divider: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
-  const theme = useForgeTheme();
-  const [deleteRevealed, setDeleteRevealed] = useState(false);
-  const translateX = useSharedValue(0);
-  const deleteWidth = 56;
-  useEffect(() => {
-    translateX.value = withSpring(deleteRevealed ? -deleteWidth : 0, {
-      damping: 22,
-      stiffness: 280,
-      mass: 0.65,
-      overshootClamping: true,
-    });
-  }, [deleteRevealed, deleteWidth, translateX]);
-  const settle = (shouldOpen: boolean): void => {
-    if (shouldOpen !== deleteRevealed) mediumHaptic();
-    setDeleteRevealed(shouldOpen);
-  };
-  const panResponder = useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponder: (_event, gesture) =>
-      Math.abs(gesture.dx) > 6 && Math.abs(gesture.dx) > Math.abs(gesture.dy) && (deleteRevealed || gesture.dx < 0),
-    onPanResponderMove: (_event, gesture) => {
-      const base = deleteRevealed ? -deleteWidth : 0;
-      translateX.value = Math.max(-deleteWidth, Math.min(0, base + gesture.dx));
-    },
-    onPanResponderRelease: (_event, gesture) => {
-      const offset = (deleteRevealed ? -deleteWidth : 0) + gesture.dx;
-      settle(Math.max(-deleteWidth, Math.min(0, offset)) < -deleteWidth * 0.58);
-    },
-    onPanResponderTerminate: () => settle(false),
-  }), [deleteRevealed, deleteWidth, translateX]);
-  const swipeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value }] }));
-  return (
-    <View {...panResponder.panHandlers} style={editorStyles.swipeAttributeRow}>
-      <View
-        style={[editorStyles.attributeDeleteAction, { backgroundColor: theme.destructiveSurface }]}
-        pointerEvents={deleteRevealed ? 'auto' : 'none'}
-      >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Delete ${label} attribute`}
-          onPress={onDelete}
-          style={({ pressed }) => [editorStyles.attributeDeleteButton, pressed && { backgroundColor: theme.destructiveSurfacePressed }]}
-        >
-          <Icon name="trash" size={18} color={theme.textDestructive} />
-        </Pressable>
-      </View>
-      <Animated.View style={[editorStyles.swipeAttributeContent, { backgroundColor: theme.surface }, swipeStyle]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Edit ${label} attribute`}
-          onPress={onEdit}
-          style={[editorStyles.row, divider && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}
-        >
-          <Icon name={icon} size={22} color={theme.textPrimary} />
-          <Text style={[editorStyles.rowLabel, { color: theme.textPrimary }]}>{label}</Text>
-          <Text style={[editorStyles.rowValue, { color: theme.slate }]}>{value || 'Add value'}</Text>
-          <Icon name="chevron-forward" size={20} color={theme.slate} />
-        </Pressable>
-      </Animated.View>
-      </View>
-  );
-}
-
-function LiveWorkoutTypePicker({
-  selectedType,
-  workoutTypes,
-  onBack,
-  onClose,
-  onSelect,
-}: {
-  selectedType: string;
-  workoutTypes: import('../types').WorkoutTypePreference[];
-  onBack: () => void;
-  onClose: () => void;
-  onSelect: (type: string) => void;
-}) {
-  const theme = useForgeTheme();
-  return (
-    <>
-      <ForgeBottomSheetHandle />
-      <ForgeSheetHeader
-        title="Workout type"
-        onClose={onClose}
-        closeAccessibilityLabel="Close edit live workout"
-        leading={<SheetBackButton onPress={onBack} />}
-      />
-      <ScrollView style={editorStyles.editorScroll} contentContainerStyle={editorStyles.typePickerContent} showsVerticalScrollIndicator={false}>
-        <View accessibilityRole="radiogroup">
-        <ForgeCard variant="inset">
-          {workoutTypes.map((type) => {
-            const selected = type.name === selectedType;
-            return (
-              <Pressable
-                key={type.id}
-                accessibilityRole="radio"
-                accessibilityLabel={type.name}
-                accessibilityState={{ checked: selected }}
-                onPress={() => onSelect(type.name)}
-                style={[
-                  editorStyles.typeChoice,
-                  selected && { backgroundColor: theme.successSurface },
-                  workoutTypes.indexOf(type) > 0
-                    ? { borderTopColor: theme.divider }
-                    : { borderTopWidth: 0 },
-                ]}
-              >
-                <Icon name={workoutTypeIcon(type)} size={20} color={theme.textPrimary} />
-                <Text style={[editorStyles.rowLabel, { color: theme.textPrimary }]}>{type.name}</Text>
-                {selected ? <Icon name="check" size={20} color={theme.selectionIndicator} weight="bold" /> : null}
-              </Pressable>
-            );
-          })}
-        </ForgeCard>
-        </View>
-      </ScrollView>
-    </>
-  );
-}
-
-function SheetBackButton({ onPress }: { onPress: () => void }) {
-  const theme = useForgeTheme();
-  return (
-    <HeaderAction
-      accessibilityLabel="Back to edit workout"
-      icon="chevron-back"
-      iconOnly
-      onPress={onPress}
-      style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }}
-    />
-  );
-}
 
 function commentHeight(value: string): number {
   const lines = value.split('\n').reduce((total, line) => total + Math.max(1, Math.ceil(line.length / 38)), 0);

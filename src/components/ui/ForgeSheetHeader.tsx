@@ -9,6 +9,8 @@ import { SheetCloseButton } from './SheetCloseButton';
 
 interface ForgeSheetHeaderProps {
   title: string;
+  /** Use for a deliberately descriptive sheet title that cannot fit on one line. */
+  titleNumberOfLines?: number;
   onClose?: () => void;
   closeAccessibilityLabel?: string;
   closePosition?: 'left' | 'right';
@@ -21,6 +23,7 @@ interface ForgeSheetHeaderProps {
 /** Shared title bar for Forge's bottom-attached sheets. */
 export function ForgeSheetHeader({
   title,
+  titleNumberOfLines = 1,
   onClose,
   closeAccessibilityLabel,
   closePosition = 'right',
@@ -42,7 +45,7 @@ export function ForgeSheetHeader({
         ) : null}
         {leading}
       </View>
-      <Text numberOfLines={1} style={[styles.title, { color: theme.textPrimary }]}>
+      <Text numberOfLines={titleNumberOfLines} style={[styles.title, { color: theme.textPrimary }]}>
         {title}
       </Text>
       <View style={[styles.trailing, { right: horizontalInset }]}>

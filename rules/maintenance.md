@@ -87,6 +87,8 @@ Use the machine's available capacity to reduce verification time. Automated chec
 
 For a visual, layout, gesture, or interaction report, capture and inspect targeted screenshots of the changed state before completion. Keep screenshots narrowly scoped to the reported condition; do not substitute unrelated full-app captures. Use available CPU, browser workers, and other local resources to the highest safe level needed for useful verification, reducing concurrency only for a concrete shared-resource constraint.
 
+Capture and inspect product screenshots in the configured iPhone Playwright profile. Desktop browser captures may support functional diagnosis, but they are not the visual-verification artifact.
+
 ## Explicit multi-item requests
 
 When a user supplies an explicit list of tasks, address the items in that order and confirm each one before moving to the next. Do not collapse the list into an unstructured aggregate.

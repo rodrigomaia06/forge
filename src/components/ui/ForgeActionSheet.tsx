@@ -14,6 +14,8 @@ import { ForgeSheetHeader } from './ForgeSheetHeader';
 
 export interface ForgeActionSheetAction {
   label: string;
+  /** A concise explanation for a consequential source or choice. */
+  description?: string;
   icon: IconName;
   onPress: () => void;
   tone?: 'neutral' | 'destructive';
@@ -26,6 +28,11 @@ interface ForgeActionSheetProps {
   onClose: () => void;
   accessibilityLabel: string;
   title: string;
+  titleNumberOfLines?: number;
+  /** Gives a contextual choice enough visual hierarchy to stand apart from the backdrop. */
+  emphasis?: 'default' | 'prominent';
+  description?: string;
+  backdropIntensity?: 'default' | 'strong';
   actions: readonly ForgeActionSheetAction[];
   testID?: string;
   initialOffset?: number;
@@ -39,6 +46,10 @@ export function ForgeActionSheet({
   onClose,
   accessibilityLabel,
   title,
+  titleNumberOfLines,
+  emphasis = 'default',
+  description,
+  backdropIntensity,
   actions,
   testID,
   initialOffset,
@@ -59,12 +70,14 @@ export function ForgeActionSheet({
       initialOffset={initialOffset}
       closeDistance={closeDistance}
       dismissThreshold={dismissThreshold}
+      backdropIntensity={backdropIntensity}
     >
       {(close) => (
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, emphasis === 'prominent' && styles.prominentSheet]}>
           <ForgeBottomSheetHandle />
           <ForgeSheetHeader
             title={title}
+            titleNumberOfLines={titleNumberOfLines}
             onClose={close}
             closePosition={headerDestructiveAction ? 'left' : 'right'}
             trailing={
@@ -85,8 +98,27 @@ export function ForgeActionSheet({
               ) : undefined
             }
           />
+          {description ? (
+            <View
+              style={[
+                styles.descriptionCard,
+                {
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <Text style={[styles.description, { color: theme.textSecondary }]}>{description}</Text>
+            </View>
+          ) : null}
           {neutralActions.length > 0 && (
-            <View style={[styles.actionList, { borderColor: theme.border }]}>
+            <View
+              style={[
+                styles.actionList,
+                emphasis === 'prominent' && styles.prominentActionList,
+                { borderColor: theme.border, backgroundColor: theme.surface },
+              ]}
+            >
               {neutralActions.map((action, index) => (
                 <ActionRow
                   key={action.label}
@@ -142,6 +174,7 @@ function ActionRow({
         }}
       style={({ pressed }) => [
         styles.actionRow,
+          action.description && styles.descriptiveActionRow,
           destructive && styles.destructiveAction,
           action.disabled && styles.disabledAction,
           pressed && pressedFeedback,
@@ -158,9 +191,16 @@ function ActionRow({
         >
           <Icon name={action.icon} size={21} color={action.disabled ? theme.textDisabled : color} />
         </View>
-        <Text style={[styles.actionLabel, { color: action.disabled ? theme.textDisabled : color }]}>
-          {action.label}
-        </Text>
+        <View style={styles.actionCopy}>
+          <Text style={[styles.actionLabel, { color: action.disabled ? theme.textDisabled : color }]}>
+            {action.label}
+          </Text>
+          {action.description ? (
+            <Text style={[styles.actionDescription, { color: action.disabled ? theme.textDisabled : theme.textSecondary }]}>
+              {action.description}
+            </Text>
+          ) : null}
+        </View>
         <Icon
           name="chevron-forward"
           size={19}
@@ -174,6 +214,16 @@ function ActionRow({
 
 const styles = StyleSheet.create({
   sheet: { paddingBottom: 30 },
+  prominentSheet: { paddingBottom: 34 },
+  descriptionCard: {
+    marginHorizontal: 20,
+    marginTop: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    borderWidth: 1,
+    borderRadius: 16,
+  },
+  description: { ...typeScale.body },
   actionList: {
     marginHorizontal: 20,
     // Keep the compact list close to the title after removing the contextual card.
@@ -183,6 +233,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 16,
   },
+  prominentActionList: { marginTop: 12 },
   destructiveList: {
     marginHorizontal: 20,
     marginTop: 14,
@@ -197,9 +248,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  descriptiveActionRow: { minHeight: 76, paddingVertical: 11 },
   destructiveAction: { minHeight: 64 },
   disabledAction: { opacity: 0.68 },
-  actionLabel: { ...typeScale.controlLabel, flex: 1 },
+  actionCopy: { flex: 1, gap: 2 },
+  actionLabel: { ...typeScale.controlLabel },
+  actionDescription: { ...typeScale.caption },
   iconTile: {
     width: 38,
     height: 38,

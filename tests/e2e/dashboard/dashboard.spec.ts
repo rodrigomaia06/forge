@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 test.describe('Dashboard', () => {
   test('matches the iPhone visual baseline', async ({ page }, testInfo) => {
@@ -27,6 +27,109 @@ test.describe('Dashboard', () => {
 
     await page.getByRole('button', { name: /24 August 2026/ }).click();
     await expect(page.getByTestId('calendar-selected-day')).toBeVisible();
+  });
+
+  test('opens a local historical-workout draft for the selected empty calendar date', async ({ page }) => {
+    await page.goto('/');
+
+    const addHistoricalWorkout = page.getByRole('button', { name: 'Add historical workout' });
+    await expect(addHistoricalWorkout).toBeVisible();
+    await addHistoricalWorkout.click();
+    await expect(page.getByTestId('historical-workout-source-chooser')).toBeVisible();
+    await page.getByRole('button', { name: 'Blank workout' }).click();
+    await expect(page.getByLabel('Workout name')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Select Date' })).toContainText('2026-08-24');
+    await expect(page.getByRole('button', { name: 'Select Start time' })).toContainText('Choose time');
+    await expect(page.getByRole('button', { name: 'Select End time' })).toContainText('Choose time');
+    await expect(page.getByRole('button', { name: 'Save workout' })).toBeDisabled();
+
+    await page.getByRole('button', { name: 'Cancel editing workout' }).click();
+    await expect(addHistoricalWorkout).toBeVisible();
+  });
+
+  test('saves a historical workout on its selected calendar date', async ({ page }, testInfo) => {
+    await page.goto('/');
+
+    await page.getByRole('button', { name: 'Add historical workout' }).click();
+    await page.getByRole('button', { name: 'Blank workout' }).click();
+    await page.getByLabel('Workout name').fill('Calendar workout');
+    await page.getByRole('button', { name: 'Select Start time' }).click();
+    await page.getByTestId('history-start-picker').getByRole('radio', { name: 'Hours 16' }).click();
+    await page.getByRole('button', { name: 'Back to edit workout' }).click();
+    await expect(page.getByRole('button', { name: 'Select Start time' })).toContainText('Choose time');
+    await page.getByRole('button', { name: 'Select Start time' }).click();
+    await page.getByTestId('history-start-picker').getByRole('radio', { name: 'Hours 17' }).click();
+    await page.getByRole('button', { name: 'Save selected date and time' }).click();
+    await page.getByRole('button', { name: 'Select End time' }).click();
+    await page.getByTestId('history-end-picker').getByRole('radio', { name: 'Hours 16' }).click();
+    await page.getByRole('button', { name: 'Save selected date and time' }).click();
+    await expect(page.getByText('End time must be after the start time.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Save workout' })).toBeDisabled();
+    await page.getByRole('button', { name: 'Select End time' }).click();
+    await page.getByTestId('history-end-picker').getByRole('radio', { name: 'Hours 19' }).click();
+    await page.getByRole('button', { name: 'Save selected date and time' }).click();
+    await expect(page.getByRole('button', { name: 'Save workout' })).toBeEnabled();
+    await page.getByRole('button', { name: 'Save workout' }).click();
+
+    await expect.poll(() => hasVisibleExactText(page, 'August 24, 2026')).toBe(true);
+    await expect.poll(() => hasVisibleExactText(page, 'Calendar workout')).toBe(true);
+    // Mobile Chromium emulation creates a fresh OPFS worker on reload, unlike
+    // the native iOS target this visual profile represents. The desktop web
+    // project exercises durable web-storage reload semantics below.
+    if (testInfo.project.name === 'iphone-air') return;
+    await page.reload();
+    await expect.poll(() => hasVisibleExactText(page, 'Calendar workout')).toBe(true);
+  });
+
+  test('seeds a historical draft from an independent routine snapshot', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
+    await page.getByTestId('plans-creation-popover').getByRole('button', { name: 'New routine' }).click();
+    await page.getByLabel('Routine name').fill('Template pull');
+    await page.getByRole('button', { name: 'Add attribute' }).click();
+    await page.getByLabel('Attribute label').fill('Readiness');
+    await page.getByRole('button', { name: 'Choose attribute icon' }).click();
+    await page.getByRole('radio', { name: 'Use focus icon' }).click();
+    await page.getByRole('button', { name: 'Save attribute' }).click();
+    // Compact iPhone web can recycle the header input after an attribute sheet closes.
+    await page.getByLabel('Routine name').fill('Template pull');
+    await page.getByRole('button', { name: 'Save routine' }).click();
+
+    await page.getByRole('tab', { name: 'Dashboard' }).click();
+    await page.getByRole('button', { name: 'Add historical workout' }).click();
+    await page.getByRole('button', { name: 'From routine' }).click();
+    await expect(page.getByText('Standalone routines', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Use Template pull routine' }).click();
+    await expect(page.getByLabel('Workout name')).toHaveValue('Template pull');
+    await expect(page.getByRole('button', { name: 'Edit Readiness attribute' })).toBeVisible();
+    await page.getByRole('button', { name: 'Edit Readiness attribute' }).click();
+    await expect(page.getByLabel('Attribute value')).toHaveValue('');
+    await page.getByRole('button', { name: 'Choose attribute icon' }).click();
+    await expect(page.getByTestId('attribute-icon-choice-focus-selected')).toBeVisible();
+    await page.getByRole('button', { name: 'Choose attribute icon' }).click();
+    await page.getByLabel('Attribute value').fill('Ready');
+    await page.getByRole('button', { name: 'Save attribute' }).click();
+    await expect(page.getByRole('button', { name: 'Edit Readiness attribute' })).toContainText('Ready');
+  });
+
+  test('requires a routine selection after choosing a plan source', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
+    await page.getByTestId('plans-creation-popover').getByRole('button', { name: 'New workout plan' }).click();
+    await page.getByRole('button', { name: 'Add routine to New plan' }).click();
+    await page.getByLabel('Routine name').fill('Planned pull');
+    await page.getByRole('button', { name: 'Save routine' }).click();
+
+    await page.getByRole('tab', { name: 'Dashboard' }).click();
+    await page.getByRole('button', { name: 'Add historical workout' }).click();
+    await page.getByRole('button', { name: 'From routine' }).click();
+    await page.getByRole('button', { name: 'Choose routine from New plan' }).click();
+    const plannedRoutine = page.getByRole('button', { name: 'Use Planned pull routine' });
+    await expect(plannedRoutine).toBeVisible();
+    await plannedRoutine.click();
+    await expect(page.getByLabel('Workout name')).toHaveValue('New plan — Planned pull');
   });
 
   test('gives the dock priority while the calendar view menu is open', async ({ page }) => {
@@ -151,3 +254,12 @@ test.describe('Dashboard', () => {
     });
   });
 });
+
+async function hasVisibleExactText(page: Page, text: string): Promise<boolean> {
+  return page.getByText(text, { exact: true }).evaluateAll((elements) =>
+    elements.some((element) => {
+      const style = window.getComputedStyle(element);
+      return style.display !== 'none' && style.visibility !== 'hidden';
+    }),
+  );
+}

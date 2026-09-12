@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
+  appendCompletedWorkout,
   loadWorkoutState,
   saveActiveWorkout,
   saveCompletedWorkouts,
@@ -34,6 +35,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
   const skipNextActivePersistenceRef = React.useRef(false);
   const activeHydratedRef = React.useRef(false);
   const completedHydratedRef = React.useRef(false);
+  const skipNextCompletedPersistenceRef = React.useRef(false);
   const queueActiveSave = useCallback((workout: Workout | null): Promise<void> => {
     activeWriteQueueRef.current = activeWriteQueueRef.current
       .catch(() => undefined)
@@ -95,6 +97,10 @@ export function WorkoutProvider({ children }: ChildrenProps) {
     if (!ready) return;
     if (!completedHydratedRef.current) {
       completedHydratedRef.current = true;
+      return;
+    }
+    if (skipNextCompletedPersistenceRef.current) {
+      skipNextCompletedPersistenceRef.current = false;
       return;
     }
     void saveCompletedWorkouts(completedWorkouts);
@@ -169,6 +175,12 @@ export function WorkoutProvider({ children }: ChildrenProps) {
     return finished;
   }, [activeWorkout, persistActiveWorkoutNow]);
 
+  const createCompletedWorkout = useCallback(async (workout: Workout): Promise<void> => {
+    await appendCompletedWorkout(workout);
+    skipNextCompletedPersistenceRef.current = true;
+    setCompletedWorkouts((current) => [workout, ...current]);
+  }, []);
+
   const updateCompletedWorkout = useCallback(
     (workoutId: string, update: (workout: Workout) => Workout): void => {
       setCompletedWorkouts((current) => {
@@ -206,6 +218,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
       updateActiveWorkout,
       cancelWorkout,
       finishWorkout,
+      createCompletedWorkout,
       deleteCompletedWorkout,
       updateCompletedWorkout,
     }),
@@ -224,6 +237,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
       updateActiveWorkout,
       cancelWorkout,
       finishWorkout,
+      createCompletedWorkout,
       deleteCompletedWorkout,
       updateCompletedWorkout,
     ],

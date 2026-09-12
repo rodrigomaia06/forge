@@ -123,6 +123,10 @@ test.describe('History screen', () => {
     await page.getByRole('button', { name: 'Edit workout' }).click();
     await expect(page.getByLabel('Workout name')).toBeVisible();
     await page.getByLabel('Workout name').fill('Edited Muay Thai');
+    await page.getByRole('button', { name: 'Choose workout type' }).click();
+    await expect(page.getByRole('radio', { name: 'Strength' })).toBeVisible();
+    await page.getByRole('radio', { name: 'Cardio' }).click();
+    await expect(page.getByRole('button', { name: 'Choose workout type' })).toContainText('Cardio');
     await page.getByRole('button', { name: 'Select Date' }).click();
     const datePicker = page.getByTestId('history-date-picker');
     await expect(datePicker).toBeVisible();
@@ -139,15 +143,43 @@ test.describe('History screen', () => {
     await expect(endTimePicker).toBeVisible();
     await endTimePicker.getByRole('radio', { name: 'Hours 19' }).click();
     await page.getByRole('button', { name: 'Save selected date and time' }).click();
-    await page.getByLabel('Location').fill('Forge Gym');
+    await page.getByRole('button', { name: 'Add attribute' }).click();
+    await page.getByLabel('Attribute label').fill('Location');
+    await page.getByLabel('Attribute value').fill('Forge Gym');
+    await page.getByRole('button', { name: 'Choose attribute icon' }).click();
+    await page.getByRole('radio', { name: 'Use location icon' }).click();
+    await page.getByRole('button', { name: 'Save attribute' }).click();
+    await page.getByRole('button', { name: 'Edit Location attribute' }).click();
+    await page.getByRole('button', { name: 'Remove attribute' }).click();
+    await expect(page.getByRole('button', { name: 'Edit Location attribute' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Add attribute' }).click();
+    await page.getByLabel('Attribute label').fill('Location');
+    await page.getByLabel('Attribute value').fill('Forge Gym');
+    await page.getByRole('button', { name: 'Save attribute' }).click();
     await page.getByLabel('Notes').fill('Updated session');
     await page.getByRole('button', { name: 'Save workout' }).click();
-    await expect(page.getByText('Edited Muay Thai', { exact: true }).last()).toBeVisible();
-    await page.getByRole('tab', { name: 'History' }).click();
+    await expect(page.getByTestId('history-header')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Open Edited Muay Thai' })).toBeVisible();
     await page.reload();
     await page.getByRole('tab', { name: 'History' }).click();
     await expect(page.getByRole('button', { name: 'Open Edited Muay Thai' })).toBeVisible();
+  });
+
+  test('uses the Forge card before discarding changed historical edits', async ({ page }) => {
+    await page.getByRole('button', { name: 'Open Muay Thai' }).click();
+    await page.getByRole('button', { name: 'Workout options' }).click();
+    await page.getByRole('button', { name: 'Edit workout' }).click();
+    await page.getByLabel('Workout name').fill('Unsaved Muay Thai');
+    await page.getByRole('button', { name: 'Cancel editing workout' }).click();
+
+    const confirmation = page.getByTestId('discard-history-workout-confirmation');
+    await expect(confirmation).toBeVisible();
+    await confirmation.getByRole('button', { name: 'Keep editing' }).click();
+    await expect(page.getByLabel('Workout name')).toHaveValue('Unsaved Muay Thai');
+    await page.getByRole('button', { name: 'Cancel editing workout' }).click();
+    await confirmation.getByRole('button', { name: 'Discard changes' }).click();
+    await expect(page.getByTestId('history-header')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open Muay Thai' })).toBeVisible();
   });
 
   test('does not open a workout after swiping its History card', async ({ page }) => {

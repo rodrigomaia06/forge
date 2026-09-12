@@ -16,9 +16,9 @@ import DraggableFlatList, {
 
 import {
   AppScreen,
-  Button,
   errorHaptic,
   ForgeActionSheet,
+  ForgeAttributeEditorSheet,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
   ForgeConfirmationDialog,
@@ -32,6 +32,7 @@ import {
   selectionHaptic,
   successHaptic,
 } from '../components/ui';
+import type { ForgeAttributeDraft } from '../components/ui';
 import { AddExerciseSheet } from './activeWorkout/WorkoutSheets';
 import { ExerciseSection, ReadOnlyExerciseSection } from './activeWorkout/ExerciseSection';
 import { useFocusedSetKeyboardLift } from './activeWorkout/useFocusedSetKeyboardLift';
@@ -51,7 +52,7 @@ import type {
 } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RoutineEditor'>;
-type AttributeSheetState = { originalLabel?: string; label: string; value: string } | null;
+type AttributeSheetState = ForgeAttributeDraft | null;
 type RoutineDraftChange = (update: (current: WorkoutRoutine) => WorkoutRoutine) => void;
 type RoutineConfirmation = {
   title: string;
@@ -82,7 +83,6 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
   const [addingExercises, setAddingExercises] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [attributeSheet, setAttributeSheet] = useState<AttributeSheetState>(null);
-  const [attributeError, setAttributeError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [canLeave, setCanLeave] = useState(false);
   const [revealedExerciseId, setRevealedExerciseId] = useState<string | null>(null);
@@ -173,7 +173,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
       name,
       type,
       note: optional(draft.note),
-      attributes: normalizeAttributes(draft.attributes),
+      ...normalizeAttributes(draft.attributes, draft.attributeIcons),
     };
     if (creating) {
       createRoutine(saved);
@@ -195,36 +195,41 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
       }),
     });
   const openAttribute = (label?: string, value = ''): void => {
-    setAttributeError(null);
-    setAttributeSheet({ originalLabel: label, label: label ?? '', value });
+    setAttributeSheet({ original: label, label: label ?? '', value, icon: draft.attributeIcons?.[label ?? ''] ?? 'note' });
   };
-  const saveAttribute = (): void => {
-    if (!attributeSheet) return;
-    const label = attributeSheet.label.trim();
-    const value = attributeSheet.value.trim();
-    if (!label) return setAttributeError('Attribute name is required.');
+  const saveAttribute = (next: NonNullable<AttributeSheetState>): void => {
+    const label = next.label.trim();
+    const value = next.value.trim();
+    if (!label) return;
     const duplicate = Object.keys(draft.attributes ?? {}).some(
       (key) =>
-        key !== attributeSheet.originalLabel &&
+        key !== next.original &&
         key.localeCompare(label, undefined, { sensitivity: 'accent' }) === 0,
     );
-    if (duplicate) return setAttributeError('An attribute with this label already exists.');
+    if (duplicate) return;
     change((current) => {
       const attributes = { ...(current.attributes ?? {}) };
-      if (attributeSheet.originalLabel) delete attributes[attributeSheet.originalLabel];
+      const attributeIcons = { ...(current.attributeIcons ?? {}) };
+      if (next.original) {
+        delete attributes[next.original];
+        delete attributeIcons[next.original];
+      }
       attributes[label] = value;
-      return { ...current, attributes };
+      attributeIcons[label] = next.icon;
+      return { ...current, attributes, attributeIcons };
     });
     setAttributeSheet(null);
     successHaptic();
   };
   const removeAttribute = (): void => {
-    if (!attributeSheet?.originalLabel) return;
-    const label = attributeSheet.originalLabel;
+    if (!attributeSheet?.original) return;
+    const label = attributeSheet.original;
     change((current) => {
       const attributes = { ...(current.attributes ?? {}) };
+      const attributeIcons = { ...(current.attributeIcons ?? {}) };
       delete attributes[label];
-      return { ...current, attributes: normalizeAttributes(attributes) };
+      delete attributeIcons[label];
+      return { ...current, ...normalizeAttributes(attributes, attributeIcons) };
     });
     setAttributeSheet(null);
     errorHaptic();
@@ -460,6 +465,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                       onPress={() => openAttribute(label, value)}
                       style={({ pressed }) => [styles.attributeRow, pressed && styles.pressed]}
                     >
+                      <Icon name={draft.attributeIcons?.[label] ?? 'note'} size={19} color={theme.textPrimary} />
                       <Text style={styles.attributeLabel} numberOfLines={1}>{label}</Text>
                       {value ? <Text style={styles.attributeValue} numberOfLines={1}>{value}</Text> : null}
                       <Icon name="chevron-forward" size={17} color={theme.slate} />
@@ -529,20 +535,9 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           }}
         />
         {attributeSheet ? (
-          <AttributeEditorSheet
-            value={attributeSheet}
-            error={attributeError}
-            onChange={(next) => {
-              setAttributeError(null);
-              setAttributeSheet(next);
-            }}
-            onClose={() => {
-              setAttributeError(null);
-              setAttributeSheet(null);
-            }}
-            onSave={saveAttribute}
-            onDelete={attributeSheet.originalLabel ? removeAttribute : undefined}
-          />
+          <ForgeBottomSheet visible onClose={() => setAttributeSheet(null)} accessibilityLabel="Close attribute editor" surfaceTestID="routine-attribute-sheet" style={styles.attributeSheet}>
+            {() => <ForgeAttributeEditorSheet value={attributeSheet} onClose={() => setAttributeSheet(null)} onSave={saveAttribute} onDelete={attributeSheet.original ? removeAttribute : undefined} />}
+          </ForgeBottomSheet>
         ) : null}
         {confirmation ? (
           <ForgeConfirmationDialog
@@ -617,88 +612,6 @@ function RoutineTypePicker({
                 </Pressable>
               );
             })}
-          </View>
-        </View>
-      )}
-    </ForgeBottomSheet>
-  );
-}
-
-function AttributeEditorSheet({
-  value,
-  error,
-  onChange,
-  onClose,
-  onSave,
-  onDelete,
-}: {
-  value: NonNullable<AttributeSheetState>;
-  error: string | null;
-  onChange: (value: NonNullable<AttributeSheetState>) => void;
-  onClose: () => void;
-  onSave: () => void;
-  onDelete?: () => void;
-}) {
-  const theme = useForgeTheme();
-  const styles = useThemedStyles(createStyles);
-  const editing = Boolean(value.originalLabel);
-  return (
-    <ForgeBottomSheet
-      visible
-      onClose={onClose}
-      accessibilityLabel="Close attribute editor"
-      surfaceTestID="routine-attribute-sheet"
-    >
-      {(close) => (
-        <View style={styles.attributeSheet}>
-          <ForgeBottomSheetHandle />
-          <ForgeSheetHeader
-            title={editing ? 'Edit attribute' : 'Add attribute'}
-            onClose={close}
-            closePosition={editing ? 'left' : 'right'}
-            trailing={
-              editing ? (
-                <HeaderAction
-                  accessibilityLabel="Remove attribute"
-                  icon="trash"
-                  iconOnly
-                  tone="destructive"
-                  haptic="none"
-                  onPress={onDelete ?? close}
-                />
-              ) : undefined
-            }
-          />
-          <View style={styles.attributeForm}>
-            <View style={styles.attributeFields}>
-              <TextInput
-                accessibilityLabel="Attribute label"
-                value={value.label}
-                onChangeText={(label) => onChange({ ...value, label })}
-                placeholder="Name"
-                placeholderTextColor={theme.textDisabled}
-                style={styles.attributeInput}
-              />
-              <TextInput
-                accessibilityLabel="Attribute value"
-                value={value.value}
-                onChangeText={(nextValue) => onChange({ ...value, value: nextValue })}
-                placeholder="Value (optional)"
-                placeholderTextColor={theme.textDisabled}
-                style={styles.attributeInput}
-              />
-            </View>
-            {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
-            <Button
-              accessibilityLabel="Save attribute"
-              label="Save attribute"
-              icon="check"
-              variant="outline"
-              tone="success"
-              haptic="none"
-              disabled={!value.label.trim()}
-              onPress={onSave}
-            />
           </View>
         </View>
       )}
@@ -839,11 +752,23 @@ function routineNoteHeight(note?: string): number {
   return Math.max(52, Math.min(144, visualLines * 22 + 22));
 }
 
-function normalizeAttributes(attributes?: Record<string, string>): Record<string, string> | undefined {
+function normalizeAttributes(
+  attributes?: Record<string, string>,
+  attributeIcons?: Record<string, import('../types').IconName>,
+): Pick<WorkoutRoutine, 'attributes' | 'attributeIcons'> {
   const entries = Object.entries(attributes ?? {})
     .map(([label, value]) => [label.trim(), value.trim()] as const)
     .filter(([label]) => Boolean(label));
-  return entries.length ? Object.fromEntries(entries) : undefined;
+  const normalizedAttributes = entries.length ? Object.fromEntries(entries) : undefined;
+  const normalizedIcons = Object.fromEntries(
+    entries
+      .map(([label]) => [label, attributeIcons?.[label]] as const)
+      .filter((entry): entry is [string, import('../types').IconName] => Boolean(entry[1])),
+  );
+  return {
+    attributes: normalizedAttributes,
+    attributeIcons: Object.keys(normalizedIcons).length ? normalizedIcons : undefined,
+  };
 }
 
 const createStyles = (theme: import('../types').ForgeTheme) =>

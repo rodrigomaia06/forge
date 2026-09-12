@@ -44,8 +44,6 @@ export interface Workout {
   durationSeconds?: number;
   /** Legacy workouts omit this and therefore continue tracking automatically. */
   automaticTimeTracking?: boolean;
-  location?: string;
-  mood?: string;
   note: string;
   averageRestSeconds?: number;
   exercises: WorkoutExercise[];
@@ -119,8 +117,6 @@ export interface StartWorkoutOptions {
   name?: string;
   type?: WorkoutType;
   exercises?: WorkoutExerciseInput[];
-  location?: string;
-  mood?: string;
   note?: string;
   averageRestSeconds?: number;
   routineId?: string;
@@ -156,6 +152,7 @@ export interface WorkoutContextValue extends WorkoutState {
   updateActiveWorkout: (update: (workout: Workout) => Workout) => void;
   cancelWorkout: () => void;
   finishWorkout: () => Workout | null;
+  createCompletedWorkout: (workout: Workout) => Promise<void>;
   deleteCompletedWorkout: (workoutId: string) => void;
   updateCompletedWorkout: (workoutId: string, update: (workout: Workout) => Workout) => void;
 }
@@ -169,9 +166,7 @@ export interface WorkoutSummary {
   startedAt?: number;
   completedAt?: number | null;
   id?: string;
-  location?: string;
-  mood?: string;
   note?: string;
   averageRestSeconds?: number;
 }
-export type WorkoutMap = Record<number, WorkoutSummary[]>;
+export type WorkoutMap = Record<string, WorkoutSummary[]>;

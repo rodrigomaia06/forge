@@ -55,6 +55,8 @@ interface ForgeBottomSheetProps {
   backdropTestID?: string;
   surfaceTestID?: string;
   dragArea?: (children: React.ReactNode) => React.ReactNode;
+  /** Reserve a stronger backdrop for a blocking, high-attention choice. */
+  backdropIntensity?: 'default' | 'strong';
   /** Disable for sheets whose primary content is a tall vertical scroller. */
   dragEnabled?: boolean;
   testID?: string;
@@ -79,6 +81,7 @@ export function ForgeBottomSheet({
   surfaceTestID,
   dragArea,
   dragEnabled = true,
+  backdropIntensity = 'default',
   testID,
 }: ForgeBottomSheetProps) {
   const theme = useForgeTheme();
@@ -186,7 +189,15 @@ export function ForgeBottomSheet({
         if (!onBackRequest?.()) close(true);
       }}
     >
-      <Animated.View testID={testID} style={[styles.backdrop, webViewportFill, backdropStyle]}>
+      <Animated.View
+        testID={testID}
+        style={[
+          styles.backdrop,
+          webViewportFill,
+          backdropStyle,
+          backdropIntensity === 'strong' && styles.strongBackdrop,
+        ]}
+      >
         <Pressable
           testID={backdropTestID}
           accessibilityRole="button"
@@ -274,6 +285,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(23,25,28,0.24)',
   },
+  strongBackdrop: { backgroundColor: 'rgba(23,25,28,0.42)' },
   keyboardArea: { flex: 1, justifyContent: 'flex-end' },
   keyboardSurfaceFill: { position: 'absolute', right: 0, bottom: 0, left: 0 },
   sheet: {

@@ -23,7 +23,7 @@ import { useSettings } from '../state/SettingsContext';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
-import type { RootStackParamList, Workout } from '../types';
+import type { IconName, RootStackParamList, Workout } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutDetails'>;
 
@@ -109,7 +109,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
           workoutName={workout.name}
           onClose={() => setOptionsOpen(false)}
           onEdit={() => {
-            navigation.navigate('HistoryWorkoutEditor', { workoutId: workout.id });
+            navigation.navigate('HistoryWorkoutEditor', { mode: 'edit', workoutId: workout.id });
           }}
           onDelete={() => {
             deleteCompletedWorkout(workout.id);
@@ -134,10 +134,13 @@ function WorkoutSummaryCard({
   const type = getWorkoutTypePresentation(workout.type, workoutTypes, theme, 0.16);
   const duration = formatCompactDuration(workout.durationSeconds ?? 0);
   const metadata = [
-    workout.location && { icon: 'measure' as const, label: 'Location', value: workout.location },
-    workout.mood && { icon: 'info' as const, label: 'Mood', value: workout.mood },
     workout.note?.trim() && { icon: 'note' as const, label: 'Notes', value: workout.note.trim() },
-  ].filter(Boolean) as { icon: 'measure' | 'info' | 'note'; label: string; value: string }[];
+    ...Object.entries(workout.attributes ?? {}).map(([label, value]) => ({
+      icon: workout.attributeIcons?.[label] ?? 'note' as IconName,
+      label,
+      value,
+    })),
+  ].filter(Boolean) as { icon: IconName; label: string; value: string }[];
 
   const updateCardSize = ({ nativeEvent }: LayoutChangeEvent) => {
     const { width, height } = nativeEvent.layout;
@@ -245,7 +248,7 @@ function MetadataItem({
   label,
   value,
 }: {
-  icon: 'measure' | 'info' | 'note';
+  icon: IconName;
   label: string;
   value: string;
 }) {

@@ -16,7 +16,7 @@
     "verify": "npm run typecheck && npm run test:visual",
     "format": "prettier --write \"App.tsx\" \"index.ts\" \"playwright.config.ts\" \"src/**/*.{ts,tsx}\" \"tests/**/*.ts\"",
     "test:visual": "playwright test",
-    "screenshots": "playwright test tests/e2e/visual/capture-screens.spec.ts --workers=1"
+    "screenshots": "playwright test tests/e2e/visual/capture-screens.spec.ts --project=iphone-air --workers=1"
   },
   "dependencies": {
     "@expo-google-fonts/manrope": "^0.4.2",

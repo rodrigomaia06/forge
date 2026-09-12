@@ -1,6 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -13,18 +12,25 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   AppScreen,
   Button,
+  ForgeActionSheet,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
+  ForgeCard,
+  ForgeConfirmationDialog,
   ForgeDateTimePicker,
+  ForgeAttributeEditorSheet,
+  ForgeSwipeableAttributeRow,
   ForgeSheetHeader,
   ForgeText as Text,
   ForgeTextInput as TextInput,
+  ForgeWorkoutTypePicker,
   HeaderAction,
   HeaderEdge,
   Icon,
   lightHaptic,
   pressedFeedback,
   pressedFeedbackSubtle,
+  selectionHaptic,
   successHaptic,
 } from '../components/ui';
 import { ExerciseSection } from './activeWorkout/ExerciseSection';
@@ -34,6 +40,8 @@ import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
 import { useWorkouts } from '../state/WorkoutContext';
 import { useSettings } from '../state/SettingsContext';
+import { usePlans } from '../state/PlansContext';
+import { calendarDateKey, parseCalendarDate } from '../domain/workouts/calendarDate';
 import {
   addExerciseToWorkout,
   addSetToWorkout,
@@ -41,50 +49,81 @@ import {
   removeSetFromWorkout,
   toggleWorkoutSet,
   updateWorkoutSet,
+  createWorkout,
 } from '../state/workoutMutations';
 import type { RootStackParamList, Workout } from '../types';
+import { workoutTypeIcon } from './settings/workoutTypeIcon';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'HistoryWorkoutEditor'>;
 
 export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const { completedWorkouts, updateCompletedWorkout } = useWorkouts();
+  const { completedWorkouts, createCompletedWorkout, updateCompletedWorkout } = useWorkouts();
   const { preferences } = useSettings();
-  const source = completedWorkouts.find((workout) => workout.id === route.params.workoutId);
-  const [draft, setDraft] = useState<Workout | null>(() => (source ? cloneWorkout(source) : null));
+  const { plans, standaloneRoutines } = usePlans();
+  const params = route.params;
+  const isCreating = params.mode === 'create';
+  const selectedCalendarDate = parseCalendarDate(
+    params.mode === 'create' ? params.selectedDate : undefined,
+    new Date(),
+  );
+  const source = params.mode === 'edit'
+    ? completedWorkouts.find((workout) => workout.id === params.workoutId)
+    : undefined;
+  const initialDraftRef = useRef<Workout | null>(null);
+  const [draft, setDraft] = useState<Workout | null>(() => {
+    const initial = isCreating ? createHistoricalDraft(selectedCalendarDate) : source ? cloneWorkout(source) : null;
+    initialDraftRef.current = initial ? cloneWorkout(initial) : null;
+    return initial;
+  });
+  const [startTimeChosen, setStartTimeChosen] = useState(!isCreating);
+  const [endTimeChosen, setEndTimeChosen] = useState(!isCreating);
   const [picker, setPicker] = useState<'date' | 'start' | 'end' | null>(null);
   const [pickerDraft, setPickerDraft] = useState<number | null>(null);
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [openExerciseId, setOpenExerciseId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [headerElevated, setHeaderElevated] = useState(false);
+  const [discardConfirmationOpen, setDiscardConfirmationOpen] = useState(false);
+  const [editorView, setEditorView] = useState<'form' | 'type-picker'>('form');
+  const [attributeDraft, setAttributeDraft] = useState<import('../components/ui').ForgeAttributeDraft | null>(null);
+  const [sourceStep, setSourceStep] = useState<'source' | 'routine-list' | { planId: string } | null>(
+    isCreating ? 'source' : null,
+  );
+  const sourceActionTakenRef = useRef(false);
 
-  const returnToHistory = (): void => {
-    if (navigation.canGoBack()) navigation.goBack();
-    else navigation.navigate('MainTabs', { screen: 'History' });
+  const leaveEditor = (completedAt?: number): void => {
+    if (isCreating) {
+      navigation.popTo('MainTabs', {
+        screen: 'Dashboard',
+        params: { selectedDate: calendarDateKey(completedAt ?? selectedCalendarDate) },
+      });
+      return;
+    }
+    navigation.popTo('MainTabs', { screen: 'History' });
   };
 
   const dirty = useMemo(
-    () => Boolean(source && draft && JSON.stringify(source) !== JSON.stringify(draft)),
-    [draft, source],
+    () => isCreating
+      ? Boolean(draft && (startTimeChosen || endTimeChosen || JSON.stringify(initialDraftRef.current) !== JSON.stringify(draft)))
+      : Boolean(source && draft && JSON.stringify(source) !== JSON.stringify(draft)),
+    [draft, endTimeChosen, isCreating, source, startTimeChosen],
   );
   const updateDraft = (update: (current: Workout) => Workout): void => {
     setDraft((current) => (current ? update(current) : current));
     setError(null);
   };
   const discard = (): void => {
-    const leave = returnToHistory;
-    if (!dirty) return leave();
-    Alert.alert('Discard changes?', 'Your edits to this workout will not be saved.', [
-      { text: 'Keep editing', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: leave },
-    ]);
+    if (!dirty) return leaveEditor(draft?.completedAt ?? draft?.startedAt);
+    setDiscardConfirmationOpen(true);
   };
-  const save = (): void => {
+  const save = async (): Promise<void> => {
     if (!draft) return;
     if (!draft.name.trim() || !draft.type.trim())
       return setError('Name and workout type are required.');
+    if (isCreating && (!startTimeChosen || !endTimeChosen))
+      return setError('Choose a start and end time.');
     const completedAt = draft.completedAt ?? draft.startedAt;
     if (
       Number.isNaN(new Date(draft.startedAt).getTime()) ||
@@ -93,22 +132,25 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
       return setError('Choose a valid date and time.');
     const durationSeconds = Math.round((completedAt - draft.startedAt) / 1000);
     if (durationSeconds < 1) return setError('End time must be after the start time.');
+    const { location: _location, mood: _mood, ...withoutLegacyMetadata } = draft as Workout & { location?: string; mood?: string };
+    const { attributes, attributeIcons } = normalizeAttributes(draft.attributes, draft.attributeIcons);
     const saved: Workout = {
-      ...draft,
+      ...withoutLegacyMetadata,
       name: draft.name.trim(),
       type: draft.type.trim(),
       note: draft.note.trim(),
-      location: optional(draft.location),
-      mood: optional(draft.mood),
+      attributes,
+      attributeIcons,
       averageRestSeconds: draft.averageRestSeconds,
       durationSeconds,
     };
-    updateCompletedWorkout(saved.id, () => saved);
+    if (isCreating) await createCompletedWorkout(saved);
+    else updateCompletedWorkout(saved.id, () => saved);
     successHaptic();
-    navigation.goBack();
+    leaveEditor(completedAt);
   };
 
-  if (!source || !draft) return null;
+  if (!draft || (!isCreating && !source)) return null;
   const startedAt = new Date(draft.startedAt);
   const completedAt = new Date(draft.completedAt ?? draft.startedAt);
   const setDate = (next: Date): void =>
@@ -140,7 +182,28 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
     if (!picker || pickerDraft === null) return;
     const next = new Date(pickerDraft);
     if (picker === 'date') setDate(next);
-    else setTime(picker, next);
+    else {
+      setTime(picker, next);
+      if (picker === 'start') setStartTimeChosen(true);
+      else setEndTimeChosen(true);
+    }
+  };
+  const timingInvalid = startTimeChosen && endTimeChosen && completedAt.getTime() <= startedAt.getTime();
+  const saveDisabled = !draft.name.trim() || !draft.type.trim() || (isCreating && (!startTimeChosen || !endTimeChosen || timingInvalid));
+  const validationMessage = error || (timingInvalid ? 'End time must be after the start time.' : null);
+  const availableWorkoutTypes = preferences.workoutTypes.filter(
+    (type) => !type.hidden || type.name === draft.type,
+  );
+  const selectedWorkoutType = availableWorkoutTypes.find((type) => type.name === draft.type)
+    ?? { id: 'retained-history-type', name: draft.type, color: theme.ink, source: 'custom' as const, hidden: true };
+  const selectRoutine = (routine: import('../types').WorkoutRoutine, plan?: import('../types').WorkoutPlan): void => {
+    selectionHaptic();
+    const next = createHistoricalDraft(selectedCalendarDate, routine, plan);
+    initialDraftRef.current = cloneWorkout(next);
+    setDraft(next);
+    setStartTimeChosen(false);
+    setEndTimeChosen(false);
+    setSourceStep(null);
   };
   return (
     <AppScreen
@@ -156,11 +219,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
             iconOnly
             onPress={discard}
           />
-          <View style={styles.titleBlock}>
-            <Text numberOfLines={1} style={styles.title}>
-              {draft.name}
-            </Text>
-          </View>
+          <View style={styles.headerSpacer} />
           <HeaderAction
             accessibilityLabel="Save workout"
             icon="check"
@@ -168,6 +227,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
             variant="primary"
             onPress={save}
             haptic="none"
+            disabled={saveDisabled}
           />
         </View>
         {headerElevated ? <HeaderEdge /> : null}
@@ -182,52 +242,88 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
           onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
           scrollEventThrottle={16}
         >
-          <View style={styles.formCard}>
+          <ForgeCard style={styles.formCard}>
             <View style={styles.identityGroup}>
-              <TextInput
-                accessibilityLabel="Workout name"
-                value={draft.name}
-                onChangeText={(name) => updateDraft((current) => ({ ...current, name }))}
-                numberOfLines={1}
-                style={styles.nameInput}
-              />
-              <TextInput
-                accessibilityLabel="Workout type"
-                value={draft.type}
-                onChangeText={(type) => updateDraft((current) => ({ ...current, type }))}
-                numberOfLines={1}
-                style={styles.typeInput}
-              />
+              <View style={styles.identityField}>
+                <Text style={styles.fieldLabel}>Workout name</Text>
+                <TextInput
+                  accessibilityLabel="Workout name"
+                  value={draft.name}
+                  onChangeText={(name) => updateDraft((current) => ({ ...current, name }))}
+                  numberOfLines={1}
+                  style={styles.nameInput}
+                />
+              </View>
+              <View style={styles.identityDivider} />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Choose workout type"
+                onPress={() => {
+                  lightHaptic();
+                  setEditorView('type-picker');
+                }}
+                style={({ pressed }) => [styles.identityField, styles.typePicker, pressed && pressedFeedbackSubtle]}
+              >
+                <Text style={styles.fieldLabel}>Type</Text>
+                <View style={styles.typePickerValue}>
+                  <Icon name={workoutTypeIcon(selectedWorkoutType)} size={20} color={theme.ink} />
+                  <Text numberOfLines={1} style={styles.typeText}>{draft.type}</Text>
+                  <Icon name="chevron-forward" size={18} color={theme.slate} />
+                </View>
+              </Pressable>
             </View>
             <View style={styles.cardDivider} />
-            <PickerButton label="Date" value={dateInput(startedAt)} onPress={() => openPicker('date')} />
-            <View style={styles.formRow}>
-              <PickerButton label="Start time" value={timeInput(startedAt)} onPress={() => openPicker('start')} />
-              <PickerButton label="End time" value={timeInput(completedAt)} onPress={() => openPicker('end')} />
-            </View>
-            <View style={styles.cardDivider} />
-            <Field
-              label="Location"
-              value={draft.location ?? ''}
-              onChangeText={(location) => updateDraft((current) => ({ ...current, location }))}
-            />
-            <Field
-              label="Mood"
-              value={draft.mood ?? ''}
-              onChangeText={(mood) => updateDraft((current) => ({ ...current, mood }))}
-            />
             <Field
               label="Notes"
               value={draft.note}
               multiline
               onChangeText={(note) => updateDraft((current) => ({ ...current, note }))}
             />
-            {error && (
-              <Text accessibilityRole="alert" style={styles.error}>
-                {error}
-              </Text>
+            <View style={styles.cardDivider} />
+            <View style={styles.attributesSection}>
+              <Text style={styles.attributesTitle}>Attributes</Text>
+              <ForgeCard variant="inset" size="compact">
+                {Object.entries(draft.attributes ?? {}).map(([label, value], index) => (
+                  <ForgeSwipeableAttributeRow
+                    key={label}
+                    label={label}
+                    value={value}
+                    icon={draft.attributeIcons?.[label] ?? 'note'}
+                    divider={index > 0}
+                    onEdit={() => setAttributeDraft({ original: label, label, value, icon: draft.attributeIcons?.[label] ?? 'note' })}
+                    onDelete={() => updateDraft((current) => {
+                      const attributes = { ...(current.attributes ?? {}) };
+                      const attributeIcons = { ...(current.attributeIcons ?? {}) };
+                      delete attributes[label];
+                      delete attributeIcons[label];
+                      return { ...current, attributes: Object.keys(attributes).length ? attributes : undefined, attributeIcons: Object.keys(attributeIcons).length ? attributeIcons : undefined };
+                    })}
+                  />
+                ))}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Add attribute"
+                  onPress={() => {
+                    lightHaptic();
+                    setAttributeDraft({ label: '', value: '', icon: 'note' });
+                  }}
+                  style={({ pressed }) => [styles.addAttribute, Object.keys(draft.attributes ?? {}).length > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }, pressed && pressedFeedbackSubtle]}
+                >
+                  <Icon name="add" size={20} color={theme.ink} />
+                  <Text style={styles.addAttributeText}>Add attribute</Text>
+                </Pressable>
+              </ForgeCard>
+            </View>
+            <View style={styles.cardDivider} />
+            <PickerButton label="Date" value={dateInput(startedAt)} onPress={() => openPicker('date')} />
+            <View style={styles.formRow}>
+              <PickerButton label="Start time" value={startTimeChosen ? timeInput(startedAt) : 'Choose time'} onPress={() => openPicker('start')} />
+              <PickerButton label="End time" value={endTimeChosen ? timeInput(completedAt) : 'Choose time'} onPress={() => openPicker('end')} />
+            </View>
+            {validationMessage && (
+              <Text accessibilityRole="alert" style={styles.error}>{validationMessage}</Text>
             )}
-          </View>
+          </ForgeCard>
           <Text style={styles.sectionTitle}>Exercises</Text>
           <View style={styles.exerciseList}>
             {draft.exercises.map((exercise, index) => (
@@ -326,6 +422,125 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
           </>
         ) : null}
       </ForgeBottomSheet>
+      <ForgeBottomSheet
+        visible={editorView === 'type-picker'}
+        onClose={() => setEditorView('form')}
+        accessibilityLabel="Close workout type picker"
+        initialOffset={360}
+        closeDistance={420}
+        style={styles.editorSheet}
+      >
+        {() => (
+          <ForgeWorkoutTypePicker
+            selectedType={draft.type}
+            workoutTypes={availableWorkoutTypes}
+            onBack={() => setEditorView('form')}
+            onClose={() => setEditorView('form')}
+            onSelect={(type) => {
+              selectionHaptic();
+              updateDraft((current) => ({ ...current, type }));
+              setEditorView('form');
+            }}
+            iconForType={workoutTypeIcon}
+          />
+        )}
+      </ForgeBottomSheet>
+      <ForgeBottomSheet
+        visible={attributeDraft !== null}
+        onClose={() => setAttributeDraft(null)}
+        accessibilityLabel="Close attribute editor"
+        initialOffset={420}
+        closeDistance={460}
+        style={styles.editorSheet}
+      >
+        {() => attributeDraft ? (
+          <ForgeAttributeEditorSheet
+            value={attributeDraft}
+            onClose={() => setAttributeDraft(null)}
+            onSave={(next) => {
+              const label = next.label.trim();
+              const existing = draft.attributes ?? {};
+              if (!label || (label !== next.original && existing[label] !== undefined)) return;
+              updateDraft((current) => {
+                const attributes = { ...(current.attributes ?? {}) };
+                const attributeIcons = { ...(current.attributeIcons ?? {}) };
+                if (next.original) {
+                  delete attributes[next.original];
+                  delete attributeIcons[next.original];
+                }
+                attributes[label] = next.value.trim();
+                attributeIcons[label] = next.icon;
+                return { ...current, attributes, attributeIcons };
+              });
+              setAttributeDraft(null);
+            }}
+            onDelete={attributeDraft.original ? () => {
+              const label = attributeDraft.original!;
+              updateDraft((current) => {
+                const attributes = { ...(current.attributes ?? {}) };
+                const attributeIcons = { ...(current.attributeIcons ?? {}) };
+                delete attributes[label];
+                delete attributeIcons[label];
+                return { ...current, attributes: Object.keys(attributes).length ? attributes : undefined, attributeIcons: Object.keys(attributeIcons).length ? attributeIcons : undefined };
+              });
+              setAttributeDraft(null);
+            } : undefined}
+          />
+        ) : null}
+      </ForgeBottomSheet>
+      <ForgeActionSheet
+        visible={sourceStep === 'source'}
+        onClose={() => {
+          if (sourceActionTakenRef.current) {
+            sourceActionTakenRef.current = false;
+            return;
+          }
+          discard();
+        }}
+        accessibilityLabel="Close historical workout source chooser"
+        title="Add historical workout"
+        titleNumberOfLines={2}
+        emphasis="prominent"
+        backdropIntensity="strong"
+        actions={[
+          {
+            label: 'Blank workout',
+            description: 'Start a fresh historical entry.',
+            icon: 'add',
+            onPress: () => { sourceActionTakenRef.current = true; setSourceStep(null); },
+          },
+          {
+            label: 'From routine or plan',
+            description: 'Copy a routine’s exercises and setup.',
+            accessibilityLabel: 'From routine',
+            icon: 'layers',
+            onPress: () => { sourceActionTakenRef.current = true; setSourceStep('routine-list'); },
+          },
+        ]}
+        testID="historical-workout-source-chooser"
+      />
+      <HistoryRoutineSourceSheet
+        step={sourceStep === 'routine-list' || typeof sourceStep === 'object' ? sourceStep : null}
+        plans={plans}
+        standaloneRoutines={standaloneRoutines}
+        onClose={() => setSourceStep('source')}
+        onBack={() => setSourceStep('routine-list')}
+        onChoosePlan={(planId) => setSourceStep({ planId })}
+        onSelectRoutine={selectRoutine}
+      />
+      <ForgeConfirmationDialog
+        visible={discardConfirmationOpen}
+        title="Discard changes?"
+        message="Your edits to this workout will not be saved."
+        cancelLabel="Keep editing"
+        confirmLabel="Discard changes"
+        onCancel={() => setDiscardConfirmationOpen(false)}
+        onConfirm={() => {
+          setDiscardConfirmationOpen(false);
+          leaveEditor(draft.completedAt ?? draft.startedAt);
+        }}
+        testID="discard-history-workout-confirmation"
+      />
     </AppScreen>
   );
 }
@@ -333,6 +548,118 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
 function HistoryPickerBackButton({ onPress }: { onPress: () => void }) {
   const theme = useForgeTheme();
   return <HeaderAction accessibilityLabel="Back to edit workout" icon="chevron-back" iconOnly onPress={onPress} style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }} />;
+}
+
+function HistoryRoutineSourceSheet({
+  step,
+  plans,
+  standaloneRoutines,
+  onClose,
+  onBack,
+  onChoosePlan,
+  onSelectRoutine,
+}: {
+  step: 'routine-list' | { planId: string } | null;
+  plans: import('../types').WorkoutPlan[];
+  standaloneRoutines: import('../types').WorkoutRoutine[];
+  onClose: () => void;
+  onBack: () => void;
+  onChoosePlan: (planId: string) => void;
+  onSelectRoutine: (routine: import('../types').WorkoutRoutine, plan?: import('../types').WorkoutPlan) => void;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  const selectedPlan = step && typeof step === 'object' ? plans.find((plan) => plan.id === step.planId) : undefined;
+  return (
+    <ForgeBottomSheet
+      visible={step !== null}
+      onClose={onClose}
+      accessibilityLabel="Close routine chooser"
+      initialOffset={440}
+      closeDistance={480}
+      dragEnabled={false}
+      style={styles.sourceSheet}
+    >
+      {() => (
+        <>
+          <ForgeBottomSheetHandle />
+          <ForgeSheetHeader
+            title={selectedPlan ? selectedPlan.name : 'Choose routine'}
+            onClose={onClose}
+            leading={selectedPlan ? <HistoryPickerBackButton onPress={onBack} /> : undefined}
+          />
+          <ScrollView contentContainerStyle={styles.sourceContent} showsVerticalScrollIndicator={false}>
+            {selectedPlan ? (
+              selectedPlan.routines.length ? (
+                <RoutineChoiceCard routines={selectedPlan.routines} onPress={(routine) => onSelectRoutine(routine, selectedPlan)} />
+              ) : <Text style={styles.emptySourceText}>This plan has no routines yet.</Text>
+            ) : (
+              <>
+                {standaloneRoutines.length ? <View style={styles.sourceGroup}>
+                  <Text style={styles.sourceLabel}>Standalone routines</Text>
+                  <RoutineChoiceCard routines={standaloneRoutines} onPress={(routine) => onSelectRoutine(routine)} />
+                </View> : null}
+                {plans.length ? <View style={styles.sourceGroup}>
+                  <Text style={styles.sourceLabel}>Plans</Text>
+                  <ForgeCard variant="inset" size="compact">
+                    {plans.map((plan, index) => (
+                      <Pressable
+                        key={plan.id}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Choose routine from ${plan.name}`}
+                        onPress={() => {
+                          lightHaptic();
+                          // A plan is only a container; the next view requires a concrete routine.
+                          onChoosePlan(plan.id);
+                        }}
+                        style={({ pressed }) => [styles.sourceRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }, pressed && pressedFeedbackSubtle]}
+                      >
+                        <Icon name="layers" size={21} color={theme.ink} />
+                        <View style={styles.sourceRowText}>
+                          <Text style={styles.sourceRowLabel}>{plan.name}</Text>
+                          <Text style={styles.sourceRowDetail}>{plan.routines.length === 1 ? '1 routine' : `${plan.routines.length} routines`}</Text>
+                        </View>
+                        <Icon name="chevron-forward" size={20} color={theme.slate} />
+                      </Pressable>
+                    ))}
+                  </ForgeCard>
+                </View> : null}
+                {!standaloneRoutines.length && !plans.length ? <Text style={styles.emptySourceText}>Create a routine first, then use it as an editable historical-workout starting point.</Text> : null}
+              </>
+            )}
+          </ScrollView>
+        </>
+      )}
+    </ForgeBottomSheet>
+  );
+}
+
+function RoutineChoiceCard({
+  routines,
+  onPress,
+}: {
+  routines: import('../types').WorkoutRoutine[];
+  onPress: (routine: import('../types').WorkoutRoutine) => void;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  const { preferences } = useSettings();
+  return (
+    <ForgeCard variant="inset" size="compact">
+      {routines.map((routine, index) => {
+        const type = preferences.workoutTypes.find((item) => item.name === routine.type)
+          ?? { id: 'retained-routine-type', name: routine.type, color: theme.ink, source: 'custom' as const, hidden: true };
+        return <Pressable key={routine.id} accessibilityRole="button" accessibilityLabel={`Use ${routine.name} routine`} onPress={() => onPress(routine)} style={({ pressed }) => [styles.sourceRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }, pressed && pressedFeedbackSubtle]}>
+          <Icon name={workoutTypeIcon(type)} size={21} color={theme.ink} />
+          <View style={styles.sourceRowText}>
+            <Text style={styles.sourceRowLabel}>{routine.name}</Text>
+            <Text style={styles.sourceRowDetail}>{routine.type}</Text>
+          </View>
+          <Icon name="chevron-forward" size={20} color={theme.slate} />
+        </Pressable>;
+      })}
+    </ForgeCard>
+  );
 }
 
 function Field({
@@ -390,8 +717,51 @@ function PickerButton({
 function cloneWorkout(workout: Workout): Workout {
   return JSON.parse(JSON.stringify(workout)) as Workout;
 }
-function optional(value?: string): string | undefined {
-  return value?.trim() || undefined;
+function createHistoricalDraft(
+  date: Date,
+  routine?: import('../types').WorkoutRoutine,
+  plan?: import('../types').WorkoutPlan,
+): Workout {
+  const start = new Date(date);
+  start.setHours(12, 0, 0, 0);
+  const end = new Date(date);
+  end.setHours(13, 0, 0, 0);
+  const attributes = routine?.attributes
+    ? Object.fromEntries(Object.keys(routine.attributes).map((label) => [label, '']))
+    : undefined;
+  return {
+    ...createWorkout({
+      name: routine ? (plan ? `${plan.name} — ${routine.name}` : routine.name) : undefined,
+      type: routine?.type,
+      note: routine?.note,
+      attributes,
+      attributeIcons: routine?.attributeIcons ? { ...routine.attributeIcons } : undefined,
+      exercises: routine?.exercises,
+      routineId: routine?.id,
+      planId: plan?.id,
+    }),
+    startedAt: start.getTime(),
+    completedAt: end.getTime(),
+  };
+}
+function normalizeAttributes(
+  attributes?: Record<string, string>,
+  attributeIcons?: Record<string, import('../types').IconName>,
+): Pick<Workout, 'attributes' | 'attributeIcons'> {
+  const normalized = Object.fromEntries(
+    Object.entries(attributes ?? {})
+      .map(([label, value]) => [label.trim(), value.trim()] as const)
+      .filter(([label]) => Boolean(label)),
+  );
+  const normalizedIcons = Object.fromEntries(
+    Object.keys(normalized)
+      .map((label) => [label, attributeIcons?.[label]] as const)
+      .filter((entry): entry is [string, import('../types').IconName] => Boolean(entry[1])),
+  );
+  return {
+    attributes: Object.keys(normalized).length ? normalized : undefined,
+    attributeIcons: Object.keys(normalizedIcons).length ? normalizedIcons : undefined,
+  };
 }
 function dateInput(date: Date): string {
   return date.toLocaleDateString('en-CA');
@@ -426,41 +796,29 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  titleBlock: {
-    position: 'absolute',
-    top: 0,
-    right: 100,
-    bottom: 0,
-    left: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: { color: theme.ink, ...typeScale.sectionTitle, textAlign: 'center' },
+  headerSpacer: { width: 44, height: 44 },
   keyboardArea: { flex: 1 },
   content: { padding: 16, paddingBottom: 32, gap: 14 },
   formCard: {
     padding: 14,
     gap: 10,
-    borderRadius: 16,
-    backgroundColor: theme.surface,
+  },
+  identityGroup: { flexDirection: 'row', alignItems: 'stretch', gap: 12 },
+  identityField: { flex: 1, gap: 5 },
+  identityDivider: { width: StyleSheet.hairlineWidth, backgroundColor: theme.divider, marginVertical: 2 },
+  nameInput: {
+    minHeight: 44,
+    paddingHorizontal: 10,
     borderWidth: 1,
     borderColor: theme.divider,
-  },
-  identityGroup: { gap: 0 },
-  cardEyebrow: { color: theme.slate, ...typeScale.caption, textTransform: 'uppercase' },
-  nameInput: {
-    minHeight: 36,
-    padding: 0,
+    borderRadius: 12,
+    backgroundColor: theme.surfaceMuted,
     color: theme.ink,
-    ...typeScale.metricMedium,
+    ...typeScale.body,
   },
-  typeInput: {
-    minHeight: 22,
-    marginTop: -7,
-    padding: 0,
-    color: theme.slate,
-    ...typeScale.supporting,
-  },
+  typePicker: { justifyContent: 'flex-start' },
+  typePickerValue: { minHeight: 44, paddingHorizontal: 10, borderWidth: 1, borderColor: theme.divider, borderRadius: 12, backgroundColor: theme.surfaceMuted, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  typeText: { flex: 1, color: theme.ink, ...typeScale.body },
   cardDivider: { height: 1, marginVertical: 2, backgroundColor: theme.divider },
   formRow: { flexDirection: 'row', gap: 10 },
   field: { gap: 4 },
@@ -477,6 +835,10 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     ...typeScale.supporting,
   },
   notesInput: { minHeight: 72, paddingTop: 9, textAlignVertical: 'top' },
+  attributesSection: { gap: 7 },
+  attributesTitle: { color: theme.slate, ...typeScale.label },
+  addAttribute: { minHeight: 48, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  addAttributeText: { color: theme.ink, ...typeScale.label },
   pickerValue: {
     minHeight: 40,
     paddingHorizontal: 10,
@@ -504,6 +866,16 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   addExerciseText: { color: theme.ink, ...typeScale.label },
   exerciseList: { gap: 10 },
   pickerSheet: { paddingHorizontal: 20, paddingBottom: 32, gap: 12 },
+  editorSheet: { maxHeight: '84%', paddingHorizontal: 20, paddingBottom: 12 },
+  sourceSheet: { maxHeight: '84%', paddingHorizontal: 20, paddingBottom: 24 },
+  sourceContent: { paddingTop: 14, paddingBottom: 20, gap: 18 },
+  sourceGroup: { gap: 8 },
+  sourceLabel: { color: theme.slate, ...typeScale.label },
+  sourceRow: { minHeight: 60, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  sourceRowText: { flex: 1, gap: 2 },
+  sourceRowLabel: { color: theme.ink, ...typeScale.label },
+  sourceRowDetail: { color: theme.slate, ...typeScale.caption },
+  emptySourceText: { paddingHorizontal: 4, color: theme.slate, ...typeScale.supporting },
   // Keep Done at the shared Button height rather than giving picker actions a local size.
   pickerDone: { marginTop: 4 },
 });

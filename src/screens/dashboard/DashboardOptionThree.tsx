@@ -11,8 +11,11 @@ import { dashboardTheme } from '../../theme/dashboardTheme';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useWorkouts } from '../../state/WorkoutContext';
 import type { RouteProp } from '@react-navigation/native';
-import type { RootTabParamList } from '../../types';
+import type { RootTabParamList, WorkoutMap } from '../../types';
 import type { CalendarMenuState } from '../../components/Calendar';
+import { calendarDateKey, parseCalendarDate } from '../../domain/workouts/calendarDate';
+
+const DEFAULT_SELECTED_DATE = new Date(2026, 7, 24);
 
 export function DashboardOptionThree({
   route,
@@ -21,16 +24,16 @@ export function DashboardOptionThree({
 }) {
   const { completedWorkouts } = useWorkouts();
   const theme = useForgeTheme();
-  const [selectedDay, setSelectedDay] = useState(route?.params?.selectedDay || 24);
+  const [selectedDate, setSelectedDate] = useState(() => parseCalendarDate(route?.params?.selectedDate, DEFAULT_SELECTED_DATE));
   const [calendarMenu, setCalendarMenu] = useState<CalendarMenuState | null>(null);
   useEffect(() => {
-    if (route?.params?.selectedDay) setSelectedDay(route.params.selectedDay);
-  }, [route?.params?.selectedDay]);
+    if (route?.params?.selectedDate) setSelectedDate(parseCalendarDate(route.params.selectedDate, DEFAULT_SELECTED_DATE));
+  }, [route?.params?.selectedDate]);
   const workoutMap = useMemo(() => {
-    const map: Record<number, typeof completedWorkouts> = {};
+    const map: WorkoutMap = {};
     completedWorkouts.forEach((workout) => {
-      const day = new Date(workout.completedAt || workout.startedAt).getDate();
-      map[day] = [...(map[day] || []), workout];
+      const date = calendarDateKey(workout.completedAt || workout.startedAt);
+      map[date] = [...(map[date] || []), workout];
     });
     return map;
   }, [completedWorkouts]);
@@ -42,8 +45,8 @@ export function DashboardOptionThree({
     >
       <DashboardScroll style={{ gap: 16 }}>
         <DashboardCalendar
-          selectedDay={selectedDay}
-          setSelectedDay={setSelectedDay}
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
           theme={theme}
           workoutMap={workoutMap}
           viewMenuOpen={Boolean(calendarMenu)}
@@ -53,8 +56,8 @@ export function DashboardOptionThree({
           onMenuStateChange={setCalendarMenu}
         />
         <DashboardWorkoutCard
-          selectedDay={selectedDay}
-          selectedWorkouts={workoutMap[selectedDay] || []}
+          selectedDate={selectedDate}
+          selectedWorkouts={workoutMap[calendarDateKey(selectedDate)] || []}
           theme={theme}
         />
         <DashboardContextCard theme={theme} icons compact />

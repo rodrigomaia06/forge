@@ -7,7 +7,7 @@ import type { BottomTabNavigationProp, BottomTabScreenProps } from '@react-navig
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 
 export type RootTabParamList = {
-  Dashboard: { selectedDay?: number } | undefined;
+  Dashboard: { selectedDate?: string } | undefined;
   ActiveWorkout: undefined;
   History: undefined;
   Plans: { openCreation?: boolean } | undefined;
@@ -17,7 +17,9 @@ export type RootTabParamList = {
 export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<RootTabParamList> | undefined;
   WorkoutDetails: { workoutId: string };
-  HistoryWorkoutEditor: { workoutId: string };
+  HistoryWorkoutEditor:
+    | { mode: 'edit'; workoutId: string }
+    | { mode: 'create'; selectedDate: string };
   RoutineEditor:
     | { mode: 'create'; planId?: string }
     | { mode: 'edit'; routineId: string }

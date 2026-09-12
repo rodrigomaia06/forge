@@ -14,6 +14,7 @@ import type { ScrollView as ScrollViewType, StyleProp, ViewStyle } from 'react-n
 import type { ForgeTheme, RootNavigationProp, WorkoutMap, WorkoutSummary } from '../../types';
 import { styles } from './dashboardStyles';
 import { summarizeWorkoutTypes } from './dashboardMetrics';
+import { calendarDateKey } from '../../domain/workouts/calendarDate';
 
 export function DashboardShell({
   children,
@@ -71,16 +72,16 @@ export function DashboardShell({
 }
 
 export function DashboardCalendar({
-  selectedDay,
-  setSelectedDay,
+  selectedDate,
+  setSelectedDate,
   theme,
   workoutMap,
   viewMenuOpen,
   onViewMenuOpenChange,
   onMenuStateChange,
 }: {
-  selectedDay: number;
-  setSelectedDay: Dispatch<SetStateAction<number>>;
+  selectedDate: Date;
+  setSelectedDate: Dispatch<SetStateAction<Date>>;
   theme: ForgeTheme;
   workoutMap: WorkoutMap;
   viewMenuOpen?: boolean;
@@ -96,8 +97,8 @@ export function DashboardCalendar({
       ]}
     >
       <Calendar
-        selectedDay={selectedDay}
-        setSelectedDay={setSelectedDay}
+        selectedDate={selectedDate}
+        setSelectedDate={setSelectedDate}
         theme={theme}
         workoutMap={workoutMap}
         workoutTypes={preferences.workoutTypes}
@@ -111,14 +112,15 @@ export function DashboardCalendar({
 }
 
 export function DashboardWorkoutCard({
-  selectedDay,
+  selectedDate,
   selectedWorkouts,
   theme,
 }: {
-  selectedDay: number;
+  selectedDate: Date;
   selectedWorkouts: WorkoutSummary[];
   theme: ForgeTheme;
 }) {
+  const navigation = useNavigation<RootNavigationProp>();
   return (
     <View
       style={[
@@ -127,7 +129,9 @@ export function DashboardWorkoutCard({
       ]}
     >
       <View style={styles.cardHeader}>
-        <Text style={[styles.selectedDate, { color: theme.ink }]}>August {selectedDay}, 2026</Text>
+        <Text style={[styles.selectedDate, { color: theme.ink }]}>
+          {selectedDate.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+        </Text>
         <Text style={[styles.dayCount, { color: theme.ink }]}>
           {selectedWorkouts.length} {selectedWorkouts.length === 1 ? 'workout' : 'workouts'}
         </Text>
@@ -135,7 +139,7 @@ export function DashboardWorkoutCard({
       {selectedWorkouts.length > 0 ? (
         <View style={[styles.workoutList, { borderTopColor: theme.divider }]}>
           {selectedWorkouts.map((workout) => (
-            <WorkoutRow key={`${selectedDay}-${workout.id}`} workout={workout} theme={theme} />
+            <WorkoutRow key={`${calendarDateKey(selectedDate)}-${workout.id}`} workout={workout} theme={theme} />
           ))}
         </View>
       ) : (
@@ -147,7 +151,7 @@ export function DashboardWorkoutCard({
           <Button
             label="Add historical workout"
             variant="secondary"
-            onPress={() => {}}
+            onPress={() => navigation.navigate('HistoryWorkoutEditor', { mode: 'create', selectedDate: calendarDateKey(selectedDate) })}
             style={styles.secondaryAction}
             theme={theme}
           />

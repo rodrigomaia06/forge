@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors } from '../theme/tokens';
 import { getWorkoutTypePresentation } from '../domain/workouts/presentation';
+import { calendarDateKey } from '../domain/workouts/calendarDate';
 import { ForgeText as Text, Icon, lightHaptic, pressedFeedback, pressedFeedbackSubtle } from './ui';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
@@ -31,8 +32,8 @@ const MONDAY_FIRST_WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const SUNDAY_FIRST_WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 interface CalendarProps {
-  selectedDay: number;
-  setSelectedDay: Dispatch<SetStateAction<number>>;
+  selectedDate: Date;
+  setSelectedDate: Dispatch<SetStateAction<Date>>;
   theme?: ForgeTheme;
   workoutMap?: WorkoutMap;
   viewMenuOpen?: boolean;
@@ -48,8 +49,8 @@ export interface CalendarMenuState {
   content: ReactNode;
 }
 export function Calendar({
-  selectedDay,
-  setSelectedDay,
+  selectedDate,
+  setSelectedDate,
   theme = colors,
   workoutMap = {},
   viewMenuOpen,
@@ -65,7 +66,8 @@ export function Calendar({
   const { width: windowWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const viewControlRef = useRef<View>(null);
-  const [month, setMonth] = useState(8);
+  const [month, setMonth] = useState(() => selectedDate.getMonth() + 1);
+  useEffect(() => setMonth(selectedDate.getMonth() + 1), [selectedDate]);
   const setMenuOpen = (next: boolean | ((current: boolean) => boolean)): void => {
     const open = typeof next === 'function' ? next(menuOpen) : next;
     setLocalMenuOpen(open);
@@ -101,10 +103,10 @@ export function Calendar({
   };
   const title =
     view === 'year'
-      ? 'Activity 2026'
+      ? `Activity ${selectedDate.getFullYear()}`
       : view === 'week'
-        ? 'Week of August 24'
-        : `${MONTHS[month - 1]} 2026`;
+        ? `Week of ${selectedDate.toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}`
+        : `${MONTHS[month - 1]} ${selectedDate.getFullYear()}`;
 
   const selectView = (nextView: CalendarView): void => {
     triggerLightHaptic();
@@ -133,8 +135,8 @@ export function Calendar({
         </View>
         <CalendarContent
           view={view}
-          selectedDay={selectedDay}
-          setSelectedDay={setSelectedDay}
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
           theme={theme}
           month={month}
           setMonth={setMonth}
@@ -210,8 +212,8 @@ function triggerLightHaptic() {
 
 function CalendarContent({
   view,
-  selectedDay,
-  setSelectedDay,
+  selectedDate,
+  setSelectedDate,
   theme,
   month,
   setMonth,
@@ -220,8 +222,8 @@ function CalendarContent({
   weekStartsOn,
 }: {
   view: CalendarView;
-  selectedDay: number;
-  setSelectedDay: Dispatch<SetStateAction<number>>;
+  selectedDate: Date;
+  setSelectedDate: Dispatch<SetStateAction<Date>>;
   theme: ForgeTheme;
   month: number;
   setMonth: Dispatch<SetStateAction<number>>;
@@ -254,15 +256,21 @@ function CalendarContent({
           onSelectMonth={(selectedMonth) => {
             triggerLightHaptic();
             setMonth(selectedMonth);
+            setSelectedDate((current) => new Date(
+              current.getFullYear(),
+              selectedMonth - 1,
+              Math.min(current.getDate(), new Date(current.getFullYear(), selectedMonth, 0).getDate()),
+            ));
           }}
           workoutMap={workoutMap}
           weekStartsOn={weekStartsOn}
+          year={selectedDate.getFullYear()}
         />
       )}
       {view === 'month' && (
         <MonthView
-          selectedDay={selectedDay}
-          setSelectedDay={setSelectedDay}
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
           theme={theme}
           month={month}
           workoutMap={workoutMap}
@@ -272,8 +280,8 @@ function CalendarContent({
       )}
       {view === 'week' && (
         <WeekView
-          selectedDay={selectedDay}
-          setSelectedDay={setSelectedDay}
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
           theme={theme}
           workoutMap={workoutMap}
           workoutTypes={workoutTypes}
@@ -285,8 +293,8 @@ function CalendarContent({
 }
 
 function MonthView({
-  selectedDay,
-  setSelectedDay,
+  selectedDate,
+  setSelectedDate,
   theme,
   month,
   workoutMap,
@@ -294,7 +302,9 @@ function MonthView({
   weekStartsOn,
 }: Omit<Parameters<typeof CalendarContent>[0], 'view' | 'setMonth'>) {
   const weekdays = weekStartsOn === 1 ? MONDAY_FIRST_WEEKDAYS : SUNDAY_FIRST_WEEKDAYS;
-  const leadingBlanks = leadingDaysForMonth(2026, month, weekStartsOn);
+  const year = selectedDate.getFullYear();
+  const leadingBlanks = leadingDaysForMonth(year, month, weekStartsOn);
+  const totalDays = new Date(year, month, 0).getDate();
   return (
     <>
       <View testID="calendar-weekdays" style={styles.weekHeader}>
@@ -308,12 +318,12 @@ function MonthView({
         {Array.from({ length: leadingBlanks }, (_, index) => (
           <View key={`blank-${index}`} style={styles.dayCell} />
         ))}
-        {Array.from({ length: 31 }, (_, index) => index + 1).map((day) => (
+        {Array.from({ length: totalDays }, (_, index) => index + 1).map((day) => (
           <DayCell
-            key={day}
-            day={day}
-            selectedDay={selectedDay}
-            setSelectedDay={setSelectedDay}
+            key={`${year}-${month}-${day}`}
+            date={new Date(year, month - 1, day)}
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
             theme={theme}
             workoutMap={workoutMap}
             workoutTypes={workoutTypes}
@@ -325,14 +335,14 @@ function MonthView({
 }
 
 function WeekView({
-  selectedDay,
-  setSelectedDay,
+  selectedDate,
+  setSelectedDate,
   theme,
   workoutMap,
   workoutTypes,
   weekStartsOn,
 }: Omit<Parameters<typeof CalendarContent>[0], 'view' | 'month' | 'setMonth'>) {
-  const days = [24, 25, 26, 27, 28, 29, 30];
+  const days = weekDates(selectedDate, weekStartsOn);
   const weekdays = weekStartsOn === 1 ? MONDAY_FIRST_WEEKDAYS : SUNDAY_FIRST_WEEKDAYS;
   return (
     <>
@@ -344,12 +354,12 @@ function WeekView({
         ))}
       </View>
       <View style={styles.grid}>
-        {days.map((day) => (
+        {days.map((date) => (
           <DayCell
-            key={day}
-            day={day}
-            selectedDay={selectedDay}
-            setSelectedDay={setSelectedDay}
+            key={calendarDateKey(date)}
+            date={date}
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
             theme={theme}
             workoutMap={workoutMap}
             workoutTypes={workoutTypes}
@@ -365,11 +375,13 @@ function YearView({
   onSelectMonth,
   workoutMap,
   weekStartsOn,
+  year,
 }: {
   theme: ForgeTheme;
   onSelectMonth: (month: number) => void;
   workoutMap: WorkoutMap;
   weekStartsOn: WeekStartsOn;
+  year: number;
 }) {
   return (
     <View style={styles.yearGrid}>
@@ -377,13 +389,14 @@ function YearView({
         <Pressable
           key={month}
           accessibilityRole="button"
-          accessibilityLabel={`Show ${month} 2026`}
+          accessibilityLabel={`Show ${month} ${year}`}
           onPress={() => onSelectMonth(index + 1)}
           style={({ pressed }) => [styles.yearMonth, pressed && pressedFeedbackSubtle]}
         >
           <Text style={[styles.yearMonthTitle, { color: theme.slate }]}>{month.slice(0, 3)}</Text>
           <MiniMonth
             month={index + 1}
+            year={year}
             theme={theme}
             workoutMap={workoutMap}
             weekStartsOn={weekStartsOn}
@@ -396,17 +409,19 @@ function YearView({
 
 function MiniMonth({
   month,
+  year,
   theme,
   workoutMap,
   weekStartsOn,
 }: {
   month: number;
+  year: number;
   theme: ForgeTheme;
   workoutMap: WorkoutMap;
   weekStartsOn: WeekStartsOn;
 }) {
-  const leadingBlanks = leadingDaysForMonth(2026, month, weekStartsOn);
-  const totalDays = new Date(2026, month, 0).getDate();
+  const leadingBlanks = leadingDaysForMonth(year, month, weekStartsOn);
+  const totalDays = new Date(year, month, 0).getDate();
   return (
     <View style={styles.miniGrid}>
       {Array.from({ length: leadingBlanks }, (_, index) => (
@@ -414,7 +429,7 @@ function MiniMonth({
       ))}
       {Array.from({ length: totalDays }, (_, index) => {
         const day = index + 1;
-        const active = month === 8 && Boolean(workoutMap[day]);
+        const active = Boolean(workoutMap[calendarDateKey(new Date(year, month - 1, day))]);
         return (
           <View
             key={day}
@@ -427,22 +442,22 @@ function MiniMonth({
 }
 
 function DayCell({
-  day,
-  selectedDay,
-  setSelectedDay,
+  date,
+  selectedDate,
+  setSelectedDate,
   theme,
   workoutMap,
   workoutTypes,
 }: {
-  day: number;
-  selectedDay: number;
-  setSelectedDay: Dispatch<SetStateAction<number>>;
+  date: Date;
+  selectedDate: Date;
+  setSelectedDate: Dispatch<SetStateAction<Date>>;
   theme: ForgeTheme;
   workoutMap: WorkoutMap;
   workoutTypes: WorkoutTypePreference[];
 }) {
-  const dayWorkouts = workoutMap[day];
-  const isSelected = day === selectedDay;
+  const dayWorkouts = workoutMap[calendarDateKey(date)];
+  const isSelected = sameCalendarDay(date, selectedDate);
   const hasWorkout = Boolean(dayWorkouts);
   const selectionProgress = useRef(new Animated.Value(isSelected ? 1 : 0)).current;
   useEffect(() => {
@@ -457,7 +472,7 @@ function DayCell({
     <Pressable
       testID={isSelected ? 'calendar-selected-day' : undefined}
       accessibilityRole="button"
-      accessibilityLabel={`${day} August 2026${hasWorkout ? ', workout recorded' : ''}`}
+      accessibilityLabel={`${date.getDate()} ${date.toLocaleDateString(undefined, { month: 'long' })} ${date.getFullYear()}${hasWorkout ? ', workout recorded' : ''}`}
       accessibilityHint="Select this date"
       accessibilityState={{ selected: isSelected }}
       hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
@@ -465,7 +480,7 @@ function DayCell({
       android_ripple={{ color: 'rgba(31,41,50,0.08)' }}
       onPress={() => {
         triggerLightHaptic();
-        setSelectedDay(day);
+        setSelectedDate(new Date(date));
       }}
       style={({ pressed }) => [styles.dayCell, pressed && styles.pressed]}
     >
@@ -507,14 +522,14 @@ function DayCell({
               { color: theme.ink },
             ]}
           >
-            {day}
+            {date.getDate()}
           </Text>
           {hasWorkout && (
             <View style={styles.markers}>
               {dayWorkouts.slice(0, 2).map((workout, markerIndex) => (
                 <View
                   key={markerIndex}
-                  testID={`calendar-marker-${day}-${markerIndex}`}
+                  testID={`calendar-marker-${date.getDate()}-${markerIndex}`}
                   style={[
                     styles.marker,
                     {
@@ -539,4 +554,19 @@ function DayCell({
 function leadingDaysForMonth(year: number, month: number, weekStartsOn: WeekStartsOn): number {
   const sundayFirstDay = new Date(year, month - 1, 1).getDay();
   return weekStartsOn === 1 ? (sundayFirstDay + 6) % 7 : sundayFirstDay;
+}
+
+function weekDates(selectedDate: Date, weekStartsOn: WeekStartsOn): Date[] {
+  const start = new Date(selectedDate);
+  const offset = (start.getDay() - weekStartsOn + 7) % 7;
+  start.setDate(start.getDate() - offset);
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    return date;
+  });
+}
+
+function sameCalendarDay(left: Date, right: Date): boolean {
+  return calendarDateKey(left) === calendarDateKey(right);
 }
