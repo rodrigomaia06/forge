@@ -19,6 +19,7 @@ import {
   ForgeConfirmationDialog,
   ForgeDateTimePicker,
   ForgeAttributeEditorSheet,
+  ForgeBackButton,
   ForgeSwipeableAttributeRow,
   ForgeSheetHeader,
   ForgeText as Text,
@@ -553,8 +554,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
 }
 
 function HistoryPickerBackButton({ onPress }: { onPress: () => void }) {
-  const theme = useForgeTheme();
-  return <HeaderAction accessibilityLabel="Back to edit workout" icon="chevron-back" iconOnly onPress={onPress} style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }} />;
+  return <ForgeBackButton accessibilityLabel="Back to edit workout" onPress={onPress} />;
 }
 
 function HistoryRoutineSourceSheet({

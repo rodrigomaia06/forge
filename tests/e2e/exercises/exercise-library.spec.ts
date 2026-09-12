@@ -32,6 +32,9 @@ test.describe('Exercise library', () => {
 
     await page.getByRole('button', { name: 'Filters' }).click();
     await expect(page.getByRole('button', { name: 'Show all exercises' })).toHaveCount(0);
+    const filterSurface = page.getByTestId('catalog-filter-content');
+    const compactFilterBox = await filterSurface.boundingBox();
+    expect(compactFilterBox?.height ?? Infinity).toBeLessThan(450);
     await page.getByRole('button', { name: 'Edit Equipment filter, Any' }).click();
     const machine = page.getByRole('checkbox', { name: 'Filter Equipment: Machine' });
     await expect(machine).toHaveCSS('min-height', '56px');
@@ -41,6 +44,14 @@ test.describe('Exercise library', () => {
     await expect(page.getByRole('button', { name: 'Remove Machine filter' })).toHaveCount(0);
 
     await page.getByRole('button', { name: 'Filters' }).click();
+    await page.getByRole('button', { name: 'Edit Equipment filter, Any' }).click();
+    await page.getByRole('checkbox', { name: 'Filter Equipment: Machine' }).click();
+    await page.getByRole('button', { name: 'Back to filters' }).click();
+    const clearFilters = page.getByRole('button', { name: 'Clear filters' });
+    await expect(clearFilters).toBeVisible();
+    await expect(clearFilters).toHaveCSS('border-width', '2px');
+    await clearFilters.click();
+    await expect(page.getByRole('button', { name: 'Clear filters' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Edit Equipment filter, Any' }).click();
     await page.getByRole('checkbox', { name: 'Filter Equipment: Machine' }).click();
     await page.getByRole('button', { name: 'Back to filters' }).click();
@@ -119,8 +130,11 @@ test.describe('Exercise library', () => {
     const windowHeight = await page.evaluate(() => window.innerHeight);
     expect(formBox?.height ?? Infinity).toBeLessThanOrEqual(windowHeight * 0.82 + 1);
     await expect(page.getByRole('button', { name: 'Exercise category' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Optional details' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Save variation' })).toBeDisabled();
     await page.getByRole('button', { name: 'Equipment' }).click();
+    const compactSelectorBox = await formSurface.boundingBox();
+    expect(compactSelectorBox?.height ?? Infinity).toBeLessThan(formBox?.height ?? -Infinity);
     await expect(page.getByRole('radio').first()).toHaveAttribute('aria-checked', 'true');
     await page.getByRole('radio', { name: 'Add custom equipment' }).click();
     await page.getByRole('textbox', { name: 'Custom equipment' }).fill('Cable');
@@ -176,7 +190,7 @@ test.describe('Exercise library', () => {
     await page.getByRole('button', { name: 'Custom exercises, 0 exercises' }).click();
     await page.getByRole('button', { name: 'Create custom exercise' }).click();
     await page.getByLabel('Exercise name').fill('Custom Row');
-    await page.getByRole('button', { name: 'Additional details' }).click();
+    await page.getByRole('button', { name: 'Optional details' }).click();
     await page.getByRole('button', { name: 'Exercise group' }).click();
     await page.getByLabel('Search exercise groups').fill('Bench');
     await page.getByRole('radio', { name: 'Use exercise group Bench Press' }).click();

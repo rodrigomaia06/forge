@@ -8,7 +8,6 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   Button,
@@ -73,7 +72,6 @@ function formatValue(value: number, unit: string): string {
 export function DailyMeasurementsScreen({ navigation }: Props) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const insets = useSafeAreaInsets();
   const { preferences, updatePreferences } = useSettings();
   const [range, setRange] = useState<Range>(30);
   const [headerElevated, setHeaderElevated] = useState(false);
@@ -172,7 +170,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
   };
 
   return (
-    <AppScreen backgroundColor={theme.background} edges={['top']}>
+    <AppScreen backgroundColor={theme.background}>
       <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <SettingsDetailHeader
         title="Measurements"
@@ -189,7 +187,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
       />
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 44 }]}
+        contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         directionalLockEnabled
         keyboardDismissMode="on-drag"

@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { HeaderAction, HeaderEdge, ForgeText as Text } from '../../components/ui';
+import { ForgeBackButton, HeaderEdge, ForgeText as Text } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
@@ -23,11 +23,8 @@ export function SettingsDetailHeader({
   const styles = useThemedStyles(createStyles);
   return (
     <View style={[styles.header, { backgroundColor: theme.header }]}>
-      <HeaderAction
+      <ForgeBackButton
         accessibilityLabel={backAccessibilityLabel}
-        icon="chevron-back"
-        label="Back"
-        iconOnly
         onPress={() => navigation.goBack()}
       />
       <View style={[styles.titleWrap, styles.pointerEventsNone]}>

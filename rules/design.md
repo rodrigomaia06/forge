@@ -38,6 +38,8 @@ Primary dock tabs use the persistent Forge tab bar. They cross-fade through the 
 
 All application icons are rendered through Forge's shared `Icon` adapter, backed by Tabler Icons. Choose the icon semantically for the action or content it represents; screens must not import a separate icon library directly.
 
+Visual screen explorations use iPhone portrait format by default unless a task explicitly calls for a different target. They are directional previews rather than app assets or implementation specifications.
+
 Do not copy exact visual constants from an external design guideline when the platform provides a semantic/system value or Forge already owns that visual decision.
 
 ## Typography

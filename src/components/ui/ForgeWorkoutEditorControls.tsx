@@ -10,7 +10,7 @@ import { ForgeBottomSheetHandle } from './ForgeBottomSheet';
 import { ForgeFloatingCta } from './ForgeFloatingCta';
 import { ForgeSheetHeader } from './ForgeSheetHeader';
 import { ForgeText, ForgeTextInput } from './ForgeText';
-import { HeaderAction } from './HeaderAction';
+import { ForgeBackButton, HeaderAction } from './HeaderAction';
 import { Icon } from './Icon';
 import { errorHaptic, lightHaptic, mediumHaptic, selectionHaptic } from './haptics';
 import { pressedFeedback } from './pressFeedback';
@@ -184,8 +184,7 @@ export function ForgeWorkoutTypePicker({
 }
 
 export function ForgeEditorBackButton({ onPress, accessibilityLabel = 'Back to edit workout' }: { onPress: () => void; accessibilityLabel?: string }) {
-  const theme = useForgeTheme();
-  return <HeaderAction accessibilityLabel={accessibilityLabel} icon="chevron-back" iconOnly onPress={onPress} style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }} />;
+  return <ForgeBackButton accessibilityLabel={accessibilityLabel} onPress={onPress} />;
 }
 
 const styles = StyleSheet.create({

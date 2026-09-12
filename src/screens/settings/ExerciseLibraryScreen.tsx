@@ -11,7 +11,6 @@ import type { IconName, RootStackParamList } from '../../types';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { workoutTypeIcon } from './workoutTypeIcon';
-import { forgeDockScrollInset } from '../../components/DockChrome';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseLibrary'>;
 
@@ -27,7 +26,7 @@ export function ExerciseLibraryScreen({ navigation }: Props) {
   );
 
   return (
-    <AppScreen backgroundColor={theme.background}>
+    <AppScreen testID="exercise-library-screen" backgroundColor={theme.background}>
       <View style={styles.screen}>
         <SettingsDetailHeader title="Exercises" navigation={navigation} elevated={headerElevated} />
         <ScrollView
@@ -129,9 +128,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     content: {
       padding: settingsLayout.screenPadding,
       paddingTop: settingsLayout.contentTop,
-      // This stack screen sits above the primary dock; retain the same lower
-      // reachability room as the root Settings screen.
-      paddingBottom: forgeDockScrollInset,
+      // Stack destinations end at their own safe-area edge; they do not carry
+      // the primary dock's reachability room.
+      paddingBottom: settingsLayout.contentBottom,
       gap: settingsLayout.listGap,
     },
   });

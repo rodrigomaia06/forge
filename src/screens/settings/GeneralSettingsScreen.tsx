@@ -28,7 +28,6 @@ import type {
   UnitsPreference,
   WeekStartsOn,
 } from '../../types';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 import { REST_DURATION_OPTIONS } from '../../domain/rest/restDurationOptions';
@@ -57,7 +56,6 @@ export function GeneralSettingsScreen({ navigation }: Props) {
   const { preferences, updatePreferences } = useSettings();
   const theme = useForgeTheme();
   const { width } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
   const [appearanceOpen, setAppearanceOpen] = React.useState(false);
   const [defaultRestOpen, setDefaultRestOpen] = React.useState(false);
   const [reminderOpen, setReminderOpen] = React.useState(false);
@@ -85,13 +83,13 @@ export function GeneralSettingsScreen({ navigation }: Props) {
     });
   };
   return (
-    <AppScreen backgroundColor={theme.background} edges={['top']}>
+    <AppScreen backgroundColor={theme.background}>
       <View style={[styles.screen, { backgroundColor: theme.background }]}>
         <SettingsDetailHeader title="General" navigation={navigation} elevated={headerElevated} />
         <ScrollView
           testID="general-settings-scroll"
           style={styles.scroll}
-          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
+          contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"

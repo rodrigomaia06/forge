@@ -22,6 +22,7 @@ import {
   Button,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
+  ForgeBackButton,
   ForgeCard,
   ForgeCatalogFilterSheet,
   ForgeFloatingCta,
@@ -345,6 +346,31 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     selectionHaptic();
     setShowOptionalDetails((current) => !current);
   };
+  const selectorOptionCount = formView === 'family'
+    ? Math.max(categoryMatches.length, categoryOptions.length)
+    : formView === 'category'
+      ? taxonomyCategoryOptions.length
+      : formView === 'equipment'
+        ? selectableEquipment.length + 1
+        : formView === 'workoutTypes'
+          ? visibleTypes.length
+          : formView === 'primaryMuscle'
+            ? muscles.length
+            : formView === 'secondaryMuscles'
+              ? Math.max(0, muscles.length - 1)
+              : 0;
+  const selectorIsLong = formView !== 'details' && selectorOptionCount > 6;
+  const compactSelectorMaxHeight = Math.min(viewportHeight * 0.72, 540);
+  const compactSelectorHeight = Math.min(
+    compactSelectorMaxHeight,
+    // Handle + header + picker padding + the actual choice rows. This keeps a
+    // short replacement view compact without asking ScrollView to infer a
+    // height from a flex parent on web.
+    92 + (formView === 'family' ? 60 : 0) + Math.max(1, selectorOptionCount) * 56 + 36,
+  );
+  const detailFormHeight = showOptionalDetails
+    ? Math.min(viewportHeight * 0.82, 640)
+    : Math.min(viewportHeight * 0.72, 540);
   return (
     <AppScreen backgroundColor={theme.background}>
       <View style={styles.screen}>
@@ -432,7 +458,6 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
           facets={editableFilterFacets}
           onApply={setFilters}
           onClose={() => setFiltersOpen(false)}
-          rootCardAtBottom
           showEmptyApply={false}
         />}
         <ForgeBottomSheet
@@ -454,7 +479,12 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
           keyboardAvoiding
         >
           {(close) => (
-            <View style={[styles.formSheet, { height: Math.min(viewportHeight * 0.82, 640) }]}>
+            <View style={[
+              styles.formSheet,
+              formView === 'details'
+                ? { height: detailFormHeight }
+                : { height: selectorIsLong ? compactSelectorMaxHeight : compactSelectorHeight },
+            ]}>
               <ForgeBottomSheetHandle />
               <ForgeSheetHeader
                 title={formView === 'details'
@@ -478,10 +508,8 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                 closeAccessibilityLabel="Close custom exercise form"
                 titleNumberOfLines={2}
                 leading={formView !== 'details' ? (
-                  <HeaderAction
+                  <ForgeBackButton
                     accessibilityLabel="Back to exercise form"
-                    icon="chevron-back"
-                    iconOnly
                     onPress={() => transitionFormView('details')}
                   />
                 ) : undefined}
@@ -495,11 +523,11 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                     keyboardDismissMode="on-drag"
                     directionalLockEnabled
                   >
-                    <View style={styles.fieldHeader}>
-                      <Text style={styles.fieldLabel}>Name</Text>
-                      <Text style={styles.fieldRequired}>Required</Text>
-                    </View>
-                    <ForgeCard variant="inset" style={styles.formInputCard}>
+                    <ForgeCard variant="inset" style={styles.formNameCard}>
+                      <View style={styles.fieldHeader}>
+                        <Text style={styles.fieldLabel}>Name</Text>
+                        <Text style={styles.fieldRequired}>Required</Text>
+                      </View>
                       <TextInput
                         accessibilityLabel="Exercise name"
                         value={name}
@@ -509,33 +537,45 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                         style={styles.formNameInput}
                       />
                     </ForgeCard>
-                    <SettingsSection title="Essentials" cardStyle={styles.formSectionCard}>
-                      <SettingsRow
-                        title="Equipment"
-                        trailing={<Text style={styles.formValue}>{equipmentValue || 'Custom'}</Text>}
-                        disclosure
+                    <View style={styles.formEssentialsGrid}>
+                      <FormLinkCard
+                        icon="fitness-outline"
+                        label="Equipment"
+                        value={equipmentValue || 'Custom'}
+                        accessibilityLabel="Equipment"
                         onPress={() => transitionFormView('equipment')}
                       />
-                    </SettingsSection>
-                    <SettingsSection title="Optional details" cardStyle={styles.formSectionCard}>
-                      <SettingsRow
-                        title="Additional details"
-                        subtitle="Optional"
-                        trailing={<Icon name={showOptionalDetails ? 'chevron-down' : 'chevron-forward'} size={18} color={theme.textSecondary} />}
-                        showDivider={showOptionalDetails}
+                      {!formParent ? (
+                        <FormLinkCard
+                          icon="activity"
+                          label="Category"
+                          value={exerciseCategory}
+                          accessibilityLabel="Exercise category"
+                          onPress={() => {
+                            if (!showOptionalDetails) setShowOptionalDetails(true);
+                            transitionFormView('category');
+                          }}
+                        />
+                      ) : null}
+                    </View>
+                    <ForgeCard variant="inset" style={styles.formOptionalCard}>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Optional details"
                         onPress={toggleOptionalDetails}
-                      />
+                        style={({ pressed }) => [styles.optionalTrigger, pressed && pressedFeedback]}
+                      >
+                        <Icon name="note" size={20} color={theme.textSecondary} />
+                        <View style={styles.optionalCopy}>
+                          <Text style={styles.optionalTitle}>Optional details</Text>
+                          {!showOptionalDetails ? <Text style={styles.optionalSubtitle}>Group, workout types, and muscles</Text> : null}
+                        </View>
+                        <Icon name={showOptionalDetails ? 'chevron-down' : 'chevron-forward'} size={20} color={theme.textSecondary} />
+                      </Pressable>
                       {showOptionalDetails ? (
-                        <>
+                        <View style={styles.optionalRows}>
                           {!formParent ? (
                             <>
-                              <SettingsRow
-                                title="Exercise category"
-                                trailing={<Text style={styles.formValue}>{exerciseCategory}</Text>}
-                                disclosure
-                                showDivider
-                                onPress={() => transitionFormView('category')}
-                              />
                               <SettingsRow
                                 title="Exercise group"
                                 trailing={<Text style={styles.formValue}>{group || 'None'}</Text>}
@@ -563,11 +603,11 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                             title="Secondary muscles"
                             trailing={<Text style={styles.formValue}>{secondaryMuscles.length ? `${secondaryMuscles.length} selected` : 'None'}</Text>}
                             disclosure
-                            onPress={() => transitionFormView('secondaryMuscles')}
-                          />
-                        </>
+                              onPress={() => transitionFormView('secondaryMuscles')}
+                            />
+                        </View>
                       ) : null}
-                    </SettingsSection>
+                    </ForgeCard>
                   </ScrollView>
                   <ForgeFloatingCta
                     label={editing ? 'Save variation' : 'Add exercise'}
@@ -728,10 +768,8 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   onClose={close}
                   closeAccessibilityLabel="Close exercise details"
                   leading={
-                    <HeaderAction
+                    <ForgeBackButton
                       accessibilityLabel="Back to exercise details"
-                      icon="chevron-back"
-                      iconOnly
                       onPress={() => transitionDetailSheet('details')}
                     />
                   }
@@ -919,6 +957,40 @@ function FormChoiceRow({
       <Text style={styles.formChoiceText}>{label}</Text>
       {selected ? <Icon name="check" size={20} color={theme.selectionIndicator} weight="bold" testID="choice-selection-check" /> : null}
     </Pressable>
+  );
+}
+
+function FormLinkCard({
+  icon,
+  label,
+  value,
+  accessibilityLabel,
+  onPress,
+}: {
+  icon: IconName;
+  label: string;
+  value: string;
+  accessibilityLabel: string;
+  onPress: () => void;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  return (
+    <ForgeCard variant="inset" style={styles.formLinkCard}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        onPress={onPress}
+        style={({ pressed }) => [styles.formLinkCardPressable, pressed && pressedFeedback]}
+      >
+        <View style={styles.formLinkTopRow}>
+          <Icon name={icon} size={20} color={theme.textSecondary} />
+          <Icon name="chevron-forward" size={18} color={theme.textSecondary} />
+        </View>
+        <Text numberOfLines={1} style={styles.formLinkLabel}>{label}</Text>
+        <Text numberOfLines={1} style={styles.formLinkValue}>{value}</Text>
+      </Pressable>
+    </ForgeCard>
   );
 }
 
@@ -1197,7 +1269,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     content: {
       padding: settingsLayout.screenPadding,
       paddingTop: settingsLayout.contentTop,
-      paddingBottom: 112,
+      // This is a stack detail screen, so its own safe-area edge—not the
+      // primary dock—defines the lower scroll boundary.
+      paddingBottom: settingsLayout.contentBottom,
       gap: settingsLayout.listGap,
     },
     searchRow: { flexDirection: 'row', gap: 8 },
@@ -1387,14 +1461,29 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     formScroll: { flex: 1, minHeight: 0 },
     form: { padding: 20, gap: 18, paddingBottom: 128 },
     formPickerContent: { padding: 20, gap: 12, paddingBottom: 36 },
-    formInputCard: { overflow: 'hidden', borderRadius: 16 },
-    formNameInput: { minHeight: 52, paddingHorizontal: 14, color: theme.ink, ...typeScale.body },
-    formSectionCard: {
-      borderRadius: 20,
+    formNameCard: { padding: 14, gap: 8, borderRadius: 18 },
+    formNameInput: {
+      minHeight: 52,
+      paddingHorizontal: 14,
+      borderRadius: 14,
       borderWidth: 1,
-      borderColor: theme.border,
-      backgroundColor: theme.surface,
+      borderColor: theme.divider,
+      backgroundColor: theme.input,
+      color: theme.ink,
+      ...typeScale.body,
     },
+    formEssentialsGrid: { flexDirection: 'row', gap: 12 },
+    formLinkCard: { flex: 1, minWidth: 0, overflow: 'hidden', borderRadius: 18 },
+    formLinkCardPressable: { minHeight: 112, padding: 14, justifyContent: 'space-between', gap: 4 },
+    formLinkTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    formLinkLabel: { ...typeScale.cardTitle, color: theme.textPrimary, marginTop: 2 },
+    formLinkValue: { ...typeScale.supporting, color: theme.textSecondary, paddingRight: 16 },
+    formOptionalCard: { overflow: 'hidden', borderRadius: 18 },
+    optionalTrigger: { minHeight: 68, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    optionalCopy: { flex: 1, minWidth: 0 },
+    optionalTitle: { ...typeScale.cardTitle, color: theme.textPrimary },
+    optionalSubtitle: { ...typeScale.supporting, color: theme.textSecondary, marginTop: 1 },
+    optionalRows: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
     formValue: { ...typeScale.supporting, color: theme.textSecondary, textAlign: 'right', maxWidth: 130 },
     formChoiceList: { overflow: 'hidden' },
     formChoice: { minHeight: 56, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },

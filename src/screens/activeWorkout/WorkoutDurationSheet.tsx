@@ -8,10 +8,10 @@ import {
   ForgeCard,
   ForgeConfirmationDialog,
   ForgeDateTimePicker,
+  ForgeBackButton,
   ForgeSheetHeader,
   ForgeSwitch,
   ForgeText as Text,
-  HeaderAction,
   lightHaptic,
   pressedFeedback,
 } from '../../components/ui';
@@ -150,8 +150,7 @@ export function WorkoutDurationSheet({
 }
 
 function BackButton({ onPress }: { onPress: () => void }) {
-  const theme = useForgeTheme();
-  return <HeaderAction accessibilityLabel="Back to workout duration" icon="chevron-back" iconOnly onPress={onPress} style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }} />;
+  return <ForgeBackButton accessibilityLabel="Back to workout duration" onPress={onPress} />;
 }
 
 function formatDate(value: Date): string {

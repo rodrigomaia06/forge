@@ -5,8 +5,8 @@ import { typeScale } from '../../theme/tokens';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { Button } from './Button';
+import { ForgeBackButton } from './HeaderAction';
 import { ForgeBottomSheet, ForgeBottomSheetHandle } from './ForgeBottomSheet';
-import { ForgeFloatingCta } from './ForgeFloatingCta';
 import { ForgeSheetHeader } from './ForgeSheetHeader';
 import { ForgeText as Text } from './ForgeText';
 import { Icon } from './Icon';
@@ -43,7 +43,6 @@ export function ForgeCatalogFilterSheet({
   onApply,
   onClose,
   testID,
-  rootCardAtBottom = false,
   showEmptyApply = true,
 }: {
   visible: boolean;
@@ -52,14 +51,13 @@ export function ForgeCatalogFilterSheet({
   onApply: (filters: CatalogFilterState) => void;
   onClose: () => void;
   testID?: string;
-  /** Keeps a short settings filter summary close to its bottom action. */
-  rootCardAtBottom?: boolean;
   /** Settings filters do not need a no-op "Show all" action. */
   showEmptyApply?: boolean;
 }) {
   return (
     <ForgeBottomSheet
       testID={testID}
+      surfaceTestID={testID ? `${testID}-surface` : undefined}
       visible={visible}
       onClose={onClose}
       accessibilityLabel="Close exercise filters"
@@ -74,7 +72,6 @@ export function ForgeCatalogFilterSheet({
           headerWithDragHandle
           onApply={(next) => { onApply(next); close(); }}
           onCancel={close}
-          rootCardAtBottom={rootCardAtBottom}
           showEmptyApply={showEmptyApply}
         />
       )}
@@ -90,7 +87,6 @@ export function ForgeCatalogFilterContent({
   onCancel,
   fill = false,
   headerWithDragHandle = false,
-  rootCardAtBottom = false,
   showEmptyApply = true,
 }: {
   filters: CatalogFilterState;
@@ -101,7 +97,6 @@ export function ForgeCatalogFilterContent({
   fill?: boolean;
   /** Make the handle and header one safe downward-drag target. */
   headerWithDragHandle?: boolean;
-  rootCardAtBottom?: boolean;
   showEmptyApply?: boolean;
 }) {
   const theme = useForgeTheme();
@@ -139,34 +134,23 @@ export function ForgeCatalogFilterContent({
   const activeFacet = activeFacetKey
     ? facets.find((facet) => facet.key === activeFacetKey) ?? null
     : null;
+  const showRootActions = !activeFacet && (count > 0 || showEmptyApply);
+  const showChoiceApply = Boolean(activeFacet && count > 0);
   const header = (
     <ForgeSheetHeader
       title={activeFacet?.title ?? 'Filters'}
       onClose={onCancel}
       closeAccessibilityLabel="Cancel exercise filters"
       leading={activeFacet ? (
-        <Button
+        <ForgeBackButton
           accessibilityLabel="Back to filters"
-          label="Back"
-          icon="chevron-back"
-          iconSize={18}
-          variant="outline"
           onPress={() => setActiveFacetKey(null)}
-          style={styles.backAction}
-        />
-      ) : count > 0 ? (
-        <Button
-          accessibilityLabel="Clear filters"
-          label="Clear"
-          variant="outline"
-          onPress={() => setDraft(emptyCatalogFilters())}
-          style={styles.backAction}
         />
       ) : undefined}
     />
   );
   return (
-    <View style={[
+    <View testID="catalog-filter-content" style={[
       fill ? styles.sheetFill : activeFacet ? styles.sheetTall : styles.sheetCompact,
       !fill && activeFacet ? { height: Math.min(viewportHeight * 0.82, 640) } : undefined,
     ]}>
@@ -178,12 +162,7 @@ export function ForgeCatalogFilterContent({
       ) : header}
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[
-          styles.content,
-          !activeFacet && rootCardAtBottom && (count > 0
-            ? styles.rootContentAboveAction
-            : styles.rootContentAtBottom),
-        ]}
+        contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
@@ -245,15 +224,41 @@ export function ForgeCatalogFilterContent({
             })}
           </View>
         )}
+        {showRootActions ? (
+          <View style={styles.actions}>
+            {count > 0 ? (
+              <Button
+                accessibilityLabel="Clear filters"
+                label="Clear"
+                variant="outline"
+                tone="destructive"
+                onPress={() => setDraft(emptyCatalogFilters())}
+                style={styles.clearAction}
+              />
+            ) : null}
+            <Button
+              accessibilityLabel={count ? `Apply (${count})` : 'Show all exercises'}
+              label={count ? `Apply (${count})` : 'Show all'}
+              variant="outline"
+              tone="success"
+              onPress={() => onApply(draft)}
+              style={styles.applyAction}
+            />
+          </View>
+        ) : null}
+        {showChoiceApply ? (
+          <View style={styles.actions}>
+            <Button
+              accessibilityLabel={`Apply (${count})`}
+              label={`Apply (${count})`}
+              variant="outline"
+              tone="success"
+              onPress={() => onApply(draft)}
+              style={styles.applyAction}
+            />
+          </View>
+        ) : null}
       </ScrollView>
-      {(count > 0 || showEmptyApply) ? (
-        <ForgeFloatingCta
-          label={count ? `Apply (${count})` : 'Show all'}
-          accessibilityLabel={count ? `Apply (${count})` : 'Show all exercises'}
-          onPress={() => onApply(draft)}
-          tone="success"
-        />
-      ) : null}
     </View>
   );
 }
@@ -318,14 +323,14 @@ export function ForgeCatalogFilterTokens({
 
 const createStyles = (theme: ReturnType<typeof useForgeTheme>) => StyleSheet.create({
   sheetTall: { alignSelf: 'stretch' },
-  sheetCompact: { minHeight: 366 },
+  // Root filters are content-hugging; only an open choice list owns a capped
+  // height and its own scrolling region.
+  sheetCompact: { alignSelf: 'stretch' },
   // This is intentionally a separate style, rather than an override of `sheet`.
   // React Native retains percentage dimensions in some native style merges.
   sheetFill: { flex: 1, alignSelf: 'stretch' },
-  scroll: { flex: 1 },
-  content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 64, gap: 10 },
-  rootContentAtBottom: { flexGrow: 1, justifyContent: 'flex-end', paddingBottom: 20 },
-  rootContentAboveAction: { flexGrow: 1, justifyContent: 'flex-end', paddingBottom: 152 },
+  scroll: { flexGrow: 0, flexShrink: 1 },
+  content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20, gap: 10 },
   facetCard: { overflow: 'hidden', borderRadius: 20, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface },
   facetRow: { minHeight: 68, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   facetIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
@@ -337,7 +342,9 @@ const createStyles = (theme: ReturnType<typeof useForgeTheme>) => StyleSheet.cre
   choiceText: { flex: 1, ...typeScale.cardTitle, color: theme.textPrimary },
   separator: { position: 'absolute', right: 16, bottom: 0, left: 16, height: StyleSheet.hairlineWidth, pointerEvents: 'none' },
   facetSeparator: { left: 64 },
-  backAction: { minHeight: 38, borderRadius: 14, paddingHorizontal: 12 },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 2 },
+  clearAction: { minWidth: 88 },
+  applyAction: { flex: 1 },
   tokenBar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   tokenScroll: { flex: 1 },
   tokens: { gap: 8, alignItems: 'center', paddingVertical: 2 },

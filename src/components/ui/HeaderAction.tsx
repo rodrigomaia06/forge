@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
 import type { IconName, IconWeight } from '../../types';
+import { useForgeTheme } from '../../theme/ThemeProvider';
 import { Button } from './Button';
 
 interface HeaderActionProps {
@@ -19,6 +20,33 @@ interface HeaderActionProps {
   haptic?: 'none' | 'light' | 'medium';
 }
 
+type ForgeBackButtonProps = Omit<HeaderActionProps, 'icon' | 'iconOnly' | 'label'>;
+
+/** Forge's shared Back affordance for headers and in-sheet replacement views. */
+export function ForgeBackButton({
+  accessibilityLabel,
+  onPress,
+  style,
+  disabled,
+  haptic,
+  iconSize,
+  iconWeight,
+}: ForgeBackButtonProps) {
+  return (
+    <HeaderAction
+      accessibilityLabel={accessibilityLabel}
+      icon="chevron-back"
+      iconOnly
+      onPress={onPress}
+      style={style}
+      disabled={disabled}
+      haptic={haptic}
+      iconSize={iconSize}
+      iconWeight={iconWeight}
+    />
+  );
+}
+
 export function HeaderAction({
   accessibilityLabel,
   label,
@@ -33,6 +61,8 @@ export function HeaderAction({
   disabled = false,
   haptic,
 }: HeaderActionProps) {
+  const theme = useForgeTheme();
+  const isBackControl = iconOnly && icon === 'chevron-back';
   return (
     <Button
       accessibilityLabel={accessibilityLabel}
@@ -48,6 +78,10 @@ export function HeaderAction({
       style={[
         styles.base,
         iconOnly && styles.iconOnly,
+        isBackControl && {
+          backgroundColor: theme.surfaceMuted,
+          borderColor: theme.border,
+        },
         style,
       ]}
     />

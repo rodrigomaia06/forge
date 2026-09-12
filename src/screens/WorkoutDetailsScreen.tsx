@@ -6,6 +6,7 @@ import {
   AppScreen,
   Button,
   ForgeText as Text,
+  ForgeBackButton,
   HeaderAction,
   HeaderEdge,
   Icon,
@@ -67,11 +68,8 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
     <AppScreen backgroundColor={theme.background}>
       <View style={styles.screen}>
         <View style={styles.header}>
-          <HeaderAction
+          <ForgeBackButton
             accessibilityLabel="Back to History"
-            icon="chevron-back"
-            label="Back"
-            iconOnly
             onPress={() => {
               returnToHistory();
             }}

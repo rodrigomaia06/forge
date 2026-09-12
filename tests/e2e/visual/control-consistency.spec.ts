@@ -37,6 +37,11 @@ test.describe('Interactive control consistency', () => {
 
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Workout types' }).click();
+    expect(await dimensions(page.getByRole('button', { name: 'Back to Settings' }))).toMatchObject({
+      width: 44,
+      height: 44,
+      background: 'rgb(236, 237, 235)',
+    });
     const addWorkoutType = page.getByRole('button', { name: 'Add workout type' });
     expect(await dimensions(addWorkoutType)).toMatchObject({
       width: 44,
@@ -121,10 +126,42 @@ test.describe('Interactive control consistency', () => {
 
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('button', { name: 'Workout types' }).click();
+    expect((await dimensions(page.getByRole('button', { name: 'Back to Settings' }))).background).toBe(
+      'rgb(48, 54, 59)',
+    );
     const strengthColors = await page
       .getByRole('button', { name: 'Strength workout type' })
       .locator('div')
       .evaluateAll((elements) => elements.map((element) => window.getComputedStyle(element).backgroundColor));
     expect(strengthColors).toContain('rgb(104, 124, 242)');
+  });
+
+  test('uses the exact shared circular treatment for sheet Back and Close in Light', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Exercises' }).click();
+    await page.getByRole('button', { name: 'All exercises, 381 exercises' }).click();
+    await page.getByRole('button', { name: 'Filters' }).click();
+    await page.getByRole('button', { name: 'Edit Equipment filter, Any' }).click();
+
+    expect(await dimensions(page.getByRole('button', { name: 'Back to filters' }))).toMatchObject(
+      await dimensions(page.getByRole('button', { name: 'Cancel exercise filters' })),
+    );
+  });
+
+  test('uses the exact shared circular treatment for sheet Back and Close in Dark', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance: 'dark' }));
+    });
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Exercises' }).click();
+    await page.getByRole('button', { name: 'All exercises, 381 exercises' }).click();
+    await page.getByRole('button', { name: 'Filters' }).click();
+    await page.getByRole('button', { name: 'Edit Equipment filter, Any' }).click();
+
+    expect(await dimensions(page.getByRole('button', { name: 'Back to filters' }))).toMatchObject(
+      await dimensions(page.getByRole('button', { name: 'Cancel exercise filters' })),
+    );
   });
 });
