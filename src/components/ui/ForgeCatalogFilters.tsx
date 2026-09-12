@@ -174,7 +174,7 @@ export function ForgeCatalogFilterContent({
       !fill && activeFacet ? { height: Math.min(viewportHeight * 0.82, 640) } : undefined,
       // Keep the summary sheet compact without changing the shared sheet
       // primitive. Choice lists retain their separate tall scrolling layout.
-      !fill && !activeFacet ? { height: Math.min(viewportHeight * 0.46, 460) } : undefined,
+      !fill && !activeFacet ? { height: Math.min(viewportHeight * 0.56, 460) } : undefined,
     ]}>
       {headerWithDragHandle ? (
         <>
@@ -182,17 +182,15 @@ export function ForgeCatalogFilterContent({
           {header}
         </>
       ) : header}
-      <ScrollView
-        style={[styles.scroll, !activeFacet && styles.rootScroll]}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        scrollEnabled={Boolean(activeFacet)}
-        bounces={Boolean(activeFacet)}
-        keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled"
-        directionalLockEnabled
-      >
-        {activeFacet ? (
+      {activeFacet ? (
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+          directionalLockEnabled
+        >
           <>
             <ForgeSearchField
               value={choiceQuery}
@@ -229,38 +227,14 @@ export function ForgeCatalogFilterContent({
             ) : null}
           </View>
           </>
-        ) : (
-          <View style={styles.facetCard}>
-            {facets.map((facet, index) => {
-              const selected = draft[facet.key];
-              const summary = selected.length
-                ? selected.length === 1
-                  ? facet.options.find((option) => option.value === selected[0])?.label ?? '1 selected'
-                  : `${selected.length} selected`
-                : 'Any';
-              return (
-                <Pressable
-                  key={facet.key}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Edit ${facet.title} filter, ${summary}`}
-                  onPress={() => { selectionHaptic(); setChoiceQuery(''); setActiveFacetKey(facet.key); }}
-                  style={({ pressed }) => [styles.facetRow, pressed && pressedFeedback]}
-                >
-                  <View style={[styles.facetIcon, { backgroundColor: theme.surfaceMuted }]}>
-                    <Icon name={facet.icon} size={19} color={theme.textPrimary} />
-                  </View>
-                  <View style={styles.facetCopy}>
-                    <Text style={styles.facetTitle}>{facet.title}</Text>
-                    <Text style={styles.facetSummary}>{summary}</Text>
-                  </View>
-                  <Icon name="chevron-forward" size={19} color={theme.textSecondary} />
-                  {index < facets.length - 1 ? <View style={[styles.separator, styles.facetSeparator, { backgroundColor: theme.divider }]} /> : null}
-                </Pressable>
-              );
-            })}
-          </View>
-        )}
-      </ScrollView>
+        </ScrollView>
+      ) : (
+        <FilterFacetSummary
+          filters={draft}
+          facets={facets}
+          onOpen={(key) => { selectionHaptic(); setChoiceQuery(''); setActiveFacetKey(key); }}
+        />
+      )}
       <ForgeFloatingCta
         label={count ? `Apply (${count})` : 'Apply'}
         accessibilityLabel={count ? `Apply (${count})` : 'Apply filters'}
@@ -268,6 +242,52 @@ export function ForgeCatalogFilterContent({
         tone="success"
         onPress={() => onApply(draft)}
       />
+    </View>
+  );
+}
+
+function FilterFacetSummary({
+  filters,
+  facets,
+  onOpen,
+}: {
+  filters: CatalogFilterState;
+  facets: CatalogFilterFacet[];
+  onOpen: (key: CatalogFilterKey) => void;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  return (
+    <View style={styles.rootSummary}>
+      <View style={styles.facetCard}>
+        {facets.map((facet, index) => {
+          const selected = filters[facet.key];
+          const summary = selected.length
+            ? selected.length === 1
+              ? facet.options.find((option) => option.value === selected[0])?.label ?? '1 selected'
+              : `${selected.length} selected`
+            : 'Any';
+          return (
+            <Pressable
+              key={facet.key}
+              accessibilityRole="button"
+              accessibilityLabel={`Edit ${facet.title} filter, ${summary}`}
+              onPress={() => onOpen(facet.key)}
+              style={({ pressed }) => [styles.facetRow, pressed && pressedFeedback]}
+            >
+              <View style={[styles.facetIcon, { backgroundColor: theme.surfaceMuted }]}>
+                <Icon name={facet.icon} size={19} color={theme.textPrimary} />
+              </View>
+              <View style={styles.facetCopy}>
+                <Text style={styles.facetTitle}>{facet.title}</Text>
+                <Text style={styles.facetSummary}>{summary}</Text>
+              </View>
+              <Icon name="chevron-forward" size={19} color={theme.textSecondary} />
+              {index < facets.length - 1 ? <View style={[styles.separator, styles.facetSeparator, { backgroundColor: theme.divider }]} /> : null}
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -339,8 +359,10 @@ const createStyles = (theme: ReturnType<typeof useForgeTheme>) => StyleSheet.cre
   // React Native retains percentage dimensions in some native style merges.
   sheetFill: { flex: 1, alignSelf: 'stretch' },
   scroll: { flexGrow: 0, flexShrink: 1 },
-  rootScroll: { flex: 1, minHeight: 0 },
   content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 156, gap: 10 },
+  // The compact summary needs clearance for the button itself, not the longer
+  // fade used to keep a scrolling choice list readable.
+  rootSummary: { flex: 1, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 72, justifyContent: 'flex-end' },
   facetCard: { overflow: 'hidden', borderRadius: 20, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface },
   facetRow: { minHeight: 68, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   facetIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

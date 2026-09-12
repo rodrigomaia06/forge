@@ -70,6 +70,7 @@ type ExerciseFormView =
   | 'category'
   | 'family'
   | 'equipment'
+  | 'customEquipment'
   | 'workoutTypes'
   | 'primaryMuscle'
   | 'secondaryMuscles';
@@ -184,7 +185,9 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     [catalog.customExercises],
   );
   const equipmentOptions = useMemo(
-    () => Array.from(new Set([...forgeEquipmentOptions, ...customEquipmentOptions])),
+    // Bodyweight is a first-class default for a new custom exercise even
+    // though the imported catalogue expresses it as no equipment.
+    () => Array.from(new Set(['Bodyweight', ...forgeEquipmentOptions, ...customEquipmentOptions])),
     [customEquipmentOptions, forgeEquipmentOptions],
   );
   const forgeCategoryOptions = useMemo(
@@ -223,7 +226,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
       ? 'forge'
       : 'custom';
   const sourceForEquipment = (value: string): CatalogSource =>
-    forgeEquipmentOptions.some((item) => item.toLocaleLowerCase() === value.toLocaleLowerCase())
+    value === 'Bodyweight' || forgeEquipmentOptions.some((item) => item.toLocaleLowerCase() === value.toLocaleLowerCase())
       ? 'forge'
       : 'custom';
   const categoryMatches = useMemo(() => {
@@ -367,8 +370,10 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     ? Math.max(categoryMatches.length, categoryOptions.length)
     : formView === 'category'
     ? filteredCategoryOptions.length
-      : formView === 'equipment'
+    : formView === 'equipment'
         ? filteredEquipmentOptions.length + 1
+        : formView === 'customEquipment'
+          ? 1
         : formView === 'workoutTypes'
           ? visibleTypes.length
           : formView === 'primaryMuscle'
@@ -377,7 +382,9 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
               ? Math.max(0, muscles.length - 1)
               : 0;
   const selectorIsLong = formView !== 'details' && selectorOptionCount > 6;
-  const compactSelectorMaxHeight = Math.min(viewportHeight * 0.72, 540);
+  // A searchable selector must remain above the keyboard instead of expanding
+  // the parent sheet to the top of the viewport.
+  const compactSelectorMaxHeight = Math.min(viewportHeight * 0.52, 440);
   const compactSelectorHeight = Math.min(
     compactSelectorMaxHeight,
     // Handle + header + picker padding + the actual choice rows. This keeps a
@@ -513,8 +520,10 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                     ? 'Category'
                     : formView === 'family'
                       ? 'Exercise group'
-                      : formView === 'equipment'
-                        ? 'Equipment'
+                        : formView === 'equipment'
+                          ? 'Equipment'
+                          : formView === 'customEquipment'
+                            ? 'Custom equipment'
                         : formView === 'workoutTypes'
                           ? 'Workout types'
                           : formView === 'primaryMuscle'
@@ -675,7 +684,6 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   {formView === 'category' ? (
                     <>
                       <ForgeSearchField
-                        autoFocus
                         value={selectorQuery}
                         onChangeText={setSelectorQuery}
                         accessibilityLabel="Search categories"
@@ -692,23 +700,11 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   {formView === 'equipment' ? (
                     <>
                       <ForgeSearchField
-                        autoFocus={!usesCustomEquipment}
                         value={selectorQuery}
                         onChangeText={setSelectorQuery}
                         accessibilityLabel="Search equipment"
                         placeholder="Search equipment"
                       />
-                      {usesCustomEquipment ? (
-                        <TextInput
-                          autoFocus
-                          accessibilityLabel="Custom equipment"
-                          value={equipmentValue}
-                          onChangeText={setEquipmentValue}
-                          placeholder="Custom equipment"
-                          placeholderTextColor={theme.muted}
-                          style={styles.input}
-                        />
-                      ) : null}
                       <ExerciseFormOptionList
                         options={filteredEquipmentOptions.map((label) => ({ label, source: sourceForEquipment(label) }))}
                         selected={usesCustomEquipment ? undefined : equipmentValue}
@@ -717,15 +713,29 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                         sourceIcon
                         footer={
                           <FormChoiceRow
-                            label="Custom equipment"
+                            label={usesCustomEquipment ? `Custom: ${equipmentValue || 'Equipment'}` : 'Custom equipment'}
                             icon="add"
                             selected={usesCustomEquipment}
-                            accessibilityLabel="Add custom equipment"
-                            onPress={() => setEquipmentValue('')}
+                            accessibilityLabel={usesCustomEquipment ? 'Edit custom equipment' : 'Add custom equipment'}
+                            onPress={() => transitionFormView('customEquipment')}
                           />
                         }
                       />
                     </>
+                  ) : null}
+                  {formView === 'customEquipment' ? (
+                    <ForgeCard variant="inset" style={styles.customEquipmentCard}>
+                      <Text style={styles.customEquipmentLabel}>Equipment name</Text>
+                      <TextInput
+                        autoFocus
+                        accessibilityLabel="Custom equipment"
+                        value={usesCustomEquipment ? equipmentValue : ''}
+                        onChangeText={setEquipmentValue}
+                        placeholder="For example, Sandbag"
+                        placeholderTextColor={theme.muted}
+                        style={styles.input}
+                      />
+                    </ForgeCard>
                   ) : null}
                   {formView === 'workoutTypes' ? (
                     <View accessibilityLabel="Workout type choices">
@@ -1533,6 +1543,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       color: theme.ink,
       ...typeScale.body,
     },
+    customEquipmentCard: { padding: 14, gap: 8, borderRadius: 18 },
+    customEquipmentLabel: { ...typeScale.label, color: theme.textSecondary },
     categorySearch: {
       minHeight: 48,
       paddingHorizontal: 14,

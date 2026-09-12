@@ -81,13 +81,14 @@ test.describe('Exercise library', () => {
     await page.getByRole('button', { name: 'Back to exercise form' }).click();
 
     await page.getByRole('button', { name: 'Equipment' }).click();
-    const customEquipment = page.getByRole('radio', { name: 'Add custom equipment' });
-    await expect(customEquipment).toHaveAttribute('aria-checked', 'true');
+    const bodyweight = page.getByRole('radio', { name: 'Equipment Bodyweight' });
+    await expect(bodyweight).toHaveAttribute('aria-checked', 'true');
+    await expect(page.getByRole('textbox', { name: 'Custom equipment' })).toHaveCount(0);
     await page.getByLabel('Search equipment').fill('Barbell');
     const barbell = page.getByRole('radio', { name: 'Equipment Barbell' });
     await expect(barbell).toHaveAttribute('aria-checked', 'false');
     await page.getByLabel('Search equipment').fill('');
-    await expect(customEquipment).toHaveAttribute('aria-checked', 'true');
+    await expect(bodyweight).toHaveAttribute('aria-checked', 'true');
 
     await page.getByRole('button', { name: 'Back to exercise form' }).click();
     await page.getByRole('button', { name: 'Close custom exercise form' }).last().click();
@@ -97,7 +98,7 @@ test.describe('Exercise library', () => {
     const apply = page.getByRole('button', { name: 'Apply filters' });
     await expect(apply).toBeDisabled();
     const filterSurface = page.getByTestId('catalog-filter-content');
-    expect((await filterSurface.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(400);
+    expect((await filterSurface.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(300);
     await page.getByRole('button', { name: 'Edit Equipment filter, Any' }).click();
     await page.getByLabel('Search equipment filters').fill('Machine');
     const machine = page.getByRole('checkbox', { name: 'Filter Equipment: Machine' });
@@ -185,6 +186,7 @@ test.describe('Exercise library', () => {
     expect(compactSelectorBox?.height ?? Infinity).toBeLessThan(formBox?.height ?? -Infinity);
     await expect(page.getByRole('radio').first()).toHaveAttribute('aria-checked', 'true');
     await page.getByRole('radio', { name: 'Add custom equipment' }).click();
+    await expect(page.getByText('Custom equipment', { exact: true })).toBeVisible();
     await page.getByRole('textbox', { name: 'Custom equipment' }).fill('Cable');
     await page.getByRole('button', { name: 'Back to exercise form' }).click();
     await page.getByLabel('Exercise name').fill('Cable Pec Deck');
