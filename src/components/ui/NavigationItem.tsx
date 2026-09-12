@@ -5,6 +5,7 @@ import {
   Platform,
   Pressable,
   StyleSheet,
+  View,
 } from 'react-native';
 import Animated, {
   Easing,
@@ -14,7 +15,9 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Icon } from './Icon';
+import { ForgeText as Text } from './ForgeText';
 import { colors } from '../../theme/tokens';
+import { typeScale } from '../../theme/tokens';
 import type { ForgeTheme, IconName } from '../../types';
 
 interface NavigationItemProps {
@@ -27,6 +30,9 @@ interface NavigationItemProps {
   iconSize?: number;
   enterFromBottom?: boolean;
   compact?: boolean;
+  /** A compact, live metadata value such as the active rest countdown. */
+  badge?: string;
+  accessibilityLabel?: string;
 }
 
 export function NavigationItem({
@@ -39,6 +45,8 @@ export function NavigationItem({
   iconSize = 23,
   enterFromBottom = false,
   compact = false,
+  badge,
+  accessibilityLabel,
 }: NavigationItemProps) {
   const activeProgress = useRef(new RNAnimated.Value(0)).current;
   const entranceProgress = useSharedValue(enterFromBottom ? 0 : 1);
@@ -85,7 +93,7 @@ export function NavigationItem({
       <Pressable
         testID={active ? 'dashboard-nav-active' : `dashboard-nav-${label.toLowerCase()}`}
         accessibilityRole="tab"
-        accessibilityLabel={label}
+        accessibilityLabel={accessibilityLabel ?? label}
         accessibilityState={{ selected: active }}
         aria-selected={active}
         onPress={onPress}
@@ -136,6 +144,9 @@ export function NavigationItem({
             }
             weight={emphasis ? 'thin' : active ? 'fill' : 'regular'}
           />
+          {badge ? <View style={[styles.badge, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}>
+            <Text style={[styles.badgeText, { color: theme.textPrimary }]}>{badge}</Text>
+          </View> : null}
         </RNAnimated.View>
       </Pressable>
     </Animated.View>
@@ -156,6 +167,7 @@ const styles = StyleSheet.create({
     marginVertical: 3,
   },
   iconFrame: {
+    position: 'relative',
     width: 44,
     height: 44,
     alignItems: 'center',
@@ -169,6 +181,19 @@ const styles = StyleSheet.create({
   activeIconFrameCompact: { width: 44, height: 44, borderRadius: 22 },
   inactiveLabel: { opacity: 0.68 },
   activeLabel: { color: colors.selectionIndicator, fontWeight: '700' },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -16,
+    minWidth: 34,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: 9,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: { ...typeScale.caption, fontVariant: ['tabular-nums'], lineHeight: 14 },
   pressed: { opacity: 0.65 },
   itemCompact: { height: 44, minHeight: 44, marginVertical: 0 },
 });

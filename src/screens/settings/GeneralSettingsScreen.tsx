@@ -89,6 +89,8 @@ export function GeneralSettingsScreen({ navigation }: Props) {
       <View style={[styles.screen, { backgroundColor: theme.background }]}>
         <SettingsDetailHeader title="General" navigation={navigation} elevated={headerElevated} />
         <ScrollView
+          testID="general-settings-scroll"
+          style={styles.scroll}
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -185,7 +187,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
           </SettingsSection>
           <SettingsSection
             title="Rest timer"
-            footer="These preferences are saved now; timer behavior remains unchanged in this release."
+            footer="Controls the timer in Live Workout and its countdown in the Forge dock."
           >
             <Toggle
               title="Rest timer"
@@ -216,7 +218,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
               </>
             )}
           </SettingsSection>
-          <SettingsSection title="Rest timer alert">
+          <SettingsSection title="Rest timer alert" footer="At the end of a rest, Forge can alert you in-app and on your locked device.">
             <Toggle
               title="Sound"
               value={preferences.restTimerSound}
@@ -367,6 +369,7 @@ function capitalize(value: string) {
 }
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  scroll: { flex: 1 },
   content: {
     padding: settingsLayout.screenPadding,
     paddingTop: settingsLayout.contentTop,

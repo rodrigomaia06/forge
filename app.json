@@ -28,7 +28,8 @@
           "backgroundColor": "#F6F7F8"
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-notifications"
     ]
   }
 }

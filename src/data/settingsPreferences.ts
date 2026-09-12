@@ -44,7 +44,10 @@ export function parseSettingsPreferences(value: string | null): SettingsPreferen
     weekStartsOn: parsed.weekStartsOn === 0 ? 0 : 1,
     showRestTimer: parsed.showRestTimer !== false,
     defaultRestSeconds: typeof parsed.defaultRestSeconds === 'number' && parsed.defaultRestSeconds >= 0 ? parsed.defaultRestSeconds : 90,
-    keepRestTimerRunning: parsed.keepRestTimerRunning === true,
+    // Match Forge's established timer behavior for saved settings predating
+    // this flag: an elapsed rest remains visible in destructive red until it
+    // is stopped or extended. An explicit false is still respected.
+    keepRestTimerRunning: parsed.keepRestTimerRunning !== false,
     restTimerSound: parsed.restTimerSound !== false,
     restTimerHaptic: parsed.restTimerHaptic !== false,
     unfinishedWorkoutReminderEnabled: parsed.unfinishedWorkoutReminderEnabled === true,

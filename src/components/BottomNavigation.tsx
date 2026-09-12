@@ -15,6 +15,7 @@ import { getWorkoutTypePresentation } from '../domain/workouts/presentation';
 import { colors } from '../theme/tokens';
 import { useSettings } from '../state/SettingsContext';
 import { useWorkouts } from '../state/WorkoutContext';
+import { useRestTimer } from '../state/RestTimerContext';
 import type { ForgeTheme, IconName, RootTabParamList } from '../types';
 
 interface BottomNavigationProps {
@@ -24,10 +25,15 @@ interface BottomNavigationProps {
   onNavigate?: () => void;
 }
 type BottomNavigationScreen = keyof RootTabParamList;
-type NavigationItemEntry = [IconName, string, BottomNavigationScreen, boolean];
+type NavigationItemEntry = [IconName, string, BottomNavigationScreen, boolean, string?];
 type ItemLayout = { x: number; width: number };
 
 let knownWorkoutId: string | null | undefined;
+
+function formatDockRest(seconds: number): string {
+  const absolute = Math.abs(seconds);
+  return `${seconds < 0 ? '+' : ''}${Math.floor(absolute / 60)}:${String(absolute % 60).padStart(2, '0')}`;
+}
 
 export function BottomNavigation({
   tabBarProps,
@@ -37,6 +43,7 @@ export function BottomNavigation({
 }: BottomNavigationProps) {
   const { navigation, state } = tabBarProps;
   const activeWorkout = useWorkouts().activeWorkout;
+  const { remaining: restRemaining, running: restRunning } = useRestTimer();
   const { preferences } = useSettings();
   const [itemLayouts, setItemLayouts] = useState<
     Partial<Record<BottomNavigationScreen, ItemLayout>>
@@ -46,6 +53,7 @@ export function BottomNavigation({
   const indicatorOpacity = useSharedValue(0);
   const reducedMotion = useReducedMotion();
   const hasActiveWorkout = Boolean(activeWorkout);
+  const restBadge = preferences.showRestTimer && restRunning ? formatDockRest(restRemaining) : undefined;
   const activeWorkoutIcon = activeWorkout
     ? getWorkoutTypePresentation(activeWorkout.type, preferences.workoutTypes, theme, 1).icon
     : 'fitness-outline';
@@ -67,7 +75,7 @@ export function BottomNavigation({
     ['home-outline', 'Dashboard', 'Dashboard', false],
     ['time-outline', 'History', 'History', false],
     ...(activeWorkout
-      ? [[activeWorkoutIcon, 'Workout', 'ActiveWorkout', true] as NavigationItemEntry]
+      ? [[activeWorkoutIcon, 'Workout', 'ActiveWorkout', true, restBadge] as NavigationItemEntry]
       : []),
     ['book', 'Plans', 'Plans', false],
     ['menu', 'Settings', 'Settings', false],
@@ -135,7 +143,7 @@ export function BottomNavigation({
           },
         ]}
       />
-      {items.map(([icon, label, screen, emphasis]) => {
+      {items.map(([icon, label, screen, emphasis, badge]) => {
         const active = activeRoute === screen;
         const iconSize = compact
           ? active
@@ -164,6 +172,8 @@ export function BottomNavigation({
               iconSize={iconSize}
               enterFromBottom={emphasis && workoutStartedNow}
               compact={compact}
+              badge={badge}
+              accessibilityLabel={badge ? `${label}, rest ${badge} ${restRemaining < 0 ? 'overdue' : 'remaining'}` : label}
             />
           </View>
         );

@@ -8,7 +8,7 @@ export const defaultSettingsPreferences: SettingsPreferences = {
   weekStartsOn: 1,
   showRestTimer: true,
   defaultRestSeconds: 90,
-  keepRestTimerRunning: false,
+  keepRestTimerRunning: true,
   restTimerSound: true,
   restTimerHaptic: true,
   unfinishedWorkoutReminderEnabled: false,

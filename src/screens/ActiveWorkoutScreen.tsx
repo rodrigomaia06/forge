@@ -26,6 +26,7 @@ import {
 } from '../components/ui';
 import { usePrimaryDock } from '../navigation/PrimaryDockContext';
 import { useWorkouts } from '../state/WorkoutContext';
+import { useRestTimer } from '../state/RestTimerContext';
 import { useSettings } from '../state/SettingsContext';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
@@ -67,8 +68,6 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     finishWorkout,
   } = useWorkouts();
   const [now, setNow] = useState(() => Date.now());
-  const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
-  const [restDuration, setRestDuration] = useState(60);
   const [restSelection, setRestSelection] = useState(90);
   const [restSheetOpen, setRestSheetOpen] = useState(false);
   const [durationSheetOpen, setDurationSheetOpen] = useState(false);
@@ -87,8 +86,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   const [attributeDraft, setAttributeDraft] = useState<{ original?: string; label: string; value: string; icon: import('../types').IconName } | null>(null);
   const timerLongPressRef = useRef(false);
   const { preferences } = useSettings();
-
-  const restCompletionNotified = useRef(false);
+  const restTimer = useRestTimer();
 
   useEffect(() => {
     if (!activeWorkout || activeWorkout.automaticTimeTracking === false) return undefined;
@@ -98,31 +96,19 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     return () => clearInterval(timer);
   }, [activeWorkout]);
 
-  useEffect(() => {
-    if (!restEndsAt || now < restEndsAt) return;
-    if (!restCompletionNotified.current) {
-      restCompletionNotified.current = true;
-      successHaptic();
-    }
-    setRestEndsAt(null);
-  }, [now, restEndsAt]);
-
   const elapsed = activeWorkout
     ? activeWorkout.automaticTimeTracking === false
       ? activeWorkout.durationSeconds ?? 0
       : Math.max(0, Math.floor((now - activeWorkout.startedAt) / 1000))
     : 0;
-  const restRemaining = restEndsAt ? Math.max(0, Math.ceil((restEndsAt - now) / 1000)) : 0;
-  const restRunning = restEndsAt !== null && restRemaining > 0;
+  const restRemaining = restTimer.remaining;
+  const restRunning = restTimer.running;
+  const restDuration = restTimer.duration || preferences.defaultRestSeconds;
 
   const startRestTimer = useCallback((duration = 60): void => {
     lightHaptic();
-    setRestDuration(duration);
-    restCompletionNotified.current = false;
-    const startedAt = Date.now();
-    setNow(startedAt);
-    setRestEndsAt(startedAt + duration * 1000);
-  }, []);
+    restTimer.start(duration);
+  }, [restTimer]);
   const openRestTimer = () => {
     lightHaptic();
     if (restRunning) setRestSelection(restDuration);
@@ -130,16 +116,11 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   };
   const adjustRestTimer = (amount: number): void => {
     lightHaptic();
-    const adjustedAt = Date.now();
-    const currentRemaining = restEndsAt ? Math.max(0, Math.ceil((restEndsAt - adjustedAt) / 1000)) : 0;
-    const nextRemaining = Math.max(0, currentRemaining + amount);
-    setNow(adjustedAt);
-    setRestDuration((currentDuration) => Math.max(1, currentDuration + nextRemaining - currentRemaining));
-    setRestEndsAt(adjustedAt + nextRemaining * 1000);
+    restTimer.adjust(amount);
   };
   const stopRestTimer = () => {
     lightHaptic();
-    setRestEndsAt(null);
+    restTimer.stop();
   };
   const setAutomaticTimeTracking = (enabled: boolean): void => {
     lightHaptic();
@@ -423,7 +404,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
         <View style={editorStyles.formSection}>
           <Text style={[editorStyles.label, { color: theme.slate }]}>Workout type</Text>
           <ForgeCard variant="inset">
-            <Pressable accessibilityRole="button" accessibilityLabel="Choose workout type" onPress={() => setEditorView('type-picker')} style={editorStyles.row}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Choose workout type" onPress={() => { lightHaptic(); setEditorView('type-picker'); }} style={editorStyles.row}>
               <Icon name={workoutTypeIcon(preferences.workoutTypes.find((type) => type.name === workoutTypeDraft) ?? preferences.workoutTypes[0])} size={22} color={theme.textPrimary} />
               <Text style={[editorStyles.rowLabel, { color: theme.textPrimary }]}>{workoutTypeDraft}</Text><Icon name="chevron-forward" size={20} color={theme.slate} />
             </Pressable>
@@ -472,7 +453,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Add attribute"
-              onPress={() => setAttributeDraft({ label: '', value: '', icon: 'note' })}
+              onPress={() => { lightHaptic(); setAttributeDraft({ label: '', value: '', icon: 'note' }); }}
               style={[
                 editorStyles.addAttributeRow,
                 Object.keys(attributesDraft).length > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },

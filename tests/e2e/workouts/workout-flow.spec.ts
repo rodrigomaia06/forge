@@ -382,20 +382,42 @@ test.describe('Active workout flow', () => {
     await expect(page.getByText('Rest timer', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Start rest timer', exact: true }).last().click();
     await expect(page.getByRole('button', { name: /Rest timer,/ })).toBeVisible();
+    await expect(page.getByRole('tab', { name: /^Workout, rest 1:\d\d remaining$/ })).toBeVisible();
     await expect(page.getByRole('dialog').getByText(/01:2[0-9]/)).toBeVisible();
     await expect(page.getByText('remaining', { exact: true })).toBeVisible();
-    await expect(page.getByTestId('rest-timer-progress-ring')).toBeVisible();
+    const progress = page.getByTestId('rest-timer-progress-track');
+    await expect(progress).toBeVisible();
     await expect.poll(async () => (await page.getByTestId('rest-timer-sheet-surface').boundingBox())?.height ?? Infinity).toBeLessThan(pickerHeight);
+    await page.waitForTimeout(350);
     await page.screenshot({ path: testInfo.outputPath('rest-timer-compact.png') });
-    const progressArc = page.getByTestId('rest-timer-progress-ring').locator('circle').last();
-    const progressBeforeAdjustment = await progressArc.getAttribute('stroke-dashoffset');
+    const progressFill = page.getByTestId('rest-timer-progress-fill');
+    const progressBeforeAdjustment = await progressFill.evaluate((element) => element.getBoundingClientRect().width);
     await page.getByRole('button', { name: 'Increase rest by 15 seconds' }).click();
-    await expect(progressArc).not.toHaveAttribute('stroke-dashoffset', progressBeforeAdjustment ?? '');
+    await expect.poll(async () => progressFill.evaluate((element) => element.getBoundingClientRect().width)).toBeGreaterThan(progressBeforeAdjustment);
     const stopTimer = page.getByRole('button', { name: 'Stop rest timer' });
     await expect(stopTimer).toHaveCSS('background-color', 'rgb(246, 220, 221)');
     await expect(stopTimer).toHaveCSS('border-color', 'rgb(214, 72, 72)');
     await stopTimer.click();
     await expect(page.getByRole('button', { name: 'Start rest timer' }).first()).toBeVisible();
+  });
+
+  test('keeps an overdue rest timer visible in destructive red with recovery actions', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-09-12T12:00:00Z') });
+    await page.goto('/');
+    await startBlankWorkout(page);
+    await page.getByRole('button', { name: 'Start rest timer' }).click();
+    await page.getByRole('button', { name: 'Start rest timer', exact: true }).last().click();
+
+    await page.clock.fastForward(91_000);
+
+    const timer = page.getByRole('button', { name: /Rest timer, 1 seconds remaining/ });
+    await expect(timer).toBeVisible();
+    await expect(page.getByText('00:01', { exact: true }).first()).toHaveCSS('color', 'rgb(200, 92, 92)');
+
+    await expect(page.getByText('+00:01', { exact: true })).toHaveCSS('color', 'rgb(200, 92, 92)');
+    await expect(page.getByText('rest exceeded', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Extend rest by 30 seconds' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Extend rest by 1 minute' })).toBeVisible();
   });
 
   test('opens a compact Workout duration sheet from elapsed time', async ({ page }, testInfo) => {
@@ -570,22 +592,6 @@ test.describe('Active workout flow', () => {
     await expect(page.getByText('14/120', { exact: true })).toBeVisible();
     await page.getByTestId('set-details-sheet').getByRole('button', { name: 'Close Set 1' }).click();
     await expect(page.getByText('Keep this form', { exact: true })).toBeVisible();
-  });
-
-  test('restarts the rest timer when held', async ({ page }) => {
-    await page.goto('/');
-    await startBlankWorkout(page);
-
-    const restTimer = page.getByRole('button', { name: 'Start rest timer' });
-    const box = await restTimer.boundingBox();
-    if (!box) throw new Error('Expected rest timer to be measurable');
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.waitForTimeout(550);
-    await page.mouse.up();
-
-    await expect(page.getByRole('button', { name: /Rest timer,/ })).toBeVisible();
-    await expect(page.getByText('Rest timer', { exact: true })).toHaveCount(0);
   });
 
   test('navigates between the primary destinations', async ({ page }) => {

@@ -8,12 +8,11 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from 'react-native-reanimated';
-import Svg, { Circle } from 'react-native-svg';
 import { Button, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeSheetHeader, ForgeText as Text, Icon } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { createActiveWorkoutStyles } from './activeWorkoutStyles';
-import { formatRest, formatRestDisplay } from './activeWorkoutFormatters';
+import { formatRest } from './activeWorkoutFormatters';
 import { lightHaptic, selectionHaptic } from './activeWorkoutFeedback';
 import type { RestTimerSheetProps } from './activeWorkoutTypes';
 import type { NativeScrollEvent } from 'react-native';
@@ -122,70 +121,81 @@ function ActiveRestTimer({
   const theme = useForgeTheme();
   const styles = useThemedStyles(createActiveWorkoutStyles);
   const progress = duration > 0 ? Math.max(0, Math.min(1, remaining / duration)) : 0;
-  const radius = 88;
-  const circumference = 2 * Math.PI * radius;
-  const stateColor =
-    remaining <= 0 ? '#C85C5C' : remaining <= duration * 0.2 ? '#C58A45' : theme.selectionIndicator;
+  const isOverdue = remaining < 0;
+  const stateColor = isOverdue ? '#C85C5C' : remaining <= duration * 0.2 ? '#C58A45' : theme.selectionIndicator;
 
   return (
     <View style={styles.activeRestTimer}>
-      <View testID="rest-timer-progress-ring" style={styles.progressRing}>
-        <Svg width={220} height={220} viewBox="0 0 220 220">
-          <Circle
-            cx="110"
-            cy="110"
-            r={radius}
-            fill="none"
-            stroke={theme.surfaceMuted}
-            strokeWidth="14"
-          />
-          <Circle
-            cx="110"
-            cy="110"
-            r={radius}
-            fill="none"
-            stroke={stateColor}
-            strokeWidth="14"
-            strokeLinecap="round"
-            strokeDasharray={`${circumference} ${circumference}`}
-            strokeDashoffset={circumference * (1 - progress)}
-            rotation="-90"
-            origin="110, 110"
-          />
-        </Svg>
-        <View style={styles.progressLabel}>
-          <Text style={[styles.progressValue, { color: stateColor }]}>
-            {formatRestDisplay(remaining)}
-          </Text>
-          <Text style={styles.progressCaption}>remaining</Text>
-        </View>
+      <View style={styles.restTimeDisplay}>
+        <Text testID="rest-timer-value" style={[styles.restTimeValue, { color: stateColor }]}>
+          {isOverdue ? `+${formatRest(remaining)}` : formatRest(remaining)}
+        </Text>
+        <Text style={[styles.restTimeCaption, isOverdue && { color: stateColor }]}>
+          {isOverdue ? 'rest exceeded' : 'remaining'}
+        </Text>
+      </View>
+      <View
+        testID="rest-timer-progress-track"
+        accessibilityRole="progressbar"
+        accessibilityLabel="Rest timer progress"
+        accessibilityValue={{ min: 0, max: Math.max(duration, 1), now: Math.max(0, remaining) }}
+        style={[styles.restProgressTrack, { backgroundColor: theme.surfaceMuted }]}
+      >
+        <View
+          testID="rest-timer-progress-fill"
+          style={[styles.restProgressFill, { width: `${progress * 100}%`, backgroundColor: stateColor }]}
+        />
       </View>
       <View style={styles.restQuickActions}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Decrease rest by 15 seconds"
-          onPress={() => onAdjust(-15)}
-          style={({ pressed }) => [styles.restQuickButton, pressed && styles.restButtonPressed]}
-        >
-          <Text style={styles.restQuickText}>− 15s</Text>
-        </Pressable>
-        <Button
-          accessibilityLabel="Stop rest timer"
-          label="Stop timer"
-          variant="outline"
-          tone="destructive"
-          onPress={onStop}
-          style={styles.restQuickStopButton}
-        />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Increase rest by 15 seconds"
-          onPress={() => onAdjust(15)}
-          style={({ pressed }) => [styles.restQuickButton, pressed && styles.restButtonPressed]}
-        >
-          <Text style={styles.restQuickText}>+ 15s</Text>
-        </Pressable>
+        {isOverdue ? (
+          <>
+            <Button
+              accessibilityLabel="Extend rest by 30 seconds"
+              label="+30s"
+              variant="outline"
+              haptic="none"
+              onPress={() => onAdjust(30)}
+              style={styles.restQuickButton}
+            />
+            <Button
+              accessibilityLabel="Extend rest by 1 minute"
+              label="+1 min"
+              variant="outline"
+              haptic="none"
+              onPress={() => onAdjust(60)}
+              style={styles.restQuickButton}
+            />
+          </>
+        ) : (
+          <>
+            <Button
+              accessibilityLabel="Decrease rest by 15 seconds"
+              label="−15s"
+              variant="outline"
+              haptic="none"
+              onPress={() => onAdjust(-15)}
+              style={styles.restQuickButton}
+            />
+            <Button
+              accessibilityLabel="Increase rest by 15 seconds"
+              label="+15s"
+              variant="outline"
+              haptic="none"
+              onPress={() => onAdjust(15)}
+              style={styles.restQuickButton}
+            />
+          </>
+        )}
       </View>
+      <Button
+        accessibilityLabel="Stop rest timer"
+        label="Stop timer"
+        variant="outline"
+        tone="destructive"
+        haptic="none"
+        onPress={onStop}
+        style={styles.restStopButton}
+      />
     </View>
   );
 }
@@ -218,6 +228,8 @@ export function RestDurationPicker({
     const nextIndex = Math.max(0, Math.min(REST_DURATION_OPTIONS.length - 1, index));
     if (nextIndex === selectedIndex) return;
     programmaticScroll.current = true;
+    hapticIndex.value = nextIndex;
+    selectionHaptic();
     onSelect(REST_DURATION_OPTIONS[nextIndex]);
     pickerRef.current?.scrollTo({ y: nextIndex * rowHeight, animated: true });
   };

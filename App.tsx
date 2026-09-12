@@ -16,6 +16,7 @@ import { PlansProvider } from './src/state/PlansContext';
 import { ForgeThemeProvider } from './src/theme/ThemeProvider';
 import { ExerciseCatalogProvider } from './src/state/ExerciseCatalogContext';
 import { ForgeLoadingScreen } from './src/components/ForgeLoadingScreen';
+import { RestTimerProvider } from './src/state/RestTimerContext';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -32,7 +33,7 @@ export default function App() {
       <SafeAreaProvider>
         <SettingsProvider>
           <ForgeThemeProvider>
-            <ExerciseCatalogProvider><PlansProvider><WorkoutProvider><AppNavigator /></WorkoutProvider></PlansProvider></ExerciseCatalogProvider>
+            <ExerciseCatalogProvider><PlansProvider><WorkoutProvider><RestTimerProvider><AppNavigator /></RestTimerProvider></WorkoutProvider></PlansProvider></ExerciseCatalogProvider>
           </ForgeThemeProvider>
         </SettingsProvider>
       </SafeAreaProvider>
