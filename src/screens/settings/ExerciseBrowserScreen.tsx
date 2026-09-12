@@ -26,6 +26,7 @@ import {
   ForgeCard,
   ForgeCatalogFilterSheet,
   ForgeFloatingCta,
+  ForgeSearchField,
   ForgeSheetHeader,
   ForgeSingleSelectList,
   ForgeText as Text,
@@ -106,6 +107,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [formParent, setFormParent] = useState<string | null | undefined>(undefined);
   const [formView, setFormView] = useState<ExerciseFormView>('details');
+  const [selectorQuery, setSelectorQuery] = useState('');
   const [showOptionalDetails, setShowOptionalDetails] = useState(false);
   const [name, setName] = useState('');
   const [group, setGroup] = useState('');
@@ -234,6 +236,18 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const isExistingCategory = categoryOptions.some(
     (item) => item.toLocaleLowerCase() === group.trim().toLocaleLowerCase(),
   );
+  const filteredCategoryOptions = useMemo(() => {
+    const normalized = selectorQuery.trim().toLocaleLowerCase();
+    return normalized
+      ? taxonomyCategoryOptions.filter((item) => item.toLocaleLowerCase().includes(normalized))
+      : taxonomyCategoryOptions;
+  }, [selectorQuery, taxonomyCategoryOptions]);
+  const filteredEquipmentOptions = useMemo(() => {
+    const normalized = selectorQuery.trim().toLocaleLowerCase();
+    return normalized
+      ? selectableEquipment.filter((item) => item.toLocaleLowerCase().includes(normalized))
+      : selectableEquipment;
+  }, [selectableEquipment, selectorQuery]);
   const isCustom = (item: ExerciseCatalogItem) =>
     catalog.customExercises.some((custom) => custom.id === item.id);
   const restOverride = (item: ExerciseCatalogItem) =>
@@ -338,6 +352,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const transitionFormView = (nextView: ExerciseFormView) => {
     if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setSelectorQuery('');
     setFormView(nextView);
   };
   const toggleOptionalDetails = () => {
@@ -349,9 +364,9 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const selectorOptionCount = formView === 'family'
     ? Math.max(categoryMatches.length, categoryOptions.length)
     : formView === 'category'
-      ? taxonomyCategoryOptions.length
+    ? filteredCategoryOptions.length
       : formView === 'equipment'
-        ? selectableEquipment.length + 1
+        ? filteredEquipmentOptions.length + 1
         : formView === 'workoutTypes'
           ? visibleTypes.length
           : formView === 'primaryMuscle'
@@ -366,7 +381,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     // Handle + header + picker padding + the actual choice rows. This keeps a
     // short replacement view compact without asking ScrollView to infer a
     // height from a flex parent on web.
-    92 + (formView === 'family' ? 60 : 0) + Math.max(1, selectorOptionCount) * 56 + 36,
+    92 + (formView === 'family' || formView === 'category' || formView === 'equipment' ? 64 : 0) + Math.max(1, selectorOptionCount) * 56 + 36,
   );
   const detailFormHeight = showOptionalDetails
     ? Math.min(viewportHeight * 0.82, 640)
@@ -458,7 +473,6 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
           facets={editableFilterFacets}
           onApply={setFilters}
           onClose={() => setFiltersOpen(false)}
-          showEmptyApply={false}
         />}
         <ForgeBottomSheet
           visible={formParent !== undefined}
@@ -494,7 +508,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                       ? 'Add variation'
                       : 'New exercise'
                     : formView === 'category'
-                    ? 'Exercise category'
+                    ? 'Target area'
                     : formView === 'family'
                       ? 'Exercise group'
                       : formView === 'equipment'
@@ -548,7 +562,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                       {!formParent ? (
                         <FormLinkCard
                           icon="activity"
-                          label="Category"
+                          label="Target area"
                           value={exerciseCategory}
                           accessibilityLabel="Exercise category"
                           onPress={() => {
@@ -657,15 +671,31 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                     </>
                   ) : null}
                   {formView === 'category' ? (
-                    <ExerciseFormOptionList
-                      options={taxonomyCategoryOptions.map((label) => ({ label, source: 'forge' as const }))}
-                      selected={exerciseCategory}
-                      accessibilityPrefix="Exercise category"
-                      onSelect={(value) => { setExerciseCategory(value); transitionFormView('details'); }}
-                    />
+                    <>
+                      <ForgeSearchField
+                        autoFocus
+                        value={selectorQuery}
+                        onChangeText={setSelectorQuery}
+                        accessibilityLabel="Search target areas"
+                        placeholder="Search target areas"
+                      />
+                      <ExerciseFormOptionList
+                        options={filteredCategoryOptions.map((label) => ({ label, source: 'forge' as const }))}
+                        selected={exerciseCategory}
+                        accessibilityPrefix="Target area"
+                        onSelect={(value) => { setExerciseCategory(value); transitionFormView('details'); }}
+                      />
+                    </>
                   ) : null}
                   {formView === 'equipment' ? (
                     <>
+                      <ForgeSearchField
+                        autoFocus={!usesCustomEquipment}
+                        value={selectorQuery}
+                        onChangeText={setSelectorQuery}
+                        accessibilityLabel="Search equipment"
+                        placeholder="Search equipment"
+                      />
                       {usesCustomEquipment ? (
                         <TextInput
                           autoFocus
@@ -678,7 +708,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                         />
                       ) : null}
                       <ExerciseFormOptionList
-                        options={selectableEquipment.map((label) => ({ label, source: sourceForEquipment(label) }))}
+                        options={filteredEquipmentOptions.map((label) => ({ label, source: sourceForEquipment(label) }))}
                         selected={usesCustomEquipment ? undefined : equipmentValue}
                         accessibilityPrefix="Equipment"
                         onSelect={(value) => { setEquipmentValue(value); transitionFormView('details'); }}

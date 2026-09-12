@@ -63,6 +63,54 @@ test.describe('Exercise library', () => {
     await expect(page.getByRole('button', { name: 'Clear all filters' })).toHaveCount(0);
   });
 
+  test('searches selector and filter choices without implicitly selecting a matching name', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Exercises' }).click();
+    await page.getByRole('button', { name: 'Custom exercises, 0 exercises' }).click();
+    await page.getByRole('button', { name: 'Create custom exercise' }).click();
+
+    await page.getByRole('button', { name: 'Exercise category' }).click();
+    const fullBody = page.getByRole('radio', { name: 'Target area Full Body' });
+    await expect(fullBody).toHaveAttribute('aria-checked', 'true');
+    await page.getByLabel('Search target areas').fill('Chest');
+    await expect(page.getByRole('radio', { name: 'Target area Chest' })).toBeVisible();
+    await expect(fullBody).toHaveCount(0);
+    await page.getByLabel('Search target areas').fill('Full Body');
+    await expect(fullBody).toHaveAttribute('aria-checked', 'true');
+    await page.getByRole('button', { name: 'Back to exercise form' }).click();
+
+    await page.getByRole('button', { name: 'Equipment' }).click();
+    const customEquipment = page.getByRole('radio', { name: 'Add custom equipment' });
+    await expect(customEquipment).toHaveAttribute('aria-checked', 'true');
+    await page.getByLabel('Search equipment').fill('Barbell');
+    const barbell = page.getByRole('radio', { name: 'Equipment Barbell' });
+    await expect(barbell).toHaveAttribute('aria-checked', 'false');
+    await page.getByLabel('Search equipment').fill('');
+    await expect(customEquipment).toHaveAttribute('aria-checked', 'true');
+
+    await page.getByRole('button', { name: 'Back to exercise form' }).click();
+    await page.getByRole('button', { name: 'Close custom exercise form' }).last().click();
+    await page.getByRole('button', { name: 'Back to Exercises' }).click();
+    await page.getByRole('button', { name: 'All exercises, 381 exercises' }).click();
+    await page.getByRole('button', { name: 'Filters' }).click();
+    const apply = page.getByRole('button', { name: 'Apply filters' });
+    await expect(apply).toBeDisabled();
+    const filterSurface = page.getByTestId('catalog-filter-content');
+    expect((await filterSurface.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(400);
+    await page.getByRole('button', { name: 'Edit Equipment filter, Any' }).click();
+    await page.getByLabel('Search equipment filters').fill('Machine');
+    const machine = page.getByRole('checkbox', { name: 'Filter Equipment: Machine' });
+    await expect(machine).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Apply filters' })).toBeDisabled();
+    await machine.click();
+    await expect(page.getByRole('button', { name: 'Apply (1)' })).toBeEnabled();
+    await page.getByRole('button', { name: 'Back to filters' }).click();
+    await expect(page.getByRole('button', { name: 'Clear filters' })).toBeVisible();
+    await page.getByRole('button', { name: 'Clear filters' }).click();
+    await expect(page.getByRole('button', { name: 'Apply filters' })).toBeDisabled();
+  });
+
   test('shows built-in exercise metadata and persists its rest override', async ({ page }) => {
     await openAllExercises(page);
     await page.getByRole('button', { name: 'Bench Press & 3 variations' }).click();

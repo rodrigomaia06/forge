@@ -2,6 +2,7 @@ export { AppScreen } from './AppScreen';
 export { Button } from './Button';
 export { Divider } from './Divider';
 export { ForgeText, ForgeTextInput } from './ForgeText';
+export { ForgeSearchField } from './ForgeSearchField';
 export { ForgeBackButton, HeaderAction } from './HeaderAction';
 export { ForgeSwitch } from './ForgeSwitch';
 export { AnchoredActionPopover } from './AnchoredActionPopover';
