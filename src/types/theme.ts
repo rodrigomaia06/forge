@@ -1,4 +1,5 @@
 export interface ForgeTheme {
+  colorScheme: 'light' | 'dark';
   background: string;
   header: string;
   surface: string;

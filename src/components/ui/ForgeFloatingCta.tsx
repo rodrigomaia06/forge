@@ -37,10 +37,10 @@ export function ForgeFloatingCta({
         <Svg style={StyleSheet.absoluteFill}>
           <Defs>
             <LinearGradient id="forgeFloatingCtaFade" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={resolvedTheme.surface} stopOpacity="0" />
-              <Stop offset="0.38" stopColor={resolvedTheme.surface} stopOpacity="0.48" />
-              <Stop offset="0.72" stopColor={resolvedTheme.surface} stopOpacity="0.9" />
-              <Stop offset="1" stopColor={resolvedTheme.surface} stopOpacity="1" />
+              <Stop offset="0" stopColor={resolvedTheme.surfaceElevated} stopOpacity="0" />
+              <Stop offset="0.38" stopColor={resolvedTheme.surfaceElevated} stopOpacity="0.48" />
+              <Stop offset="0.72" stopColor={resolvedTheme.surfaceElevated} stopOpacity="0.9" />
+              <Stop offset="1" stopColor={resolvedTheme.surfaceElevated} stopOpacity="1" />
             </LinearGradient>
           </Defs>
           <Rect x="0" y="0" width="100%" height="100%" fill="url(#forgeFloatingCtaFade)" />

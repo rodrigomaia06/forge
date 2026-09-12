@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 
 import { maxFontSizeMultiplier } from '../../theme/tokens';
+import { useForgeTheme } from '../../theme/ThemeProvider';
 
 /** Shared text primitives preserve the user's preferred text size up to Forge's 1.5× cap. */
 export function ForgeText({ maxFontSizeMultiplier: _max, ...props }: TextProps) {
@@ -14,9 +15,17 @@ export function ForgeText({ maxFontSizeMultiplier: _max, ...props }: TextProps) 
 }
 
 export const ForgeTextInput = React.forwardRef<NativeTextInput, TextInputProps>(
-  ({ maxFontSizeMultiplier: _max, ...props }, ref) => (
-    <NativeTextInput ref={ref} {...props} maxFontSizeMultiplier={maxFontSizeMultiplier} />
-  ),
+  ({ maxFontSizeMultiplier: _max, keyboardAppearance, ...props }, ref) => {
+    const theme = useForgeTheme();
+    return (
+      <NativeTextInput
+        ref={ref}
+        {...props}
+        keyboardAppearance={keyboardAppearance ?? theme.colorScheme}
+        maxFontSizeMultiplier={maxFontSizeMultiplier}
+      />
+    );
+  },
 );
 
 ForgeTextInput.displayName = 'ForgeTextInput';

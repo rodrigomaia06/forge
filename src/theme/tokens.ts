@@ -22,6 +22,7 @@ const shared = {
 
 export const lightTheme: ForgeTheme = {
   ...shared,
+  colorScheme: 'light',
   background: '#E8E8E8',
   header: '#E8E8E8',
   surface: '#F8F8F6',
@@ -60,6 +61,7 @@ export const lightTheme: ForgeTheme = {
 
 export const darkTheme: ForgeTheme = {
   ...shared,
+  colorScheme: 'dark',
   actionPrimary: '#F5F7F8',
   onActionPrimary: '#172431',
   selectionIndicator: '#F5F7F8',

@@ -26,6 +26,29 @@ test.describe('Settings', () => {
     await page.getByRole('button', { name: 'Workout types' }).click();
   }
 
+  async function scrollTop(locator: import('@playwright/test').Locator): Promise<number> {
+    return locator.evaluate((element) => {
+      const nodes: HTMLElement[] = [element as HTMLElement, ...Array.from(element.querySelectorAll<HTMLElement>('*'))];
+      for (let parent = element.parentElement; parent; parent = parent.parentElement) nodes.push(parent);
+      const scroller = nodes.find((node) => {
+        const style = window.getComputedStyle(node);
+        return node.scrollHeight > node.clientHeight + 24 && /auto|scroll/.test(style.overflowY);
+      });
+      if (!scroller) throw new Error('Expected a vertically scrollable Settings list');
+      return scroller.scrollTop;
+    });
+  }
+
+  async function scrollListDown(
+    page: import('@playwright/test').Page,
+    locator: import('@playwright/test').Locator,
+  ): Promise<void> {
+    const box = await locator.boundingBox();
+    if (!box) throw new Error('Expected a Settings list to be measurable');
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.7);
+    await page.mouse.wheel(0, Math.max(180, box.height * 0.5));
+  }
+
   test('shows grouped settings and opens each destination', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
@@ -38,6 +61,9 @@ test.describe('Settings', () => {
     await expect(page.getByRole('button', { name: 'Backup & Export' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Logs' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'About' })).toBeVisible();
+    const workoutTypesBox = await page.getByRole('button', { name: 'Workout types' }).boundingBox();
+    const dailyMeasurementsBox = await page.getByRole('button', { name: 'Daily measurements' }).boundingBox();
+    expect(workoutTypesBox?.y ?? Infinity).toBeLessThan(dailyMeasurementsBox?.y ?? -Infinity);
 
     await page.getByRole('button', { name: 'Exercises' }).click();
     await expect(page.getByTestId('settings-detail-title')).toHaveText('Exercises');
@@ -73,38 +99,75 @@ test.describe('Settings', () => {
     await expect(page.getByTestId('settings-detail-title')).toHaveText('About');
   });
 
-  test('records and persists a daily body-weight measurement with its trend', async ({ page }) => {
+  test('starts Daily measurements empty, then records and persists body weight with history', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Daily measurements' }).click();
 
     await expect(page.getByTestId('settings-detail-title')).toHaveText('Daily measurements');
+    await expect(page.getByRole('button', { name: 'Record body weight' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Add measure', exact: true }).last().click();
+    const addClose = page.getByTestId('forge-sheet-drag-area').getByRole('button', { name: 'Close Add measure' });
+    const addCloseBox = await addClose.boundingBox();
+    await page.getByLabel('Measure name').fill('Body weight');
+    await page.getByLabel('Measure unit').fill('kg');
+    await page.getByRole('button', { name: 'Add measure', exact: true }).last().click();
     await expect(page.getByRole('button', { name: 'Record body weight' })).toBeVisible();
+
     await page.getByRole('button', { name: 'Record measurement' }).click();
+    const recordCloseBox = await page.getByTestId('forge-sheet-drag-area').getByRole('button', { name: 'Close Record Body weight' }).boundingBox();
+    expect(addCloseBox).not.toBeNull();
+    expect(recordCloseBox).not.toBeNull();
+    expect((addCloseBox?.x ?? 0) + (addCloseBox?.width ?? 0)).toBeCloseTo(
+      (recordCloseBox?.x ?? 0) + (recordCloseBox?.width ?? 0),
+      0,
+    );
     await page.getByLabel('Body weight value').fill('81.4');
     await page.getByRole('button', { name: 'Save measurement' }).click();
     await expect(page.getByText('81.4 kg').first()).toBeVisible();
     await expect(page.getByLabel('1 measurements chart')).toBeVisible();
+    await expect(page.getByText('History', { exact: true }).last()).toBeVisible();
 
     await page.reload();
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Daily measurements' }).click();
     await expect(page.getByText('81.4 kg').first()).toBeVisible();
+    await expect(page.getByText('History', { exact: true }).last()).toBeVisible();
   });
 
-  test('offers editable useful measurement starting points without adding them by default', async ({ page }) => {
+  test('keeps measures user-defined and lets the user choose their chart colour', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Daily measurements' }).click();
-    await expect(page.getByText('Body fat', { exact: true })).toHaveCount(0);
 
-    await page.getByRole('button', { name: 'Add measure', exact: true }).click();
-    await page.getByRole('button', { name: 'Use suggested Body fat measure' }).click();
-    await expect(page.getByLabel('Measure name')).toHaveValue('Body fat');
-    await expect(page.getByLabel('Measure unit')).toHaveValue('%');
+    await page.getByRole('button', { name: 'Add measure', exact: true }).last().click();
+    await expect(page.getByText('SUGGESTED', { exact: true })).toHaveCount(0);
+    const blue = page.getByRole('radio', { name: 'Use Blue color' });
+    await blue.click();
+    await expect(blue).toHaveAttribute('aria-checked', 'true');
+    await page.getByLabel('Measure name').fill('Body fat');
+    await page.getByLabel('Measure unit').fill('%');
     await page.getByRole('button', { name: 'Add measure', exact: true }).last().click();
     await expect(page.getByRole('button', { name: 'Body fat', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Record body fat' })).toBeVisible();
+  });
+
+  test('keeps vertical scrolling available from interactive Settings rows', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Exercises' }).click();
+
+    const exerciseLibrary = page.getByTestId('exercise-library-scroll');
+    const exerciseLibraryBefore = await scrollTop(exerciseLibrary);
+    await scrollListDown(page, exerciseLibrary);
+    await expect.poll(() => scrollTop(exerciseLibrary)).toBeGreaterThan(exerciseLibraryBefore + 20);
+
+    await page.getByRole('button', { name: 'Back to Settings' }).click();
+    await page.getByRole('button', { name: 'Workout types' }).click();
+    const workoutTypes = page.getByTestId('workout-types-scroll');
+    const workoutTypesBefore = await scrollTop(workoutTypes);
+    await scrollListDown(page, workoutTypes);
+    await expect.poll(() => scrollTop(workoutTypes)).toBeGreaterThan(workoutTypesBefore + 20);
   });
 
   test('uses the shared Settings row scale across root and nested cards', async ({ page }) => {
@@ -132,7 +195,7 @@ test.describe('Settings', () => {
     await expectRowHeight(libraryRow, 68);
     await expectFontSize(page.getByTestId('exercise-library-type-strength-title'), 16);
     await page.getByRole('button', { name: 'All exercises, 381 exercises' }).click();
-    const movementRow = page.getByRole('button', { name: 'Bench Press & 4 variations' });
+    const movementRow = page.getByRole('button', { name: 'Bench Press & 3 variations' });
     await expectRowHeight(movementRow, 68);
     await expectFontSize(page.getByText('Bench Press', { exact: true }), 16);
 

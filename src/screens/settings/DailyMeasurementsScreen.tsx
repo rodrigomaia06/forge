@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   Button,
+  AppScreen,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
   ForgeCard,
@@ -34,12 +35,12 @@ import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 type Props = NativeStackScreenProps<RootStackParamList, 'DailyMeasurements'>;
 type Range = 7 | 30 | 90;
 
-const metricColors = ['#4D7B67', '#5478D8', '#C56BE6', '#D78543', '#EF715F'];
-const suggestedMetrics: ReadonlyArray<Pick<DailyMeasurementDefinition, 'name' | 'unit' | 'icon'>> = [
-  { name: 'Body fat', unit: '%', icon: 'activity' },
-  { name: 'Waist', unit: 'cm', icon: 'measure' },
-  { name: 'Resting heart rate', unit: 'bpm', icon: 'heart' },
-];
+const metricColorChoices = [
+  { name: 'Green', value: '#4D7B67' },
+  { name: 'Blue', value: '#5478D8' },
+  { name: 'Violet', value: '#8A64C8' },
+  { name: 'Amber', value: '#C98A3D' },
+] as const;
 const metricIcons: readonly IconName[] = [
   'weight', 'measure', 'heart', 'hydration', 'energy', 'sleep', 'recovery', 'activity',
 ];
@@ -57,6 +58,12 @@ function displayDate(key: string): string {
     .format(new Date(year, month - 1, day));
 }
 
+function displayHistoryDate(key: string): string {
+  const [year, month, day] = key.split('-').map(Number);
+  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    .format(new Date(year, month - 1, day));
+}
+
 function formatValue(value: number, unit: string): string {
   const rounded = Math.round(value * 10) / 10;
   return `${rounded.toLocaleString(undefined, { maximumFractionDigits: 1 })}${unit ? ` ${unit}` : ''}`;
@@ -69,8 +76,8 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
   const { preferences, updatePreferences } = useSettings();
   const [range, setRange] = useState<Range>(30);
   const [headerElevated, setHeaderElevated] = useState(false);
-  const [selectedId, setSelectedId] = useState(
-    preferences.dailyMeasurementDefinitions[0]?.id ?? 'body-weight',
+  const [selectedId, setSelectedId] = useState<string | undefined>(
+    preferences.dailyMeasurementDefinitions[0]?.id,
   );
   const [recordOpen, setRecordOpen] = useState(false);
   const [metricOpen, setMetricOpen] = useState(false);
@@ -78,12 +85,11 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
   const [metricName, setMetricName] = useState('');
   const [metricUnit, setMetricUnit] = useState('');
   const [metricIcon, setMetricIcon] = useState<IconName>('measure');
+  const [metricColor, setMetricColor] = useState<(typeof metricColorChoices)[number]['value']>(metricColorChoices[0].value);
 
   const selected = preferences.dailyMeasurementDefinitions.find((item) => item.id === selectedId)
     ?? preferences.dailyMeasurementDefinitions[0];
-  const displayUnit = selected?.id === 'body-weight' && preferences.units === 'imperial'
-    ? 'lb'
-    : selected?.unit ?? '';
+  const displayUnit = selected?.unit ?? '';
   const entries = useMemo(() => {
     if (!selected) return [];
     const cutoff = new Date();
@@ -95,27 +101,28 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
   }, [preferences.dailyMeasurementEntries, range, selected]);
   const displayEntries = entries.map((entry) => ({
     ...entry,
-    value: selected?.id === 'body-weight' && preferences.units === 'imperial'
-      ? entry.value * 2.20462
-      : entry.value,
+    value: entry.value,
   }));
   const latest = displayEntries.at(-1);
   const periodStart = displayEntries[0];
-  const availableSuggestions = suggestedMetrics.filter((suggestion) => !preferences.dailyMeasurementDefinitions.some(
-    (definition) => definition.name.trim().toLocaleLowerCase() === suggestion.name.toLocaleLowerCase(),
-  ));
+  const historyEntries = useMemo(() => {
+    if (!selected) return [];
+    return preferences.dailyMeasurementEntries
+      .filter((entry) => entry.definitionId === selected.id)
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .map((entry) => ({
+        ...entry,
+        value: entry.value,
+      }));
+  }, [preferences.dailyMeasurementEntries, selected]);
 
   const openRecord = () => {
     if (!selected) return;
     const existing = preferences.dailyMeasurementEntries.find(
       (entry) => entry.definitionId === selected.id && entry.date === localDateKey(),
     );
-    const value = existing?.value ?? (selected.id === 'body-weight' ? preferences.bodyweightKg : undefined);
-    const shown = value === undefined || value === 0
-      ? ''
-      : selected.id === 'body-weight' && preferences.units === 'imperial'
-        ? String(Math.round(value * 2.20462 * 10) / 10)
-        : String(value);
+    const value = existing?.value;
+    const shown = value === undefined || value === 0 ? '' : String(value);
     setRecordValue(shown);
     setRecordOpen(true);
   };
@@ -124,9 +131,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
     if (!selected) return;
     const parsed = Number(recordValue.replace(',', '.'));
     if (!Number.isFinite(parsed)) return;
-    const value = selected.id === 'body-weight' && preferences.units === 'imperial'
-      ? parsed / 2.20462
-      : parsed;
+    const value = parsed;
     const date = localDateKey();
     const old = preferences.dailyMeasurementEntries.find(
       (entry) => entry.definitionId === selected.id && entry.date === date,
@@ -140,7 +145,6 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
             date,
             value,
           }],
-      ...(selected.id === 'body-weight' ? { bodyweightKg: value } : {}),
     });
     setRecordOpen(false);
   };
@@ -153,7 +157,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
       name,
       unit: metricUnit.trim(),
       icon: metricIcon,
-      color: metricColors[preferences.dailyMeasurementDefinitions.length % metricColors.length],
+      color: metricColor,
     };
     updatePreferences({
       dailyMeasurementDefinitions: [...preferences.dailyMeasurementDefinitions, definition],
@@ -162,27 +166,32 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
     setMetricName('');
     setMetricUnit('');
     setMetricIcon('measure');
+    setMetricColor(metricColorChoices[0].value);
     setMetricOpen(false);
   };
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+    <AppScreen backgroundColor={theme.background} edges={['top']}>
+      <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <SettingsDetailHeader
         title="Daily measurements"
         navigation={navigation}
         elevated={headerElevated}
         rightAction={
           <HeaderAction
-            accessibilityLabel="Record measurement"
+            accessibilityLabel={selected ? 'Record measurement' : 'Add measure'}
             icon="add"
             iconOnly
-            onPress={openRecord}
+            onPress={selected ? openRecord : () => setMetricOpen(true)}
           />
         }
       />
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 44 }]}
         showsVerticalScrollIndicator={false}
+        directionalLockEnabled
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
         onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
         scrollEventThrottle={16}
       >
@@ -241,12 +250,12 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
             )}
           </>
         ) : null}
-        <SettingsSection title="Measures">
+        {preferences.dailyMeasurementDefinitions.length ? <SettingsSection title="Measures">
           {preferences.dailyMeasurementDefinitions.map((definition, index) => (
             <SettingsRow
               key={definition.id}
               title={definition.name}
-              subtitle={definition.id === 'body-weight' && preferences.units === 'imperial' ? 'lb' : definition.unit || undefined}
+              subtitle={definition.unit || undefined}
               icon={definition.icon}
               iconColor={definition.color}
               iconBackgroundColor={`${definition.color}24`}
@@ -257,7 +266,20 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
               style={definition.id === selected?.id ? styles.selectedDefinition : undefined}
             />
           ))}
-        </SettingsSection>
+        </SettingsSection> : null}
+        {historyEntries.length ? (
+          <SettingsSection title="History">
+            {historyEntries.map((entry, index) => (
+              <SettingsRow
+                key={entry.id}
+                title={displayHistoryDate(entry.date)}
+                trailing={<Text style={styles.historyValue}>{formatValue(entry.value, displayUnit)}</Text>}
+                showDivider={index < historyEntries.length - 1}
+                accessibilityLabel={`${displayHistoryDate(entry.date)}, ${formatValue(entry.value, displayUnit)}`}
+              />
+            ))}
+          </SettingsSection>
+        ) : null}
         <Button
           label="Add measure"
           icon="add"
@@ -310,71 +332,66 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
           <View style={styles.metricSheet}>
             <ForgeBottomSheetHandle />
             <ForgeSheetHeader title="Add measure" onClose={close} />
-            {availableSuggestions.length ? (
-              <>
-                <Text style={styles.fieldLabel}>SUGGESTED</Text>
-                <View style={styles.suggestedMetrics}>
-                  {availableSuggestions.map((suggestion) => (
-                    <Pressable
-                      key={suggestion.name}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Use suggested ${suggestion.name} measure`}
-                      onPress={() => {
-                        selectionHaptic();
-                        setMetricName(suggestion.name);
-                        setMetricUnit(suggestion.unit);
-                        setMetricIcon(suggestion.icon);
-                      }}
-                      style={({ pressed }) => [styles.suggestedMetric, pressed && pressedFeedback]}
-                    >
-                      <Icon name={suggestion.icon} size={18} color={theme.textSecondary} />
-                      <Text numberOfLines={1} style={styles.suggestedMetricText}>{suggestion.name}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </>
-            ) : null}
-            <Text style={styles.fieldLabel}>NAME</Text>
-            <ForgeCard variant="inset" style={styles.fieldCard}>
-              <TextInput
-                autoFocus
-                accessibilityLabel="Measure name"
-                value={metricName}
-                onChangeText={setMetricName}
-                placeholder="e.g. Resting heart rate"
-                placeholderTextColor={theme.textDisabled}
-                style={styles.fieldInput}
-              />
-            </ForgeCard>
-            <Text style={styles.fieldLabel}>UNIT</Text>
-            <ForgeCard variant="inset" style={styles.fieldCard}>
-              <TextInput
-                accessibilityLabel="Measure unit"
-                value={metricUnit}
-                onChangeText={setMetricUnit}
-                placeholder="e.g. bpm, cm, score"
-                placeholderTextColor={theme.textDisabled}
-                style={styles.fieldInput}
-              />
-            </ForgeCard>
-            <Text style={styles.fieldLabel}>ICON</Text>
-            <View style={styles.iconChoices} accessibilityRole="radiogroup" accessibilityLabel="Measure icon">
-              {metricIcons.map((icon) => (
-                <Pressable
-                  key={icon}
-                  accessibilityRole="radio"
-                  accessibilityLabel={`Use ${icon} icon`}
-                  accessibilityState={{ checked: metricIcon === icon }}
-                  onPress={() => { selectionHaptic(); setMetricIcon(icon); }}
-                  style={({ pressed }) => [
-                    styles.iconChoice,
-                    metricIcon === icon && { backgroundColor: theme.successSurface, borderColor: theme.success },
-                    pressed && pressedFeedback,
-                  ]}
-                >
-                  <Icon name={icon} size={20} color={theme.textPrimary} />
-                </Pressable>
-              ))}
+            <View style={styles.metricForm}>
+              <Text style={styles.fieldLabel}>NAME</Text>
+              <ForgeCard variant="inset" style={styles.fieldCard}>
+                <TextInput
+                  autoFocus
+                  accessibilityLabel="Measure name"
+                  value={metricName}
+                  onChangeText={setMetricName}
+                  placeholder="e.g. Resting heart rate"
+                  placeholderTextColor={theme.textDisabled}
+                  style={styles.fieldInput}
+                />
+              </ForgeCard>
+              <Text style={styles.fieldLabel}>UNIT</Text>
+              <ForgeCard variant="inset" style={styles.fieldCard}>
+                <TextInput
+                  accessibilityLabel="Measure unit"
+                  value={metricUnit}
+                  onChangeText={setMetricUnit}
+                  placeholder="e.g. bpm, cm, score"
+                  placeholderTextColor={theme.textDisabled}
+                  style={styles.fieldInput}
+                />
+              </ForgeCard>
+              <Text style={styles.fieldLabel}>ICON</Text>
+              <View style={styles.iconChoices} accessibilityRole="radiogroup" accessibilityLabel="Measure icon">
+                {metricIcons.map((icon) => (
+                  <Pressable
+                    key={icon}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`Use ${icon} icon`}
+                    accessibilityState={{ checked: metricIcon === icon }}
+                    onPress={() => { selectionHaptic(); setMetricIcon(icon); }}
+                    style={({ pressed }) => [
+                      styles.iconChoice,
+                      metricIcon === icon && { backgroundColor: theme.successSurface, borderColor: theme.success },
+                      pressed && pressedFeedback,
+                    ]}
+                  >
+                    <Icon name={icon} size={20} color={theme.textPrimary} />
+                  </Pressable>
+                ))}
+              </View>
+              <Text style={styles.fieldLabel}>COLOR</Text>
+              <View style={styles.colorChoices} accessibilityRole="radiogroup" accessibilityLabel="Measure color">
+                {metricColorChoices.map((choice) => (
+                  <Pressable
+                    key={choice.value}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`Use ${choice.name} color`}
+                    accessibilityState={{ checked: metricColor === choice.value }}
+                    aria-checked={metricColor === choice.value}
+                    onPress={() => { selectionHaptic(); setMetricColor(choice.value); }}
+                    style={({ pressed }) => [styles.colorChoice, metricColor === choice.value && { borderColor: choice.value }, pressed && pressedFeedback]}
+                  >
+                    <View style={[styles.colorSwatch, { backgroundColor: choice.value }]} />
+                    {metricColor === choice.value ? <Icon name="check" size={15} color={theme.textPrimary} weight="bold" /> : null}
+                  </Pressable>
+                ))}
+              </View>
             </View>
             <ForgeFloatingCta
               label="Add measure"
@@ -386,7 +403,8 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
           </View>
         )}
       </ForgeBottomSheet>
-    </View>
+      </View>
+    </AppScreen>
   );
 }
 
@@ -466,11 +484,13 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   chartFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   chartFooterCentered: { justifyContent: 'center' },
   chartAxis: { ...typeScale.caption, color: theme.textSecondary },
+  historyValue: { ...typeScale.cardTitle, color: theme.textPrimary },
   selectedDefinition: { backgroundColor: theme.successSurface },
   recordEmpty: { minHeight: 50, borderRadius: 16 },
   addMetric: { minHeight: 48, borderStyle: 'dashed', borderColor: theme.border },
   recordSheet: { minHeight: 315, paddingBottom: 92 },
-  metricSheet: { minHeight: 570, paddingHorizontal: 20, paddingBottom: 92 },
+  metricSheet: { minHeight: 520, paddingBottom: 92 },
+  metricForm: { paddingHorizontal: 20 },
   recordDate: { ...typeScale.supporting, color: theme.textSecondary, textAlign: 'center', marginBottom: 22 },
   valueField: { marginHorizontal: 20, minHeight: 72, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 10 },
   valueInput: { flex: 1, ...typeScale.metricLarge, color: theme.textPrimary, paddingVertical: 0 },
@@ -478,9 +498,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   fieldLabel: { ...typeScale.caption, color: theme.textSecondary, letterSpacing: 0.8, marginTop: 14, marginBottom: 7 },
   fieldCard: { minHeight: 52, paddingHorizontal: 14, justifyContent: 'center' },
   fieldInput: { ...typeScale.body, color: theme.textPrimary, paddingVertical: 0 },
-  suggestedMetrics: { flexDirection: 'row', gap: 8 },
-  suggestedMetric: { flex: 1, minWidth: 0, minHeight: 48, gap: 6, paddingHorizontal: 8, borderRadius: 14, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
-  suggestedMetricText: { ...typeScale.caption, color: theme.textSecondary, maxWidth: '100%' },
   iconChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   iconChoice: { width: 44, height: 44, borderRadius: 13, borderWidth: 1, borderColor: theme.border, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surface },
+  colorChoices: { flexDirection: 'row', gap: 10 },
+  colorChoice: { width: 44, height: 44, borderRadius: 13, borderWidth: 1, borderColor: theme.border, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surface },
+  colorSwatch: { width: 20, height: 20, borderRadius: 10 },
 });
