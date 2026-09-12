@@ -98,8 +98,12 @@ export function WorkoutTypesScreen({ navigation }: Props) {
           }
         />
         <ScrollView
+          testID="workout-types-scroll"
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
+          directionalLockEnabled
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
           onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
           scrollEventThrottle={16}
         >
@@ -252,8 +256,9 @@ function SwipeTypeRow({
     } else x.value = withSpring(next ? -width : 0, spring);
   };
   const pan = Gesture.Pan()
-    .activeOffsetX([-8, 8])
-    .failOffsetY([-12, 12])
+    // Vertical list scrolling must win before a slight diagonal drag can reveal actions.
+    .activeOffsetX([-16, 16])
+    .failOffsetY([-6, 6])
     .onUpdate((event) => {
       if (!open.value && event.translationX >= 0) return;
       x.value = Math.max(-width, Math.min(0, (open.value ? -width : 0) + event.translationX));

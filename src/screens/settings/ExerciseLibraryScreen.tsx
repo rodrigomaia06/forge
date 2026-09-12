@@ -31,8 +31,12 @@ export function ExerciseLibraryScreen({ navigation }: Props) {
       <View style={styles.screen}>
         <SettingsDetailHeader title="Exercises" navigation={navigation} elevated={headerElevated} />
         <ScrollView
+          testID="exercise-library-scroll"
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
+          directionalLockEnabled
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
           onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
           scrollEventThrottle={16}
         >

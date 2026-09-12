@@ -125,6 +125,8 @@ export function PlansScreen({ navigation, route }: Props) {
           style={styles.scrollView}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
+          directionalLockEnabled
+          keyboardShouldPersistTaps="handled"
           onScroll={(event) => handlePlansScrollOffset(event.nativeEvent.contentOffset.y)}
           scrollEventThrottle={16}
         >
@@ -301,7 +303,6 @@ function PlanCard({
             <Text style={styles.planName}>{plan.name}</Text>
             <Icon name="chevron-forward" size={20} color={theme.slate} />
           </Pressable>
-          {plan.routines.length > 0 && <View style={styles.planRoutineSeparation} />}
           {plan.routines.map((routine, index) => (
             <SwipeDelete
               key={routine.id}
@@ -502,8 +503,9 @@ function SwipeDelete({
     suppressDeletePress.current = true;
   };
   const pan = Gesture.Pan()
-    .activeOffsetX([-8, 8])
-    .failOffsetY([-12, 12])
+    // Preserve vertical scrolling even when the first few pixels drift sideways.
+    .activeOffsetX([-16, 16])
+    .failOffsetY([-6, 6])
     .onStart(() => {
       runOnJS(beginSwipe)();
     })
@@ -566,7 +568,6 @@ function SwipeDelete({
         >
           {children(handleOpen)}
         </Animated.View>
-        {rounded ? <View style={[styles.cardLeadingOutline, { pointerEvents: 'none' }]} /> : null}
       </View>
     </GestureDetector>
   );
@@ -617,11 +618,6 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-    },
-    planRoutineSeparation: {
-      height: StyleSheet.hairlineWidth,
-      marginHorizontal: 12,
-      backgroundColor: theme.divider,
     },
     planName: { ...typeScale.cardTitle, color: theme.ink },
     routineRow: {
@@ -701,17 +697,4 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       borderBottomRightRadius: theme.cardRadius,
     },
     pressed: { backgroundColor: theme.surfaceMuted },
-    cardLeadingOutline: {
-      position: 'absolute',
-      top: 0,
-      bottom: 0,
-      left: 0,
-      width: theme.cardRadius,
-      borderTopWidth: 1,
-      borderBottomWidth: 1,
-      borderLeftWidth: 1,
-      borderColor: theme.border,
-      borderTopLeftRadius: theme.cardRadius,
-      borderBottomLeftRadius: theme.cardRadius,
-    },
   });
