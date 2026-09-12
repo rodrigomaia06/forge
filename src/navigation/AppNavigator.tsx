@@ -6,6 +6,7 @@ import { WorkoutDetailsScreen } from '../screens/WorkoutDetailsScreen';
 import { HistoryWorkoutEditorScreen } from '../screens/HistoryWorkoutEditorScreen';
 import { RoutineEditorScreen } from '../screens/RoutineEditorScreen';
 import { GeneralSettingsScreen } from '../screens/settings/GeneralSettingsScreen';
+import { DailyMeasurementsScreen } from '../screens/settings/DailyMeasurementsScreen';
 import { SettingsDestinationScreen } from '../screens/settings/SettingsDestinationScreen';
 import { WorkoutTypesScreen } from '../screens/settings/WorkoutTypesScreen';
 import { WorkoutTypeEditorScreen } from '../screens/settings/WorkoutTypeEditorScreen';
@@ -70,6 +71,11 @@ export function AppNavigator() {
         <Stack.Screen
           name="GeneralSettings"
           component={GeneralSettingsScreen}
+          options={{ gestureEnabled: true }}
+        />
+        <Stack.Screen
+          name="DailyMeasurements"
+          component={DailyMeasurementsScreen}
           options={{ gestureEnabled: true }}
         />
         <Stack.Screen

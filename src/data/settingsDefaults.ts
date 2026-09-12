@@ -14,6 +14,10 @@ export const defaultSettingsPreferences: SettingsPreferences = {
   unfinishedWorkoutReminderEnabled: false,
   unfinishedWorkoutReminderDelay: 1800,
   exerciseRestSeconds: {},
+  dailyMeasurementDefinitions: [
+    { id: 'body-weight', name: 'Body weight', unit: 'kg', icon: 'weight', color: '#4D7B67' },
+  ],
+  dailyMeasurementEntries: [],
   workoutTypes: [
     { id: 'strength', name: 'Strength', color: '#687CF2', source: 'builtIn' },
     { id: 'calisthenics', name: 'Calisthenics', color: '#4D9C8A', source: 'builtIn' },

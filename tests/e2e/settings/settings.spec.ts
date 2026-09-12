@@ -33,6 +33,7 @@ test.describe('Settings', () => {
     await expect(page.getByTestId('settings-title')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Exercises' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Workout types' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Daily measurements' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'General' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Backup & Export' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Logs' })).toBeVisible();
@@ -70,6 +71,40 @@ test.describe('Settings', () => {
 
     await page.getByRole('button', { name: 'About' }).click();
     await expect(page.getByTestId('settings-detail-title')).toHaveText('About');
+  });
+
+  test('records and persists a daily body-weight measurement with its trend', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Daily measurements' }).click();
+
+    await expect(page.getByTestId('settings-detail-title')).toHaveText('Daily measurements');
+    await expect(page.getByRole('button', { name: 'Record body weight' })).toBeVisible();
+    await page.getByRole('button', { name: 'Record measurement' }).click();
+    await page.getByLabel('Body weight value').fill('81.4');
+    await page.getByRole('button', { name: 'Save measurement' }).click();
+    await expect(page.getByText('81.4 kg').first()).toBeVisible();
+    await expect(page.getByLabel('1 measurements chart')).toBeVisible();
+
+    await page.reload();
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Daily measurements' }).click();
+    await expect(page.getByText('81.4 kg').first()).toBeVisible();
+  });
+
+  test('offers editable useful measurement starting points without adding them by default', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Daily measurements' }).click();
+    await expect(page.getByText('Body fat', { exact: true })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Add measure', exact: true }).click();
+    await page.getByRole('button', { name: 'Use suggested Body fat measure' }).click();
+    await expect(page.getByLabel('Measure name')).toHaveValue('Body fat');
+    await expect(page.getByLabel('Measure unit')).toHaveValue('%');
+    await page.getByRole('button', { name: 'Add measure', exact: true }).last().click();
+    await expect(page.getByRole('button', { name: 'Body fat', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Record body fat' })).toBeVisible();
   });
 
   test('uses the shared Settings row scale across root and nested cards', async ({ page }) => {
