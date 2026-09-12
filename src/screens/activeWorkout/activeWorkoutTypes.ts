@@ -1,6 +1,6 @@
 import type { GestureResponderEvent } from 'react-native';
 import type { ReactNode } from 'react';
-import type { WorkoutExercise, WorkoutSet, WorkoutSetChanges } from '../../types';
+import type { WorkoutExercise, WorkoutExerciseChanges, WorkoutSet, WorkoutSetChanges } from '../../types';
 
 export type SetInputFrame = { y: number; height: number };
 export type MeasureSetInput = (callback: (frame: SetInputFrame) => void) => void;
@@ -11,6 +11,9 @@ export interface ExerciseSectionProps {
   addSet: (exerciseId: string) => void;
   removeSet: (exerciseId: string, setId: string) => void;
   removeExercise: (exerciseId: string) => void;
+  updateExercise?: (exerciseId: string, changes: WorkoutExerciseChanges) => void;
+  /** Active Workout alone can turn a calculated ramp into editable warm-up sets. */
+  addWarmupSets?: (exerciseId: string, sets: readonly { weight: string; reps: string }[]) => void;
   updateSet: (exerciseId: string, setId: string, changes: WorkoutSetChanges) => void;
   toggleSet: (exerciseId: string, setId: string) => void;
   onSetCompleted: (duration?: number) => void;
@@ -28,6 +31,7 @@ export interface ExerciseSectionProps {
   showCatalogMetadata?: boolean;
   /** Routine drafts do not record completed sets. */
   showSetCompletion?: boolean;
+  showWarmupSets?: boolean;
   /** Lets an owning editor keep a focused set input clear of its keyboard. */
   onSetInputFocus?: (measure: MeasureSetInput) => void;
 }

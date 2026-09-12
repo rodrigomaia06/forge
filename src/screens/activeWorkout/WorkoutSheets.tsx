@@ -540,11 +540,19 @@ export function ExerciseOptionsSheet({
   visible,
   exercise,
   onClose,
+  onEditNote,
+  onOpenPreviousSessions,
+  onOpenWarmupSets,
+  onOpenExerciseInfo,
   onRemove,
 }: {
   visible: boolean;
   exercise: WorkoutExercise;
   onClose: () => void;
+  onEditNote?: () => void;
+  onOpenPreviousSessions?: () => void;
+  onOpenWarmupSets?: () => void;
+  onOpenExerciseInfo?: () => void;
   onRemove: () => void;
 }) {
   return (
@@ -557,11 +565,10 @@ export function ExerciseOptionsSheet({
       closeDistance={520}
       dismissThreshold={260}
       actions={[
-        { icon: 'measure', label: 'Measure by', onPress: () => undefined },
-        { icon: 'note', label: 'Add note', onPress: () => undefined },
-        { icon: 'history', label: 'Previous sessions', onPress: () => undefined },
-        { icon: 'warm-up', label: 'Warm-up sets', onPress: () => undefined },
-        { icon: 'info', label: 'Exercise info', onPress: () => undefined },
+        ...(onEditNote ? [{ icon: 'note' as const, label: exercise.note?.trim() ? 'Edit note' : 'Add note', onPress: onEditNote }] : []),
+        ...(onOpenPreviousSessions ? [{ icon: 'history' as const, label: 'Previous sessions', onPress: onOpenPreviousSessions }] : []),
+        ...(onOpenWarmupSets ? [{ icon: 'warm-up' as const, label: 'Warm-up sets', onPress: onOpenWarmupSets }] : []),
+        ...(onOpenExerciseInfo ? [{ icon: 'info' as const, label: 'Exercise info', onPress: onOpenExerciseInfo }] : []),
         {
           icon: 'trash',
           label: 'Remove exercise',

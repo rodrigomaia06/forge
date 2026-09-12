@@ -32,6 +32,10 @@ export interface WorkoutExercise {
   trackingType?: TrackingType;
   sets: WorkoutSet[];
 }
+/** Editable fields that belong to an exercise rather than an individual set. */
+export interface WorkoutExerciseChanges {
+  note?: string;
+}
 export type TrackingType = 'weight-reps' | 'bodyweight-reps' | 'weighted-bodyweight' | 'assisted-bodyweight' | 'reps-only' | 'duration' | 'duration-weight' | 'distance-duration' | 'weight-distance';
 export interface ExerciseSnapshot { id?: string; name: string; catalogueVersion?: number; trackingType: TrackingType; familyId?: string; group?: string; variation?: string; equipment?: string[]; primaryEquipment?: string; workoutTypeIds?: string[]; category?: string; bodyRegion?: string; primaryMuscle?: string; secondaryMuscles?: string[]; aliases?: string[]; searchTerms?: string[]; movementPattern?: string; }
 
@@ -147,6 +151,8 @@ export interface WorkoutContextValue extends WorkoutState {
   addSet: (exerciseId: string) => void;
   removeSet: (exerciseId: string, setId: string) => void;
   removeExercise: (exerciseId: string) => void;
+  updateExercise: (exerciseId: string, changes: WorkoutExerciseChanges) => void;
+  addWarmupSets: (exerciseId: string, sets: readonly { weight: string; reps: string }[]) => void;
   updateSet: (exerciseId: string, setId: string, changes: WorkoutSetChanges) => void;
   toggleSet: (exerciseId: string, setId: string) => void;
   updateActiveWorkout: (update: (workout: Workout) => Workout) => void;

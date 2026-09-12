@@ -58,6 +58,8 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     addSet,
     removeSet,
     removeExercise,
+    updateExercise,
+    addWarmupSets,
     updateSet,
     toggleSet,
     updateActiveWorkout,
@@ -341,6 +343,8 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
         addSet={addSet}
         removeSet={removeSet}
         removeExercise={removeExercise}
+        updateExercise={updateExercise}
+        addWarmupSets={addWarmupSets}
         updateSet={updateSet}
         toggleSet={toggleSet}
         updateActiveWorkout={updateActiveWorkout}
@@ -506,6 +510,8 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
   addSet,
   removeSet,
   removeExercise,
+  updateExercise,
+  addWarmupSets,
   updateSet,
   toggleSet,
   updateActiveWorkout,
@@ -517,6 +523,8 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
   addSet: (exerciseId: string) => void;
   removeSet: (exerciseId: string, setId: string) => void;
   removeExercise: (exerciseId: string) => void;
+  updateExercise: (exerciseId: string, changes: import('../types').WorkoutExerciseChanges) => void;
+  addWarmupSets: (exerciseId: string, sets: readonly { weight: string; reps: string }[]) => void;
   updateSet: (exerciseId: string, setId: string, changes: WorkoutSetChanges) => void;
   toggleSet: (exerciseId: string, setId: string) => void;
   updateActiveWorkout: (update: (workout: Workout) => Workout) => void;
@@ -564,16 +572,19 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
         addSet={addSet}
         removeSet={removeSet}
         removeExercise={removeExercise}
+        updateExercise={updateExercise}
+        addWarmupSets={addWarmupSets}
         updateSet={updateSet}
         toggleSet={toggleSet}
         onSetCompleted={onSetCompleted}
         showCatalogMetadata
+        showWarmupSets
         onSetInputFocus={onSetInputFocus}
         deleteRevealed={openExerciseId === item.id}
         onDeleteRevealChange={handleExerciseDeleteReveal}
       />
     ),
-    [addSet, handleExerciseDeleteReveal, onSetCompleted, onSetInputFocus, openExerciseId, removeExercise, removeSet, toggleSet, updateSet],
+    [addSet, addWarmupSets, handleExerciseDeleteReveal, onSetCompleted, onSetInputFocus, openExerciseId, removeExercise, removeSet, toggleSet, updateExercise, updateSet],
   );
   const liveAttributeEntries = Object.entries(workout.attributes ?? {});
 

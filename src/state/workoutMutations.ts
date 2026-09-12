@@ -1,4 +1,10 @@
-import type { StartWorkoutOptions, Workout, WorkoutExerciseInput, WorkoutSetChanges } from '../types';
+import type {
+  StartWorkoutOptions,
+  Workout,
+  WorkoutExerciseChanges,
+  WorkoutExerciseInput,
+  WorkoutSetChanges,
+} from '../types';
 
 export function makeWorkoutId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -117,6 +123,52 @@ export function removeExerciseFromWorkout(
   return {
     ...workout,
     exercises: workout.exercises.filter((exercise) => exercise.id !== exerciseId),
+  };
+}
+
+export function updateWorkoutExercise(
+  workout: Workout | null,
+  exerciseId: string,
+  changes: WorkoutExerciseChanges,
+): Workout | null {
+  if (!workout) return workout;
+  return {
+    ...workout,
+    exercises: workout.exercises.map((exercise) =>
+      exercise.id === exerciseId ? { ...exercise, ...changes } : exercise,
+    ),
+  };
+}
+
+/** Inserts computed warm-up work before the working sets without replacing any recorded work. */
+export function addWarmupSetsToWorkout(
+  workout: Workout | null,
+  exerciseId: string,
+  sets: readonly { weight: string; reps: string }[],
+): Workout | null {
+  if (!workout || !sets.length) return workout;
+  return {
+    ...workout,
+    exercises: workout.exercises.map((exercise) => {
+      if (exercise.id !== exerciseId) return exercise;
+      const warmups = sets.map((set) => ({
+        id: makeWorkoutId('set'),
+        weight: set.weight,
+        reps: set.reps,
+        tag: 'Warm Up',
+        completed: false,
+      }));
+      const firstWorkingSet = exercise.sets.findIndex((set) => set.tag !== 'Warm Up');
+      const insertAt = firstWorkingSet === -1 ? exercise.sets.length : firstWorkingSet;
+      return {
+        ...exercise,
+        sets: [
+          ...exercise.sets.slice(0, insertAt),
+          ...warmups,
+          ...exercise.sets.slice(insertAt),
+        ],
+      };
+    }),
   };
 }
 

@@ -8,9 +8,10 @@ import { lightTheme } from '../../src/theme/tokens';
 import { bundledExercises, bundledLegacyIdMap, bundledCatalogVersion, validateCatalog } from '../../src/data/catalog/loadCatalog';
 import catalogSource from '../../src/data/catalog/forge_exercise_catalog_v3_flat.json';
 import { trackingFields } from '../../src/domain/exercises/tracking';
-import { addExercisesToWorkout, createWorkout } from '../../src/state/workoutMutations';
+import { addExercisesToWorkout, addWarmupSetsToWorkout, createWorkout, updateWorkoutExercise } from '../../src/state/workoutMutations';
 import { createExerciseSnapshot } from '../../src/domain/exercises/exerciseSnapshot';
 import { formatExerciseMetadata, formatPickerPrimaryEquipment } from '../../src/domain/exercises/exercisePresentation';
+import { buildWarmupPlan, warmupSteps } from '../../src/domain/workouts/warmup';
 
 test('formats compact workout durations and counts sets', () => {
   expect([0, 59, 3600, 4320].map(formatCompactDuration)).toEqual(['1m', '1m', '1h', '1h 12m']);
@@ -183,6 +184,31 @@ test('adds picker selections in one immutable workout update with three empty se
   expect(next?.exercises.slice(1).flatMap((exercise) => exercise.sets)).toEqual(
     expect.arrayContaining([expect.objectContaining({ weight: '', reps: '', completed: false })]),
   );
+});
+
+test('builds progressive warm-up plans and inserts them before working sets immutably', () => {
+  expect(warmupSteps(3)).toEqual([[0.4, 5], [0.55, 3], [0.7, 2], [0.85, 1]]);
+  expect(buildWarmupPlan(100, 8)).toEqual([
+    { weight: '40', reps: '8' },
+    { weight: '60', reps: '5' },
+    { weight: '80', reps: '3' },
+  ]);
+  expect(buildWarmupPlan(20, 8)).toEqual([]);
+
+  const source = createWorkout({ exercises: [{ id: 'bench', name: 'Bench Press', sets: [{ id: 'working', weight: '100', reps: '8' }] }] });
+  const next = addWarmupSetsToWorkout(source, 'bench', buildWarmupPlan(100, 8));
+  expect(next).not.toBe(source);
+  expect(source.exercises[0].sets).toHaveLength(1);
+  expect(next?.exercises[0].sets.map((set) => [set.tag, set.weight, set.reps])).toEqual([
+    ['Warm Up', '40', '8'],
+    ['Warm Up', '60', '5'],
+    ['Warm Up', '80', '3'],
+    [undefined, '100', '8'],
+  ]);
+
+  const annotated = updateWorkoutExercise(next, 'bench', { note: 'Pause on the chest' });
+  expect(annotated?.exercises[0]).toMatchObject({ note: 'Pause on the chest' });
+  expect(next?.exercises[0].note).toBeUndefined();
 });
 
 test('v3 multi-equipment facets remain individual taxonomy labels', () => {

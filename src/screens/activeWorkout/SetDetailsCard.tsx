@@ -28,7 +28,7 @@ import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import type { SetMeasurementKind, TrackingType, WorkoutSet, WorkoutSetChanges } from '../../types';
 import { selectionHaptic } from './activeWorkoutFeedback';
-import { measurementUnit, trackingFieldLabel, trackingFields } from '../../domain/exercises/tracking';
+import { measurementText, measurementUnit, trackingFieldLabel, trackingFields, updateMeasurement } from '../../domain/exercises/tracking';
 
 const SET_TYPES = [
   { label: 'Warm Up', color: '#FF8A2A' },
@@ -36,6 +36,7 @@ const SET_TYPES = [
   { label: 'Failure', color: '#F0444D' },
   { label: 'Back-Off', color: '#2C78E8' },
 ] as const;
+const RPE_OPTIONS = [10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6] as const;
 
 interface SetDetailsCardProps {
   visible: boolean;
@@ -115,6 +116,11 @@ export function SetDetailsCard({
                 onChange={(comment) => onChange({ comment })}
                 onTextFocus={() => setDismissTextKeyboardOnTap(true)}
               />
+              <EffortSection
+                set={set}
+                editable={editable}
+                onChange={onChange}
+              />
               <TargetsSection
                 set={set}
                 trackingType={trackingType}
@@ -128,6 +134,61 @@ export function SetDetailsCard({
         </>
       )}
     </ForgeBottomSheet>
+  );
+}
+
+function EffortSection({
+  set,
+  editable,
+  onChange,
+}: {
+  set: WorkoutSet;
+  editable: boolean;
+  onChange: (changes: WorkoutSetChanges) => void;
+}) {
+  const styles = useThemedStyles(createStyles);
+  const theme = useForgeTheme();
+  const recorded = measurementText(set, 'rpe');
+  const selected = Number(recorded);
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionLabel}>EFFORT (RPE)</Text>
+      {editable ? (
+        <ForgeCard variant="outlined" style={styles.effortCard}>
+          <Text style={styles.effortHint}>Rate how hard this set felt.</Text>
+          <View accessibilityRole="radiogroup" accessibilityLabel="Set effort" style={styles.effortChoices}>
+            {RPE_OPTIONS.map((value) => {
+              const isSelected = selected === value;
+              return (
+                <Pressable
+                  key={value}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`RPE ${value}`}
+                  accessibilityState={{ checked: isSelected }}
+                  aria-checked={isSelected}
+                  onPress={() => {
+                    selectionHaptic();
+                    onChange({ measurements: updateMeasurement(set, 'rpe', isSelected ? '' : String(value)) });
+                  }}
+                  style={({ pressed }) => [
+                    styles.effortChoice,
+                    { borderColor: isSelected ? (theme.marker ?? theme.success) : theme.border },
+                    isSelected && { backgroundColor: theme.successSurface },
+                    pressed && pressedFeedbackSubtle,
+                  ]}
+                >
+                  <Text style={[styles.effortValue, isSelected && { color: theme.selectionIndicator }]}>{value}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </ForgeCard>
+      ) : (
+        <ForgeCard variant="outlined" style={styles.recordedCard}>
+          <Text style={styles.recordedValue}>{recorded ? `RPE ${recorded}` : 'No effort recorded'}</Text>
+        </ForgeCard>
+      )}
+    </View>
   );
 }
 
@@ -498,6 +559,18 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       textAlignVertical: 'center',
     },
     commentCount: { color: theme.slate, ...typeScale.caption },
+    effortCard: { borderRadius: 14, padding: 12, gap: 10 },
+    effortHint: { color: theme.slate, ...typeScale.supporting },
+    effortChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    effortChoice: {
+      width: 48,
+      height: 40,
+      borderWidth: 1,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    effortValue: { color: theme.ink, ...typeScale.label },
     targetCards: { flexDirection: 'row', gap: 10 },
     targetCard: { flex: 1, minWidth: 0, height: 56, borderRadius: 14 },
     targetPressable: {

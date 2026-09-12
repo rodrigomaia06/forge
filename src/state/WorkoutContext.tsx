@@ -21,6 +21,8 @@ import {
   removeExerciseFromWorkout,
   removeSetFromWorkout,
   toggleWorkoutSet,
+  addWarmupSetsToWorkout,
+  updateWorkoutExercise,
   updateWorkoutSet,
 } from './workoutMutations';
 
@@ -140,6 +142,15 @@ export function WorkoutProvider({ children }: ChildrenProps) {
     setActiveWorkout((current) => removeExerciseFromWorkout(current, exerciseId));
   }, []);
 
+  const updateExercise = useCallback((exerciseId: string, changes: import('../types').WorkoutExerciseChanges): void => {
+    setActiveWorkout((current) => updateWorkoutExercise(current, exerciseId, changes));
+  }, []);
+
+  const addWarmupSets = useCallback((exerciseId: string, sets: readonly { weight: string; reps: string }[]): void => {
+    if (!sets.length) return;
+    setActiveWorkout((current) => addWarmupSetsToWorkout(current, exerciseId, sets));
+  }, []);
+
   const updateSet = useCallback(
     (exerciseId: string, setId: string, changes: WorkoutSetChanges): void => {
       setActiveWorkout((current) => updateWorkoutSet(current, exerciseId, setId, changes));
@@ -213,6 +224,8 @@ export function WorkoutProvider({ children }: ChildrenProps) {
       addSet,
       removeSet,
       removeExercise,
+      updateExercise,
+      addWarmupSets,
       updateSet,
       toggleSet,
       updateActiveWorkout,
@@ -232,6 +245,8 @@ export function WorkoutProvider({ children }: ChildrenProps) {
       addSet,
       removeSet,
       removeExercise,
+      updateExercise,
+      addWarmupSets,
       updateSet,
       toggleSet,
       updateActiveWorkout,

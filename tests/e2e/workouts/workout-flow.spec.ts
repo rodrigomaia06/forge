@@ -519,6 +519,7 @@ test.describe('Active workout flow', () => {
     await expect(sheet.getByRole('button', { name: 'Delete Set 1' })).toBeVisible();
     await expect(page.getByText('TYPE', { exact: true })).toBeVisible();
     await expect(page.getByText('COMMENT', { exact: true })).toBeVisible();
+    await expect(page.getByText('EFFORT (RPE)', { exact: true })).toBeVisible();
     await expect(page.getByText('NEXT-TIME TARGET', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Type help' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Next-time target help' })).toHaveCount(0);
@@ -535,6 +536,10 @@ test.describe('Active workout flow', () => {
     await dropSet.click();
     await expect(dropSet).toHaveAttribute('aria-checked', 'false');
     await expect(setTypes.locator('..')).not.toHaveCSS('border-color', 'rgb(77, 123, 103)');
+
+    const effort = page.getByRole('radiogroup', { name: 'Set effort' });
+    await effort.getByRole('radio', { name: 'RPE 8', exact: true }).click();
+    await expect(effort.getByRole('radio', { name: 'RPE 8', exact: true })).toHaveAttribute('aria-checked', 'true');
 
     const targetRects = await page
       .locator('input[aria-label^="Next-time"]')
@@ -707,8 +712,46 @@ test.describe('Active workout flow', () => {
       page.getByRole('button', { name: 'Remove Barbell Bench Press' }).locator('svg'),
     ).toHaveCount(1);
     await page.getByRole('button', { name: 'Remove Barbell Bench Press' }).click();
+    await expect(page.getByText('Remove Barbell Bench Press?', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Keep exercise' }).click();
+    await expect(page.getByText('Barbell Bench Press', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
+    await page.getByRole('button', { name: 'Remove Barbell Bench Press' }).click();
+    await page.getByRole('button', { name: 'Remove exercise' }).click();
     await expect(page.getByText('Start with an exercise', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Add exercise' }).last()).toBeVisible();
+  });
+
+  test('makes every active exercise option substantive without changing its tracking type', async ({ page }, testInfo) => {
+    await startEmptyWorkoutWithExercise(page);
+    await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
+    await expect(page.getByRole('button', { name: 'Measure by' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Add note' }).click();
+    await page.getByLabel('Note for Barbell Bench Press').fill('Pause at the chest');
+    await page.getByRole('button', { name: 'Save exercise note' }).click();
+    await expect(page.getByText('Pause at the chest', { exact: true })).toBeVisible();
+
+    await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
+    await page.getByRole('button', { name: 'Previous sessions' }).click();
+    await expect(page.getByText('No completed sessions for this exercise yet.', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Close Previous sessions', exact: true }).click();
+
+    await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
+    await page.getByRole('button', { name: 'Warm-up sets' }).click();
+    await page.getByLabel('Working weight').fill('100');
+    await page.getByLabel('Working reps').fill('8');
+    await expect(page.getByRole('button', { name: 'Add warm-up sets' })).toBeEnabled();
+    await page.getByRole('button', { name: 'Add warm-up sets' }).click();
+    await expect(page.getByLabel(/^Kg for set/)).toHaveCount(6);
+
+    await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
+    await page.getByRole('button', { name: 'Exercise info' }).click();
+    await expect(page.getByText('Movement family', { exact: true })).toBeVisible();
+    await expect(page.getByText('Bench Press', { exact: true })).toBeVisible();
+    if (testInfo.project.name === 'iphone-air') {
+      await page.waitForTimeout(260);
+      await page.screenshot({ path: testInfo.outputPath('exercise-options-info-iphone.png') });
+    }
   });
 
   test('reveals delete action when swiping an exercise card to the left', async ({ page }) => {

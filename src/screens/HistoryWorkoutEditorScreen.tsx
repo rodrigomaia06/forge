@@ -49,6 +49,7 @@ import {
   removeSetFromWorkout,
   toggleWorkoutSet,
   updateWorkoutSet,
+  updateWorkoutExercise,
   createWorkout,
 } from '../state/workoutMutations';
 import type { RootStackParamList, Workout } from '../types';
@@ -343,6 +344,11 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
                 removeExercise={(exerciseId) =>
                   updateDraft(
                     (current) => removeExerciseFromWorkout(current, exerciseId) as Workout,
+                  )
+                }
+                updateExercise={(exerciseId, changes) =>
+                  updateDraft(
+                    (current) => updateWorkoutExercise(current, exerciseId, changes) as Workout,
                   )
                 }
                 updateSet={(exerciseId, setId, changes) =>

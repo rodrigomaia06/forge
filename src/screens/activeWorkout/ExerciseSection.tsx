@@ -7,7 +7,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { Button, ForgeText as Text, Icon, pressedFeedback } from '../../components/ui';
+import { Button, ForgeConfirmationDialog, ForgeText as Text, Icon, pressedFeedback } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
@@ -23,16 +23,26 @@ import { CompletionCheck } from './CompletionCheck';
 import { SwipeableSetRow } from './SwipeableSetRow';
 import { SetDetailsCard } from './SetDetailsCard';
 import { ExerciseOptionsSheet } from './WorkoutSheets';
+import {
+  ExerciseInfoSheet,
+  ExerciseNoteSheet,
+  PreviousSessionsSheet,
+  WarmupSetsSheet,
+} from './ExerciseOptionSheets';
 import type { ExerciseSectionProps } from './activeWorkoutTypes';
 import type { WorkoutExercise, WorkoutSet } from '../../types';
 import { measurementText, trackingFieldLabel, trackingFields } from '../../domain/exercises/tracking';
 import { formatExerciseMetadata } from '../../domain/exercises/exercisePresentation';
+import { exerciseCatalog } from '../../data/exerciseCatalog';
+import { useWorkouts } from '../../state/WorkoutContext';
 
 export const ExerciseSection = React.memo(function ExerciseSection({
   exercise,
   addSet,
   removeSet,
   removeExercise,
+  updateExercise,
+  addWarmupSets,
   updateSet,
   toggleSet,
   onSetCompleted,
@@ -46,12 +56,16 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   showMoreOptions = true,
   showCatalogMetadata = false,
   showSetCompletion = true,
+  showWarmupSets = false,
   onSetInputFocus,
 }: ExerciseSectionProps) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const deleteActionWidth = 64;
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [optionView, setOptionView] = useState<'note' | 'history' | 'warmup' | 'info' | null>(null);
+  const [removeConfirmationOpen, setRemoveConfirmationOpen] = useState(false);
+  const optionTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [openSetId, setOpenSetId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(!collapsible);
   const cardTranslateX = useSharedValue(deleteRevealed ? -deleteActionWidth : 0);
@@ -60,6 +74,26 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   const catalogMetadata = showCatalogMetadata
     ? formatExerciseMetadata(exercise.exerciseSnapshot)
     : null;
+  const { completedWorkouts } = useWorkouts();
+  const hasExerciseInfo = Boolean(exercise.exerciseSnapshot || exerciseCatalog.some((item) => item.id === exercise.exerciseId));
+  const canBuildWarmups = showWarmupSets && Boolean(addWarmupSets) && trackingFields[exercise.trackingType ?? 'weight-reps'].includes('weight');
+
+  useEffect(
+    () => () => {
+      if (optionTransitionTimer.current) clearTimeout(optionTransitionTimer.current);
+    },
+    [],
+  );
+
+  const afterOptionsClose = (action: () => void): void => {
+    if (optionTransitionTimer.current) clearTimeout(optionTransitionTimer.current);
+    // ForgeActionSheet owns a short close animation. Defer its next surface so
+    // two bottom sheets never compete visually or for touch handling.
+    optionTransitionTimer.current = setTimeout(() => {
+      optionTransitionTimer.current = null;
+      action();
+    }, 220);
+  };
 
   useEffect(() => {
     cardOpen.value = deleteRevealed;
@@ -197,7 +231,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 </View>
               </Pressable>
             ) : (
-              <View style={[styles.exerciseHeader, catalogMetadata && styles.exerciseHeaderWithMetadata, size === 'large' && styles.exerciseHeaderLarge]}>
+              <View style={[styles.exerciseHeader, (catalogMetadata || exercise.note) && styles.exerciseHeaderWithMetadata, size === 'large' && styles.exerciseHeaderLarge]}>
                 {dragHandle}
                 <View style={styles.exerciseCopy}>
                   <Text style={[styles.exerciseName, size === 'large' && styles.exerciseNameLarge]}>
@@ -208,6 +242,11 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                       {catalogMetadata}
                     </Text>
                   )}
+                  {exercise.note?.trim() ? (
+                    <Text numberOfLines={2} style={styles.exerciseNote}>
+                      {exercise.note.trim()}
+                    </Text>
+                  ) : null}
                 </View>
                 {showMoreOptions && (
                   <Pressable
@@ -277,12 +316,55 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 visible
                 exercise={exercise}
                 onClose={() => setOptionsOpen(false)}
+                onEditNote={updateExercise ? () => afterOptionsClose(() => setOptionView('note')) : undefined}
+                onOpenPreviousSessions={() => afterOptionsClose(() => setOptionView('history'))}
+                onOpenWarmupSets={canBuildWarmups ? () => afterOptionsClose(() => setOptionView('warmup')) : undefined}
+                onOpenExerciseInfo={hasExerciseInfo ? () => afterOptionsClose(() => setOptionView('info')) : undefined}
                 onRemove={() => {
-                  animateLayout();
-                  removeExercise(exercise.id);
+                  afterOptionsClose(() => setRemoveConfirmationOpen(true));
                 }}
               />
             )}
+            {optionView === 'note' && updateExercise ? (
+              <ExerciseNoteSheet
+                visible
+                exercise={exercise}
+                onClose={() => setOptionView(null)}
+                onSave={(note) => updateExercise(exercise.id, { note })}
+              />
+            ) : null}
+            {optionView === 'history' ? (
+              <PreviousSessionsSheet
+                visible
+                exercise={exercise}
+                workouts={completedWorkouts}
+                onClose={() => setOptionView(null)}
+              />
+            ) : null}
+            {optionView === 'warmup' && addWarmupSets ? (
+              <WarmupSetsSheet
+                visible
+                exercise={exercise}
+                onClose={() => setOptionView(null)}
+                onAdd={(sets) => addWarmupSets(exercise.id, sets)}
+              />
+            ) : null}
+            {optionView === 'info' ? (
+              <ExerciseInfoSheet visible exercise={exercise} onClose={() => setOptionView(null)} />
+            ) : null}
+            <ForgeConfirmationDialog
+              visible={removeConfirmationOpen}
+              title={`Remove ${exercise.name}?`}
+              message="Its sets and recorded values will be removed from this workout."
+              cancelLabel="Keep exercise"
+              confirmLabel="Remove exercise"
+              onCancel={() => setRemoveConfirmationOpen(false)}
+              onConfirm={() => {
+                setRemoveConfirmationOpen(false);
+                animateLayout();
+                removeExercise(exercise.id);
+              }}
+            />
           </View>
         </Animated.View>
       </View>
@@ -544,6 +626,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     },
     exerciseCopy: { flex: 1, minWidth: 0, justifyContent: 'center' },
     exerciseMetadata: { marginTop: 1, color: dashboardTheme.slate, ...typeScale.supporting },
+    exerciseNote: { marginTop: 2, color: dashboardTheme.slate, ...typeScale.supporting },
     exerciseNameLarge: typeScale.sectionTitle,
     moreButton: {
       width: 44,
