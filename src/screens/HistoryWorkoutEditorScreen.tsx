@@ -2,18 +2,21 @@ import React, { useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import {
   AppScreen,
+  Button,
+  ForgeBottomSheet,
+  ForgeBottomSheetHandle,
+  ForgeDateTimePicker,
+  ForgeSheetHeader,
   ForgeText as Text,
   ForgeTextInput as TextInput,
   HeaderAction,
@@ -30,6 +33,7 @@ import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
 import { useWorkouts } from '../state/WorkoutContext';
+import { useSettings } from '../state/SettingsContext';
 import {
   addExerciseToWorkout,
   addSetToWorkout,
@@ -46,9 +50,11 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const { completedWorkouts, updateCompletedWorkout } = useWorkouts();
+  const { preferences } = useSettings();
   const source = completedWorkouts.find((workout) => workout.id === route.params.workoutId);
   const [draft, setDraft] = useState<Workout | null>(() => (source ? cloneWorkout(source) : null));
   const [picker, setPicker] = useState<'date' | 'start' | 'end' | null>(null);
+  const [pickerDraft, setPickerDraft] = useState<number | null>(null);
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [openExerciseId, setOpenExerciseId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -120,6 +126,22 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         ? { ...current, startedAt: updated }
         : { ...current, completedAt: updated };
     });
+  const openPicker = (kind: 'date' | 'start' | 'end'): void => {
+    lightHaptic();
+    const value = kind === 'end' ? completedAt : startedAt;
+    setPickerDraft(value.getTime());
+    setPicker(kind);
+  };
+  const closePicker = (): void => {
+    setPicker(null);
+    setPickerDraft(null);
+  };
+  const savePicker = (): void => {
+    if (!picker || pickerDraft === null) return;
+    const next = new Date(pickerDraft);
+    if (picker === 'date') setDate(next);
+    else setTime(picker, next);
+  };
   return (
     <AppScreen
       backgroundColor={theme.background}
@@ -178,58 +200,11 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
               />
             </View>
             <View style={styles.cardDivider} />
-            {Platform.OS === 'web' ? (
-              <>
-                <Field
-                  label="Date"
-                  value={dateInput(startedAt)}
-                  onChangeText={(value) => setDate(parseDate(value, startedAt))}
-                />
-                <View style={styles.formRow}>
-                  <Field
-                    label="Start time"
-                    value={timeInput(startedAt)}
-                    onChangeText={(value) => setTime('start', parseTime(value, startedAt))}
-                    style={styles.halfField}
-                  />
-                  <Field
-                    label="End time"
-                    value={timeInput(completedAt)}
-                    onChangeText={(value) => setTime('end', parseTime(value, completedAt))}
-                    style={styles.halfField}
-                  />
-                </View>
-              </>
-            ) : (
-              <>
-                <PickerButton
-                  label="Date"
-                  value={dateInput(startedAt)}
-                  onPress={() => {
-                    lightHaptic();
-                    setPicker('date');
-                  }}
-                />
-                <View style={styles.formRow}>
-                  <PickerButton
-                    label="Start time"
-                    value={timeInput(startedAt)}
-                    onPress={() => {
-                      lightHaptic();
-                      setPicker('start');
-                    }}
-                  />
-                  <PickerButton
-                    label="End time"
-                    value={timeInput(completedAt)}
-                    onPress={() => {
-                      lightHaptic();
-                      setPicker('end');
-                    }}
-                  />
-                </View>
-              </>
-            )}
+            <PickerButton label="Date" value={dateInput(startedAt)} onPress={() => openPicker('date')} />
+            <View style={styles.formRow}>
+              <PickerButton label="Start time" value={timeInput(startedAt)} onPress={() => openPicker('start')} />
+              <PickerButton label="End time" value={timeInput(completedAt)} onPress={() => openPicker('end')} />
+            </View>
             <View style={styles.cardDivider} />
             <Field
               label="Location"
@@ -314,61 +289,50 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
           setAddExerciseOpen(false);
         }}
       />
-      {picker && Platform.OS === 'ios' && (
-        <Modal transparent animationType="slide" visible onRequestClose={() => setPicker(null)}>
-          <Pressable
-            style={styles.pickerBackdrop}
-            onPress={() => {
-              lightHaptic();
-              setPicker(null);
-            }}
-          >
-            <Pressable style={styles.pickerSheet} onPress={() => undefined}>
-              <View style={styles.pickerSheetHeader}>
-                <Text style={styles.pickerSheetTitle}>
-                  Select {picker === 'date' ? 'date' : `${picker} time`}
-                </Text>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Done selecting date and time"
-                  onPress={() => {
-                    lightHaptic();
-                    setPicker(null);
-                  }}
-                  style={({ pressed }) => [styles.pickerDone, pressed && pressedFeedback]}
-                >
-                  <Text style={styles.pickerDoneText}>Done</Text>
-                </Pressable>
-              </View>
-              <DateTimePicker
-                value={picker === 'start' ? startedAt : completedAt}
-                mode={picker === 'date' ? 'date' : 'time'}
-                display="spinner"
-                onChange={(_, value) => {
-                  if (!value) return;
-                  if (picker === 'date') setDate(value);
-                  else setTime(picker, value);
-                }}
-              />
-            </Pressable>
-          </Pressable>
-        </Modal>
-      )}
-      {picker && Platform.OS === 'android' && (
-        <DateTimePicker
-          value={picker === 'start' ? startedAt : completedAt}
-          mode={picker === 'date' ? 'date' : 'time'}
-          display="default"
-          onChange={(_, value) => {
-            setPicker(null);
-            if (!value) return;
-            if (picker === 'date') setDate(value);
-            else setTime(picker, value);
-          }}
-        />
-      )}
+      <ForgeBottomSheet
+        visible={picker !== null && pickerDraft !== null}
+        onClose={closePicker}
+        accessibilityLabel="Close date and time picker"
+        initialOffset={360}
+        closeDistance={420}
+        surfaceTestID="history-date-time-picker-surface"
+        style={styles.pickerSheet}
+      >
+        {(close) => picker && pickerDraft !== null ? (
+          <>
+            <ForgeBottomSheetHandle />
+            <ForgeSheetHeader
+              title={picker === 'date' ? 'Date' : picker === 'start' ? 'Start time' : 'End time'}
+              onClose={close}
+              closeAccessibilityLabel="Close date and time picker"
+              leading={<HistoryPickerBackButton onPress={close} />}
+            />
+            <ForgeDateTimePicker
+              mode={picker === 'date' ? 'date' : 'time'}
+              value={new Date(pickerDraft)}
+              onChange={(next) => setPickerDraft(next.getTime())}
+              weekStartsOn={preferences.weekStartsOn}
+              testID={`history-${picker}-picker`}
+            />
+            <Button
+              accessibilityLabel="Save selected date and time"
+              label="Done"
+              onPress={() => {
+                savePicker();
+                close();
+              }}
+              style={styles.pickerDone}
+            />
+          </>
+        ) : null}
+      </ForgeBottomSheet>
     </AppScreen>
   );
+}
+
+function HistoryPickerBackButton({ onPress }: { onPress: () => void }) {
+  const theme = useForgeTheme();
+  return <HeaderAction accessibilityLabel="Back to edit workout" icon="chevron-back" iconOnly onPress={onPress} style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }} />;
 }
 
 function Field({
@@ -434,14 +398,6 @@ function dateInput(date: Date): string {
 }
 function timeInput(date: Date): string {
   return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
-}
-function parseDate(value: string, current: Date): Date {
-  const next = new Date(`${value}T${timeInput(current)}:00`);
-  return Number.isNaN(next.getTime()) ? current : next;
-}
-function parseTime(value: string, current: Date): Date {
-  const next = new Date(`${dateInput(current)}T${value}:00`);
-  return Number.isNaN(next.getTime()) ? current : next;
 }
 function setDatePart(current: Date, date: Date): Date {
   const next = new Date(current);
@@ -547,19 +503,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   },
   addExerciseText: { color: theme.ink, ...typeScale.label },
   exerciseList: { gap: 10 },
-  pickerBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(23,25,28,0.22)' },
-  pickerSheet: {
-    padding: 16,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    backgroundColor: theme.surface,
-  },
-  pickerSheetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  pickerSheetTitle: { color: theme.ink, ...typeScale.cardTitle },
-  pickerDone: { minWidth: 56, minHeight: 38, alignItems: 'center', justifyContent: 'center' },
-  pickerDoneText: { color: theme.selectionIndicator, ...typeScale.supporting },
+  pickerSheet: { paddingHorizontal: 20, paddingBottom: 32, gap: 12 },
+  // Keep Done at the shared Button height rather than giving picker actions a local size.
+  pickerDone: { marginTop: 4 },
 });
