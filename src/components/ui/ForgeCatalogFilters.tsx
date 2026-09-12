@@ -43,6 +43,8 @@ export function ForgeCatalogFilterSheet({
   onApply,
   onClose,
   testID,
+  rootCardAtBottom = false,
+  showEmptyApply = true,
 }: {
   visible: boolean;
   filters: CatalogFilterState;
@@ -50,6 +52,10 @@ export function ForgeCatalogFilterSheet({
   onApply: (filters: CatalogFilterState) => void;
   onClose: () => void;
   testID?: string;
+  /** Keeps a short settings filter summary close to its bottom action. */
+  rootCardAtBottom?: boolean;
+  /** Settings filters do not need a no-op "Show all" action. */
+  showEmptyApply?: boolean;
 }) {
   return (
     <ForgeBottomSheet
@@ -68,6 +74,8 @@ export function ForgeCatalogFilterSheet({
           headerWithDragHandle
           onApply={(next) => { onApply(next); close(); }}
           onCancel={close}
+          rootCardAtBottom={rootCardAtBottom}
+          showEmptyApply={showEmptyApply}
         />
       )}
     </ForgeBottomSheet>
@@ -82,6 +90,8 @@ export function ForgeCatalogFilterContent({
   onCancel,
   fill = false,
   headerWithDragHandle = false,
+  rootCardAtBottom = false,
+  showEmptyApply = true,
 }: {
   filters: CatalogFilterState;
   facets: CatalogFilterFacet[];
@@ -91,6 +101,8 @@ export function ForgeCatalogFilterContent({
   fill?: boolean;
   /** Make the handle and header one safe downward-drag target. */
   headerWithDragHandle?: boolean;
+  rootCardAtBottom?: boolean;
+  showEmptyApply?: boolean;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -142,14 +154,13 @@ export function ForgeCatalogFilterContent({
           onPress={() => setActiveFacetKey(null)}
           style={styles.backAction}
         />
-      ) : undefined}
-      trailing={!activeFacet && count > 0 ? (
+      ) : count > 0 ? (
         <Button
           accessibilityLabel="Clear filters"
           label="Clear"
           variant="outline"
           onPress={() => setDraft(emptyCatalogFilters())}
-          style={styles.headerClear}
+          style={styles.backAction}
         />
       ) : undefined}
     />
@@ -167,7 +178,12 @@ export function ForgeCatalogFilterContent({
       ) : header}
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          !activeFacet && rootCardAtBottom && (count > 0
+            ? styles.rootContentAboveAction
+            : styles.rootContentAtBottom),
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
@@ -230,12 +246,14 @@ export function ForgeCatalogFilterContent({
           </View>
         )}
       </ScrollView>
-      <ForgeFloatingCta
-        label={count ? `Apply (${count})` : 'Show all'}
-        accessibilityLabel={count ? `Apply (${count})` : 'Show all exercises'}
-        onPress={() => onApply(draft)}
-        tone="success"
-      />
+      {(count > 0 || showEmptyApply) ? (
+        <ForgeFloatingCta
+          label={count ? `Apply (${count})` : 'Show all'}
+          accessibilityLabel={count ? `Apply (${count})` : 'Show all exercises'}
+          onPress={() => onApply(draft)}
+          tone="success"
+        />
+      ) : null}
     </View>
   );
 }
@@ -306,6 +324,8 @@ const createStyles = (theme: ReturnType<typeof useForgeTheme>) => StyleSheet.cre
   sheetFill: { flex: 1, alignSelf: 'stretch' },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 64, gap: 10 },
+  rootContentAtBottom: { flexGrow: 1, justifyContent: 'flex-end', paddingBottom: 20 },
+  rootContentAboveAction: { flexGrow: 1, justifyContent: 'flex-end', paddingBottom: 152 },
   facetCard: { overflow: 'hidden', borderRadius: 20, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface },
   facetRow: { minHeight: 68, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   facetIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
@@ -317,7 +337,6 @@ const createStyles = (theme: ReturnType<typeof useForgeTheme>) => StyleSheet.cre
   choiceText: { flex: 1, ...typeScale.cardTitle, color: theme.textPrimary },
   separator: { position: 'absolute', right: 16, bottom: 0, left: 16, height: StyleSheet.hairlineWidth, pointerEvents: 'none' },
   facetSeparator: { left: 64 },
-  headerClear: { minHeight: 38, borderRadius: 14, paddingHorizontal: 12 },
   backAction: { minHeight: 38, borderRadius: 14, paddingHorizontal: 12 },
   tokenBar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   tokenScroll: { flex: 1 },

@@ -31,6 +31,7 @@ test.describe('Exercise library', () => {
     await expect(page.getByRole('button', { name: 'Open Chest Fly' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Filters' }).click();
+    await expect(page.getByRole('button', { name: 'Show all exercises' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Edit Equipment filter, Any' }).click();
     const machine = page.getByRole('checkbox', { name: 'Filter Equipment: Machine' });
     await expect(machine).toHaveCSS('min-height', '56px');
@@ -103,7 +104,9 @@ test.describe('Exercise library', () => {
 
   test('adds a variation from a single exercise with its current equipment or a custom one', async ({ page }) => {
     await openAllExercises(page);
-    await page.getByLabel('Search exercises').fill('Pec Deck');
+    const search = page.getByLabel('Search exercises');
+    await search.click();
+    await search.pressSequentially('Pec Deck');
     await expect(page.getByRole('button', { name: 'Open Chest Fly' })).toBeVisible();
     const addVariation = page.getByRole('button', { name: 'Add variation to Chest Fly' });
     await expect(addVariation).toHaveCSS('height', '38px');
@@ -173,15 +176,16 @@ test.describe('Exercise library', () => {
     await page.getByRole('button', { name: 'Custom exercises, 0 exercises' }).click();
     await page.getByRole('button', { name: 'Create custom exercise' }).click();
     await page.getByLabel('Exercise name').fill('Custom Row');
-    await page.getByRole('button', { name: 'Movement family' }).click();
-    await page.getByLabel('Exercise movement family').fill('Bench');
-    await page.getByRole('radio', { name: 'Use movement family Bench Press' }).click();
-    await expect(page.getByRole('radio', { name: 'Use movement family Bench Press' })).toHaveCount(0);
-    await page.getByRole('button', { name: 'Movement family' }).click();
-    await page.getByLabel('Exercise movement family').fill('Rows');
-    await expect(page.getByRole('radio', { name: 'Add Rows as a custom movement family' })).toBeVisible();
-    await page.getByRole('radio', { name: 'Add Rows as a custom movement family' }).click();
-    await expect(page.getByRole('radio', { name: 'Add Rows as a custom movement family' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Additional details' }).click();
+    await page.getByRole('button', { name: 'Exercise group' }).click();
+    await page.getByLabel('Search exercise groups').fill('Bench');
+    await page.getByRole('radio', { name: 'Use exercise group Bench Press' }).click();
+    await expect(page.getByRole('radio', { name: 'Use exercise group Bench Press' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Exercise group' }).click();
+    await page.getByLabel('Search exercise groups').fill('Rows');
+    await expect(page.getByRole('radio', { name: 'Add Rows as a custom exercise group' })).toBeVisible();
+    await page.getByRole('radio', { name: 'Add Rows as a custom exercise group' }).click();
+    await expect(page.getByRole('radio', { name: 'Add Rows as a custom exercise group' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Workout types' }).click();
     await page.getByRole('checkbox', { name: 'Workout type Mobility' }).click();
     await page.getByRole('button', { name: 'Back to exercise form' }).click();

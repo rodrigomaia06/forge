@@ -105,6 +105,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [formParent, setFormParent] = useState<string | null | undefined>(undefined);
   const [formView, setFormView] = useState<ExerciseFormView>('details');
+  const [showOptionalDetails, setShowOptionalDetails] = useState(false);
   const [name, setName] = useState('');
   const [group, setGroup] = useState('');
   const [categorySource, setCategorySource] = useState<CatalogSource | null>(null);
@@ -250,6 +251,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
       : undefined;
     setEditing(null);
     setFormView('details');
+    setShowOptionalDetails(false);
     setName('');
     setGroup(parent ?? '');
     setCategorySource(parent ? sourceForCategory(parent) : null);
@@ -267,6 +269,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     setFormView('details');
     setEditing(item);
     setName(item.variation || item.name);
+    setShowOptionalDetails(true);
     setGroup(item.group);
     setCategorySource(sourceForCategory(item.group));
     setEquipmentValue(item.equipment);
@@ -331,6 +334,17 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setDetailSheetView(nextView);
   };
+  const transitionFormView = (nextView: ExerciseFormView) => {
+    if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setFormView(nextView);
+  };
+  const toggleOptionalDetails = () => {
+    if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    selectionHaptic();
+    setShowOptionalDetails((current) => !current);
+  };
   return (
     <AppScreen backgroundColor={theme.background}>
       <View style={styles.screen}>
@@ -349,6 +363,8 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
           }
         />
         <ScrollView
+          testID="exercise-browser-scroll"
+          style={styles.scroll}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -416,6 +432,8 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
           facets={editableFilterFacets}
           onApply={setFilters}
           onClose={() => setFiltersOpen(false)}
+          rootCardAtBottom
+          showEmptyApply={false}
         />}
         <ForgeBottomSheet
           visible={formParent !== undefined}
@@ -424,10 +442,11 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
             setFormParent(undefined);
             setEditing(null);
             setFormView('details');
+            setShowOptionalDetails(false);
           }}
           onBackRequest={() => {
             if (formView === 'details') return false;
-            setFormView('details');
+            transitionFormView('details');
             return true;
           }}
           accessibilityLabel="Close custom exercise form"
@@ -443,11 +462,11 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                     ? 'Edit variation'
                     : formParent
                       ? 'Add variation'
-                      : 'New custom exercise'
-                  : formView === 'category'
+                      : 'New exercise'
+                    : formView === 'category'
                     ? 'Exercise category'
                     : formView === 'family'
-                      ? 'Movement family'
+                      ? 'Exercise group'
                       : formView === 'equipment'
                         ? 'Equipment'
                         : formView === 'workoutTypes'
@@ -457,15 +476,13 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                             : 'Secondary muscles'}
                 onClose={close}
                 closeAccessibilityLabel="Close custom exercise form"
+                titleNumberOfLines={2}
                 leading={formView !== 'details' ? (
-                  <Button
+                  <HeaderAction
                     accessibilityLabel="Back to exercise form"
-                    label="Back"
                     icon="chevron-back"
-                    iconSize={18}
-                    variant="outline"
-                    onPress={() => setFormView('details')}
-                    style={styles.formBackAction}
+                    iconOnly
+                    onPress={() => transitionFormView('details')}
                   />
                 ) : undefined}
               />
@@ -478,7 +495,10 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                     keyboardDismissMode="on-drag"
                     directionalLockEnabled
                   >
-                    <Text style={styles.fieldLabel}>NAME</Text>
+                    <View style={styles.fieldHeader}>
+                      <Text style={styles.fieldLabel}>Name</Text>
+                      <Text style={styles.fieldRequired}>Required</Text>
+                    </View>
                     <ForgeCard variant="inset" style={styles.formInputCard}>
                       <TextInput
                         accessibilityLabel="Exercise name"
@@ -489,50 +509,64 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                         style={styles.formNameInput}
                       />
                     </ForgeCard>
-                    {!formParent ? (
-                      <SettingsSection title="Movement" cardStyle={styles.formSectionCard}>
-                        <SettingsRow
-                          title="Exercise category"
-                          trailing={<Text style={styles.formValue}>{exerciseCategory}</Text>}
-                          disclosure
-                          onPress={() => setFormView('category')}
-                        />
-                        <SettingsRow
-                          title="Movement family"
-                          subtitle={group ? undefined : 'Choose or create a family'}
-                          trailing={group ? <Text style={styles.formValue}>{group}</Text> : undefined}
-                          disclosure
-                          onPress={() => setFormView('family')}
-                        />
-                      </SettingsSection>
-                    ) : null}
-                    <SettingsSection title="Setup" cardStyle={styles.formSectionCard}>
+                    <SettingsSection title="Essentials" cardStyle={styles.formSectionCard}>
                       <SettingsRow
                         title="Equipment"
                         trailing={<Text style={styles.formValue}>{equipmentValue || 'Custom'}</Text>}
                         disclosure
-                        onPress={() => setFormView('equipment')}
+                        onPress={() => transitionFormView('equipment')}
                       />
                     </SettingsSection>
-                    <SettingsSection title="Training" cardStyle={styles.formSectionCard}>
+                    <SettingsSection title="Optional details" cardStyle={styles.formSectionCard}>
                       <SettingsRow
-                        title="Workout types"
-                        trailing={<Text style={styles.formValue}>{workoutTypeIds.length ? `${workoutTypeIds.length} selected` : 'None'}</Text>}
-                        disclosure
-                        onPress={() => setFormView('workoutTypes')}
+                        title="Additional details"
+                        subtitle="Optional"
+                        trailing={<Icon name={showOptionalDetails ? 'chevron-down' : 'chevron-forward'} size={18} color={theme.textSecondary} />}
+                        showDivider={showOptionalDetails}
+                        onPress={toggleOptionalDetails}
                       />
-                      <SettingsRow
-                        title="Primary muscle"
-                        trailing={<Text style={styles.formValue}>{primaryMuscle}</Text>}
-                        disclosure
-                        onPress={() => setFormView('primaryMuscle')}
-                      />
-                      <SettingsRow
-                        title="Secondary muscles"
-                        trailing={<Text style={styles.formValue}>{secondaryMuscles.length ? `${secondaryMuscles.length} selected` : 'None'}</Text>}
-                        disclosure
-                        onPress={() => setFormView('secondaryMuscles')}
-                      />
+                      {showOptionalDetails ? (
+                        <>
+                          {!formParent ? (
+                            <>
+                              <SettingsRow
+                                title="Exercise category"
+                                trailing={<Text style={styles.formValue}>{exerciseCategory}</Text>}
+                                disclosure
+                                showDivider
+                                onPress={() => transitionFormView('category')}
+                              />
+                              <SettingsRow
+                                title="Exercise group"
+                                trailing={<Text style={styles.formValue}>{group || 'None'}</Text>}
+                                disclosure
+                                showDivider
+                                onPress={() => transitionFormView('family')}
+                              />
+                            </>
+                          ) : null}
+                          <SettingsRow
+                            title="Workout types"
+                            trailing={<Text style={styles.formValue}>{workoutTypeIds.length ? `${workoutTypeIds.length} selected` : 'None'}</Text>}
+                            disclosure
+                            showDivider
+                            onPress={() => transitionFormView('workoutTypes')}
+                          />
+                          <SettingsRow
+                            title="Primary muscle"
+                            trailing={<Text style={styles.formValue}>{primaryMuscle}</Text>}
+                            disclosure
+                            showDivider
+                            onPress={() => transitionFormView('primaryMuscle')}
+                          />
+                          <SettingsRow
+                            title="Secondary muscles"
+                            trailing={<Text style={styles.formValue}>{secondaryMuscles.length ? `${secondaryMuscles.length} selected` : 'None'}</Text>}
+                            disclosure
+                            onPress={() => transitionFormView('secondaryMuscles')}
+                          />
+                        </>
+                      ) : null}
                     </SettingsSection>
                   </ScrollView>
                   <ForgeFloatingCta
@@ -557,10 +591,10 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                         <Icon name="search" size={19} color={theme.slate} />
                         <TextInput
                           autoFocus
-                          accessibilityLabel="Exercise movement family"
+                          accessibilityLabel="Search exercise groups"
                           value={group}
                           onChangeText={(value) => { setGroup(value); setCategorySource(null); }}
-                          placeholder="Search or add a movement family"
+                          placeholder="Search or add an exercise group"
                           placeholderTextColor={theme.muted}
                           style={styles.categorySearchInput}
                         />
@@ -568,18 +602,18 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                       <ExerciseFormOptionList
                         options={categoryMatches.length ? categoryMatches : categoryOptions.map((label) => ({ label, source: sourceForCategory(label) }))}
                         selected={group}
-                        accessibilityPrefix="Use movement family"
-                        onSelect={(value, source) => { setGroup(value); setCategorySource(source); setFormView('details'); }}
+                        accessibilityPrefix="Use exercise group"
+                        onSelect={(value, source) => { setGroup(value); setCategorySource(source); transitionFormView('details'); }}
                         sourceIcon
+                        footer={group.trim() && !isExistingCategory ? (
+                          <FormChoiceRow
+                            label={`Add “${group.trim()}” as an exercise group`}
+                            icon="add"
+                            accessibilityLabel={`Add ${group.trim()} as a custom exercise group`}
+                            onPress={() => { setCategorySource('custom'); transitionFormView('details'); }}
+                          />
+                        ) : null}
                       />
-                      {group.trim() && !isExistingCategory ? (
-                        <FormChoiceRow
-                          label={`Add “${group.trim()}” as a custom family`}
-                          icon="add"
-                          accessibilityLabel={`Add ${group.trim()} as a custom movement family`}
-                          onPress={() => { setCategorySource('custom'); setFormView('details'); }}
-                        />
-                      ) : null}
                     </>
                   ) : null}
                   {formView === 'category' ? (
@@ -587,7 +621,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                       options={taxonomyCategoryOptions.map((label) => ({ label, source: 'forge' as const }))}
                       selected={exerciseCategory}
                       accessibilityPrefix="Exercise category"
-                      onSelect={(value) => { setExerciseCategory(value); setFormView('details'); }}
+                      onSelect={(value) => { setExerciseCategory(value); transitionFormView('details'); }}
                     />
                   ) : null}
                   {formView === 'equipment' ? (
@@ -607,47 +641,63 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                         options={selectableEquipment.map((label) => ({ label, source: sourceForEquipment(label) }))}
                         selected={usesCustomEquipment ? undefined : equipmentValue}
                         accessibilityPrefix="Equipment"
-                        onSelect={(value) => { setEquipmentValue(value); setFormView('details'); }}
+                        onSelect={(value) => { setEquipmentValue(value); transitionFormView('details'); }}
                         sourceIcon
-                      />
-                      <FormChoiceRow
-                        label="Custom equipment"
-                        icon="add"
-                        selected={usesCustomEquipment}
-                        accessibilityLabel="Add custom equipment"
-                        onPress={() => setEquipmentValue('')}
+                        footer={
+                          <FormChoiceRow
+                            label="Custom equipment"
+                            icon="add"
+                            selected={usesCustomEquipment}
+                            accessibilityLabel="Add custom equipment"
+                            onPress={() => setEquipmentValue('')}
+                          />
+                        }
                       />
                     </>
                   ) : null}
-                  {formView === 'workoutTypes' ? visibleTypes.map((type) => (
-                    <FormChoiceRow
-                      key={type.id}
-                      label={type.name}
-                      icon={workoutTypeIcon(type)}
-                      selected={workoutTypeIds.includes(type.id)}
-                      role="checkbox"
-                      accessibilityLabel={`Workout type ${type.name}`}
-                      onPress={() => toggleSection(type.id)}
-                    />
-                  )) : null}
+                  {formView === 'workoutTypes' ? (
+                    <View accessibilityLabel="Workout type choices">
+                      <ForgeCard variant="inset" size="compact" style={styles.formChoiceList}>
+                        {visibleTypes.map((type, index) => (
+                          <FormChoiceRow
+                            key={type.id}
+                            label={type.name}
+                            icon={workoutTypeIcon(type)}
+                            selected={workoutTypeIds.includes(type.id)}
+                            role="checkbox"
+                            showDivider={index < visibleTypes.length - 1}
+                            accessibilityLabel={`Workout type ${type.name}`}
+                            onPress={() => toggleSection(type.id)}
+                          />
+                        ))}
+                      </ForgeCard>
+                    </View>
+                  ) : null}
                   {formView === 'primaryMuscle' ? (
                     <ExerciseFormOptionList
                       options={muscles.map((label) => ({ label, source: 'forge' as const }))}
                       selected={primaryMuscle}
                       accessibilityPrefix="Primary"
-                      onSelect={(value) => { setPrimaryMuscle(value); setSecondaryMuscles((current) => current.filter((item) => item !== value)); setFormView('details'); }}
+                      onSelect={(value) => { setPrimaryMuscle(value); setSecondaryMuscles((current) => current.filter((item) => item !== value)); transitionFormView('details'); }}
                     />
                   ) : null}
-                  {formView === 'secondaryMuscles' ? muscles.filter((muscle) => muscle !== primaryMuscle).map((muscle) => (
-                    <FormChoiceRow
-                      key={muscle}
-                      label={muscle}
-                      selected={secondaryMuscles.includes(muscle)}
-                      role="checkbox"
-                      accessibilityLabel={`Secondary ${muscle}`}
-                      onPress={() => toggleSecondary(muscle)}
-                    />
-                  )) : null}
+                  {formView === 'secondaryMuscles' ? (
+                    <View accessibilityLabel="Secondary muscle choices">
+                      <ForgeCard variant="inset" size="compact" style={styles.formChoiceList}>
+                        {muscles.filter((muscle) => muscle !== primaryMuscle).map((muscle, index, choices) => (
+                          <FormChoiceRow
+                            key={muscle}
+                            label={muscle}
+                            selected={secondaryMuscles.includes(muscle)}
+                            role="checkbox"
+                            showDivider={index < choices.length - 1}
+                            accessibilityLabel={`Secondary ${muscle}`}
+                            onPress={() => toggleSecondary(muscle)}
+                          />
+                        ))}
+                      </ForgeCard>
+                    </View>
+                  ) : null}
                 </ScrollView>
               )}
             </View>
@@ -788,7 +838,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                     <Text style={styles.detailValue}>{detail.equipment}</Text>
                   </View>
                   <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Movement family</Text>
+                    <Text style={styles.detailLabel}>Exercise group</Text>
                     <Text style={styles.detailValue}>{detail.group}</Text>
                   </View>
                   <View style={styles.detailRow}>
@@ -836,6 +886,7 @@ function FormChoiceRow({
   onPress,
   icon,
   role = 'radio',
+  showDivider = false,
 }: {
   label: string;
   accessibilityLabel: string;
@@ -843,6 +894,7 @@ function FormChoiceRow({
   onPress: () => void;
   icon?: IconName;
   role?: 'checkbox' | 'radio';
+  showDivider?: boolean;
 }) {
   const styles = useThemedStyles(createStyles);
   const theme = useForgeTheme();
@@ -858,6 +910,7 @@ function FormChoiceRow({
       }}
       style={({ pressed }) => [
         styles.formChoice,
+        showDivider && styles.formChoiceDivider,
         selected && { backgroundColor: theme.successSurface },
         pressed && pressedFeedback,
       ]}
@@ -875,26 +928,32 @@ function ExerciseFormOptionList({
   accessibilityPrefix,
   onSelect,
   sourceIcon = false,
+  footer,
 }: {
   options: { label: string; source: CatalogSource }[];
   selected?: string;
   accessibilityPrefix: string;
   onSelect: (value: string, source: CatalogSource) => void;
   sourceIcon?: boolean;
+  footer?: React.ReactNode;
 }) {
   const styles = useThemedStyles(createStyles);
   return (
-    <View style={styles.formChoiceList} accessibilityRole="radiogroup">
-      {options.map((option) => (
-        <FormChoiceRow
-          key={option.label}
-          label={option.label}
-          icon={sourceIcon ? (option.source === 'forge' ? 'verified' : 'note') : undefined}
-          selected={selected === option.label}
-          accessibilityLabel={`${accessibilityPrefix} ${option.label}`}
-          onPress={() => onSelect(option.label, option.source)}
-        />
-      ))}
+    <View accessibilityRole="radiogroup">
+      <ForgeCard variant="inset" size="compact" style={styles.formChoiceList}>
+        {options.map((option, index) => (
+          <FormChoiceRow
+            key={option.label}
+            label={option.label}
+            icon={sourceIcon ? (option.source === 'forge' ? 'verified' : 'note') : undefined}
+            selected={selected === option.label}
+            showDivider={index < options.length - 1 || Boolean(footer)}
+            accessibilityLabel={`${accessibilityPrefix} ${option.label}`}
+            onPress={() => onSelect(option.label, option.source)}
+          />
+        ))}
+        {footer}
+      </ForgeCard>
     </View>
   );
 }
@@ -1134,6 +1193,7 @@ function SwipeCustomExerciseRow({
 const createStyles = (theme: import('../../types').ForgeTheme) =>
   StyleSheet.create({
     screen: { flex: 1 },
+    scroll: { flex: 1 },
     content: {
       padding: settingsLayout.screenPadding,
       paddingTop: settingsLayout.contentTop,
@@ -1324,10 +1384,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       borderTopWidth: StyleSheet.hairlineWidth,
       borderColor: theme.divider,
     },
-    formScroll: { flexGrow: 0, flexShrink: 1 },
+    formScroll: { flex: 1, minHeight: 0 },
     form: { padding: 20, gap: 18, paddingBottom: 128 },
     formPickerContent: { padding: 20, gap: 12, paddingBottom: 36 },
-    formBackAction: { minHeight: 36, paddingHorizontal: 10, borderRadius: 18 },
     formInputCard: { overflow: 'hidden', borderRadius: 16 },
     formNameInput: { minHeight: 52, paddingHorizontal: 14, color: theme.ink, ...typeScale.body },
     formSectionCard: {
@@ -1337,8 +1396,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       backgroundColor: theme.surface,
     },
     formValue: { ...typeScale.supporting, color: theme.textSecondary, textAlign: 'right', maxWidth: 130 },
-    formChoiceList: { overflow: 'hidden', borderRadius: 20, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface },
+    formChoiceList: { overflow: 'hidden' },
     formChoice: { minHeight: 56, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    formChoiceDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.divider },
     formChoiceText: { flex: 1, ...typeScale.cardTitle, color: theme.textPrimary },
     detailContent: { paddingHorizontal: 20, paddingBottom: 12, paddingTop: 0, gap: 0 },
     editVariationAction: { marginTop: 16, marginBottom: 8 },
@@ -1364,7 +1424,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       borderColor: theme.divider,
     },
     categorySearchInput: { flex: 1, paddingVertical: 0, color: theme.ink, ...typeScale.body },
-    fieldLabel: { ...typeScale.label, color: theme.slate, marginTop: 5 },
+    fieldHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 5 },
+    fieldLabel: { ...typeScale.label, color: theme.slate },
+    fieldRequired: { ...typeScale.supporting, color: theme.textSecondary },
     singleAddVariation: {
       alignSelf: 'stretch',
       height: 38,
