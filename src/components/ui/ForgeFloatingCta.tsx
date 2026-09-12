@@ -33,7 +33,7 @@ export function ForgeFloatingCta({
   const resolvedTheme = theme ?? contextTheme;
   return (
     <>
-      <View pointerEvents="none" style={styles.fade}>
+      <View style={[styles.fade, { pointerEvents: 'none' }]}>
         <Svg style={StyleSheet.absoluteFill}>
           <Defs>
             <LinearGradient id="forgeFloatingCtaFade" x1="0" y1="0" x2="0" y2="1">

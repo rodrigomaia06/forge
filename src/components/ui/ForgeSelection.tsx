@@ -30,6 +30,8 @@ interface ForgeSingleSelectListProps<T extends SelectionValue> {
   onSelect: (value: T) => void;
   onSelectedPress?: (value: T) => void;
   maxVisibleRows?: number;
+  /** Use when this control lives inside an existing vertical ScrollView. */
+  disableVirtualization?: boolean;
   testID?: string;
 }
 
@@ -40,6 +42,7 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
   onSelect,
   onSelectedPress,
   maxVisibleRows = DEFAULT_MAX_VISIBLE_ROWS,
+  disableVirtualization = false,
   testID,
 }: ForgeSingleSelectListProps<T>) {
   const hasDescriptions = options.some((option) => option.description);
@@ -47,7 +50,10 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
     options.length,
     Math.max(1, Math.min(DEFAULT_MAX_VISIBLE_ROWS, maxVisibleRows)),
   );
-  const virtualized = !hasDescriptions && options.length > visibleRows;
+  // A FlatList inside a form ScrollView steals its parent scroll gesture and
+  // triggers React Native's nested-virtualized-list warning. Forms are small,
+  // so render their choices directly; standalone sheets retain windowing.
+  const virtualized = !disableVirtualization && !hasDescriptions && options.length > visibleRows;
   const selectedIndex = Math.max(
     0,
     options.findIndex((option) => option.value === selectedValue),

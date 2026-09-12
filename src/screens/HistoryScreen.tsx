@@ -99,7 +99,8 @@ export function HistoryScreen({
               <Image
                 testID="history-empty-illustration"
                 source={require('../../assets/illustrations/empty-history.png')}
-                style={[styles.emptyIllustration, { tintColor: theme.muted }]}
+                style={styles.emptyIllustration}
+                tintColor={theme.muted}
                 resizeMode="contain"
                 accessible={false}
               />
@@ -240,7 +241,7 @@ function TimelineRow({
             <Icon name="chevron-forward" size={17} color={theme.slate} />
           </Pressable>
         </ReanimatedSwipeable>
-        <View pointerEvents="none" style={styles.cardLeadingOutline} />
+        <View style={[styles.cardLeadingOutline, { pointerEvents: 'none' }]} />
       </View>
     </View>
   );

@@ -431,7 +431,8 @@ function EmptyPlans() {
       <Image
         testID="plans-empty-illustration"
         source={require('../../assets/illustrations/empty-plans.png')}
-        style={[styles.emptyIllustration, { tintColor: theme.muted }]}
+        style={styles.emptyIllustration}
+        tintColor={theme.muted}
         resizeMode="contain"
         accessible={false}
       />
@@ -565,7 +566,7 @@ function SwipeDelete({
         >
           {children(handleOpen)}
         </Animated.View>
-        {rounded ? <View pointerEvents="none" style={styles.cardLeadingOutline} /> : null}
+        {rounded ? <View style={[styles.cardLeadingOutline, { pointerEvents: 'none' }]} /> : null}
       </View>
     </GestureDetector>
   );

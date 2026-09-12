@@ -214,7 +214,7 @@ function WheelColumn({
     <View style={styles.wheelColumn}>
       <Text style={[styles.wheelLabel, { color: theme.textSecondary }]}>{label}</Text>
       <View style={[styles.wheelViewport, { borderColor: theme.divider }]}>
-        <View pointerEvents="none" style={[styles.wheelSelection, { backgroundColor: theme.surfaceMuted, borderColor: theme.divider }]} />
+        <View style={[styles.wheelSelection, { backgroundColor: theme.surfaceMuted, borderColor: theme.divider, pointerEvents: 'none' }]} />
         <Animated.ScrollView
           ref={scrollRef}
           testID={`forge-time-${label.toLowerCase()}-wheel`}

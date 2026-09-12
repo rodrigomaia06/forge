@@ -127,7 +127,7 @@ export function ForgeSwipeableAttributeRow({
   const swipeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value }] }));
   return (
     <View {...panResponder.panHandlers} style={styles.swipeAttributeRow}>
-      <View style={[styles.attributeDeleteAction, { backgroundColor: theme.destructiveSurface }]} pointerEvents={deleteRevealed ? 'auto' : 'none'}>
+      <View style={[styles.attributeDeleteAction, { backgroundColor: theme.destructiveSurface, pointerEvents: deleteRevealed ? 'auto' : 'none' }]}>
         <Pressable accessibilityRole="button" accessibilityLabel={`Delete ${label} attribute`} onPress={onDelete} style={({ pressed }) => [styles.attributeDeleteButton, pressed && { backgroundColor: theme.destructiveSurfacePressed }]}>
           <Icon name="trash" size={18} color={theme.textDestructive} />
         </Pressable>
