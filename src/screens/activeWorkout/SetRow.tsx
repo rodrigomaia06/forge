@@ -8,6 +8,7 @@ import { errorHaptic } from './activeWorkoutFeedback';
 import { CompletionCheck } from './CompletionCheck';
 import type { SetRowProps } from './activeWorkoutTypes';
 import { measurementText, trackingFieldLabel, trackingFields, updateMeasurement } from '../../domain/exercises/tracking';
+import { setTagPresentation } from '../../domain/workouts/setPresentation';
 
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
@@ -32,6 +33,7 @@ export function SetRow({
   const invalidTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const setRowRef = useRef<View>(null);
   const previous = set.previous || '—';
+  const tag = setTagPresentation(set.tag);
 
   useEffect(
     () => () => {
@@ -110,7 +112,14 @@ export function SetRow({
         }}
         style={styles.setNumberWrap}
       >
-        <Text style={styles.setNumber}>{index + 1}</Text>
+        <Text
+          style={[
+            styles.setNumber,
+            tag && { color: tag.color, backgroundColor: `${tag.color}20` },
+          ]}
+        >
+          {tag?.letter ?? index + 1}
+        </Text>
       </Pressable>
       <Text style={styles.previous} numberOfLines={1}>
         {previous}

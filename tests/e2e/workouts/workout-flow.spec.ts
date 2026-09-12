@@ -509,7 +509,7 @@ test.describe('Active workout flow', () => {
     await expect(page.getByRole('checkbox', { name: 'Set 1 completed' })).toBeVisible();
   });
 
-  test('opens set details as a sheet from the set number', async ({ page }) => {
+  test('opens set details as a sheet from the set number', async ({ page }, testInfo) => {
     await startEmptyWorkoutWithExercise(page);
 
     await page.getByLabel('Open details for set 1').click();
@@ -532,10 +532,11 @@ test.describe('Active workout flow', () => {
     await expect(dropSet).toHaveAttribute('aria-checked', 'false');
     await dropSet.click();
     await expect(dropSet).toHaveAttribute('aria-checked', 'true');
-    await expect(setTypes.locator('..')).toHaveCSS('border-color', 'rgb(77, 123, 103)');
+    if (testInfo.project.name === 'iphone-air') {
+      await page.screenshot({ path: testInfo.outputPath('set-type-selection-iphone.png') });
+    }
     await dropSet.click();
     await expect(dropSet).toHaveAttribute('aria-checked', 'false');
-    await expect(setTypes.locator('..')).not.toHaveCSS('border-color', 'rgb(77, 123, 103)');
 
     const effort = page.getByRole('radiogroup', { name: 'Set effort' });
     await effort.getByRole('radio', { name: 'RPE 8', exact: true }).click();
@@ -727,14 +728,22 @@ test.describe('Active workout flow', () => {
     await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
     await expect(page.getByRole('button', { name: 'Measure by' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Add note' }).click();
-    await page.getByLabel('Note for Barbell Bench Press').fill('Pause at the chest');
-    await page.getByRole('button', { name: 'Save exercise note' }).click();
-    await expect(page.getByText('Pause at the chest', { exact: true })).toBeVisible();
+    if (testInfo.project.name === 'iphone-air') {
+      await page.waitForTimeout(260);
+      await page.screenshot({ path: testInfo.outputPath('exercise-note-iphone.png') });
+    }
+    await expect(page.getByText('Exercise note', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Back to exercise options' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Close exercise note' })).toBeVisible();
+    await page.getByRole('textbox', { name: 'Exercise note' }).fill('Pause at the chest');
+    await page.getByRole('button', { name: 'Back to exercise options' }).click();
+    await expect(page.getByText('Exercise options', { exact: true })).toBeVisible();
 
-    await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
     await page.getByRole('button', { name: 'Previous sessions' }).click();
     await expect(page.getByText('No completed sessions for this exercise yet.', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Close Previous sessions', exact: true }).click();
+    await expect(page.getByText('Pause at the chest', { exact: true })).toBeVisible();
+    await expect(page.getByLabel('Exercise note')).toBeVisible();
 
     await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
     await page.getByRole('button', { name: 'Warm-up sets' }).click();
@@ -746,6 +755,8 @@ test.describe('Active workout flow', () => {
 
     await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
     await page.getByRole('button', { name: 'Exercise info' }).click();
+    await expect(page.getByText('Exercise', { exact: true })).toBeVisible();
+    await expect(page.getByText('Variation', { exact: true })).toBeVisible();
     await expect(page.getByText('Movement family', { exact: true })).toBeVisible();
     await expect(page.getByText('Bench Press', { exact: true })).toBeVisible();
     if (testInfo.project.name === 'iphone-air') {

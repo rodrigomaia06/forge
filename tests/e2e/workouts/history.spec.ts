@@ -231,6 +231,9 @@ test.describe('History screen', () => {
     await expect(
       page.getByTestId('workout-details-set-completion-muay-thai-set-0-1'),
     ).not.toHaveCSS('background-color', 'rgb(98, 201, 138)');
+    const firstSet = page.getByTestId('workout-details-set-muay-thai-set-0-0');
+    await expect(firstSet).toContainText('History note');
+    await expect(firstSet).toContainText('Next time · Kg 65');
     await expect(page.getByLabel('Workout options')).toBeVisible();
     await page.getByRole('button', { name: 'Open details for set 1' }).click();
     const sheet = page.getByTestId('set-details-sheet');
@@ -297,6 +300,7 @@ function makeWorkout(
           reps: '8',
           completed: !(id === 'muay-thai' && exerciseIndex === 0 && setIndex === 1),
           comment: exerciseIndex === 0 && setIndex === 0 ? 'History note' : undefined,
+          targetWeight: exerciseIndex === 0 && setIndex === 0 ? '65' : undefined,
         }),
       ),
     })),

@@ -29,13 +29,9 @@ import { typeScale } from '../../theme/tokens';
 import type { SetMeasurementKind, TrackingType, WorkoutSet, WorkoutSetChanges } from '../../types';
 import { selectionHaptic } from './activeWorkoutFeedback';
 import { measurementText, measurementUnit, trackingFieldLabel, trackingFields, updateMeasurement } from '../../domain/exercises/tracking';
+import { SET_TAG_PRESENTATIONS, setTagPresentation } from '../../domain/workouts/setPresentation';
 
-const SET_TYPES = [
-  { label: 'Warm Up', color: '#FF8A2A' },
-  { label: 'Drop Set', color: '#9637DD' },
-  { label: 'Failure', color: '#F0444D' },
-  { label: 'Back-Off', color: '#2C78E8' },
-] as const;
+const SET_TYPES = SET_TAG_PRESENTATIONS;
 const RPE_OPTIONS = [10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6] as const;
 
 interface SetDetailsCardProps {
@@ -203,7 +199,7 @@ function SetTypeSection({
 }) {
   const styles = useThemedStyles(createStyles);
   const theme = useForgeTheme();
-  const recordedType = SET_TYPES.find((type) => type.label === value);
+  const recordedType = setTagPresentation(value);
 
   return (
     <View style={styles.section}>
@@ -211,7 +207,7 @@ function SetTypeSection({
       {editable ? (
         <ForgeCard
           variant="outlined"
-          style={[styles.typeCard, value && styles.typeCardSelected]}
+          style={styles.typeCard}
         >
           <View accessibilityRole="radiogroup" accessibilityLabel="Set type">
             {SET_TYPES.map((type, typeIndex) => (
@@ -297,7 +293,7 @@ function SetTypeOption({
       <View style={[styles.radio, { borderColor: selected ? (theme.marker ?? theme.success) : theme.slate }]}>
         <Animated.View style={[styles.radioDot, radioDotStyle]} />
       </View>
-      {showSeparator ? <View pointerEvents="none" style={styles.typeSeparator} /> : null}
+      {showSeparator ? <View style={[styles.typeSeparator, { pointerEvents: 'none' }]} /> : null}
     </Pressable>
   );
 }
@@ -492,7 +488,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       ...typeScale.label,
     },
     typeCard: { borderRadius: 16 },
-    typeCardSelected: { borderColor: theme.marker ?? theme.success },
     typeRow: {
       position: 'relative',
       minHeight: 48,

@@ -25,7 +25,6 @@ import { SetDetailsCard } from './SetDetailsCard';
 import { ExerciseOptionsSheet } from './WorkoutSheets';
 import {
   ExerciseInfoSheet,
-  ExerciseNoteSheet,
   PreviousSessionsSheet,
   WarmupSetsSheet,
 } from './ExerciseOptionSheets';
@@ -35,6 +34,7 @@ import { measurementText, trackingFieldLabel, trackingFields } from '../../domai
 import { formatExerciseMetadata } from '../../domain/exercises/exercisePresentation';
 import { exerciseCatalog } from '../../data/exerciseCatalog';
 import { useWorkouts } from '../../state/WorkoutContext';
+import { setTagPresentation } from '../../domain/workouts/setPresentation';
 
 export const ExerciseSection = React.memo(function ExerciseSection({
   exercise,
@@ -63,7 +63,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   const styles = useThemedStyles(createStyles);
   const deleteActionWidth = 64;
   const [optionsOpen, setOptionsOpen] = useState(false);
-  const [optionView, setOptionView] = useState<'note' | 'history' | 'warmup' | 'info' | null>(null);
+  const [optionView, setOptionView] = useState<'history' | 'warmup' | 'info' | null>(null);
   const [removeConfirmationOpen, setRemoveConfirmationOpen] = useState(false);
   const optionTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [openSetId, setOpenSetId] = useState<string | null>(null);
@@ -243,9 +243,12 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     </Text>
                   )}
                   {exercise.note?.trim() ? (
-                    <Text numberOfLines={2} style={styles.exerciseNote}>
-                      {exercise.note.trim()}
-                    </Text>
+                    <View accessibilityLabel="Exercise note" style={styles.exerciseNoteRow}>
+                      <Icon name="note" size={15} color={theme.slate} />
+                      <Text numberOfLines={2} style={styles.exerciseNote}>
+                        {exercise.note.trim()}
+                      </Text>
+                    </View>
                   ) : null}
                 </View>
                 {showMoreOptions && (
@@ -316,7 +319,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 visible
                 exercise={exercise}
                 onClose={() => setOptionsOpen(false)}
-                onEditNote={updateExercise ? () => afterOptionsClose(() => setOptionView('note')) : undefined}
+                onEditNote={updateExercise ? (note) => updateExercise(exercise.id, { note }) : undefined}
                 onOpenPreviousSessions={() => afterOptionsClose(() => setOptionView('history'))}
                 onOpenWarmupSets={canBuildWarmups ? () => afterOptionsClose(() => setOptionView('warmup')) : undefined}
                 onOpenExerciseInfo={hasExerciseInfo ? () => afterOptionsClose(() => setOptionView('info')) : undefined}
@@ -325,14 +328,6 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 }}
               />
             )}
-            {optionView === 'note' && updateExercise ? (
-              <ExerciseNoteSheet
-                visible
-                exercise={exercise}
-                onClose={() => setOptionView(null)}
-                onSave={(note) => updateExercise(exercise.id, { note })}
-              />
-            ) : null}
             {optionView === 'history' ? (
               <PreviousSessionsSheet
                 visible
@@ -345,6 +340,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
               <WarmupSetsSheet
                 visible
                 exercise={exercise}
+                workouts={completedWorkouts}
                 onClose={() => setOptionView(null)}
                 onAdd={(sets) => addWarmupSets(exercise.id, sets)}
               />
@@ -402,12 +398,21 @@ export function ReadOnlyExerciseSection({
         style={[styles.readOnlyExerciseHeader, minimal && styles.readOnlyMinimalExerciseHeader]}
       >
         <View style={styles.readOnlyExerciseCopy}>
-          <Text numberOfLines={1} style={styles.readOnlyExerciseName}>
-            {exercise.name}
-          </Text>
-          <Text style={styles.readOnlyExerciseCount}>
-            {`· ${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'}`}
-          </Text>
+          <View style={styles.readOnlyExerciseTitleRow}>
+            <Text numberOfLines={1} style={styles.readOnlyExerciseName}>
+              {exercise.name}
+            </Text>
+            <Text style={styles.readOnlyExerciseCount}>
+              {`· ${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'}`}
+            </Text>
+            {exercise.note?.trim() ? <Icon name="note" size={15} color={theme.slate} /> : null}
+          </View>
+          {exercise.note?.trim() ? (
+            <View accessibilityLabel="Exercise note" style={styles.readOnlyExerciseNoteRow}>
+              <Icon name="note" size={14} color={theme.slate} />
+              <Text numberOfLines={2} style={styles.readOnlyExerciseNote}>{exercise.note.trim()}</Text>
+            </View>
+          ) : null}
         </View>
         <Icon
           name={expanded ? 'chevron-down' : 'chevron-forward'}
@@ -468,39 +473,88 @@ function ReadOnlyHistorySetRow({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const targetSummary = nextTimeTargetSummary(set, trackingType);
+  const tag = setTagPresentation(set.tag);
+  const hasAnnotations = Boolean(set.tag || targetSummary || set.comment?.trim());
   return (
     <View
       testID={`workout-details-set-${set.id}`}
-      style={[styles.readOnlySetRow, minimal && styles.readOnlyMinimalSetRow]}
+      style={[
+        styles.readOnlySetRow,
+        hasAnnotations && styles.readOnlySetRowWithAnnotations,
+        minimal && styles.readOnlyMinimalSetRow,
+      ]}
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Open details for set ${index + 1}`}
-        accessibilityHint="Opens recorded set tags, comments, and targets"
-        onPress={() => {
-          selectionHaptic();
-          onOpenDetails();
-        }}
-        style={styles.setNumberWrap}
-      >
-        <Text style={styles.setNumber}>{index + 1}</Text>
-      </Pressable>
-      <Text style={styles.previous} numberOfLines={1}>
-        {set.previous || '—'}
-      </Text>
-      {trackingFields[trackingType].map((kind) => (
-        <View key={kind} style={[styles.readOnlyInput, styles.inputColumn]}>
-          <Text style={styles.readOnlyInputText}>{measurementText(set, kind) || '—'}</Text>
+      <View style={styles.readOnlySetValues}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Open details for set ${index + 1}`}
+          accessibilityHint="Opens recorded set details"
+          onPress={() => {
+            selectionHaptic();
+            onOpenDetails();
+          }}
+          style={styles.setNumberWrap}
+        >
+          <Text
+            style={[
+              styles.setNumber,
+              tag && { color: tag.color, backgroundColor: `${tag.color}20` },
+            ]}
+          >
+            {tag?.letter ?? index + 1}
+          </Text>
+        </Pressable>
+        <Text style={styles.previous} numberOfLines={1}>
+          {set.previous || '—'}
+        </Text>
+        {trackingFields[trackingType].map((kind) => (
+          <View key={kind} style={[styles.readOnlyInput, styles.inputColumn]}>
+            <Text style={styles.readOnlyInputText}>{measurementText(set, kind) || '—'}</Text>
+          </View>
+        ))}
+        <View style={styles.check}>
+          <CompletionCheck
+            selected={set.completed}
+            testID={`workout-details-set-completion-${set.id}`}
+          />
         </View>
-      ))}
-      <View style={styles.check}>
-        <CompletionCheck
-          selected={set.completed}
-          testID={`workout-details-set-completion-${set.id}`}
-        />
       </View>
+      {hasAnnotations ? (
+        <View style={styles.historySetAnnotations}>
+          {set.tag ? (
+            <View style={styles.historySetTagRow}>
+              <View style={[styles.historySetTagDot, { backgroundColor: tag?.color ?? theme.slate }]} />
+              <Text style={styles.historySetTag}>{set.tag}</Text>
+            </View>
+          ) : null}
+          {targetSummary ? <Text style={styles.historySetTarget}>{`Next time · ${targetSummary}`}</Text> : null}
+          {set.comment?.trim() ? (
+            <View accessibilityLabel="Set comment" style={styles.historySetCommentRow}>
+              <Icon name="note" size={14} color={theme.slate} />
+              <Text style={styles.historySetComment}>{set.comment.trim()}</Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
     </View>
   );
+}
+
+function nextTimeTargetSummary(set: WorkoutSet, trackingType: import('../../types').TrackingType): string {
+  return trackingFields[trackingType].flatMap((kind) => {
+    const target = set.targets?.find((item) => item.kind === kind);
+    const value = target?.minValue !== undefined
+      ? target.maxValue !== undefined && target.maxValue !== target.minValue
+        ? `${target.minValue}–${target.maxValue}`
+        : String(target.minValue)
+      : kind === 'reps'
+        ? set.targetReps
+        : kind === 'weight' || kind === 'addedWeight'
+          ? set.targetWeight
+          : undefined;
+    return value?.trim() ? [`${trackingFieldLabel(trackingType, kind)} ${value}`] : [];
+  }).join(' · ');
 }
 
 const createStyles = (theme: import('../../types').ForgeTheme) => {
@@ -581,8 +635,13 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     readOnlyExerciseCopy: {
       flex: 1,
       minWidth: 0,
+      justifyContent: 'center',
+      gap: 2,
+    },
+    readOnlyExerciseTitleRow: {
       flexDirection: 'row',
       alignItems: 'baseline',
+      gap: 4,
     },
     readOnlyExerciseName: {
       flexShrink: 1,
@@ -595,6 +654,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       color: dashboardTheme.slate,
       ...typeScale.label,
     },
+    readOnlyExerciseNoteRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 5 },
+    readOnlyExerciseNote: { flex: 1, color: dashboardTheme.slate, ...typeScale.supporting },
     readOnlySets: { paddingHorizontal: 12, paddingBottom: 4 },
     readOnlyMinimalSets: { paddingBottom: 0 },
     exerciseHeader: {
@@ -626,7 +687,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     },
     exerciseCopy: { flex: 1, minWidth: 0, justifyContent: 'center' },
     exerciseMetadata: { marginTop: 1, color: dashboardTheme.slate, ...typeScale.supporting },
-    exerciseNote: { marginTop: 2, color: dashboardTheme.slate, ...typeScale.supporting },
+    exerciseNoteRow: { marginTop: 3, flexDirection: 'row', alignItems: 'flex-start', gap: 5 },
+    exerciseNote: { flex: 1, color: dashboardTheme.slate, ...typeScale.supporting },
     exerciseNameLarge: typeScale.sectionTitle,
     moreButton: {
       width: 44,
@@ -659,13 +721,12 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     addSetLarge: { minHeight: 48 },
     readOnlySetRow: {
       minHeight: 48,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
       borderBottomWidth: 1,
       borderBottomColor: dashboardTheme.divider,
     },
+    readOnlySetRowWithAnnotations: { paddingBottom: 8 },
     readOnlyMinimalSetRow: { minHeight: 44, borderBottomWidth: 0 },
+    readOnlySetValues: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6 },
     setNumberWrap: { width: 46, height: 44, alignItems: 'center', justifyContent: 'center' },
     setNumber: {
       width: 30,
@@ -694,5 +755,12 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     },
     readOnlyInputText: { color: dashboardTheme.ink, ...typeScale.supporting },
     check: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+    historySetAnnotations: { marginLeft: 52, marginRight: 6, gap: 3 },
+    historySetTagRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    historySetTagDot: { width: 7, height: 7, borderRadius: 4 },
+    historySetTag: { color: dashboardTheme.slate, ...typeScale.caption },
+    historySetTarget: { color: dashboardTheme.slate, ...typeScale.caption },
+    historySetCommentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 5 },
+    historySetComment: { flex: 1, color: dashboardTheme.slate, ...typeScale.caption },
   });
 };

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { IconName } from '../../types';
@@ -21,6 +21,11 @@ export interface ForgeActionSheetAction {
   tone?: 'neutral' | 'destructive';
   disabled?: boolean;
   accessibilityLabel?: string;
+  /**
+   * Keeps this sheet mounted for an internal destination, such as a compact
+   * editor that replaces the action list. Most actions keep the default close.
+   */
+  dismiss?: boolean;
 }
 
 interface ForgeActionSheetProps {
@@ -38,6 +43,8 @@ interface ForgeActionSheetProps {
   initialOffset?: number;
   closeDistance?: number;
   dismissThreshold?: number;
+  /** Replaces the action list without dismissing and re-presenting a new sheet. */
+  replacement?: ((close: () => void) => ReactNode) | null;
 }
 
 /** Shared Forge presentation for bottom-attached action lists. */
@@ -55,6 +62,7 @@ export function ForgeActionSheet({
   initialOffset,
   closeDistance,
   dismissThreshold,
+  replacement = null,
 }: ForgeActionSheetProps) {
   const theme = useForgeTheme();
   const neutralActions = actions.filter((action) => (action.tone ?? 'neutral') === 'neutral');
@@ -74,73 +82,75 @@ export function ForgeActionSheet({
     >
       {(close) => (
         <View style={[styles.sheet, emphasis === 'prominent' && styles.prominentSheet]}>
-          <ForgeBottomSheetHandle />
-          <ForgeSheetHeader
-            title={title}
-            titleNumberOfLines={titleNumberOfLines}
-            onClose={close}
-            closePosition={headerDestructiveAction ? 'left' : 'right'}
-            trailing={
-              headerDestructiveAction ? (
-                <HeaderAction
-                  accessibilityLabel={headerDestructiveAction.accessibilityLabel ?? headerDestructiveAction.label}
-                  icon={headerDestructiveAction.icon}
-                  iconOnly
-                  tone="destructive"
-                  haptic="none"
-                  disabled={headerDestructiveAction.disabled}
-                  onPress={() => {
-                    errorHaptic();
-                    close();
-                    headerDestructiveAction.onPress();
-                  }}
-                />
-              ) : undefined
-            }
-          />
-          {description ? (
-            <View
-              style={[
-                styles.descriptionCard,
-                {
-                  backgroundColor: theme.surfaceMuted,
-                  borderColor: theme.border,
-                },
-              ]}
-            >
-              <Text style={[styles.description, { color: theme.textSecondary }]}>{description}</Text>
-            </View>
-          ) : null}
-          {neutralActions.length > 0 && (
-            <View
-              style={[
-                styles.actionList,
-                emphasis === 'prominent' && styles.prominentActionList,
-                { borderColor: theme.border, backgroundColor: theme.surface },
-              ]}
-            >
-              {neutralActions.map((action, index) => (
-                <ActionRow
-                  key={action.label}
-                  action={action}
-                  close={close}
-                  divider={index < neutralActions.length - 1}
-                />
-              ))}
-            </View>
-          )}
-          {destructiveActions.length > 1 && (
-            <View
-              style={[
-                styles.destructiveList,
-                { borderColor: theme.textDestructive, backgroundColor: theme.destructiveSurface },
-              ]}
-            >
-              {destructiveActions.slice(1).map((action) => (
-                <ActionRow key={action.label} action={action} close={close} />
-              ))}
-            </View>
-          )}
+          {replacement ? replacement(close) : <>
+            <ForgeBottomSheetHandle />
+            <ForgeSheetHeader
+              title={title}
+              titleNumberOfLines={titleNumberOfLines}
+              onClose={close}
+              closePosition={headerDestructiveAction ? 'left' : 'right'}
+              trailing={
+                headerDestructiveAction ? (
+                  <HeaderAction
+                    accessibilityLabel={headerDestructiveAction.accessibilityLabel ?? headerDestructiveAction.label}
+                    icon={headerDestructiveAction.icon}
+                    iconOnly
+                    tone="destructive"
+                    haptic="none"
+                    disabled={headerDestructiveAction.disabled}
+                    onPress={() => {
+                      errorHaptic();
+                      close();
+                      headerDestructiveAction.onPress();
+                    }}
+                  />
+                ) : undefined
+              }
+            />
+            {description ? (
+              <View
+                style={[
+                  styles.descriptionCard,
+                  {
+                    backgroundColor: theme.surfaceMuted,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.description, { color: theme.textSecondary }]}>{description}</Text>
+              </View>
+            ) : null}
+            {neutralActions.length > 0 && (
+              <View
+                style={[
+                  styles.actionList,
+                  emphasis === 'prominent' && styles.prominentActionList,
+                  { borderColor: theme.border, backgroundColor: theme.surface },
+                ]}
+              >
+                {neutralActions.map((action, index) => (
+                  <ActionRow
+                    key={action.label}
+                    action={action}
+                    close={close}
+                    divider={index < neutralActions.length - 1}
+                  />
+                ))}
+              </View>
+            )}
+            {destructiveActions.length > 1 && (
+              <View
+                style={[
+                  styles.destructiveList,
+                  { borderColor: theme.textDestructive, backgroundColor: theme.destructiveSurface },
+                ]}
+              >
+                {destructiveActions.slice(1).map((action) => (
+                  <ActionRow key={action.label} action={action} close={close} />
+                ))}
+              </View>
+            )}
+          </>}
         </View>
       )}
     </ForgeBottomSheet>
@@ -169,8 +179,8 @@ function ActionRow({
         onPress={() => {
           if (destructive) errorHaptic();
           else selectionHaptic();
-          close();
           action.onPress();
+          if (action.dismiss !== false) close();
         }}
       style={({ pressed }) => [
         styles.actionRow,

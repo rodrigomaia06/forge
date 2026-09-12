@@ -1,8 +1,7 @@
 # History
 
 - Completed workouts can be opened individually from the History list.
-- Sets in a completed workout can be opened to inspect their details and comments. The read-only set sheet presents recorded type, comment, and next-time target as values rather than disabled editing controls; historical sets cannot be deleted there.
-- Set comments are visible in workout cards wherever the set is shown.
+- Sets in a completed workout expose their recorded type, comment, and next-time target directly beneath the values in the expanded exercise table; the read-only detail sheet remains available for deeper inspection and historical sets cannot be deleted there. Exercise notes are likewise visible on the exercise card without opening its details.
 - A workout always has a note field, initially empty; empty notes are hidden. Context is represented only by user-defined named attributes with optional values and Forge icons; there are no fixed Location or Mood fields. Average rest remains a recorded workout metric.
 - History groups completed workouts into relative periods with a date timeline, a 44 pt workout-type icon, compact summary counts when exercises and sets exist, and a separate duration chip. Cards without an exercise/sets summary use a compact 64 pt height; detailed cards retain their larger height. A completed workout can be removed from its contextual options or by revealing its velocity-responsive swipe-to-delete action; deletion is immediate and persists. The complete outlined card moves during a swipe, keeping its trailing curve above the destructive surface revealed behind it.
 - History shows its restrained elevated header edge only after content scrolls beneath the persistent header; nested detail/editor screens retain the same edge treatment.

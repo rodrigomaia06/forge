@@ -20,73 +20,28 @@ import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import type { Workout, WorkoutExercise } from '../../types';
 
-export function ExerciseNoteSheet({
-  visible,
-  exercise,
-  onClose,
-  onSave,
-}: {
-  visible: boolean;
-  exercise: WorkoutExercise;
-  onClose: () => void;
-  onSave: (note: string) => void;
-}) {
-  const theme = useForgeTheme();
-  const styles = useThemedStyles(createStyles);
-  const [draft, setDraft] = useState(exercise.note ?? '');
-  useEffect(() => {
-    if (visible) setDraft(exercise.note ?? '');
-  }, [exercise.note, visible]);
-  const save = (): void => {
-    onSave(draft.trim());
-    onClose();
-  };
-
-  return (
-    <ForgeBottomSheet visible={visible} onClose={onClose} accessibilityLabel="Close exercise note">
-      <ForgeBottomSheetHandle />
-      <ForgeSheetHeader
-        title="Exercise note"
-        onClose={onClose}
-        closePosition="left"
-        trailing={<HeaderAction accessibilityLabel="Save exercise note" label="Done" icon="check" variant="primary" onPress={save} />}
-      />
-      <View style={styles.compactContent}>
-        <Text style={[styles.supporting, { color: theme.textSecondary }]}>{exercise.name}</Text>
-        <ForgeCard variant="outlined" style={styles.noteCard}>
-          <TextInput
-            accessibilityLabel={`Note for ${exercise.name}`}
-            value={draft}
-            onChangeText={setDraft}
-            multiline
-            maxLength={300}
-            placeholder="Add a note for this exercise..."
-            placeholderTextColor={theme.textDisabled}
-            style={styles.noteInput}
-          />
-          <Text style={[styles.counter, { color: theme.textSecondary }]}>{`${draft.length}/300`}</Text>
-        </ForgeCard>
-      </View>
-    </ForgeBottomSheet>
-  );
-}
-
 export function WarmupSetsSheet({
   visible,
   exercise,
+  workouts,
   onClose,
   onAdd,
 }: {
   visible: boolean;
   exercise: WorkoutExercise;
+  workouts: readonly Workout[];
   onClose: () => void;
   onAdd: (sets: readonly { weight: string; reps: string }[]) => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const previousWorkingSet = useMemo(() => {
+    const latest = findPreviousSessions(exercise, workouts)[0]?.exercise;
+    return latest?.sets.find((set) => set.tag !== 'Warm Up') ?? latest?.sets[0];
+  }, [exercise, workouts]);
   const initialWorkingSet = useMemo(
-    () => exercise.sets.find((set) => set.tag !== 'Warm Up' && (set.weight || set.reps)) ?? exercise.sets[0],
-    [exercise.sets],
+    () => previousWorkingSet ?? exercise.sets.find((set) => set.tag !== 'Warm Up' && (set.weight || set.reps)) ?? exercise.sets[0],
+    [exercise.sets, previousWorkingSet],
   );
   const [weight, setWeight] = useState(initialWorkingSet?.weight ?? '');
   const [reps, setReps] = useState(initialWorkingSet?.reps ?? '');
@@ -112,7 +67,6 @@ export function WarmupSetsSheet({
         trailing={<HeaderAction accessibilityLabel="Add warm-up sets" label="Add" icon="add" variant="primary" disabled={!plan.length} onPress={add} />}
       />
       <ScrollView contentContainerStyle={styles.compactContent} keyboardShouldPersistTaps="handled">
-        <Text style={[styles.supporting, { color: theme.textSecondary }]}>Use a working set to build an editable ramp for {exercise.name}.</Text>
         <Text style={styles.sectionLabel}>WORKING SET</Text>
         <ForgeCard variant="outlined" style={styles.workingCard}>
           <View style={styles.workingRow}>
@@ -156,6 +110,8 @@ export function ExerciseInfoSheet({
   const detail = useMemo(() => catalogueDetail(exercise), [exercise]);
   if (!detail) return null;
   const fields = [
+    ['Exercise', detail.name],
+    ...(detail.variation ? [['Variation', detail.variation]] : []),
     ['Category', detail.category],
     ['Equipment', detail.equipment],
     ['Movement family', detail.group],
@@ -168,8 +124,6 @@ export function ExerciseInfoSheet({
       <ForgeBottomSheetHandle />
       <ForgeSheetHeader title="Exercise info" onClose={onClose} />
       <ScrollView contentContainerStyle={styles.compactContent}>
-        <Text style={styles.infoTitle}>{detail.name}</Text>
-        {detail.variation ? <Text style={[styles.supporting, { color: theme.textSecondary }]}>{detail.variation}</Text> : null}
         <ForgeCard variant="outlined" style={styles.infoCard}>
           {fields.map(([label, value], index) => (
             <View key={label} style={[styles.infoRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
@@ -202,7 +156,6 @@ export function PreviousSessionsSheet({
       <ForgeBottomSheetHandle />
       <ForgeSheetHeader title="Previous sessions" onClose={onClose} />
       <ScrollView contentContainerStyle={styles.compactContent}>
-        <Text style={[styles.supporting, { color: theme.textSecondary }]}>{exercise.name}</Text>
         {sessions.length ? <ForgeCard variant="outlined" style={styles.sessionCard}>
           {sessions.map(({ workout, exercise: sessionExercise }, index) => (
             <View key={workout.id} style={[styles.sessionRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
@@ -243,7 +196,7 @@ function catalogueDetail(exercise: WorkoutExercise): ExerciseCatalogItem | undef
   return exerciseCatalog.find((item) => item.id === exercise.exerciseId);
 }
 
-function findPreviousSessions(exercise: WorkoutExercise, workouts: readonly Workout[]) {
+export function findPreviousSessions(exercise: WorkoutExercise, workouts: readonly Workout[]) {
   const id = exercise.exerciseSnapshot?.id ?? exercise.exerciseId;
   const normalizedName = normalizeName(exercise.name);
   return workouts
@@ -273,9 +226,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   compactContent: { paddingHorizontal: 20, paddingBottom: 28, gap: 12 },
   supporting: { ...typeScale.body },
   sectionLabel: { marginTop: 4, color: theme.slate, ...typeScale.caption },
-  noteCard: { minHeight: 144, padding: 12, borderRadius: 16 },
-  noteInput: { minHeight: 104, padding: 4, color: theme.ink, ...typeScale.body, textAlignVertical: 'top' },
-  counter: { alignSelf: 'flex-end', marginTop: 2, ...typeScale.caption },
   workingCard: { overflow: 'hidden', borderRadius: 16 },
   workingRow: { minHeight: 54, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 8 },
   workingLabel: { flex: 1, color: theme.ink, ...typeScale.label },
@@ -288,7 +238,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   planWeight: { flex: 1, color: theme.ink, ...typeScale.label },
   planReps: { ...typeScale.label },
   emptyMessage: { padding: 16, ...typeScale.body },
-  infoTitle: { color: theme.ink, ...typeScale.sectionTitle },
   infoCard: { overflow: 'hidden', borderRadius: 16 },
   infoRow: { minHeight: 54, paddingHorizontal: 16, paddingVertical: 10, gap: 2 },
   infoLabel: { ...typeScale.caption },

@@ -11,7 +11,9 @@ import {
   ForgeActionSheet,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
+  ForgeCard,
   ForgeCatalogFilterContent,
+  ForgeEditorBackButton,
   ForgeFloatingCta,
   ForgeSheetHeader,
   ForgeText as Text,
@@ -549,23 +551,46 @@ export function ExerciseOptionsSheet({
   visible: boolean;
   exercise: WorkoutExercise;
   onClose: () => void;
-  onEditNote?: () => void;
+  onEditNote?: (note: string) => void;
   onOpenPreviousSessions?: () => void;
   onOpenWarmupSets?: () => void;
   onOpenExerciseInfo?: () => void;
   onRemove: () => void;
 }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  const [view, setView] = useState<'actions' | 'note'>('actions');
+  const [noteDraft, setNoteDraft] = useState(exercise.note ?? '');
+  const [noteHeight, setNoteHeight] = useState(52);
+
+  const commitNote = (): void => {
+    onEditNote?.(noteDraft.trim());
+  };
+  const close = (): void => {
+    if (view === 'note') commitNote();
+    onClose();
+  };
+  const backToActions = (): void => {
+    commitNote();
+    setView('actions');
+  };
+
   return (
     <ForgeActionSheet
       visible={visible}
-      onClose={onClose}
+      onClose={close}
       accessibilityLabel="Close options"
       title="Exercise options"
       initialOffset={420}
       closeDistance={520}
       dismissThreshold={260}
       actions={[
-        ...(onEditNote ? [{ icon: 'note' as const, label: exercise.note?.trim() ? 'Edit note' : 'Add note', onPress: onEditNote }] : []),
+        ...(onEditNote ? [{
+          icon: 'note' as const,
+          label: exercise.note?.trim() ? 'Edit note' : 'Add note',
+          dismiss: false,
+          onPress: () => setView('note'),
+        }] : []),
         ...(onOpenPreviousSessions ? [{ icon: 'history' as const, label: 'Previous sessions', onPress: onOpenPreviousSessions }] : []),
         ...(onOpenWarmupSets ? [{ icon: 'warm-up' as const, label: 'Warm-up sets', onPress: onOpenWarmupSets }] : []),
         ...(onOpenExerciseInfo ? [{ icon: 'info' as const, label: 'Exercise info', onPress: onOpenExerciseInfo }] : []),
@@ -577,6 +602,37 @@ export function ExerciseOptionsSheet({
           onPress: onRemove,
         },
       ]}
+      replacement={view === 'note' ? (closeSheet) => (
+        <>
+          <ForgeBottomSheetHandle />
+          <ForgeSheetHeader
+            title="Exercise note"
+            onClose={closeSheet}
+            closeAccessibilityLabel="Close exercise note"
+            leading={<ForgeEditorBackButton onPress={backToActions} accessibilityLabel="Back to exercise options" />}
+          />
+          <View style={styles.exerciseNoteContent}>
+            <ForgeCard variant="inset" style={styles.exerciseNoteCard}>
+              <TextInput
+                accessibilityLabel="Exercise note"
+                value={noteDraft}
+                onChangeText={setNoteDraft}
+                onContentSizeChange={(event) => {
+                  const contentHeight = Math.ceil(event.nativeEvent.contentSize.height);
+                  // Web reports the rendered input height here. Grow only when text
+                  // needs more room so that measurement cannot feed back into layout.
+                  setNoteHeight((current) => Math.max(current, 52, contentHeight));
+                }}
+                multiline
+                scrollEnabled={false}
+                placeholder="Add a note for this exercise..."
+                placeholderTextColor={theme.textDisabled}
+                style={[styles.exerciseNoteInput, { height: noteHeight, color: theme.textPrimary }]}
+              />
+            </ForgeCard>
+          </View>
+        </>
+      ) : null}
     />
   );
 }
@@ -832,6 +888,14 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     exerciseOptionCopy: { flex: 1, gap: 2 },
     exerciseOptionName: { color: dashboardTheme.ink, ...typeScale.cardTitle },
     exerciseOptionEquipment: { color: '#4F625A', ...typeScale.label },
+    exerciseNoteContent: { paddingHorizontal: 20, paddingBottom: 28 },
+    exerciseNoteCard: { paddingHorizontal: 14 },
+    exerciseNoteInput: {
+      minHeight: 52,
+      paddingVertical: 12,
+      textAlignVertical: 'top',
+      ...typeScale.body,
+    },
     emptySearch: {
       paddingVertical: 28,
       color: dashboardTheme.slate,
