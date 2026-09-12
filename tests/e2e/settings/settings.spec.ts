@@ -233,6 +233,13 @@ test.describe('Settings', () => {
     await page.getByRole('button', { name: 'Add workout type' }).click();
     await page.getByLabel('Workout type name').fill('Recovery');
     await page.getByRole('button', { name: 'Cancel new workout type' }).click();
+    const confirmation = page.getByTestId('discard-workout-type-confirmation');
+    await expect(confirmation).toBeVisible();
+    await confirmation.getByRole('button', { name: 'Keep editing' }).click();
+    await expect(confirmation).toBeHidden();
     await expect(page.getByText('New workout type', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Cancel new workout type' }).click();
+    await confirmation.getByRole('button', { name: 'Discard type' }).click();
+    await expect(page.getByTestId('settings-detail-title')).toHaveText('Workout types');
   });
 });

@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import type { NavigationAction } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import {
   AppScreen,
   Button,
   ForgeCard,
+  ForgeConfirmationDialog,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
   ForgeSheetHeader,
@@ -69,6 +71,9 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
   const type = creating ? draft : storedType;
   const [customColorPickerOpen, setCustomColorPickerOpen] = useState(false);
   const [headerElevated, setHeaderElevated] = useState(false);
+  const [discardConfirmationOpen, setDiscardConfirmationOpen] = useState(false);
+  const [removalConfirmationOpen, setRemovalConfirmationOpen] = useState(false);
+  const pendingDiscardActionRef = useRef<NavigationAction | null>(null);
   const referenced = useMemo(() => {
     if (!type) return false;
     const workouts = [activeWorkout, ...completedWorkouts]
@@ -107,7 +112,11 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
       ? draft.name !== initialDraft.name || draft.color !== initialDraft.color
       : false;
   const discardDraft = (): void => {
-    if (!draftChanged) lightHaptic();
+    if (draftChanged) {
+      setDiscardConfirmationOpen(true);
+      return;
+    }
+    lightHaptic();
     navigation.goBack();
   };
 
@@ -116,18 +125,8 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
     return navigation.addListener('beforeRemove', (event) => {
       if (confirmedDraftDiscard.current) return;
       event.preventDefault();
-      Alert.alert('Discard new workout type?', 'Your unsaved changes will be lost.', [
-        { text: 'Keep editing', style: 'cancel' },
-        {
-          text: 'Discard',
-          style: 'destructive',
-          onPress: () => {
-            confirmedDraftDiscard.current = true;
-            lightHaptic();
-            navigation.dispatch(event.data.action);
-          },
-        },
-      ]);
+      pendingDiscardActionRef.current = event.data.action;
+      setDiscardConfirmationOpen(true);
     });
   }, [creating, draftChanged, navigation]);
   const saveDraft = (): void => {
@@ -141,27 +140,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
   const mustHide = type.source === 'builtIn' || type.hasReferencedData || referenced;
   const destructiveLabel = type.hidden ? 'Unhide type' : mustHide ? 'Hide type' : 'Delete type';
   const removeOrHide = (): void => {
-    const hide = mustHide;
-    Alert.alert(
-      hide ? 'Hide workout type?' : 'Delete workout type?',
-      hide ? 'Past workouts, routines, and plans keep their saved type.' : 'This cannot be undone.',
-      [
-        {
-          text: hide ? 'Hide' : 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            lightHaptic();
-            if (hide) change({ hidden: true });
-            else
-              updatePreferences({
-                workoutTypes: preferences.workoutTypes.filter((item) => item.id !== type.id),
-              });
-            navigation.goBack();
-          },
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ],
-    );
+    setRemovalConfirmationOpen(true);
   };
 
   return (
@@ -373,6 +352,49 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
             </View>
           )}
         </ForgeBottomSheet>
+        <ForgeConfirmationDialog
+          visible={discardConfirmationOpen}
+          title="Discard new workout type?"
+          message="Your unsaved changes will be lost."
+          cancelLabel="Keep editing"
+          confirmLabel="Discard type"
+          onCancel={() => {
+            pendingDiscardActionRef.current = null;
+            setDiscardConfirmationOpen(false);
+          }}
+          onConfirm={() => {
+            const pendingAction = pendingDiscardActionRef.current;
+            pendingDiscardActionRef.current = null;
+            confirmedDraftDiscard.current = true;
+            setDiscardConfirmationOpen(false);
+            lightHaptic();
+            if (pendingAction) navigation.dispatch(pendingAction);
+            else navigation.goBack();
+          }}
+          testID="discard-workout-type-confirmation"
+        />
+        <ForgeConfirmationDialog
+          visible={removalConfirmationOpen}
+          title={mustHide ? 'Hide workout type?' : 'Delete workout type?'}
+          message={mustHide
+            ? 'Past workouts, routines, and plans keep their saved type.'
+            : 'This cannot be undone.'}
+          cancelLabel="Cancel"
+          confirmLabel={mustHide ? 'Hide type' : 'Delete type'}
+          onCancel={() => setRemovalConfirmationOpen(false)}
+          onConfirm={() => {
+            setRemovalConfirmationOpen(false);
+            lightHaptic();
+            if (mustHide) change({ hidden: true });
+            else {
+              updatePreferences({
+                workoutTypes: preferences.workoutTypes.filter((item) => item.id !== type.id),
+              });
+            }
+            navigation.goBack();
+          }}
+          testID="workout-type-editor-removal-confirmation"
+        />
       </View>
     </AppScreen>
   );

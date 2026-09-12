@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -11,6 +11,7 @@ import Animated, {
 import {
   AppScreen,
   ForgeText as Text,
+  ForgeConfirmationDialog,
   ForgeSwitch,
   HeaderAction,
   Icon,
@@ -40,6 +41,10 @@ export function WorkoutTypesScreen({ navigation }: Props) {
   const { plans, standaloneRoutines } = usePlans();
   const [revealedId, setRevealedId] = useState<string | null>(null);
   const [headerElevated, setHeaderElevated] = useState(false);
+  const [pendingRemoval, setPendingRemoval] = useState<{
+    type: WorkoutTypePreference;
+    hide: boolean;
+  } | null>(null);
   const visible = useMemo(
     () => preferences.workoutTypes.filter((type) => !type.hidden),
     [preferences.workoutTypes],
@@ -65,36 +70,7 @@ export function WorkoutTypesScreen({ navigation }: Props) {
   };
   const remove = (type: WorkoutTypePreference) => {
     const hide = type.source === 'builtIn' || type.hasReferencedData || isReferenced(type);
-    Alert.alert(
-      hide ? 'Hide workout type?' : 'Delete workout type?',
-      hide
-        ? 'It will disappear from new-workout pickers. Existing training keeps its saved type.'
-        : 'This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel', onPress: () => setRevealedId(null) },
-        {
-          text: hide ? 'Hide' : 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            lightHaptic();
-            updatePreferences({
-              workoutTypes: hide
-                ? preferences.workoutTypes.map((item) =>
-                    item.id === type.id
-                      ? {
-                          ...item,
-                          hidden: true,
-                          hasReferencedData: item.hasReferencedData || isReferenced(type),
-                        }
-                      : item,
-                  )
-                : preferences.workoutTypes.filter((item) => item.id !== type.id),
-            });
-            setRevealedId(null);
-          },
-        },
-      ],
-    );
+    setPendingRemoval({ type, hide });
   };
   const toggleBuiltInVisibility = (type: WorkoutTypePreference) => {
     selectionHaptic();
@@ -152,6 +128,40 @@ export function WorkoutTypesScreen({ navigation }: Props) {
             />
           )}
         </ScrollView>
+        <ForgeConfirmationDialog
+          visible={pendingRemoval !== null}
+          title={pendingRemoval?.hide ? 'Hide workout type?' : 'Delete workout type?'}
+          message={pendingRemoval?.hide
+            ? 'It will disappear from new-workout pickers. Existing training keeps its saved type.'
+            : 'This cannot be undone.'}
+          cancelLabel="Cancel"
+          confirmLabel={pendingRemoval?.hide ? 'Hide type' : 'Delete type'}
+          onCancel={() => {
+            setPendingRemoval(null);
+            setRevealedId(null);
+          }}
+          onConfirm={() => {
+            if (!pendingRemoval) return;
+            const { type, hide } = pendingRemoval;
+            lightHaptic();
+            updatePreferences({
+              workoutTypes: hide
+                ? preferences.workoutTypes.map((item) =>
+                    item.id === type.id
+                      ? {
+                          ...item,
+                          hidden: true,
+                          hasReferencedData: item.hasReferencedData || isReferenced(type),
+                        }
+                      : item,
+                  )
+                : preferences.workoutTypes.filter((item) => item.id !== type.id),
+            });
+            setPendingRemoval(null);
+            setRevealedId(null);
+          }}
+          testID="workout-type-removal-confirmation"
+        />
       </View>
     </AppScreen>
   );
