@@ -12,7 +12,7 @@ import { ForgeSheetHeader } from './ForgeSheetHeader';
 import { ForgeText, ForgeTextInput } from './ForgeText';
 import { HeaderAction } from './HeaderAction';
 import { Icon } from './Icon';
-import { mediumHaptic } from './haptics';
+import { errorHaptic, lightHaptic, mediumHaptic, selectionHaptic } from './haptics';
 import { pressedFeedback } from './pressFeedback';
 
 export interface ForgeAttributeDraft {
@@ -51,7 +51,7 @@ export function ForgeAttributeEditorSheet({
         onClose={undefined}
         closePosition={onDelete ? 'left' : 'right'}
         leading={<ForgeEditorBackButton onPress={onClose} />}
-        trailing={onDelete ? <HeaderAction accessibilityLabel="Remove attribute" icon="trash" iconOnly tone="destructive" haptic="none" onPress={onDelete} /> : undefined}
+        trailing={onDelete ? <HeaderAction accessibilityLabel="Remove attribute" icon="trash" iconOnly tone="destructive" haptic="none" onPress={() => { errorHaptic(); onDelete(); }} /> : undefined}
       />
       <ScrollView style={styles.editorScroll} contentContainerStyle={styles.editorContent} keyboardShouldPersistTaps="handled">
         <View style={styles.formSection}>
@@ -69,13 +69,13 @@ export function ForgeAttributeEditorSheet({
         <View style={styles.formSection}>
           <ForgeText style={[styles.label, { color: theme.slate }]}>Icon</ForgeText>
           <ForgeCard variant="inset">
-            <Pressable accessibilityRole="button" accessibilityLabel="Choose attribute icon" onPress={() => setSelectingIcon((current) => !current)} style={styles.row}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Choose attribute icon" onPress={() => { lightHaptic(); setSelectingIcon((current) => !current); }} style={styles.row}>
               <Icon name={draft.icon} size={22} color={theme.textPrimary} />
               <ForgeText style={[styles.rowLabel, { color: theme.textPrimary }]}>Choose icon</ForgeText>
               <Icon name={selectingIcon ? 'chevron-down' : 'chevron-forward'} size={20} color={theme.slate} />
             </Pressable>
             {selectingIcon ? <View style={[styles.iconChoices, { borderTopColor: theme.divider }]} accessibilityRole="radiogroup">
-              {attributeIcons.map((icon) => <Pressable key={icon} testID={icon === draft.icon ? `attribute-icon-choice-${icon}-selected` : `attribute-icon-choice-${icon}`} accessibilityRole="radio" accessibilityLabel={`Use ${icon} icon`} accessibilityState={{ checked: icon === draft.icon }} onPress={() => { setDraft((current) => ({ ...current, icon })); setSelectingIcon(false); }} style={({ pressed }) => [styles.iconChoice, pressed && pressedFeedback]}><Icon name={icon} size={22} color={theme.textPrimary} />{icon === draft.icon ? <Icon name="check" size={16} color={theme.selectionIndicator} weight="bold" /> : null}</Pressable>)}
+              {attributeIcons.map((icon) => <Pressable key={icon} testID={icon === draft.icon ? `attribute-icon-choice-${icon}-selected` : `attribute-icon-choice-${icon}`} accessibilityRole="radio" accessibilityLabel={`Use ${icon} icon`} accessibilityState={{ checked: icon === draft.icon }} onPress={() => { selectionHaptic(); setDraft((current) => ({ ...current, icon })); setSelectingIcon(false); }} style={({ pressed }) => [styles.iconChoice, pressed && pressedFeedback]}><Icon name={icon} size={22} color={theme.textPrimary} />{icon === draft.icon ? <Icon name="check" size={16} color={theme.selectionIndicator} weight="bold" /> : null}</Pressable>)}
             </View> : null}
           </ForgeCard>
         </View>
@@ -128,12 +128,12 @@ export function ForgeSwipeableAttributeRow({
   return (
     <View {...panResponder.panHandlers} style={styles.swipeAttributeRow}>
       <View style={[styles.attributeDeleteAction, { backgroundColor: theme.destructiveSurface, pointerEvents: deleteRevealed ? 'auto' : 'none' }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Delete ${label} attribute`} onPress={onDelete} style={({ pressed }) => [styles.attributeDeleteButton, pressed && { backgroundColor: theme.destructiveSurfacePressed }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Delete ${label} attribute`} onPress={() => { errorHaptic(); onDelete(); }} style={({ pressed }) => [styles.attributeDeleteButton, pressed && { backgroundColor: theme.destructiveSurfacePressed }]}>
           <Icon name="trash" size={18} color={theme.textDestructive} />
         </Pressable>
       </View>
       <Animated.View style={[styles.swipeAttributeContent, { backgroundColor: theme.surface }, swipeStyle]}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${label} attribute`} onPress={onEdit} style={[styles.row, divider && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${label} attribute`} onPress={() => { lightHaptic(); onEdit(); }} style={[styles.row, divider && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
           <Icon name={icon} size={22} color={theme.textPrimary} />
           <ForgeText style={[styles.rowLabel, { color: theme.textPrimary }]}>{label}</ForgeText>
           <ForgeText style={[styles.rowValue, { color: theme.slate }]}>{value || 'Add value'}</ForgeText>
@@ -170,7 +170,7 @@ export function ForgeWorkoutTypePicker({
           <ForgeCard variant="inset">
             {workoutTypes.map((type, index) => {
               const selected = type.name === selectedType;
-              return <Pressable key={type.id} accessibilityRole="radio" accessibilityLabel={type.name} accessibilityState={{ checked: selected }} onPress={() => onSelect(type.name)} style={[styles.typeChoice, selected && { backgroundColor: theme.successSurface }, index > 0 ? { borderTopColor: theme.divider } : { borderTopWidth: 0 }]}>
+              return <Pressable key={type.id} accessibilityRole="radio" accessibilityLabel={type.name} accessibilityState={{ checked: selected }} onPress={() => { selectionHaptic(); onSelect(type.name); }} style={[styles.typeChoice, selected && { backgroundColor: theme.successSurface }, index > 0 ? { borderTopColor: theme.divider } : { borderTopWidth: 0 }]}>
                 <Icon name={iconForType(type)} size={20} color={theme.textPrimary} />
                 <ForgeText style={[styles.rowLabel, { color: theme.textPrimary }]}>{type.name}</ForgeText>
                 {selected ? <Icon name="check" size={20} color={theme.selectionIndicator} weight="bold" /> : null}
