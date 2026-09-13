@@ -21,10 +21,29 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 1
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.x
+          cache: npm
+      - name: Verify Expo access
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Add the EXPO_TOKEN repository secret before running this workflow."
+            exit 1
+          fi
       - name: Set up Expo and EAS
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
+          packager: npm
           token: ${{ secrets.EXPO_TOKEN }}
+      - name: Install config dependencies
+        # EAS resolves app plugins locally before it can upload the project.
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Create internal-distribution IPA on EAS
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: eas build --platform ios --profile preview --non-interactive --no-wait
