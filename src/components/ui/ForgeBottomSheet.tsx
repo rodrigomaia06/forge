@@ -37,6 +37,15 @@ export const forgeSheetHeader = {
 const webViewportFill = Platform.OS === 'web'
   ? ({ position: 'fixed', top: 0, right: 0, bottom: 0, left: 0 } as unknown as ViewStyle)
   : undefined;
+// Sheets should settle at their snap point without passing it. Overshoot can
+// momentarily expose content below a bottom-attached surface and makes the
+// surface feel detached from its anchor.
+const sheetSnapSpring = {
+  damping: 28,
+  stiffness: 280,
+  mass: 0.85,
+  overshootClamping: true,
+} as const;
 
 interface ForgeBottomSheetProps {
   visible: boolean;
@@ -115,7 +124,7 @@ export function ForgeBottomSheet({
     translateY.value = initialOffset;
     backdropOpacity.value = 0;
     const frame = requestAnimationFrame(() => {
-      translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.8 });
+      translateY.value = withSpring(0, sheetSnapSpring);
       backdropOpacity.value = withTiming(1, { duration: 180 });
     });
     return () => cancelAnimationFrame(frame);
@@ -165,7 +174,7 @@ export function ForgeBottomSheet({
         // It avoids web gesture callbacks bypassing parent state updates.
         runOnJS(close)(false);
       } else {
-        translateY.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.8 });
+        translateY.value = withSpring(0, sheetSnapSpring);
       }
     });
   const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
@@ -189,19 +198,28 @@ export function ForgeBottomSheet({
       visible
       transparent
       animationType="none"
+      hardwareAccelerated={Platform.OS === 'android'}
+      statusBarTranslucent={Platform.OS === 'android'}
+      navigationBarTranslucent={Platform.OS === 'android'}
       onRequestClose={() => {
         if (!onBackRequest?.()) close(true);
       }}
     >
-      <Animated.View
+      <View
         testID={testID}
         style={[
           styles.backdrop,
           webViewportFill,
-          backdropStyle,
-          backdropIntensity === 'strong' && styles.strongBackdrop,
         ]}
       >
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.backdropVisual,
+            backdropStyle,
+            backdropIntensity === 'strong' && styles.strongBackdrop,
+          ]}
+        />
         <Pressable
           testID={backdropTestID}
           accessibilityRole="button"
@@ -253,7 +271,7 @@ export function ForgeBottomSheet({
           </SheetDragContext.Provider>
         </View>
         {overlay}
-      </Animated.View>
+      </View>
     </Modal>
   );
 }
@@ -288,6 +306,11 @@ const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFill,
     justifyContent: 'flex-end',
+  },
+  // Only the dimmer fades. The sheet must stay fully opaque throughout its
+  // entrance, otherwise the underlying screen becomes readable through it.
+  backdropVisual: {
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(23,25,28,0.24)',
   },
   strongBackdrop: { backgroundColor: 'rgba(23,25,28,0.42)' },

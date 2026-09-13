@@ -256,13 +256,18 @@ test.describe('Settings', () => {
     await expect(page.getByRole('radio', { name: 'Sunday' })).toBeVisible();
   });
 
-  test('uses the shared single-choice picker for General selections', async ({ page }) => {
+  test('uses the shared single-choice picker for General selections', async ({ page }, testInfo) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'General' }).click();
 
     await page.getByRole('button', { name: 'Default rest time' }).click();
-    await expect(page.getByTestId('default-rest-selection-sheet')).toBeVisible();
+    const defaultRestSheet = page.getByTestId('default-rest-selection-sheet');
+    await expect(defaultRestSheet).toBeVisible();
+    // The scrim may fade in, but the sheet itself must never be transparent
+    // during that entrance; otherwise underlying text shows through it.
+    await page.waitForTimeout(80);
+    await expect(defaultRestSheet).toHaveCSS('opacity', '1');
     const defaultRestList = page.getByTestId('default-rest-selection-list');
     const defaultRestBox = await defaultRestList.boundingBox();
     expect(defaultRestBox?.height ?? Infinity).toBeLessThanOrEqual(52 * 6 + 0.1);
@@ -297,9 +302,14 @@ test.describe('Settings', () => {
     if ((viewport?.width ?? 0) >= 768) {
       await expect(page.getByTestId('appearance-selection-sheet')).toHaveCount(0);
     } else {
-      await expect(page.getByTestId('appearance-selection-sheet')).toBeVisible();
+      const appearanceSheet = page.getByTestId('appearance-selection-sheet');
+      await expect(appearanceSheet).toBeVisible();
       const appearanceBox = await page.getByTestId('appearance-selection-list').boundingBox();
       expect(appearanceBox?.height).toBeCloseTo(52 * 3, 0);
+      if (testInfo.project.name === 'iphone-air') {
+        await page.waitForTimeout(250);
+        await page.screenshot({ path: testInfo.outputPath('appearance-picker-iphone.png') });
+      }
     }
     await page.getByRole('radio', { name: 'Dark' }).click();
     await expect(page.getByRole('button', { name: 'Appearance', exact: true })).toContainText('Dark');
