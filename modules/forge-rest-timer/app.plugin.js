@@ -101,10 +101,11 @@ struct ForgeRestTimerWidgetBundle: WidgetBundle {
 }
 `;
 
-function widgetInfoPlist(version, buildNumber) {
+function widgetInfoPlist(version, buildNumber, bundleIdentifier) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
+  <key>CFBundleIdentifier</key><string>${bundleIdentifier}</string>
   <key>NSExtension</key><dict><key>NSExtensionPointIdentifier</key><string>com.apple.widgetkit-extension</string></dict>
   <key>CFBundleShortVersionString</key><string>${version}</string>
   <key>CFBundleVersion</key><string>${buildNumber}</string>
@@ -117,7 +118,7 @@ function findBuildPhase(project, targetUuid, isa, name) {
   return target?.buildPhases?.find((entry) => phases[entry.value]?.name === name || (!name && phases[entry.value]))?.value;
 }
 
-function addTarget(config) {
+function addTarget(config, widgetBundleIdentifier) {
   return withXcodeProject(config, (config) => {
     const project = config.modResults;
     let targetUuid = project.findTargetKey(TARGET_NAME);
@@ -126,7 +127,7 @@ function addTarget(config) {
         TARGET_NAME,
         'app_extension',
         TARGET_NAME,
-        `${config.ios?.bundleIdentifier}.${'resttimer'}`,
+        widgetBundleIdentifier,
       );
       targetUuid = target.uuid;
     }
@@ -142,7 +143,7 @@ function addTarget(config) {
         INFOPLIST_FILE: `"${TARGET_NAME}/Info.plist"`,
         IPHONEOS_DEPLOYMENT_TARGET: `"${config.ios?.deploymentTarget ?? '16.4'}"`,
         MARKETING_VERSION: `"${config.ios?.version ?? config.version ?? '1.0'}"`,
-        PRODUCT_BUNDLE_IDENTIFIER: `"${config.ios?.bundleIdentifier}.resttimer"`,
+        PRODUCT_BUNDLE_IDENTIFIER: `"${widgetBundleIdentifier}"`,
         SWIFT_VERSION: '5.0',
         TARGETED_DEVICE_FAMILY: '"1,2"',
       };
@@ -166,6 +167,12 @@ function addTarget(config) {
 }
 
 module.exports = function withForgeRestTimerLiveActivity(config) {
+  const appBundleIdentifier = config.ios?.bundleIdentifier;
+  if (!appBundleIdentifier) {
+    throw new Error('ForgeRestTimerWidget requires ios.bundleIdentifier.');
+  }
+  const widgetBundleIdentifier = `${appBundleIdentifier}.resttimer`;
+
   config = withInfoPlist(config, (config) => {
     config.modResults.NSSupportsLiveActivities = true;
     return config;
@@ -176,9 +183,13 @@ module.exports = function withForgeRestTimerLiveActivity(config) {
     fs.writeFileSync(path.join(directory, 'ForgeRestTimerLiveActivity.swift'), WIDGET_SOURCE);
     fs.writeFileSync(
       path.join(directory, 'Info.plist'),
-      widgetInfoPlist(config.ios?.version ?? config.version ?? '1.0', config.ios?.buildNumber ?? '1'),
+      widgetInfoPlist(
+        config.ios?.version ?? config.version ?? '1.0',
+        config.ios?.buildNumber ?? '1',
+        widgetBundleIdentifier,
+      ),
     );
     return config;
   }]);
-  return addTarget(config);
+  return addTarget(config, widgetBundleIdentifier);
 };
