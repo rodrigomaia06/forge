@@ -72,6 +72,30 @@ test.describe('History screen', () => {
     await expect(page.getByRole('button', { name: 'Open Recovery walk' })).toBeVisible();
   });
 
+  test('keeps the old Forge month and explicit-date modes in the staged filter', async ({ page }) => {
+    const headerFilter = page.getByTestId('history-header').getByRole('button', { name: 'Filter' });
+    await headerFilter.click();
+    const filterSheet = page.getByTestId('history-filter-sheet');
+
+    await filterSheet.getByRole('button', { name: 'Edit Date range filter, All dates' }).click();
+    await expect(filterSheet.getByRole('radio', { name: 'All dates' })).toBeVisible();
+    await filterSheet.getByRole('radio', { name: 'Month' }).click();
+    await expect(filterSheet.getByTestId('history-filter-month')).toBeVisible();
+    await filterSheet.getByRole('button', { name: 'Previous filter month' }).click();
+    await filterSheet.getByRole('button', { name: 'Back to filters' }).click();
+    await expect(filterSheet.getByRole('button', { name: /Edit Date range filter, [A-Z][a-z]{2} \d{4}/ })).toBeVisible();
+
+    await filterSheet.getByRole('button', { name: /Edit Date range filter/ }).click();
+    await filterSheet.getByRole('radio', { name: 'Custom dates' }).click();
+    await filterSheet.getByRole('button', { name: /Edit From filter/ }).click();
+    const fromPicker = filterSheet.getByTestId('history-filter-from-picker');
+    await fromPicker.getByRole('button', { name: /^Select / }).first().click();
+    await filterSheet.getByRole('button', { name: 'Back to date range' }).click();
+    await expect(filterSheet.getByRole('button', { name: /Edit To filter/ })).toBeVisible();
+    await filterSheet.getByRole('button', { name: 'Back to filters' }).click();
+    await expect(filterSheet.getByRole('button', { name: /Edit Date range filter, .+ – .+/ })).toBeVisible();
+  });
+
   test('uses a filled, borderless History filter control in dark mode', async ({ page }) => {
     await page.evaluate(() => {
       localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance: 'dark' }));

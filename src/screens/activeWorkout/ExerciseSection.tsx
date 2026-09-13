@@ -56,6 +56,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   showMoreOptions = true,
   showCatalogMetadata = false,
   showSetCompletion = true,
+  setTargetMode = 'next-session',
   showWarmupSets = false,
   onSetInputFocus,
 }: ExerciseSectionProps) {
@@ -298,6 +299,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     onDeleteRevealChange={(revealed) => setOpenSetId(revealed ? set.id : null)}
                     showCompletion={showSetCompletion}
                     trackingType={exercise.trackingType}
+                    setTargetMode={setTargetMode}
                     onInputFocus={onSetInputFocus}
                   />
                 ))}
@@ -463,17 +465,14 @@ function ReadOnlyHistorySetRow({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const targetSummary = nextTimeTargetSummary(set, trackingType);
   const tag = setTagPresentation(set.tag);
   const rpe = measurementText(set, 'rpe');
   const hasNextTarget = hasNextSessionTarget(set);
-  const hasAnnotations = Boolean(set.tag || targetSummary);
   return (
     <View
       testID={`workout-details-set-${set.id}`}
       style={[
         styles.readOnlySetRow,
-        hasAnnotations && styles.readOnlySetRowWithAnnotations,
         minimal && styles.readOnlyMinimalSetRow,
       ]}
     >
@@ -511,11 +510,16 @@ function ReadOnlyHistorySetRow({
         <Text style={styles.previous} numberOfLines={1}>
           {set.previous || '—'}
         </Text>
-        {trackingFields[trackingType].map((kind) => (
-          <View key={kind} style={[styles.readOnlyInput, styles.inputColumn]}>
-            <Text style={styles.readOnlyInputText}>{measurementText(set, kind) || '—'}</Text>
-          </View>
-        ))}
+        {trackingFields[trackingType].map((kind) => {
+          const planned = set.plannedTargets?.find((target) => target.kind === kind);
+          const interval = planned?.minValue === undefined ? '' : planned.maxValue !== undefined && planned.maxValue !== planned.minValue
+            ? `${planned.minValue}–${planned.maxValue}` : String(planned.minValue);
+          return (
+            <View key={kind} style={[styles.readOnlyInput, styles.inputColumn]}>
+              <Text style={styles.readOnlyInputText}>{measurementText(set, kind) || (minimal ? interval : '') || '—'}</Text>
+            </View>
+          );
+        })}
         <View style={styles.check}>
           <CompletionCheck
             selected={set.completed}
@@ -523,35 +527,8 @@ function ReadOnlyHistorySetRow({
           />
         </View>
       </View>
-      {hasAnnotations ? (
-        <View style={styles.historySetAnnotations}>
-          {set.tag ? (
-            <View style={styles.historySetTagRow}>
-              <View style={[styles.historySetTagDot, { backgroundColor: tag?.color ?? theme.slate }]} />
-              <Text style={styles.historySetTag}>{set.tag}</Text>
-            </View>
-          ) : null}
-          {targetSummary ? <Text style={styles.historySetTarget}>{`Next time · ${targetSummary}`}</Text> : null}
-        </View>
-      ) : null}
     </View>
   );
-}
-
-function nextTimeTargetSummary(set: WorkoutSet, trackingType: import('../../types').TrackingType): string {
-  return trackingFields[trackingType].flatMap((kind) => {
-    const target = set.targets?.find((item) => item.kind === kind);
-    const value = target?.minValue !== undefined
-      ? target.maxValue !== undefined && target.maxValue !== target.minValue
-        ? `${target.minValue}–${target.maxValue}`
-        : String(target.minValue)
-      : kind === 'reps'
-        ? set.targetReps
-        : kind === 'weight' || kind === 'addedWeight'
-          ? set.targetWeight
-          : undefined;
-    return value?.trim() ? [`${trackingFieldLabel(trackingType, kind)} ${value}`] : [];
-  }).join(' · ');
 }
 
 const createStyles = (theme: import('../../types').ForgeTheme) => {
@@ -722,7 +699,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       borderBottomWidth: 1,
       borderBottomColor: dashboardTheme.divider,
     },
-    readOnlySetRowWithAnnotations: { paddingBottom: 8 },
     readOnlyMinimalSetRow: { minHeight: 44, borderBottomWidth: 0 },
     readOnlySetValues: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6 },
     setNumberWrap: { position: 'relative', width: 46, height: 44, alignItems: 'center', justifyContent: 'center' },
@@ -779,10 +755,5 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     },
     readOnlyInputText: { color: dashboardTheme.ink, ...typeScale.supporting },
     check: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-    historySetAnnotations: { marginLeft: 52, marginRight: 6, gap: 3 },
-    historySetTagRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    historySetTagDot: { width: 7, height: 7, borderRadius: 4 },
-    historySetTag: { color: dashboardTheme.slate, ...typeScale.caption },
-    historySetTarget: { color: dashboardTheme.slate, ...typeScale.caption },
   });
 };

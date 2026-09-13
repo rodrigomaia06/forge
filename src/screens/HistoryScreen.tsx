@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import ReanimatedSwipeable, {
   type SwipeableMethods,
@@ -6,9 +6,13 @@ import ReanimatedSwipeable, {
 import {
   AppScreen,
   Button,
-  catalogFilterCount,
-  emptyCatalogFilters,
-  ForgeCatalogFilterSheet,
+  ForgeBackButton,
+  ForgeBottomSheet,
+  ForgeBottomSheetHandle,
+  ForgeDateTimePicker,
+  ForgeFloatingCta,
+  ForgeSearchField,
+  ForgeSheetHeader,
   ForgeText as Text,
   HeaderEdge,
   HeaderAction,
@@ -33,6 +37,20 @@ interface HistoryGroup {
   workouts: Workout[];
 }
 
+type HistoryDateMode = 'all' | 'month' | 'dates';
+type HistoryFilterState = {
+  types: string[];
+  dateMode: HistoryDateMode;
+  month: number;
+  from: number;
+  to: number;
+};
+
+function emptyHistoryFilters(now = new Date()): HistoryFilterState {
+  const month = startOfMonth(now);
+  return { types: [], dateMode: 'all', month: month.getTime(), from: startOfDay(now).getTime(), to: startOfDay(now).getTime() };
+}
+
 export function HistoryScreen({
   navigation,
 }: RootTabScreenProps<'History'>) {
@@ -42,20 +60,27 @@ export function HistoryScreen({
   const styles = useThemedStyles(createStyles);
   const dockScrollInset = useForgeDockScrollInset();
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [filters, setFilters] = useState(emptyCatalogFilters);
+  const [filters, setFilters] = useState(emptyHistoryFilters);
   const historyTypeOptions = useMemo(() => {
     const presentTypes = new Set(completedWorkouts.map((workout) => workout.type));
     return [...presentTypes]
       .sort((left, right) => left.localeCompare(right))
       .map((type) => ({ value: type, label: type }));
   }, [completedWorkouts]);
-  const filteredWorkouts = useMemo(() => (
-    filters.types.length
-      ? completedWorkouts.filter((workout) => filters.types.includes(workout.type))
-      : completedWorkouts
-  ), [completedWorkouts, filters.types]);
+  const filteredWorkouts = useMemo(() => completedWorkouts.filter((workout) => {
+    if (filters.types.length && !filters.types.includes(workout.type)) return false;
+    const completedAt = workout.completedAt ?? workout.startedAt;
+    if (filters.dateMode === 'all') return true;
+    if (filters.dateMode === 'month') {
+      const start = new Date(filters.month);
+      const end = new Date(start.getFullYear(), start.getMonth() + 1, 1).getTime();
+      return completedAt >= start.getTime() && completedAt < end;
+    }
+    return completedAt >= startOfDay(new Date(filters.from)).getTime()
+      && completedAt < startOfNextDay(new Date(filters.to)).getTime();
+  }), [completedWorkouts, filters]);
   const groups = useMemo(() => groupByPeriod(filteredWorkouts), [filteredWorkouts]);
-  const activeFilterCount = catalogFilterCount(filters);
+  const activeFilterCount = filters.types.length + (filters.dateMode === 'all' ? 0 : 1);
   const [deleteRevealedId, setDeleteRevealedId] = useState<string | null>(null);
   const [headerElevated, setHeaderElevated] = useState(false);
   return (
@@ -136,7 +161,7 @@ export function HistoryScreen({
                 <Button
                   label="Clear filters"
                   variant="secondary"
-                  onPress={() => setFilters(emptyCatalogFilters())}
+                  onPress={() => setFilters(emptyHistoryFilters())}
                   theme={theme}
                   style={styles.emptyAction}
                 />
@@ -154,25 +179,192 @@ export function HistoryScreen({
             </View>
           )}
         </ScrollView>
-        <ForgeCatalogFilterSheet
+        <HistoryFilterSheet
           testID="history-filter-sheet"
           visible={filtersOpen}
           filters={filters}
-          facets={[{
-            key: 'types',
-            title: 'Workout type',
-            icon: 'layers',
-            options: historyTypeOptions,
-          }]}
-          title="Filter history"
-          closeAccessibilityLabel="Cancel history filters"
-          backdropAccessibilityLabel="Close history filters"
+          typeOptions={historyTypeOptions}
           onApply={setFilters}
           onClose={() => setFiltersOpen(false)}
         />
       </View>
     </AppScreen>
   );
+}
+
+function HistoryFilterSheet({
+  visible,
+  filters,
+  typeOptions,
+  onApply,
+  onClose,
+  testID,
+}: {
+  visible: boolean;
+  filters: HistoryFilterState;
+  typeOptions: { value: string; label: string }[];
+  onApply: (filters: HistoryFilterState) => void;
+  onClose: () => void;
+  testID: string;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  const { preferences } = useSettings();
+  const [draft, setDraft] = useState(filters);
+  const [view, setView] = useState<'summary' | 'types' | 'dates' | 'from' | 'to'>('summary');
+  const [query, setQuery] = useState('');
+  useEffect(() => {
+    if (!visible) return;
+    setDraft(filters);
+    setQuery('');
+    setView('summary');
+  }, [filters, visible]);
+  const filterCount = draft.types.length + (draft.dateMode === 'all' ? 0 : 1);
+  const changed = !sameHistoryFilters(draft, filters);
+  const visibleTypes = typeOptions.filter((type) => type.label.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
+  const setDateMode = (dateMode: HistoryDateMode): void => {
+    selectionHaptic();
+    setDraft((current) => ({ ...current, dateMode }));
+  };
+  const updateDate = (key: 'from' | 'to', value: Date): void => {
+    setDraft((current) => {
+      const timestamp = startOfDay(value).getTime();
+      if (key === 'from') return { ...current, from: timestamp, to: Math.max(timestamp, current.to) };
+      return { ...current, to: timestamp, from: Math.min(timestamp, current.from) };
+    });
+  };
+  const title = view === 'types' ? 'Workout type' : view === 'dates' ? 'Date range' : view === 'from' ? 'From date' : view === 'to' ? 'To date' : 'Filter history';
+  const goBack = (): void => {
+    setQuery('');
+    setView(view === 'from' || view === 'to' ? 'dates' : 'summary');
+  };
+  return (
+    <ForgeBottomSheet
+      testID={testID}
+      surfaceTestID={`${testID}-surface`}
+      visible={visible}
+      onClose={onClose}
+      accessibilityLabel="Close history filters"
+      initialOffset={620}
+      closeDistance={620}
+      dismissThreshold={220}
+    >
+      {(close) => (
+        <View style={[styles.historyFilterSheet, (view === 'types' || view === 'from' || view === 'to') && styles.historyFilterSheetTall]}>
+          <ForgeBottomSheetHandle />
+          <ForgeSheetHeader
+            title={title}
+            onClose={close}
+            closeAccessibilityLabel="Cancel history filters"
+            leading={view === 'summary'
+              ? filterCount ? <Button label="Clear" variant="outline" tone="destructive" onPress={() => setDraft(emptyHistoryFilters())} style={styles.historyFilterClear} /> : undefined
+              : <ForgeBackButton accessibilityLabel={view === 'from' || view === 'to' ? 'Back to date range' : 'Back to filters'} onPress={goBack} />}
+          />
+          {view === 'summary' ? (
+            <HistoryFilterSummary
+              filters={draft}
+              onOpenTypes={() => { selectionHaptic(); setView('types'); }}
+              onOpenDates={() => { selectionHaptic(); setView('dates'); }}
+            />
+          ) : view === 'types' ? (
+            <ScrollView style={styles.historyFilterScroll} contentContainerStyle={styles.historyFilterContent} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
+              <ForgeSearchField value={query} onChangeText={setQuery} accessibilityLabel="Search workout type filters" placeholder="Search workout type" autoFocus />
+              <View style={[styles.historyFilterCard, { borderColor: theme.border, backgroundColor: theme.surfaceElevated }]}>
+                {visibleTypes.map((type, index) => {
+                  const selected = draft.types.includes(type.value);
+                  return <Pressable key={type.value} accessibilityRole="checkbox" accessibilityLabel={`Filter Workout type: ${type.label}`} accessibilityState={{ checked: selected }} unstable_pressDelay={80} onPress={() => {
+                    selectionHaptic();
+                    setDraft((current) => ({ ...current, types: selected ? current.types.filter((value) => value !== type.value) : [...current.types, type.value] }));
+                  }} style={({ pressed }) => [styles.historyFilterChoice, selected && { backgroundColor: theme.successSurface }, pressed && styles.pressed]}>
+                    <Text style={styles.historyFilterChoiceText}>{type.label}</Text>
+                    {selected ? <Icon name="check" size={20} color={theme.selectionIndicator} weight="bold" /> : null}
+                    {index < visibleTypes.length - 1 ? <View style={[styles.historyFilterDivider, { backgroundColor: theme.divider }]} /> : null}
+                  </Pressable>;
+                })}
+                {!visibleTypes.length ? <Text style={styles.historyFilterEmpty}>No matching workout types.</Text> : null}
+              </View>
+            </ScrollView>
+          ) : view === 'dates' ? (
+            <HistoryDateRangeControls
+              filters={draft}
+              onSetMode={setDateMode}
+              onPreviousMonth={() => setDraft((current) => ({ ...current, month: new Date(new Date(current.month).getFullYear(), new Date(current.month).getMonth() - 1, 1).getTime() }))}
+              onNextMonth={() => setDraft((current) => ({ ...current, month: new Date(new Date(current.month).getFullYear(), new Date(current.month).getMonth() + 1, 1).getTime() }))}
+              onOpenFrom={() => setView('from')}
+              onOpenTo={() => setView('to')}
+            />
+          ) : (
+            <ScrollView style={styles.historyFilterScroll} contentContainerStyle={styles.historyDatePickerContent} showsVerticalScrollIndicator={false}>
+              <ForgeDateTimePicker
+                mode="date"
+                value={new Date(view === 'from' ? draft.from : draft.to)}
+                onChange={(value) => updateDate(view, value)}
+                weekStartsOn={preferences.weekStartsOn}
+                testID={`history-filter-${view}-picker`}
+              />
+            </ScrollView>
+          )}
+          {view === 'summary' ? (
+            <ForgeFloatingCta label={filterCount ? `Apply (${filterCount})` : 'Apply'} accessibilityLabel={filterCount ? `Apply (${filterCount})` : 'Apply filters'} disabled={!changed} tone="success" onPress={() => { onApply(draft); close(); }} />
+          ) : null}
+        </View>
+      )}
+    </ForgeBottomSheet>
+  );
+}
+
+function HistoryFilterSummary({ filters, onOpenTypes, onOpenDates }: { filters: HistoryFilterState; onOpenTypes: () => void; onOpenDates: () => void }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  return <ScrollView testID="history-filter-summary" contentContainerStyle={styles.historyFilterSummary} showsVerticalScrollIndicator={false}>
+    <View style={[styles.historyFilterCard, { borderColor: theme.border, backgroundColor: theme.surfaceElevated }]}>
+      <HistoryFilterRow icon="layers" title="Workout type" summary={filters.types.length ? (filters.types.length === 1 ? filters.types[0] : `${filters.types.length} selected`) : 'Any'} onPress={onOpenTypes} />
+      <View style={[styles.historyFilterDivider, styles.historyFilterSummaryDivider, { backgroundColor: theme.divider }]} />
+      <HistoryFilterRow icon="calendar" title="Date range" summary={historyDateSummary(filters)} onPress={onOpenDates} />
+    </View>
+  </ScrollView>;
+}
+
+function HistoryFilterRow({ icon, title, summary, onPress }: { icon: import('../types').IconName; title: string; summary: string; onPress: () => void }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  return <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${title} filter, ${summary}`} onPress={onPress} unstable_pressDelay={80} style={({ pressed }) => [styles.historyFilterRow, pressed && styles.pressed]}>
+    <View style={[styles.historyFilterIcon, { backgroundColor: theme.surfaceMuted }]}><Icon name={icon} size={19} color={theme.textPrimary} /></View>
+    <View style={styles.historyFilterCopy}><Text style={styles.historyFilterTitle}>{title}</Text><Text style={styles.historyFilterSummaryText}>{summary}</Text></View>
+    <Icon name="chevron-forward" size={19} color={theme.textSecondary} />
+  </Pressable>;
+}
+
+function HistoryDateRangeControls({ filters, onSetMode, onPreviousMonth, onNextMonth, onOpenFrom, onOpenTo }: { filters: HistoryFilterState; onSetMode: (mode: HistoryDateMode) => void; onPreviousMonth: () => void; onNextMonth: () => void; onOpenFrom: () => void; onOpenTo: () => void }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  const modes: { value: HistoryDateMode; label: string; description: string }[] = [
+    { value: 'all', label: 'All dates', description: 'Show the full timeline' },
+    { value: 'month', label: 'Month', description: 'Choose one calendar month' },
+    { value: 'dates', label: 'Custom dates', description: 'Choose a start and end date' },
+  ];
+  return <ScrollView contentContainerStyle={styles.historyDateControls} showsVerticalScrollIndicator={false}>
+    <View testID="history-filter-date-mode" style={[styles.historyFilterCard, { borderColor: theme.border, backgroundColor: theme.surfaceElevated }]}>
+      {modes.map((mode, index) => {
+        const selected = filters.dateMode === mode.value;
+        return <Pressable key={mode.value} accessibilityRole="radio" accessibilityLabel={mode.label} accessibilityState={{ checked: selected }} onPress={() => onSetMode(mode.value)} style={({ pressed }) => [styles.historyDateModeRow, selected && { backgroundColor: theme.successSurface }, pressed && styles.pressed]}>
+          <View style={styles.historyFilterCopy}><Text style={styles.historyFilterTitle}>{mode.label}</Text><Text style={styles.historyFilterSummaryText}>{mode.description}</Text></View>
+          {selected ? <Icon name="check" size={20} color={theme.selectionIndicator} weight="bold" /> : null}
+          {index < modes.length - 1 ? <View style={[styles.historyFilterDivider, { backgroundColor: theme.divider }]} /> : null}
+        </Pressable>;
+      })}
+    </View>
+    {filters.dateMode === 'month' ? <View testID="history-filter-month" style={[styles.historyMonthCard, { borderColor: theme.border, backgroundColor: theme.surfaceElevated }]}>
+      <HeaderAction accessibilityLabel="Previous filter month" icon="chevron-back" iconOnly variant={theme.colorScheme === 'dark' ? 'ghost' : 'outline'} onPress={onPreviousMonth} style={theme.colorScheme === 'dark' ? { backgroundColor: theme.surfaceMuted } : undefined} />
+      <View style={styles.historyMonthCopy}><Text style={styles.historyFilterTitle}>{new Date(filters.month).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</Text><Text style={styles.historyFilterSummaryText}>{historyDateSummary(filters)}</Text></View>
+      <HeaderAction accessibilityLabel="Next filter month" icon="chevron-forward" iconOnly variant={theme.colorScheme === 'dark' ? 'ghost' : 'outline'} onPress={onNextMonth} style={theme.colorScheme === 'dark' ? { backgroundColor: theme.surfaceMuted } : undefined} />
+    </View> : null}
+    {filters.dateMode === 'dates' ? <View style={[styles.historyFilterCard, { borderColor: theme.border, backgroundColor: theme.surfaceElevated }]}>
+      <HistoryFilterRow icon="calendar" title="From" summary={formatHistoryDate(filters.from)} onPress={onOpenFrom} />
+      <View style={[styles.historyFilterDivider, styles.historyFilterSummaryDivider, { backgroundColor: theme.divider }]} />
+      <HistoryFilterRow icon="calendar" title="To" summary={formatHistoryDate(filters.to)} onPress={onOpenTo} />
+    </View> : null}
+  </ScrollView>;
 }
 
 function TimelineRow({
@@ -302,6 +494,41 @@ function TimelineRow({
 const swipeSpring = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
 const historyCardRadius = 16;
 
+function startOfDay(value: Date): Date {
+  const result = new Date(value);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+
+function startOfNextDay(value: Date): Date {
+  const result = startOfDay(value);
+  result.setDate(result.getDate() + 1);
+  return result;
+}
+
+function startOfMonth(value: Date): Date {
+  return new Date(value.getFullYear(), value.getMonth(), 1);
+}
+
+function sameHistoryFilters(left: HistoryFilterState, right: HistoryFilterState): boolean {
+  return left.dateMode === right.dateMode
+    && left.month === right.month
+    && left.from === right.from
+    && left.to === right.to
+    && left.types.length === right.types.length
+    && left.types.every((type) => right.types.includes(type));
+}
+
+function formatHistoryDate(value: number): string {
+  return new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function historyDateSummary(filters: HistoryFilterState): string {
+  if (filters.dateMode === 'all') return 'All dates';
+  if (filters.dateMode === 'month') return new Date(filters.month).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+  return `${formatHistoryDate(filters.from)} – ${formatHistoryDate(filters.to)}`;
+}
+
 function groupByPeriod(workouts: Workout[]): HistoryGroup[] {
   const current = startOfWeek(new Date());
   const groups = new Map<string, HistoryGroup>();
@@ -347,6 +574,28 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   // Dark Forge headers use a calm filled action surface rather than an
   // outlined ring, which reads as visual noise against the dark background.
   darkHeaderAction: { backgroundColor: theme.surfaceMuted },
+  historyFilterSheet: { alignSelf: 'stretch', flexShrink: 1, maxHeight: 620 },
+  historyFilterSheetTall: { alignSelf: 'stretch', height: 620 },
+  historyFilterClear: { minHeight: 38, paddingHorizontal: 12, borderRadius: 14 },
+  historyFilterScroll: { flex: 1, minHeight: 0 },
+  historyFilterContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 28, gap: 10 },
+  historyDatePickerContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 28 },
+  historyFilterSummary: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 96 },
+  historyDateControls: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 28, gap: 12 },
+  historyFilterCard: { overflow: 'hidden', borderRadius: 20, borderWidth: 1 },
+  historyFilterRow: { minHeight: 68, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  historyFilterIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  historyFilterCopy: { flex: 1, minWidth: 0 },
+  historyFilterTitle: { ...typeScale.cardTitle, color: theme.textPrimary },
+  historyFilterSummaryText: { marginTop: 1, color: theme.textSecondary, ...typeScale.supporting },
+  historyFilterDivider: { position: 'absolute', right: 16, bottom: 0, left: 16, height: StyleSheet.hairlineWidth, pointerEvents: 'none' },
+  historyFilterSummaryDivider: { left: 64 },
+  historyFilterChoice: { minHeight: 56, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  historyFilterChoiceText: { flex: 1, color: theme.textPrimary, ...typeScale.cardTitle },
+  historyFilterEmpty: { padding: 20, color: theme.textSecondary, ...typeScale.supporting },
+  historyDateModeRow: { minHeight: 64, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  historyMonthCard: { minHeight: 72, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  historyMonthCopy: { flex: 1, alignItems: 'center' },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 18, gap: 18 },
   group: { gap: 8 },
