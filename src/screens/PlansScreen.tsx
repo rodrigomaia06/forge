@@ -12,6 +12,7 @@ import {
   AnchoredActionPopover,
   AppScreen,
   ForgeActionSheet,
+  ForgeCard,
   ForgeText as Text,
   HeaderAction,
   HeaderEdge,
@@ -19,6 +20,7 @@ import {
   lightHaptic,
   mediumHaptic,
   ScreenTitle,
+  pressedFeedbackSubtle,
   selectionHaptic,
 } from '../components/ui';
 import { useForgeTheme } from '../theme/ThemeProvider';
@@ -118,6 +120,8 @@ export function PlansScreen({ navigation, route }: Props) {
             icon="add"
             iconOnly
             onPress={() => setCreationOpen(true)}
+            variant={theme.colorScheme === 'dark' ? 'ghost' : 'secondary'}
+            style={theme.colorScheme === 'dark' ? styles.darkHeaderAction : undefined}
           />
           {headerElevated ? <HeaderEdge /> : null}
         </View>
@@ -133,7 +137,7 @@ export function PlansScreen({ navigation, route }: Props) {
           <View style={styles.listHeader}>
             {standaloneRoutines.length > 0 ? (
               <Section title="Routines">
-                <View style={styles.card}>
+                <ForgeCard variant="inset" style={styles.groupedCard}>
                   {standaloneRoutines.map((routine, index) => (
                     <SwipeDelete
                       key={routine.id}
@@ -153,7 +157,7 @@ export function PlansScreen({ navigation, route }: Props) {
                       )}
                     </SwipeDelete>
                   ))}
-                </View>
+                </ForgeCard>
               </Section>
             ) : null}
             {plans.length > 0 ? <Text style={styles.sectionTitle}>Plans</Text> : null}
@@ -297,7 +301,7 @@ function PlanCard({
             style={({ pressed }) => [
               styles.planHeader,
               styles.planOptions,
-              pressed && styles.pressed,
+              pressed && pressedFeedbackSubtle,
             ]}
           >
             <Text style={styles.planName}>{plan.name}</Text>
@@ -325,8 +329,9 @@ function PlanCard({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Add routine to ${plan.name}`}
+            unstable_pressDelay={80}
             onPress={onAddRoutine}
-            style={({ pressed }) => [styles.addToPlan, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.addToPlan, pressed && pressedFeedbackSubtle]}
           >
             <Icon name="add" size={16} color={theme.textPrimary} />
             <Text style={styles.addToPlanText}>Add routine</Text>
@@ -399,8 +404,9 @@ function RoutineCardBody({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Start ${routine.name}`}
+          unstable_pressDelay={80}
           onPress={onStart}
-          style={({ pressed }) => [styles.typeMarker, pressed && styles.pressed]}
+          style={({ pressed }) => [styles.typeMarker, pressed && pressedFeedbackSubtle]}
         >
           {typeIcon}
         </Pressable>
@@ -413,7 +419,7 @@ function RoutineCardBody({
           accessibilityLabel={`Routine actions for ${routine.name}`}
           unstable_pressDelay={80}
           onPress={onPress}
-          style={({ pressed }) => [styles.routineCopy, pressed && styles.pressed]}
+          style={({ pressed }) => [styles.routineCopy, pressed && pressedFeedbackSubtle]}
         >
           {copy}
         </Pressable>
@@ -529,7 +535,7 @@ function SwipeDelete({
     onOpen?.();
   };
 
-  return (
+  const content = (
     <GestureDetector gesture={pan}>
       <View
         testID={testID}
@@ -571,23 +577,15 @@ function SwipeDelete({
       </View>
     </GestureDetector>
   );
+  return rounded ? <ForgeCard variant="inset" style={styles.planCard}>{content}</ForgeCard> : content;
 }
 
 const createStyles = (theme: import('../types').ForgeTheme) =>
   StyleSheet.create({
-    card: {
-      borderRadius: theme.cardRadius,
-      backgroundColor: theme.surface,
-      overflow: 'hidden',
-      shadowColor: theme.shadow,
-      shadowOpacity: 0.06,
-      shadowRadius: 10,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 2,
-    },
-    // The root swipe surface already owns this card's opaque background and
-    // radius. A second elevated card here created a faint seam above the plan
-    // title on some GPU/compositor combinations.
+    groupedCard: { overflow: 'hidden' },
+    // ForgeCard owns the single opaque plan surface and radius. Its inner
+    // swipe wrapper stays transparent so it cannot create a seam above the title.
+    planCard: { overflow: 'hidden' },
     planCardSurface: { overflow: 'hidden' },
     screen: { flex: 1 },
     scrollView: { flex: 1 },
@@ -601,6 +599,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       flexDirection: 'row',
       backgroundColor: theme.background,
     },
+    darkHeaderAction: { backgroundColor: theme.surfaceMuted },
     content: {
       paddingHorizontal: spacing.screen,
       paddingTop: 16,
@@ -699,5 +698,4 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       borderTopRightRadius: theme.cardRadius,
       borderBottomRightRadius: theme.cardRadius,
     },
-    pressed: { backgroundColor: theme.surfaceMuted },
   });

@@ -8,6 +8,7 @@ async function dimensions(locator: Locator) {
       width: box.width,
       height: box.height,
       background: style.backgroundColor,
+      borderWidth: style.borderWidth,
       color: style.color,
     };
   });
@@ -102,7 +103,8 @@ test.describe('Interactive control consistency', () => {
 
     await page.getByRole('tab', { name: 'Plans' }).click();
     const create = await dimensions(page.getByRole('button', { name: 'Create workout, routine, or plan' }));
-    expect(create.background).toBe(start.background);
+    expect(create.background).toBe('rgb(48, 54, 59)');
+    expect(create.borderWidth).toBe('0px');
 
     await page.getByRole('tab', { name: 'Dashboard' }).click();
     await page.getByRole('button', { name: 'Start workout' }).click();
