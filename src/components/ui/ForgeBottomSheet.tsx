@@ -68,6 +68,12 @@ interface ForgeBottomSheetProps {
   backdropIntensity?: 'default' | 'strong';
   /** Disable for sheets whose primary content is a tall vertical scroller. */
   dragEnabled?: boolean;
+  /**
+   * Compose and measure mandatory content before beginning the entrance.
+   * This prevents a tall first-use sheet from moving while its primary card
+   * is still being laid out.
+   */
+  waitForContentLayoutBeforeEnter?: boolean;
   testID?: string;
 }
 
@@ -90,6 +96,7 @@ export function ForgeBottomSheet({
   surfaceTestID,
   dragArea,
   dragEnabled = true,
+  waitForContentLayoutBeforeEnter = false,
   backdropIntensity = 'default',
   testID,
 }: ForgeBottomSheetProps) {
@@ -103,6 +110,8 @@ export function ForgeBottomSheet({
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [naturalSheetHeight, setNaturalSheetHeight] = useState(0);
+  const [entryContentReady, setEntryContentReady] = useState(false);
+  const entryOffsetRef = useRef(initialOffset);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
@@ -119,16 +128,25 @@ export function ForgeBottomSheet({
   }, [backdropOpacity, closeDistance, closing, finishClose, onCloseStart, translateY]);
 
   useEffect(() => {
-    if (!visible) return undefined;
+    if (!visible) {
+      entryOffsetRef.current = initialOffset;
+      setEntryContentReady(false);
+      return undefined;
+    }
     closing.value = false;
-    translateY.value = initialOffset;
+    translateY.value = waitForContentLayoutBeforeEnter && entryContentReady
+      ? entryOffsetRef.current
+      : initialOffset;
     backdropOpacity.value = 0;
+    // The source chooser is a required first step. Do not make its sheet
+    // visible until its action card has a stable layout to travel with it.
+    if (waitForContentLayoutBeforeEnter && !entryContentReady) return undefined;
     const frame = requestAnimationFrame(() => {
       translateY.value = withSpring(0, sheetSnapSpring);
       backdropOpacity.value = withTiming(1, { duration: 180 });
     });
     return () => cancelAnimationFrame(frame);
-  }, [backdropOpacity, closing, initialOffset, translateY, visible]);
+  }, [backdropOpacity, closing, entryContentReady, initialOffset, translateY, visible, waitForContentLayoutBeforeEnter]);
 
   useEffect(() => {
     if (!visible || !keyboardAvoiding) {
@@ -242,7 +260,17 @@ export function ForgeBottomSheet({
             <Animated.View
               testID={surfaceTestID}
               onLayout={(event) => {
-                if (!keyboardVisible) setNaturalSheetHeight(event.nativeEvent.layout.height);
+                if (keyboardVisible) return;
+                const height = event.nativeEvent.layout.height;
+                setNaturalSheetHeight(height);
+                if (waitForContentLayoutBeforeEnter && !entryContentReady) {
+                  // A fixed entry offset can leave the lower half of a tall
+                  // sheet visible before its first animation frame. Place the
+                  // measured sheet entirely below the viewport first.
+                  entryOffsetRef.current = Math.max(initialOffset, height + 16);
+                  translateY.value = entryOffsetRef.current;
+                  setEntryContentReady(true);
+                }
               }}
               onStartShouldSetResponderCapture={() => keyboardVisible && dismissTextKeyboardOnTap}
               onResponderRelease={() => Keyboard.dismiss()}
@@ -261,6 +289,7 @@ export function ForgeBottomSheet({
                   top: insets.top,
                   bottom: keyboardHeight,
                 },
+                waitForContentLayoutBeforeEnter && !entryContentReady && styles.preparingSheet,
                 sheetStyle,
               ]}
             >
@@ -325,6 +354,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -8 },
     elevation: 12,
   },
+  preparingSheet: { opacity: 0 },
   keyboardExpandedSheet: {
     position: 'absolute',
     right: 0,

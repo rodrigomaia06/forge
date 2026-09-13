@@ -139,9 +139,21 @@ export function DashboardWorkoutCard({
       </View>
       {selectedWorkouts.length > 0 ? (
         <View style={[styles.workoutList, { borderTopColor: theme.divider }]}>
-          {selectedWorkouts.map((workout) => (
-            <WorkoutRow key={`${calendarDateKey(selectedDate)}-${workout.id}`} workout={workout} theme={theme} />
-          ))}
+          {selectedWorkouts.map((workout) => {
+            const workoutId = workout.id;
+            return (
+              <WorkoutRow
+                key={`${calendarDateKey(selectedDate)}-${workoutId}`}
+                workout={workout}
+                theme={theme}
+                onPress={workoutId ? () => {
+                  lightHaptic();
+                  navigation.navigate('MainTabs', { screen: 'History' });
+                  requestAnimationFrame(() => navigation.navigate('WorkoutDetails', { workoutId }));
+                } : undefined}
+              />
+            );
+          })}
         </View>
       ) : (
         <View style={[styles.emptyDay, { borderTopColor: theme.divider }]}>

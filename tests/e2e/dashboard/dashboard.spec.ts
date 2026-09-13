@@ -35,8 +35,13 @@ test.describe('Dashboard', () => {
     const addHistoricalWorkout = page.getByRole('button', { name: 'Add historical workout' });
     await expect(addHistoricalWorkout).toBeVisible();
     await addHistoricalWorkout.click();
-    await expect(page.getByTestId('historical-workout-source-chooser')).toBeVisible();
-    await page.getByRole('button', { name: 'Blank workout' }).click();
+    const sourceChooser = page.getByTestId('historical-workout-source-chooser');
+    await expect(sourceChooser).toBeVisible();
+    // Both mandatory choices are composed with the sheet from its entrance,
+    // rather than joining after the sheet is already moving.
+    await expect(sourceChooser.getByRole('button', { name: 'Blank workout' })).toBeVisible();
+    await expect(sourceChooser.getByRole('button', { name: 'From routine' })).toBeVisible();
+    await sourceChooser.getByRole('button', { name: 'Blank workout' }).click();
     await expect(page.getByLabel('Workout name')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Select Date' })).toContainText('2026-08-24');
     await expect(page.getByRole('button', { name: 'Select Start time' })).toContainText('Choose time');
@@ -79,6 +84,29 @@ test.describe('Dashboard', () => {
     if (testInfo.project.name === 'iphone-air') return;
     await page.reload();
     await expect.poll(() => hasVisibleExactText(page, 'Calendar workout')).toBe(true);
+  });
+
+  test('opens a recorded workout from its selected calendar day in History detail', async ({ page }) => {
+    await page.addInitScript(() => {
+      const completedAt = Date.UTC(2026, 7, 24, 18);
+      localStorage.setItem('@forge/completed-workouts', JSON.stringify([{
+        id: 'dashboard-day-workout',
+        name: 'Dashboard day workout',
+        type: 'Strength',
+        startedAt: completedAt - 3600_000,
+        completedAt,
+        durationSeconds: 3600,
+        exercises: [],
+      }]));
+    });
+    await page.goto('/');
+
+    await page.getByRole('button', { name: /Dashboard day workout, Strength/ }).click();
+    await expect(page.getByTestId('workout-details-summary')).toBeVisible();
+    await expect(page.getByText('Dashboard day workout', { exact: true }).last()).toBeVisible();
+    await page.getByRole('button', { name: 'Back to History' }).click();
+    await expect(page.getByTestId('history-header')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open Dashboard day workout' })).toBeVisible();
   });
 
   test('seeds a historical draft from an independent routine snapshot', async ({ page }) => {

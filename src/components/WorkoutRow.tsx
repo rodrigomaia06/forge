@@ -9,9 +9,11 @@ import type { ForgeTheme, WorkoutSummary } from '../types';
 export function WorkoutRow({
   workout,
   theme = colors,
+  onPress,
 }: {
   workout: WorkoutSummary;
   theme?: ForgeTheme;
+  onPress?: () => void;
 }) {
   const { preferences } = useSettings();
   const summary =
@@ -24,6 +26,7 @@ export function WorkoutRow({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${workout.name}, ${workout.type}, ${duration}, ${summary}`}
+      onPress={onPress}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
       <View style={[styles.typeIcon, { backgroundColor: presentation.background }]}>

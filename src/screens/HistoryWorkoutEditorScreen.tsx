@@ -513,6 +513,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         titleNumberOfLines={2}
         emphasis="prominent"
         backdropIntensity="strong"
+        waitForContentLayoutBeforeEnter
         actions={[
           {
             label: 'Blank workout',

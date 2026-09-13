@@ -45,6 +45,8 @@ interface ForgeActionSheetProps {
   dismissThreshold?: number;
   /** Replaces the action list without dismissing and re-presenting a new sheet. */
   replacement?: ((close: () => void) => ReactNode) | null;
+  /** Wait for a required initial action card to be laid out before entry. */
+  waitForContentLayoutBeforeEnter?: boolean;
 }
 
 /** Shared Forge presentation for bottom-attached action lists. */
@@ -63,6 +65,7 @@ export function ForgeActionSheet({
   closeDistance,
   dismissThreshold,
   replacement = null,
+  waitForContentLayoutBeforeEnter = false,
 }: ForgeActionSheetProps) {
   const theme = useForgeTheme();
   const neutralActions = actions.filter((action) => (action.tone ?? 'neutral') === 'neutral');
@@ -79,6 +82,7 @@ export function ForgeActionSheet({
       closeDistance={closeDistance}
       dismissThreshold={dismissThreshold}
       backdropIntensity={backdropIntensity}
+      waitForContentLayoutBeforeEnter={waitForContentLayoutBeforeEnter}
     >
       {(close) => (
         <View style={[styles.sheet, emphasis === 'prominent' && styles.prominentSheet]}>
