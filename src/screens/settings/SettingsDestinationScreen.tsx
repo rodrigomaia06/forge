@@ -10,7 +10,7 @@ import { typeScale } from '../../theme/tokens';
 import type { IconName, RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
-import { allDataTransferSelection, createSqliteBackup, databaseStatus, eraseAllForgeData, exportJson, exportText, inspectDataTransfer, mergeDataTransfer, pickJsonTransfer, pickSqliteBackup, restoreSqliteBackup, type DataTransferCategory, type DataTransferInspection, type DataTransferSelection, type ForgeDataTransfer } from '../../data/backupRepository';
+import { allDataTransferSelection, createSqliteBackup, databaseStatus, eraseAllForgeData, exportJson, exportText, inspectDataTransfer, mergeDataTransfer, pickJsonTransfer, pickSqliteBackup, restoreSqliteBackup, type DataTransferCategory, type DataTransferInspection, type DataTransferMergeResult, type DataTransferSelection, type ForgeDataTransfer } from '../../data/backupRepository';
 import { clearDiagnostics, exportDiagnostics, loadDiagnostics, recordDiagnostic, type DiagnosticEntry } from '../../data/diagnosticsRepository';
 import { useSettings } from '../../state/SettingsContext';
 import { usePlans } from '../../state/PlansContext';
@@ -67,6 +67,7 @@ function BackupExport() {
   const [selection, setSelection] = React.useState<DataTransferSelection>(allDataTransferSelection);
   const [inspection, setInspection] = React.useState<DataTransferInspection | null>(null);
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = React.useState(false);
+  const [mergeSummary, setMergeSummary] = React.useState<DataTransferMergeResult | null>(null);
   const theme = useForgeTheme();
   const { reload: reloadSettings } = useSettings();
   const { reload: reloadPlans } = usePlans();
@@ -112,7 +113,7 @@ function BackupExport() {
       await recordDiagnostic('data-imported');
       setTransferStep(null);
       setTransfer(null);
-      Alert.alert('Data merged', `${result.workouts} workouts and ${result.exercises} exercises were added.`);
+      setMergeSummary(result);
     });
   };
   const restore = (): void => {
@@ -201,8 +202,33 @@ function BackupExport() {
         onConfirm={confirmErase}
         testID="delete-all-data-confirmation"
       />
+      <ForgeConfirmationDialog
+        visible={Boolean(mergeSummary)}
+        title="Data merged"
+        message={mergeSummary ? mergeSummaryMessage(mergeSummary) : ''}
+        cancelLabel="Done"
+        confirmLabel="Done"
+        confirmTone="success"
+        showCancel={false}
+        onCancel={() => setMergeSummary(null)}
+        onConfirm={() => setMergeSummary(null)}
+        testID="data-merged-summary"
+      />
     </View>
   );
+}
+
+function mergeSummaryMessage(result: DataTransferMergeResult): string {
+  const labels: Record<DataTransferCategory, string> = {
+    workouts: 'workouts', plans: 'plans and routines', exercises: 'custom exercises', workoutTypes: 'workout types', measurements: 'measurements',
+  };
+  const added = (Object.entries(result.categories) as Array<[DataTransferCategory, number]>)
+    .filter(([, count]) => count > 0)
+    .map(([key, count]) => `${count} ${labels[key]}`);
+  if (result.activeWorkoutAdded) added.push('current workout');
+  return added.length
+    ? `Added ${added.join(', ')}. Existing matching records stayed on device.`
+    : 'No new records were needed. Matching records stayed on device.';
 }
 
 const transferCategories: Array<{ key: DataTransferCategory; title: string; detail: string; icon: IconName }> = [

@@ -287,7 +287,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     onChange={(changes) => updateSet(exercise.id, set.id, changes)}
                     onToggle={() => {
                       lightHaptic();
-                      if (!set.completed) onSetCompleted();
+                      if (!set.completed) onSetCompleted(exercise);
                       toggleSet(exercise.id, set.id);
                     }}
                     onDelete={() => {

@@ -21,5 +21,6 @@ export function createExerciseSnapshot(exercise: ExerciseCatalogItem): ExerciseS
     aliases: exercise.aliases,
     searchTerms: exercise.searchTerms,
     movementPattern: exercise.movementPattern,
+    restSeconds: exercise.restSeconds,
   };
 }

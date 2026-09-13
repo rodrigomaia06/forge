@@ -12,6 +12,7 @@ export type DataTransferCategory = 'workouts' | 'plans' | 'exercises' | 'workout
 export type DataTransferSelection = Record<DataTransferCategory, boolean>;
 export type DataTransferCategorySummary = { available: number; newRecords: number; existingRecords: number; planCount?: number; routineCount?: number };
 export type DataTransferInspection = { exportedAt: string; categories: Record<DataTransferCategory, DataTransferCategorySummary>; activeWorkout: boolean };
+export type DataTransferMergeResult = { categories: Record<DataTransferCategory, number>; activeWorkoutAdded: boolean };
 export type ForgeDataTransfer = { format: 'forge-data'; version: number; exportedAt: string; settings: SettingsPreferences; plans: PlansState; workouts: WorkoutState; customExercises: ExerciseCatalogItem[]; selection?: DataTransferSelection };
 export type BackupInspection = { bytes: Uint8Array; workoutCount: number; activeWorkout: boolean; planCount: number; customExerciseCount: number };
 
@@ -70,19 +71,31 @@ export async function inspectDataTransfer(incoming: ForgeDataTransfer, selection
     },
   };
 }
-export async function mergeDataTransfer(incoming: ForgeDataTransfer, selection = allDataTransferSelection()): Promise<{ workouts: number; exercises: number }> {
+export async function mergeDataTransfer(incoming: ForgeDataTransfer, selection = allDataTransferSelection()): Promise<DataTransferMergeResult> {
   const [settings, plans, workouts, exercises] = await Promise.all([loadSettingsPreferences(), loadPlansState(), loadWorkoutState(), loadCustomExercises()]); const merge = <T extends { id: string }>(a: T[], b: T[]): T[] => uniqueById([...a, ...b]);
   const completed = selection.workouts ? merge(workouts.completedWorkouts, incoming.workouts.completedWorkouts) : workouts.completedWorkouts;
   const importedActive = selection.workouts && incoming.workouts.activeWorkout && !completed.some((workout) => workout.id === incoming.workouts.activeWorkout?.id) ? incoming.workouts.activeWorkout : null;
   const custom = selection.exercises ? merge(exercises, incoming.customExercises) : exercises;
+  const mergedPlans = selection.plans ? merge(plans.plans, incoming.plans.plans) : plans.plans;
+  const mergedStandaloneRoutines = selection.plans ? merge(plans.standaloneRoutines, incoming.plans.standaloneRoutines) : plans.standaloneRoutines;
+  const mergedSettings = { ...settings, workoutTypes: selection.workoutTypes ? merge(settings.workoutTypes, incoming.settings.workoutTypes ?? []) : settings.workoutTypes, dailyMeasurementDefinitions: selection.measurements ? merge(settings.dailyMeasurementDefinitions, incoming.settings.dailyMeasurementDefinitions ?? []) : settings.dailyMeasurementDefinitions, dailyMeasurementEntries: selection.measurements ? merge(settings.dailyMeasurementEntries, incoming.settings.dailyMeasurementEntries ?? []) : settings.dailyMeasurementEntries };
   await Promise.all([
-    saveSettingsPreferences({ ...settings, workoutTypes: selection.workoutTypes ? merge(settings.workoutTypes, incoming.settings.workoutTypes ?? []) : settings.workoutTypes, dailyMeasurementDefinitions: selection.measurements ? merge(settings.dailyMeasurementDefinitions, incoming.settings.dailyMeasurementDefinitions ?? []) : settings.dailyMeasurementDefinitions, dailyMeasurementEntries: selection.measurements ? merge(settings.dailyMeasurementEntries, incoming.settings.dailyMeasurementEntries ?? []) : settings.dailyMeasurementEntries }),
-    savePlansState({ plans: selection.plans ? merge(plans.plans, incoming.plans.plans) : plans.plans, standaloneRoutines: selection.plans ? merge(plans.standaloneRoutines, incoming.plans.standaloneRoutines) : plans.standaloneRoutines }),
+    saveSettingsPreferences(mergedSettings),
+    savePlansState({ plans: mergedPlans, standaloneRoutines: mergedStandaloneRoutines }),
     saveCompletedWorkouts(completed), saveCustomExercises(custom), !workouts.activeWorkout && importedActive ? saveActiveWorkout(importedActive) : Promise.resolve(),
   ]);
-  return { workouts: completed.length - workouts.completedWorkouts.length, exercises: custom.length - exercises.length };
+  return {
+    categories: {
+      workouts: completed.length - workouts.completedWorkouts.length,
+      plans: mergedPlans.length + mergedPlans.flatMap((plan) => plan.routines).length + mergedStandaloneRoutines.length - plans.plans.length - plans.plans.flatMap((plan) => plan.routines).length - plans.standaloneRoutines.length,
+      exercises: custom.length - exercises.length,
+      workoutTypes: mergedSettings.workoutTypes.length - settings.workoutTypes.length,
+      measurements: mergedSettings.dailyMeasurementDefinitions.length + mergedSettings.dailyMeasurementEntries.length - settings.dailyMeasurementDefinitions.length - settings.dailyMeasurementEntries.length,
+    },
+    activeWorkoutAdded: Boolean(!workouts.activeWorkout && importedActive),
+  };
 }
-export async function importJson(): Promise<{ workouts: number; exercises: number }> { const incoming = await pickJsonTransfer(); return incoming ? mergeDataTransfer(incoming) : { workouts: 0, exercises: 0 }; }
+export async function importJson(): Promise<DataTransferMergeResult | null> { const incoming = await pickJsonTransfer(); return incoming ? mergeDataTransfer(incoming) : null; }
 export async function createSqliteBackup(): Promise<void> { throw new Error('Full SQLite backups are available in iOS and Android builds, not on web.'); }
 export async function pickSqliteBackup(): Promise<BackupInspection | null> { throw new Error('Full SQLite restore is available in iOS and Android builds, not on web.'); }
 export async function restoreSqliteBackup(): Promise<void> { throw new Error('Full SQLite restore is available in iOS and Android builds, not on web.'); }

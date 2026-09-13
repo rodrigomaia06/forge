@@ -9,7 +9,9 @@ import { useWorkouts } from './WorkoutContext';
 import { syncRestTimerLiveActivity } from './restTimerLiveActivity';
 
 const restTimerNotificationId = 'forge-rest-timer-complete';
-const restTimerChannelId = 'forge-rest-timer';
+const restTimerAudibleChannelId = 'forge-rest-timer-audible';
+const restTimerSilentChannelId = 'forge-rest-timer-silent';
+const unfinishedWorkoutReminderId = 'forge-unfinished-workout-reminder';
 const restTimerStorageKey = '@forge/rest-timer-v1';
 
 if (Platform.OS !== 'web') {
@@ -75,7 +77,28 @@ async function replaceRestTimerNotification(
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DATE,
       date: new Date(endAt),
-      channelId: Platform.OS === 'android' ? restTimerChannelId : undefined,
+      channelId: Platform.OS === 'android' ? (soundEnabled ? restTimerAudibleChannelId : restTimerSilentChannelId) : undefined,
+    },
+  });
+}
+
+async function replaceUnfinishedWorkoutReminder(
+  activeWorkout: ReturnType<typeof useWorkouts>['activeWorkout'],
+  enabled: boolean,
+  delaySeconds: number,
+): Promise<void> {
+  if (Platform.OS === 'web') return;
+  await Notifications.cancelScheduledNotificationAsync(unfinishedWorkoutReminderId).catch(() => undefined);
+  if (!enabled || !activeWorkout || !(await canScheduleNotifications())) return;
+  const reminderAt = activeWorkout.startedAt + delaySeconds * 1000;
+  if (reminderAt <= Date.now()) return;
+  await Notifications.scheduleNotificationAsync({
+    identifier: unfinishedWorkoutReminderId,
+    content: { title: 'Workout still open', body: 'Your Forge workout is ready when you are.', sound: false, data: { forgeReminder: 'unfinished-workout' } },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: new Date(reminderAt),
+      channelId: Platform.OS === 'android' ? restTimerSilentChannelId : undefined,
     },
   });
 }
@@ -96,11 +119,17 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;
-    void Notifications.setNotificationChannelAsync(restTimerChannelId, {
-      name: 'Rest timer',
+    void Notifications.setNotificationChannelAsync(restTimerAudibleChannelId, {
+      name: 'Rest timer alerts',
       importance: Notifications.AndroidImportance.HIGH,
       sound: 'default',
       vibrationPattern: [0, 180, 90, 180],
+    }).catch(() => undefined);
+    void Notifications.setNotificationChannelAsync(restTimerSilentChannelId, {
+      name: 'Forge reminders',
+      importance: Notifications.AndroidImportance.DEFAULT,
+      sound: null,
+      vibrationPattern: [],
     }).catch(() => undefined);
   }, []);
 
@@ -158,6 +187,18 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
       .catch(() => undefined);
   }, [duration, endAt, hydrated, preferences.restTimerSound, preferences.showRestTimer]);
 
+  // General reminders are one durable local notification, not an in-app timer.
+  // It is replaced whenever the active workout or its preference changes, and
+  // is removed immediately as soon as the workout is finished or discarded.
+  useEffect(() => {
+    if (!workoutsReady) return;
+    void replaceUnfinishedWorkoutReminder(
+      activeWorkout,
+      preferences.unfinishedWorkoutReminderEnabled,
+      preferences.unfinishedWorkoutReminderDelay,
+    ).catch(() => undefined);
+  }, [activeWorkout, preferences.unfinishedWorkoutReminderDelay, preferences.unfinishedWorkoutReminderEnabled, workoutsReady]);
+
   // ActivityKit is a secondary presentation of the same timestamp state. It
   // deliberately receives updates only for semantic timer changes, never from
   // the once-per-second React display components.
@@ -193,6 +234,10 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
     didNotifyCompletion.current = false;
     setEndAt(null);
   }, []);
+
+  useEffect(() => {
+    if (!preferences.showRestTimer && endAt) stop();
+  }, [endAt, preferences.showRestTimer, stop]);
 
   const rawRemaining = endAt ? Math.ceil((endAt - Date.now()) / 1000) : 0;
   const remaining = endAt ? (preferences.keepRestTimerRunning ? rawRemaining : Math.max(0, rawRemaining)) : 0;

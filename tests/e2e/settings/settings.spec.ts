@@ -286,10 +286,10 @@ test.describe('Settings', () => {
         settings: { workoutTypes: [], dailyMeasurementDefinitions: [], dailyMeasurementEntries: [] },
         plans: {
           plans: [
-            { id: 'plan-a', routines: [{ id: 'routine-a' }, { id: 'routine-b' }] },
-            { id: 'plan-b', routines: [{ id: 'routine-c' }, { id: 'routine-d' }] },
+            { id: 'plan-a', name: 'Plan A', createdAt: 0, updatedAt: 0, routines: [{ id: 'routine-a', name: 'Routine A', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }, { id: 'routine-b', name: 'Routine B', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }] },
+            { id: 'plan-b', name: 'Plan B', createdAt: 0, updatedAt: 0, routines: [{ id: 'routine-c', name: 'Routine C', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }, { id: 'routine-d', name: 'Routine D', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }] },
           ],
-          standaloneRoutines: [{ id: 'routine-e' }],
+          standaloneRoutines: [{ id: 'routine-e', name: 'Routine E', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }],
         },
         workouts: { activeWorkout: null, completedWorkouts: [] }, customExercises: [],
       })),
@@ -304,9 +304,17 @@ test.describe('Settings', () => {
     await expect(sheet.getByText('2 plans · 5 routines · 0 on device')).toBeVisible();
     await expect(sheet.getByRole('button', { name: 'Import selected data' })).toBeVisible();
     await expect(sheet.getByText('Workouts', { exact: true })).toHaveCount(0);
+    await sheet.getByRole('button', { name: 'Import selected data' }).click();
+    const summary = page.getByTestId('data-merged-summary');
+    await expect(summary).toBeVisible();
+    await expect(summary).toContainText('7 plans and routines');
+    await expect(summary).toContainText('stayed on device');
     if (testInfo.project.name === 'iphone-air') {
-      await page.screenshot({ path: testInfo.outputPath('import-review-iphone.png') });
+      await page.waitForTimeout(250);
+      await page.screenshot({ path: testInfo.outputPath('import-merged-summary-iphone.png') });
     }
+    await summary.getByRole('button', { name: 'Done' }).click();
+    await expect(summary).toBeHidden();
   });
 
   test('uses the Forge destructive confirmation card before deleting app data', async ({ page }) => {

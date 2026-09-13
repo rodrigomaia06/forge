@@ -30,6 +30,7 @@ import { useForgeFloatingCtaClearance } from '../components/ui/ForgeFloatingCta'
 import { useWorkouts } from '../state/WorkoutContext';
 import { useRestTimer } from '../state/RestTimerContext';
 import { useSettings } from '../state/SettingsContext';
+import { useExerciseCatalog } from '../state/ExerciseCatalogContext';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import type { RootTabScreenProps, Workout, WorkoutExercise, WorkoutSetChanges } from '../types';
@@ -71,6 +72,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     cancelWorkout,
     finishWorkout,
   } = useWorkouts();
+  const { exercises: catalogExercises } = useExerciseCatalog();
   const [restSelection, setRestSelection] = useState(90);
   const [restSheetOpen, setRestSheetOpen] = useState(false);
   const [durationSheetOpen, setDurationSheetOpen] = useState(false);
@@ -95,15 +97,32 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
   const restEndAt = restTimer.endAt;
   const restDuration = restTimer.duration || preferences.defaultRestSeconds;
 
-  const startRestTimer = useCallback((duration = 60): void => {
+  const startRestTimer = useCallback((duration: number): void => {
     lightHaptic();
     restTimer.start(duration);
   }, [restTimer]);
+  const restDurationForExercise = useCallback((exercise: WorkoutExercise): number => {
+    const exerciseId = exercise.exerciseId ?? exercise.exerciseSnapshot?.id;
+    const override = exerciseId ? preferences.exerciseRestSeconds[exerciseId] : undefined;
+    const snapshotRest = exercise.exerciseSnapshot?.restSeconds;
+    const catalogRest = exerciseId ? catalogExercises.find((item) => item.id === exerciseId)?.restSeconds : undefined;
+    return override ?? snapshotRest ?? catalogRest ?? preferences.defaultRestSeconds;
+  }, [catalogExercises, preferences.defaultRestSeconds, preferences.exerciseRestSeconds]);
+  const handleSetCompleted = useCallback((exercise: WorkoutExercise): void => {
+    if (!preferences.showRestTimer) return;
+    startRestTimer(restDurationForExercise(exercise));
+  }, [preferences.showRestTimer, restDurationForExercise, startRestTimer]);
   const openRestTimer = () => {
     lightHaptic();
     if (restRunning) setRestSelection(restDuration);
     setRestSheetOpen(true);
   };
+  useEffect(() => {
+    if (!restRunning) setRestSelection(preferences.defaultRestSeconds);
+  }, [preferences.defaultRestSeconds, restRunning]);
+  useEffect(() => {
+    if (!preferences.showRestTimer) setRestSheetOpen(false);
+  }, [preferences.showRestTimer]);
   useEffect(() => {
     if (route.params?.openRestTimer !== 'open') return;
     openRestTimer();
@@ -278,17 +297,19 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
             <ElapsedTimer workout={activeWorkout} style={styles.elapsedValue} />
             <Text style={styles.timerLabel}>Elapsed</Text>
           </Pressable>
-          <View style={styles.timerDivider} />
-          <RestTimerHeaderAction
-            endAt={restEndAt}
-            fallbackRemaining={restRemaining}
-            duration={restDuration}
-            running={restRunning}
-            style={styles.timerReset}
-            labelStyle={styles.timerLabel}
-            onOpen={openRestTimer}
-            onRestart={() => startRestTimer(restDuration)}
-          />
+          {preferences.showRestTimer ? <>
+            <View style={styles.timerDivider} />
+            <RestTimerHeaderAction
+              endAt={restEndAt}
+              fallbackRemaining={restRemaining}
+              duration={restDuration}
+              running={restRunning}
+              style={styles.timerReset}
+              labelStyle={styles.timerLabel}
+              onOpen={openRestTimer}
+              onRestart={() => startRestTimer(restDuration)}
+            />
+          </> : null}
         </View>
         {headerElevated ? <HeaderEdge /> : null}
       </View>
@@ -302,7 +323,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
         updateSet={updateSet}
         toggleSet={toggleSet}
         updateActiveWorkout={updateActiveWorkout}
-        onSetCompleted={startRestTimer}
+        onSetCompleted={handleSetCompleted}
         onOpenAddExercise={openAddExercise}
         onScrollOffsetChange={handleWorkoutScrollOffset}
         dockScrollInset={dockScrollInset}
@@ -442,7 +463,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
         <ForgeFloatingCta label="Save changes" accessibilityLabel="Save live workout changes" onPress={saveWorkoutEditor} disabled={!workoutNameDraft.trim()} tone="success" />
         </>}
       </ForgeBottomSheet>
-      {restSheetOpen && (
+      {preferences.showRestTimer && restSheetOpen && (
         <RestTimerSheet
           visible
           selectedDuration={restSelection}
@@ -543,7 +564,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
   updateSet: (exerciseId: string, setId: string, changes: WorkoutSetChanges) => void;
   toggleSet: (exerciseId: string, setId: string) => void;
   updateActiveWorkout: (update: (workout: Workout) => Workout) => void;
-  onSetCompleted: (duration?: number) => void;
+  onSetCompleted: (exercise: WorkoutExercise) => void;
   onOpenAddExercise: () => void;
   onScrollOffsetChange: (offset: number) => void;
   dockScrollInset: number;

@@ -16,7 +16,7 @@ export interface ExerciseSectionProps {
   addWarmupSets?: (exerciseId: string, sets: readonly { weight: string; reps: string }[]) => void;
   updateSet: (exerciseId: string, setId: string, changes: WorkoutSetChanges) => void;
   toggleSet: (exerciseId: string, setId: string) => void;
-  onSetCompleted: (duration?: number) => void;
+  onSetCompleted: (exercise: WorkoutExercise) => void;
   deleteRevealed: boolean;
   onDeleteRevealChange: (exerciseId: string, revealed: boolean) => void;
   size?: 'standard' | 'large';

@@ -35,7 +35,13 @@
         }
       ],
       "expo-sqlite",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/forge-rest-notification-icon.png",
+          "color": "#1D252D"
+        }
+      ],
       "./modules/forge-rest-timer/app.plugin.js"
     ],
     "extra": {

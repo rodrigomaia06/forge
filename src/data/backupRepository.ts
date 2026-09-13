@@ -4,11 +4,11 @@ import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as SQLite from 'expo-sqlite';
 import type { ExerciseCatalogItem } from './exerciseCatalog';
-import { loadCustomExercises, saveCustomExercises } from './exerciseRepository';
+import { loadCustomExercises } from './exerciseRepository';
 import { withDatabaseMaintenance } from './database';
-import { loadPlansState, savePlansState } from './plansRepository';
-import { loadSettingsPreferences, saveSettingsPreferences } from './settingsRepository';
-import { loadWorkoutState, saveActiveWorkout, saveCompletedWorkouts } from './workoutRepository';
+import { loadPlansState } from './plansRepository';
+import { loadSettingsPreferences } from './settingsRepository';
+import { loadWorkoutState } from './workoutRepository';
 import { uniqueById } from './uniqueById';
 import type { PlansState, SettingsPreferences, WorkoutState } from '../types';
 
@@ -41,6 +41,10 @@ export type DataTransferInspection = {
   exportedAt: string;
   categories: Record<DataTransferCategory, DataTransferCategorySummary>;
   activeWorkout: boolean;
+};
+export type DataTransferMergeResult = {
+  categories: Record<DataTransferCategory, number>;
+  activeWorkoutAdded: boolean;
 };
 
 export const allDataTransferSelection = (): DataTransferSelection => ({
@@ -131,7 +135,35 @@ export function parseDataTransfer(raw: string): ForgeDataTransfer {
   if (!isTransfer(value)) {
     throw new Error('This JSON is not a compatible Forge data export.');
   }
-  return value as unknown as ForgeDataTransfer;
+  return normalizeDataTransfer(value as unknown as ForgeDataTransfer);
+}
+
+/** Defend the database boundary from duplicate or cross-linked legacy rows. */
+function normalizeDataTransfer(transfer: ForgeDataTransfer): ForgeDataTransfer {
+  const plans = uniqueById(transfer.plans.plans).map((plan) => ({
+    ...plan,
+    routines: uniqueById(plan.routines).map((routine) => ({ ...routine, planId: plan.id })),
+  }));
+  const planRoutineIds = new Set(plans.flatMap((plan) => plan.routines.map((routine) => routine.id)));
+  const completed = uniqueById(transfer.workouts.completedWorkouts);
+  const active = transfer.workouts.activeWorkout && !completed.some((workout) => workout.id === transfer.workouts.activeWorkout?.id)
+    ? transfer.workouts.activeWorkout
+    : null;
+  return {
+    ...transfer,
+    settings: {
+      ...transfer.settings,
+      workoutTypes: uniqueById(transfer.settings.workoutTypes),
+      dailyMeasurementDefinitions: uniqueById(transfer.settings.dailyMeasurementDefinitions),
+      dailyMeasurementEntries: uniqueById(transfer.settings.dailyMeasurementEntries),
+    },
+    plans: {
+      plans,
+      standaloneRoutines: uniqueById(transfer.plans.standaloneRoutines).filter((routine) => !planRoutineIds.has(routine.id)),
+    },
+    workouts: { activeWorkout: active, completedWorkouts: completed },
+    customExercises: uniqueById(transfer.customExercises),
+  };
 }
 
 async function pickTextFile(): Promise<string | null> {
@@ -186,17 +218,21 @@ export async function inspectDataTransfer(incoming: ForgeDataTransfer, selection
   };
 }
 
-export async function mergeDataTransfer(incoming: ForgeDataTransfer, selection = allDataTransferSelection()): Promise<{ workouts: number; exercises: number }> {
+export async function mergeDataTransfer(incoming: ForgeDataTransfer, selection = allDataTransferSelection()): Promise<DataTransferMergeResult> {
+  incoming = normalizeDataTransfer(incoming);
   const [currentSettings, currentPlans, currentWorkouts, currentExercises] = await Promise.all([
     loadSettingsPreferences(), loadPlansState(), loadWorkoutState(), loadCustomExercises(),
   ]);
   const mergeById = <T extends { id: string }>(current: T[], addition: T[]): T[] => uniqueById([...current, ...addition]);
   const completed = selection.workouts ? mergeById(currentWorkouts.completedWorkouts, incoming.workouts.completedWorkouts) : currentWorkouts.completedWorkouts;
-  const importedActive = incoming.workouts.activeWorkout && !completed.some((workout) => workout.id === incoming.workouts.activeWorkout?.id)
+  const importedActive = selection.workouts && incoming.workouts.activeWorkout && !completed.some((workout) => workout.id === incoming.workouts.activeWorkout?.id)
     ? incoming.workouts.activeWorkout
     : null;
-  const plans = selection.plans ? mergeById(currentPlans.plans, incoming.plans.plans) : currentPlans.plans;
-  const routines = selection.plans ? mergeById(currentPlans.standaloneRoutines, incoming.plans.standaloneRoutines) : currentPlans.standaloneRoutines;
+  const plans = (selection.plans ? mergeById(currentPlans.plans, incoming.plans.plans) : currentPlans.plans)
+    .map((plan) => ({ ...plan, routines: uniqueById(plan.routines).map((routine) => ({ ...routine, planId: plan.id })) }));
+  const planRoutineIds = new Set(plans.flatMap((plan) => plan.routines.map((routine) => routine.id)));
+  const routines = (selection.plans ? mergeById(currentPlans.standaloneRoutines, incoming.plans.standaloneRoutines) : currentPlans.standaloneRoutines)
+    .filter((routine) => !planRoutineIds.has(routine.id));
   const exercises = selection.exercises ? mergeById(currentExercises, incoming.customExercises) : currentExercises;
   const settings: SettingsPreferences = {
     ...currentSettings,
@@ -204,16 +240,44 @@ export async function mergeDataTransfer(incoming: ForgeDataTransfer, selection =
     dailyMeasurementDefinitions: selection.measurements ? mergeById(currentSettings.dailyMeasurementDefinitions, incoming.settings.dailyMeasurementDefinitions ?? []) : currentSettings.dailyMeasurementDefinitions,
     dailyMeasurementEntries: selection.measurements ? mergeById(currentSettings.dailyMeasurementEntries, incoming.settings.dailyMeasurementEntries ?? []) : currentSettings.dailyMeasurementEntries,
   };
-  await Promise.all([
-    saveSettingsPreferences(settings), savePlansState({ plans, standaloneRoutines: routines }), saveCompletedWorkouts(completed), saveCustomExercises(exercises),
-    selection.workouts && !currentWorkouts.activeWorkout && importedActive ? saveActiveWorkout(importedActive) : Promise.resolve(),
-  ]);
-  return { workouts: completed.length - currentWorkouts.completedWorkouts.length, exercises: exercises.length - currentExercises.length };
+  const active = currentWorkouts.activeWorkout ?? importedActive;
+  const completedWithoutActive = active ? completed.filter((workout) => workout.id !== active.id) : completed;
+  await withDatabaseMaintenance(async (db) => {
+    await db.withTransactionAsync(async () => {
+      await db.runAsync('INSERT OR REPLACE INTO preferences (id, value_json) VALUES (1, ?)', JSON.stringify(settings));
+      await db.runAsync('DELETE FROM workout_types');
+      for (const [position, type] of settings.workoutTypes.entries()) await db.runAsync('INSERT INTO workout_types (id, archived, position, value_json) VALUES (?, ?, ?, ?)', type.id, type.hidden ? 1 : 0, position, JSON.stringify(type));
+      await db.runAsync('DELETE FROM routines');
+      await db.runAsync('DELETE FROM plans');
+      for (const [position, plan] of plans.entries()) await db.runAsync('INSERT INTO plans (id, position, value_json) VALUES (?, ?, ?)', plan.id, position, JSON.stringify({ ...plan, routines: undefined }));
+      const allRoutines = [...routines, ...plans.flatMap((plan) => plan.routines)];
+      for (const [position, routine] of allRoutines.entries()) await db.runAsync('INSERT INTO routines (id, plan_id, position, value_json) VALUES (?, ?, ?, ?)', routine.id, routine.planId ?? null, position, JSON.stringify(routine));
+      await db.runAsync('DELETE FROM workouts');
+      if (active) await db.runAsync('INSERT INTO workouts (id, is_active, completed_at, started_at, value_json) VALUES (?, 1, NULL, ?, ?)', active.id, active.startedAt, JSON.stringify(active));
+      for (const workout of completedWithoutActive) await db.runAsync('INSERT INTO workouts (id, is_active, completed_at, started_at, value_json) VALUES (?, 0, ?, ?, ?)', workout.id, workout.completedAt, workout.startedAt, JSON.stringify(workout));
+      await db.runAsync('DELETE FROM custom_exercises');
+      for (const exercise of exercises) await db.runAsync('INSERT INTO custom_exercises (id, archived, value_json) VALUES (?, 0, ?)', exercise.id, JSON.stringify(exercise));
+    });
+  });
+  return {
+    categories: {
+      workouts: completedWithoutActive.length - currentWorkouts.completedWorkouts.length,
+      plans: (plans.length + allRoutineCount(plans, routines)) - (currentPlans.plans.length + allRoutineCount(currentPlans.plans, currentPlans.standaloneRoutines)),
+      exercises: exercises.length - currentExercises.length,
+      workoutTypes: settings.workoutTypes.length - currentSettings.workoutTypes.length,
+      measurements: settings.dailyMeasurementDefinitions.length + settings.dailyMeasurementEntries.length - currentSettings.dailyMeasurementDefinitions.length - currentSettings.dailyMeasurementEntries.length,
+    },
+    activeWorkoutAdded: Boolean(!currentWorkouts.activeWorkout && importedActive),
+  };
 }
 
-export async function importJson(): Promise<{ workouts: number; exercises: number }> {
+function allRoutineCount(plans: PlansState['plans'], standalone: PlansState['standaloneRoutines']): number {
+  return plans.reduce((count, plan) => count + plan.routines.length, standalone.length);
+}
+
+export async function importJson(): Promise<DataTransferMergeResult | null> {
   const incoming = await pickJsonTransfer();
-  return incoming ? mergeDataTransfer(incoming) : { workouts: 0, exercises: 0 };
+  return incoming ? mergeDataTransfer(incoming) : null;
 }
 
 export async function createSqliteBackup(): Promise<void> {

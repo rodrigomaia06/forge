@@ -14,6 +14,8 @@ interface ForgeConfirmationDialogProps {
   confirmLabel: string;
   onCancel: () => void;
   onConfirm: () => void;
+  confirmTone?: 'destructive' | 'success';
+  showCancel?: boolean;
   testID?: string;
 }
 
@@ -26,6 +28,8 @@ export function ForgeConfirmationDialog({
   confirmLabel,
   onCancel,
   onConfirm,
+  confirmTone = 'destructive',
+  showCancel = true,
   testID,
 }: ForgeConfirmationDialogProps) {
   const theme = useForgeTheme();
@@ -56,19 +60,19 @@ export function ForgeConfirmationDialog({
           <Text style={[styles.title, { color: theme.textPrimary }]}>{title}</Text>
           <Text style={[styles.message, { color: theme.slate }]}>{message}</Text>
           <View style={styles.actions}>
-            <Button
-              accessibilityLabel={cancelLabel}
-              label={cancelLabel}
-              variant="primary"
-              onPress={onCancel}
-              haptic="light"
-              style={styles.action}
-            />
+            {showCancel ? <Button
+                accessibilityLabel={cancelLabel}
+                label={cancelLabel}
+                variant="primary"
+                onPress={onCancel}
+                haptic="light"
+                style={styles.action}
+              /> : null}
             <Button
               accessibilityLabel={confirmLabel}
               label={confirmLabel}
               variant="outline"
-              tone="destructive"
+              tone={confirmTone}
               onPress={onConfirm}
               haptic="medium"
               style={styles.action}

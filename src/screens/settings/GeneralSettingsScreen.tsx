@@ -138,7 +138,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
           </SettingsSection>
           <SettingsSection
             title="Weight"
-            footer="Used as the default for bodyweight exercises. Leave empty to keep it unset."
+            footer="Stored locally as your bodyweight reference. Leave empty to keep it unset."
           >
             <Choice
               title="Metric (kg)"
@@ -187,7 +187,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
           </SettingsSection>
           <SettingsSection
             title="Rest timer"
-            footer="Controls the timer in Live Workout and its countdown in the Forge dock."
+            footer="Controls the rest timer in Live Workout, its notification and its native activity."
           >
             <Toggle
               title="Rest timer"
@@ -233,7 +233,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
           </SettingsSection>
           <SettingsSection
             title="Reminders"
-            footer="Reminders are saved as a preference; notifications are not scheduled yet."
+            footer="Forge sends one local reminder while an unfinished workout remains open."
           >
             <Toggle
               title="Unfinished workout reminder"
