@@ -117,16 +117,27 @@ export async function exportText(selection = allDataTransferSelection()): Promis
 
 function isObject(value: unknown): value is Record<string, unknown> { return Boolean(value) && typeof value === 'object' && !Array.isArray(value); }
 
-function isIdList(value: unknown): boolean {
-  return Array.isArray(value) && value.every((item) => isObject(item) && typeof item.id === 'string' && item.id.length > 0);
+/** UUIDs let a hand-authored import become durable without a central service. */
+function createImportId(): string {
+  const bytes = new Uint8Array(16);
+  if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
+  else for (let index = 0; index < bytes.length; index += 1) bytes[index] = Math.floor(Math.random() * 256);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+function isRecordList(value: unknown): boolean {
+  return Array.isArray(value) && value.every(isObject);
 }
 
 function isTransfer(value: unknown): value is ForgeDataTransfer {
   if (!isObject(value) || value.format !== 'forge-data' || value.version !== FORGE_TRANSFER_VERSION || typeof value.exportedAt !== 'string') return false;
-  if (!isObject(value.settings) || !isObject(value.plans) || !isObject(value.workouts) || !isIdList(value.customExercises)) return false;
-  if (!isIdList(value.settings.workoutTypes) || !isIdList(value.settings.dailyMeasurementDefinitions) || !isIdList(value.settings.dailyMeasurementEntries)) return false;
-  if (!isIdList(value.plans.plans) || !isIdList(value.plans.standaloneRoutines) || !isIdList(value.workouts.completedWorkouts)) return false;
-  return value.workouts.activeWorkout === null || (isObject(value.workouts.activeWorkout) && typeof value.workouts.activeWorkout.id === 'string' && value.workouts.activeWorkout.id.length > 0);
+  if (!isObject(value.settings) || !isObject(value.plans) || !isObject(value.workouts) || !isRecordList(value.customExercises)) return false;
+  if (!isRecordList(value.settings.workoutTypes) || !isRecordList(value.settings.dailyMeasurementDefinitions) || !isRecordList(value.settings.dailyMeasurementEntries)) return false;
+  if (!isRecordList(value.plans.plans) || !isRecordList(value.plans.standaloneRoutines) || !isRecordList(value.workouts.completedWorkouts)) return false;
+  return value.workouts.activeWorkout === null || isObject(value.workouts.activeWorkout);
 }
 
 export function parseDataTransfer(raw: string): ForgeDataTransfer {
@@ -140,30 +151,46 @@ export function parseDataTransfer(raw: string): ForgeDataTransfer {
 
 /** Defend the database boundary from duplicate or cross-linked legacy rows. */
 function normalizeDataTransfer(transfer: ForgeDataTransfer): ForgeDataTransfer {
-  const plans = uniqueById(transfer.plans.plans).map((plan) => ({
+  const assignId = <T extends Record<string, unknown>>(item: T, prefix: string): T & { id: string } => ({
+    ...item,
+    id: typeof item.id === 'string' && item.id.trim() ? item.id : createImportId(),
+  });
+  const records = <T extends Record<string, unknown>>(items: unknown, prefix: string): Array<T & { id: string }> =>
+    Array.isArray(items) ? items.filter(isObject).map((item) => assignId(item as T, prefix)) : [];
+  const normalizeWorkout = <T extends Record<string, unknown>>(workout: T, prefix: string): T & { id: string } => {
+    const exercises = records<Record<string, unknown>>(workout.exercises, 'exercise').map((exercise) => ({
+      ...exercise,
+      sets: records<Record<string, unknown>>(exercise.sets, 'set'),
+    }));
+    return { ...assignId(workout, prefix), exercises };
+  };
+  const plans = records<Record<string, unknown>>(transfer.plans.plans, 'plan').map((plan) => ({
     ...plan,
-    routines: uniqueById(plan.routines).map((routine) => ({ ...routine, planId: plan.id })),
+    routines: uniqueById(records<Record<string, unknown>>(plan.routines, 'routine').map((routine) => ({ ...routine, planId: plan.id }))),
   }));
   const planRoutineIds = new Set(plans.flatMap((plan) => plan.routines.map((routine) => routine.id)));
-  const completed = uniqueById(transfer.workouts.completedWorkouts);
-  const active = transfer.workouts.activeWorkout && !completed.some((workout) => workout.id === transfer.workouts.activeWorkout?.id)
-    ? transfer.workouts.activeWorkout
+  const completed = uniqueById(records<Record<string, unknown>>(transfer.workouts.completedWorkouts, 'workout').map((workout) => normalizeWorkout(workout, 'workout')));
+  const activeCandidate = transfer.workouts.activeWorkout && isObject(transfer.workouts.activeWorkout)
+    ? normalizeWorkout(transfer.workouts.activeWorkout, 'workout')
+    : null;
+  const active = activeCandidate && !completed.some((workout) => workout.id === activeCandidate.id)
+    ? activeCandidate
     : null;
   return {
     ...transfer,
     settings: {
       ...transfer.settings,
-      workoutTypes: uniqueById(transfer.settings.workoutTypes),
-      dailyMeasurementDefinitions: uniqueById(transfer.settings.dailyMeasurementDefinitions),
-      dailyMeasurementEntries: uniqueById(transfer.settings.dailyMeasurementEntries),
+      workoutTypes: uniqueById(records<Record<string, unknown>>(transfer.settings.workoutTypes, 'workout-type')),
+      dailyMeasurementDefinitions: uniqueById(records<Record<string, unknown>>(transfer.settings.dailyMeasurementDefinitions, 'measurement-definition')),
+      dailyMeasurementEntries: uniqueById(records<Record<string, unknown>>(transfer.settings.dailyMeasurementEntries, 'measurement-entry')),
     },
     plans: {
       plans,
-      standaloneRoutines: uniqueById(transfer.plans.standaloneRoutines).filter((routine) => !planRoutineIds.has(routine.id)),
+      standaloneRoutines: uniqueById(records<Record<string, unknown>>(transfer.plans.standaloneRoutines, 'routine')).filter((routine) => !planRoutineIds.has(routine.id)),
     },
     workouts: { activeWorkout: active, completedWorkouts: completed },
-    customExercises: uniqueById(transfer.customExercises),
-  };
+    customExercises: uniqueById(records<Record<string, unknown>>(transfer.customExercises, 'exercise-catalogue')),
+  } as unknown as ForgeDataTransfer;
 }
 
 async function pickTextFile(): Promise<string | null> {

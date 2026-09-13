@@ -286,10 +286,10 @@ test.describe('Settings', () => {
         settings: { workoutTypes: [], dailyMeasurementDefinitions: [], dailyMeasurementEntries: [] },
         plans: {
           plans: [
-            { id: 'plan-a', name: 'Plan A', createdAt: 0, updatedAt: 0, routines: [{ id: 'routine-a', name: 'Routine A', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }, { id: 'routine-b', name: 'Routine B', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }] },
-            { id: 'plan-b', name: 'Plan B', createdAt: 0, updatedAt: 0, routines: [{ id: 'routine-c', name: 'Routine C', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }, { id: 'routine-d', name: 'Routine D', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }] },
+            { name: 'Plan A', createdAt: 0, updatedAt: 0, routines: [{ name: 'Routine A', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }, { name: 'Routine B', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }] },
+            { name: 'Plan B', createdAt: 0, updatedAt: 0, routines: [{ name: 'Routine C', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }, { name: 'Routine D', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }] },
           ],
-          standaloneRoutines: [{ id: 'routine-e', name: 'Routine E', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }],
+          standaloneRoutines: [{ name: 'Routine E', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }],
         },
         workouts: { activeWorkout: null, completedWorkouts: [] }, customExercises: [],
       })),
