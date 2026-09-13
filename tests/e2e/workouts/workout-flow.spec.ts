@@ -564,14 +564,16 @@ test.describe('Active workout flow', () => {
     await expect(dropSet).toHaveAttribute('aria-checked', 'false');
     await dropSet.click();
     await expect(sheet.getByText('Drop Set', { exact: true })).toBeVisible();
+    await expect(sheet.getByRole('button', { name: 'Clear set kind' })).toBeVisible();
+    if (testInfo.project.name === 'iphone-air') {
+      await page.screenshot({ path: testInfo.outputPath('set-kind-actions-iphone.png') });
+    }
     await changeKind.click();
     await expect(sheet.getByRole('button', { name: 'Back to Set 1' })).toBeVisible();
+    await expect(sheet.getByText('SET KIND', { exact: true })).toHaveCount(0);
     await sheet.getByRole('button', { name: 'Back to Set 1' }).click();
     await expect(sheet.getByText('Drop Set', { exact: true })).toBeVisible();
-    await changeKind.click();
-    const selectedDropSet = sheet.getByRole('radio', { name: 'Drop Set' });
-    await expect(selectedDropSet).toHaveAttribute('aria-checked', 'true');
-    await selectedDropSet.click();
+    await sheet.getByRole('button', { name: 'Clear set kind' }).click();
     await expect(sheet.getByText('No type', { exact: true })).toBeVisible();
     if (testInfo.project.name === 'iphone-air') {
       await page.screenshot({ path: testInfo.outputPath('set-editor-iphone.png') });
@@ -593,6 +595,12 @@ test.describe('Active workout flow', () => {
 
     const commentBox = await page.getByLabel('Comment for set 1').boundingBox();
     expect(commentBox?.height).toBeGreaterThanOrEqual(80);
+    const [sessionCardBox, nextSessionBox] = await Promise.all([
+      page.getByTestId('set-session-note-effort-card').boundingBox(),
+      page.getByTestId('set-next-session-section').boundingBox(),
+    ]);
+    if (!sessionCardBox || !nextSessionBox) throw new Error('Expected adjacent editor sections to be measurable');
+    expect(nextSessionBox.y - (sessionCardBox.y + sessionCardBox.height)).toBeLessThanOrEqual(8);
 
     const targetRects = await page
       .locator('input[aria-label^="Next-time"]')
@@ -635,12 +643,17 @@ test.describe('Active workout flow', () => {
     expect(chipBox).not.toBeNull();
     expect(dotBox).not.toBeNull();
     if (!chipBox || !dotBox) throw new Error('Expected a measurable set chip and comment dot');
+    await expect(page.getByLabel('Set 1 has a comment').locator('svg')).toHaveCount(0);
+    expect(dotBox.width).toBeCloseTo(7, 0);
+    expect(dotBox.height).toBeCloseTo(7, 0);
     expect(dotBox.x).toBeGreaterThan(chipBox.x + chipBox.width / 2);
     expect(dotBox.y).toBeGreaterThan(chipBox.y + chipBox.height / 2);
     expect(dotBox.x).toBeLessThan(chipBox.x + chipBox.width);
     expect(dotBox.y).toBeLessThan(chipBox.y + chipBox.height);
-    expect(dotBox.x + dotBox.width).toBeGreaterThan(chipBox.x + chipBox.width);
-    expect(dotBox.y + dotBox.height).toBeGreaterThan(chipBox.y + chipBox.height);
+    expect(dotBox.x + dotBox.width).toBeLessThanOrEqual(chipBox.x + chipBox.width);
+    expect(dotBox.y + dotBox.height).toBeLessThanOrEqual(chipBox.y + chipBox.height);
+    expect(dotBox.x + dotBox.width).toBeGreaterThan(chipBox.x + chipBox.width - 3);
+    expect(dotBox.y + dotBox.height).toBeGreaterThan(chipBox.y + chipBox.height - 3);
     if (testInfo.project.name === 'iphone-air') {
       await page.screenshot({ path: testInfo.outputPath('set-comment-indicator-iphone.png') });
     }

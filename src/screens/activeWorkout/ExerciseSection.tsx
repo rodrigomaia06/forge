@@ -496,9 +496,7 @@ function ReadOnlyHistorySetRow({
               {tag?.letter ?? index + 1}
             </Text>
             {set.comment?.trim() ? (
-              <View accessibilityLabel={`Set ${index + 1} has a comment`} style={styles.historySetCommentIndicator}>
-                <Icon name="comment" size={9} color={theme.ink} />
-              </View>
+              <View accessibilityLabel={`Set ${index + 1} has a comment`} style={styles.historySetCommentIndicator} />
             ) : null}
           </View>
         </Pressable>
@@ -733,16 +731,12 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     },
     historySetCommentIndicator: {
       position: 'absolute',
-      right: -3,
-      bottom: -3,
-      width: 13,
-      height: 13,
-      borderRadius: 6.5,
-      alignItems: 'center',
-      justifyContent: 'center',
+      right: 1,
+      bottom: 1,
+      width: 7,
+      height: 7,
+      borderRadius: 3.5,
       backgroundColor: dashboardTheme.surface,
-      borderWidth: 1,
-      borderColor: dashboardTheme.background,
     },
     previous: {
       flex: 1,

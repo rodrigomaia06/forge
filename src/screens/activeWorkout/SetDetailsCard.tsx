@@ -120,6 +120,10 @@ export function SetDetailsCard({
                   value={set.tag || ''}
                   editable={editable}
                   onChange={() => setEditorView('set-kind')}
+                  onClear={() => {
+                    selectionHaptic();
+                    onChange({ tag: '' });
+                  }}
                 />
                 <SessionNoteEffortSection
                   set={set}
@@ -164,6 +168,7 @@ function SessionNoteEffortSection({
   return (
     <View style={styles.section}>
       <Text style={styles.sectionLabel}>SESSION NOTE &amp; EFFORT</Text>
+      <View testID="set-session-note-effort-card">
       <ForgeCard variant="outlined" style={styles.sessionCard}>
         <View style={styles.sessionNoteSection}>
           <Text style={styles.subsectionLabel}>COMMENT</Text>
@@ -194,6 +199,7 @@ function SessionNoteEffortSection({
           )}
         </View>
       </ForgeCard>
+      </View>
     </View>
   );
 }
@@ -260,10 +266,12 @@ function SetKindSection({
   value,
   editable,
   onChange,
+  onClear,
 }: {
   value: string;
   editable: boolean;
   onChange: () => void;
+  onClear: () => void;
 }) {
   const styles = useThemedStyles(createStyles);
   const theme = useForgeTheme();
@@ -277,6 +285,7 @@ function SetKindSection({
           <View style={styles.setKindSummary}>
             <View style={[styles.typeDot, { backgroundColor: recordedType?.color ?? theme.slate }]} />
             <Text style={styles.setKindValue}>{value || 'No type'}</Text>
+            <View style={styles.setKindActions}>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Change set kind"
@@ -285,6 +294,17 @@ function SetKindSection({
             >
               <Text style={styles.changeKindText}>Change</Text>
             </Pressable>
+            {value ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Clear set kind"
+                onPress={onClear}
+                style={({ pressed }) => [styles.clearKindButton, pressed && pressedFeedbackSubtle]}
+              >
+                <Text style={styles.clearKindText}>Clear</Text>
+              </Pressable>
+            ) : null}
+            </View>
           </View>
         </ForgeCard>
       ) : (
@@ -333,7 +353,6 @@ function SetKindPicker({
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        <Text style={styles.sectionLabel}>SET KIND</Text>
         <ForgeCard variant="outlined" style={styles.typeCard}>
           <View accessibilityRole="radiogroup" accessibilityLabel="Set type">
             {SET_TYPES.map((type, typeIndex) => (
@@ -429,7 +448,7 @@ function TargetsSection({
 }) {
   const styles = useThemedStyles(createStyles);
   return (
-    <View style={[styles.section, styles.targetSection]}>
+    <View testID="set-next-session-section" style={[styles.section, styles.targetSection]}>
       <Text style={styles.sectionLabel}>NEXT SESSION</Text>
       <ForgeCard variant="outlined" style={styles.targetCardGroup}>
         {trackingFields[trackingType].map((kind, index) => (
@@ -553,7 +572,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       paddingBottom: 10,
     },
     section: { marginTop: 14 },
-    targetSection: { paddingBottom: 4 },
+    targetSection: { marginTop: 8, paddingBottom: 4 },
     sectionLabel: {
       marginBottom: 9,
       color: theme.slate,
@@ -609,10 +628,13 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     recordedTypeRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20 },
     recordedValue: { color: theme.ink, ...typeScale.label },
     setKindCard: { borderRadius: 16 },
-    setKindSummary: { minHeight: 56, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 6, gap: 12 },
+    setKindSummary: { minHeight: 56, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 8, gap: 12 },
     setKindValue: { flex: 1, color: theme.ink, ...typeScale.label },
-    changeKindButton: { minWidth: 76, minHeight: 44, paddingHorizontal: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-    changeKindText: { color: theme.selectionIndicator, ...typeScale.label },
+    setKindActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    changeKindButton: { minWidth: 78, minHeight: 44, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+    changeKindText: { color: theme.ink, ...typeScale.label },
+    clearKindButton: { minWidth: 68, minHeight: 44, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: theme.border, alignItems: 'center', justifyContent: 'center' },
+    clearKindText: { color: theme.slate, ...typeScale.label },
     sessionCard: { overflow: 'hidden', borderRadius: 16 },
     sessionNoteSection: { padding: 14, gap: 8 },
     sessionEffortSection: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 14, gap: 10 },

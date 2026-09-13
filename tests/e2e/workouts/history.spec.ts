@@ -244,12 +244,17 @@ test.describe('History screen', () => {
     expect(chipBox).not.toBeNull();
     expect(dotBox).not.toBeNull();
     if (!chipBox || !dotBox) throw new Error('Expected a measurable history set chip and comment dot');
+    await expect(firstSet.getByLabel('Set 1 has a comment').locator('svg')).toHaveCount(0);
+    expect(dotBox.width).toBeCloseTo(7, 0);
+    expect(dotBox.height).toBeCloseTo(7, 0);
     expect(dotBox.x).toBeGreaterThan(chipBox.x + chipBox.width / 2);
     expect(dotBox.y).toBeGreaterThan(chipBox.y + chipBox.height / 2);
     expect(dotBox.x).toBeLessThan(chipBox.x + chipBox.width);
     expect(dotBox.y).toBeLessThan(chipBox.y + chipBox.height);
-    expect(dotBox.x + dotBox.width).toBeGreaterThan(chipBox.x + chipBox.width);
-    expect(dotBox.y + dotBox.height).toBeGreaterThan(chipBox.y + chipBox.height);
+    expect(dotBox.x + dotBox.width).toBeLessThanOrEqual(chipBox.x + chipBox.width);
+    expect(dotBox.y + dotBox.height).toBeLessThanOrEqual(chipBox.y + chipBox.height);
+    expect(dotBox.x + dotBox.width).toBeGreaterThan(chipBox.x + chipBox.width - 3);
+    expect(dotBox.y + dotBox.height).toBeGreaterThan(chipBox.y + chipBox.height - 3);
     if (testInfo.project.name === 'iphone-air') {
       await page.screenshot({ path: testInfo.outputPath('commented-history-exercise-iphone.png') });
     }
