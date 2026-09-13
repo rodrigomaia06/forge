@@ -96,6 +96,7 @@ test.describe('Settings', () => {
 
     await page.getByRole('button', { name: 'Backup & Export' }).click();
     await expect(page.getByTestId('settings-detail-title')).toHaveText('Backup & Export');
+    await expect(page.getByRole('button', { name: 'About JSON imports' })).toBeVisible();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
 
     await page.getByRole('button', { name: 'Logs' }).click();
@@ -251,6 +252,19 @@ test.describe('Settings', () => {
     await page.getByRole('button', { name: 'About' }).click();
     await expect(page.getByRole('button', { name: 'Source code' }).locator('svg').first()).toHaveAttribute('width', '26');
     await expect(page.getByRole('button', { name: 'License: GPL v3.0' }).locator('svg').first()).toHaveAttribute('width', '26');
+  });
+
+  test('chooses portable data before exporting JSON', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Backup & Export' }).click();
+    await page.getByRole('button', { name: 'Export JSON' }).click();
+    const sheet = page.getByLabel('Choose data to export');
+    await expect(sheet.getByText('Choose data to export', { exact: true })).toBeVisible();
+    await expect(sheet.getByRole('checkbox', { name: 'Include Workouts' })).toBeChecked();
+    await sheet.getByRole('checkbox', { name: 'Remove Measurements' }).click();
+    await expect(sheet.getByRole('checkbox', { name: 'Include Measurements' })).not.toBeChecked();
+    await expect(sheet.getByRole('button', { name: 'Export selected data' })).toBeVisible();
   });
 
   test('persists the first day of the week and applies it to the Calendar', async ({ page }) => {

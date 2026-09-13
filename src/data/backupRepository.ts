@@ -22,7 +22,26 @@ export type ForgeDataTransfer = {
   plans: PlansState;
   workouts: WorkoutState;
   customExercises: ExerciseCatalogItem[];
+  /** Describes the intentionally selected portable sections. Older v1 files safely omit it. */
+  selection?: DataTransferSelection;
 };
+
+export type DataTransferCategory = 'workouts' | 'plans' | 'exercises' | 'workoutTypes' | 'measurements';
+export type DataTransferSelection = Record<DataTransferCategory, boolean>;
+export type DataTransferCategorySummary = { available: number; newRecords: number; existingRecords: number };
+export type DataTransferInspection = {
+  exportedAt: string;
+  categories: Record<DataTransferCategory, DataTransferCategorySummary>;
+  activeWorkout: boolean;
+};
+
+export const allDataTransferSelection = (): DataTransferSelection => ({
+  workouts: true,
+  plans: true,
+  exercises: true,
+  workoutTypes: true,
+  measurements: true,
+});
 
 export type BackupInspection = {
   bytes: Uint8Array;
@@ -48,20 +67,32 @@ function cacheFile(name: string, contents: Uint8Array | string): File {
   return file;
 }
 
-export async function createDataTransfer(): Promise<ForgeDataTransfer> {
+export async function createDataTransfer(selection = allDataTransferSelection()): Promise<ForgeDataTransfer> {
   const [settings, plans, workouts, customExercises] = await Promise.all([
     loadSettingsPreferences(), loadPlansState(), loadWorkoutState(), loadCustomExercises(),
   ]);
-  return { format: 'forge-data', version: FORGE_TRANSFER_VERSION, exportedAt: new Date().toISOString(), settings, plans, workouts, customExercises };
+  return {
+    format: 'forge-data', version: FORGE_TRANSFER_VERSION, exportedAt: new Date().toISOString(),
+    settings: {
+      ...settings,
+      workoutTypes: selection.workoutTypes ? settings.workoutTypes : [],
+      dailyMeasurementDefinitions: selection.measurements ? settings.dailyMeasurementDefinitions : [],
+      dailyMeasurementEntries: selection.measurements ? settings.dailyMeasurementEntries : [],
+    },
+    plans: selection.plans ? plans : { plans: [], standaloneRoutines: [] },
+    workouts: selection.workouts ? workouts : { activeWorkout: null, completedWorkouts: [] },
+    customExercises: selection.exercises ? customExercises : [],
+    selection,
+  };
 }
 
-export async function exportJson(): Promise<void> {
-  const transfer = await createDataTransfer();
+export async function exportJson(selection = allDataTransferSelection()): Promise<void> {
+  const transfer = await createDataTransfer(selection);
   await shareFile(cacheFile(filename('json'), JSON.stringify(transfer, null, 2)), 'application/json');
 }
 
-export async function exportText(): Promise<void> {
-  const transfer = await createDataTransfer();
+export async function exportText(selection = allDataTransferSelection()): Promise<void> {
+  const transfer = await createDataTransfer(selection);
   const lines = [
     'Forge training data',
     `Exported: ${transfer.exportedAt}`,
@@ -107,27 +138,53 @@ export async function pickJsonTransfer(): Promise<ForgeDataTransfer | null> {
   return raw ? parseDataTransfer(raw) : null;
 }
 
-export async function mergeDataTransfer(incoming: ForgeDataTransfer): Promise<{ workouts: number; exercises: number }> {
+export async function inspectDataTransfer(incoming: ForgeDataTransfer, selection = allDataTransferSelection()): Promise<DataTransferInspection> {
+  const [currentSettings, currentPlans, currentWorkouts, currentExercises] = await Promise.all([
+    loadSettingsPreferences(), loadPlansState(), loadWorkoutState(), loadCustomExercises(),
+  ]);
+  const summary = <T extends { id: string }>(incomingItems: T[], currentItems: T[]): DataTransferCategorySummary => {
+    const currentIds = new Set(currentItems.map((item) => item.id));
+    const unique = uniqueById(incomingItems);
+    return { available: unique.length, newRecords: unique.filter((item) => !currentIds.has(item.id)).length, existingRecords: unique.filter((item) => currentIds.has(item.id)).length };
+  };
+  const incomingPlans = [...incoming.plans.plans, ...incoming.plans.standaloneRoutines];
+  const currentPlanItems = [...currentPlans.plans, ...currentPlans.standaloneRoutines];
+  const incomingMeasures = [...incoming.settings.dailyMeasurementDefinitions, ...incoming.settings.dailyMeasurementEntries];
+  const currentMeasures = [...currentSettings.dailyMeasurementDefinitions, ...currentSettings.dailyMeasurementEntries];
+  return {
+    exportedAt: incoming.exportedAt,
+    activeWorkout: Boolean(selection.workouts && incoming.workouts.activeWorkout && !currentWorkouts.activeWorkout),
+    categories: {
+      workouts: selection.workouts ? summary(incoming.workouts.completedWorkouts, currentWorkouts.completedWorkouts) : { available: 0, newRecords: 0, existingRecords: 0 },
+      plans: selection.plans ? summary(incomingPlans, currentPlanItems) : { available: 0, newRecords: 0, existingRecords: 0 },
+      exercises: selection.exercises ? summary(incoming.customExercises, currentExercises) : { available: 0, newRecords: 0, existingRecords: 0 },
+      workoutTypes: selection.workoutTypes ? summary(incoming.settings.workoutTypes, currentSettings.workoutTypes) : { available: 0, newRecords: 0, existingRecords: 0 },
+      measurements: selection.measurements ? summary(incomingMeasures, currentMeasures) : { available: 0, newRecords: 0, existingRecords: 0 },
+    },
+  };
+}
+
+export async function mergeDataTransfer(incoming: ForgeDataTransfer, selection = allDataTransferSelection()): Promise<{ workouts: number; exercises: number }> {
   const [currentSettings, currentPlans, currentWorkouts, currentExercises] = await Promise.all([
     loadSettingsPreferences(), loadPlansState(), loadWorkoutState(), loadCustomExercises(),
   ]);
   const mergeById = <T extends { id: string }>(current: T[], addition: T[]): T[] => uniqueById([...current, ...addition]);
-  const completed = mergeById(currentWorkouts.completedWorkouts, incoming.workouts.completedWorkouts);
+  const completed = selection.workouts ? mergeById(currentWorkouts.completedWorkouts, incoming.workouts.completedWorkouts) : currentWorkouts.completedWorkouts;
   const importedActive = incoming.workouts.activeWorkout && !completed.some((workout) => workout.id === incoming.workouts.activeWorkout?.id)
     ? incoming.workouts.activeWorkout
     : null;
-  const plans = mergeById(currentPlans.plans, incoming.plans.plans);
-  const routines = mergeById(currentPlans.standaloneRoutines, incoming.plans.standaloneRoutines);
-  const exercises = mergeById(currentExercises, incoming.customExercises);
+  const plans = selection.plans ? mergeById(currentPlans.plans, incoming.plans.plans) : currentPlans.plans;
+  const routines = selection.plans ? mergeById(currentPlans.standaloneRoutines, incoming.plans.standaloneRoutines) : currentPlans.standaloneRoutines;
+  const exercises = selection.exercises ? mergeById(currentExercises, incoming.customExercises) : currentExercises;
   const settings: SettingsPreferences = {
     ...currentSettings,
-    workoutTypes: mergeById(currentSettings.workoutTypes, incoming.settings.workoutTypes ?? []),
-    dailyMeasurementDefinitions: mergeById(currentSettings.dailyMeasurementDefinitions, incoming.settings.dailyMeasurementDefinitions ?? []),
-    dailyMeasurementEntries: mergeById(currentSettings.dailyMeasurementEntries, incoming.settings.dailyMeasurementEntries ?? []),
+    workoutTypes: selection.workoutTypes ? mergeById(currentSettings.workoutTypes, incoming.settings.workoutTypes ?? []) : currentSettings.workoutTypes,
+    dailyMeasurementDefinitions: selection.measurements ? mergeById(currentSettings.dailyMeasurementDefinitions, incoming.settings.dailyMeasurementDefinitions ?? []) : currentSettings.dailyMeasurementDefinitions,
+    dailyMeasurementEntries: selection.measurements ? mergeById(currentSettings.dailyMeasurementEntries, incoming.settings.dailyMeasurementEntries ?? []) : currentSettings.dailyMeasurementEntries,
   };
   await Promise.all([
     saveSettingsPreferences(settings), savePlansState({ plans, standaloneRoutines: routines }), saveCompletedWorkouts(completed), saveCustomExercises(exercises),
-    !currentWorkouts.activeWorkout && importedActive ? saveActiveWorkout(importedActive) : Promise.resolve(),
+    selection.workouts && !currentWorkouts.activeWorkout && importedActive ? saveActiveWorkout(importedActive) : Promise.resolve(),
   ]);
   return { workouts: completed.length - currentWorkouts.completedWorkouts.length, exercises: exercises.length - currentExercises.length };
 }

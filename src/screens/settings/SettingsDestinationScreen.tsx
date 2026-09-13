@@ -1,15 +1,16 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React from 'react';
-import { Alert, Image, Linking, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { AppScreen, ForgeText as Text } from '../../components/ui';
+import { AppScreen, ForgeBackButton, ForgeBottomSheet, ForgeCard, ForgeFloatingCta, ForgeSheetHeader, ForgeText as Text, HeaderAction, Icon, pressedFeedback } from '../../components/ui';
+import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
 import { dashboardTheme } from '../../theme/dashboardTheme';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
 import type { IconName, RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
-import { createSqliteBackup, databaseStatus, exportJson, exportText, mergeDataTransfer, pickJsonTransfer, pickSqliteBackup, restoreSqliteBackup } from '../../data/backupRepository';
+import { allDataTransferSelection, createSqliteBackup, databaseStatus, exportJson, exportText, inspectDataTransfer, mergeDataTransfer, pickJsonTransfer, pickSqliteBackup, restoreSqliteBackup, type DataTransferCategory, type DataTransferInspection, type DataTransferSelection, type ForgeDataTransfer } from '../../data/backupRepository';
 import { clearDiagnostics, exportDiagnostics, loadDiagnostics, recordDiagnostic, type DiagnosticEntry } from '../../data/diagnosticsRepository';
 import { useSettings } from '../../state/SettingsContext';
 import { usePlans } from '../../state/PlansContext';
@@ -61,6 +62,11 @@ export function SettingsDestinationScreen({ navigation, route }: Props) {
 
 function BackupExport() {
   const [busy, setBusy] = React.useState(false);
+  const [transferStep, setTransferStep] = React.useState<'export-json' | 'export-text' | 'import-select' | 'import-review' | null>(null);
+  const [transfer, setTransfer] = React.useState<ForgeDataTransfer | null>(null);
+  const [selection, setSelection] = React.useState<DataTransferSelection>(allDataTransferSelection);
+  const [inspection, setInspection] = React.useState<DataTransferInspection | null>(null);
+  const theme = useForgeTheme();
   const { reload: reloadSettings } = useSettings();
   const { reload: reloadPlans } = usePlans();
   const { reload: reloadWorkouts } = useWorkouts();
@@ -81,20 +87,37 @@ function BackupExport() {
   }, [busy]);
   const importData = (): void => {
     void run(async () => {
-      const transfer = await pickJsonTransfer();
-      if (!transfer) return;
-      const confirmed = await new Promise<boolean>((resolve) => Alert.alert(
-        'Merge Forge data?',
-        `${transfer.workouts.completedWorkouts.length} workouts and ${transfer.customExercises.length} custom exercises will be added. Existing data is kept.`,
-        [{ text: 'Cancel', style: 'cancel', onPress: () => resolve(false) }, { text: 'Merge', onPress: () => resolve(true) }],
-      ));
-      // The system confirmation above intentionally precedes every database write.
-      if (!confirmed) return;
-      const result = await mergeDataTransfer(transfer);
+      const incoming = await pickJsonTransfer();
+      if (!incoming) return;
+      setTransfer(incoming);
+      setSelection(allDataTransferSelection());
+      setInspection(null);
+      setTransferStep('import-select');
+    });
+  };
+  const reviewImport = (): void => {
+    if (!transfer) return;
+    void run(async () => {
+      setInspection(await inspectDataTransfer(transfer, selection));
+      setTransferStep('import-review');
+    });
+  };
+  const mergeSelected = (): void => {
+    if (!transfer) return;
+    void run(async () => {
+      const result = await mergeDataTransfer(transfer, selection);
       await refresh();
       await recordDiagnostic('data-imported');
+      setTransferStep(null);
+      setTransfer(null);
       Alert.alert('Data merged', `${result.workouts} workouts and ${result.exercises} exercises were added.`);
     });
+  };
+  const showJsonImportInfo = (): void => {
+    Alert.alert(
+      'Import Forge JSON',
+      'Choose a complete file created with Export JSON in Forge. Import adds only records that are not already on this device; it never replaces local data. Use Restore SQLite backup when you need to replace everything.',
+    );
   };
   const restore = (): void => {
     void run(async () => {
@@ -118,9 +141,19 @@ function BackupExport() {
         title="Data transfer"
         footer="Portable JSON adds data without replacing your current workouts. Text is a read-only summary for sharing."
       >
-        <Action title="Export JSON" divider onPress={() => void run(async () => { await exportJson(); await recordDiagnostic('data-exported'); })} />
-        <Action title="Export text" divider onPress={() => void run(exportText)} />
-        <Action title="Import JSON" onPress={importData} />
+        <Action title="Export JSON" divider onPress={() => { setSelection(allDataTransferSelection()); setTransferStep('export-json'); }} />
+        <Action title="Export text" divider onPress={() => { setSelection(allDataTransferSelection()); setTransferStep('export-text'); }} />
+        <View style={styles.importRow}>
+          <Action title="Import JSON" disclosure={false} style={styles.importAction} onPress={importData} />
+          <HeaderAction
+            accessibilityLabel="About JSON imports"
+            icon="info"
+            iconOnly
+            variant={theme.colorScheme === 'dark' ? 'ghost' : 'outline'}
+            onPress={showJsonImportInfo}
+            style={[styles.importInfoAction, theme.colorScheme === 'dark' && { backgroundColor: theme.surfaceMuted }]}
+          />
+        </View>
       </SettingsSection>
       <SettingsSection
         title="Database backup"
@@ -130,6 +163,135 @@ function BackupExport() {
         <Action title="Restore SQLite backup" disabled={Platform.OS === 'web'} onPress={restore} />
       </SettingsSection>
       {busy ? <Text style={styles.unavailable}>Working securely with local data…</Text> : null}
+      <DataTransferSheet
+        step={transferStep}
+        selection={selection}
+        inspection={inspection}
+        onChangeSelection={setSelection}
+        onClose={() => { setTransferStep(null); setInspection(null); }}
+        onBack={() => setTransferStep('import-select')}
+        onExportJson={() => void run(async () => { await exportJson(selection); await recordDiagnostic('data-exported'); setTransferStep(null); })}
+        onExportText={() => void run(async () => { await exportText(selection); setTransferStep(null); })}
+        onReview={reviewImport}
+        onImport={mergeSelected}
+        busy={busy}
+      />
+    </View>
+  );
+}
+
+const transferCategories: Array<{ key: DataTransferCategory; title: string; detail: string; icon: IconName }> = [
+  { key: 'workouts', title: 'Workouts', detail: 'Completed training and the current workout', icon: 'history' },
+  { key: 'plans', title: 'Plans & routines', detail: 'Your saved training structures', icon: 'layers' },
+  { key: 'exercises', title: 'Custom exercises', detail: 'Exercises you created', icon: 'fitness' },
+  { key: 'workoutTypes', title: 'Workout types', detail: 'Your type library', icon: 'activity' },
+  { key: 'measurements', title: 'Measurements', detail: 'Definitions and entries', icon: 'measure' },
+];
+
+function DataTransferSheet({
+  step, selection, inspection, onChangeSelection, onClose, onBack, onExportJson, onExportText, onReview, onImport, busy,
+}: {
+  step: 'export-json' | 'export-text' | 'import-select' | 'import-review' | null;
+  selection: DataTransferSelection;
+  inspection: DataTransferInspection | null;
+  onChangeSelection: (selection: DataTransferSelection) => void;
+  onClose: () => void;
+  onBack: () => void;
+  onExportJson: () => void;
+  onExportText: () => void;
+  onReview: () => void;
+  onImport: () => void;
+  busy: boolean;
+}) {
+  const theme = useForgeTheme();
+  const clearance = useForgeFloatingCtaClearance();
+  const selectedCount = transferCategories.filter(({ key }) => selection[key]).length;
+  const exporting = step === 'export-json' || step === 'export-text';
+  const reviewing = step === 'import-review';
+  const title = exporting ? 'Choose data to export' : reviewing ? 'Review import' : 'Choose data to import';
+  const toggle = (key: DataTransferCategory): void => onChangeSelection({ ...selection, [key]: !selection[key] });
+  return (
+    <ForgeBottomSheet
+      visible={step !== null}
+      onClose={onClose}
+      accessibilityLabel={title}
+      closeDistance={680}
+      dragEnabled={false}
+      style={[styles.transferSheet, { backgroundColor: theme.surfaceElevated }]}
+    >
+      <ForgeSheetHeader
+        title={title}
+        closePosition="right"
+        onClose={onClose}
+        leading={reviewing ? <ForgeBackButton accessibilityLabel="Back to import selection" onPress={onBack} /> : undefined}
+      />
+      <ScrollView contentContainerStyle={[styles.transferContent, { paddingBottom: clearance }]} showsVerticalScrollIndicator={false}>
+        {reviewing ? (
+          <ImportReview inspection={inspection} selection={selection} />
+        ) : (
+          <>
+            <Text style={[styles.transferIntro, { color: theme.textSecondary }]}>
+              {exporting
+                ? 'Create a portable file with only the data you want to keep or share.'
+                : 'Choose the compatible Forge data to add. Existing records are kept.'}
+            </Text>
+            <ForgeCard variant="inset" size="compact">
+              {transferCategories.map(({ key, title: categoryTitle, detail, icon }, index) => (
+                <Pressable
+                  key={key}
+                  accessibilityRole="checkbox"
+                  accessibilityLabel={`${selection[key] ? 'Remove' : 'Include'} ${categoryTitle}`}
+                  accessibilityState={{ checked: selection[key] }}
+                  onPress={() => toggle(key)}
+                  style={({ pressed }) => [styles.transferOption, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }, pressed && pressedFeedback]}
+                >
+                  <View style={styles.transferOptionCopy}>
+                    <Icon name={icon} size={20} color={theme.textSecondary} />
+                    <View style={styles.transferOptionText}>
+                      <Text style={[styles.transferOptionTitle, { color: theme.textPrimary }]}>{categoryTitle}</Text>
+                      <Text style={[styles.transferOptionDetail, { color: theme.textSecondary }]}>{detail}</Text>
+                    </View>
+                  </View>
+                  <View style={[styles.transferCheck, { borderColor: selection[key] ? theme.success : theme.border, backgroundColor: selection[key] ? theme.success : 'transparent' }]}>
+                    {selection[key] ? <Icon name="check" size={16} color={theme.onSuccess} /> : null}
+                  </View>
+                </Pressable>
+              ))}
+            </ForgeCard>
+          </>
+        )}
+      </ScrollView>
+      <ForgeFloatingCta
+        label={reviewing ? 'Import selected data' : exporting ? 'Export selected data' : 'Review selected data'}
+        accessibilityLabel={reviewing ? 'Import selected data' : exporting ? 'Export selected data' : 'Review selected data'}
+        disabled={!selectedCount || busy}
+        tone={reviewing ? 'success' : 'neutral'}
+        icon={reviewing ? 'check' : undefined}
+        onPress={reviewing ? onImport : exporting ? (step === 'export-json' ? onExportJson : onExportText) : onReview}
+      />
+    </ForgeBottomSheet>
+  );
+}
+
+function ImportReview({ inspection, selection }: { inspection: DataTransferInspection | null; selection: DataTransferSelection }) {
+  const theme = useForgeTheme();
+  if (!inspection) return null;
+  return (
+    <View style={styles.reviewStack}>
+      <Text style={[styles.transferIntro, { color: theme.textSecondary }]}>Validated Forge JSON from {new Date(inspection.exportedAt).toLocaleDateString()}. Only new records will be added.</Text>
+      <ForgeCard variant="inset" size="compact">
+        {transferCategories.filter(({ key }) => selection[key]).map(({ key, title: categoryTitle }, index) => {
+          const summary = inspection.categories[key];
+          return (
+            <View key={key} style={[styles.reviewRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }]}>
+              <View><Text style={[styles.transferOptionTitle, { color: theme.textPrimary }]}>{categoryTitle}</Text><Text style={[styles.transferOptionDetail, { color: theme.textSecondary }]}>{summary.available} in file · {summary.existingRecords} already on this device</Text></View>
+              <Text style={[styles.reviewNew, { color: summary.newRecords ? theme.success : theme.textSecondary }]}>{summary.newRecords} new</Text>
+            </View>
+          );
+        })}
+      </ForgeCard>
+      {inspection.activeWorkout ? <Text style={[styles.transferNote, { color: theme.textSecondary }]}>The current workout can be added because this device does not have one in progress.</Text> : null}
+      <Text style={[styles.transferNote, { color: theme.textSecondary }]}>Import is additive: nothing currently on this device is replaced. Use SQLite restore only when you need a full replacement.</Text>
     </View>
   );
 }
@@ -222,6 +384,8 @@ function Action({
   divider = false,
   destructive = false,
   disabled = false,
+  disclosure = !destructive,
+  style,
 }: {
   title: string;
   subtitle?: string;
@@ -231,6 +395,8 @@ function Action({
   divider?: boolean;
   destructive?: boolean;
   disabled?: boolean;
+  disclosure?: boolean;
+  style?: import('react-native').StyleProp<import('react-native').ViewStyle>;
 }) {
   return (
     <SettingsRow
@@ -241,8 +407,9 @@ function Action({
       destructive={destructive}
       disabled={!onPress || disabled}
       onPress={onPress ?? (() => undefined)}
-      disclosure={!destructive}
+      disclosure={disclosure}
       showDivider={divider}
+      style={style}
     />
   );
 }
@@ -255,6 +422,22 @@ const styles = StyleSheet.create({
     paddingBottom: settingsLayout.contentBottom,
   },
   stack: { gap: settingsLayout.sectionGap },
+  importRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center' },
+  importAction: { flex: 1 },
+  importInfoAction: { marginRight: 12 },
+  transferSheet: { maxHeight: '82%' },
+  transferContent: { paddingHorizontal: 20, paddingTop: 10, gap: 16 },
+  transferIntro: { ...typeScale.supporting, lineHeight: 20 },
+  transferOption: { minHeight: 68, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  transferOptionCopy: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  transferOptionText: { flex: 1, gap: 2 },
+  transferOptionTitle: { ...typeScale.controlLabel },
+  transferOptionDetail: { ...typeScale.caption },
+  transferCheck: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  reviewStack: { gap: 16 },
+  reviewRow: { minHeight: 64, paddingHorizontal: 16, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  reviewNew: { ...typeScale.controlLabel, textAlign: 'right' },
+  transferNote: { ...typeScale.caption, lineHeight: 19, paddingHorizontal: 2 },
   unavailable: { textAlign: 'center', color: dashboardTheme.slate, ...typeScale.supporting },
   brand: {
     paddingHorizontal: 8,
