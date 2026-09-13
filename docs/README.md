@@ -41,5 +41,8 @@ re-signs the IPA with the user's Apple ID before installation. The sideload
 archive retains Forge's Live Activity/widget extension and App Group, which
 iLoader provisions as it re-signs the IPA. After EAS completes, the workflow
 retains the final IPA as the `Forge-unsigned-ios-ipa` GitHub Actions artifact
-for 30 days. When EAS provides Xcode/build logs, the same run retains them as
-`Forge-unsigned-ios-build-logs` for the same period.
+for 30 days. The workflow submits EAS without waiting on the EAS command, then
+polls the build from its inexpensive Ubuntu runner and reports each real EAS
+state in the GitHub log and job summary. When EAS provides Xcode/build logs,
+the same run retains them as `Forge-unsigned-ios-build-logs` for the same
+period.

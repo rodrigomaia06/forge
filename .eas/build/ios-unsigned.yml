@@ -10,7 +10,6 @@ build:
         name: Install CocoaPods dependencies
         working_directory: ./ios
         command: pod install
-    - eas/configure_eas_update
     - run:
         name: Archive unsigned device app
         working_directory: ./ios

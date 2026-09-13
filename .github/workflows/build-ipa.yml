@@ -16,7 +16,8 @@ jobs:
     # EAS performs the native compilation remotely. A standard Linux runner is
     # faster to start and substantially cheaper than occupying a macOS runner.
     runs-on: ubuntu-latest
-    # The runner must wait for EAS only when GitHub should retain the IPA.
+    # EAS runs the native build independently; this Linux runner only polls it
+    # so the GitHub run shows its actual state and can retain its artifacts.
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v5
@@ -44,15 +45,48 @@ jobs:
       - name: Install config dependencies
         # EAS resolves app plugins locally before it can upload the project.
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Build unsigned IPA on EAS
+      - name: Start unsigned IPA build on EAS
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: eas build --platform ios --profile sideload --non-interactive --wait --json > /tmp/forge-eas-build.json
+        run: |
+          eas build --platform ios --profile sideload --non-interactive --no-wait --json > /tmp/forge-eas-build.json
+          BUILD_ID="$(node -e "const builds = require('/tmp/forge-eas-build.json'); const build = Array.isArray(builds) ? builds[0] : builds; if (!build?.id) throw new Error('EAS did not return a build ID'); process.stdout.write(build.id);")"
+          BUILD_URL="$(node -e "const builds = require('/tmp/forge-eas-build.json'); const build = Array.isArray(builds) ? builds[0] : builds; process.stdout.write(build?.buildDetailsPageUrl ?? '');")"
+          echo "build_id=$BUILD_ID" >> "$GITHUB_OUTPUT"
+          echo "build_url=$BUILD_URL" >> "$GITHUB_OUTPUT"
+          {
+            echo "## EAS unsigned iOS build"
+            echo
+            echo "Build ID: \`$BUILD_ID\`"
+            if [ -n "$BUILD_URL" ]; then echo "[Open EAS build]($BUILD_URL)"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+        id: eas-build
+      - name: Poll EAS build status
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          BUILD_ID: ${{ steps.eas-build.outputs.build_id }}
+          BUILD_URL: ${{ steps.eas-build.outputs.build_url }}
+        run: |
+          set -eu
+          while :; do
+            eas build:view "$BUILD_ID" --json > /tmp/forge-eas-status.json
+            STATUS="$(node -e "const build = require('/tmp/forge-eas-status.json'); process.stdout.write(build.status ?? 'unknown');")"
+            echo "$(date -u +'%Y-%m-%dT%H:%M:%SZ') EAS build $BUILD_ID: $STATUS"
+            echo "EAS status: \`$STATUS\`" >> "$GITHUB_STEP_SUMMARY"
+            case "$STATUS" in
+              finished) break ;;
+              errored|canceled)
+                if [ -n "$BUILD_URL" ]; then echo "::error::EAS build $STATUS: $BUILD_URL"; fi
+                exit 1
+                ;;
+            esac
+            sleep 30
+          done
       - name: Download the completed IPA
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          BUILD_ID="$(node -e "const builds = require('/tmp/forge-eas-build.json'); const build = Array.isArray(builds) ? builds[0] : builds; if (!build?.id) throw new Error('EAS did not return a build ID'); process.stdout.write(build.id);")"
+          BUILD_ID="${{ steps.eas-build.outputs.build_id }}"
           eas build:download --build-id "$BUILD_ID" --all-artifacts --non-interactive --json > /tmp/forge-eas-download.json
           IPA_PATH="$(node -e "const artifact = require('/tmp/forge-eas-download.json'); if (!artifact?.path?.endsWith('.ipa')) throw new Error('EAS did not download an IPA'); process.stdout.write(artifact.path);")"
           mkdir -p artifacts
