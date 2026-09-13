@@ -8,6 +8,29 @@ import type { ForgeTheme, IconName } from '../../types';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { Button } from './Button';
 
+/** Geometry shared by scrollable sheet bodies and their floating confirmation action. */
+export const forgeFloatingCtaGeometry = {
+  fadeHeight: 142,
+  horizontalInset: 20,
+  topInset: 8,
+  buttonHeight: 46,
+  minimumBottomInset: 8,
+  contentGap: 16,
+} as const;
+
+/** The trailing content room that places a final row fully above the CTA. */
+export function useForgeFloatingCtaClearance(): number {
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(
+    forgeFloatingCtaGeometry.minimumBottomInset,
+    insets.bottom - 4,
+  );
+  return forgeFloatingCtaGeometry.topInset
+    + forgeFloatingCtaGeometry.buttonHeight
+    + bottomInset
+    + forgeFloatingCtaGeometry.contentGap;
+}
+
 /** The floating confirmation treatment used by long picker sheets. */
 export function ForgeFloatingCta({
   label,
@@ -46,7 +69,11 @@ export function ForgeFloatingCta({
           <Rect x="0" y="0" width="100%" height="100%" fill="url(#forgeFloatingCtaFade)" />
         </Svg>
       </View>
-      <Animated.View style={[styles.dock, { paddingBottom: Math.max(8, insets.bottom - 4) }, style]}>
+      <Animated.View style={[
+        styles.dock,
+        { paddingBottom: Math.max(forgeFloatingCtaGeometry.minimumBottomInset, insets.bottom - 4) },
+        style,
+      ]}>
         <Button
           label={label}
           accessibilityLabel={accessibilityLabel}
@@ -64,7 +91,13 @@ export function ForgeFloatingCta({
 }
 
 const styles = StyleSheet.create({
-  fade: { position: 'absolute', right: 0, bottom: 0, left: 0, height: 142, zIndex: 1 },
-  dock: { position: 'absolute', right: 20, bottom: 0, left: 20, paddingTop: 8, zIndex: 2 },
-  button: { width: '100%', minHeight: 46, borderRadius: 16 },
+  fade: {
+    position: 'absolute', right: 0, bottom: 0, left: 0,
+    height: forgeFloatingCtaGeometry.fadeHeight, zIndex: 1,
+  },
+  dock: {
+    position: 'absolute', right: forgeFloatingCtaGeometry.horizontalInset, bottom: 0,
+    left: forgeFloatingCtaGeometry.horizontalInset, paddingTop: forgeFloatingCtaGeometry.topInset, zIndex: 2,
+  },
+  button: { width: '100%', minHeight: forgeFloatingCtaGeometry.buttonHeight, borderRadius: 16 },
 });

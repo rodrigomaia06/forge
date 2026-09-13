@@ -279,9 +279,9 @@ test.describe('Active workout flow', () => {
       .getByRole('button', { name: 'Close add exercises' })
       .boundingBox();
     await page.getByRole('button', { name: 'Filters' }).click();
-    const apply = page.getByRole('button', { name: 'Show all exercises' });
+    const apply = page.getByRole('button', { name: 'Apply filters' });
     await expect(apply).toBeVisible();
-    await expect(apply).toBeEnabled();
+    await expect(apply).toBeDisabled();
     await expect(page.getByRole('button', { name: 'Cancel', exact: true })).toHaveCount(0);
     await expect(addExerciseSheet).toHaveCount(1);
     const filterClose = page.getByRole('button', { name: 'Cancel exercise filters' });

@@ -7,7 +7,7 @@ import { useThemedStyles } from '../../theme/useThemedStyles';
 import { Button } from './Button';
 import { ForgeBackButton } from './HeaderAction';
 import { ForgeBottomSheet, ForgeBottomSheetHandle } from './ForgeBottomSheet';
-import { ForgeFloatingCta } from './ForgeFloatingCta';
+import { ForgeFloatingCta, useForgeFloatingCtaClearance } from './ForgeFloatingCta';
 import { ForgeSearchField } from './ForgeSearchField';
 import { ForgeSheetHeader } from './ForgeSheetHeader';
 import { ForgeText as Text } from './ForgeText';
@@ -98,6 +98,7 @@ export function ForgeCatalogFilterContent({
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const { height: viewportHeight } = useWindowDimensions();
+  const floatingCtaClearance = useForgeFloatingCtaClearance();
   const [draft, setDraft] = useState<CatalogFilterState>(filters);
   const [activeFacetKey, setActiveFacetKey] = useState<CatalogFilterKey | null>(null);
   const [choiceQuery, setChoiceQuery] = useState('');
@@ -172,9 +173,8 @@ export function ForgeCatalogFilterContent({
     <View testID="catalog-filter-content" style={[
       fill ? styles.sheetFill : activeFacet ? styles.sheetTall : styles.sheetCompact,
       !fill && activeFacet ? { height: Math.min(viewportHeight * 0.82, 640) } : undefined,
-      // Keep the summary sheet compact without changing the shared sheet
-      // primitive. Choice lists retain their separate tall scrolling layout.
-      !fill && !activeFacet ? { height: Math.min(viewportHeight * 0.56, 460) } : undefined,
+      // Size the summary to its rows; only constrain it when space runs out.
+      !fill && !activeFacet ? { maxHeight: Math.min(viewportHeight * 0.82, 640) } : undefined,
     ]}>
       {headerWithDragHandle ? (
         <>
@@ -185,7 +185,7 @@ export function ForgeCatalogFilterContent({
       {activeFacet ? (
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingBottom: floatingCtaClearance }]}
           showsVerticalScrollIndicator={false}
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
@@ -229,11 +229,19 @@ export function ForgeCatalogFilterContent({
           </>
         </ScrollView>
       ) : (
-        <FilterFacetSummary
-          filters={draft}
-          facets={facets}
-          onOpen={(key) => { selectionHaptic(); setChoiceQuery(''); setActiveFacetKey(key); }}
-        />
+        <ScrollView
+          testID="catalog-filter-summary-scroll"
+          style={fill ? styles.summaryFill : styles.summaryScroll}
+          contentContainerStyle={[styles.rootSummary, { paddingBottom: floatingCtaClearance }]}
+          showsVerticalScrollIndicator={false}
+          directionalLockEnabled
+        >
+          <FilterFacetSummary
+            filters={draft}
+            facets={facets}
+            onOpen={(key) => { selectionHaptic(); setChoiceQuery(''); setActiveFacetKey(key); }}
+          />
+        </ScrollView>
       )}
       <ForgeFloatingCta
         label={count ? `Apply (${count})` : 'Apply'}
@@ -258,8 +266,7 @@ function FilterFacetSummary({
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   return (
-    <View style={styles.rootSummary}>
-      <View style={styles.facetCard}>
+    <View style={styles.facetCard}>
         {facets.map((facet, index) => {
           const selected = filters[facet.key];
           const summary = selected.length
@@ -287,7 +294,6 @@ function FilterFacetSummary({
             </Pressable>
           );
         })}
-      </View>
     </View>
   );
 }
@@ -354,15 +360,17 @@ const createStyles = (theme: ReturnType<typeof useForgeTheme>) => StyleSheet.cre
   sheetTall: { alignSelf: 'stretch' },
   // The root has a little presentation room; only an open choice list owns a
   // tall capped scroll region.
-  sheetCompact: { alignSelf: 'stretch' },
+  sheetCompact: { alignSelf: 'stretch', flexShrink: 1 },
   // This is intentionally a separate style, rather than an override of `sheet`.
   // React Native retains percentage dimensions in some native style merges.
   sheetFill: { flex: 1, alignSelf: 'stretch' },
   scroll: { flexGrow: 0, flexShrink: 1 },
-  content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 156, gap: 10 },
-  // The compact summary needs clearance for the button itself, not the longer
-  // fade used to keep a scrolling choice list readable.
-  rootSummary: { flex: 1, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 72, justifyContent: 'flex-end' },
+  content: { paddingHorizontal: 20, paddingTop: 8, gap: 10 },
+  summaryScroll: { flexGrow: 0, flexShrink: 1, minHeight: 0 },
+  summaryFill: { flex: 1, minHeight: 0 },
+  // A root summary is normally compact, but remains a real bounded scroll
+  // container when text scaling or future facets exceed that compact sheet.
+  rootSummary: { paddingHorizontal: 20, paddingTop: 8 },
   facetCard: { overflow: 'hidden', borderRadius: 20, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface },
   facetRow: { minHeight: 68, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   facetIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

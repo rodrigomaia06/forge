@@ -19,7 +19,110 @@ async function openAllExercises(page: import('@playwright/test').Page) {
   await page.getByRole('button', { name: 'All exercises, 381 exercises' }).click();
 }
 
+// Playwright's iPhone viewport reports zero CSS safe-area insets. Drive the
+// library's real web measurement element so these checks exercise nonzero
+// inset propagation without adding a testing override to the application.
+async function setSafeArea(page: import('@playwright/test').Page, top: number, bottom: number) {
+  await page.locator('body > div').filter({ visible: false }).evaluateAll((elements, insets) => {
+    const probe = elements.find((element) =>
+      (element as HTMLElement).style.paddingTop.includes('safe-area-inset-top'),
+    ) as HTMLElement | undefined;
+    if (!probe) throw new Error('Expected the safe-area measurement element');
+    probe.style.paddingTop = `${insets.top}px`;
+    probe.style.paddingBottom = `${insets.bottom}px`;
+    probe.dispatchEvent(new Event('transitionend'));
+  }, { top, bottom });
+}
+
+async function waitForFilterSheet(page: import('@playwright/test').Page) {
+  await expect(page.getByTestId('exercise-filter-sheet-surface')).toHaveCSS(
+    'transform', 'matrix(1, 0, 0, 1, 0, 0)',
+  );
+}
+
+async function scrollToEnd(locator: import('@playwright/test').Locator) {
+  return locator.evaluate((element) => {
+    const candidates = [
+      element as HTMLElement,
+      ...Array.from(element.querySelectorAll<HTMLElement>('*')),
+    ];
+    const scroller = candidates.find((node) => {
+      const style = window.getComputedStyle(node);
+      return node.scrollHeight > node.clientHeight + 1 && /auto|scroll/.test(style.overflowY);
+    });
+    if (!scroller) throw new Error('Expected the exercise browser to have a bounded vertical scroller');
+    scroller.scrollTop = scroller.scrollHeight;
+    scroller.dispatchEvent(new Event('scroll', { bubbles: true }));
+    const bounds = scroller.getBoundingClientRect();
+    return {
+      scrollTop: scroller.scrollTop,
+      maximumOffset: scroller.scrollHeight - scroller.clientHeight,
+      viewportBottom: bounds.bottom,
+    };
+  });
+}
+
 test.describe('Exercise library', () => {
+  test('keeps the compact filter summary usable in a shorter iPhone viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 320 });
+    await openAllExercises(page);
+    await page.getByRole('button', { name: 'Filters' }).click();
+    await waitForFilterSheet(page);
+
+    const summary = page.getByTestId('catalog-filter-summary-scroll');
+    const metrics = await scrollToEnd(summary);
+    expect(metrics.scrollTop).toBeGreaterThanOrEqual(metrics.maximumOffset - 1);
+    const category = page.getByRole('button', { name: 'Edit Category filter, Any' });
+    await expect(category).toBeVisible();
+    const categoryBox = await category.boundingBox();
+    expect((categoryBox?.y ?? Infinity) + (categoryBox?.height ?? Infinity)).toBeLessThanOrEqual(
+      metrics.viewportBottom + 1,
+    );
+    const applyBox = await page.getByRole('button', { name: 'Apply filters' }).boundingBox();
+    expect((categoryBox?.y ?? Infinity) + (categoryBox?.height ?? Infinity)).toBeLessThanOrEqual(
+      applyBox?.y ?? -Infinity,
+    );
+    await category.click();
+    await page.getByRole('checkbox').first().click();
+    await page.getByRole('button', { name: 'Back to filters' }).click();
+    await page.getByRole('button', { name: 'Apply (1)' }).click();
+    await expect(page.getByRole('button', { name: 'Filters, 1 active' })).toBeVisible();
+  });
+
+  test('sizes the two-facet filter summary to its cards without a top gap', async ({ page }, testInfo) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance: 'dark' }));
+    });
+    await page.goto('/');
+    await expect(page.getByTestId('dashboard-shell')).toBeVisible();
+    await setSafeArea(page, 62, 34);
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Exercises', exact: true }).click();
+    await page.getByRole('button', { name: 'Strength, 255 exercises' }).click();
+    await page.getByRole('button', { name: 'Filters' }).click();
+    await waitForFilterSheet(page);
+    const sheet = page.getByTestId('catalog-filter-content');
+    const first = sheet.getByRole('button', { name: 'Edit Equipment filter, Any' });
+    const header = sheet.getByTestId('forge-sheet-drag-area');
+    await expect(first).toBeVisible();
+    await expect.poll(async () => {
+      const firstBox = await first.boundingBox();
+      const headerBox = await header.boundingBox();
+      return Math.round((firstBox?.y ?? Infinity) - ((headerBox?.y ?? 0) + (headerBox?.height ?? 0)));
+    }).toBe(9); // 8 pt content padding + 1 pt card border
+    expect((await sheet.boundingBox())?.height ?? Infinity).toBeLessThan(340);
+    await first.click();
+    await page.getByRole('checkbox', { name: 'Filter Equipment: Bench', exact: true }).click();
+    await page.getByRole('button', { name: 'Apply (1)', exact: true }).click();
+    await page.getByRole('button', { name: 'Filters, 1 active' }).click();
+    await waitForFilterSheet(page);
+    await expect(sheet.getByRole('button', { name: 'Edit Equipment filter, Bench' })).toBeVisible();
+    await expect.poll(async () => Math.round((await sheet.boundingBox())?.height ?? Infinity)).toBeLessThan(340);
+    if (testInfo.project.name === 'iphone-air') {
+      await page.screenshot({ path: 'tests/results/captures/exercise-filters-compact-safe-area.png' });
+    }
+  });
+
   test('groups movement variations and stages multi-select facets before applying them', async ({ page }) => {
     await openAllExercises(page);
     await expect(page.getByTestId('settings-detail-title').last()).toHaveText('All exercises');
