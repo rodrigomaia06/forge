@@ -382,7 +382,8 @@ test.describe('Active workout flow', () => {
     await expect(page.getByText('Rest timer', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Start rest timer', exact: true }).last().click();
     await expect(page.getByRole('button', { name: /Rest timer,/ })).toBeVisible();
-    await expect(page.getByRole('tab', { name: /^Workout, rest 1:\d\d remaining$/ })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Workout' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: /rest .*remaining/ })).toHaveCount(0);
     await expect(page.getByRole('dialog').getByText(/01:2[0-9]/)).toBeVisible();
     await expect(page.getByText('remaining', { exact: true })).toBeVisible();
     const progress = page.getByTestId('rest-timer-progress-track');

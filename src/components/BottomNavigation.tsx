@@ -15,7 +15,6 @@ import { getWorkoutTypePresentation } from '../domain/workouts/presentation';
 import { colors } from '../theme/tokens';
 import { useSettings } from '../state/SettingsContext';
 import { useWorkouts } from '../state/WorkoutContext';
-import { useRestTimer } from '../state/RestTimerContext';
 import type { ForgeTheme, IconName, RootTabParamList } from '../types';
 
 interface BottomNavigationProps {
@@ -25,15 +24,10 @@ interface BottomNavigationProps {
   onNavigate?: () => void;
 }
 type BottomNavigationScreen = keyof RootTabParamList;
-type NavigationItemEntry = [IconName, string, BottomNavigationScreen, boolean, string?];
+type NavigationItemEntry = [IconName, string, BottomNavigationScreen, boolean];
 type ItemLayout = { x: number; width: number };
 
 let knownWorkoutId: string | null | undefined;
-
-function formatDockRest(seconds: number): string {
-  const absolute = Math.abs(seconds);
-  return `${seconds < 0 ? '+' : ''}${Math.floor(absolute / 60)}:${String(absolute % 60).padStart(2, '0')}`;
-}
 
 export function BottomNavigation({
   tabBarProps,
@@ -43,17 +37,7 @@ export function BottomNavigation({
 }: BottomNavigationProps) {
   const { navigation, state } = tabBarProps;
   const activeWorkout = useWorkouts().activeWorkout;
-  const { endAt: restEndAt } = useRestTimer();
   const { preferences } = useSettings();
-  const [restNow, setRestNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!restEndAt) return undefined;
-    setRestNow(Date.now());
-    const interval = setInterval(() => setRestNow(Date.now()), 1000);
-    return () => clearInterval(interval);
-  }, [restEndAt]);
-  const restRemaining = restEndAt ? Math.ceil((restEndAt - restNow) / 1000) : 0;
-  const restRunning = Boolean(restEndAt && (restRemaining > 0 || preferences.keepRestTimerRunning));
   const [itemLayouts, setItemLayouts] = useState<
     Partial<Record<BottomNavigationScreen, ItemLayout>>
   >({});
@@ -62,7 +46,6 @@ export function BottomNavigation({
   const indicatorOpacity = useSharedValue(0);
   const reducedMotion = useReducedMotion();
   const hasActiveWorkout = Boolean(activeWorkout);
-  const restBadge = preferences.showRestTimer && restRunning ? formatDockRest(restRemaining) : undefined;
   const activeWorkoutIcon = activeWorkout
     ? getWorkoutTypePresentation(activeWorkout.type, preferences.workoutTypes, theme, 1).icon
     : 'fitness-outline';
@@ -84,7 +67,7 @@ export function BottomNavigation({
     ['home-outline', 'Dashboard', 'Dashboard', false],
     ['time-outline', 'History', 'History', false],
     ...(activeWorkout
-      ? [[activeWorkoutIcon, 'Workout', 'ActiveWorkout', true, restBadge] as NavigationItemEntry]
+      ? [[activeWorkoutIcon, 'Workout', 'ActiveWorkout', true] as NavigationItemEntry]
       : []),
     ['book', 'Plans', 'Plans', false],
     ['menu', 'Settings', 'Settings', false],
@@ -152,7 +135,7 @@ export function BottomNavigation({
           },
         ]}
       />
-      {items.map(([icon, label, screen, emphasis, badge]) => {
+      {items.map(([icon, label, screen, emphasis]) => {
         const active = activeRoute === screen;
         const iconSize = compact
           ? active
@@ -181,8 +164,7 @@ export function BottomNavigation({
               iconSize={iconSize}
               enterFromBottom={emphasis && workoutStartedNow}
               compact={compact}
-              badge={badge}
-              accessibilityLabel={badge ? `${label}, rest ${badge} ${restRemaining < 0 ? 'overdue' : 'remaining'}` : label}
+              accessibilityLabel={label}
             />
           </View>
         );

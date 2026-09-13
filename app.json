@@ -2,6 +2,7 @@
   "expo": {
     "name": "Forge",
     "slug": "forge",
+    "icon": "./assets/forge-app-icon-ios.png",
     "scheme": "forge",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -35,33 +36,10 @@
       ],
       "expo-sqlite",
       "expo-notifications",
-      [
-        "expo-widgets",
-        {
-          "bundleIdentifier": "com.forge.training.widgets",
-          "groupIdentifier": "group.com.forge.training"
-        }
-      ]
+      "./modules/forge-rest-timer/app.plugin.js"
     ],
     "extra": {
       "eas": {
-        "build": {
-          "experimental": {
-            "ios": {
-              "appExtensions": [
-                {
-                  "targetName": "ExpoWidgetsTarget",
-                  "bundleIdentifier": "com.forge.training.widgets",
-                  "entitlements": {
-                    "com.apple.security.application-groups": [
-                      "group.com.forge.training"
-                    ]
-                  }
-                }
-              ]
-            }
-          }
-        },
         "projectId": "6b8083d6-e0fc-4ebe-b5c9-4e38a6f7c9e0"
       }
     },

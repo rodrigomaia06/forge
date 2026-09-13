@@ -1,0 +1,6 @@
+{
+  "name": "forge-rest-timer-live-activity",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Forge's local iOS ActivityKit bridge for the rest timer"
+}
