@@ -88,6 +88,9 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
   const [selectedId, setSelectedId] = useState<string | undefined>(
     preferences.dailyMeasurementDefinitions[0]?.id,
   );
+  // The page itself must arrive settled. Only a deliberate metric change
+  // inside Measurements should replace this content with a lateral motion.
+  const [animateMetricChange, setAnimateMetricChange] = useState(false);
   const [recordOpen, setRecordOpen] = useState(false);
   const [metricOpen, setMetricOpen] = useState(false);
   const [recordValue, setRecordValue] = useState('');
@@ -182,6 +185,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
     updatePreferences({
       dailyMeasurementDefinitions: [...preferences.dailyMeasurementDefinitions, definition],
     });
+    setAnimateMetricChange(true);
     setSelectedId(definition.id);
     setMetricName('');
     setMetricUnit('');
@@ -244,7 +248,12 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                   accessibilityLabel={`${definition.name}${definition.unit ? `, ${definition.unit}` : ''}`}
                   accessibilityState={{ checked: definition.id === selected?.id }}
                   aria-checked={definition.id === selected?.id}
-                  onPress={() => { selectionHaptic(); setSelectedId(definition.id); }}
+                  onPress={() => {
+                    if (definition.id === selected?.id) return;
+                    selectionHaptic();
+                    setAnimateMetricChange(true);
+                    setSelectedId(definition.id);
+                  }}
                   style={({ pressed }) => [
                     styles.metricPickerCard,
                     definition.id === selected?.id && { borderColor: definition.color, backgroundColor: `${definition.color}18` },
@@ -275,8 +284,9 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
         {selected ? (
           <Animated.View
             key={selected.id}
-            entering={FadeInRight.duration(180)}
-            exiting={FadeOutLeft.duration(120)}
+            testID="measurements-active-metric"
+            entering={animateMetricChange ? FadeInRight.duration(180) : undefined}
+            exiting={animateMetricChange ? FadeOutLeft.duration(120) : undefined}
             style={styles.selectedMetricContent}
           >
             <ForgeCard variant="elevated" style={styles.summaryCard}>

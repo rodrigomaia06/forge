@@ -276,6 +276,7 @@ function SwipeTypeRow({
     >
       {type.source !== 'builtIn' && (
         <View
+          testID="workout-type-destructive-surface"
           style={[
             styles.actionLayer,
             { backgroundColor: theme.destructiveSurface, pointerEvents: revealed ? 'auto' : 'none' },
@@ -343,9 +344,10 @@ function SwipeTypeRow({
       </Animated.View>
       {type.source === 'builtIn' && expanded && (
         <View
+          testID="workout-type-visibility-surface"
           style={[
             styles.visibilitySurface,
-            { backgroundColor: theme.surfaceInset, borderTopColor: theme.divider },
+            { backgroundColor: theme.surfaceElevated, borderTopColor: theme.divider },
           ]}
         >
           <SettingsRow

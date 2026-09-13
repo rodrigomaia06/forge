@@ -1231,7 +1231,7 @@ function Movement({
         }
       />
       {expanded && (
-        <View style={styles.variations}>
+        <View testID={`exercise-variations-${group}`} style={styles.variations}>
           {equipment.map(([label, variants]) => (
             <View key={label} style={styles.equipmentGroup}>
               <Text style={styles.equipmentTitle}>{label}</Text>
@@ -1436,7 +1436,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     meta: { ...typeScale.supporting, color: theme.slate, marginTop: 2 },
     variations: {
       padding: 14,
-      backgroundColor: theme.surfaceInset,
+      // Keep the expanded hierarchy inside the same opaque card. Using the
+      // page-coloured inset here visually broke the card at its first row.
+      backgroundColor: theme.surfaceElevated,
       borderTopWidth: 1,
       borderColor: theme.border,
       gap: 12,

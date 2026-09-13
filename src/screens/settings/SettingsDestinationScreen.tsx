@@ -143,6 +143,13 @@ function Logs() {
     }).catch(() => setStatus('Local storage is unavailable.'));
   }, []);
   React.useEffect(() => { refresh(); }, [refresh]);
+  const exportLogs = (): void => {
+    void exportDiagnostics().catch(async () => {
+      await recordDiagnostic('operation-failed', 'unavailable');
+      Alert.alert('Could not export logs', 'Local diagnostics are still available on this device.');
+      refresh();
+    });
+  };
   const clear = (): void => Alert.alert('Clear diagnostic logs?', 'This removes local technical events. Workout names, values, notes and identifiers are never recorded here.', [
     { text: 'Cancel', style: 'cancel' },
     { text: 'Clear', style: 'destructive', onPress: () => void clearDiagnostics().then(refresh) },
@@ -155,7 +162,7 @@ function Logs() {
       {entries.length ? entries.map((entry, index) => <Action key={entry.id} title={diagnosticLabel(entry)} subtitle={new Date(entry.at).toLocaleString()} divider={index < entries.length - 1} />) : <Text style={styles.copy}>No diagnostic events recorded.</Text>}
     </SettingsSection>
     <SettingsSection>
-      <Action title="Export logs" divider onPress={() => void exportDiagnostics()} />
+      <Action title="Export logs" divider onPress={exportLogs} />
       <Action title="Clear logs" destructive onPress={clear} />
     </SettingsSection>
   </View>;

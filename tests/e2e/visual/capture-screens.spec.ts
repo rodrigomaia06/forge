@@ -73,7 +73,7 @@ test.describe('Forge screen captures', () => {
       .click();
     await expect(page.getByLabel('Routine name')).toBeVisible();
     await capture(page, 'routine-editor');
-    await page.getByRole('button', { name: 'Back to Plans' }).click();
+    await page.getByRole('button', { name: 'Cancel editing routine' }).click();
 
     await page.getByRole('tab', { name: 'Settings' }).click();
     await expect(page.getByTestId('settings-title')).toBeVisible();
@@ -115,14 +115,14 @@ test.describe('Forge screen captures', () => {
     await page.getByRole('button', { name: 'Equipment' }).click();
     await capture(page, 'settings-new-exercise-equipment-selector');
     await page.getByRole('button', { name: 'Back to exercise form' }).click();
-    await page.getByRole('button', { name: 'Close custom exercise form' }).click();
+    await page.getByTestId('forge-sheet-drag-area').getByRole('button', { name: 'Close custom exercise form' }).click();
     await page.getByRole('button', { name: 'Bench Press & 3 variations' }).click();
     await page.getByRole('button', { name: 'Open Flat' }).first().click();
     await capture(page, 'settings-exercise-detail');
     await page.getByRole('button', { name: 'Change rest time, currently Default' }).click();
     await capture(page, 'settings-exercise-rest-picker');
     await page.getByRole('button', { name: 'Use default rest time' }).click();
-    await page.getByLabel('Close exercise details').click();
+    await page.getByTestId('forge-sheet-drag-area').getByRole('button', { name: 'Close exercise details' }).click();
     await page.getByRole('button', { name: 'Back to Exercises' }).click();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('button', { name: 'Workout types' }).click();
@@ -141,7 +141,7 @@ test.describe('Forge screen captures', () => {
     await expect(page.getByTestId('custom-exercise-form-surface')).toBeVisible();
     await capture(page, 'settings-new-exercise-sheet');
     await page.getByRole('button', { name: 'Equipment' }).click();
-    await expect(page.getByRole('radio').first()).toBeVisible();
+    await expect(page.getByRole('checkbox').first()).toBeVisible();
     await capture(page, 'settings-new-exercise-equipment-selector');
   });
 
@@ -253,7 +253,7 @@ test.describe('Forge screen captures', () => {
     await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
     await capture(page, 'live-workout-exercise-metadata');
     await page.getByLabel('Open details for set 1').click();
-    await expect(page.getByText('TYPE', { exact: true })).toBeVisible();
+    await expect(page.getByText('SET KIND', { exact: true })).toBeVisible();
     await capture(page, 'set-options');
   });
 });

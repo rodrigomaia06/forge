@@ -582,10 +582,12 @@ function SwipeDelete({
 
 const createStyles = (theme: import('../types').ForgeTheme) =>
   StyleSheet.create({
-    groupedCard: { overflow: 'hidden' },
+    // Root lists are a single opaque Forge surface; their row dividers provide
+    // the structure, so an outer border would read as a stray white outline.
+    groupedCard: { overflow: 'hidden', borderWidth: 0 },
     // ForgeCard owns the single opaque plan surface and radius. Its inner
     // swipe wrapper stays transparent so it cannot create a seam above the title.
-    planCard: { overflow: 'hidden' },
+    planCard: { overflow: 'hidden', borderWidth: 0 },
     planCardSurface: { overflow: 'hidden' },
     screen: { flex: 1 },
     scrollView: { flex: 1 },

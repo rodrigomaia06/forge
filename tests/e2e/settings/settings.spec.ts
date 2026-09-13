@@ -138,6 +138,8 @@ test.describe('Settings', () => {
     await page.reload();
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Measurements' }).click();
+    // Entering the destination never fades or translates its initial metric.
+    await expect(page.getByTestId('measurements-active-metric')).toHaveCSS('opacity', '1');
     await expect(page.getByText('81.4 kg').first()).toBeVisible();
     await expect(page.getByText(/^History · /).last()).toBeVisible();
   });
@@ -177,6 +179,18 @@ test.describe('Settings', () => {
     const generalSettingsBefore = await scrollTop(generalSettings);
     await scrollListDown(generalSettings);
     await expect.poll(() => scrollTop(generalSettings)).toBeGreaterThan(generalSettingsBefore + 20);
+  });
+
+  test('keeps expanded exercise variations on their opaque card surface in Light', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Exercises' }).click();
+    await page.getByRole('button', { name: 'Strength, 255 exercises' }).click();
+    await page.getByRole('button', { name: 'Bench Press & 4 variations' }).click();
+
+    const expansion = page.getByTestId('exercise-variations-Bench Press');
+    await expect(expansion).toHaveCSS('background-color', 'rgb(248, 248, 246)');
+    await expect(expansion).toHaveCSS('border-top-width', '1px');
   });
 
   test('uses the shared Settings row scale across root and nested cards', async ({ page }) => {

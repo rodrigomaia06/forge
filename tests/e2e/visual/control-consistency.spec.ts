@@ -38,10 +38,11 @@ test.describe('Interactive control consistency', () => {
 
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Workout types' }).click();
-    expect(await dimensions(page.getByRole('button', { name: 'Back to Settings' }))).toMatchObject({
+    const backToSettings = await dimensions(page.getByRole('button', { name: 'Back to Settings' }));
+    expect(backToSettings).toMatchObject({
       width: 44,
       height: 44,
-      background: 'rgb(236, 237, 235)',
+      background: startMetrics.background,
     });
     const addWorkoutType = page.getByRole('button', { name: 'Add workout type' });
     expect(await dimensions(addWorkoutType)).toMatchObject({
@@ -61,7 +62,11 @@ test.describe('Interactive control consistency', () => {
 
     await save.click();
     await expect(page.getByRole('button', { name: 'Recovery workout type' })).toBeVisible();
-    await page.getByRole('button', { name: 'Strength workout type' }).click();
+    const workoutTypesScroll = page.getByTestId('workout-types-scroll').last();
+    await workoutTypesScroll.getByRole('button', { name: 'Strength workout type' }).click();
+    const expandedType = workoutTypesScroll.getByTestId('workout-type-visibility-surface');
+    await expect(expandedType).toHaveCSS('background-color', startMetrics.background);
+    await expect(expandedType).toHaveCSS('border-top-width', '1px');
     const typeSwitch = page.getByTestId('workout-type-list-visibility-switch');
     expect(await dimensions(typeSwitch)).toMatchObject({ width: 48, height: 28 });
 
