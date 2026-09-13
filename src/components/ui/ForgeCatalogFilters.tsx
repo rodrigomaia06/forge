@@ -45,6 +45,9 @@ export function ForgeCatalogFilterSheet({
   onApply,
   onClose,
   testID,
+  title = 'Filters',
+  closeAccessibilityLabel = 'Cancel exercise filters',
+  backdropAccessibilityLabel = 'Close exercise filters',
 }: {
   visible: boolean;
   filters: CatalogFilterState;
@@ -52,6 +55,10 @@ export function ForgeCatalogFilterSheet({
   onApply: (filters: CatalogFilterState) => void;
   onClose: () => void;
   testID?: string;
+  /** Name the sheet for another Forge catalogue-like collection. */
+  title?: string;
+  closeAccessibilityLabel?: string;
+  backdropAccessibilityLabel?: string;
 }) {
   return (
     <ForgeBottomSheet
@@ -59,7 +66,7 @@ export function ForgeCatalogFilterSheet({
       surfaceTestID={testID ? `${testID}-surface` : undefined}
       visible={visible}
       onClose={onClose}
-      accessibilityLabel="Close exercise filters"
+      accessibilityLabel={backdropAccessibilityLabel}
       initialOffset={620}
       closeDistance={620}
       dismissThreshold={220}
@@ -68,6 +75,8 @@ export function ForgeCatalogFilterSheet({
         <ForgeCatalogFilterContent
           filters={filters}
           facets={facets}
+          title={title}
+          closeAccessibilityLabel={closeAccessibilityLabel}
           headerWithDragHandle
           onApply={(next) => { onApply(next); close(); }}
           onCancel={close}
@@ -85,6 +94,8 @@ export function ForgeCatalogFilterContent({
   onCancel,
   fill = false,
   headerWithDragHandle = false,
+  title = 'Filters',
+  closeAccessibilityLabel = 'Cancel exercise filters',
 }: {
   filters: CatalogFilterState;
   facets: CatalogFilterFacet[];
@@ -94,6 +105,9 @@ export function ForgeCatalogFilterContent({
   fill?: boolean;
   /** Make the handle and header one safe downward-drag target. */
   headerWithDragHandle?: boolean;
+  /** Name the root of this reusable staged-filter flow. */
+  title?: string;
+  closeAccessibilityLabel?: string;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -149,9 +163,9 @@ export function ForgeCatalogFilterContent({
   }, [activeFacet, deferredChoiceQuery, draft]);
   const header = (
     <ForgeSheetHeader
-      title={activeFacet?.title ?? 'Filters'}
+      title={activeFacet?.title ?? title}
       onClose={onCancel}
-      closeAccessibilityLabel="Cancel exercise filters"
+      closeAccessibilityLabel={closeAccessibilityLabel}
       leading={activeFacet ? (
         <ForgeBackButton
           accessibilityLabel="Back to filters"

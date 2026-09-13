@@ -6,6 +6,9 @@ import ReanimatedSwipeable, {
 import {
   AppScreen,
   Button,
+  catalogFilterCount,
+  emptyCatalogFilters,
+  ForgeCatalogFilterSheet,
   ForgeText as Text,
   HeaderEdge,
   HeaderAction,
@@ -38,7 +41,21 @@ export function HistoryScreen({
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const dockScrollInset = useForgeDockScrollInset();
-  const groups = useMemo(() => groupByPeriod(completedWorkouts), [completedWorkouts]);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filters, setFilters] = useState(emptyCatalogFilters);
+  const historyTypeOptions = useMemo(() => {
+    const presentTypes = new Set(completedWorkouts.map((workout) => workout.type));
+    return [...presentTypes]
+      .sort((left, right) => left.localeCompare(right))
+      .map((type) => ({ value: type, label: type }));
+  }, [completedWorkouts]);
+  const filteredWorkouts = useMemo(() => (
+    filters.types.length
+      ? completedWorkouts.filter((workout) => filters.types.includes(workout.type))
+      : completedWorkouts
+  ), [completedWorkouts, filters.types]);
+  const groups = useMemo(() => groupByPeriod(filteredWorkouts), [filteredWorkouts]);
+  const activeFilterCount = catalogFilterCount(filters);
   const [deleteRevealedId, setDeleteRevealedId] = useState<string | null>(null);
   const [headerElevated, setHeaderElevated] = useState(false);
   return (
@@ -52,9 +69,10 @@ export function HistoryScreen({
             accessibilityLabel="Filter"
             icon="filter"
             iconSize={20}
-            onPress={() => undefined}
+            onPress={() => setFiltersOpen(true)}
             iconOnly
-            variant="outline"
+            variant={theme.colorScheme === 'dark' ? 'ghost' : 'outline'}
+            style={theme.colorScheme === 'dark' ? styles.darkHeaderAction : undefined}
           />
           {headerElevated ? <HeaderEdge /> : null}
         </View>
@@ -106,20 +124,52 @@ export function HistoryScreen({
                 resizeMode="contain"
                 accessible={false}
               />
-              <Text style={styles.emptyTitle}>No completed workouts</Text>
-              <Text style={styles.emptySubtitle}>Finish a workout and it will appear here.</Text>
-              <Button
-                label="Start a workout"
-                onPress={() => {
-                  startWorkout();
-                  navigation.navigate('ActiveWorkout');
-                }}
-                theme={theme}
-                style={styles.emptyAction}
-              />
+              <Text style={styles.emptyTitle}>
+                {activeFilterCount ? 'No matching workouts' : 'No completed workouts'}
+              </Text>
+              <Text style={styles.emptySubtitle}>
+                {activeFilterCount
+                  ? 'Try changing or clearing the filter.'
+                  : 'Finish a workout and it will appear here.'}
+              </Text>
+              {activeFilterCount ? (
+                <Button
+                  label="Clear filters"
+                  variant="secondary"
+                  onPress={() => setFilters(emptyCatalogFilters())}
+                  theme={theme}
+                  style={styles.emptyAction}
+                />
+              ) : (
+                <Button
+                  label="Start a workout"
+                  onPress={() => {
+                    startWorkout();
+                    navigation.navigate('ActiveWorkout');
+                  }}
+                  theme={theme}
+                  style={styles.emptyAction}
+                />
+              )}
             </View>
           )}
         </ScrollView>
+        <ForgeCatalogFilterSheet
+          testID="history-filter-sheet"
+          visible={filtersOpen}
+          filters={filters}
+          facets={[{
+            key: 'types',
+            title: 'Workout type',
+            icon: 'layers',
+            options: historyTypeOptions,
+          }]}
+          title="Filter history"
+          closeAccessibilityLabel="Cancel history filters"
+          backdropAccessibilityLabel="Close history filters"
+          onApply={setFilters}
+          onClose={() => setFiltersOpen(false)}
+        />
       </View>
     </AppScreen>
   );
@@ -294,6 +344,9 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     paddingHorizontal: 20,
     backgroundColor: theme.background,
   },
+  // Dark Forge headers use a calm filled action surface rather than an
+  // outlined ring, which reads as visual noise against the dark background.
+  darkHeaderAction: { backgroundColor: theme.surfaceMuted },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 18, gap: 18 },
   group: { gap: 8 },

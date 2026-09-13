@@ -44,6 +44,46 @@ test.describe('History screen', () => {
     expect(await page.locator('svg').count()).toBeGreaterThan(0);
   });
 
+  test('filters History through the staged Forge workout-type flow', async ({ page }, testInfo) => {
+    const headerFilter = page.getByTestId('history-header').getByRole('button', { name: 'Filter' });
+    await headerFilter.click();
+    const filterSheet = page.getByTestId('history-filter-sheet');
+    await expect(filterSheet).toBeVisible();
+    await expect(filterSheet.getByText('Filter history', { exact: true })).toBeVisible();
+    if (testInfo.project.name === 'iphone-air') {
+      await page.waitForTimeout(250);
+      await page.screenshot({ path: testInfo.outputPath('history-filter-sheet-iphone.png') });
+    }
+    await filterSheet.getByRole('button', { name: 'Edit Workout type filter, Any' }).click();
+    await expect(filterSheet.getByText('Workout type', { exact: true })).toBeVisible();
+    await filterSheet.getByRole('checkbox', { name: 'Filter Workout type: Strength' }).click();
+    await filterSheet.getByRole('button', { name: 'Back to filters' }).click();
+    await expect(filterSheet.getByRole('button', { name: 'Edit Workout type filter, Strength' })).toBeVisible();
+    await filterSheet.getByRole('button', { name: 'Apply (1)' }).click();
+
+    await expect(page.getByRole('button', { name: 'Open Pull - Extension' }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open Muay Thai' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Open Recovery walk' })).toHaveCount(0);
+
+    await headerFilter.click();
+    await filterSheet.getByRole('button', { name: 'Clear filters' }).click();
+    await filterSheet.getByRole('button', { name: 'Apply filters' }).click();
+    await expect(page.getByRole('button', { name: 'Open Muay Thai' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open Recovery walk' })).toBeVisible();
+  });
+
+  test('uses a filled, borderless History filter control in dark mode', async ({ page }) => {
+    await page.evaluate(() => {
+      localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance: 'dark' }));
+    });
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'History' }).click();
+
+    const filter = page.getByRole('button', { name: 'Filter' });
+    await expect(filter).toHaveCSS('border-width', '0px');
+    await expect(filter).toHaveCSS('background-color', 'rgb(48, 54, 59)');
+  });
+
   test('omits the exercise summary when a completed workout has no exercises or sets', async ({
     page,
   }) => {
@@ -237,13 +277,17 @@ test.describe('History screen', () => {
     const historyExercise = page.getByTestId('history-exercise-muay-thai-exercise-0');
     await expect(historyExercise).not.toContainText('Exercise history note');
     await expect(historyExercise.locator('svg[aria-label="Exercise has a comment"]')).toBeVisible();
-    const [chipBox, dotBox] = await Promise.all([
+    const [chipBox, dotBox, targetDotBox, rpeBox] = await Promise.all([
       page.getByTestId('history-set-number-chip-1').boundingBox(),
       firstSet.getByLabel('Set 1 has a comment').boundingBox(),
+      firstSet.getByLabel('Set 1 has a next session target').boundingBox(),
+      firstSet.getByLabel('Set 1 RPE 8').boundingBox(),
     ]);
     expect(chipBox).not.toBeNull();
     expect(dotBox).not.toBeNull();
-    if (!chipBox || !dotBox) throw new Error('Expected a measurable history set chip and comment dot');
+    expect(targetDotBox).not.toBeNull();
+    expect(rpeBox).not.toBeNull();
+    if (!chipBox || !dotBox || !targetDotBox || !rpeBox) throw new Error('Expected measurable history set indicators');
     await expect(firstSet.getByLabel('Set 1 has a comment').locator('svg')).toHaveCount(0);
     expect(dotBox.width).toBeCloseTo(7, 0);
     expect(dotBox.height).toBeCloseTo(7, 0);
@@ -255,6 +299,11 @@ test.describe('History screen', () => {
     expect(dotBox.y + dotBox.height).toBeLessThanOrEqual(chipBox.y + chipBox.height);
     expect(dotBox.x + dotBox.width).toBeGreaterThan(chipBox.x + chipBox.width - 3);
     expect(dotBox.y + dotBox.height).toBeGreaterThan(chipBox.y + chipBox.height - 3);
+    await expect(firstSet.getByLabel('Set 1 has a next session target')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+    expect(targetDotBox.x).toBeLessThan(chipBox.x + chipBox.width / 2);
+    expect(targetDotBox.y).toBeLessThan(chipBox.y + chipBox.height / 2);
+    expect(rpeBox.x).toBeLessThan(chipBox.x + chipBox.width / 2);
+    expect(rpeBox.y + rpeBox.height).toBeGreaterThan(chipBox.y + chipBox.height / 2);
     if (testInfo.project.name === 'iphone-air') {
       await page.screenshot({ path: testInfo.outputPath('commented-history-exercise-iphone.png') });
     }
@@ -334,6 +383,9 @@ function makeWorkout(
           completed: !(id === 'muay-thai' && exerciseIndex === 0 && setIndex === 1),
           comment: exerciseIndex === 0 && setIndex === 0 ? 'History note' : undefined,
           targetWeight: exerciseIndex === 0 && setIndex === 0 ? '65' : undefined,
+          measurements: exerciseIndex === 0 && setIndex === 0
+            ? [{ id: `${id}-rpe-${exerciseIndex}-${setIndex}`, kind: 'rpe', unit: 'rpe', value: 8 }]
+            : undefined,
         }),
       ),
     })),
