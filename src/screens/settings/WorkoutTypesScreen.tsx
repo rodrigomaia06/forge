@@ -23,7 +23,6 @@ import {
 import { usePlans } from '../../state/PlansContext';
 import { useSettings } from '../../state/SettingsContext';
 import { useWorkouts } from '../../state/WorkoutContext';
-import { dashboardTheme } from '../../theme/dashboardTheme';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
 import type { RootStackParamList, WorkoutTypePreference } from '../../types';
@@ -284,7 +283,10 @@ function SwipeTypeRow({
             accessibilityRole="button"
             accessibilityLabel={`${actionLabel} ${type.name}`}
             onPress={onRemove}
-            style={({ pressed }) => [styles.swipeAction, pressed && styles.swipeActionPressed]}
+            style={({ pressed }) => [
+              styles.swipeAction,
+              pressed && { backgroundColor: theme.destructiveSurfacePressed },
+            ]}
           >
             <Icon
               name={actionLabel === 'Hide' ? 'close' : 'trash'}
@@ -338,9 +340,14 @@ function SwipeTypeRow({
         />
       </Animated.View>
       {type.source === 'builtIn' && expanded && (
-        <>
+        <View
+          style={[
+            styles.visibilitySurface,
+            { backgroundColor: theme.surfaceInset, borderTopColor: theme.divider },
+          ]}
+        >
           <SettingsRow
-            title={hidden ? 'Show in workout pickers' : 'Hide from workout pickers'}
+            title="Available in workout pickers"
             accessibilityRole="switch"
             accessibilityLabel={`${hidden ? 'Show' : 'Hide'} ${type.name} in workout pickers`}
             accessibilityState={{ checked: !hidden }}
@@ -348,8 +355,11 @@ function SwipeTypeRow({
             haptic="none"
             trailing={<ForgeSwitch value={!hidden} testID="workout-type-list-visibility-switch" />}
           />
-          <View testID="workout-type-visibility-bottom-divider" style={styles.testDivider} />
-        </>
+          <View
+            testID="workout-type-visibility-bottom-divider"
+            style={[styles.testDivider, { backgroundColor: theme.divider }]}
+          />
+        </View>
       )}
     </View>
   );
@@ -379,13 +389,12 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     width: 72,
-    backgroundColor: dashboardTheme.destructiveSurface,
   },
   swipeAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  swipeActionPressed: { backgroundColor: dashboardTheme.destructiveSurfacePressed },
-  swipeActionText: { color: dashboardTheme.textDestructive, ...typeScale.caption },
-  rowSurface: { zIndex: 1, flex: 1, alignSelf: 'stretch', backgroundColor: dashboardTheme.surface },
+  swipeActionText: typeScale.caption,
+  rowSurface: { zIndex: 1, flex: 1, alignSelf: 'stretch' },
   swatch: { width: 13, height: 13, borderRadius: 7 },
-  hidden: { color: dashboardTheme.slate, ...typeScale.caption },
-  testDivider: { height: StyleSheet.hairlineWidth, backgroundColor: dashboardTheme.divider },
+  hidden: typeScale.caption,
+  visibilitySurface: { borderTopWidth: StyleSheet.hairlineWidth },
+  testDivider: { height: StyleSheet.hairlineWidth },
 });
