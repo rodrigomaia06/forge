@@ -5,6 +5,7 @@ import { loadPlansState, savePlansState } from './plansRepository';
 import { loadSettingsPreferences, saveSettingsPreferences } from './settingsRepository';
 import { loadWorkoutState, saveActiveWorkout, saveCompletedWorkouts } from './workoutRepository';
 import { uniqueById } from './uniqueById';
+import { mergeImportedPlans } from './dataTransferPlans';
 import type { PlansState, SettingsPreferences, WorkoutState } from '../types';
 
 export const FORGE_TRANSFER_VERSION = 1;
@@ -79,8 +80,9 @@ export async function mergeDataTransfer(incoming: ForgeDataTransfer, selection =
   const completed = selection.workouts ? merge(workouts.completedWorkouts, incoming.workouts.completedWorkouts) : workouts.completedWorkouts;
   const importedActive = selection.workouts && incoming.workouts.activeWorkout && !completed.some((workout) => workout.id === incoming.workouts.activeWorkout?.id) ? incoming.workouts.activeWorkout : null;
   const custom = selection.exercises ? merge(exercises, incoming.customExercises) : exercises;
-  const mergedPlans = selection.plans ? merge(plans.plans, incoming.plans.plans) : plans.plans;
-  const mergedStandaloneRoutines = selection.plans ? merge(plans.standaloneRoutines, incoming.plans.standaloneRoutines) : plans.standaloneRoutines;
+  const mergedPlanState = selection.plans ? mergeImportedPlans(plans, incoming.plans) : plans;
+  const mergedPlans = mergedPlanState.plans;
+  const mergedStandaloneRoutines = mergedPlanState.standaloneRoutines;
   const mergedSettings = { ...settings, workoutTypes: selection.workoutTypes ? merge(settings.workoutTypes, incoming.settings.workoutTypes ?? []) : settings.workoutTypes, dailyMeasurementDefinitions: selection.measurements ? merge(settings.dailyMeasurementDefinitions, incoming.settings.dailyMeasurementDefinitions ?? []) : settings.dailyMeasurementDefinitions, dailyMeasurementEntries: selection.measurements ? merge(settings.dailyMeasurementEntries, incoming.settings.dailyMeasurementEntries ?? []) : settings.dailyMeasurementEntries };
   await Promise.all([
     saveSettingsPreferences(mergedSettings),

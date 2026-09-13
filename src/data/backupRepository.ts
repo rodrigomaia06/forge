@@ -10,6 +10,7 @@ import { loadPlansState } from './plansRepository';
 import { loadSettingsPreferences } from './settingsRepository';
 import { loadWorkoutState } from './workoutRepository';
 import { uniqueById } from './uniqueById';
+import { mergeImportedPlans } from './dataTransferPlans';
 import type { PlansState, SettingsPreferences, WorkoutState } from '../types';
 
 export const FORGE_TRANSFER_VERSION = 1;
@@ -265,11 +266,11 @@ export async function mergeDataTransfer(incoming: ForgeDataTransfer, selection =
   const importedActive = selection.workouts && incoming.workouts.activeWorkout && !completed.some((workout) => workout.id === incoming.workouts.activeWorkout?.id)
     ? incoming.workouts.activeWorkout
     : null;
-  const plans = (selection.plans ? mergeById(currentPlans.plans, incoming.plans.plans) : currentPlans.plans)
-    .map((plan) => ({ ...plan, routines: uniqueById(plan.routines).map((routine) => ({ ...routine, planId: plan.id })) }));
-  const planRoutineIds = new Set(plans.flatMap((plan) => plan.routines.map((routine) => routine.id)));
-  const routines = (selection.plans ? mergeById(currentPlans.standaloneRoutines, incoming.plans.standaloneRoutines) : currentPlans.standaloneRoutines)
-    .filter((routine) => !planRoutineIds.has(routine.id));
+  const mergedPlanState = selection.plans
+    ? mergeImportedPlans(currentPlans, incoming.plans)
+    : currentPlans;
+  const plans = mergedPlanState.plans;
+  const routines = mergedPlanState.standaloneRoutines;
   const exercises = selection.exercises ? mergeById(currentExercises, incoming.customExercises) : currentExercises;
   const settings: SettingsPreferences = {
     ...currentSettings,

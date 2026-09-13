@@ -1,20 +1,33 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Workout, WorkoutState } from '../types';
 import { uniqueById } from './uniqueById';
+import { normalizePersistedWorkout } from './workoutNormalization';
 
 const ACTIVE_KEY = '@forge/active-workout';
 const COMPLETED_KEY = '@forge/completed-workouts';
 const parse = <T,>(value: string | null, fallback: T): T => {
   try { return value ? JSON.parse(value) as T : fallback; } catch { return fallback; }
 };
+const isWorkoutRecord = (value: unknown): value is Workout =>
+  Boolean(value)
+  && typeof value === 'object'
+  && typeof (value as Partial<Workout>).id === 'string';
 
 /** Browser persistence intentionally bypasses Expo SQLite's OPFS worker. */
 export async function loadWorkoutState(): Promise<WorkoutState> {
   const [active, completed] = await AsyncStorage.multiGet([ACTIVE_KEY, COMPLETED_KEY]);
-  const completedWorkouts = uniqueById(parse<Workout[]>(completed[1], []));
-  const activeWorkout = parse<Workout | null>(active[1], null);
+  const completedValue = parse<unknown>(completed[1], []);
+  const completedWorkouts = uniqueById(
+    (Array.isArray(completedValue) ? completedValue : [])
+      .filter(isWorkoutRecord)
+      .map(normalizePersistedWorkout),
+  );
+  const activeValue = parse<unknown>(active[1], null);
+  const activeWorkout = isWorkoutRecord(activeValue) ? activeValue : null;
   return {
-    activeWorkout: activeWorkout && !completedWorkouts.some((workout) => workout.id === activeWorkout.id) ? activeWorkout : null,
+    activeWorkout: activeWorkout && !completedWorkouts.some((workout) => workout.id === activeWorkout.id)
+      ? normalizePersistedWorkout(activeWorkout)
+      : null,
     completedWorkouts,
   };
 }
