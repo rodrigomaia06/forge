@@ -37,5 +37,5 @@ compatible Forge installation rather than editing it by hand.
 The manual **Build unsigned iOS IPA** GitHub workflow produces the `sideload`
 EAS profile without Apple signing credentials. It is intended for iLoader,
 which re-signs the IPA with the user's Apple ID before installation. The
-sideload archive deliberately omits the optional Live Activity/widget
-extension and its App Group; the regular Forge rest timer remains available.
+sideload archive retains Forge's Live Activity/widget extension and App Group,
+which iLoader provisions as it re-signs the IPA.

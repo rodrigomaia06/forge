@@ -46,5 +46,4 @@ jobs:
       - name: Create unsigned IPA for iLoader on EAS
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          FORGE_IOS_SIDELOAD: '1'
         run: eas build --platform ios --profile sideload --non-interactive --no-wait

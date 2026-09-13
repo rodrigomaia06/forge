@@ -8,9 +8,6 @@
       "distribution": "internal"
     },
     "sideload": {
-      "env": {
-        "FORGE_IOS_SIDELOAD": "1"
-      },
       "ios": {
         "withoutCredentials": true,
         "buildConfiguration": "Release"
