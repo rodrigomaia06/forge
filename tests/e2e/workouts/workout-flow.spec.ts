@@ -543,30 +543,56 @@ test.describe('Active workout flow', () => {
     await expect(sheet.getByText('Set 1', { exact: true })).toBeVisible();
     await expect(sheet.getByRole('button', { name: 'Close Set 1' })).toBeVisible();
     await expect(sheet.getByRole('button', { name: 'Delete Set 1' })).toBeVisible();
-    await expect(page.getByText('TYPE', { exact: true })).toBeVisible();
-    await expect(page.getByText('COMMENT', { exact: true })).toBeVisible();
-    await expect(page.getByText('EFFORT (RPE)', { exact: true })).toBeVisible();
-    await expect(page.getByText('NEXT-TIME TARGET', { exact: true })).toBeVisible();
+    await expect(page.getByText('SET KIND', { exact: true })).toBeVisible();
+    await expect(page.getByText('SESSION NOTE & EFFORT', { exact: true })).toBeVisible();
+    await expect(page.getByText('NEXT SESSION', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Type help' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Next-time target help' })).toHaveCount(0);
 
-    const setTypes = page.getByRole('radiogroup', { name: 'Set type' });
+    await expect(page.getByRole('radiogroup', { name: 'Set type' })).toHaveCount(0);
+    const changeKind = sheet.getByRole('button', { name: 'Change set kind' });
+    const changeKindBox = await changeKind.boundingBox();
+    expect(changeKindBox?.height).toBeGreaterThanOrEqual(44);
+    await changeKind.click();
+    await expect(sheet.getByText('Set kind', { exact: true })).toBeVisible();
+    await expect(sheet.getByRole('button', { name: 'Back to Set 1' })).toBeVisible();
+    const setTypes = sheet.getByRole('radiogroup', { name: 'Set type' });
     await expect(setTypes.getByRole('radio')).toHaveCount(4);
     const warmUpBox = await setTypes.getByRole('radio', { name: 'Warm Up' }).boundingBox();
     expect(warmUpBox?.height).toBeCloseTo(48, 0);
     const dropSet = setTypes.getByRole('radio', { name: 'Drop Set' });
     await expect(dropSet).toHaveAttribute('aria-checked', 'false');
     await dropSet.click();
-    await expect(dropSet).toHaveAttribute('aria-checked', 'true');
+    await expect(sheet.getByText('Drop Set', { exact: true })).toBeVisible();
+    await changeKind.click();
+    await expect(sheet.getByRole('button', { name: 'Back to Set 1' })).toBeVisible();
+    await sheet.getByRole('button', { name: 'Back to Set 1' }).click();
+    await expect(sheet.getByText('Drop Set', { exact: true })).toBeVisible();
+    await changeKind.click();
+    const selectedDropSet = sheet.getByRole('radio', { name: 'Drop Set' });
+    await expect(selectedDropSet).toHaveAttribute('aria-checked', 'true');
+    await selectedDropSet.click();
+    await expect(sheet.getByText('No type', { exact: true })).toBeVisible();
     if (testInfo.project.name === 'iphone-air') {
-      await page.screenshot({ path: testInfo.outputPath('set-type-selection-iphone.png') });
+      await page.screenshot({ path: testInfo.outputPath('set-editor-iphone.png') });
     }
-    await dropSet.click();
-    await expect(dropSet).toHaveAttribute('aria-checked', 'false');
 
     const effort = page.getByRole('radiogroup', { name: 'Set effort' });
     await effort.getByRole('radio', { name: 'RPE 8', exact: true }).click();
     await expect(effort.getByRole('radio', { name: 'RPE 8', exact: true })).toHaveAttribute('aria-checked', 'true');
+    const [effortScrollBox, selectedRpeBox] = await Promise.all([
+      page.getByTestId('set-effort-scroll').boundingBox(),
+      effort.getByRole('radio', { name: 'RPE 8', exact: true }).boundingBox(),
+    ]);
+    if (!effortScrollBox || !selectedRpeBox) throw new Error('Expected horizontal RPE selector geometry');
+    expect(selectedRpeBox.height).toBeGreaterThanOrEqual(44);
+    expect(Math.abs(selectedRpeBox.x + selectedRpeBox.width / 2 - (effortScrollBox.x + effortScrollBox.width / 2))).toBeLessThanOrEqual(3);
+    if (testInfo.project.name === 'iphone-air') {
+      await page.screenshot({ path: testInfo.outputPath('set-editor-rpe-iphone.png') });
+    }
+
+    const commentBox = await page.getByLabel('Comment for set 1').boundingBox();
+    expect(commentBox?.height).toBeGreaterThanOrEqual(80);
 
     const targetRects = await page
       .locator('input[aria-label^="Next-time"]')
@@ -593,7 +619,7 @@ test.describe('Active workout flow', () => {
     }
 
     await sheet.getByRole('button', { name: 'Close Set 1' }).click();
-    await expect(page.getByText('TYPE', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('SET KIND', { exact: true })).toHaveCount(0);
 
     await page.getByLabel('Open details for set 1').click();
     await page.getByLabel('Comment for set 1').fill('Keep this form');

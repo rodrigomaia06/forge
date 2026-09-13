@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -16,6 +16,7 @@ import Animated, {
 import {
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
+  ForgeBackButton,
   ForgeCard,
   ForgeSheetHeader,
   ForgeText as Text,
@@ -58,7 +59,12 @@ export function SetDetailsCard({
 }: SetDetailsCardProps) {
   const styles = useThemedStyles(createStyles);
   const [dismissTextKeyboardOnTap, setDismissTextKeyboardOnTap] = React.useState(true);
+  const [editorView, setEditorView] = useState<'details' | 'set-kind'>('details');
   const setLabel = `Set ${index + 1}`;
+
+  useEffect(() => {
+    if (!visible) setEditorView('details');
+  }, [visible]);
 
   return (
     <ForgeBottomSheet
@@ -72,130 +78,192 @@ export function SetDetailsCard({
       {(closeSheet) => (
         <>
           <ForgeBottomSheetHandle />
-          <View accessibilityLabel={`Details for ${setLabel}`} style={styles.sheetBody}>
-            <ForgeSheetHeader
-              title={setLabel}
+          {editorView === 'set-kind' ? (
+            <SetKindPicker
+              setLabel={setLabel}
+              value={set.tag || ''}
+              onBack={() => setEditorView('details')}
               onClose={closeSheet}
-              closeAccessibilityLabel={editable ? `Close ${setLabel}` : `Close ${setLabel} details`}
-              closePosition={editable ? 'left' : 'right'}
-              trailing={
-                editable ? (
-                  <HeaderAction
-                    accessibilityLabel={`Delete ${setLabel}`}
-                    icon="trash"
-                    iconOnly
-                    tone="destructive"
-                    onPress={onDelete}
-                  />
-                ) : undefined
-              }
+              onChange={(tag) => {
+                selectionHaptic();
+                onChange({ tag });
+                setEditorView('details');
+              }}
             />
-            <ScrollView
-              style={styles.contentScroll}
-              contentContainerStyle={styles.sheetContent}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-              bounces={false}
-            >
-              <SetTypeSection
-                value={set.tag || ''}
-                editable={editable}
-                onChange={(tag) => {
-                  selectionHaptic();
-                  onChange({ tag });
-                }}
+          ) : (
+            <View accessibilityLabel={`Details for ${setLabel}`} style={styles.sheetBody}>
+              <ForgeSheetHeader
+                title={setLabel}
+                onClose={closeSheet}
+                closeAccessibilityLabel={editable ? `Close ${setLabel}` : `Close ${setLabel} details`}
+                closePosition={editable ? 'left' : 'right'}
+                trailing={
+                  editable ? (
+                    <HeaderAction
+                      accessibilityLabel={`Delete ${setLabel}`}
+                      icon="trash"
+                      iconOnly
+                      tone="destructive"
+                      onPress={onDelete}
+                    />
+                  ) : undefined
+                }
               />
-              <CommentSection
-                value={set.comment || ''}
-                editable={editable}
-                setLabel={setLabel}
-                onChange={(comment) => onChange({ comment })}
-                onTextFocus={() => setDismissTextKeyboardOnTap(true)}
-              />
-              <EffortSection
-                set={set}
-                editable={editable}
-                onChange={onChange}
-              />
-              <TargetsSection
-                set={set}
-                trackingType={trackingType}
-                editable={editable}
-                setLabel={setLabel}
-                onChange={onChange}
-                onNumberFocus={() => setDismissTextKeyboardOnTap(false)}
-              />
-            </ScrollView>
-          </View>
+              <ScrollView
+                style={styles.contentScroll}
+                contentContainerStyle={styles.sheetContent}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                bounces={false}
+              >
+                <SetKindSection
+                  value={set.tag || ''}
+                  editable={editable}
+                  onChange={() => setEditorView('set-kind')}
+                />
+                <SessionNoteEffortSection
+                  set={set}
+                  editable={editable}
+                  setLabel={setLabel}
+                  onChange={onChange}
+                  onTextFocus={() => setDismissTextKeyboardOnTap(true)}
+                />
+                <TargetsSection
+                  set={set}
+                  trackingType={trackingType}
+                  editable={editable}
+                  setLabel={setLabel}
+                  onChange={onChange}
+                  onNumberFocus={() => setDismissTextKeyboardOnTap(false)}
+                />
+              </ScrollView>
+            </View>
+          )}
         </>
       )}
     </ForgeBottomSheet>
   );
 }
 
-function EffortSection({
+function SessionNoteEffortSection({
   set,
   editable,
+  setLabel,
   onChange,
+  onTextFocus,
 }: {
   set: WorkoutSet;
   editable: boolean;
+  setLabel: string;
   onChange: (changes: WorkoutSetChanges) => void;
+  onTextFocus: () => void;
 }) {
   const styles = useThemedStyles(createStyles);
   const theme = useForgeTheme();
   const recorded = measurementText(set, 'rpe');
-  const selected = Number(recorded);
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionLabel}>EFFORT (RPE)</Text>
-      {editable ? (
-        <ForgeCard variant="outlined" style={styles.effortCard}>
-          <Text style={styles.effortHint}>Rate how hard this set felt.</Text>
-          <View accessibilityRole="radiogroup" accessibilityLabel="Set effort" style={styles.effortChoices}>
-            {RPE_OPTIONS.map((value) => {
-              const isSelected = selected === value;
-              return (
-                <Pressable
-                  key={value}
-                  accessibilityRole="radio"
-                  accessibilityLabel={`RPE ${value}`}
-                  accessibilityState={{ checked: isSelected }}
-                  aria-checked={isSelected}
-                  onPress={() => {
-                    selectionHaptic();
-                    onChange({ measurements: updateMeasurement(set, 'rpe', isSelected ? '' : String(value)) });
-                  }}
-                  style={({ pressed }) => [
-                    styles.effortChoice,
-                    { borderColor: isSelected ? (theme.marker ?? theme.success) : theme.border },
-                    isSelected && { backgroundColor: theme.successSurface },
-                    pressed && pressedFeedbackSubtle,
-                  ]}
-                >
-                  <Text style={[styles.effortValue, isSelected && { color: theme.selectionIndicator }]}>{value}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </ForgeCard>
-      ) : (
-        <ForgeCard variant="outlined" style={styles.recordedCard}>
-          <Text style={styles.recordedValue}>{recorded ? `RPE ${recorded}` : 'No effort recorded'}</Text>
-        </ForgeCard>
-      )}
+      <Text style={styles.sectionLabel}>SESSION NOTE &amp; EFFORT</Text>
+      <ForgeCard variant="outlined" style={styles.sessionCard}>
+        <View style={styles.sessionNoteSection}>
+          <Text style={styles.subsectionLabel}>COMMENT</Text>
+          {editable ? (
+            <TextInput
+              accessibilityLabel={`Comment for ${setLabel.toLowerCase()}`}
+              value={set.comment || ''}
+              onChangeText={(comment) => onChange({ comment })}
+              onFocus={onTextFocus}
+              onTouchStart={(event) => event.stopPropagation()}
+              maxLength={120}
+              multiline
+              placeholder="Add a comment..."
+              placeholderTextColor={theme.muted}
+              style={styles.commentInput}
+            />
+          ) : (
+            <Text style={styles.recordedComment}>{set.comment || 'No comment recorded'}</Text>
+          )}
+        </View>
+        <View style={styles.sessionDivider} />
+        <View style={styles.sessionEffortSection}>
+          <Text style={styles.subsectionLabel}>EFFORT (RPE)</Text>
+          {editable ? (
+            <EffortSelector set={set} onChange={onChange} />
+          ) : (
+            <Text style={styles.recordedValue}>{recorded ? `RPE ${recorded}` : 'No effort recorded'}</Text>
+          )}
+        </View>
+      </ForgeCard>
     </View>
   );
 }
 
-function SetTypeSection({
+function EffortSelector({ set, onChange }: { set: WorkoutSet; onChange: (changes: WorkoutSetChanges) => void }) {
+  const styles = useThemedStyles(createStyles);
+  const theme = useForgeTheme();
+  const recorded = measurementText(set, 'rpe');
+  const selected = Number(recorded);
+  const scrollRef = useRef<ScrollView>(null);
+  const [viewportWidth, setViewportWidth] = useState(0);
+  const selectedIndex = RPE_OPTIONS.indexOf(selected as (typeof RPE_OPTIONS)[number]);
+
+  useEffect(() => {
+    if (selectedIndex < 0 || !viewportWidth) return;
+    const optionStep = 60;
+    const optionWidth = 52;
+    scrollRef.current?.scrollTo({
+      x: Math.max(0, selectedIndex * optionStep - (viewportWidth - optionWidth) / 2),
+      animated: false,
+    });
+  }, [selectedIndex, viewportWidth]);
+
+  return (
+    <View accessibilityRole="radiogroup" accessibilityLabel="Set effort">
+      <ScrollView
+        ref={scrollRef}
+        testID="set-effort-scroll"
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        onLayout={(event) => setViewportWidth(event.nativeEvent.layout.width)}
+        contentContainerStyle={styles.effortChoices}
+      >
+        {RPE_OPTIONS.map((value) => {
+          const isSelected = selected === value;
+          return (
+            <Pressable
+              key={value}
+              accessibilityRole="radio"
+              accessibilityLabel={`RPE ${value}`}
+              accessibilityState={{ checked: isSelected }}
+              aria-checked={isSelected}
+              onPress={() => {
+                selectionHaptic();
+                onChange({ measurements: updateMeasurement(set, 'rpe', isSelected ? '' : String(value)) });
+              }}
+              style={({ pressed }) => [
+                styles.effortChoice,
+                { borderColor: isSelected ? (theme.marker ?? theme.success) : theme.border },
+                isSelected && { backgroundColor: theme.successSurface },
+                pressed && pressedFeedbackSubtle,
+              ]}
+            >
+              <Text style={[styles.effortValue, isSelected && { color: theme.selectionIndicator }]}>{value}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
+function SetKindSection({
   value,
   editable,
   onChange,
 }: {
   value: string;
   editable: boolean;
-  onChange: (value: string) => void;
+  onChange: () => void;
 }) {
   const styles = useThemedStyles(createStyles);
   const theme = useForgeTheme();
@@ -203,12 +271,70 @@ function SetTypeSection({
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionLabel}>TYPE</Text>
+      <Text style={styles.sectionLabel}>SET KIND</Text>
       {editable ? (
-        <ForgeCard
-          variant="outlined"
-          style={styles.typeCard}
-        >
+        <ForgeCard variant="outlined" style={styles.setKindCard}>
+          <View style={styles.setKindSummary}>
+            <View style={[styles.typeDot, { backgroundColor: recordedType?.color ?? theme.slate }]} />
+            <Text style={styles.setKindValue}>{value || 'No type'}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Change set kind"
+              onPress={() => { selectionHaptic(); onChange(); }}
+              style={({ pressed }) => [styles.changeKindButton, pressed && pressedFeedbackSubtle]}
+            >
+              <Text style={styles.changeKindText}>Change</Text>
+            </Pressable>
+          </View>
+        </ForgeCard>
+      ) : (
+        <ForgeCard variant="outlined" style={styles.recordedCard}>
+          <View style={styles.recordedTypeRow}>
+            <View
+              style={[
+                styles.typeDot,
+                { backgroundColor: recordedType?.color ?? theme.slate },
+              ]}
+            />
+            <Text style={styles.recordedValue}>{value || 'No type recorded'}</Text>
+          </View>
+        </ForgeCard>
+      )}
+    </View>
+  );
+}
+
+function SetKindPicker({
+  setLabel,
+  value,
+  onBack,
+  onClose,
+  onChange,
+}: {
+  setLabel: string;
+  value: string;
+  onBack: () => void;
+  onClose: () => void;
+  onChange: (value: string) => void;
+}) {
+  const styles = useThemedStyles(createStyles);
+  return (
+    <View accessibilityLabel={`Choose type for ${setLabel}`} style={styles.sheetBody}>
+      <ForgeSheetHeader
+        title="Set kind"
+        onClose={onClose}
+        closeAccessibilityLabel={`Close ${setLabel}`}
+        leading={<ForgeBackButton accessibilityLabel={`Back to ${setLabel}`} onPress={onBack} />}
+      />
+      <ScrollView
+        style={styles.contentScroll}
+        contentContainerStyle={styles.sheetContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <Text style={styles.sectionLabel}>SET KIND</Text>
+        <ForgeCard variant="outlined" style={styles.typeCard}>
           <View accessibilityRole="radiogroup" accessibilityLabel="Set type">
             {SET_TYPES.map((type, typeIndex) => (
               <SetTypeOption
@@ -223,19 +349,7 @@ function SetTypeSection({
             ))}
           </View>
         </ForgeCard>
-      ) : (
-        <ForgeCard variant="outlined" style={styles.recordedCard}>
-          <View style={styles.recordedTypeRow}>
-            <View
-              style={[
-                styles.typeDot,
-                { backgroundColor: recordedType?.color ?? theme.marker ?? theme.slate },
-              ]}
-            />
-            <Text style={styles.recordedValue}>{value || 'No type recorded'}</Text>
-          </View>
-        </ForgeCard>
-      )}
+      </ScrollView>
     </View>
   );
 }
@@ -298,48 +412,6 @@ function SetTypeOption({
   );
 }
 
-function CommentSection({
-  value,
-  editable,
-  setLabel,
-  onChange,
-  onTextFocus,
-}: {
-  value: string;
-  editable: boolean;
-  setLabel: string;
-  onChange: (value: string) => void;
-  onTextFocus: () => void;
-}) {
-  const styles = useThemedStyles(createStyles);
-  const theme = useForgeTheme();
-
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionLabel}>COMMENT</Text>
-      <ForgeCard variant="outlined" style={styles.commentCard}>
-        {editable ? (
-          <View style={styles.commentField}>
-            <TextInput
-              accessibilityLabel={`Comment for ${setLabel.toLowerCase()}`}
-              value={value}
-              onChangeText={onChange}
-              onFocus={onTextFocus}
-              onTouchStart={(event) => event.stopPropagation()}
-              maxLength={120}
-              placeholder="Add a comment..."
-              placeholderTextColor={theme.muted}
-              style={styles.commentInput}
-            />
-          </View>
-        ) : (
-          <Text style={styles.recordedValue}>{value || 'No comment recorded'}</Text>
-        )}
-      </ForgeCard>
-    </View>
-  );
-}
-
 function TargetsSection({
   set,
   trackingType,
@@ -358,7 +430,7 @@ function TargetsSection({
   const styles = useThemedStyles(createStyles);
   return (
     <View style={[styles.section, styles.targetSection]}>
-      <Text style={styles.sectionLabel}>NEXT-TIME TARGET</Text>
+      <Text style={styles.sectionLabel}>NEXT SESSION</Text>
       <ForgeCard variant="outlined" style={styles.targetCardGroup}>
         {trackingFields[trackingType].map((kind, index) => (
           <TargetRow
@@ -536,31 +608,31 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     recordedCard: { minHeight: 56, borderRadius: 16, justifyContent: 'center' },
     recordedTypeRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20 },
     recordedValue: { color: theme.ink, ...typeScale.label },
-    commentCard: { minHeight: 56, borderRadius: 14, justifyContent: 'center' },
-    commentField: {
-      minHeight: 56,
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 16,
-      gap: 8,
-    },
+    setKindCard: { borderRadius: 16 },
+    setKindSummary: { minHeight: 56, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 6, gap: 12 },
+    setKindValue: { flex: 1, color: theme.ink, ...typeScale.label },
+    changeKindButton: { minWidth: 76, minHeight: 44, paddingHorizontal: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    changeKindText: { color: theme.selectionIndicator, ...typeScale.label },
+    sessionCard: { overflow: 'hidden', borderRadius: 16 },
+    sessionNoteSection: { padding: 14, gap: 8 },
+    sessionEffortSection: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 14, gap: 10 },
+    subsectionLabel: { color: theme.slate, ...typeScale.caption, letterSpacing: 0.7 },
+    sessionDivider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.divider },
     commentInput: {
-      flex: 1,
-      minHeight: 48,
-      paddingHorizontal: 0,
-      paddingVertical: 0,
+      minHeight: 80,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      borderRadius: 12,
+      backgroundColor: theme.surfaceMuted,
       color: theme.ink,
       ...typeScale.label,
-      textAlignVertical: 'center',
+      textAlignVertical: 'top',
     },
-    effortCard: { borderRadius: 14, padding: 12, gap: 10 },
-    effortHint: { color: theme.slate, ...typeScale.supporting },
-    effortChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    recordedComment: { minHeight: 80, color: theme.ink, ...typeScale.label, textAlignVertical: 'center' },
+    effortChoices: { paddingRight: 8, gap: 8 },
     effortChoice: {
-      flexGrow: 1,
-      flexBasis: '27%',
-      minWidth: 0,
-      height: 40,
+      width: 52,
+      height: 44,
       borderWidth: 1,
       borderRadius: 12,
       alignItems: 'center',

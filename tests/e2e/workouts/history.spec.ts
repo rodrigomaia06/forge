@@ -260,10 +260,17 @@ test.describe('History screen', () => {
     await expect(sheet.getByText('Set 1', { exact: true })).toBeVisible();
     await expect(sheet.getByText('History note', { exact: true })).toBeVisible();
     await expect(sheet.getByText('No type recorded', { exact: true })).toBeVisible();
-    await expect(sheet.getByText('NEXT-TIME TARGET', { exact: true })).toBeVisible();
+    await expect(sheet.getByText('SET KIND', { exact: true })).toBeVisible();
+    await expect(sheet.getByText('SESSION NOTE & EFFORT', { exact: true })).toBeVisible();
+    await expect(sheet.getByText('NEXT SESSION', { exact: true })).toBeVisible();
     await expect(sheet.getByRole('radio')).toHaveCount(0);
+    await expect(sheet.getByRole('button', { name: 'Change set kind' })).toHaveCount(0);
     await expect(sheet.getByRole('button', { name: 'Delete Set 1' })).toHaveCount(0);
     await expect(page.getByLabel('Comment for set 1')).toHaveCount(0);
+    if (testInfo.project.name === 'iphone-air') {
+      await page.waitForTimeout(250);
+      await page.screenshot({ path: testInfo.outputPath('history-set-editor-iphone.png') });
+    }
   });
 
   test('keeps the empty state available without completed sessions', async ({ page }) => {
