@@ -164,9 +164,19 @@ function normalizeDataTransfer(transfer: ForgeDataTransfer): ForgeDataTransfer {
     }));
     return { ...assignId(workout, prefix), exercises };
   };
+  const normalizeRoutine = <T extends Record<string, unknown>>(routine: T): T & { id: string } => ({
+    ...assignId(routine, 'routine'),
+    exercises: records<Record<string, unknown>>(routine.exercises, 'exercise').map((exercise) => ({
+      ...exercise,
+      sets: records<Record<string, unknown>>(exercise.sets, 'set'),
+    })),
+  });
   const plans = records<Record<string, unknown>>(transfer.plans.plans, 'plan').map((plan) => ({
     ...plan,
-    routines: uniqueById(records<Record<string, unknown>>(plan.routines, 'routine').map((routine) => ({ ...routine, planId: plan.id }))),
+    routines: uniqueById(records<Record<string, unknown>>(plan.routines, 'routine').map((routine) => ({
+      ...normalizeRoutine(routine),
+      planId: plan.id,
+    }))),
   }));
   const planRoutineIds = new Set(plans.flatMap((plan) => plan.routines.map((routine) => routine.id)));
   const completed = uniqueById(records<Record<string, unknown>>(transfer.workouts.completedWorkouts, 'workout').map((workout) => normalizeWorkout(workout, 'workout')));
@@ -186,7 +196,7 @@ function normalizeDataTransfer(transfer: ForgeDataTransfer): ForgeDataTransfer {
     },
     plans: {
       plans,
-      standaloneRoutines: uniqueById(records<Record<string, unknown>>(transfer.plans.standaloneRoutines, 'routine')).filter((routine) => !planRoutineIds.has(routine.id)),
+      standaloneRoutines: uniqueById(records<Record<string, unknown>>(transfer.plans.standaloneRoutines, 'routine').map(normalizeRoutine)).filter((routine) => !planRoutineIds.has(routine.id)),
     },
     workouts: { activeWorkout: active, completedWorkouts: completed },
     customExercises: uniqueById(records<Record<string, unknown>>(transfer.customExercises, 'exercise-catalogue')),

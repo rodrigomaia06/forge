@@ -286,7 +286,9 @@ test.describe('Settings', () => {
         settings: { workoutTypes: [], dailyMeasurementDefinitions: [], dailyMeasurementEntries: [] },
         plans: {
           plans: [
-            { name: 'Plan A', createdAt: 0, updatedAt: 0, routines: [{ name: 'Routine A', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }, { name: 'Routine B', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }] },
+            // Older/manual exports can omit empty child lists. Importing them must not
+            // leave Plans with an undefined collection when it renders the routine row.
+            { name: 'Plan A', createdAt: 0, updatedAt: 0, routines: [{ name: 'Routine A', type: 'Strength', createdAt: 0, updatedAt: 0 }, { name: 'Routine B', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }] },
             { name: 'Plan B', createdAt: 0, updatedAt: 0, routines: [{ name: 'Routine C', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }, { name: 'Routine D', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }] },
           ],
           standaloneRoutines: [{ name: 'Routine E', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }],
@@ -315,6 +317,8 @@ test.describe('Settings', () => {
     }
     await summary.getByRole('button', { name: 'Done' }).click();
     await expect(summary).toBeHidden();
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await expect(page.getByText('Routine A', { exact: true })).toBeVisible();
   });
 
   test('uses the Forge destructive confirmation card before deleting app data', async ({ page }) => {
