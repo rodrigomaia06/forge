@@ -71,9 +71,10 @@ jobs:
           while :; do
             eas build:view "$BUILD_ID" --json > /tmp/forge-eas-status.json
             STATUS="$(node -e "const build = require('/tmp/forge-eas-status.json'); process.stdout.write(build.status ?? 'unknown');")"
+            NORMALIZED_STATUS="$(printf '%s' "$STATUS" | tr '[:upper:]' '[:lower:]')"
             echo "$(date -u +'%Y-%m-%dT%H:%M:%SZ') EAS build $BUILD_ID: $STATUS"
             echo "EAS status: \`$STATUS\`" >> "$GITHUB_STEP_SUMMARY"
-            case "$STATUS" in
+            case "$NORMALIZED_STATUS" in
               finished) break ;;
               errored|canceled)
                 if [ -n "$BUILD_URL" ]; then echo "::error::EAS build $STATUS: $BUILD_URL"; fi
