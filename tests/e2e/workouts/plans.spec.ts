@@ -503,6 +503,8 @@ test.describe('Plans and routines', () => {
     await page.getByRole('button', { name: 'Save routine' }).click();
     await expect(page.getByText('Plan draft', { exact: true })).toBeVisible();
     const routineActionButton = page.getByRole('button', { name: 'Routine actions for Plan draft' });
+    await expect(routineActionButton).toContainText('Strength');
+    await expect(routineActionButton).not.toContainText('0 exercises');
     await expect(routineActionButton).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     if (testInfo.project.name === 'iphone-air') {
       await page.screenshot({ path: testInfo.outputPath('plans-root-forge-cards-iphone.png') });
@@ -513,6 +515,6 @@ test.describe('Plans and routines', () => {
     await expect(routineActions.getByRole('button', { name: 'Edit' })).toBeVisible();
     await expect(routineActions.getByRole('button', { name: 'Start' })).toBeVisible();
     await routineActions.getByRole('button', { name: 'Start' }).click();
-    await expect(page.getByText('New plan — Plan draft', { exact: true })).toBeVisible();
+    await expect(page.getByText('New plan - Plan draft', { exact: true })).toBeVisible();
   });
 });

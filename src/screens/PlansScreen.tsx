@@ -72,7 +72,7 @@ export function PlansScreen({ navigation, route }: Props) {
       ? plans.find((plan) => plan.id === routine.planId)?.name
       : undefined;
     startWorkout({
-      name: planName ? `${planName} — ${routine.name}` : routine.name,
+      name: planName ? `${planName} - ${routine.name}` : routine.name,
       type: routine.type,
       note: routine.note,
       // A routine owns the reusable field names. Each workout starts its own blank values.
@@ -393,7 +393,9 @@ function RoutineCardBody({
         <Text
           style={styles.routineSummary}
           numberOfLines={1}
-        >{`${routine.type} · ${routine.exercises.length} ${routine.exercises.length === 1 ? 'exercise' : 'exercises'}`}</Text>
+        >{routine.exercises.length
+          ? `${routine.type} · ${routine.exercises.length} ${routine.exercises.length === 1 ? 'exercise' : 'exercises'}`
+          : routine.type}</Text>
       </View>
       <Icon name="chevron-forward" size={19} color={theme.slate} />
     </>
@@ -654,19 +656,17 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     routineName: { ...typeScale.cardTitle, color: theme.ink },
     routineSummary: { ...typeScale.supporting, color: theme.slate, marginTop: 1 },
     addToPlan: {
-      minHeight: 46,
-      margin: 12,
+      minHeight: 44,
+      marginTop: 4,
       paddingHorizontal: 16,
       gap: 7,
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderStyle: 'dashed',
-      borderColor: theme.textSecondary,
-      borderRadius: 14,
+      justifyContent: 'flex-start',
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.divider,
     },
-    addToPlanText: { ...typeScale.controlLabel, color: theme.textPrimary },
+    addToPlanText: { ...typeScale.controlLabel, color: theme.slate },
     empty: { alignItems: 'center', paddingHorizontal: 28, paddingTop: 79, gap: 8 },
     emptyIllustration: { width: 210, height: 150, marginBottom: -14, opacity: 0.78 },
     emptyTitle: { ...typeScale.sectionTitle, color: theme.ink },
