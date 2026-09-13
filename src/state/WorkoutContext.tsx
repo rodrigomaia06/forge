@@ -205,16 +205,18 @@ export function WorkoutProvider({ children }: ChildrenProps) {
   }, []);
 
   const updateCompletedWorkout = useCallback(
-    (workoutId: string, update: (workout: Workout) => Workout): void => {
-      setCompletedWorkouts((current) => {
-        const next = current.map((workout) =>
-          workout.id === workoutId ? update(workout) : workout,
-        );
-        void saveCompletedWorkouts(next);
-        return next;
-      });
+    async (workoutId: string, update: (workout: Workout) => Workout): Promise<void> => {
+      const next = completedWorkouts.map((workout) =>
+        workout.id === workoutId ? update(workout) : workout,
+      );
+      // A History editor navigates away directly after Save. Persist this
+      // explicit transaction before navigation so a provider remount cannot
+      // restore the prior completed-workout snapshot.
+      skipNextCompletedPersistenceRef.current = true;
+      setCompletedWorkouts(next);
+      await saveCompletedWorkouts(next);
     },
-    [],
+    [completedWorkouts],
   );
 
   const deleteCompletedWorkout = useCallback((workoutId: string): void => {

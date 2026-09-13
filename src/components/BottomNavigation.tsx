@@ -77,17 +77,16 @@ export function BottomNavigation({
   useEffect(() => {
     const layout = itemLayouts[activeRoute];
     if (!layout) return;
-    const compactWorkoutSelection = compact && activeRoute === 'ActiveWorkout';
     const transition = (next: number) =>
       reducedMotion ? next : withTiming(next, { duration: 150, easing: Easing.out(Easing.cubic) });
-    // The compact workout destination keeps a visibly horizontal capsule rather
-    // than collapsing into a near-circle around its larger type icon.
-    indicatorX.value = transition(layout.x + (compactWorkoutSelection ? -5 : 2));
-    indicatorWidth.value = transition(
-      Math.max(0, layout.width + (compactWorkoutSelection ? 10 : -4)),
-    );
+    // The dock remains a five-slot layout while a workout is active. Keep the
+    // pill strictly inside its measured slot in both heights, so changing to
+    // compact state scales the middle selection with its slot instead of
+    // retaining the former wide capsule or shifting sideways.
+    indicatorX.value = transition(layout.x + 2);
+    indicatorWidth.value = transition(Math.max(0, layout.width - 4));
     indicatorOpacity.value = transition(1);
-  }, [activeRoute, indicatorOpacity, indicatorWidth, indicatorX, itemLayouts, reducedMotion]);
+  }, [activeRoute, compact, indicatorOpacity, indicatorWidth, indicatorX, itemLayouts, reducedMotion]);
 
   const selectionIndicatorStyle = useAnimatedStyle(() => ({
     opacity: indicatorOpacity.value,

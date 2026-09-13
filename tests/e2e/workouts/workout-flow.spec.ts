@@ -81,23 +81,22 @@ async function swipeLeftFrom(page: Page, locator: Locator): Promise<void> {
 }
 
 test.describe('Active workout flow', () => {
-  test('edits live workout metadata as a single draft', async ({ page }, testInfo) => {
+  test('edits a live workout as a full-screen draft', async ({ page }, testInfo) => {
     await page.emulateMedia({ colorScheme: 'dark' });
     await page.goto('/');
     await startBlankWorkout(page);
     await expect(page.getByRole('button', { name: 'Edit live workout' })).toBeVisible();
     await page.getByRole('button', { name: 'Edit live workout' }).click();
-    await expect(page.getByText('Edit workout', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cancel editing workout' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Save workout' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Select Date' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Select Start time' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Select End time' })).toHaveCount(0);
     await page.getByLabel('Workout name').fill('Upper body');
     await page.getByRole('button', { name: 'Choose workout type' }).click();
     await page.screenshot({ path: testInfo.outputPath('live-workout-type-picker-selected.png') });
     await page.getByRole('radio', { name: 'Cardio' }).click();
-    const workoutNote = page.getByLabel('Workout note');
-    await workoutNote.fill('Easy pace');
-    const compactNoteHeight = (await workoutNote.boundingBox())?.height ?? 52;
-    await workoutNote.fill('Controlled tempo and form focus while keeping every repetition deliberate and consistent.');
-    await expect.poll(async () => (await workoutNote.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(compactNoteHeight * 2 - 2);
-    await expect.poll(async () => (await workoutNote.boundingBox())?.height ?? 0).toBeLessThanOrEqual(compactNoteHeight * 2 + 2);
+    const workoutNote = page.getByLabel('Notes');
     await workoutNote.fill('Easy pace');
     await page.getByRole('button', { name: 'Add attribute' }).click();
     await expect(page.getByRole('button', { name: 'Close Add attribute' })).toHaveCount(0);
@@ -125,8 +124,54 @@ test.describe('Active workout flow', () => {
     await page.getByRole('button', { name: 'Delete Location attribute' }).click();
     await expect(page.getByRole('button', { name: 'Edit Location attribute' })).toHaveCount(0);
     await page.screenshot({ path: testInfo.outputPath('live-workout-editor-dark.png') });
-    await page.getByRole('button', { name: 'Save live workout changes' }).click();
+    await page.getByRole('button', { name: 'Save workout' }).click();
     await expect(page.getByText('Upper body', { exact: true })).toBeVisible();
+  });
+
+  test('reorders an active-workout draft and confirms before discarding it', async ({ page }, testInfo) => {
+    await page.goto('/');
+    await startBlankWorkout(page);
+    await page.getByRole('button', { name: 'Add exercise' }).click();
+    await selectStandardBarbellBenchPress(page);
+    await page.getByLabel('Search exercises').fill('barbell back squat');
+    await page.getByRole('checkbox').first().click({ force: true });
+    await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
+
+    await page.getByRole('button', { name: 'Edit live workout' }).click();
+    const handles = page.getByRole('button', { name: /Drag to reorder/ });
+    await expect(handles).toHaveCount(2);
+    const [firstHandle, secondHandle] = await Promise.all([
+      handles.nth(0).boundingBox(),
+      handles.nth(1).boundingBox(),
+    ]);
+    if (!firstHandle || !secondHandle) throw new Error('Expected both active-workout drag handles');
+    await page.mouse.move(firstHandle.x + firstHandle.width / 2, firstHandle.y + firstHandle.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(240);
+    await page.mouse.move(secondHandle.x + secondHandle.width / 2, secondHandle.y + secondHandle.height / 2 + 28, { steps: 12 });
+    if (testInfo.project.name === 'iphone-air') {
+      await page.screenshot({ path: testInfo.outputPath('live-workout-editor-reorder-iphone.png') });
+    }
+    await page.mouse.up();
+    await expect(page.getByRole('button', { name: 'Save workout' })).toBeEnabled();
+    await page.getByRole('button', { name: 'Save workout' }).click();
+
+    const [squat, bench] = await Promise.all([
+      page.getByText('Barbell Back Squat', { exact: true }).boundingBox(),
+      page.getByText('Barbell Bench Press', { exact: true }).boundingBox(),
+    ]);
+    expect(squat?.y).toBeLessThan(bench?.y ?? Number.POSITIVE_INFINITY);
+
+    await page.getByRole('button', { name: 'Edit live workout' }).click();
+    await page.getByLabel('Workout name').fill('Discarded live edit');
+    await page.getByRole('button', { name: 'Cancel editing workout' }).click();
+    const confirmation = page.getByTestId('discard-active-workout-editor-confirmation');
+    await expect(confirmation).toBeVisible();
+    await confirmation.getByRole('button', { name: 'Keep editing' }).click();
+    await expect(page.getByLabel('Workout name')).toHaveValue('Discarded live edit');
+    await page.getByRole('button', { name: 'Cancel editing workout' }).click();
+    await confirmation.getByRole('button', { name: 'Discard changes' }).click();
+    await expect(page.getByText('Discarded live edit', { exact: true })).toHaveCount(0);
   });
 
   test('starts, records an exercise and finishes a workout', async ({ page }) => {
@@ -765,7 +810,7 @@ test.describe('Active workout flow', () => {
 
   test('keeps compact active-workout dock tabs centred inside the selection pill', async ({
     page,
-  }) => {
+  }, testInfo) => {
     await startEmptyWorkoutWithExercise(page);
     const addSet = page.getByRole('button', { name: 'Add set to Barbell Bench Press' });
     for (let count = 0; count < 10; count += 1) await addSet.click();
@@ -789,8 +834,8 @@ test.describe('Active workout flow', () => {
       throw new Error('Expected compact workout dock geometry to be measurable');
 
     expect(dock.width).toBeGreaterThanOrEqual(304);
-    expect(pill.width).toBeGreaterThanOrEqual(56);
-    expect(pill.width).toBeGreaterThan(workoutTab.width);
+    expect(pill.width).toBeGreaterThanOrEqual(44);
+    expect(pill.width).toBeLessThan(workoutTab.width);
     expect(pill.height).toBeGreaterThanOrEqual(40);
     expect(Math.abs(pill.x + pill.width / 2 - (workoutTab.x + workoutTab.width / 2))).toBeLessThan(
       2,
@@ -803,6 +848,9 @@ test.describe('Active workout flow', () => {
     ).toBeLessThan(2);
     expect(workoutIcon.width).toBeGreaterThanOrEqual(32);
     expect(workoutIcon.height).toBeGreaterThanOrEqual(32);
+    if (testInfo.project.name === 'iphone-air') {
+      await page.screenshot({ path: testInfo.outputPath('compact-workout-dock-iphone.png') });
+    }
   });
 
   test('opens the active workout after reloading with a workout in progress', async ({ page }) => {

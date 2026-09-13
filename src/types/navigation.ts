@@ -19,7 +19,8 @@ export type RootStackParamList = {
   WorkoutDetails: { workoutId: string };
   HistoryWorkoutEditor:
     | { mode: 'edit'; workoutId: string }
-    | { mode: 'create'; selectedDate: string };
+    | { mode: 'create'; selectedDate: string }
+    | { mode: 'active' };
   RoutineEditor:
     | { mode: 'create'; planId?: string }
     | { mode: 'edit'; routineId: string }

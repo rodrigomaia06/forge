@@ -169,7 +169,7 @@ export interface WorkoutContextValue extends WorkoutState {
   finishWorkout: () => Workout | null;
   createCompletedWorkout: (workout: Workout) => Promise<void>;
   deleteCompletedWorkout: (workoutId: string) => void;
-  updateCompletedWorkout: (workoutId: string, update: (workout: Workout) => Workout) => void;
+  updateCompletedWorkout: (workoutId: string, update: (workout: Workout) => Workout) => Promise<void>;
 }
 export interface WorkoutSummary {
   name: string;
