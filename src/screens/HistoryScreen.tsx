@@ -23,6 +23,7 @@ import {
 } from '../components/ui';
 import { countWorkoutSets, formatCompactDuration, getWorkoutTypePresentation } from '../domain/workouts/presentation';
 import { useWorkouts } from '../state/WorkoutContext';
+import { usePlans } from '../state/PlansContext';
 import { useSettings } from '../state/SettingsContext';
 import { animateLayout, errorHaptic, mediumHaptic } from './activeWorkout/activeWorkoutFeedback';
 import { useForgeTheme } from '../theme/ThemeProvider';
@@ -55,6 +56,7 @@ export function HistoryScreen({
   navigation,
 }: RootTabScreenProps<'History'>) {
   const { completedWorkouts, deleteCompletedWorkout, startWorkout } = useWorkouts();
+  const { plans } = usePlans();
   const { preferences } = useSettings();
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -80,6 +82,27 @@ export function HistoryScreen({
       && completedAt < startOfNextDay(new Date(filters.to)).getTime();
   }), [completedWorkouts, filters]);
   const groups = useMemo(() => groupByPeriod(filteredWorkouts), [filteredWorkouts]);
+  // A recorded title is normally the durable snapshot. Imported legacy rows
+  // occasionally retained just the routine title beside their source IDs; use
+  // that intact pair only for this narrow legacy repair, so later plan edits
+  // never rename a modern completed workout in History.
+  const historyTitles = useMemo(() => {
+    const titles = new Map<string, string>();
+    for (const workout of completedWorkouts) {
+      const plan = workout.planId ? plans.find((item) => item.id === workout.planId) : undefined;
+      const routine = plan && workout.routineId
+        ? plan.routines.find((item) => item.id === workout.routineId)
+        : undefined;
+      const needsLegacySourceTitle = Boolean(
+        plan && routine && workout.name.trim() === routine.name.trim(),
+      );
+      titles.set(
+        workout.id,
+        needsLegacySourceTitle && plan && routine ? `${plan.name} - ${routine.name}` : workout.name,
+      );
+    }
+    return titles;
+  }, [completedWorkouts, plans]);
   const activeFilterCount = filters.types.length + (filters.dateMode === 'all' ? 0 : 1);
   const [deleteRevealedId, setDeleteRevealedId] = useState<string | null>(null);
   const [headerElevated, setHeaderElevated] = useState(false);
@@ -116,6 +139,7 @@ export function HistoryScreen({
                   <TimelineRow
                     key={workout.id}
                     workout={workout}
+                    displayName={historyTitles.get(workout.id) ?? workout.name}
                     workoutTypes={preferences.workoutTypes}
                     first={index === 0}
                     onPress={() => {
@@ -369,6 +393,7 @@ function HistoryDateRangeControls({ filters, onSetMode, onPreviousMonth, onNextM
 
 function TimelineRow({
   workout,
+  displayName,
   workoutTypes,
   first,
   onPress,
@@ -377,6 +402,7 @@ function TimelineRow({
   onDelete,
 }: {
   workout: Workout;
+  displayName: string;
   workoutTypes: import('../types').WorkoutTypePreference[];
   first: boolean;
   onPress: () => void;
@@ -434,7 +460,7 @@ function TimelineRow({
               <Pressable
                 testID={`history-delete-${workout.id}`}
                 accessibilityRole="button"
-                accessibilityLabel={`Delete ${workout.name}`}
+                accessibilityLabel={`Delete ${displayName}`}
                 onPress={onDelete}
                 style={({ pressed }) => [styles.deleteAction, pressed && styles.deleteActionPressed]}
               >
@@ -447,7 +473,7 @@ function TimelineRow({
           <Pressable
             testID={`history-card-${workout.id}`}
             accessibilityRole="button"
-            accessibilityLabel={`Open ${workout.name}`}
+            accessibilityLabel={`Open ${displayName}`}
             unstable_pressDelay={80}
             onPress={() => {
               if (suppressNextPress.current) {
@@ -470,11 +496,11 @@ function TimelineRow({
             </View>
             <View style={styles.cardCopy}>
               <Text style={styles.name} numberOfLines={1}>
-                {workout.name}
+                {displayName}
               </Text>
               {hasExerciseSummary && (
                 <Text style={styles.stats} numberOfLines={1}>
-                  {`${workout.exercises.length} exercises · ${setCount} sets`}
+                  {`${workout.exercises.length} exercises, ${setCount} sets`}
                 </Text>
               )}
             </View>
@@ -526,7 +552,7 @@ function formatHistoryDate(value: number): string {
 function historyDateSummary(filters: HistoryFilterState): string {
   if (filters.dateMode === 'all') return 'All dates';
   if (filters.dateMode === 'month') return new Date(filters.month).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
-  return `${formatHistoryDate(filters.from)} – ${formatHistoryDate(filters.to)}`;
+  return `${formatHistoryDate(filters.from)} to ${formatHistoryDate(filters.to)}`;
 }
 
 function groupByPeriod(workouts: Workout[]): HistoryGroup[] {

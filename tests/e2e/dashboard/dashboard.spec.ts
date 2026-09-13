@@ -157,7 +157,7 @@ test.describe('Dashboard', () => {
     const plannedRoutine = page.getByRole('button', { name: 'Use Planned pull routine' });
     await expect(plannedRoutine).toBeVisible();
     await plannedRoutine.click();
-    await expect(page.getByLabel('Workout name')).toHaveValue('New plan — Planned pull');
+    await expect(page.getByLabel('Workout name')).toHaveValue('New plan - Planned pull');
   });
 
   test('gives the dock priority while the calendar view menu is open', async ({ page }) => {

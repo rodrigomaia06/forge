@@ -402,7 +402,7 @@ export function ReadOnlyExerciseSection({
               ) : null}
             </View>
             <Text style={styles.readOnlyExerciseCount}>
-              {`· ${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'}`}
+              {`${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'}`}
             </Text>
           </View>
         </View>
@@ -508,7 +508,7 @@ function ReadOnlyHistorySetRow({
           </View>
         </Pressable>
         <Text style={styles.previous} numberOfLines={1}>
-          {set.previous || '—'}
+          {set.previous || 'Not recorded'}
         </Text>
         {trackingFields[trackingType].map((kind) => {
           const planned = set.plannedTargets?.find((target) => target.kind === kind);
@@ -516,7 +516,7 @@ function ReadOnlyHistorySetRow({
             ? `${planned.minValue}–${planned.maxValue}` : String(planned.minValue);
           return (
             <View key={kind} style={[styles.readOnlyInput, styles.inputColumn]}>
-              <Text style={styles.readOnlyInputText}>{measurementText(set, kind) || (minimal ? interval : '') || '—'}</Text>
+              <Text style={styles.readOnlyInputText}>{measurementText(set, kind) || (minimal ? interval : '') || 'Not recorded'}</Text>
             </View>
           );
         })}

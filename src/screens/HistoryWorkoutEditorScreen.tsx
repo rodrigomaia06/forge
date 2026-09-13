@@ -94,9 +94,14 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
       ? completedWorkouts.find((workout) => workout.id === params.workoutId)
       : undefined;
   const initialDraftRef = useRef<Workout | null>(null);
+  // Keep action handlers current even when a TextInput event and a header
+  // action happen in the same native batch. React state remains the render
+  // source; this ref prevents an immediate Cancel or Save using stale text.
+  const draftRef = useRef<Workout | null>(null);
   const [draft, setDraft] = useState<Workout | null>(() => {
     const initial = isCreating ? createHistoricalDraft(selectedCalendarDate) : source ? cloneWorkout(source) : null;
     initialDraftRef.current = initial ? cloneWorkout(initial) : null;
+    draftRef.current = initial;
     return initial;
   });
   const [startTimeChosen, setStartTimeChosen] = useState(!isCreating);
@@ -108,7 +113,6 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [headerElevated, setHeaderElevated] = useState(false);
   const [discardConfirmationOpen, setDiscardConfirmationOpen] = useState(false);
-  const [draftChanged, setDraftChanged] = useState(false);
   const [editorView, setEditorView] = useState<'form' | 'type-picker'>('form');
   const [attributeDraft, setAttributeDraft] = useState<import('../components/ui').ForgeAttributeDraft | null>(null);
   const [reorderingExercises, setReorderingExercises] = useState(false);
@@ -140,16 +144,28 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
   const dirty = useMemo(
     () => isCreating
       ? Boolean(draft && (startTimeChosen || endTimeChosen || JSON.stringify(initialDraftRef.current) !== JSON.stringify(draft)))
-      : draftChanged,
-    [draft, draftChanged, endTimeChosen, isCreating, startTimeChosen],
+      // Derive edit dirtiness from the draft rather than an event flag. Native
+      // TextInput updates and a fast Cancel press can otherwise observe the
+      // old flag for one render and discard a real change without confirmation.
+      : Boolean(draft && JSON.stringify(initialDraftRef.current) !== JSON.stringify(draft)),
+    [draft, endTimeChosen, isCreating, startTimeChosen],
   );
   const updateDraft = (update: (current: Workout) => Workout): void => {
-    setDraft((current) => (current ? update(current) : current));
-    setDraftChanged(true);
+    const current = draftRef.current;
+    const next = current ? update(current) : null;
+    draftRef.current = next;
+    setDraft(next);
     setError(null);
   };
+  const hasUnsavedChanges = (): boolean => {
+    const current = draftRef.current;
+    if (!current) return false;
+    return isCreating
+      ? startTimeChosen || endTimeChosen || JSON.stringify(initialDraftRef.current) !== JSON.stringify(current)
+      : JSON.stringify(initialDraftRef.current) !== JSON.stringify(current);
+  };
   const discard = (): void => {
-    if (!dirty) return leaveEditor(draft?.completedAt ?? draft?.startedAt);
+    if (!hasUnsavedChanges()) return leaveEditor(draftRef.current?.completedAt ?? draftRef.current?.startedAt);
     setDiscardConfirmationOpen(true);
   };
   usePreventRemove(isActive && dirty && !allowNavigationRef.current, ({ data }) => {
@@ -157,30 +173,31 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
     setDiscardConfirmationOpen(true);
   });
   const save = async (): Promise<void> => {
-    if (!draft) return;
-    if (!draft.name.trim() || !draft.type.trim())
+    const currentDraft = draftRef.current;
+    if (!currentDraft) return;
+    if (!currentDraft.name.trim() || !currentDraft.type.trim())
       return setError('Name and workout type are required.');
     if (isCreating && (!startTimeChosen || !endTimeChosen))
       return setError('Choose a start and end time.');
-    const completedAt = draft.completedAt ?? draft.startedAt;
+    const completedAt = currentDraft.completedAt ?? currentDraft.startedAt;
     if (!isActive && (
-      Number.isNaN(new Date(draft.startedAt).getTime()) ||
+      Number.isNaN(new Date(currentDraft.startedAt).getTime()) ||
       Number.isNaN(new Date(completedAt).getTime())
     )) return setError('Choose a valid date and time.');
     const durationSeconds = isActive
-      ? draft.durationSeconds
-      : Math.round((completedAt - draft.startedAt) / 1000);
+      ? currentDraft.durationSeconds
+      : Math.round((completedAt - currentDraft.startedAt) / 1000);
     if (!isActive && (durationSeconds ?? 0) < 1) return setError('End time must be after the start time.');
-    const { location: _location, mood: _mood, ...withoutLegacyMetadata } = draft as Workout & { location?: string; mood?: string };
-    const { attributes, attributeIcons } = normalizeAttributes(draft.attributes, draft.attributeIcons);
+    const { location: _location, mood: _mood, ...withoutLegacyMetadata } = currentDraft as Workout & { location?: string; mood?: string };
+    const { attributes, attributeIcons } = normalizeAttributes(currentDraft.attributes, currentDraft.attributeIcons);
     const saved: Workout = {
       ...withoutLegacyMetadata,
-      name: draft.name.trim(),
-      type: draft.type.trim(),
-      note: draft.note.trim(),
+      name: currentDraft.name.trim(),
+      type: currentDraft.type.trim(),
+      note: currentDraft.note.trim(),
       attributes,
       attributeIcons,
-      averageRestSeconds: draft.averageRestSeconds,
+      averageRestSeconds: currentDraft.averageRestSeconds,
       durationSeconds,
     };
     if (isCreating) await createCompletedWorkout(saved);
@@ -240,8 +257,8 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
     selectionHaptic();
     const next = createHistoricalDraft(selectedCalendarDate, routine, plan);
     initialDraftRef.current = cloneWorkout(next);
+    draftRef.current = next;
     setDraft(next);
-    setDraftChanged(true);
     setStartTimeChosen(false);
     setEndTimeChosen(false);
     setSourceStep(null);
@@ -296,6 +313,11 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         // can start or adjust the rest timer when a set is completed.
         onSetCompleted={() => undefined}
         size="large"
+        // The active editor is deliberately compact on entry. It gives the
+        // workout list the same scan-first hierarchy as History; opening an
+        // exercise is an explicit edit decision rather than a wall of sets.
+        collapsible={isActive}
+        forceCollapsed={isActive && reorderingExercises}
         showCatalogMetadata={isActive}
         showWarmupSets={isActive}
         onSetInputFocus={isActive ? onSetInputFocus : undefined}
@@ -343,6 +365,14 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
             accessibilityLabel="Workout name"
             value={draft.name}
             onChangeText={(name) => updateDraft((current) => ({ ...current, name }))}
+            // Keep the DOM event path as a Web fallback. React Native Web
+            // forwards both handlers from the same input event; native uses
+            // onChangeText as normal.
+            onChange={(event) => updateDraft((current) => ({
+              ...current,
+              name: textInputChangeText(event),
+            }))}
+            onEndEditing={(event) => updateDraft((current) => ({ ...current, name: textInputChangeText(event) }))}
             numberOfLines={1}
             style={styles.nameInput}
           />
@@ -846,6 +876,8 @@ function Field({
         accessibilityLabel={label}
         value={value}
         onChangeText={onChangeText}
+        onChange={(event) => onChangeText(textInputChangeText(event))}
+        onEndEditing={(event) => onChangeText(textInputChangeText(event))}
         keyboardType={keyboardType}
         multiline={multiline}
         style={[styles.input, multiline && styles.notesInput]}
@@ -853,6 +885,13 @@ function Field({
     </View>
   );
 }
+
+/** React Native uses nativeEvent.text; React Native Web exposes DOM value. */
+function textInputChangeText(event: { nativeEvent: { text: string }; target: unknown }): string {
+  const target = event.target as { value?: unknown } | null;
+  return typeof target?.value === 'string' ? target.value : event.nativeEvent.text;
+}
+
 function PickerButton({
   label,
   value,
@@ -892,7 +931,7 @@ function createHistoricalDraft(
     : undefined;
   return {
     ...createWorkout({
-      name: routine ? (plan ? `${plan.name} — ${routine.name}` : routine.name) : undefined,
+      name: routine ? (plan ? `${plan.name} - ${routine.name}` : routine.name) : undefined,
       type: routine?.type,
       note: routine?.note,
       attributes,

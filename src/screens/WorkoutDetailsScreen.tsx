@@ -183,7 +183,7 @@ function WorkoutSummaryCard({
             label="Avg rest / set"
             value={
               workout.averageRestSeconds === undefined
-                ? '—'
+                ? 'Not recorded'
                 : formatRest(workout.averageRestSeconds)
             }
             color={theme.slate}
@@ -273,7 +273,7 @@ function formatDateTime(value: number) {
       day: 'numeric',
       month: 'short',
     }) +
-    ' · ' +
+    ', ' +
     new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
   );
 }
