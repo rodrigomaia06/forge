@@ -40,6 +40,7 @@ import { createActiveWorkoutStyles } from './activeWorkout/activeWorkoutStyles';
 import { useFocusedSetKeyboardLift } from './activeWorkout/useFocusedSetKeyboardLift';
 import { calendarDateKey } from '../domain/workouts/calendarDate';
 import { createExerciseSnapshot } from '../domain/exercises/exerciseSnapshot';
+import { recordRestTimerSample } from '../state/workoutMutations';
 
 type ActiveWorkoutScreenProps = RootTabScreenProps<'ActiveWorkout'>;
 export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenProps) {
@@ -90,8 +91,13 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
   }, [catalogExercises, preferences.defaultRestSeconds, preferences.exerciseRestSeconds]);
   const handleSetCompleted = useCallback((exercise: WorkoutExercise): void => {
     if (!preferences.showRestTimer) return;
-    startRestTimer(restDurationForExercise(exercise));
-  }, [preferences.showRestTimer, restDurationForExercise, startRestTimer]);
+    const duration = restDurationForExercise(exercise);
+    // Store the completed-set rest interval with the workout. This makes the
+    // History metric useful for future sessions without pretending that old
+    // records, which never captured individual rests, have precise data.
+    updateActiveWorkout((current) => recordRestTimerSample(current, duration));
+    startRestTimer(duration);
+  }, [preferences.showRestTimer, restDurationForExercise, startRestTimer, updateActiveWorkout]);
   const openRestTimer = () => {
     lightHaptic();
     if (restRunning) setRestSelection(restDuration);

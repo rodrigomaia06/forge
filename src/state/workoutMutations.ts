@@ -55,6 +55,24 @@ export function createWorkout(options: StartWorkoutOptions): Workout {
   };
 }
 
+/**
+ * Records only rest intervals that Forge actually started after a completed
+ * set. Older workouts did not retain individual rests, so their existing
+ * average is treated as one legacy sample rather than being overwritten.
+ */
+export function recordRestTimerSample(workout: Workout, durationSeconds: number): Workout {
+  const duration = Math.max(1, Math.round(durationSeconds));
+  const sampleCount = workout.restTimerSamples
+    ?? (workout.averageRestSeconds === undefined ? 0 : 1);
+  const nextCount = sampleCount + 1;
+  const total = (workout.averageRestSeconds ?? 0) * sampleCount + duration;
+  return {
+    ...workout,
+    averageRestSeconds: Math.round(total / nextCount),
+    restTimerSamples: nextCount,
+  };
+}
+
 export function addExerciseToWorkout(workout: Workout | null, input: WorkoutExerciseInput | string): Workout | null {
   return addExercisesToWorkout(workout, [input]);
 }

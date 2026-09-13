@@ -9,10 +9,15 @@ import { useWorkouts } from './WorkoutContext';
 import { syncRestTimerLiveActivity } from './restTimerLiveActivity';
 
 const restTimerNotificationId = 'forge-rest-timer-complete';
-const restTimerAudibleChannelId = 'forge-rest-timer-audible';
+// Android notification-channel sound is immutable once installed. A versioned
+// ID ensures existing installs receive the bundled Forge alarm after update.
+const restTimerAudibleChannelId = 'forge-rest-timer-audible-v2';
 const restTimerSilentChannelId = 'forge-rest-timer-silent';
 const unfinishedWorkoutReminderId = 'forge-unfinished-workout-reminder';
 const restTimerStorageKey = '@forge/rest-timer-v1';
+// This is the exact bundled rest alarm from the prior Forge app. Unlike the
+// platform default it retains Forge's recognisable timer sound in native builds.
+const restTimerSound = 'alarm.wav';
 
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
@@ -71,7 +76,7 @@ async function replaceRestTimerNotification(
     content: {
       title: 'Rest complete',
       body: `${restDurationLabel(duration)} complete. Back to work.`,
-      sound: soundEnabled ? 'default' : false,
+      sound: soundEnabled ? restTimerSound : false,
       data: { forgeTimer: 'rest' },
     },
     trigger: {
@@ -122,7 +127,7 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
     void Notifications.setNotificationChannelAsync(restTimerAudibleChannelId, {
       name: 'Rest timer alerts',
       importance: Notifications.AndroidImportance.HIGH,
-      sound: 'default',
+      sound: restTimerSound,
       vibrationPattern: [0, 180, 90, 180],
     }).catch(() => undefined);
     void Notifications.setNotificationChannelAsync(restTimerSilentChannelId, {

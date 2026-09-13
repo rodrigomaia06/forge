@@ -138,6 +138,8 @@ test.describe('Active workout flow', () => {
     await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
 
     await page.getByRole('button', { name: 'Edit live workout' }).click();
+    await expect(page.getByRole('button', { name: 'Expand Barbell Bench Press' })).toBeVisible();
+    await expect(page.getByLabel('Weight for set 1')).toHaveCount(0);
     const handles = page.getByRole('button', { name: /Drag to reorder/ });
     await expect(handles).toHaveCount(2);
     const [firstHandle, secondHandle] = await Promise.all([

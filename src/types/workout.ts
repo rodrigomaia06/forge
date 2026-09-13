@@ -52,6 +52,9 @@ export interface Workout {
   automaticTimeTracking?: boolean;
   note: string;
   averageRestSeconds?: number;
+  /** Number of completed-set rest intervals behind averageRestSeconds. Internal
+   * accounting for a stable average; omitted safely by legacy records. */
+  restTimerSamples?: number;
   exercises: WorkoutExercise[];
   routineId?: string;
   planId?: string;
