@@ -237,6 +237,7 @@ test.describe('Settings', () => {
     await page.getByRole('button', { name: 'Backup & Export' }).click();
     await expectRowHeight(page.getByRole('button', { name: 'Export JSON' }), 56);
     await expectRowHeight(page.getByRole('button', { name: 'Create SQLite backup' }), 56);
+    await expect(page.getByRole('button', { name: 'Delete all app data' })).toBeVisible();
     await expectFontSize(page.getByText('Export JSON', { exact: true }), 16);
 
     await page.getByRole('button', { name: 'Back to Settings' }).click();
@@ -268,6 +269,36 @@ test.describe('Settings', () => {
     if (testInfo.project.name === 'iphone-air') {
       await page.screenshot({ path: testInfo.outputPath('export-data-selection-iphone.png') });
     }
+  });
+
+  test('validates JSON and opens its import review immediately', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Backup & Export' }).click();
+    const chooserPromise = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: 'Import JSON' }).click();
+    const chooser = await chooserPromise;
+    await chooser.setFiles({
+      name: 'forge-import.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify({
+        format: 'forge-data', version: 1, exportedAt: '2026-09-13T00:00:00.000Z',
+        settings: { workoutTypes: [], dailyMeasurementDefinitions: [], dailyMeasurementEntries: [] },
+        plans: {
+          plans: [
+            { id: 'plan-a', routines: [{ id: 'routine-a' }, { id: 'routine-b' }] },
+            { id: 'plan-b', routines: [{ id: 'routine-c' }, { id: 'routine-d' }] },
+          ],
+          standaloneRoutines: [{ id: 'routine-e' }],
+        },
+        workouts: { activeWorkout: null, completedWorkouts: [] }, customExercises: [],
+      })),
+    });
+    const sheet = page.getByRole('dialog');
+    await expect(sheet.getByText('Review import', { exact: true })).toBeVisible();
+    await expect(sheet.getByText('2 plans · 5 routines · 0 already on this device')).toBeVisible();
+    await expect(sheet.getByRole('button', { name: 'Import selected data' })).toBeVisible();
+    await expect(sheet.getByRole('button', { name: 'Review selected data' })).toHaveCount(0);
   });
 
   test('persists the first day of the week and applies it to the Calendar', async ({ page }) => {

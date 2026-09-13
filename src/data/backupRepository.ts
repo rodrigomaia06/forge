@@ -1,4 +1,5 @@
 import * as DocumentPicker from 'expo-document-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as SQLite from 'expo-sqlite';
@@ -28,7 +29,14 @@ export type ForgeDataTransfer = {
 
 export type DataTransferCategory = 'workouts' | 'plans' | 'exercises' | 'workoutTypes' | 'measurements';
 export type DataTransferSelection = Record<DataTransferCategory, boolean>;
-export type DataTransferCategorySummary = { available: number; newRecords: number; existingRecords: number };
+export type DataTransferCategorySummary = {
+  available: number;
+  newRecords: number;
+  existingRecords: number;
+  /** Only present for Plans & routines, whose parent/child hierarchy matters. */
+  planCount?: number;
+  routineCount?: number;
+};
 export type DataTransferInspection = {
   exportedAt: string;
   categories: Record<DataTransferCategory, DataTransferCategorySummary>;
@@ -147,8 +155,12 @@ export async function inspectDataTransfer(incoming: ForgeDataTransfer, selection
     const unique = uniqueById(incomingItems);
     return { available: unique.length, newRecords: unique.filter((item) => !currentIds.has(item.id)).length, existingRecords: unique.filter((item) => currentIds.has(item.id)).length };
   };
-  const incomingPlans = [...incoming.plans.plans, ...incoming.plans.standaloneRoutines];
-  const currentPlanItems = [...currentPlans.plans, ...currentPlans.standaloneRoutines];
+  const allRoutines = (plans: PlansState) => [
+    ...plans.plans.flatMap((plan) => plan.routines),
+    ...plans.standaloneRoutines,
+  ];
+  const incomingRoutines = allRoutines(incoming.plans);
+  const currentRoutines = allRoutines(currentPlans);
   const incomingMeasures = [...incoming.settings.dailyMeasurementDefinitions, ...incoming.settings.dailyMeasurementEntries];
   const currentMeasures = [...currentSettings.dailyMeasurementDefinitions, ...currentSettings.dailyMeasurementEntries];
   return {
@@ -156,7 +168,17 @@ export async function inspectDataTransfer(incoming: ForgeDataTransfer, selection
     activeWorkout: Boolean(selection.workouts && incoming.workouts.activeWorkout && !currentWorkouts.activeWorkout),
     categories: {
       workouts: selection.workouts ? summary(incoming.workouts.completedWorkouts, currentWorkouts.completedWorkouts) : { available: 0, newRecords: 0, existingRecords: 0 },
-      plans: selection.plans ? summary(incomingPlans, currentPlanItems) : { available: 0, newRecords: 0, existingRecords: 0 },
+      plans: selection.plans ? (() => {
+        const planSummary = summary(incoming.plans.plans, currentPlans.plans);
+        const routineSummary = summary(incomingRoutines, currentRoutines);
+        return {
+          available: planSummary.available + routineSummary.available,
+          newRecords: planSummary.newRecords + routineSummary.newRecords,
+          existingRecords: planSummary.existingRecords + routineSummary.existingRecords,
+          planCount: planSummary.available,
+          routineCount: routineSummary.available,
+        };
+      })() : { available: 0, newRecords: 0, existingRecords: 0 },
       exercises: selection.exercises ? summary(incoming.customExercises, currentExercises) : { available: 0, newRecords: 0, existingRecords: 0 },
       workoutTypes: selection.workoutTypes ? summary(incoming.settings.workoutTypes, currentSettings.workoutTypes) : { available: 0, newRecords: 0, existingRecords: 0 },
       measurements: selection.measurements ? summary(incomingMeasures, currentMeasures) : { available: 0, newRecords: 0, existingRecords: 0 },
@@ -241,6 +263,36 @@ export async function restoreSqliteBackup(inspection: BackupInspection): Promise
     try { await SQLite.backupDatabaseAsync({ sourceDatabase: candidate, destDatabase: live }); }
     finally { await candidate.closeAsync(); }
   });
+}
+
+/**
+ * Erases user-owned Forge data while retaining only the immutable bundled
+ * exercise catalogue needed to start a fresh local installation.
+ */
+export async function eraseAllForgeData(): Promise<void> {
+  await withDatabaseMaintenance(async (db) => {
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(`
+        DELETE FROM set_measurements;
+        DELETE FROM set_targets;
+        DELETE FROM workouts;
+        DELETE FROM routines;
+        DELETE FROM plans;
+        DELETE FROM custom_exercises;
+        DELETE FROM workout_types;
+        DELETE FROM preferences;
+      `);
+    });
+  });
+  await AsyncStorage.multiRemove([
+    '@forge/diagnostics-v1',
+    '@forge/rest-timer-v1',
+    '@forge/active-workout',
+    '@forge/completed-workouts',
+    '@forge/plans-v1',
+    '@forge/settings-preferences',
+    '@forge/custom-exercises',
+  ]);
 }
 
 export async function databaseStatus(): Promise<{ tables: number; database: string }> {

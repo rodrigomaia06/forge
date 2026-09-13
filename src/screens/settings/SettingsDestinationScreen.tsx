@@ -10,7 +10,7 @@ import { typeScale } from '../../theme/tokens';
 import type { IconName, RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
-import { allDataTransferSelection, createSqliteBackup, databaseStatus, exportJson, exportText, inspectDataTransfer, mergeDataTransfer, pickJsonTransfer, pickSqliteBackup, restoreSqliteBackup, type DataTransferCategory, type DataTransferInspection, type DataTransferSelection, type ForgeDataTransfer } from '../../data/backupRepository';
+import { allDataTransferSelection, createSqliteBackup, databaseStatus, eraseAllForgeData, exportJson, exportText, inspectDataTransfer, mergeDataTransfer, pickJsonTransfer, pickSqliteBackup, restoreSqliteBackup, type DataTransferCategory, type DataTransferInspection, type DataTransferSelection, type ForgeDataTransfer } from '../../data/backupRepository';
 import { clearDiagnostics, exportDiagnostics, loadDiagnostics, recordDiagnostic, type DiagnosticEntry } from '../../data/diagnosticsRepository';
 import { useSettings } from '../../state/SettingsContext';
 import { usePlans } from '../../state/PlansContext';
@@ -62,7 +62,7 @@ export function SettingsDestinationScreen({ navigation, route }: Props) {
 
 function BackupExport() {
   const [busy, setBusy] = React.useState(false);
-  const [transferStep, setTransferStep] = React.useState<'export-json' | 'export-text' | 'import-select' | 'import-review' | null>(null);
+  const [transferStep, setTransferStep] = React.useState<'export-json' | 'export-text' | 'import-review' | null>(null);
   const [transfer, setTransfer] = React.useState<ForgeDataTransfer | null>(null);
   const [selection, setSelection] = React.useState<DataTransferSelection>(allDataTransferSelection);
   const [inspection, setInspection] = React.useState<DataTransferInspection | null>(null);
@@ -90,15 +90,9 @@ function BackupExport() {
       const incoming = await pickJsonTransfer();
       if (!incoming) return;
       setTransfer(incoming);
-      setSelection(allDataTransferSelection());
-      setInspection(null);
-      setTransferStep('import-select');
-    });
-  };
-  const reviewImport = (): void => {
-    if (!transfer) return;
-    void run(async () => {
-      setInspection(await inspectDataTransfer(transfer, selection));
+      const nextSelection = allDataTransferSelection();
+      setSelection(nextSelection);
+      setInspection(await inspectDataTransfer(incoming, nextSelection));
       setTransferStep('import-review');
     });
   };
@@ -127,6 +121,23 @@ function BackupExport() {
       await refresh();
       await recordDiagnostic('backup-restored');
       Alert.alert('Backup restored', 'Forge has reloaded the restored data.');
+    });
+  };
+  const erase = (): void => {
+    void run(async () => {
+      const confirmed = await new Promise<boolean>((resolve) => Alert.alert(
+        'Delete all app data?',
+        'This permanently deletes your workouts, plans, routines, custom exercises, measurements, preferences and local diagnostics from this device. This cannot be undone.',
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Delete all data', style: 'destructive', onPress: () => resolve(true) },
+        ],
+      ));
+      if (!confirmed) return;
+      stopRestTimer();
+      await eraseAllForgeData();
+      await Promise.all([reloadSettings(), reloadPlans(), reloadWorkouts(), reloadExercises()]);
+      Alert.alert('All app data deleted', 'Forge is ready for a fresh start.');
     });
   };
   return (
@@ -160,7 +171,8 @@ function BackupExport() {
         footer={Platform.OS === 'web' ? 'Full SQLite backup and restore are available in iOS and Android builds.' : 'A complete Forge .sqlite file includes WAL changes. Restore validates it first and creates an in-app safety copy.'}
       >
         <Action title="Create SQLite backup" divider disabled={Platform.OS === 'web'} onPress={() => void run(async () => { await createSqliteBackup(); await recordDiagnostic('backup-created'); })} />
-        <Action title="Restore SQLite backup" disabled={Platform.OS === 'web'} onPress={restore} />
+        <Action title="Restore SQLite backup" divider disabled={Platform.OS === 'web'} onPress={restore} />
+        <Action title="Delete all app data" destructive onPress={erase} />
       </SettingsSection>
       {busy ? <Text style={styles.unavailable}>Working securely with local data…</Text> : null}
       <DataTransferSheet
@@ -169,10 +181,9 @@ function BackupExport() {
         inspection={inspection}
         onChangeSelection={setSelection}
         onClose={() => { setTransferStep(null); setInspection(null); }}
-        onBack={() => setTransferStep('import-select')}
+        onBack={() => setTransferStep(null)}
         onExportJson={() => void run(async () => { await exportJson(selection); await recordDiagnostic('data-exported'); setTransferStep(null); })}
         onExportText={() => void run(async () => { await exportText(selection); setTransferStep(null); })}
-        onReview={reviewImport}
         onImport={mergeSelected}
         busy={busy}
       />
@@ -189,9 +200,9 @@ const transferCategories: Array<{ key: DataTransferCategory; title: string; deta
 ];
 
 function DataTransferSheet({
-  step, selection, inspection, onChangeSelection, onClose, onBack, onExportJson, onExportText, onReview, onImport, busy,
+  step, selection, inspection, onChangeSelection, onClose, onBack, onExportJson, onExportText, onImport, busy,
 }: {
-  step: 'export-json' | 'export-text' | 'import-select' | 'import-review' | null;
+  step: 'export-json' | 'export-text' | 'import-review' | null;
   selection: DataTransferSelection;
   inspection: DataTransferInspection | null;
   onChangeSelection: (selection: DataTransferSelection) => void;
@@ -199,7 +210,6 @@ function DataTransferSheet({
   onBack: () => void;
   onExportJson: () => void;
   onExportText: () => void;
-  onReview: () => void;
   onImport: () => void;
   busy: boolean;
 }) {
@@ -208,7 +218,7 @@ function DataTransferSheet({
   const selectedCount = transferCategories.filter(({ key }) => selection[key]).length;
   const exporting = step === 'export-json' || step === 'export-text';
   const reviewing = step === 'import-review';
-  const title = exporting ? 'Export data' : reviewing ? 'Review import' : 'Import data';
+  const title = exporting ? 'Export data' : 'Review import';
   const toggle = (key: DataTransferCategory): void => onChangeSelection({ ...selection, [key]: !selection[key] });
   return (
     <ForgeBottomSheet
@@ -223,7 +233,7 @@ function DataTransferSheet({
         title={title}
         closePosition="right"
         onClose={onClose}
-        leading={reviewing ? <ForgeBackButton accessibilityLabel="Back to import selection" onPress={onBack} /> : undefined}
+        leading={reviewing ? <ForgeBackButton accessibilityLabel="Back" onPress={onBack} /> : undefined}
       />
       <ScrollView contentContainerStyle={[styles.transferContent, { paddingBottom: clearance }]} showsVerticalScrollIndicator={false}>
         {reviewing ? (
@@ -263,12 +273,12 @@ function DataTransferSheet({
         )}
       </ScrollView>
       <ForgeFloatingCta
-        label={reviewing ? 'Import selected data' : exporting ? 'Export selected data' : 'Review selected data'}
-        accessibilityLabel={reviewing ? 'Import selected data' : exporting ? 'Export selected data' : 'Review selected data'}
+        label={reviewing ? 'Import selected data' : 'Export selected data'}
+        accessibilityLabel={reviewing ? 'Import selected data' : 'Export selected data'}
         disabled={!selectedCount || busy}
         tone={reviewing ? 'success' : 'neutral'}
         icon={reviewing ? 'check' : undefined}
-        onPress={reviewing ? onImport : exporting ? (step === 'export-json' ? onExportJson : onExportText) : onReview}
+        onPress={reviewing ? onImport : step === 'export-json' ? onExportJson : onExportText}
       />
     </ForgeBottomSheet>
   );
@@ -284,8 +294,8 @@ function ImportReview({ inspection, selection }: { inspection: DataTransferInspe
         {transferCategories.filter(({ key }) => selection[key]).map(({ key, title: categoryTitle }, index) => {
           const summary = inspection.categories[key];
           return (
-            <View key={key} style={[styles.reviewRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }]}>
-              <View><Text style={[styles.transferOptionTitle, { color: theme.textPrimary }]}>{categoryTitle}</Text><Text style={[styles.transferOptionDetail, { color: theme.textSecondary }]}>{summary.available} in file · {summary.existingRecords} already on this device</Text></View>
+          <View key={key} style={[styles.reviewRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }]}>
+              <View><Text style={[styles.transferOptionTitle, { color: theme.textPrimary }]}>{categoryTitle}</Text><Text style={[styles.transferOptionDetail, { color: theme.textSecondary }]}>{key === 'plans' ? `${summary.planCount ?? 0} plans · ${summary.routineCount ?? 0} routines · ${summary.existingRecords} already on this device` : `${summary.available} in file · ${summary.existingRecords} already on this device`}</Text></View>
               <Text style={[styles.reviewNew, { color: summary.newRecords ? theme.success : theme.textSecondary }]}>{summary.newRecords} new</Text>
             </View>
           );

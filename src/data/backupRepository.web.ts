@@ -1,4 +1,5 @@
 import type { ExerciseCatalogItem } from './exerciseCatalog';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { loadCustomExercises, saveCustomExercises } from './exerciseRepository';
 import { loadPlansState, savePlansState } from './plansRepository';
 import { loadSettingsPreferences, saveSettingsPreferences } from './settingsRepository';
@@ -9,7 +10,7 @@ import type { PlansState, SettingsPreferences, WorkoutState } from '../types';
 export const FORGE_TRANSFER_VERSION = 1;
 export type DataTransferCategory = 'workouts' | 'plans' | 'exercises' | 'workoutTypes' | 'measurements';
 export type DataTransferSelection = Record<DataTransferCategory, boolean>;
-export type DataTransferCategorySummary = { available: number; newRecords: number; existingRecords: number };
+export type DataTransferCategorySummary = { available: number; newRecords: number; existingRecords: number; planCount?: number; routineCount?: number };
 export type DataTransferInspection = { exportedAt: string; categories: Record<DataTransferCategory, DataTransferCategorySummary>; activeWorkout: boolean };
 export type ForgeDataTransfer = { format: 'forge-data'; version: number; exportedAt: string; settings: SettingsPreferences; plans: PlansState; workouts: WorkoutState; customExercises: ExerciseCatalogItem[]; selection?: DataTransferSelection };
 export type BackupInspection = { bytes: Uint8Array; workoutCount: number; activeWorkout: boolean; planCount: number; customExerciseCount: number };
@@ -51,7 +52,18 @@ export async function inspectDataTransfer(incoming: ForgeDataTransfer, selection
     activeWorkout: Boolean(selection.workouts && incoming.workouts.activeWorkout && !workouts.activeWorkout),
     categories: {
       workouts: selection.workouts ? summary(incoming.workouts.completedWorkouts, workouts.completedWorkouts) : skipped,
-      plans: selection.plans ? summary([...incoming.plans.plans, ...incoming.plans.standaloneRoutines], [...plans.plans, ...plans.standaloneRoutines]) : skipped,
+      plans: selection.plans ? (() => {
+        const routines = (state: PlansState) => [...state.plans.flatMap((plan) => plan.routines), ...state.standaloneRoutines];
+        const planSummary = summary(incoming.plans.plans, plans.plans);
+        const routineSummary = summary(routines(incoming.plans), routines(plans));
+        return {
+          available: planSummary.available + routineSummary.available,
+          newRecords: planSummary.newRecords + routineSummary.newRecords,
+          existingRecords: planSummary.existingRecords + routineSummary.existingRecords,
+          planCount: planSummary.available,
+          routineCount: routineSummary.available,
+        };
+      })() : skipped,
       exercises: selection.exercises ? summary(incoming.customExercises, exercises) : skipped,
       workoutTypes: selection.workoutTypes ? summary(incoming.settings.workoutTypes, settings.workoutTypes) : skipped,
       measurements: selection.measurements ? summary([...incoming.settings.dailyMeasurementDefinitions, ...incoming.settings.dailyMeasurementEntries], [...settings.dailyMeasurementDefinitions, ...settings.dailyMeasurementEntries]) : skipped,
@@ -74,4 +86,15 @@ export async function importJson(): Promise<{ workouts: number; exercises: numbe
 export async function createSqliteBackup(): Promise<void> { throw new Error('Full SQLite backups are available in iOS and Android builds, not on web.'); }
 export async function pickSqliteBackup(): Promise<BackupInspection | null> { throw new Error('Full SQLite restore is available in iOS and Android builds, not on web.'); }
 export async function restoreSqliteBackup(): Promise<void> { throw new Error('Full SQLite restore is available in iOS and Android builds, not on web.'); }
+export async function eraseAllForgeData(): Promise<void> {
+  await AsyncStorage.multiRemove([
+    '@forge/diagnostics-v1',
+    '@forge/rest-timer-v1',
+    '@forge/active-workout',
+    '@forge/completed-workouts',
+    '@forge/plans-v1',
+    '@forge/settings-preferences',
+    '@forge/custom-exercises',
+  ]);
+}
 export async function databaseStatus(): Promise<{ tables: number; database: string }> { return { tables: 0, database: 'Browser storage' }; }
