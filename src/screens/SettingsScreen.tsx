@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppScreen, ScreenTitle } from '../components/ui';
 import { useForgeTheme } from '../theme/ThemeProvider';
@@ -7,13 +7,14 @@ import { useThemedStyles } from '../theme/useThemedStyles';
 import { spacing } from '../theme/tokens';
 import type { RootStackParamList, RootTabScreenProps } from '../types';
 import { SettingsRow, SettingsSection, settingsLayout } from './settings/SettingsRow';
-import { forgeDockScrollInset } from '../components/DockChrome';
+import { useForgeDockScrollInset } from '../components/DockChrome';
 
 type Props = RootTabScreenProps<'Settings'>;
 
 export function SettingsScreen({ navigation }: Props) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const dockScrollInset = useForgeDockScrollInset();
   const open = (screen: keyof RootStackParamList): void => {
     navigation.navigate(screen as never);
   };
@@ -26,7 +27,12 @@ export function SettingsScreen({ navigation }: Props) {
             Settings
           </ScreenTitle>
         </View>
-        <View style={styles.content}>
+        <ScrollView
+          testID="settings-scroll"
+          style={styles.scroll}
+          contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset }]}
+          showsVerticalScrollIndicator={false}
+        >
           <SettingsSection>
             <SettingsRow
               icon="weight"
@@ -85,7 +91,7 @@ export function SettingsScreen({ navigation }: Props) {
               disclosure
             />
           </SettingsSection>
-        </View>
+        </ScrollView>
       </View>
     </AppScreen>
   );
@@ -94,6 +100,7 @@ export function SettingsScreen({ navigation }: Props) {
 const createStyles = (theme: import('../types').ForgeTheme) =>
   StyleSheet.create({
     screen: { flex: 1 },
+    scroll: { flex: 1 },
     header: {
       height: 70,
       justifyContent: 'center',
@@ -103,7 +110,6 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     content: {
       paddingHorizontal: settingsLayout.screenPadding,
       paddingTop: settingsLayout.contentTop,
-      paddingBottom: forgeDockScrollInset,
       gap: settingsLayout.sectionGap,
     },
   });

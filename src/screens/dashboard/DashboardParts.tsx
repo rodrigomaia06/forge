@@ -6,6 +6,7 @@ import { Calendar, type CalendarMenuState } from '../../components/Calendar';
 import { WorkoutRow } from '../../components/WorkoutRow';
 import { AppScreen, Button, ForgeText as Text, lightHaptic } from '../../components/ui';
 import { useLayoutProbe } from '../../debug/layoutProbe';
+import { useForgeDockScrollInset } from '../../components/DockChrome';
 import { useSettings } from '../../state/SettingsContext';
 import { useWorkouts } from '../../state/WorkoutContext';
 import type { ReactElement, ReactNode } from 'react';
@@ -270,13 +271,14 @@ export function DashboardScroll({
   header?: ReactElement<{ style?: StyleProp<ViewStyle> }>;
 }) {
   const scrollProbe = useLayoutProbe<ScrollViewType>('dashboard-scroll');
+  const dockScrollInset = useForgeDockScrollInset();
   return (
     <ScrollView
       ref={scrollProbe.ref}
       onLayout={scrollProbe.onLayout}
       testID="dashboard-scroll"
       style={styles.scrollView}
-      contentContainerStyle={[styles.scrollContent, style]}
+      contentContainerStyle={[styles.scrollContent, { paddingBottom: dockScrollInset }, style]}
       showsVerticalScrollIndicator={false}
     >
       {header && React.cloneElement(header, { style: styles.scrollHeader })}

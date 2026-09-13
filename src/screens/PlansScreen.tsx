@@ -35,7 +35,7 @@ import type {
   WorkoutTypePreference,
 } from '../types';
 import { workoutTypeIcon } from './settings/workoutTypeIcon';
-import { forgeDockScrollInset } from '../components/DockChrome';
+import { useForgeDockScrollInset } from '../components/DockChrome';
 
 type Props = RootTabScreenProps<'Plans'>;
 type PlanActionTarget =
@@ -46,6 +46,7 @@ export function PlansScreen({ navigation, route }: Props) {
   const { width } = useWindowDimensions();
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const dockScrollInset = useForgeDockScrollInset();
   const { preferences } = useSettings();
   const { plans, standaloneRoutines, createPlan, deletePlan, deleteRoutine } = usePlans();
   const { startWorkout } = useWorkouts();
@@ -122,7 +123,7 @@ export function PlansScreen({ navigation, route }: Props) {
         </View>
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset }]}
           showsVerticalScrollIndicator={false}
           directionalLockEnabled
           keyboardShouldPersistTaps="handled"
@@ -599,7 +600,6 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     content: {
       paddingHorizontal: spacing.screen,
       paddingTop: 16,
-      paddingBottom: forgeDockScrollInset,
     },
     listHeader: { gap: 28, paddingBottom: 11 },
     section: { gap: 11 },

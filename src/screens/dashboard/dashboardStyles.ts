@@ -1,6 +1,5 @@
 import { StyleSheet } from 'react-native';
 import { spacing, typeScale } from '../../theme/tokens';
-import { forgeDockScrollInset } from '../../components/DockChrome';
 
 export const styles = StyleSheet.create({
   appShell: { flex: 1 },
@@ -23,7 +22,6 @@ export const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: spacing.screen,
     paddingTop: 0,
-    paddingBottom: forgeDockScrollInset,
     gap: 14,
   },
   scrollHeader: { marginHorizontal: -spacing.screen },

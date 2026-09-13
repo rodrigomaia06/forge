@@ -22,7 +22,7 @@ import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
 import type { RootTabScreenProps, Workout } from '../types';
-import { forgeDockScrollInset } from '../components/DockChrome';
+import { useForgeDockScrollInset } from '../components/DockChrome';
 
 interface HistoryGroup {
   key: string;
@@ -37,6 +37,7 @@ export function HistoryScreen({
   const { preferences } = useSettings();
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const dockScrollInset = useForgeDockScrollInset();
   const groups = useMemo(() => groupByPeriod(completedWorkouts), [completedWorkouts]);
   const [deleteRevealedId, setDeleteRevealedId] = useState<string | null>(null);
   const [headerElevated, setHeaderElevated] = useState(false);
@@ -59,7 +60,7 @@ export function HistoryScreen({
         </View>
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset }]}
           showsVerticalScrollIndicator={false}
           onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
           scrollEventThrottle={16}
@@ -294,7 +295,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     backgroundColor: theme.background,
   },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 16, paddingTop: 18, paddingBottom: forgeDockScrollInset, gap: 18 },
+  content: { paddingHorizontal: 16, paddingTop: 18, gap: 18 },
   group: { gap: 8 },
   groupTitle: {
     marginLeft: 70,

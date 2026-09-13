@@ -2,7 +2,6 @@ import { StyleSheet } from 'react-native';
 import { spacing, typeScale } from '../../theme/tokens';
 import type { ForgeTheme } from '../../types';
 import { forgeSheetHeader } from '../../components/ui/ForgeBottomSheet';
-import { forgeDockScrollInset } from '../../components/DockChrome';
 
 export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
   const dashboardTheme = theme;
@@ -100,7 +99,7 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       textAlign: 'left',
     },
     keyboardArea: { flex: 1 },
-    content: { padding: 16, gap: 12, paddingBottom: forgeDockScrollInset },
+    content: { padding: 16, gap: 12 },
     listSectionHeader: { gap: spacing.section },
     liveAttributesSection: { gap: 10 },
     listSectionTitle: { color: dashboardTheme.ink, ...typeScale.sectionTitle },

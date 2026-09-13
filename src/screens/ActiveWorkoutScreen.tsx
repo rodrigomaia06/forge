@@ -25,6 +25,7 @@ import {
   pressedFeedback,
 } from '../components/ui';
 import { usePrimaryDock } from '../navigation/PrimaryDockContext';
+import { useForgeDockScrollInset } from '../components/DockChrome';
 import { useWorkouts } from '../state/WorkoutContext';
 import { useRestTimer } from '../state/RestTimerContext';
 import { useSettings } from '../state/SettingsContext';
@@ -52,6 +53,7 @@ type ActiveWorkoutScreenProps = RootTabScreenProps<'ActiveWorkout'>;
 export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createActiveWorkoutStyles);
+  const dockScrollInset = useForgeDockScrollInset();
   const {
     activeWorkout,
     ready,
@@ -332,6 +334,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
         onSetCompleted={startRestTimer}
         onOpenAddExercise={openAddExercise}
         onScrollOffsetChange={handleWorkoutScrollOffset}
+        dockScrollInset={dockScrollInset}
       />
       <ExtractedAddExerciseSheet
         visible={sheetOpen}
@@ -499,6 +502,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
   onSetCompleted,
   onOpenAddExercise,
   onScrollOffsetChange,
+  dockScrollInset,
 }: {
   workout: Workout;
   addSet: (exerciseId: string) => void;
@@ -512,6 +516,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
   onSetCompleted: (duration?: number) => void;
   onOpenAddExercise: () => void;
   onScrollOffsetChange: (offset: number) => void;
+  dockScrollInset: number;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createActiveWorkoutStyles);
@@ -581,7 +586,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
         data={workout.exercises}
         renderItem={renderExercise}
         keyExtractor={(exercise) => exercise.id}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}

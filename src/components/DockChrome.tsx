@@ -9,13 +9,41 @@ import {
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useSharedValue, withSpring } from 'react-native-reanimated';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DockSurface } from './DockSurface';
 import { useWorkouts } from '../state/WorkoutContext';
 import { dashboardTheme } from '../theme/dashboardTheme';
 import type { ForgeTheme } from '../types';
 
-/** Bottom reachability room for scrollable primary-tab content under the floating dock. */
-export const forgeDockScrollInset = 112;
+/** Geometry shared by the floating primary dock and the tab scenes beneath it. */
+export const forgeDockGeometry = {
+  surfaceHeight: 64,
+  compactSurfaceHeight: 48,
+  minimumBottomClearance: 12,
+  surfaceToContentGap: 12,
+} as const;
+
+/**
+ * Keeps the floating surface above the home indicator without introducing a
+ * separate safe-area band below tab content.
+ */
+export function useForgeDockBottomOffset(): number {
+  const insets = useSafeAreaInsets();
+  return Math.max(
+    forgeDockGeometry.minimumBottomClearance,
+    insets.bottom - forgeDockGeometry.minimumBottomClearance,
+  );
+}
+
+/**
+ * Trailing room needed for a final tab-scene control to clear the floating
+ * dock completely. It deliberately includes the dock's actual occupied area,
+ * rather than a disconnected tab-bar height.
+ */
+export function useForgeDockScrollInset(): number {
+  const bottomOffset = useForgeDockBottomOffset();
+  return forgeDockGeometry.surfaceHeight + bottomOffset + forgeDockGeometry.surfaceToContentGap;
+}
 
 interface DockChromeProps {
   theme?: ForgeTheme;
@@ -50,6 +78,7 @@ export function DockChrome({
   tabBarProps,
 }: DockChromeProps) {
   const hasActiveWorkout = Boolean(useWorkouts().activeWorkout);
+  const bottomOffset = useForgeDockBottomOffset();
   const gradientId = `dockFade${slotTestID || cylinderTestID || 'shared'}`.replace(
     /[^a-zA-Z0-9]/g,
     '',
@@ -84,7 +113,7 @@ export function DockChrome({
         </Defs>
         <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${gradientId})`} />
       </Svg>
-      <View style={[styles.dockLayer, styles.pointerEventsBoxNone]}>
+      <View style={[styles.dockLayer, styles.pointerEventsBoxNone, { bottom: bottomOffset }]}>
         <DockSurface
           theme={theme}
           compact={compact}
@@ -118,7 +147,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: 100,
+    height: forgeDockGeometry.surfaceHeight + 36,
     alignItems: 'center',
     justifyContent: 'flex-end',
     paddingBottom: 10,
@@ -131,7 +160,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     // Float over the lower safe area without turning it into an empty band.
     // The vignette continues underneath the surface to the screen edge.
-    bottom: 22,
     alignItems: 'center',
     justifyContent: 'flex-end',
   },

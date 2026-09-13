@@ -40,6 +40,15 @@ export function MainTabNavigator() {
           // surface theme-aware so Dark mode never flashes React Navigation's
           // default white scene between tabs.
           sceneStyle: { backgroundColor: theme.background },
+          // Forge owns a floating dock. Keep the navigator's tab-bar layout
+          // out of the scene so every tab can use the full viewport behind it.
+          tabBarStyle: {
+            position: 'absolute',
+            height: 0,
+            borderTopWidth: 0,
+            backgroundColor: 'transparent',
+            elevation: 0,
+          },
           ...TransitionPresets.FadeTransition,
         }}
         tabBar={(props) => <ForgeTabBar {...props} />}
