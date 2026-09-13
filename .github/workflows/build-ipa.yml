@@ -47,17 +47,17 @@ jobs:
       - name: Build unsigned IPA on EAS
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: eas build --platform ios --profile sideload --non-interactive --wait --json > eas-build.json
+        run: eas build --platform ios --profile sideload --non-interactive --wait --json > /tmp/forge-eas-build.json
       - name: Download the completed IPA
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          BUILD_ID="$(node -e "const builds = require('./eas-build.json'); const build = Array.isArray(builds) ? builds[0] : builds; if (!build?.id) throw new Error('EAS did not return a build ID'); process.stdout.write(build.id);")"
-          eas build:download --build-id "$BUILD_ID" --all-artifacts --non-interactive --json > eas-download.json
-          IPA_PATH="$(node -e "const artifact = require('./eas-download.json'); if (!artifact?.path?.endsWith('.ipa')) throw new Error('EAS did not download an IPA'); process.stdout.write(artifact.path);")"
+          BUILD_ID="$(node -e "const builds = require('/tmp/forge-eas-build.json'); const build = Array.isArray(builds) ? builds[0] : builds; if (!build?.id) throw new Error('EAS did not return a build ID'); process.stdout.write(build.id);")"
+          eas build:download --build-id "$BUILD_ID" --all-artifacts --non-interactive --json > /tmp/forge-eas-download.json
+          IPA_PATH="$(node -e "const artifact = require('/tmp/forge-eas-download.json'); if (!artifact?.path?.endsWith('.ipa')) throw new Error('EAS did not download an IPA'); process.stdout.write(artifact.path);")"
           mkdir -p artifacts
           cp "$IPA_PATH" artifacts/Forge-unsigned.ipa
-          node -e "const fs = require('fs'); const path = require('path'); const artifacts = require('./eas-download.json'); fs.mkdirSync('artifacts/logs', { recursive: true }); for (const [name, source] of Object.entries(artifacts)) { if (name !== 'path' && typeof source === 'string') fs.copyFileSync(source, path.join('artifacts/logs', path.basename(source))); }"
+          node -e "const fs = require('fs'); const path = require('path'); const artifacts = require('/tmp/forge-eas-download.json'); fs.mkdirSync('artifacts/logs', { recursive: true }); for (const [name, source] of Object.entries(artifacts)) { if (name !== 'path' && typeof source === 'string') fs.copyFileSync(source, path.join('artifacts/logs', path.basename(source))); }"
       - name: Upload IPA to GitHub
         uses: actions/upload-artifact@v6
         with:

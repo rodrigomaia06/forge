@@ -10,7 +10,8 @@
     "sideload": {
       "ios": {
         "withoutCredentials": true,
-        "buildConfiguration": "Release"
+        "buildConfiguration": "Release",
+        "config": "ios-unsigned.yml"
       }
     }
   }
