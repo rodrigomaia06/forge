@@ -8,6 +8,7 @@ import { withDatabaseMaintenance } from './database';
 import { loadPlansState, savePlansState } from './plansRepository';
 import { loadSettingsPreferences, saveSettingsPreferences } from './settingsRepository';
 import { loadWorkoutState, saveActiveWorkout, saveCompletedWorkouts } from './workoutRepository';
+import { uniqueById } from './uniqueById';
 import type { PlansState, SettingsPreferences, WorkoutState } from '../types';
 
 export const FORGE_TRANSFER_VERSION = 1;
@@ -73,10 +74,22 @@ export async function exportText(): Promise<void> {
 
 function isObject(value: unknown): value is Record<string, unknown> { return Boolean(value) && typeof value === 'object' && !Array.isArray(value); }
 
+function isIdList(value: unknown): boolean {
+  return Array.isArray(value) && value.every((item) => isObject(item) && typeof item.id === 'string' && item.id.length > 0);
+}
+
+function isTransfer(value: unknown): value is ForgeDataTransfer {
+  if (!isObject(value) || value.format !== 'forge-data' || value.version !== FORGE_TRANSFER_VERSION || typeof value.exportedAt !== 'string') return false;
+  if (!isObject(value.settings) || !isObject(value.plans) || !isObject(value.workouts) || !isIdList(value.customExercises)) return false;
+  if (!isIdList(value.settings.workoutTypes) || !isIdList(value.settings.dailyMeasurementDefinitions) || !isIdList(value.settings.dailyMeasurementEntries)) return false;
+  if (!isIdList(value.plans.plans) || !isIdList(value.plans.standaloneRoutines) || !isIdList(value.workouts.completedWorkouts)) return false;
+  return value.workouts.activeWorkout === null || (isObject(value.workouts.activeWorkout) && typeof value.workouts.activeWorkout.id === 'string' && value.workouts.activeWorkout.id.length > 0);
+}
+
 export function parseDataTransfer(raw: string): ForgeDataTransfer {
   let value: unknown;
   try { value = JSON.parse(raw); } catch { throw new Error('This is not valid Forge JSON.'); }
-  if (!isObject(value) || value.format !== 'forge-data' || value.version !== FORGE_TRANSFER_VERSION || !isObject(value.settings) || !isObject(value.plans) || !isObject(value.workouts) || !Array.isArray(value.customExercises)) {
+  if (!isTransfer(value)) {
     throw new Error('This JSON is not a compatible Forge data export.');
   }
   return value as unknown as ForgeDataTransfer;
@@ -98,8 +111,11 @@ export async function mergeDataTransfer(incoming: ForgeDataTransfer): Promise<{ 
   const [currentSettings, currentPlans, currentWorkouts, currentExercises] = await Promise.all([
     loadSettingsPreferences(), loadPlansState(), loadWorkoutState(), loadCustomExercises(),
   ]);
-  const mergeById = <T extends { id: string }>(current: T[], addition: T[]): T[] => [...current, ...addition.filter((item) => !current.some((existing) => existing.id === item.id))];
+  const mergeById = <T extends { id: string }>(current: T[], addition: T[]): T[] => uniqueById([...current, ...addition]);
   const completed = mergeById(currentWorkouts.completedWorkouts, incoming.workouts.completedWorkouts);
+  const importedActive = incoming.workouts.activeWorkout && !completed.some((workout) => workout.id === incoming.workouts.activeWorkout?.id)
+    ? incoming.workouts.activeWorkout
+    : null;
   const plans = mergeById(currentPlans.plans, incoming.plans.plans);
   const routines = mergeById(currentPlans.standaloneRoutines, incoming.plans.standaloneRoutines);
   const exercises = mergeById(currentExercises, incoming.customExercises);
@@ -111,7 +127,7 @@ export async function mergeDataTransfer(incoming: ForgeDataTransfer): Promise<{ 
   };
   await Promise.all([
     saveSettingsPreferences(settings), savePlansState({ plans, standaloneRoutines: routines }), saveCompletedWorkouts(completed), saveCustomExercises(exercises),
-    !currentWorkouts.activeWorkout && incoming.workouts.activeWorkout ? saveActiveWorkout(incoming.workouts.activeWorkout) : Promise.resolve(),
+    !currentWorkouts.activeWorkout && importedActive ? saveActiveWorkout(importedActive) : Promise.resolve(),
   ]);
   return { workouts: completed.length - currentWorkouts.completedWorkouts.length, exercises: exercises.length - currentExercises.length };
 }

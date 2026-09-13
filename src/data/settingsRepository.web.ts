@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { SettingsPreferences } from '../types';
 export { defaultSettingsPreferences } from './settingsDefaults';
 import { parseSettingsPreferences } from './settingsPreferences';
+import { uniqueById } from './uniqueById';
 
 const KEY = '@forge/settings-preferences';
 
@@ -11,5 +12,10 @@ export async function loadSettingsPreferences(): Promise<SettingsPreferences> {
 }
 
 export async function saveSettingsPreferences(preferences: SettingsPreferences): Promise<void> {
-  await AsyncStorage.setItem(KEY, JSON.stringify(preferences));
+  await AsyncStorage.setItem(KEY, JSON.stringify({
+    ...preferences,
+    workoutTypes: uniqueById(preferences.workoutTypes),
+    dailyMeasurementDefinitions: uniqueById(preferences.dailyMeasurementDefinitions),
+    dailyMeasurementEntries: uniqueById(preferences.dailyMeasurementEntries),
+  }));
 }

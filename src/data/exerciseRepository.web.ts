@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ExerciseCatalogItem } from './exerciseCatalog';
+import { uniqueById } from './uniqueById';
 
 const KEY = '@forge/custom-exercises';
 export async function loadCustomExercises(): Promise<ExerciseCatalogItem[]> {
@@ -10,7 +11,7 @@ export async function loadCustomExercises(): Promise<ExerciseCatalogItem[]> {
   } catch { return []; }
 }
 export async function saveCustomExercises(exercises: ExerciseCatalogItem[]): Promise<void> {
-  await AsyncStorage.setItem(KEY, JSON.stringify(exercises));
+  await AsyncStorage.setItem(KEY, JSON.stringify(uniqueById(exercises)));
 }
 function isExercise(value: unknown): value is ExerciseCatalogItem {
   if (!value || typeof value !== 'object') return false;

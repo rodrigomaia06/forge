@@ -5,6 +5,7 @@ import type {
   SettingsPreferences,
 } from '../types';
 import { defaultSettingsPreferences } from './settingsDefaults';
+import { uniqueById } from './uniqueById';
 
 /** Defensive reader shared by SQLite and web storage implementations. */
 export function parseSettingsPreferences(value: string | null): SettingsPreferences {
@@ -27,7 +28,8 @@ export function parseSettingsPreferences(value: string | null): SettingsPreferen
           : [],
       )
     : defaultSettingsPreferences.dailyMeasurementDefinitions;
-  const definitionIds = new Set(definitions.map((item) => item.id));
+  const uniqueDefinitions = uniqueById(definitions);
+  const definitionIds = new Set(uniqueDefinitions.map((item) => item.id));
   const entries: DailyMeasurementEntry[] = Array.isArray(parsed.dailyMeasurementEntries)
     ? parsed.dailyMeasurementEntries.flatMap((item) =>
         typeof item?.id === 'string' && typeof item.definitionId === 'string' &&
@@ -56,10 +58,10 @@ export function parseSettingsPreferences(value: string | null): SettingsPreferen
       parsed.exerciseRestSeconds && typeof parsed.exerciseRestSeconds === 'object'
         ? Object.fromEntries(Object.entries(parsed.exerciseRestSeconds).filter(([, item]) => typeof item === 'number' && item >= 0))
         : {},
-    dailyMeasurementDefinitions: definitions,
-    dailyMeasurementEntries: entries,
-    workoutTypes: Array.isArray(parsed.workoutTypes)
-      ? ([...parsed.workoutTypes.flatMap((item) =>
+    dailyMeasurementDefinitions: uniqueDefinitions,
+    dailyMeasurementEntries: uniqueById(entries),
+    workoutTypes: uniqueById(Array.isArray(parsed.workoutTypes)
+      ? [...parsed.workoutTypes.flatMap((item) =>
           typeof item?.id === 'string' && typeof item.name === 'string' && typeof item.color === 'string'
             ? [{
                 id: item.id,
@@ -74,7 +76,7 @@ export function parseSettingsPreferences(value: string | null): SettingsPreferen
                     : 'custom',
               }]
             : [],
-        ), ...defaultSettingsPreferences.workoutTypes.filter((defaultType) => !parsed.workoutTypes?.some((item) => item?.id === defaultType.id))] as SettingsPreferences['workoutTypes'])
-      : defaultSettingsPreferences.workoutTypes,
+        ), ...defaultSettingsPreferences.workoutTypes.filter((defaultType) => !parsed.workoutTypes?.some((item) => item?.id === defaultType.id))] as SettingsPreferences['workoutTypes']
+      : defaultSettingsPreferences.workoutTypes),
   };
 }

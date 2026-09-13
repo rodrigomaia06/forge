@@ -1,5 +1,6 @@
 import type { ExerciseCatalogItem } from './exerciseCatalog';
 import { database, withDatabaseTransaction } from './database';
+import { uniqueById } from './uniqueById';
 
 export async function loadCustomExercises(): Promise<ExerciseCatalogItem[]> {
   const rows = await (await database()).getAllAsync<{ value_json: string }>('SELECT value_json FROM custom_exercises WHERE archived = 0');
@@ -38,8 +39,9 @@ export async function loadCustomExercises(): Promise<ExerciseCatalogItem[]> {
 }
 
 export async function saveCustomExercises(exercises: ExerciseCatalogItem[]): Promise<void> {
+  const normalized = uniqueById(exercises);
   await withDatabaseTransaction(async (db) => {
     await db.runAsync('DELETE FROM custom_exercises');
-    for (const exercise of exercises) await db.runAsync('INSERT INTO custom_exercises (id, archived, value_json) VALUES (?, 0, ?)', exercise.id, JSON.stringify(exercise));
+    for (const exercise of normalized) await db.runAsync('INSERT INTO custom_exercises (id, archived, value_json) VALUES (?, 0, ?)', exercise.id, JSON.stringify(exercise));
   });
 }

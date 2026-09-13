@@ -12,6 +12,20 @@ import { addExercisesToWorkout, addWarmupSetsToWorkout, createWorkout, updateWor
 import { createExerciseSnapshot } from '../../src/domain/exercises/exerciseSnapshot';
 import { formatExerciseMetadata, formatPickerPrimaryEquipment } from '../../src/domain/exercises/exercisePresentation';
 import { buildWarmupPlan, warmupSteps } from '../../src/domain/workouts/warmup';
+import { uniqueById } from '../../src/data/uniqueById';
+
+test('keeps the first stable record when a persistence boundary receives duplicate ids', () => {
+  expect(uniqueById([
+    { id: 'first', value: 1 },
+    { id: 'duplicate', value: 2 },
+    { id: 'duplicate', value: 3 },
+    { id: 'last', value: 4 },
+  ])).toEqual([
+    { id: 'first', value: 1 },
+    { id: 'duplicate', value: 2 },
+    { id: 'last', value: 4 },
+  ]);
+});
 
 test('formats compact workout durations and counts sets', () => {
   expect([0, 59, 3600, 4320].map(formatCompactDuration)).toEqual(['1m', '1m', '1h', '1h 12m']);

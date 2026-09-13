@@ -1,5 +1,6 @@
 import type { PlansState, WorkoutPlan } from '../types';
 import { database, withDatabaseTransaction } from './database';
+import { uniqueById } from './uniqueById';
 const EMPTY: PlansState = { plans: [], standaloneRoutines: [] };
 
 export async function loadPlansState(): Promise<PlansState> {
@@ -14,9 +15,13 @@ export async function loadPlansState(): Promise<PlansState> {
 }
 
 export async function savePlansState(state: PlansState): Promise<void> {
+  const plans = uniqueById(state.plans).map((plan) => ({ ...plan, routines: uniqueById(plan.routines) }));
+  const planRoutines = plans.flatMap((plan) => plan.routines);
+  const planRoutineIds = new Set(planRoutines.map((routine) => routine.id));
+  const routines = [...uniqueById(state.standaloneRoutines).filter((routine) => !planRoutineIds.has(routine.id)), ...planRoutines];
   await withDatabaseTransaction(async (db) => {
     await db.runAsync('DELETE FROM routines'); await db.runAsync('DELETE FROM plans');
-    for (const [position, plan] of state.plans.entries()) await db.runAsync('INSERT INTO plans (id, position, value_json) VALUES (?, ?, ?)', plan.id, position, JSON.stringify({ ...plan, routines: undefined }));
-    for (const [position, routine] of [...state.standaloneRoutines, ...state.plans.flatMap((plan) => plan.routines)].entries()) await db.runAsync('INSERT INTO routines (id, plan_id, position, value_json) VALUES (?, ?, ?, ?)', routine.id, routine.planId ?? null, position, JSON.stringify(routine));
+    for (const [position, plan] of plans.entries()) await db.runAsync('INSERT INTO plans (id, position, value_json) VALUES (?, ?, ?)', plan.id, position, JSON.stringify({ ...plan, routines: undefined }));
+    for (const [position, routine] of routines.entries()) await db.runAsync('INSERT INTO routines (id, plan_id, position, value_json) VALUES (?, ?, ?, ?)', routine.id, routine.planId ?? null, position, JSON.stringify(routine));
   });
 }

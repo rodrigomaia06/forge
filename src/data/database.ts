@@ -2,7 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SQLite from 'expo-sqlite';
 import type { ExerciseCatalogItem } from './exerciseCatalog';
 import { bundledCatalogTaxonomies, bundledCatalogVersion, bundledExercises, bundledLegacyIdMap } from './catalog/loadCatalog';
-import type { PlansState, SettingsPreferences, WorkoutState } from '../types';
+import type { PlansState, SettingsPreferences, Workout, WorkoutState } from '../types';
+import { uniqueById } from './uniqueById';
 
 const DATABASE = 'forge.db';
 export const BUNDLED_CATALOG_VERSION = bundledCatalogVersion;
@@ -84,6 +85,12 @@ function migrateExerciseIds<T>(value: T): T {
   }
   return migrated as T;
 }
+
+function legacyRecords<T extends { id: string }>(value: unknown): T[] {
+  if (!Array.isArray(value)) return [];
+  return uniqueById(value.filter((item): item is T => Boolean(item) && typeof item === 'object' && typeof (item as { id?: unknown }).id === 'string'));
+}
+
 async function migrateLegacyExerciseIds(db: ForgeDatabase): Promise<void> {
   for (const table of ['workouts', 'routines']) {
     const rows = await db.getAllAsync<{ id: string; value_json: string }>(`SELECT id, value_json FROM ${table}`);
@@ -109,13 +116,31 @@ async function importLegacyOnce(db: ForgeDatabase): Promise<void> {
   const workoutState: WorkoutState = { activeWorkout: parse(active[1], null), completedWorkouts: parse(completed[1], []) };
   const prefs = parse<SettingsPreferences | null>(preferences[1], null);
   const exercises = parse<ExerciseCatalogItem[]>(custom[1], []);
-  if (prefs) await db.runAsync('INSERT INTO preferences (id, value_json) VALUES (1, ?)', JSON.stringify(prefs));
-  for (const [position, plan] of planState.plans.entries()) await db.runAsync('INSERT INTO plans (id, position, value_json) VALUES (?, ?, ?)', plan.id, position, JSON.stringify({ ...plan, routines: undefined }));
-  for (const routine of [...planState.standaloneRoutines, ...planState.plans.flatMap((plan) => plan.routines)]) await db.runAsync('INSERT INTO routines (id, plan_id, position, value_json) VALUES (?, ?, ?, ?)', routine.id, routine.planId ?? null, 0, JSON.stringify(routine));
-  if (workoutState.activeWorkout) await db.runAsync('INSERT INTO workouts (id, is_active, completed_at, started_at, value_json) VALUES (?, 1, NULL, ?, ?)', workoutState.activeWorkout.id, workoutState.activeWorkout.startedAt, JSON.stringify(workoutState.activeWorkout));
-  for (const workout of workoutState.completedWorkouts) await db.runAsync('INSERT INTO workouts (id, is_active, completed_at, started_at, value_json) VALUES (?, 0, ?, ?, ?)', workout.id, workout.completedAt, workout.startedAt, JSON.stringify(workout));
-  for (const exercise of exercises) await db.runAsync('INSERT INTO custom_exercises (id, value_json) VALUES (?, ?)', exercise.id, JSON.stringify(exercise));
-  if (prefs) for (const [position, type] of prefs.workoutTypes.entries()) await db.runAsync('INSERT INTO workout_types (id, archived, position, value_json) VALUES (?, ?, ?, ?)', type.id, type.hidden ? 1 : 0, position, JSON.stringify(type));
+  const plansToImport = legacyRecords<PlansState['plans'][number]>(planState.plans);
+  const routinesToImport = legacyRecords<PlansState['standaloneRoutines'][number]>([
+    ...legacyRecords<PlansState['standaloneRoutines'][number]>(planState.standaloneRoutines),
+    ...plansToImport.flatMap((plan) => legacyRecords<PlansState['standaloneRoutines'][number]>(plan.routines)),
+  ]);
+  const completedToImport = legacyRecords<Workout>(workoutState.completedWorkouts);
+  // A legacy active row can be stale after a workout finished. A completed row
+  // wins so the single SQLite primary key remains a faithful completed record.
+  const activeToImport = workoutState.activeWorkout && typeof workoutState.activeWorkout.id === 'string' && !completedToImport.some((workout) => workout.id === workoutState.activeWorkout?.id)
+    ? workoutState.activeWorkout
+    : null;
+  const exercisesToImport = legacyRecords<ExerciseCatalogItem>(exercises);
+  const normalizedPrefs = prefs ? {
+    ...prefs,
+    workoutTypes: legacyRecords<SettingsPreferences['workoutTypes'][number]>(prefs.workoutTypes),
+    dailyMeasurementDefinitions: legacyRecords<SettingsPreferences['dailyMeasurementDefinitions'][number]>(prefs.dailyMeasurementDefinitions),
+    dailyMeasurementEntries: legacyRecords<SettingsPreferences['dailyMeasurementEntries'][number]>(prefs.dailyMeasurementEntries),
+  } : null;
+  if (normalizedPrefs) await db.runAsync('INSERT INTO preferences (id, value_json) VALUES (1, ?)', JSON.stringify(normalizedPrefs));
+  for (const [position, plan] of plansToImport.entries()) await db.runAsync('INSERT INTO plans (id, position, value_json) VALUES (?, ?, ?)', plan.id, position, JSON.stringify({ ...plan, routines: undefined }));
+  for (const [position, routine] of routinesToImport.entries()) await db.runAsync('INSERT INTO routines (id, plan_id, position, value_json) VALUES (?, ?, ?, ?)', routine.id, routine.planId ?? null, position, JSON.stringify(routine));
+  if (activeToImport) await db.runAsync('INSERT INTO workouts (id, is_active, completed_at, started_at, value_json) VALUES (?, 1, NULL, ?, ?)', activeToImport.id, activeToImport.startedAt, JSON.stringify(activeToImport));
+  for (const workout of completedToImport) await db.runAsync('INSERT INTO workouts (id, is_active, completed_at, started_at, value_json) VALUES (?, 0, ?, ?, ?)', workout.id, workout.completedAt, workout.startedAt, JSON.stringify(workout));
+  for (const exercise of exercisesToImport) await db.runAsync('INSERT INTO custom_exercises (id, value_json) VALUES (?, ?)', exercise.id, JSON.stringify(exercise));
+  if (normalizedPrefs) for (const [position, type] of normalizedPrefs.workoutTypes.entries()) await db.runAsync('INSERT INTO workout_types (id, archived, position, value_json) VALUES (?, ?, ?, ?)', type.id, type.hidden ? 1 : 0, position, JSON.stringify(type));
   await db.runAsync('INSERT INTO forge_meta (key, value) VALUES (?, ?)', 'legacy-v1-migrated', '1');
   await AsyncStorage.multiRemove(LEGACY_KEYS);
 }
