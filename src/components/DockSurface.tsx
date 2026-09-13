@@ -3,6 +3,7 @@ import { StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'r
 import Animated, {
   Easing,
   interpolate,
+  useDerivedValue,
   type SharedValue,
   useAnimatedStyle,
   useSharedValue,
@@ -50,6 +51,14 @@ export function DockSurface({
   // centred on its measured slot instead of overflowing the dock.
   const compactWidth = Math.min(Math.max(viewportWidth * 0.76, 304), 336);
   const activeWorkoutProgress = useSharedValue(activeWorkout ? 1 : 0);
+  const surfaceWidth = useDerivedValue(() => {
+    const expandedWidth = interpolate(
+      activeWorkoutProgress.value,
+      [0, 1],
+      [regularWidth, activeWorkoutWidth],
+    );
+    return interpolate(progress.value, [0, 1], [expandedWidth, compactWidth]);
+  }, [activeWorkoutWidth, compactWidth, regularWidth]);
 
   useEffect(() => {
     if (compactProgress) return;
@@ -67,13 +76,8 @@ export function DockSurface({
   }, [activeWorkout, activeWorkoutProgress]);
 
   const surfaceAnimatedStyle = useAnimatedStyle(() => {
-    const expandedWidth = interpolate(
-      activeWorkoutProgress.value,
-      [0, 1],
-      [regularWidth, activeWorkoutWidth],
-    );
     return {
-      width: interpolate(progress.value, [0, 1], [expandedWidth, compactWidth]),
+      width: surfaceWidth.value,
       minHeight: interpolate(progress.value, [0, 1], [64, 48]),
     };
   }, [activeWorkoutWidth, compactWidth, regularWidth]);
@@ -98,6 +102,7 @@ export function DockSurface({
           tabBarProps={tabBarProps}
           theme={{ ...theme, surface: theme.surface }}
           compact={compact}
+          surfaceWidth={surfaceWidth}
           onNavigate={onNavigate}
         />
       )}

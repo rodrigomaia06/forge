@@ -8,6 +8,7 @@ import Animated, {
   useReducedMotion,
   useSharedValue,
   withTiming,
+  type SharedValue,
 } from 'react-native-reanimated';
 
 import { NavigationItem, selectionHaptic } from './ui';
@@ -21,6 +22,9 @@ interface BottomNavigationProps {
   tabBarProps: BottomTabBarProps;
   theme?: ForgeTheme;
   compact?: boolean;
+  /** Animated outer dock width, supplied by DockSurface to prevent the
+   * selected capsule from briefly using stale JS layout measurements. */
+  surfaceWidth?: SharedValue<number>;
   onNavigate?: () => void;
 }
 type BottomNavigationScreen = keyof RootTabParamList;
@@ -33,6 +37,7 @@ export function BottomNavigation({
   tabBarProps,
   theme = colors,
   compact = false,
+  surfaceWidth,
   onNavigate,
 }: BottomNavigationProps) {
   const { navigation, state } = tabBarProps;
@@ -44,6 +49,7 @@ export function BottomNavigation({
   const indicatorX = useSharedValue(0);
   const indicatorWidth = useSharedValue(0);
   const indicatorOpacity = useSharedValue(0);
+  const activeIndex = useSharedValue(0);
   const reducedMotion = useReducedMotion();
   const hasActiveWorkout = Boolean(activeWorkout);
   const activeWorkoutIcon = activeWorkout
@@ -73,6 +79,14 @@ export function BottomNavigation({
     ['menu', 'Settings', 'Settings', false],
   ];
   const activeRoute = state.routes[state.index]?.name as BottomNavigationScreen;
+  const currentActiveIndex = items.findIndex(([, , screen]) => screen === activeRoute);
+
+  useEffect(() => {
+    const next = Math.max(0, currentActiveIndex);
+    activeIndex.value = reducedMotion
+      ? next
+      : withTiming(next, { duration: 150, easing: Easing.out(Easing.cubic) });
+  }, [activeIndex, currentActiveIndex, reducedMotion]);
 
   useEffect(() => {
     const layout = itemLayouts[activeRoute];
@@ -88,11 +102,25 @@ export function BottomNavigation({
     indicatorOpacity.value = transition(1);
   }, [activeRoute, compact, indicatorOpacity, indicatorWidth, indicatorX, itemLayouts, reducedMotion]);
 
-  const selectionIndicatorStyle = useAnimatedStyle(() => ({
-    opacity: indicatorOpacity.value,
-    width: indicatorWidth.value,
-    transform: [{ translateX: indicatorX.value }],
-  }));
+  const selectionIndicatorStyle = useAnimatedStyle(() => {
+    if (surfaceWidth) {
+      // DockSurface owns width on the UI thread. Deriving the slot directly
+      // from that same value keeps the capsule centred while the dock shrinks
+      // or grows, rather than waiting for an asynchronous onLayout callback.
+      const navigationWidth = Math.max(0, surfaceWidth.value - 12);
+      const slotWidth = Math.max(0, (navigationWidth - 4) / items.length);
+      return {
+        opacity: indicatorOpacity.value,
+        width: Math.max(0, slotWidth - 4),
+        transform: [{ translateX: 4 + activeIndex.value * slotWidth }],
+      };
+    }
+    return {
+      opacity: indicatorOpacity.value,
+      width: indicatorWidth.value,
+      transform: [{ translateX: indicatorX.value }],
+    };
+  }, [activeIndex, indicatorOpacity, indicatorWidth, indicatorX, items.length, surfaceWidth]);
 
   const updateItemLayout = (screen: BottomNavigationScreen, event: LayoutChangeEvent): void => {
     const { x, width } = event.nativeEvent.layout;
