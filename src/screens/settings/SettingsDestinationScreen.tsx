@@ -2,7 +2,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React from 'react';
 import { Alert, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { AppScreen, ForgeBackButton, ForgeBottomSheet, ForgeCard, ForgeFloatingCta, ForgeSheetHeader, ForgeText as Text, HeaderAction, Icon, pressedFeedback } from '../../components/ui';
+import { AppScreen, ForgeBackButton, ForgeBottomSheet, ForgeCard, ForgeFloatingCta, ForgeSheetHeader, ForgeText as Text, Icon, pressedFeedback } from '../../components/ui';
 import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
 import { dashboardTheme } from '../../theme/dashboardTheme';
 import { useForgeTheme } from '../../theme/ThemeProvider';
@@ -113,12 +113,6 @@ function BackupExport() {
       Alert.alert('Data merged', `${result.workouts} workouts and ${result.exercises} exercises were added.`);
     });
   };
-  const showJsonImportInfo = (): void => {
-    Alert.alert(
-      'Import Forge JSON',
-      'Choose a complete file created with Export JSON in Forge. Import adds only records that are not already on this device; it never replaces local data. Use Restore SQLite backup when you need to replace everything.',
-    );
-  };
   const restore = (): void => {
     void run(async () => {
       const inspection = await pickSqliteBackup();
@@ -145,14 +139,20 @@ function BackupExport() {
         <Action title="Export text" divider onPress={() => { setSelection(allDataTransferSelection()); setTransferStep('export-text'); }} />
         <View style={styles.importRow}>
           <Action title="Import JSON" disclosure={false} style={styles.importAction} onPress={importData} />
-          <HeaderAction
-            accessibilityLabel="About JSON imports"
-            icon="info"
-            iconOnly
-            variant={theme.colorScheme === 'dark' ? 'ghost' : 'outline'}
-            onPress={showJsonImportInfo}
-            style={[styles.importInfoAction, theme.colorScheme === 'dark' && { backgroundColor: theme.surfaceMuted }]}
-          />
+          <View
+            testID="json-import-info-placeholder"
+            accessible={false}
+            pointerEvents="none"
+            style={[
+              styles.importInfoPlaceholder,
+              {
+                backgroundColor: theme.colorScheme === 'dark' ? theme.surfaceMuted : theme.surface,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Icon name="info" size={20} color={theme.textSecondary} />
+          </View>
         </View>
       </SettingsSection>
       <SettingsSection
@@ -208,7 +208,7 @@ function DataTransferSheet({
   const selectedCount = transferCategories.filter(({ key }) => selection[key]).length;
   const exporting = step === 'export-json' || step === 'export-text';
   const reviewing = step === 'import-review';
-  const title = exporting ? 'Choose data to export' : reviewing ? 'Review import' : 'Choose data to import';
+  const title = exporting ? 'Export data' : reviewing ? 'Review import' : 'Import data';
   const toggle = (key: DataTransferCategory): void => onChangeSelection({ ...selection, [key]: !selection[key] });
   return (
     <ForgeBottomSheet
@@ -242,6 +242,7 @@ function DataTransferSheet({
                   accessibilityRole="checkbox"
                   accessibilityLabel={`${selection[key] ? 'Remove' : 'Include'} ${categoryTitle}`}
                   accessibilityState={{ checked: selection[key] }}
+                  aria-checked={selection[key]}
                   onPress={() => toggle(key)}
                   style={({ pressed }) => [styles.transferOption, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }, pressed && pressedFeedback]}
                 >
@@ -424,7 +425,7 @@ const styles = StyleSheet.create({
   stack: { gap: settingsLayout.sectionGap },
   importRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center' },
   importAction: { flex: 1 },
-  importInfoAction: { marginRight: 12 },
+  importInfoPlaceholder: { width: 44, height: 44, marginRight: 12, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   transferSheet: { maxHeight: '82%' },
   transferContent: { paddingHorizontal: 20, paddingTop: 10, gap: 16 },
   transferIntro: { ...typeScale.supporting, lineHeight: 20 },

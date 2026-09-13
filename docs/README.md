@@ -11,8 +11,7 @@ To add data from a file:
 1. Keep the complete `.json` file created by Forge. Do not rename or remove
    fields inside it.
 2. On the receiving device, open **Settings → Backup & Export** and choose
-   **Import JSON**. The nearby information button explains the same safety
-   boundary in the app.
+   **Import JSON**. The adjacent information mark is visual-only for now.
 3. Select the data categories to add, then review the validated file summary.
    Forge shows available, new, and already-present records before any data is
    written.
