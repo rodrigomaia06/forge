@@ -262,11 +262,11 @@ test.describe('Exercise library', () => {
     await page.getByRole('button', { name: 'Back to exercise form' }).click();
 
     await page.getByRole('button', { name: 'Equipment' }).click();
-    const bodyweight = page.getByRole('radio', { name: 'Equipment Bodyweight' });
+    const bodyweight = page.getByRole('checkbox', { name: 'Equipment Bodyweight' });
     await expect(bodyweight).toHaveAttribute('aria-checked', 'true');
     await expect(page.getByRole('textbox', { name: 'Custom equipment' })).toHaveCount(0);
     await page.getByLabel('Search equipment').fill('Barbell');
-    const barbell = page.getByRole('radio', { name: 'Equipment Barbell' });
+    const barbell = page.getByRole('checkbox', { name: 'Equipment Barbell' });
     await expect(barbell).toHaveAttribute('aria-checked', 'false');
     await page.getByLabel('Search equipment').fill('');
     await expect(bodyweight).toHaveAttribute('aria-checked', 'true');
@@ -365,8 +365,8 @@ test.describe('Exercise library', () => {
     await page.getByRole('button', { name: 'Equipment' }).click();
     const compactSelectorBox = await formSurface.boundingBox();
     expect(compactSelectorBox?.height ?? Infinity).toBeLessThan(formBox?.height ?? -Infinity);
-    await expect(page.getByRole('radio').first()).toHaveAttribute('aria-checked', 'true');
-    await page.getByRole('radio', { name: 'Add custom equipment' }).click();
+    await expect(page.getByRole('checkbox', { checked: true })).toHaveCount(1);
+    await page.getByRole('button', { name: 'Add custom equipment' }).click();
     await expect(page.getByText('Custom equipment', { exact: true })).toBeVisible();
     await page.getByRole('textbox', { name: 'Custom equipment' }).fill('Cable');
     await page.getByRole('button', { name: 'Back to exercise form' }).click();
@@ -388,8 +388,9 @@ test.describe('Exercise library', () => {
     await page.getByRole('button', { name: 'Create custom exercise' }).click();
     await page.getByLabel('Exercise name').fill('Cable Press Around');
     await page.getByRole('button', { name: 'Equipment' }).click();
-    await expect(page.getByRole('radio', { name: 'Equipment Cable' })).toBeVisible();
-    await page.getByRole('radio', { name: 'Equipment Cable' }).click();
+    await expect(page.getByRole('checkbox', { name: 'Equipment Cable' })).toBeVisible();
+    await page.getByRole('checkbox', { name: 'Equipment Cable' }).click();
+    await page.getByRole('button', { name: /Apply equipment/ }).click();
     await page.getByRole('button', { name: 'Save variation' }).click();
     await expect(
       page.getByRole('button', { name: 'Open Cable Press Around' }),

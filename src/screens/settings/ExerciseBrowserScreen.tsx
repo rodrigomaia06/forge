@@ -48,7 +48,7 @@ import {
 } from '../../components/ui';
 import { forgeSheetHeader } from '../../components/ui/ForgeBottomSheet';
 import type { ForgeSingleSelectOption } from '../../components/ui';
-import { catalogTaxonomies, type ExerciseCatalogItem } from '../../data/exerciseCatalog';
+import { catalogTaxonomies, taxonomyLabel, type ExerciseCatalogItem } from '../../data/exerciseCatalog';
 import { useExerciseCatalog } from '../../state/ExerciseCatalogContext';
 import { useSettings } from '../../state/SettingsContext';
 import { useForgeTheme } from '../../theme/ThemeProvider';
@@ -120,7 +120,8 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const [name, setName] = useState('');
   const [group, setGroup] = useState('');
   const [categorySource, setCategorySource] = useState<CatalogSource | null>(null);
-  const [equipmentValue, setEquipmentValue] = useState('Bodyweight');
+  const [equipmentValues, setEquipmentValues] = useState<string[]>(['Bodyweight']);
+  const [equipmentDraft, setEquipmentDraft] = useState<string[]>(['Bodyweight']);
   const [primaryMuscle, setPrimaryMuscle] = useState('Accessories');
   const [exerciseCategory, setExerciseCategory] = useState('Full Body');
   const [secondaryMuscles, setSecondaryMuscles] = useState<string[]>([]);
@@ -232,7 +233,8 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     );
   }, [catalog.customExercises, catalog.exercises, formParent]);
   const selectableEquipment = formParent ? formEquipment : equipmentOptions;
-  const usesCustomEquipment = !selectableEquipment.includes(equipmentValue);
+  const equipmentValue = equipmentValues[0] ?? 'Bodyweight';
+  const usesCustomEquipment = equipmentValues.some((value) => !selectableEquipment.includes(value));
   const sourceForCategory = (value: string): CatalogSource =>
     forgeCategoryOptions.some((item) => item.toLocaleLowerCase() === value.toLocaleLowerCase())
       ? 'forge'
@@ -287,7 +289,11 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     setName('');
     setGroup(parent ?? '');
     setCategorySource(parent ? sourceForCategory(parent) : null);
-    setEquipmentValue(inherited?.equipment ?? 'Bodyweight');
+    const nextEquipment = inherited?.equipmentIds?.length
+      ? inherited.equipmentIds.map((value) => taxonomyLabel('equipment', value))
+      : [inherited?.primaryEquipment ?? inherited?.equipment ?? 'Bodyweight'];
+    setEquipmentValues(nextEquipment);
+    setEquipmentDraft(nextEquipment);
     setPrimaryMuscle(inherited?.primaryMuscle ?? 'Accessories');
     setExerciseCategory(inherited?.category ?? 'Full Body');
     setSecondaryMuscles(inherited?.secondaryMuscles ?? []);
@@ -304,7 +310,11 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     setShowOptionalDetails(true);
     setGroup(item.group);
     setCategorySource(sourceForCategory(item.group));
-    setEquipmentValue(item.equipment);
+    const nextEquipment = item.equipmentIds?.length
+      ? item.equipmentIds.map((value) => taxonomyLabel('equipment', value))
+      : [item.primaryEquipment ?? item.equipment];
+    setEquipmentValues(nextEquipment);
+    setEquipmentDraft(nextEquipment);
     setPrimaryMuscle(item.primaryMuscle);
     setExerciseCategory(item.category);
     setSecondaryMuscles(item.secondaryMuscles);
@@ -320,7 +330,9 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
       name: name.trim(),
       group: group.trim() || name.trim(),
       variation: name.trim(),
-      equipment: equipmentValue.trim() || parent?.equipment || 'Bodyweight',
+      equipment: equipmentValues.join(' & ') || parent?.equipment || 'Bodyweight',
+      equipmentIds: equipmentValues.length ? equipmentValues : ['Bodyweight'],
+      primaryEquipment: equipmentValues[0] ?? 'Bodyweight',
       category: exerciseCategory,
       aliases: editing?.aliases ?? [],
       workoutTypeIds,
@@ -343,6 +355,12 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     setWorkoutTypeIds((current) =>
       current.includes(value) ? current.filter((item) => item !== value) : [...current, value],
     );
+  };
+  const toggleEquipmentDraft = (value: string) => {
+    selectionHaptic();
+    setEquipmentDraft((current) => current.includes(value)
+      ? current.filter((item) => item !== value)
+      : [...current, value]);
   };
   const setRestOverride = (item: ExerciseCatalogItem, seconds: number | undefined) => {
     if (isCustom(item)) {
@@ -583,9 +601,12 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                       <FormLinkCard
                         icon="fitness-outline"
                         label="Equipment"
-                        value={equipmentValue || 'Custom'}
+                        value={equipmentValues.length > 1 ? `${equipmentValues.length} selected` : equipmentValue || 'Custom'}
                         accessibilityLabel="Equipment"
-                        onPress={() => transitionFormView('equipment')}
+                        onPress={() => {
+                          setEquipmentDraft(equipmentValues);
+                          transitionFormView('equipment');
+                        }}
                       />
                       {!formParent ? (
                         <FormLinkCard
@@ -722,21 +743,34 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                         accessibilityLabel="Search equipment"
                         placeholder="Search equipment"
                       />
+                      <FormChoiceRow
+                        label={usesCustomEquipment ? `Custom: ${equipmentValue || 'Equipment'}` : 'Custom equipment'}
+                        icon="add"
+                        role="button"
+                        selected={usesCustomEquipment && equipmentDraft.length === 1}
+                        accessibilityLabel={usesCustomEquipment ? 'Edit custom equipment' : 'Add custom equipment'}
+                        onPress={() => {
+                          setEquipmentValues(equipmentDraft);
+                          transitionFormView('customEquipment');
+                        }}
+                      />
                       <ExerciseFormOptionList
                         options={filteredEquipmentOptions.map((label) => ({ label, source: sourceForEquipment(label) }))}
-                        selected={usesCustomEquipment ? undefined : equipmentValue}
+                        selectedValues={equipmentDraft}
                         accessibilityPrefix="Equipment"
-                        onSelect={(value) => { setEquipmentValue(value); transitionFormView('details'); }}
+                        multiple
+                        onSelect={(value) => toggleEquipmentDraft(value)}
                         sourceIcon
-                        footer={
-                          <FormChoiceRow
-                            label={usesCustomEquipment ? `Custom: ${equipmentValue || 'Equipment'}` : 'Custom equipment'}
-                            icon="add"
-                            selected={usesCustomEquipment}
-                            accessibilityLabel={usesCustomEquipment ? 'Edit custom equipment' : 'Add custom equipment'}
-                            onPress={() => transitionFormView('customEquipment')}
-                          />
-                        }
+                      />
+                      <ForgeFloatingCta
+                        label={`Apply${equipmentDraft.length ? ` (${equipmentDraft.length})` : ''}`}
+                        accessibilityLabel="Apply equipment"
+                        disabled={!equipmentDraft.length}
+                        tone="success"
+                        onPress={() => {
+                          setEquipmentValues(equipmentDraft);
+                          transitionFormView('details');
+                        }}
                       />
                     </>
                   ) : null}
@@ -747,7 +781,11 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                         autoFocus
                         accessibilityLabel="Custom equipment"
                         value={usesCustomEquipment ? equipmentValue : ''}
-                        onChangeText={setEquipmentValue}
+                        onChangeText={(value) => {
+                          const next = value.trim() ? [value] : [];
+                          setEquipmentValues(next);
+                          setEquipmentDraft(next);
+                        }}
                         placeholder="For example, Sandbag"
                         placeholderTextColor={theme.muted}
                         style={styles.input}
@@ -990,7 +1028,7 @@ function FormChoiceRow({
   selected?: boolean;
   onPress: () => void;
   icon?: IconName;
-  role?: 'checkbox' | 'radio';
+  role?: 'checkbox' | 'radio' | 'button';
   showDivider?: boolean;
 }) {
   const styles = useThemedStyles(createStyles);
@@ -999,8 +1037,8 @@ function FormChoiceRow({
     <Pressable
       accessibilityRole={role}
       accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ checked: selected }}
-      aria-checked={selected}
+      accessibilityState={role === 'button' ? undefined : { checked: selected }}
+      aria-checked={role === 'button' ? undefined : selected}
       onPress={() => {
         selectionHaptic();
         onPress();
@@ -1056,28 +1094,33 @@ function FormLinkCard({
 function ExerciseFormOptionList({
   options,
   selected,
+  selectedValues,
   accessibilityPrefix,
   onSelect,
   sourceIcon = false,
   footer,
+  multiple = false,
 }: {
   options: { label: string; source: CatalogSource }[];
   selected?: string;
+  selectedValues?: readonly string[];
   accessibilityPrefix: string;
   onSelect: (value: string, source: CatalogSource) => void;
   sourceIcon?: boolean;
   footer?: React.ReactNode;
+  multiple?: boolean;
 }) {
   const styles = useThemedStyles(createStyles);
   return (
-    <View accessibilityRole="radiogroup">
+    <View accessibilityRole={multiple ? undefined : 'radiogroup'}>
       <ForgeCard variant="inset" size="compact" style={styles.formChoiceList}>
         {options.map((option, index) => (
           <FormChoiceRow
             key={option.label}
             label={option.label}
             icon={sourceIcon ? (option.source === 'forge' ? 'verified' : 'note') : undefined}
-            selected={selected === option.label}
+            selected={selectedValues ? selectedValues.includes(option.label) : selected === option.label}
+            role={multiple ? 'checkbox' : 'radio'}
             showDivider={index < options.length - 1 || Boolean(footer)}
             accessibilityLabel={`${accessibilityPrefix} ${option.label}`}
             onPress={() => onSelect(option.label, option.source)}

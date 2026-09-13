@@ -9,12 +9,13 @@ type ExerciseCatalogContextValue = {
   addCustomExercise: (exercise: ExerciseCatalogItem) => void;
   updateCustomExercise: (exercise: ExerciseCatalogItem) => void;
   removeCustomExercise: (id: string) => void;
+  reload: () => Promise<void>;
 };
 
 const ExerciseCatalogContext = createContext<ExerciseCatalogContextValue | null>(null);
 
 function variationKey(exercise: ExerciseCatalogItem): string {
-  return [exercise.group, exercise.variation || exercise.name, exercise.equipment]
+  return [exercise.group, exercise.variation || exercise.name, ...(exercise.equipmentIds?.length ? [...exercise.equipmentIds].sort() : [exercise.equipment])]
     .map((value) => value.trim().toLocaleLowerCase())
     .join('\u0000');
 }
@@ -31,13 +32,15 @@ function withoutDuplicateVariations(exercises: ExerciseCatalogItem[]): ExerciseC
 
 export function ExerciseCatalogProvider({ children }: ChildrenProps) {
   const [customExercises, setCustomExercises] = useState<ExerciseCatalogItem[]>([]);
-  useEffect(() => {
-    void loadCustomExercises().then((loaded) => {
-      const unique = withoutDuplicateVariations(loaded);
-      setCustomExercises(unique);
-      if (unique.length !== loaded.length) void saveCustomExercises(unique);
-    });
+  const reload = React.useCallback(async (): Promise<void> => {
+    const loaded = await loadCustomExercises();
+    const unique = withoutDuplicateVariations(loaded);
+    setCustomExercises(unique);
+    if (unique.length !== loaded.length) await saveCustomExercises(unique);
   }, []);
+  useEffect(() => {
+    void reload();
+  }, [reload]);
   const addCustomExercise = (exercise: ExerciseCatalogItem) => {
     setCustomExercises((current) => {
       const next = withoutDuplicateVariations([...current, exercise]);
@@ -69,8 +72,9 @@ export function ExerciseCatalogProvider({ children }: ChildrenProps) {
       addCustomExercise,
       updateCustomExercise,
       removeCustomExercise,
+      reload,
     }),
-    [customExercises],
+    [customExercises, reload],
   );
   return (
     <ExerciseCatalogContext.Provider value={value}>{children}</ExerciseCatalogContext.Provider>

@@ -66,6 +66,12 @@ function displayHistoryDate(key: string): string {
     .format(new Date(year, month - 1, day));
 }
 
+function historyMonthLabel(key: string): string {
+  const [year, month] = key.split('-').map(Number);
+  return new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' })
+    .format(new Date(year, month - 1, 1));
+}
+
 function formatValue(value: number, unit: string): string {
   const rounded = Math.round(value * 10) / 10;
   return `${rounded.toLocaleString(undefined, { maximumFractionDigits: 1 })}${unit ? ` ${unit}` : ''}`;
@@ -118,6 +124,17 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
         value: entry.value,
       }));
   }, [preferences.dailyMeasurementEntries, selected]);
+  const historyGroups = useMemo(() => {
+    const groups = new Map<string, typeof historyEntries>();
+    historyEntries.forEach((entry) => {
+      const key = entry.date.slice(0, 7);
+      groups.set(key, [...(groups.get(key) ?? []), entry]);
+    });
+    return [...groups.entries()].map(([key, values]) => ({ key, label: historyMonthLabel(key), values }));
+  }, [historyEntries]);
+  const trendDelta = latest && periodStart && periodStart !== latest
+    ? `${latest.value >= periodStart.value ? '+' : ''}${formatValue(latest.value - periodStart.value, displayUnit)}`
+    : '—';
 
   const openRecord = () => {
     if (!selected) return;
@@ -200,32 +217,52 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
         scrollEventThrottle={16}
       >
         {preferences.dailyMeasurementDefinitions.length ? (
-          <>
-            <SettingsSection title="Measurements">
-              {preferences.dailyMeasurementDefinitions.map((definition, index) => (
-                <SettingsRow
+          <View style={styles.metricPickerSection}>
+            <View style={styles.metricPickerHeading}>
+              <Text style={styles.metricPickerLabel}>METRICS</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Add measure"
+                onPress={() => setMetricOpen(true)}
+                style={({ pressed }) => [styles.addMetricInline, pressed && pressedFeedback]}
+              >
+                <Icon name="add" size={16} color={theme.textPrimary} />
+                <Text style={styles.addMetricInlineText}>Add</Text>
+              </Pressable>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.metricPickerContent}
+              accessibilityRole="radiogroup"
+              accessibilityLabel="Measurement metric"
+            >
+              {preferences.dailyMeasurementDefinitions.map((definition) => (
+                <Pressable
                   key={definition.id}
-                  title={definition.name}
-                  subtitle={definition.unit || undefined}
-                  icon={definition.icon}
-                  iconColor={definition.color}
-                  iconBackgroundColor={`${definition.color}24`}
-                  showDivider={index < preferences.dailyMeasurementDefinitions.length - 1}
-                  accessibilityState={{ selected: definition.id === selected?.id }}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`${definition.name}${definition.unit ? `, ${definition.unit}` : ''}`}
+                  accessibilityState={{ checked: definition.id === selected?.id }}
+                  aria-checked={definition.id === selected?.id}
                   onPress={() => { selectionHaptic(); setSelectedId(definition.id); }}
-                  trailing={definition.id === selected?.id ? <Icon name="check" size={19} color={theme.selectionIndicator} weight="bold" /> : undefined}
-                  style={definition.id === selected?.id ? styles.selectedDefinition : undefined}
-                />
+                  style={({ pressed }) => [
+                    styles.metricPickerCard,
+                    definition.id === selected?.id && { borderColor: definition.color, backgroundColor: `${definition.color}18` },
+                    pressed && pressedFeedback,
+                  ]}
+                >
+                  <View style={[styles.metricPickerIcon, { backgroundColor: `${definition.color}24` }]}>
+                    <Icon name={definition.icon} size={20} color={definition.color} />
+                  </View>
+                  <View style={styles.metricPickerCopy}>
+                    <Text numberOfLines={1} style={styles.metricPickerName}>{definition.name}</Text>
+                    {definition.unit ? <Text numberOfLines={1} style={styles.metricPickerUnit}>{definition.unit}</Text> : null}
+                  </View>
+                  {definition.id === selected?.id ? <View style={[styles.metricPickerSelected, { backgroundColor: definition.color }]} /> : null}
+                </Pressable>
               ))}
-            </SettingsSection>
-            <Button
-              label="Add measure"
-              icon="add"
-              variant="outline"
-              onPress={() => setMetricOpen(true)}
-              style={styles.addMetric}
-            />
-          </>
+            </ScrollView>
+          </View>
         ) : (
           <Button
             label="Add measure"
@@ -242,16 +279,22 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
             exiting={FadeOutLeft.duration(120)}
             style={styles.selectedMetricContent}
           >
-            <View style={styles.metricHeading}>
-              <View style={[styles.metricIcon, { backgroundColor: `${selected.color}24` }]}>
-                <Icon name={selected.icon} size={22} color={selected.color} />
+            <ForgeCard variant="elevated" style={styles.summaryCard}>
+              <View style={styles.metricHeading}>
+                <View style={[styles.metricIcon, { backgroundColor: `${selected.color}24` }]}>
+                  <Icon name={selected.icon} size={22} color={selected.color} />
+                </View>
+                <View style={styles.metricHeadingCopy}>
+                  <Text style={styles.metricTitle}>{selected.name}</Text>
+                  <Text style={styles.metricSubtitle}>{latest ? `Last recorded ${displayDate(latest.date)}` : 'No measurements yet'}</Text>
+                </View>
               </View>
-              <View style={styles.metricHeadingCopy}>
-                <Text style={styles.metricTitle}>{selected.name}</Text>
-                {latest ? <Text style={styles.metricSubtitle}>{displayDate(latest.date)}</Text> : null}
+              <View style={styles.summaryStats}>
+                <MeasurementSummaryStat label="LATEST" value={latest ? formatValue(latest.value, displayUnit) : '—'} />
+                <View style={styles.summaryDivider} />
+                <MeasurementSummaryStat label={`${range} DAY CHANGE`} value={trendDelta} />
               </View>
-              <Text style={styles.metricLatest}>{latest ? formatValue(latest.value, displayUnit) : '—'}</Text>
-            </View>
+            </ForgeCard>
             {latest ? (
               <ForgeCard variant="elevated" style={styles.chartCard}>
                 <View style={styles.chartHeader}>
@@ -295,19 +338,19 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
             )}
           </Animated.View>
         ) : null}
-        {historyEntries.length ? (
-          <SettingsSection title="History">
-            {historyEntries.map((entry, index) => (
+        {historyGroups.map((group) => (
+          <SettingsSection key={group.key} title={`History · ${group.label}`}>
+            {group.values.map((entry, index) => (
               <SettingsRow
                 key={entry.id}
                 title={displayHistoryDate(entry.date)}
                 trailing={<Text style={styles.historyValue}>{formatValue(entry.value, displayUnit)}</Text>}
-                showDivider={index < historyEntries.length - 1}
+                showDivider={index < group.values.length - 1}
                 accessibilityLabel={`${displayHistoryDate(entry.date)}, ${formatValue(entry.value, displayUnit)}`}
               />
             ))}
           </SettingsSection>
-        ) : null}
+        ))}
       </ScrollView>
       <ForgeBottomSheet
         visible={recordOpen}
@@ -435,6 +478,16 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
   );
 }
 
+function MeasurementSummaryStat({ label, value }: { label: string; value: string }) {
+  const styles = useThemedStyles(createStyles);
+  return (
+    <View style={styles.summaryStat}>
+      <Text style={styles.summaryLabel}>{label}</Text>
+      <Text numberOfLines={1} style={styles.summaryValue}>{value}</Text>
+    </View>
+  );
+}
+
 function MeasurementChart({
   points,
   color,
@@ -506,7 +559,12 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   metricHeadingCopy: { flex: 1, minWidth: 0 },
   metricTitle: { ...typeScale.headerTitle, color: theme.textPrimary },
   metricSubtitle: { ...typeScale.supporting, color: theme.textSecondary, marginTop: 1 },
-  metricLatest: { ...typeScale.metricMedium, color: theme.textPrimary },
+  summaryCard: { padding: 16, gap: 16 },
+  summaryStats: { flexDirection: 'row', alignItems: 'stretch', minHeight: 48 },
+  summaryStat: { flex: 1, minWidth: 0, gap: 4 },
+  summaryLabel: { ...typeScale.caption, color: theme.textSecondary, letterSpacing: 0.7 },
+  summaryValue: { ...typeScale.cardTitle, color: theme.textPrimary },
+  summaryDivider: { width: StyleSheet.hairlineWidth, marginHorizontal: 14, backgroundColor: theme.divider },
   chartCard: { padding: 16, gap: 14 },
   chartHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
   chartEyebrow: { ...typeScale.caption, color: theme.textSecondary, letterSpacing: 0.8 },
@@ -518,7 +576,18 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   chartFooterCentered: { justifyContent: 'center' },
   chartAxis: { ...typeScale.caption, color: theme.textSecondary },
   historyValue: { ...typeScale.cardTitle, color: theme.textPrimary },
-  selectedDefinition: { backgroundColor: theme.successSurface },
+  metricPickerSection: { gap: 9 },
+  metricPickerHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  metricPickerLabel: { ...typeScale.caption, color: theme.textSecondary, letterSpacing: 0.9 },
+  addMetricInline: { minHeight: 30, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 9 },
+  addMetricInlineText: { ...typeScale.label, color: theme.textPrimary },
+  metricPickerContent: { gap: 10, paddingRight: settingsLayout.screenPadding },
+  metricPickerCard: { width: 142, minHeight: 82, padding: 11, borderWidth: 1, borderColor: theme.border, borderRadius: 16, backgroundColor: theme.surface, gap: 8 },
+  metricPickerIcon: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  metricPickerCopy: { minWidth: 0, gap: 1 },
+  metricPickerName: { ...typeScale.label, color: theme.textPrimary },
+  metricPickerUnit: { ...typeScale.caption, color: theme.textSecondary },
+  metricPickerSelected: { position: 'absolute', right: 10, bottom: 10, width: 7, height: 7, borderRadius: 3.5 },
   selectedMetricContent: { gap: 14 },
   recordEmpty: { minHeight: 50, borderRadius: 16 },
   addMetric: { minHeight: 48, borderStyle: 'dashed', borderColor: theme.border },

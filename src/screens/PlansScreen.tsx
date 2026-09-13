@@ -287,7 +287,7 @@ function PlanCard({
       rounded
     >
       {() => (
-        <View style={styles.card}>
+        <View style={styles.planCardSurface}>
           <Pressable
             testID={`plan-header-${plan.id}`}
             accessibilityRole="button"
@@ -585,6 +585,10 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       shadowOffset: { width: 0, height: 4 },
       elevation: 2,
     },
+    // The root swipe surface already owns this card's opaque background and
+    // radius. A second elevated card here created a faint seam above the plan
+    // title on some GPU/compositor combinations.
+    planCardSurface: { overflow: 'hidden' },
     screen: { flex: 1 },
     scrollView: { flex: 1 },
     header: {
