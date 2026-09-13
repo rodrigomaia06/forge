@@ -106,6 +106,8 @@ function widgetInfoPlist(version, buildNumber, bundleIdentifier) {
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
   <key>CFBundleIdentifier</key><string>${bundleIdentifier}</string>
+  <key>CFBundleName</key><string>Forge Rest Timer</string>
+  <key>CFBundleDisplayName</key><string>Forge Rest Timer</string>
   <key>NSExtension</key><dict><key>NSExtensionPointIdentifier</key><string>com.apple.widgetkit-extension</string></dict>
   <key>CFBundleShortVersionString</key><string>${version}</string>
   <key>CFBundleVersion</key><string>${buildNumber}</string>
