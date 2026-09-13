@@ -31,3 +31,11 @@ complete SQLite backup.
 The transfer contains personal training data. Store it privately and only
 import files you trust. If Forge rejects a file, export it again from a
 compatible Forge installation rather than editing it by hand.
+
+## Unsigned iOS sideload build
+
+The manual **Build unsigned iOS IPA** GitHub workflow produces the `sideload`
+EAS profile without Apple signing credentials. It is intended for iLoader,
+which re-signs the IPA with the user's Apple ID before installation. The
+sideload archive deliberately omits the optional Live Activity/widget
+extension and its App Group; the regular Forge rest timer remains available.

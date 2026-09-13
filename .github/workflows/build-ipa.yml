@@ -1,4 +1,4 @@
-name: Build iOS IPA
+name: Build unsigned iOS IPA
 
 on:
   workflow_dispatch:
@@ -12,8 +12,8 @@ concurrency:
 
 jobs:
   trigger-build:
-    name: Trigger internal iOS build
-    # EAS performs the native build remotely. A standard Linux runner is both
+    name: Trigger unsigned iOS build
+    # EAS performs the native compilation remotely. A standard Linux runner is
     # faster to start and substantially cheaper than occupying a macOS runner.
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -43,7 +43,8 @@ jobs:
       - name: Install config dependencies
         # EAS resolves app plugins locally before it can upload the project.
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Create internal-distribution IPA on EAS
+      - name: Create unsigned IPA for iLoader on EAS
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: eas build --platform ios --profile preview --non-interactive --no-wait
+          FORGE_IOS_SIDELOAD: '1'
+        run: eas build --platform ios --profile sideload --non-interactive --no-wait
