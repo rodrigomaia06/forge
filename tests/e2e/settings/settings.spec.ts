@@ -271,7 +271,7 @@ test.describe('Settings', () => {
     }
   });
 
-  test('validates JSON and opens its import review immediately', async ({ page }) => {
+  test('validates JSON, lets the user select import data, then opens its review', async ({ page }, testInfo) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Backup & Export' }).click();
@@ -295,10 +295,31 @@ test.describe('Settings', () => {
       })),
     });
     const sheet = page.getByRole('dialog');
+    await expect(sheet.getByText('Choose import data', { exact: true })).toBeVisible();
+    await expect(sheet.getByRole('checkbox', { name: 'Remove Workouts' })).toBeChecked();
+    await sheet.getByRole('checkbox', { name: 'Remove Workouts' }).click();
+    await expect(sheet.getByRole('checkbox', { name: 'Include Workouts' })).not.toBeChecked();
+    await sheet.getByRole('button', { name: 'Review selected data' }).click();
     await expect(sheet.getByText('Review import', { exact: true })).toBeVisible();
-    await expect(sheet.getByText('2 plans · 5 routines · 0 already on this device')).toBeVisible();
+    await expect(sheet.getByText('2 plans · 5 routines · 0 on device')).toBeVisible();
     await expect(sheet.getByRole('button', { name: 'Import selected data' })).toBeVisible();
-    await expect(sheet.getByRole('button', { name: 'Review selected data' })).toHaveCount(0);
+    await expect(sheet.getByText('Workouts', { exact: true })).toHaveCount(0);
+    if (testInfo.project.name === 'iphone-air') {
+      await page.screenshot({ path: testInfo.outputPath('import-review-iphone.png') });
+    }
+  });
+
+  test('uses the Forge destructive confirmation card before deleting app data', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Backup & Export' }).click();
+    await page.getByRole('button', { name: 'Delete all app data' }).click();
+    const confirmation = page.getByTestId('delete-all-data-confirmation');
+    await expect(confirmation).toBeVisible();
+    await expect(confirmation.getByRole('button', { name: 'Keep data' })).toBeVisible();
+    await expect(confirmation.getByRole('button', { name: 'Delete all data' })).toBeVisible();
+    await confirmation.getByRole('button', { name: 'Keep data' }).click();
+    await expect(confirmation).toBeHidden();
   });
 
   test('persists the first day of the week and applies it to the Calendar', async ({ page }) => {

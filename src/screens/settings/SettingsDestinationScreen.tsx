@@ -2,7 +2,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React from 'react';
 import { Alert, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { AppScreen, ForgeBackButton, ForgeBottomSheet, ForgeCard, ForgeFloatingCta, ForgeSheetHeader, ForgeText as Text, Icon, pressedFeedback } from '../../components/ui';
+import { AppScreen, ForgeBackButton, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeCard, ForgeConfirmationDialog, ForgeFloatingCta, ForgeSheetHeader, ForgeText as Text, Icon, pressedFeedback } from '../../components/ui';
 import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
 import { dashboardTheme } from '../../theme/dashboardTheme';
 import { useForgeTheme } from '../../theme/ThemeProvider';
@@ -62,10 +62,11 @@ export function SettingsDestinationScreen({ navigation, route }: Props) {
 
 function BackupExport() {
   const [busy, setBusy] = React.useState(false);
-  const [transferStep, setTransferStep] = React.useState<'export-json' | 'export-text' | 'import-review' | null>(null);
+  const [transferStep, setTransferStep] = React.useState<'export-json' | 'export-text' | 'import-selection' | 'import-review' | null>(null);
   const [transfer, setTransfer] = React.useState<ForgeDataTransfer | null>(null);
   const [selection, setSelection] = React.useState<DataTransferSelection>(allDataTransferSelection);
   const [inspection, setInspection] = React.useState<DataTransferInspection | null>(null);
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = React.useState(false);
   const theme = useForgeTheme();
   const { reload: reloadSettings } = useSettings();
   const { reload: reloadPlans } = usePlans();
@@ -92,7 +93,14 @@ function BackupExport() {
       setTransfer(incoming);
       const nextSelection = allDataTransferSelection();
       setSelection(nextSelection);
-      setInspection(await inspectDataTransfer(incoming, nextSelection));
+      setInspection(null);
+      setTransferStep('import-selection');
+    });
+  };
+  const reviewImport = (): void => {
+    if (!transfer) return;
+    void run(async () => {
+      setInspection(await inspectDataTransfer(transfer, selection));
       setTransferStep('import-review');
     });
   };
@@ -124,16 +132,11 @@ function BackupExport() {
     });
   };
   const erase = (): void => {
+    setDeleteConfirmationOpen(true);
+  };
+  const confirmErase = (): void => {
+    setDeleteConfirmationOpen(false);
     void run(async () => {
-      const confirmed = await new Promise<boolean>((resolve) => Alert.alert(
-        'Delete all app data?',
-        'This permanently deletes your workouts, plans, routines, custom exercises, measurements, preferences and local diagnostics from this device. This cannot be undone.',
-        [
-          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-          { text: 'Delete all data', style: 'destructive', onPress: () => resolve(true) },
-        ],
-      ));
-      if (!confirmed) return;
       stopRestTimer();
       await eraseAllForgeData();
       await Promise.all([reloadSettings(), reloadPlans(), reloadWorkouts(), reloadExercises()]);
@@ -180,12 +183,23 @@ function BackupExport() {
         selection={selection}
         inspection={inspection}
         onChangeSelection={setSelection}
-        onClose={() => { setTransferStep(null); setInspection(null); }}
-        onBack={() => setTransferStep(null)}
+        onClose={() => { setTransferStep(null); setInspection(null); setTransfer(null); }}
+        onBack={() => { setInspection(null); setTransferStep('import-selection'); }}
         onExportJson={() => void run(async () => { await exportJson(selection); await recordDiagnostic('data-exported'); setTransferStep(null); })}
         onExportText={() => void run(async () => { await exportText(selection); setTransferStep(null); })}
+        onReviewImport={reviewImport}
         onImport={mergeSelected}
         busy={busy}
+      />
+      <ForgeConfirmationDialog
+        visible={deleteConfirmationOpen}
+        title="Delete all app data?"
+        message="This permanently deletes your workouts, plans, routines, custom exercises, measurements, preferences and local diagnostics from this device. This cannot be undone."
+        cancelLabel="Keep data"
+        confirmLabel="Delete all data"
+        onCancel={() => setDeleteConfirmationOpen(false)}
+        onConfirm={confirmErase}
+        testID="delete-all-data-confirmation"
       />
     </View>
   );
@@ -200,9 +214,9 @@ const transferCategories: Array<{ key: DataTransferCategory; title: string; deta
 ];
 
 function DataTransferSheet({
-  step, selection, inspection, onChangeSelection, onClose, onBack, onExportJson, onExportText, onImport, busy,
+  step, selection, inspection, onChangeSelection, onClose, onBack, onExportJson, onExportText, onReviewImport, onImport, busy,
 }: {
-  step: 'export-json' | 'export-text' | 'import-review' | null;
+  step: 'export-json' | 'export-text' | 'import-selection' | 'import-review' | null;
   selection: DataTransferSelection;
   inspection: DataTransferInspection | null;
   onChangeSelection: (selection: DataTransferSelection) => void;
@@ -210,6 +224,7 @@ function DataTransferSheet({
   onBack: () => void;
   onExportJson: () => void;
   onExportText: () => void;
+  onReviewImport: () => void;
   onImport: () => void;
   busy: boolean;
 }) {
@@ -218,7 +233,8 @@ function DataTransferSheet({
   const selectedCount = transferCategories.filter(({ key }) => selection[key]).length;
   const exporting = step === 'export-json' || step === 'export-text';
   const reviewing = step === 'import-review';
-  const title = exporting ? 'Export data' : 'Review import';
+  const importing = step === 'import-selection' || reviewing;
+  const title = exporting ? 'Export data' : reviewing ? 'Review import' : 'Choose import data';
   const toggle = (key: DataTransferCategory): void => onChangeSelection({ ...selection, [key]: !selection[key] });
   return (
     <ForgeBottomSheet
@@ -229,6 +245,7 @@ function DataTransferSheet({
       dragEnabled={false}
       style={[styles.transferSheet, { backgroundColor: theme.surfaceElevated }]}
     >
+      <ForgeBottomSheetHandle />
       <ForgeSheetHeader
         title={title}
         closePosition="right"
@@ -273,12 +290,12 @@ function DataTransferSheet({
         )}
       </ScrollView>
       <ForgeFloatingCta
-        label={reviewing ? 'Import selected data' : 'Export selected data'}
-        accessibilityLabel={reviewing ? 'Import selected data' : 'Export selected data'}
+        label={reviewing ? 'Import selected data' : importing ? 'Review selected data' : 'Export selected data'}
+        accessibilityLabel={reviewing ? 'Import selected data' : importing ? 'Review selected data' : 'Export selected data'}
         disabled={!selectedCount || busy}
         tone={reviewing ? 'success' : 'neutral'}
         icon={reviewing ? 'check' : undefined}
-        onPress={reviewing ? onImport : step === 'export-json' ? onExportJson : onExportText}
+        onPress={reviewing ? onImport : importing ? onReviewImport : step === 'export-json' ? onExportJson : onExportText}
       />
     </ForgeBottomSheet>
   );
@@ -287,22 +304,23 @@ function DataTransferSheet({
 function ImportReview({ inspection, selection }: { inspection: DataTransferInspection | null; selection: DataTransferSelection }) {
   const theme = useForgeTheme();
   if (!inspection) return null;
+  const reviewCategories = transferCategories.filter(({ key }) => (
+    selection[key] && inspection.categories[key].available > 0
+  ));
   return (
     <View style={styles.reviewStack}>
-      <Text style={[styles.transferIntro, { color: theme.textSecondary }]}>Validated Forge JSON from {new Date(inspection.exportedAt).toLocaleDateString()}. Only new records will be added.</Text>
-      <ForgeCard variant="inset" size="compact">
-        {transferCategories.filter(({ key }) => selection[key]).map(({ key, title: categoryTitle }, index) => {
+      {reviewCategories.length ? <ForgeCard variant="inset" size="compact">
+        {reviewCategories.map(({ key, title: categoryTitle }, index) => {
           const summary = inspection.categories[key];
           return (
           <View key={key} style={[styles.reviewRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }]}>
-              <View><Text style={[styles.transferOptionTitle, { color: theme.textPrimary }]}>{categoryTitle}</Text><Text style={[styles.transferOptionDetail, { color: theme.textSecondary }]}>{key === 'plans' ? `${summary.planCount ?? 0} plans · ${summary.routineCount ?? 0} routines · ${summary.existingRecords} already on this device` : `${summary.available} in file · ${summary.existingRecords} already on this device`}</Text></View>
+              <View><Text style={[styles.transferOptionTitle, { color: theme.textPrimary }]}>{categoryTitle}</Text><Text style={[styles.transferOptionDetail, { color: theme.textSecondary }]}>{key === 'plans' ? `${summary.planCount ?? 0} plans · ${summary.routineCount ?? 0} routines · ${summary.existingRecords} on device` : `${summary.available} in file · ${summary.existingRecords} on device`}</Text></View>
               <Text style={[styles.reviewNew, { color: summary.newRecords ? theme.success : theme.textSecondary }]}>{summary.newRecords} new</Text>
             </View>
           );
         })}
-      </ForgeCard>
-      {inspection.activeWorkout ? <Text style={[styles.transferNote, { color: theme.textSecondary }]}>The current workout can be added because this device does not have one in progress.</Text> : null}
-      <Text style={[styles.transferNote, { color: theme.textSecondary }]}>Import is additive: nothing currently on this device is replaced. Use SQLite restore only when you need a full replacement.</Text>
+      </ForgeCard> : <Text style={[styles.transferNote, { color: theme.textSecondary }]}>No compatible records are selected.</Text>}
+      {inspection.activeWorkout ? <Text style={[styles.transferNote, { color: theme.textSecondary }]}>Includes the current workout.</Text> : null}
     </View>
   );
 }

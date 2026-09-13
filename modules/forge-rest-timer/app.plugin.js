@@ -108,6 +108,9 @@ function widgetInfoPlist(version, buildNumber, bundleIdentifier) {
   <key>CFBundleIdentifier</key><string>${bundleIdentifier}</string>
   <key>CFBundleName</key><string>Forge Rest Timer</string>
   <key>CFBundleDisplayName</key><string>Forge Rest Timer</string>
+  <key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string>
+  <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+  <key>CFBundlePackageType</key><string>XPC!</string>
   <key>NSExtension</key><dict><key>NSExtensionPointIdentifier</key><string>com.apple.widgetkit-extension</string></dict>
   <key>CFBundleShortVersionString</key><string>${version}</string>
   <key>CFBundleVersion</key><string>${buildNumber}</string>
