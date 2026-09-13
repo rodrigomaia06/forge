@@ -4,15 +4,19 @@ import { catalogFacets, filterCatalog, groupCatalogByPrimaryEquipment, groupCata
 import { exerciseCatalog, taxonomyLabel } from '../../src/data/exerciseCatalog';
 import { countWorkoutSets, formatCompactDuration, getWorkoutTypePresentation } from '../../src/domain/workouts/presentation';
 import { defaultSettingsPreferences } from '../../src/data/settingsDefaults';
+import { parseSettingsPreferences } from '../../src/data/settingsPreferences';
+import { builtInWorkoutTypeColors } from '../../src/domain/workouts/workoutTypeDefaults';
 import { lightTheme } from '../../src/theme/tokens';
 import { bundledExercises, bundledLegacyIdMap, bundledCatalogVersion, validateCatalog } from '../../src/data/catalog/loadCatalog';
 import catalogSource from '../../src/data/catalog/forge_exercise_catalog_v3_flat.json';
 import { trackingFields } from '../../src/domain/exercises/tracking';
-import { addExercisesToWorkout, addWarmupSetsToWorkout, createWorkout, updateWorkoutExercise } from '../../src/state/workoutMutations';
+import { addExercisesToWorkout, addWarmupSetsToWorkout, createWorkout, recordRestTimerSample, updateWorkoutExercise } from '../../src/state/workoutMutations';
 import { createExerciseSnapshot } from '../../src/domain/exercises/exerciseSnapshot';
 import { formatExerciseMetadata, formatPickerPrimaryEquipment } from '../../src/domain/exercises/exercisePresentation';
 import { buildWarmupPlan, warmupSteps } from '../../src/domain/workouts/warmup';
 import { uniqueById } from '../../src/data/uniqueById';
+import { mergeImportedPlans } from '../../src/data/dataTransferPlans';
+import { normalizePersistedWorkout } from '../../src/data/workoutNormalization';
 
 test('keeps the first stable record when a persistence boundary receives duplicate ids', () => {
   expect(uniqueById([
@@ -27,22 +31,78 @@ test('keeps the first stable record when a persistence boundary receives duplica
   ]);
 });
 
+test('merges imported routines into their existing plan without losing device order', () => {
+  const current = {
+    plans: [{
+      id: 'push', name: 'Device push', createdAt: 1, updatedAt: 1,
+      routines: [{ id: 'chest', name: 'Chest', type: 'Strength', exercises: [], planId: 'push', createdAt: 1, updatedAt: 1 }],
+    }],
+    standaloneRoutines: [{ id: 'walk', name: 'Walk', type: 'Cardio', exercises: [], createdAt: 1, updatedAt: 1 }],
+  };
+  const incoming = {
+    plans: [{
+      id: 'push', name: 'Imported push', createdAt: 2, updatedAt: 2,
+      routines: [
+        { id: 'chest', name: 'Imported chest', type: 'Strength', exercises: [], planId: 'push', createdAt: 2, updatedAt: 2 },
+        { id: 'triceps', name: 'Triceps', type: 'Strength', exercises: [], planId: 'push', createdAt: 2, updatedAt: 2 },
+      ],
+    }, {
+      id: 'pull', name: 'Pull', createdAt: 2, updatedAt: 2,
+      routines: [{ id: 'back', name: 'Back', type: 'Strength', exercises: [], planId: 'pull', createdAt: 2, updatedAt: 2 }],
+    }],
+    standaloneRoutines: [{ id: 'walk', name: 'Imported walk', type: 'Cardio', exercises: [], createdAt: 2, updatedAt: 2 }],
+  };
+
+  const merged = mergeImportedPlans(current, incoming);
+  expect(merged.plans.map((plan) => plan.id)).toEqual(['push', 'pull']);
+  expect(merged.plans[0]).toMatchObject({ name: 'Device push' });
+  expect(merged.plans[0].routines.map((routine) => routine.id)).toEqual(['chest', 'triceps']);
+  expect(merged.plans[0].routines[0]).toMatchObject({ name: 'Chest', planId: 'push' });
+  expect(merged.plans[1].routines.map((routine) => routine.id)).toEqual(['back']);
+  expect(merged.standaloneRoutines).toEqual([expect.objectContaining({ id: 'walk', name: 'Walk' })]);
+});
+
 test('formats compact workout durations and counts sets', () => {
-  expect([0, 59, 3600, 4320].map(formatCompactDuration)).toEqual(['1m', '1m', '1h', '1h 12m']);
+  expect([0, 59, 3600, 4320].map(formatCompactDuration)).toEqual(['1m', '1m', '1:00h', '1:12h']);
   expect(countWorkoutSets({ exercises: [{ sets: [] }, { sets: [{}, {}] }] } as never)).toBe(2);
+});
+
+test('keeps a truthful average for only the rest intervals Forge started', () => {
+  const workout = {
+    id: 'workout', name: 'Push', type: 'Strength', startedAt: 1, completedAt: null, note: '', exercises: [],
+  };
+  const first = recordRestTimerSample(workout, 90);
+  const second = recordRestTimerSample(first, 120);
+  expect(second).toMatchObject({ averageRestSeconds: 105, restTimerSamples: 2 });
+
+  const legacy = recordRestTimerSample({ ...workout, averageRestSeconds: 60 }, 120);
+  expect(legacy).toMatchObject({ averageRestSeconds: 90, restTimerSamples: 2 });
+});
+
+test('normalizes legacy workout child collections before screens consume them', () => {
+  const workout = normalizePersistedWorkout({
+    id: 'legacy-workout', name: 'Legacy', type: 'Strength', startedAt: 1,
+    completedAt: 2, note: '', exercises: undefined as never,
+  });
+  const partialExercise = normalizePersistedWorkout({
+    id: 'partial-workout', name: 'Partial', type: 'Strength', startedAt: 1,
+    completedAt: 2, note: '', exercises: [{ id: 'exercise', name: 'Bench', sets: undefined as never }],
+  });
+  expect(workout.exercises).toEqual([]);
+  expect(partialExercise.exercises[0].sets).toEqual([]);
 });
 
 test('presents saved, fallback, custom, and unknown workout types consistently', () => {
   const types = defaultSettingsPreferences.workoutTypes;
   expect(getWorkoutTypePresentation('Court sport', types, lightTheme, 0.14)).toMatchObject({
     icon: 'tennis-ball',
-    color: '#E3A346',
-    background: 'rgba(227,163,70,0.14)',
+    color: '#6BD48F',
+    background: 'rgba(107,212,143,0.14)',
   });
   expect(getWorkoutTypePresentation('Strength', [], lightTheme, 0.16)).toMatchObject({
     icon: 'fitness-outline',
-    color: '#687CF2',
-    background: 'rgba(104,124,242,0.16)',
+    color: '#7C8CF8',
+    background: 'rgba(124,140,248,0.16)',
   });
   expect(
     getWorkoutTypePresentation(
@@ -60,6 +120,37 @@ test('presents saved, fallback, custom, and unknown workout types consistently',
   expect(REST_DURATION_OPTIONS).toEqual(
     Array.from({ length: 115 }, (_, index) => 30 + index * 5),
   );
+});
+
+test('uses the original Forge swatches for built-ins without duplicates', () => {
+  const builtIns = defaultSettingsPreferences.workoutTypes;
+  expect(builtIns.map((type) => type.color)).toHaveLength(new Set(builtIns.map((type) => type.color)).size);
+  expect(builtInWorkoutTypeColors).toMatchObject({
+    strength: '#7C8CF8',
+    'court-sport': '#6BD48F',
+    'martial-arts': '#F27D7D',
+    cardio: '#F4A261',
+    mobility: '#B78AF0',
+  });
+  const migrated = parseSettingsPreferences(JSON.stringify({
+    workoutTypes: defaultSettingsPreferences.workoutTypes.map((type) =>
+      type.id === 'strength' ? { ...type, color: '#687CF2' } : type,
+    ),
+  }));
+  expect(migrated.workoutTypes.find((type) => type.id === 'strength')?.color).toBe('#7C8CF8');
+});
+
+test('allows custom workout types to reuse an included Forge colour', () => {
+  const parsed = parseSettingsPreferences(JSON.stringify({
+    workoutTypes: [
+      ...defaultSettingsPreferences.workoutTypes,
+      { id: 'custom-strength', name: 'Custom strength', color: '#7C8CF8', source: 'custom' },
+    ],
+  }));
+  expect(parsed.workoutTypes.find((type) => type.id === 'custom-strength')).toMatchObject({
+    color: '#7C8CF8',
+    source: 'custom',
+  });
 });
 
 test('filters and groups exercise catalog entries without changing feature selection state', () => {
