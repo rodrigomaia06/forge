@@ -80,8 +80,9 @@ export function HeaderAction({
         iconOnly && styles.iconOnly,
         isBackControl && {
           // Back is a peer of the neutral header action, not a disabled or
-          // inset control. This retains a clear silhouette in both themes.
-          backgroundColor: theme.surfaceElevated,
+          // inset control. Dark headers need the muted layer to retain the
+          // same clear silhouette that the light elevated surface provides.
+          backgroundColor: theme.colorScheme === 'dark' ? theme.surfaceMuted : theme.surfaceElevated,
           borderColor: theme.border,
         },
         style,

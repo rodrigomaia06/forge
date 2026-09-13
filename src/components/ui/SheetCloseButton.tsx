@@ -23,7 +23,13 @@ export function SheetCloseButton({
       icon="close"
       iconOnly
       onPress={onPress}
-      style={[{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }, style]}
+      style={[{
+        // Close and the in-sheet Back action are peers. Their shared surface
+        // remains visible against both sheet backgrounds without suggesting a
+        // destructive action.
+        backgroundColor: theme.colorScheme === 'dark' ? theme.surfaceMuted : theme.surfaceElevated,
+        borderColor: theme.border,
+      }, style]}
     />
   );
 }
