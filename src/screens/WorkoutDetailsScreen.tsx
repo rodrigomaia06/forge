@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
@@ -29,6 +30,7 @@ import type { IconName, RootStackParamList, Workout } from '../types';
 type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutDetails'>;
 
 export function WorkoutDetailsScreen({ navigation, route }: Props) {
+  const { bottom: bottomInset } = useSafeAreaInsets();
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const { ready, completedWorkouts, deleteCompletedWorkout } = useWorkouts();
@@ -65,7 +67,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
       </AppScreen>
     );
   return (
-    <AppScreen backgroundColor={theme.background}>
+    <AppScreen edges={['top']} backgroundColor={theme.background}>
       <View style={styles.screen}>
         <View style={styles.header}>
           <ForgeBackButton
@@ -91,7 +93,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
         </View>
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingBottom: styles.content.paddingBottom + bottomInset }]}
           showsVerticalScrollIndicator={false}
           onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
           scrollEventThrottle={16}

@@ -7,7 +7,7 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
 import { ForgeCard } from './ForgeCard';
 import { ForgeBottomSheetHandle } from './ForgeBottomSheet';
-import { ForgeFloatingCta } from './ForgeFloatingCta';
+import { ForgeFloatingCta, useForgeFloatingCtaClearance } from './ForgeFloatingCta';
 import { ForgeSheetHeader } from './ForgeSheetHeader';
 import { ForgeText, ForgeTextInput } from './ForgeText';
 import { ForgeBackButton, HeaderAction } from './HeaderAction';
@@ -41,6 +41,7 @@ export function ForgeAttributeEditorSheet({
   onDelete?: () => void;
 }) {
   const theme = useForgeTheme();
+  const floatingCtaClearance = useForgeFloatingCtaClearance();
   const [draft, setDraft] = useState(value);
   const [selectingIcon, setSelectingIcon] = useState(false);
   return (
@@ -53,7 +54,7 @@ export function ForgeAttributeEditorSheet({
         leading={<ForgeEditorBackButton onPress={onClose} />}
         trailing={onDelete ? <HeaderAction accessibilityLabel="Remove attribute" icon="trash" iconOnly tone="destructive" haptic="none" onPress={() => { errorHaptic(); onDelete(); }} /> : undefined}
       />
-      <ScrollView style={styles.editorScroll} contentContainerStyle={styles.editorContent} keyboardShouldPersistTaps="handled">
+      <ScrollView style={styles.editorScroll} contentContainerStyle={[styles.editorContent, { paddingBottom: floatingCtaClearance }]} keyboardShouldPersistTaps="handled">
         <View style={styles.formSection}>
           <ForgeText style={[styles.label, { color: theme.slate }]}>Attribute name</ForgeText>
           <ForgeCard variant="inset" style={styles.fieldCard}>
@@ -189,7 +190,7 @@ export function ForgeEditorBackButton({ onPress, accessibilityLabel = 'Back to e
 
 const styles = StyleSheet.create({
   editorScroll: { flexGrow: 0, flexShrink: 1 },
-  editorContent: { paddingTop: 14, paddingBottom: 94, gap: 18 },
+  editorContent: { paddingTop: 14, gap: 18 },
   typePickerContent: { paddingTop: 22, paddingBottom: 20 },
   formSection: { gap: 8 },
   fieldCard: { paddingHorizontal: 14 },

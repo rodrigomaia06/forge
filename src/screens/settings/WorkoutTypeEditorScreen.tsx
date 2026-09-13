@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { NavigationAction } from '@react-navigation/native';
@@ -48,6 +49,7 @@ const customColors = Array.from({ length: 48 }, (_, index) => {
 });
 
 export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
+  const { bottom: bottomInset } = useSafeAreaInsets();
   const dashboardTheme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const { preferences, updatePreferences } = useSettings();
@@ -144,7 +146,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
   };
 
   return (
-    <AppScreen backgroundColor={dashboardTheme.background}>
+    <AppScreen edges={['top']} backgroundColor={dashboardTheme.background}>
       <View style={styles.screen}>
         {creating ? (
           <View style={styles.createHeader}>
@@ -183,7 +185,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
         )}
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingBottom: styles.content.paddingBottom + bottomInset }]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           directionalLockEnabled

@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React from 'react';
 import { Image, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -13,6 +14,7 @@ type DestinationRoute = 'ExerciseLibrary' | 'WorkoutTypes' | 'BackupExport' | 'L
 type Props = NativeStackScreenProps<RootStackParamList, DestinationRoute>;
 
 export function SettingsDestinationScreen({ navigation, route }: Props) {
+  const { bottom: bottomInset } = useSafeAreaInsets();
   const theme = useForgeTheme();
   const [headerElevated, setHeaderElevated] = React.useState(false);
   const title = {
@@ -23,12 +25,12 @@ export function SettingsDestinationScreen({ navigation, route }: Props) {
     About: 'About',
   }[route.name];
   return (
-    <AppScreen backgroundColor={theme.background}>
+    <AppScreen edges={['top']} backgroundColor={theme.background}>
       <View style={[styles.screen, { backgroundColor: theme.background }]}>
         <SettingsDetailHeader title={title} navigation={navigation} elevated={headerElevated} />
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingBottom: styles.content.paddingBottom + bottomInset }]}
           showsVerticalScrollIndicator={false}
           onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
           scrollEventThrottle={16}

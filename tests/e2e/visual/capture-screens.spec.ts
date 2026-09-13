@@ -109,7 +109,13 @@ test.describe('Forge screen captures', () => {
     await expect(page.getByRole('dialog')).toBeVisible();
     await capture(page, 'settings-exercise-filter-sheet');
 
-    await page.getByRole('button', { name: 'Show all exercises' }).click();
+    await page.getByRole('button', { name: 'Cancel exercise filters' }).click();
+    await page.getByRole('button', { name: 'Create custom exercise' }).click();
+    await capture(page, 'settings-new-exercise-sheet');
+    await page.getByRole('button', { name: 'Equipment' }).click();
+    await capture(page, 'settings-new-exercise-equipment-selector');
+    await page.getByRole('button', { name: 'Back to exercise form' }).click();
+    await page.getByRole('button', { name: 'Close custom exercise form' }).click();
     await page.getByRole('button', { name: 'Bench Press & 3 variations' }).click();
     await page.getByRole('button', { name: 'Open Flat' }).first().click();
     await capture(page, 'settings-exercise-detail');
@@ -122,6 +128,21 @@ test.describe('Forge screen captures', () => {
     await page.getByRole('button', { name: 'Workout types' }).click();
     await expect(page.getByTestId('settings-detail-title')).toHaveText('Workout types');
     await capture(page, 'settings-workout-types');
+    await page.getByRole('button', { name: 'Strength workout type' }).click();
+    await capture(page, 'settings-workout-types-expanded');
+  });
+
+  test('captures the New Exercise card and its equipment selector', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Exercises' }).click();
+    await page.getByRole('button', { name: 'All exercises, 381 exercises' }).click();
+    await page.getByRole('button', { name: 'Create custom exercise' }).click();
+    await expect(page.getByTestId('custom-exercise-form-surface')).toBeVisible();
+    await capture(page, 'settings-new-exercise-sheet');
+    await page.getByRole('button', { name: 'Equipment' }).click();
+    await expect(page.getByRole('radio').first()).toBeVisible();
+    await capture(page, 'settings-new-exercise-equipment-selector');
   });
 
   test('captures History and its workout detail', async ({ page }) => {

@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -60,6 +61,7 @@ import { createExerciseSnapshot } from '../domain/exercises/exerciseSnapshot';
 type Props = NativeStackScreenProps<RootStackParamList, 'HistoryWorkoutEditor'>;
 
 export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
+  const { bottom: bottomInset } = useSafeAreaInsets();
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const { completedWorkouts, createCompletedWorkout, updateCompletedWorkout } = useWorkouts();
@@ -210,6 +212,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
   };
   return (
     <AppScreen
+      edges={['top']}
       backgroundColor={theme.background}
       style={[styles.screen, { backgroundColor: theme.background }]}
     >
@@ -240,7 +243,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingBottom: styles.content.paddingBottom + bottomInset }]}
           keyboardShouldPersistTaps="handled"
           onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
           scrollEventThrottle={16}

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { enableFreeze } from 'react-native-screens';
 import { WorkoutDetailsScreen } from '../screens/WorkoutDetailsScreen';
@@ -25,17 +25,20 @@ export function AppNavigator() {
   const { ready } = useWorkouts();
   const theme = useForgeTheme();
   const navigationTheme = useMemo(
-    () => ({
-      ...DefaultTheme,
-      colors: {
-        ...DefaultTheme.colors,
-        primary: theme.selectionIndicator,
-        background: theme.background,
-        card: theme.background,
-        text: theme.textPrimary,
-        border: theme.border,
-      },
-    }),
+    () => {
+      const base = theme.colorScheme === 'dark' ? DarkTheme : DefaultTheme;
+      return {
+        ...base,
+        colors: {
+          ...base.colors,
+          primary: theme.selectionIndicator,
+          background: theme.background,
+          card: theme.background,
+          text: theme.textPrimary,
+          border: theme.border,
+        },
+      };
+    },
     [theme],
   );
 
@@ -50,6 +53,7 @@ export function AppNavigator() {
           animation: 'fade',
           animationDuration: 180,
           freezeOnBlur: true,
+          contentStyle: { backgroundColor: theme.background },
         }}
       >
         <Stack.Screen name="MainTabs" component={MainTabNavigator} options={{ gestureEnabled: false }} />

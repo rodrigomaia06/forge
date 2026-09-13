@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useMemo } from 'react';
 import {
   Platform,
@@ -53,6 +54,7 @@ const restOptions: readonly ForgeSingleSelectOption<number>[] = REST_DURATION_OP
 );
 
 export function GeneralSettingsScreen({ navigation }: Props) {
+  const { bottom: bottomInset } = useSafeAreaInsets();
   const { preferences, updatePreferences } = useSettings();
   const theme = useForgeTheme();
   const { width } = useWindowDimensions();
@@ -83,13 +85,13 @@ export function GeneralSettingsScreen({ navigation }: Props) {
     });
   };
   return (
-    <AppScreen backgroundColor={theme.background}>
+    <AppScreen edges={['top']} backgroundColor={theme.background}>
       <View style={[styles.screen, { backgroundColor: theme.background }]}>
         <SettingsDetailHeader title="General" navigation={navigation} elevated={headerElevated} />
         <ScrollView
           testID="general-settings-scroll"
           style={styles.scroll}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingBottom: styles.content.padding + bottomInset }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"

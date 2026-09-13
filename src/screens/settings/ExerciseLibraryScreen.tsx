@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -15,6 +16,7 @@ import { workoutTypeIcon } from './workoutTypeIcon';
 type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseLibrary'>;
 
 export function ExerciseLibraryScreen({ navigation }: Props) {
+  const { bottom: bottomInset } = useSafeAreaInsets();
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const { preferences } = useSettings();
@@ -26,13 +28,13 @@ export function ExerciseLibraryScreen({ navigation }: Props) {
   );
 
   return (
-    <AppScreen testID="exercise-library-screen" backgroundColor={theme.background}>
+    <AppScreen edges={['top']} testID="exercise-library-screen" backgroundColor={theme.background}>
       <View style={styles.screen}>
         <SettingsDetailHeader title="Exercises" navigation={navigation} elevated={headerElevated} />
         <ScrollView
           testID="exercise-library-scroll"
           style={styles.scroll}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingBottom: styles.content.paddingBottom + bottomInset }]}
           showsVerticalScrollIndicator={false}
           directionalLockEnabled
           keyboardDismissMode="on-drag"
@@ -128,8 +130,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     content: {
       padding: settingsLayout.screenPadding,
       paddingTop: settingsLayout.contentTop,
-      // Stack destinations end at their own safe-area edge; they do not carry
-      // the primary dock's reachability room.
+      // The screen adds its bottom safe area to this scrollable spacing,
+      // leaving the viewport open through the home-indicator region.
       paddingBottom: settingsLayout.contentBottom,
       gap: settingsLayout.listGap,
     },

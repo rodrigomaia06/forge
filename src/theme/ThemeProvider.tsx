@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo } from 'react';
 import { Appearance, Platform, useColorScheme } from 'react-native';
+import * as SystemUI from 'expo-system-ui';
 import { useSettings } from '../state/SettingsContext';
 import type { ChildrenProps, ForgeTheme } from '../types';
 import { darkTheme, lightTheme } from './tokens';
@@ -23,6 +24,12 @@ export function ForgeThemeProvider({ children }: ChildrenProps) {
       Appearance.setColorScheme(preferences.appearance === 'system' ? 'unspecified' : preferences.appearance);
     }
   }, [preferences.appearance, theme]);
+  useEffect(() => {
+    // Native swipe-back can expose the host view outside the React tree.
+    void SystemUI.setBackgroundColorAsync(theme.background).catch((error: unknown) => {
+      console.warn('Unable to update the app background', error);
+    });
+  }, [theme.background]);
   return <ForgeThemeContext.Provider value={theme}>{children}</ForgeThemeContext.Provider>;
 }
 

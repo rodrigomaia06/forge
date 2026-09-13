@@ -26,6 +26,7 @@ import {
 } from '../components/ui';
 import { usePrimaryDock } from '../navigation/PrimaryDockContext';
 import { useForgeDockScrollInset } from '../components/DockChrome';
+import { useForgeFloatingCtaClearance } from '../components/ui/ForgeFloatingCta';
 import { useWorkouts } from '../state/WorkoutContext';
 import { useRestTimer } from '../state/RestTimerContext';
 import { useSettings } from '../state/SettingsContext';
@@ -54,6 +55,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createActiveWorkoutStyles);
   const dockScrollInset = useForgeDockScrollInset();
+  const floatingCtaClearance = useForgeFloatingCtaClearance();
   const {
     activeWorkout,
     ready,
@@ -397,7 +399,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
         /> : <>
         <ForgeBottomSheetHandle />
         <ForgeSheetHeader title="Edit workout" onClose={() => setEditingWorkout(false)} />
-        <ScrollView style={editorStyles.editorScroll} contentContainerStyle={editorStyles.editorContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <ScrollView style={editorStyles.editorScroll} contentContainerStyle={[editorStyles.editorContent, { paddingBottom: floatingCtaClearance }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View style={editorStyles.formSection}>
           <Text style={[editorStyles.label, { color: theme.slate }]}>Name</Text>
           <ForgeCard variant="inset" style={editorStyles.fieldCard}>
@@ -653,7 +655,7 @@ function commentHeight(value: string): number {
 const editorStyles = StyleSheet.create({
   sheet: { maxHeight: '84%', paddingHorizontal: 20, paddingBottom: 12 },
   editorScroll: { flexGrow: 0, flexShrink: 1 },
-  editorContent: { paddingTop: 14, paddingBottom: 94, gap: 18 },
+  editorContent: { paddingTop: 14, gap: 18 },
   // Type selection commits immediately, so it has no docked confirmation action.
   // Keep only comfortable breathing room: this lets the sheet stop at its useful height.
   typePickerContent: { paddingTop: 22, paddingBottom: 20 },

@@ -36,6 +36,10 @@ Primary dock icons use the shared navigation item and animate subtly between the
 
 Primary dock tabs use the persistent Forge tab bar. They cross-fade through the shared short tab transition rather than using a push or lateral slide, while a single local selection indicator moves to the active item. Retapping the active tab preserves its current navigation and scroll position. Their scroll bodies extend behind the lower system safe area and dock fade; only the dock's reachability inset is reserved, never a separate empty tab-bar band.
 
+Across all vertically scrollable pages, including nested settings, details, and editors, the scroll viewport extends to the bottom screen edge. Reserve the bottom safe area inside the scrollable content so the final control can clear the home indicator; do not create an opaque safe-area strip outside the scroll viewport. Primary tabs include their floating dock clearance in that trailing space.
+
+Backgrounds exposed behind pages during navigation gestures and transitions must follow the active Forge theme, including the native app root.
+
 All application icons are rendered through Forge's shared `Icon` adapter, backed by Tabler Icons. Choose the icon semantically for the action or content it represents; screens must not import a separate icon library directly.
 
 Visual screen explorations use iPhone portrait format by default unless a task explicitly calls for a different target. They are directional previews rather than app assets or implementation specifications.

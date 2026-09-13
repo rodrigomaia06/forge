@@ -21,6 +21,7 @@ import {
   Icon,
 } from '../../components/ui';
 import { forgeSheetHeader } from '../../components/ui/ForgeBottomSheet';
+import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
@@ -29,7 +30,6 @@ import { useExerciseCatalog } from '../../state/ExerciseCatalogContext';
 import { useSettings } from '../../state/SettingsContext';
 import { CompletionCheck } from './CompletionCheck';
 import { animateLayout, lightHaptic, mediumHaptic, selectionHaptic } from './activeWorkoutFeedback';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { WorkoutExercise } from '../../types';
 import { catalogFacets, filterCatalog, groupCatalogByPrimaryEquipment } from '../../domain/exercises/catalogSelectors';
 import { formatPickerPrimaryEquipment } from '../../domain/exercises/exercisePresentation';
@@ -65,7 +65,7 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   const [filters, setFilters] = useState<CatalogFilterState>(emptyCatalogFilters());
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [expandedEquipment, setExpandedEquipment] = useState<string | null>(null);
-  const insets = useSafeAreaInsets();
+  const floatingCtaClearance = useForgeFloatingCtaClearance();
   const filterFacets = useMemo<CatalogFilterFacet[]>(() => {
     const optionsFor = (draft: CatalogFilterState, includeEquipment: boolean) => {
       const scoped = filterCatalog(exerciseCatalog, {
@@ -261,7 +261,7 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
             removeClippedSubviews={Platform.OS !== 'web'}
             contentContainerStyle={[
               styles.pickerListContent,
-              { paddingBottom: 108 + insets.bottom },
+              { paddingBottom: floatingCtaClearance },
             ]}
             keyboardDismissMode="on-drag"
             keyboardShouldPersistTaps="handled"

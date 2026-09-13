@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -34,6 +35,7 @@ const colors = ['#7C8CF8', '#6BD48F', '#F27D7D', '#F4A261', '#B78AF0', '#9CA3AF'
 const spring = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
 
 export function WorkoutTypesScreen({ navigation }: Props) {
+  const { bottom: bottomInset } = useSafeAreaInsets();
   const theme = useForgeTheme();
   const { preferences, updatePreferences } = useSettings();
   const { activeWorkout, completedWorkouts } = useWorkouts();
@@ -80,7 +82,7 @@ export function WorkoutTypesScreen({ navigation }: Props) {
     });
   };
   return (
-    <AppScreen backgroundColor={theme.background}>
+    <AppScreen edges={['top']} backgroundColor={theme.background}>
       <View style={[styles.screen, { backgroundColor: theme.background }]}>
         <SettingsDetailHeader
           title="Workout types"
@@ -99,7 +101,7 @@ export function WorkoutTypesScreen({ navigation }: Props) {
         <ScrollView
           testID="workout-types-scroll"
           style={styles.scroll}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingBottom: styles.content.paddingBottom + bottomInset }]}
           showsVerticalScrollIndicator={false}
           directionalLockEnabled
           keyboardDismissMode="on-drag"

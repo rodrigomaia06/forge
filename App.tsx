@@ -13,7 +13,7 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 import { WorkoutProvider } from './src/state/WorkoutContext';
 import { SettingsProvider } from './src/state/SettingsContext';
 import { PlansProvider } from './src/state/PlansContext';
-import { ForgeThemeProvider } from './src/theme/ThemeProvider';
+import { ForgeThemeProvider, useForgeTheme } from './src/theme/ThemeProvider';
 import { ExerciseCatalogProvider } from './src/state/ExerciseCatalogContext';
 import { ForgeLoadingScreen } from './src/components/ForgeLoadingScreen';
 import { RestTimerProvider } from './src/state/RestTimerContext';
@@ -29,13 +29,22 @@ export default function App() {
   if (!fontsLoaded) return <ForgeLoadingScreen />;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <SettingsProvider>
-          <ForgeThemeProvider>
-            <ExerciseCatalogProvider><PlansProvider><WorkoutProvider><RestTimerProvider><AppNavigator /></RestTimerProvider></WorkoutProvider></PlansProvider></ExerciseCatalogProvider>
-          </ForgeThemeProvider>
-        </SettingsProvider>
+    <SettingsProvider>
+      <ForgeThemeProvider>
+        <ThemedApp />
+      </ForgeThemeProvider>
+    </SettingsProvider>
+  );
+}
+
+function ThemedApp() {
+  const theme = useForgeTheme();
+  const rootStyle = { flex: 1, backgroundColor: theme.background };
+
+  return (
+    <GestureHandlerRootView testID="app-root" style={rootStyle}>
+      <SafeAreaProvider style={rootStyle}>
+        <ExerciseCatalogProvider><PlansProvider><WorkoutProvider><RestTimerProvider><AppNavigator /></RestTimerProvider></WorkoutProvider></PlansProvider></ExerciseCatalogProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

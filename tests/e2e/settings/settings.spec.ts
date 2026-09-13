@@ -71,6 +71,9 @@ test.describe('Settings', () => {
 
     await page.getByRole('button', { name: 'Exercises' }).click();
     await expect(page.getByTestId('settings-detail-title')).toHaveText('Exercises');
+    const exerciseLibrary = page.getByTestId('exercise-library-screen');
+    const exerciseLibraryBox = await exerciseLibrary.boundingBox();
+    expect(exerciseLibraryBox?.height ?? 0).toBeCloseTo(page.viewportSize()?.height ?? 0, 0);
     await expect(page.getByRole('button', { name: 'All exercises, 381 exercises' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Strength, 255 exercises' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Mobility, 37 exercises' })).toBeVisible();

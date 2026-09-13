@@ -178,6 +178,10 @@ export function ForgeBottomSheet({
   const keyboardSurfaceFillHeight = keyboardHeight + insets.bottom + (
     compactSheetFitsAboveKeyboard ? keyboardBreathingRoom : 0
   );
+  // A sheet can never grow past the screen space above the top safe area. Its
+  // body must own any overflow so a short viewport or the keyboard cannot
+  // create an unreachable lower region.
+  const maximumSheetHeight = windowHeight - insets.top;
 
   if (!visible) return null;
   return (
@@ -228,6 +232,7 @@ export function ForgeBottomSheet({
                 styles.sheet,
                 { backgroundColor: theme.surfaceElevated, shadowColor: theme.shadow },
                 style,
+                { maxHeight: maximumSheetHeight },
                 keyboardVisible && (compactSheetFitsAboveKeyboard
                   ? styles.keyboardRaisedSheet
                   : styles.keyboardExpandedSheet),

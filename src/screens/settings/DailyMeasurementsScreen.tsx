@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useMemo, useState } from 'react';
 import {
   Pressable,
@@ -31,6 +32,7 @@ import { typeScale } from '../../theme/tokens';
 import type { DailyMeasurementDefinition, IconName, RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
+import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DailyMeasurements'>;
 type Range = 7 | 30 | 90;
@@ -70,8 +72,10 @@ function formatValue(value: number, unit: string): string {
 }
 
 export function DailyMeasurementsScreen({ navigation }: Props) {
+  const { bottom: bottomInset } = useSafeAreaInsets();
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const floatingCtaClearance = useForgeFloatingCtaClearance();
   const { preferences, updatePreferences } = useSettings();
   const [range, setRange] = useState<Range>(30);
   const [headerElevated, setHeaderElevated] = useState(false);
@@ -170,7 +174,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
   };
 
   return (
-    <AppScreen backgroundColor={theme.background}>
+    <AppScreen edges={['top']} backgroundColor={theme.background}>
       <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <SettingsDetailHeader
         title="Measurements"
@@ -187,7 +191,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
       />
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: styles.content.paddingBottom + bottomInset }]}
         showsVerticalScrollIndicator={false}
         directionalLockEnabled
         keyboardDismissMode="on-drag"
@@ -312,7 +316,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
         keyboardAvoiding
       >
         {(close) => (
-          <View style={styles.recordSheet}>
+          <View style={[styles.recordSheet, { paddingBottom: floatingCtaClearance }]}>
             <ForgeBottomSheetHandle />
             <ForgeSheetHeader title={`Record ${selected?.name ?? 'measurement'}`} onClose={close} />
             <Text style={styles.recordDate}>Today · {displayDate(localDateKey())}</Text>
@@ -349,7 +353,13 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
           <View style={styles.metricSheet}>
             <ForgeBottomSheetHandle />
             <ForgeSheetHeader title="Add measure" onClose={close} />
-            <View style={styles.metricForm}>
+            <ScrollView
+              style={styles.metricFormScroll}
+              contentContainerStyle={[styles.metricForm, { paddingBottom: floatingCtaClearance }]}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator={false}
+            >
               <Text style={styles.fieldLabel}>NAME</Text>
               <ForgeCard variant="inset" style={styles.fieldCard}>
                 <TextInput
@@ -409,7 +419,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                   </Pressable>
                 ))}
               </View>
-            </View>
+            </ScrollView>
             <ForgeFloatingCta
               label="Add measure"
               accessibilityLabel="Add measure"
@@ -485,7 +495,12 @@ function MeasurementChart({
 const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.create({
   screen: { flex: 1 },
   scroll: { flex: 1 },
-  content: { padding: settingsLayout.screenPadding, paddingTop: settingsLayout.contentTop, gap: 20 },
+  content: {
+    padding: settingsLayout.screenPadding,
+    paddingTop: settingsLayout.contentTop,
+    paddingBottom: settingsLayout.contentBottom,
+    gap: 20,
+  },
   metricHeading: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 12 },
   metricIcon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   metricHeadingCopy: { flex: 1, minWidth: 0 },
@@ -507,8 +522,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   selectedMetricContent: { gap: 14 },
   recordEmpty: { minHeight: 50, borderRadius: 16 },
   addMetric: { minHeight: 48, borderStyle: 'dashed', borderColor: theme.border },
-  recordSheet: { minHeight: 315, paddingBottom: 92 },
-  metricSheet: { minHeight: 520, paddingBottom: 92 },
+  recordSheet: { minHeight: 315 },
+  metricSheet: { minHeight: 520, flexShrink: 1 },
+  metricFormScroll: { flexShrink: 1 },
   metricForm: { paddingHorizontal: 20 },
   recordDate: { ...typeScale.supporting, color: theme.textSecondary, textAlign: 'center', marginBottom: 22 },
   valueField: { marginHorizontal: 20, minHeight: 72, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 10 },

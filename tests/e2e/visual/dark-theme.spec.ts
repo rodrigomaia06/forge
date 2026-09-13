@@ -31,6 +31,20 @@ async function rect(page: Page, testId: string) {
     });
 }
 
+async function expectThemeBackgrounds(page: Page) {
+  const expected = await page.evaluate(() => {
+    const swatch = document.createElement('div');
+    swatch.style.backgroundColor = 'var(--forge-background)';
+    document.body.appendChild(swatch);
+    const color = getComputedStyle(swatch).backgroundColor;
+    swatch.remove();
+    return color;
+  });
+  await expect(page.locator('body')).toHaveCSS('background-color', expected);
+  await expect(page.getByTestId('app-root')).toHaveCSS('background-color', expected);
+  await expect(page.getByTestId('app-root').locator(':scope > div').first()).toHaveCSS('background-color', expected);
+}
+
 test('captures primary Forge surfaces in Dark appearance', async ({ page }) => {
   await enableDark(page);
   await page.goto('/');
@@ -90,11 +104,12 @@ test('captures primary Forge surfaces in Dark appearance', async ({ page }) => {
   await capture(page, 'about');
 });
 
-test('keeps layout stable and resolves Light, Dark and System at runtime', async ({ page }) => {
+test('keeps layout stable and resolves Light, Dark and System at runtime', async ({ page }, testInfo) => {
   await page.goto('/');
   await expect(page.getByTestId('dashboard-header-title').last()).toBeVisible();
   const lightDashboard = await rect(page, 'dashboard-shell');
   const lightDock = await rect(page, 'dashboard-dock-cylinder');
+  await expectThemeBackgrounds(page);
 
   await page.getByRole('tab', { name: 'Settings' }).click();
   await page.getByRole('button', { name: 'General' }).click();
@@ -106,6 +121,31 @@ test('keeps layout stable and resolves Light, Dark and System at runtime', async
   await expect(page.getByTestId('dashboard-header-title').last()).toBeVisible();
   expect(await rect(page, 'dashboard-shell')).toEqual(lightDashboard);
   expect(await rect(page, 'dashboard-dock-cylinder')).toEqual(lightDock);
+  await expectThemeBackgrounds(page);
+
+  if (testInfo.project.name === 'iphone-air') {
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await expect.poll(() => page.getByTestId('settings-scroll').evaluate((element) => {
+      for (let parent: HTMLElement | null = element as HTMLElement; parent; parent = parent.parentElement) {
+        if (parseFloat(getComputedStyle(parent).opacity) < 1) return false;
+      }
+      return true;
+    })).toBe(true);
+    // Expose the backing surface for a browser visual check. UIKit's actual
+    // interactive swipe transition still requires an on-device check.
+    const content = page.getByTestId('app-root').locator(':scope > div').first();
+    await content.evaluate((element: HTMLElement) => {
+      element.style.transform = 'scale(0.96)';
+      element.style.borderRadius = '40px';
+      element.style.overflow = 'hidden';
+    });
+    await page.screenshot({ path: `${output}/navigation-backing-surface.png` });
+    await content.evaluate((element: HTMLElement) => {
+      element.style.removeProperty('transform');
+      element.style.removeProperty('border-radius');
+      element.style.removeProperty('overflow');
+    });
+  }
 
   const darkBackgrounds = await page.locator('*').evaluateAll(
     (elements) =>
@@ -124,6 +164,11 @@ test('keeps layout stable and resolves Light, Dark and System at runtime', async
   await page.getByRole('radio', { name: 'System' }).click();
   await page.emulateMedia({ colorScheme: 'light' });
   await expect(page.getByRole('button', { name: 'Appearance', exact: true })).toContainText('System');
+  await expectThemeBackgrounds(page);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await expect(page.getByTestId('app-root')).toHaveCSS('background-color', 'rgb(23, 25, 28)');
+  await expectThemeBackgrounds(page);
+  await page.emulateMedia({ colorScheme: 'light' });
   await page.reload();
   await page.getByRole('tab', { name: 'Settings' }).click();
   await page.getByRole('button', { name: 'General' }).click();

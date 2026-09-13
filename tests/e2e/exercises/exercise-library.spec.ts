@@ -89,6 +89,60 @@ test.describe('Exercise library', () => {
     await expect(page.getByRole('button', { name: 'Filters, 1 active' })).toBeVisible();
   });
 
+  test('keeps tab and stack scroll ends reachable with iPhone safe-area insets', async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 700 });
+    await page.goto('/');
+    await expect(page.getByTestId('dashboard-shell')).toBeVisible();
+    await setSafeArea(page, 62, 34);
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    const settings = page.getByTestId('settings-scroll');
+    await scrollToEnd(settings);
+    const about = settings.getByRole('button', { name: 'About', exact: true });
+    const aboutBox = await about.boundingBox();
+    const dock = await page.getByTestId('dashboard-dock-cylinder').boundingBox();
+    expect((aboutBox?.y ?? Infinity) + (aboutBox?.height ?? Infinity)).toBeLessThan(dock?.y ?? 0);
+    await about.click();
+    await page.getByRole('button', { name: 'Back to Settings' }).click();
+    await page.getByRole('button', { name: 'Exercises', exact: true }).click();
+    await page.getByRole('button', { name: 'All exercises, 381 exercises' }).click();
+    const browser = page.getByTestId('exercise-browser-scroll');
+    await expect.poll(async () => {
+      const box = await browser.boundingBox();
+      return Math.round((box?.y ?? 0) + (box?.height ?? 0));
+    }).toBe(700); // The scroll viewport reaches the screen edge, including the safe area.
+    const bounds = await browser.boundingBox();
+    expect(bounds?.y).toBe(132); // 62 pt safe area + 70 pt header
+    await scrollToEnd(browser);
+    const finalAction = browser.getByRole('button').last();
+    const finalBox = await finalAction.boundingBox();
+    // The safe area belongs to the scroll extent, so the last action still
+    // clears the 34 pt home-indicator region after scrolling to the end.
+    expect((finalBox?.y ?? Infinity) + (finalBox?.height ?? Infinity)).toBeLessThanOrEqual(666);
+    await finalAction.click({ trial: true });
+    if (testInfo.project.name === 'iphone-air') {
+      await page.screenshot({ path: 'tests/results/captures/exercise-browser-bottom-safe-area.png' });
+    }
+    // Place a card across the old 666 pt clipping boundary. It must remain
+    // painted within the lower safe area while the list is between items.
+    await finalAction.evaluate((element) => {
+      for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+        if (/auto|scroll/.test(getComputedStyle(parent).overflowY)) {
+          parent.scrollTop += element.getBoundingClientRect().top - 650;
+          parent.dispatchEvent(new Event('scroll', { bubbles: true }));
+          return;
+        }
+      }
+      throw new Error('Expected a scrolling ancestor for the final action');
+    });
+    await expect.poll(() => finalAction.evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      return element.contains(document.elementFromPoint(box.x + 20, 690));
+    })).toBe(true);
+    if (testInfo.project.name === 'iphone-air') {
+      await page.screenshot({ path: 'tests/results/captures/exercise-browser-through-bottom-safe-area.png' });
+    }
+  });
+
   test('sizes the two-facet filter summary to its cards without a top gap', async ({ page }, testInfo) => {
     await page.addInitScript(() => {
       localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance: 'dark' }));
@@ -121,6 +175,30 @@ test.describe('Exercise library', () => {
     if (testInfo.project.name === 'iphone-air') {
       await page.screenshot({ path: 'tests/results/captures/exercise-filters-compact-safe-area.png' });
     }
+  });
+
+  test('reaches and activates the last browser action after expanded and filtered results', async ({ page }) => {
+    await openAllExercises(page);
+    const browser = page.getByTestId('exercise-browser-scroll');
+    await page.getByRole('button', { name: 'Bench Press & 3 variations' }).click();
+    await expect(page.getByRole('button', { name: 'Open Flat' }).first()).toBeVisible();
+
+    const finalAction = browser.getByRole('button').last();
+    const metrics = await scrollToEnd(browser);
+    expect(metrics.scrollTop).toBeGreaterThanOrEqual(metrics.maximumOffset - 1);
+    await expect(finalAction).toBeVisible();
+    const finalBox = await finalAction.boundingBox();
+    expect((finalBox?.y ?? Infinity) + (finalBox?.height ?? Infinity)).toBeLessThanOrEqual(
+      metrics.viewportBottom + 1,
+    );
+    await finalAction.click();
+
+    await page.getByRole('button', { name: 'Filters' }).click();
+    await page.getByRole('button', { name: 'Edit Equipment filter, Any' }).click();
+    await page.getByRole('checkbox', { name: 'Filter Equipment: Machine' }).click();
+    await page.getByRole('button', { name: 'Apply (1)' }).click();
+    await expect(page.getByRole('button', { name: 'Filters, 1 active' })).toBeVisible();
+    await expect(browser).toBeVisible();
   });
 
   test('groups movement variations and stages multi-select facets before applying them', async ({ page }) => {

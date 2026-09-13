@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   LayoutAnimation,
@@ -38,6 +39,7 @@ import {
   pressedFeedback,
   selectionHaptic,
 } from '../../components/ui';
+import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
 import {
   catalogFilterCount,
   emptyCatalogFilters,
@@ -52,6 +54,7 @@ import { useSettings } from '../../state/SettingsContext';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
+import { useScrollLayoutProbe } from '../../debug/layoutProbe';
 import type { IconName, RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { workoutTypeIcon } from './workoutTypeIcon';
@@ -94,9 +97,11 @@ const restTimeOptions: readonly ForgeSingleSelectOption<number>[] = REST_DURATIO
 const swipeSpring = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
 
 export function ExerciseBrowserScreen({ navigation, route }: Props) {
+  const { bottom: bottomInset } = useSafeAreaInsets();
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const { height: viewportHeight } = useWindowDimensions();
+  const floatingCtaClearance = useForgeFloatingCtaClearance();
   const { preferences, updatePreferences } = useSettings();
   const catalog = useExerciseCatalog();
   const fixedTypeId = route.params?.workoutTypeId;
@@ -130,6 +135,13 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     : (preferences.workoutTypes.find((item) => item.id === fixedTypeId)?.name ?? 'All exercises');
   const visibleTypes = preferences.workoutTypes.filter((item) => !item.hidden);
   const active = catalogFilterCount(filters);
+  const browserScrollProbe = useScrollLayoutProbe<ScrollView>('exercise-browser-scroll', {
+    customOnly,
+    fixedTypeId,
+    query: deferredQuery,
+    activeFilters: active,
+    expanded,
+  });
   const filtered = useMemo(
     () =>
       filterCatalog(source, {
@@ -396,7 +408,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     ? Math.min(viewportHeight * 0.82, 640)
     : Math.min(viewportHeight * 0.72, 540);
   return (
-    <AppScreen backgroundColor={theme.background}>
+    <AppScreen edges={['top']} backgroundColor={theme.background}>
       <View style={styles.screen}>
         <SettingsDetailHeader
           title={title}
@@ -413,13 +425,18 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
           }
         />
         <ScrollView
+          ref={browserScrollProbe.ref}
           testID="exercise-browser-scroll"
           style={styles.scroll}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingBottom: styles.content.paddingBottom + bottomInset }]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           directionalLockEnabled
           onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
+          onLayout={browserScrollProbe.onLayout}
+          onContentSizeChange={browserScrollProbe.onContentSizeChange}
+          onMomentumScrollEnd={browserScrollProbe.onMomentumScrollEnd}
+          onScrollEndDrag={browserScrollProbe.onScrollEndDrag}
           scrollEventThrottle={16}
         >
           <View style={styles.searchRow}>
@@ -543,7 +560,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                 <>
                   <ScrollView
                     style={styles.formScroll}
-                    contentContainerStyle={styles.form}
+                    contentContainerStyle={[styles.form, { paddingBottom: floatingCtaClearance }]}
                     keyboardShouldPersistTaps="handled"
                     keyboardDismissMode="on-drag"
                     directionalLockEnabled
@@ -1311,8 +1328,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     content: {
       padding: settingsLayout.screenPadding,
       paddingTop: settingsLayout.contentTop,
-      // This is a stack detail screen, so its own safe-area edge—not the
-      // primary dock—defines the lower scroll boundary.
+      // Keep the bottom safe area inside the scroll extent so cards can
+      // pass behind the home indicator without an opaque clipping band.
       paddingBottom: settingsLayout.contentBottom,
       gap: settingsLayout.listGap,
     },
@@ -1501,7 +1518,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       borderColor: theme.divider,
     },
     formScroll: { flex: 1, minHeight: 0 },
-    form: { padding: 20, gap: 18, paddingBottom: 128 },
+    form: { padding: 20, gap: 18 },
     formPickerContent: { padding: 20, gap: 12, paddingBottom: 36 },
     formNameCard: { padding: 14, gap: 8, borderRadius: 18 },
     formNameInput: {

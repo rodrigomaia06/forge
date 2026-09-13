@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -63,6 +64,7 @@ type RoutineConfirmation = {
 };
 
 export function RoutineEditorScreen({ navigation, route }: Props) {
+  const { bottom: bottomInset } = useSafeAreaInsets();
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const { findRoutine, createRoutine, updateRoutine, deleteRoutine, plans, moveRoutine } = usePlans();
@@ -323,7 +325,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
   ) : null;
 
   return (
-    <AppScreen backgroundColor={theme.background}>
+    <AppScreen edges={['top']} backgroundColor={theme.background}>
       <KeyboardAvoidingView
         style={[styles.screen, { backgroundColor: theme.background }]}
         enabled={Platform.OS !== 'ios'}
@@ -375,9 +377,11 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
         </View>
         <DraggableFlatList
           ref={exerciseListRef}
+          containerStyle={styles.listViewport}
+          style={styles.listViewport}
           data={draft.exercises}
           keyExtractor={(exercise, index) => exercise.id ?? `routine-exercise-${index}`}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingBottom: styles.content.paddingBottom + bottomInset }]}
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
           scrollsChildToFocus
@@ -788,6 +792,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     pointerEventsNone: { pointerEvents: 'none' },
     headerTitle: { ...typeScale.headerTitle, color: theme.ink },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    listViewport: { flex: 1, minHeight: 0 },
     content: { padding: 16, paddingBottom: 50 },
     listHeader: { gap: 12, paddingBottom: 8 },
     sessionCard: {

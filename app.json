@@ -21,6 +21,7 @@
     "plugins": [
       "expo-asset",
       "expo-font",
+      "expo-system-ui",
       [
         "expo-splash-screen",
         {
