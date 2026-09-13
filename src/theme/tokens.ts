@@ -4,6 +4,7 @@ import type { ForgeTheme } from '../types';
 const shared = {
   actionPrimary: '#1D252D',
   onActionPrimary: '#FFFFFF',
+  setTargetIndicator: '#FFFFFF',
   selectionIndicator: '#1D252D',
   success: '#4D7B67',
   onSuccess: '#FFFFFF',

@@ -9,7 +9,7 @@ export function setDashboardTheme(theme: ForgeTheme): void { activeTheme = theme
 const colorKeys = new Set([
   'background', 'header', 'surface', 'surfaceElevated', 'input', 'dock', 'overlay', 'surfaceMuted',
   'ink', 'textPrimary', 'textSecondary', 'textDisabled', 'textDestructive', 'slate', 'muted', 'divider',
-  'border', 'pressed', 'focus', 'shadow', 'actionPrimary', 'onActionPrimary', 'selectionIndicator', 'success', 'onSuccess',
+  'border', 'pressed', 'focus', 'shadow', 'actionPrimary', 'onActionPrimary', 'setTargetIndicator', 'selectionIndicator', 'success', 'onSuccess',
   'destructiveSurface', 'destructiveSurfacePressed', 'calendarSurface',
   'calendarDay', 'selected', 'selectedText', 'marker', 'navigation', 'dockSurface', 'dockSelected',
   'dockBorder', 'dockForeground', 'dockMuted', 'summaryGradientStart', 'summaryGradientEnd', 'summaryBorder', 'summaryGlow',

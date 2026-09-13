@@ -8,7 +8,7 @@ import { errorHaptic } from './activeWorkoutFeedback';
 import { CompletionCheck } from './CompletionCheck';
 import type { SetRowProps } from './activeWorkoutTypes';
 import { measurementText, trackingFieldLabel, trackingFields, updateMeasurement } from '../../domain/exercises/tracking';
-import { setTagPresentation } from '../../domain/workouts/setPresentation';
+import { hasNextSessionTarget, setTagPresentation } from '../../domain/workouts/setPresentation';
 
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
@@ -34,6 +34,8 @@ export function SetRow({
   const setRowRef = useRef<View>(null);
   const previous = set.previous || '—';
   const tag = setTagPresentation(set.tag);
+  const rpe = measurementText(set, 'rpe');
+  const hasNextTarget = hasNextSessionTarget(set);
 
   useEffect(
     () => () => {
@@ -120,6 +122,12 @@ export function SetRow({
           >
             {tag?.letter ?? index + 1}
           </Text>
+          {hasNextTarget ? (
+            <View accessibilityLabel={`Set ${index + 1} has a next session target`} style={styles.targetIndicator} />
+          ) : null}
+          {rpe ? (
+            <Text accessibilityLabel={`Set ${index + 1} RPE ${rpe}`} style={styles.rpeIndicator}>{rpe}</Text>
+          ) : null}
           {set.comment?.trim() ? (
             <View accessibilityLabel={`Set ${index + 1} has a comment`} style={styles.commentIndicator} />
           ) : null}
@@ -207,7 +215,23 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: dashboardTheme.surface,
+    backgroundColor: dashboardTheme.ink,
+  },
+  targetIndicator: {
+    position: 'absolute',
+    top: 1,
+    left: 1,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: dashboardTheme.setTargetIndicator,
+  },
+  rpeIndicator: {
+    position: 'absolute',
+    bottom: 1,
+    left: 3,
+    color: dashboardTheme.ink,
+    ...typeScale.caption,
   },
   });
 };

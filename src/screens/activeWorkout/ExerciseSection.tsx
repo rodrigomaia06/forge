@@ -34,7 +34,7 @@ import { measurementText, trackingFieldLabel, trackingFields } from '../../domai
 import { formatExerciseMetadata } from '../../domain/exercises/exercisePresentation';
 import { exerciseCatalog } from '../../data/exerciseCatalog';
 import { useWorkouts } from '../../state/WorkoutContext';
-import { setTagPresentation } from '../../domain/workouts/setPresentation';
+import { hasNextSessionTarget, setTagPresentation } from '../../domain/workouts/setPresentation';
 
 export const ExerciseSection = React.memo(function ExerciseSection({
   exercise,
@@ -465,6 +465,8 @@ function ReadOnlyHistorySetRow({
   const styles = useThemedStyles(createStyles);
   const targetSummary = nextTimeTargetSummary(set, trackingType);
   const tag = setTagPresentation(set.tag);
+  const rpe = measurementText(set, 'rpe');
+  const hasNextTarget = hasNextSessionTarget(set);
   const hasAnnotations = Boolean(set.tag || targetSummary);
   return (
     <View
@@ -495,6 +497,12 @@ function ReadOnlyHistorySetRow({
             >
               {tag?.letter ?? index + 1}
             </Text>
+            {hasNextTarget ? (
+              <View accessibilityLabel={`Set ${index + 1} has a next session target`} style={styles.historySetTargetIndicator} />
+            ) : null}
+            {rpe ? (
+              <Text accessibilityLabel={`Set ${index + 1} RPE ${rpe}`} style={styles.historySetRpeIndicator}>{rpe}</Text>
+            ) : null}
             {set.comment?.trim() ? (
               <View accessibilityLabel={`Set ${index + 1} has a comment`} style={styles.historySetCommentIndicator} />
             ) : null}
@@ -736,7 +744,23 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       width: 7,
       height: 7,
       borderRadius: 3.5,
-      backgroundColor: dashboardTheme.surface,
+      backgroundColor: dashboardTheme.ink,
+    },
+    historySetTargetIndicator: {
+      position: 'absolute',
+      top: 1,
+      left: 1,
+      width: 7,
+      height: 7,
+      borderRadius: 3.5,
+      backgroundColor: dashboardTheme.setTargetIndicator,
+    },
+    historySetRpeIndicator: {
+      position: 'absolute',
+      bottom: 1,
+      left: 3,
+      color: dashboardTheme.ink,
+      ...typeScale.caption,
     },
     previous: {
       flex: 1,

@@ -23,6 +23,8 @@ export interface ForgeTheme {
   shadow: string;
   actionPrimary: string;
   onActionPrimary: string;
+  /** High-contrast marker used for a suggested next-session set target. */
+  setTargetIndicator: string;
   selectionIndicator: string;
   success: string;
   onSuccess: string;

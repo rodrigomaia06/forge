@@ -14,6 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import {
+  Button,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
   ForgeBackButton,
@@ -121,7 +122,6 @@ export function SetDetailsCard({
                   editable={editable}
                   onChange={() => setEditorView('set-kind')}
                   onClear={() => {
-                    selectionHaptic();
                     onChange({ tag: '' });
                   }}
                 />
@@ -295,14 +295,14 @@ function SetKindSection({
               <Text style={styles.changeKindText}>Change</Text>
             </Pressable>
             {value ? (
-              <Pressable
-                accessibilityRole="button"
+              <Button
                 accessibilityLabel="Clear set kind"
+                label="Clear"
+                variant="outline"
+                tone="destructive"
                 onPress={onClear}
-                style={({ pressed }) => [styles.clearKindButton, pressed && pressedFeedbackSubtle]}
-              >
-                <Text style={styles.clearKindText}>Clear</Text>
-              </Pressable>
+                style={styles.clearKindButton}
+              />
             ) : null}
             </View>
           </View>
@@ -569,7 +569,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     contentScroll: { flexShrink: 1 },
     sheetContent: {
       paddingHorizontal: 20,
-      paddingBottom: 10,
+      // This breathing room also increases the natural sheet height, lifting
+      // the editor slightly while keeping its final rows clear of the bottom edge.
+      paddingBottom: 45,
     },
     section: { marginTop: 14 },
     targetSection: { marginTop: 8, paddingBottom: 4 },
@@ -633,8 +635,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     setKindActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     changeKindButton: { minWidth: 78, minHeight: 44, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
     changeKindText: { color: theme.ink, ...typeScale.label },
-    clearKindButton: { minWidth: 68, minHeight: 44, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: theme.border, alignItems: 'center', justifyContent: 'center' },
-    clearKindText: { color: theme.slate, ...typeScale.label },
+    clearKindButton: { minWidth: 68, paddingHorizontal: 10, borderRadius: 12 },
     sessionCard: { overflow: 'hidden', borderRadius: 16 },
     sessionNoteSection: { padding: 14, gap: 8 },
     sessionEffortSection: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 14, gap: 10 },

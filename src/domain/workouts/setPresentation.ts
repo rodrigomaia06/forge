@@ -1,3 +1,5 @@
+import type { WorkoutSet } from '../../types';
+
 /** One presentation source for set tags in Active Workout and history. */
 export const SET_TAG_PRESENTATIONS = [
   { label: 'Warm Up', letter: 'W', color: '#FF8A2A' },
@@ -14,5 +16,14 @@ export function setTagPresentation(tag?: string): SetTagPresentation | undefined
   if (!normalized) return undefined;
   return SET_TAG_PRESENTATIONS.find(
     (item) => item.label.toLocaleLowerCase().replace(/[\s-]+/g, ' ') === normalized,
+  );
+}
+
+/** Legacy target fields and field-specific targets both mark a suggested next set. */
+export function hasNextSessionTarget(set: WorkoutSet): boolean {
+  return Boolean(
+    set.targets?.some((target) => target.minValue !== undefined || target.maxValue !== undefined)
+      || set.targetWeight?.trim()
+      || set.targetReps?.trim(),
   );
 }

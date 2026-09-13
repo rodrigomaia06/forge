@@ -551,8 +551,9 @@ test.describe('Active workout flow', () => {
 
     await expect(page.getByRole('radiogroup', { name: 'Set type' })).toHaveCount(0);
     const changeKind = sheet.getByRole('button', { name: 'Change set kind' });
+    await expect(page.getByLabel('Set 1 has a next session target')).toHaveCount(0);
     const changeKindBox = await changeKind.boundingBox();
-    expect(changeKindBox?.height).toBeGreaterThanOrEqual(44);
+    expect(changeKindBox?.height).toBeGreaterThanOrEqual(43);
     await changeKind.click();
     await expect(sheet.getByText('Set kind', { exact: true })).toBeVisible();
     await expect(sheet.getByRole('button', { name: 'Back to Set 1' })).toBeVisible();
@@ -564,7 +565,9 @@ test.describe('Active workout flow', () => {
     await expect(dropSet).toHaveAttribute('aria-checked', 'false');
     await dropSet.click();
     await expect(sheet.getByText('Drop Set', { exact: true })).toBeVisible();
-    await expect(sheet.getByRole('button', { name: 'Clear set kind' })).toBeVisible();
+    const clearKind = sheet.getByRole('button', { name: 'Clear set kind' });
+    await expect(clearKind).toBeVisible();
+    await expect(clearKind).toHaveCSS('background-color', 'rgb(246, 220, 221)');
     if (testInfo.project.name === 'iphone-air') {
       await page.screenshot({ path: testInfo.outputPath('set-kind-actions-iphone.png') });
     }
@@ -618,6 +621,7 @@ test.describe('Active workout flow', () => {
     expect(secondTarget.y).toBeGreaterThanOrEqual(firstTarget.y + 55);
     expect(firstTarget.width).toBeGreaterThanOrEqual(280);
     expect(Math.abs(firstTarget.width - secondTarget.width)).toBeLessThanOrEqual(1);
+    await page.getByRole('textbox', { name: 'Next-time kg target for set 1' }).fill('62');
     if (testInfo.project.name === 'iphone-air') {
       await page
         .locator('input[aria-label^="Next-time"]')
@@ -628,6 +632,17 @@ test.describe('Active workout flow', () => {
 
     await sheet.getByRole('button', { name: 'Close Set 1' }).click();
     await expect(page.getByText('SET KIND', { exact: true })).toHaveCount(0);
+    const [targetChipBox, targetDotBox, rpeBox] = await Promise.all([
+      page.getByTestId('live-set-number-chip-1').boundingBox(),
+      page.getByLabel('Set 1 has a next session target').boundingBox(),
+      page.getByLabel('Set 1 RPE 8').boundingBox(),
+    ]);
+    if (!targetChipBox || !targetDotBox || !rpeBox) throw new Error('Expected target and RPE set indicators to be measurable');
+    await expect(page.getByLabel('Set 1 has a next session target')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+    expect(targetDotBox.x).toBeLessThan(targetChipBox.x + targetChipBox.width / 2);
+    expect(targetDotBox.y).toBeLessThan(targetChipBox.y + targetChipBox.height / 2);
+    expect(rpeBox.x).toBeLessThan(targetChipBox.x + targetChipBox.width / 2);
+    expect(rpeBox.y + rpeBox.height).toBeGreaterThan(targetChipBox.y + targetChipBox.height / 2);
 
     await page.getByLabel('Open details for set 1').click();
     await page.getByLabel('Comment for set 1').fill('Keep this form');
@@ -656,6 +671,40 @@ test.describe('Active workout flow', () => {
     expect(dotBox.y + dotBox.height).toBeGreaterThan(chipBox.y + chipBox.height - 3);
     if (testInfo.project.name === 'iphone-air') {
       await page.screenshot({ path: testInfo.outputPath('set-comment-indicator-iphone.png') });
+    }
+  });
+
+  test('inverts a set comment dot in Dark appearance', async ({ page }, testInfo) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance: 'dark' }));
+    });
+    await startEmptyWorkoutWithExercise(page);
+    await page.getByLabel('Open details for set 1').click();
+    await page.getByLabel('Comment for set 1').fill('Keep this form');
+    await page.getByTestId('set-details-sheet').getByRole('button', { name: 'Close Set 1' }).click();
+    await expect(page.getByTestId('set-details-sheet')).toHaveCount(0);
+
+    const dot = page.getByLabel('Set 1 has a comment');
+    await expect(dot).toHaveCSS('background-color', 'rgb(247, 248, 246)');
+    if (testInfo.project.name === 'iphone-air') {
+      await page.screenshot({ path: testInfo.outputPath('dark-set-comment-indicator-iphone.png') });
+    }
+  });
+
+  test('keeps a next-session target dot white in Dark appearance', async ({ page }, testInfo) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance: 'dark' }));
+    });
+    await startEmptyWorkoutWithExercise(page);
+    await page.getByLabel('Open details for set 1').click();
+    await page.getByRole('textbox', { name: 'Next-time kg target for set 1' }).fill('62');
+    await page.getByTestId('set-details-sheet').getByRole('button', { name: 'Close Set 1' }).click();
+    await expect(page.getByTestId('set-details-sheet')).toHaveCount(0);
+
+    const dot = page.getByLabel('Set 1 has a next session target');
+    await expect(dot).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+    if (testInfo.project.name === 'iphone-air') {
+      await page.screenshot({ path: testInfo.outputPath('dark-set-target-indicator-iphone.png') });
     }
   });
 
