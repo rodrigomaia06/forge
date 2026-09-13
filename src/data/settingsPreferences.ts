@@ -6,6 +6,10 @@ import type {
 } from '../types';
 import { defaultSettingsPreferences } from './settingsDefaults';
 import { uniqueById } from './uniqueById';
+import {
+  builtInWorkoutTypeColors,
+  supersededBuiltInWorkoutTypeColors,
+} from '../domain/workouts/workoutTypeDefaults';
 
 /** Defensive reader shared by SQLite and web storage implementations. */
 export function parseSettingsPreferences(value: string | null): SettingsPreferences {
@@ -39,6 +43,24 @@ export function parseSettingsPreferences(value: string | null): SettingsPreferen
           : [],
       )
     : [];
+  const parsedWorkoutTypes = uniqueById(Array.isArray(parsed.workoutTypes)
+    ? [...parsed.workoutTypes.flatMap((item) =>
+        typeof item?.id === 'string' && typeof item.name === 'string' && typeof item.color === 'string'
+          ? [{
+              id: item.id,
+              name: item.name,
+              color: item.color,
+              hidden: item.hidden === true,
+              hasReferencedData: item.hasReferencedData === true,
+              source: item.source === 'builtIn' || item.source === 'custom'
+                ? item.source
+                : defaultSettingsPreferences.workoutTypes.some((type) => type.id === item.id)
+                  ? 'builtIn'
+                  : 'custom',
+            }]
+          : [],
+      ), ...defaultSettingsPreferences.workoutTypes.filter((defaultType) => !parsed.workoutTypes?.some((item) => item?.id === defaultType.id))] as SettingsPreferences['workoutTypes']
+    : defaultSettingsPreferences.workoutTypes);
   return {
     appearance: parsed.appearance === 'light' || parsed.appearance === 'dark' || parsed.appearance === 'system' ? parsed.appearance : 'system',
     units: parsed.units === 'imperial' ? parsed.units : 'metric',
@@ -60,23 +82,13 @@ export function parseSettingsPreferences(value: string | null): SettingsPreferen
         : {},
     dailyMeasurementDefinitions: uniqueDefinitions,
     dailyMeasurementEntries: uniqueById(entries),
-    workoutTypes: uniqueById(Array.isArray(parsed.workoutTypes)
-      ? [...parsed.workoutTypes.flatMap((item) =>
-          typeof item?.id === 'string' && typeof item.name === 'string' && typeof item.color === 'string'
-            ? [{
-                id: item.id,
-                name: item.name,
-                color: item.color,
-                hidden: item.hidden === true,
-                hasReferencedData: item.hasReferencedData === true,
-                source: item.source === 'builtIn' || item.source === 'custom'
-                  ? item.source
-                  : defaultSettingsPreferences.workoutTypes.some((type) => type.id === item.id)
-                    ? 'builtIn'
-                    : 'custom',
-              }]
-            : [],
-        ), ...defaultSettingsPreferences.workoutTypes.filter((defaultType) => !parsed.workoutTypes?.some((item) => item?.id === defaultType.id))] as SettingsPreferences['workoutTypes']
-      : defaultSettingsPreferences.workoutTypes),
+    // Upgrade only the React Native defaults. A deliberately edited built-in
+    // or a custom type keeps the user-selected color.
+    workoutTypes: parsedWorkoutTypes.map((item) =>
+      item.source === 'builtIn'
+        && supersededBuiltInWorkoutTypeColors[item.id]?.toUpperCase() === item.color.trim().toUpperCase()
+        ? { ...item, color: builtInWorkoutTypeColors[item.id] }
+        : item,
+    ),
   };
 }

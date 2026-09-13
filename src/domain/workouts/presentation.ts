@@ -1,22 +1,23 @@
 import type { ForgeTheme, IconName, Workout, WorkoutTypePreference } from '../../types';
+import { builtInWorkoutTypeColors } from './workoutTypeDefaults';
 
 const FALLBACK_TYPES: Record<string, { icon: IconName; color: string }> = {
-  strength: { icon: 'fitness-outline', color: '#687CF2' },
-  calisthenics: { icon: 'activity', color: '#4D9C8A' },
-  mobility: { icon: 'stretching', color: '#62C98A' },
-  cardio: { icon: 'running', color: '#EF715F' },
-  functional: { icon: 'task-list', color: '#B27BDA' },
-  'olympic weightlifting': { icon: 'weight', color: '#5478D8' },
-  plyometrics: { icon: 'activity', color: '#D78543' },
-  'court sport': { icon: 'tennis-ball', color: '#E3A346' },
-  'field sport': { icon: 'basketball', color: '#4C9B5D' },
-  'martial arts': { icon: 'warm-up', color: '#C56BE6' },
+  strength: { icon: 'fitness-outline', color: builtInWorkoutTypeColors.strength },
+  calisthenics: { icon: 'activity', color: builtInWorkoutTypeColors.calisthenics },
+  mobility: { icon: 'stretching', color: builtInWorkoutTypeColors.mobility },
+  cardio: { icon: 'running', color: builtInWorkoutTypeColors.cardio },
+  functional: { icon: 'task-list', color: builtInWorkoutTypeColors.functional },
+  'olympic weightlifting': { icon: 'weight', color: builtInWorkoutTypeColors['olympic-weightlifting'] },
+  plyometrics: { icon: 'activity', color: builtInWorkoutTypeColors.plyometrics },
+  'court sport': { icon: 'tennis-ball', color: builtInWorkoutTypeColors['court-sport'] },
+  'field sport': { icon: 'basketball', color: builtInWorkoutTypeColors['field-sport'] },
+  'martial arts': { icon: 'warm-up', color: builtInWorkoutTypeColors['martial-arts'] },
 };
 
 export function formatCompactDuration(seconds = 0): string {
   const minutes = Math.max(1, Math.round(seconds / 60));
   if (minutes < 60) return `${minutes}m`;
-  return `${Math.floor(minutes / 60)}h ${minutes % 60 ? `${minutes % 60}m` : ''}`.trim();
+  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}h`;
 }
 
 export function countWorkoutSets(workout: Pick<Workout, 'exercises'>): number {

@@ -29,9 +29,9 @@ import { typeScale } from '../../theme/tokens';
 import type { RootStackParamList, WorkoutTypePreference } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
+import { defaultCustomWorkoutTypeColor } from '../../domain/workouts/workoutTypeDefaults';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutTypes'>;
-const colors = ['#7C8CF8', '#6BD48F', '#F27D7D', '#F4A261', '#B78AF0', '#9CA3AF'];
 const spring = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
 
 export function WorkoutTypesScreen({ navigation }: Props) {
@@ -66,7 +66,7 @@ export function WorkoutTypesScreen({ navigation }: Props) {
     navigation.navigate('WorkoutTypeEditor', {
       mode: 'create',
       draftId: `type-${Date.now()}`,
-      initialColor: colors[preferences.workoutTypes.length % colors.length],
+      initialColor: defaultCustomWorkoutTypeColor,
     });
   };
   const remove = (type: WorkoutTypePreference) => {

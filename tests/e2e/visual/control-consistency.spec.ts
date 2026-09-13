@@ -140,7 +140,7 @@ test.describe('Interactive control consistency', () => {
       .getByRole('button', { name: 'Strength workout type' })
       .locator('div')
       .evaluateAll((elements) => elements.map((element) => window.getComputedStyle(element).backgroundColor));
-    expect(strengthColors).toContain('rgb(104, 124, 242)');
+    expect(strengthColors).toContain('rgb(124, 140, 248)');
   });
 
   test('uses the exact shared circular treatment for sheet Back and Close in Light', async ({ page }) => {

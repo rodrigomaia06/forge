@@ -1,4 +1,5 @@
 import type { SettingsPreferences } from '../types';
+import { builtInWorkoutTypeColors } from '../domain/workouts/workoutTypeDefaults';
 
 /** Static first-install settings; persistence and upgrade behavior live in the repository. */
 export const defaultSettingsPreferences: SettingsPreferences = {
@@ -17,15 +18,15 @@ export const defaultSettingsPreferences: SettingsPreferences = {
   dailyMeasurementDefinitions: [],
   dailyMeasurementEntries: [],
   workoutTypes: [
-    { id: 'strength', name: 'Strength', color: '#687CF2', source: 'builtIn' },
-    { id: 'calisthenics', name: 'Calisthenics', color: '#4D9C8A', source: 'builtIn' },
-    { id: 'cardio', name: 'Cardio', color: '#EF715F', source: 'builtIn' },
-    { id: 'mobility', name: 'Mobility', color: '#62C98A', source: 'builtIn' },
-    { id: 'functional', name: 'Functional', color: '#B27BDA', source: 'builtIn' },
-    { id: 'olympic-weightlifting', name: 'Olympic weightlifting', color: '#5478D8', source: 'builtIn' },
-    { id: 'plyometrics', name: 'Plyometrics', color: '#D78543', source: 'builtIn' },
-    { id: 'court-sport', name: 'Court sport', color: '#E3A346', source: 'builtIn' },
-    { id: 'field-sport', name: 'Field sport', color: '#4C9B5D', source: 'builtIn' },
-    { id: 'martial-arts', name: 'Martial arts', color: '#C56BE6', source: 'builtIn' },
+    { id: 'strength', name: 'Strength', color: builtInWorkoutTypeColors.strength, source: 'builtIn' },
+    { id: 'calisthenics', name: 'Calisthenics', color: builtInWorkoutTypeColors.calisthenics, source: 'builtIn' },
+    { id: 'cardio', name: 'Cardio', color: builtInWorkoutTypeColors.cardio, source: 'builtIn' },
+    { id: 'mobility', name: 'Mobility', color: builtInWorkoutTypeColors.mobility, source: 'builtIn' },
+    { id: 'functional', name: 'Functional', color: builtInWorkoutTypeColors.functional, source: 'builtIn' },
+    { id: 'olympic-weightlifting', name: 'Olympic weightlifting', color: builtInWorkoutTypeColors['olympic-weightlifting'], source: 'builtIn' },
+    { id: 'plyometrics', name: 'Plyometrics', color: builtInWorkoutTypeColors.plyometrics, source: 'builtIn' },
+    { id: 'court-sport', name: 'Court sport', color: builtInWorkoutTypeColors['court-sport'], source: 'builtIn' },
+    { id: 'field-sport', name: 'Field sport', color: builtInWorkoutTypeColors['field-sport'], source: 'builtIn' },
+    { id: 'martial-arts', name: 'Martial arts', color: builtInWorkoutTypeColors['martial-arts'], source: 'builtIn' },
   ],
 };

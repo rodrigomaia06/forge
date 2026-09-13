@@ -32,16 +32,9 @@ import { typeScale } from '../../theme/tokens';
 import type { RootStackParamList, WorkoutTypePreference } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
+import { workoutTypeColorChoices } from '../../domain/workouts/workoutTypeDefaults';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutTypeEditor'>;
-const colors = [
-  { name: 'Blue', value: '#7C8CF8' },
-  { name: 'Green', value: '#6BD48F' },
-  { name: 'Red', value: '#F27D7D' },
-  { name: 'Orange', value: '#F4A261' },
-  { name: 'Purple', value: '#B78AF0' },
-  { name: 'Gray', value: '#9CA3AF' },
-];
 const customColors = Array.from({ length: 48 }, (_, index) => {
   const hue = (index % 12) * 30;
   const lightness = 34 + Math.floor(index / 12) * 11;
@@ -224,7 +217,8 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
           </ForgeCard>
           {!builtIn && (
             <SettingsSection title="Color" cardStyle={styles.colorCard}>
-              {colors.map((choice, index) => (
+              {workoutTypeColorChoices.map((choice, index) => {
+                return (
                 <React.Fragment key={choice.value}>
                   <Pressable
                     accessibilityRole="button"
@@ -242,9 +236,10 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
                       <Icon name="check" size={18} color={dashboardTheme.selectionIndicator} weight="bold" />
                     )}
                   </Pressable>
-                  {index < colors.length - 1 && <View style={styles.rowDivider} />}
+                  {index < workoutTypeColorChoices.length - 1 && <View style={styles.rowDivider} />}
                 </React.Fragment>
-              ))}
+                );
+              })}
               <View style={styles.rowDivider} />
               <Pressable
                 accessibilityRole="button"
