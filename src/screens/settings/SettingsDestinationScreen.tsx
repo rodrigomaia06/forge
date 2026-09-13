@@ -1,6 +1,6 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React from 'react';
-import { Image, Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Image, Linking, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppScreen, ForgeText as Text } from '../../components/ui';
 import { dashboardTheme } from '../../theme/dashboardTheme';
@@ -9,6 +9,13 @@ import { typeScale } from '../../theme/tokens';
 import type { IconName, RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
+import { createSqliteBackup, databaseStatus, exportJson, exportText, mergeDataTransfer, pickJsonTransfer, pickSqliteBackup, restoreSqliteBackup } from '../../data/backupRepository';
+import { clearDiagnostics, exportDiagnostics, loadDiagnostics, recordDiagnostic, type DiagnosticEntry } from '../../data/diagnosticsRepository';
+import { useSettings } from '../../state/SettingsContext';
+import { usePlans } from '../../state/PlansContext';
+import { useWorkouts } from '../../state/WorkoutContext';
+import { useExerciseCatalog } from '../../state/ExerciseCatalogContext';
+import { useRestTimer } from '../../state/RestTimerContext';
 
 type DestinationRoute = 'ExerciseLibrary' | 'WorkoutTypes' | 'BackupExport' | 'Logs' | 'About';
 type Props = NativeStackScreenProps<RootStackParamList, DestinationRoute>;
@@ -39,13 +46,11 @@ export function SettingsDestinationScreen({ navigation, route }: Props) {
             <BackupExport />
           ) : route.name === 'About' ? (
             <About />
+          ) : route.name === 'Logs' ? (
+            <Logs />
           ) : (
             <SettingsSection>
-              <Text style={styles.copy}>
-                {route.name === 'Logs'
-                  ? 'Activity and diagnostic logs will appear here.'
-                  : 'Your exercise library will appear here.'}
-              </Text>
+              <Text style={styles.copy}>Your exercise library will appear here.</Text>
             </SettingsSection>
           )}
         </ScrollView>
@@ -55,33 +60,108 @@ export function SettingsDestinationScreen({ navigation, route }: Props) {
 }
 
 function BackupExport() {
+  const [busy, setBusy] = React.useState(false);
+  const { reload: reloadSettings } = useSettings();
+  const { reload: reloadPlans } = usePlans();
+  const { reload: reloadWorkouts } = useWorkouts();
+  const { reload: reloadExercises } = useExerciseCatalog();
+  const { stop: stopRestTimer } = useRestTimer();
+  const refresh = React.useCallback(async () => {
+    stopRestTimer();
+    await Promise.all([reloadSettings(), reloadPlans(), reloadWorkouts(), reloadExercises()]);
+  }, [reloadExercises, reloadPlans, reloadSettings, reloadWorkouts, stopRestTimer]);
+  const run = React.useCallback(async (work: () => Promise<void>, success?: string) => {
+    if (busy) return;
+    setBusy(true);
+    try { await work(); if (success) Alert.alert('Done', success); }
+    catch (error) {
+      await recordDiagnostic('operation-failed', error instanceof Error && /compatible|valid|SQLite/.test(error.message) ? 'invalid-file' : 'unknown');
+      Alert.alert('Could not complete this action', error instanceof Error ? error.message : 'Try again.');
+    } finally { setBusy(false); }
+  }, [busy]);
+  const importData = (): void => {
+    void run(async () => {
+      const transfer = await pickJsonTransfer();
+      if (!transfer) return;
+      const confirmed = await new Promise<boolean>((resolve) => Alert.alert(
+        'Merge Forge data?',
+        `${transfer.workouts.completedWorkouts.length} workouts and ${transfer.customExercises.length} custom exercises will be added. Existing data is kept.`,
+        [{ text: 'Cancel', style: 'cancel', onPress: () => resolve(false) }, { text: 'Merge', onPress: () => resolve(true) }],
+      ));
+      // The system confirmation above intentionally precedes every database write.
+      if (!confirmed) return;
+      const result = await mergeDataTransfer(transfer);
+      await refresh();
+      await recordDiagnostic('data-imported');
+      Alert.alert('Data merged', `${result.workouts} workouts and ${result.exercises} exercises were added.`);
+    });
+  };
+  const restore = (): void => {
+    void run(async () => {
+      const inspection = await pickSqliteBackup();
+      if (!inspection) return;
+      const confirmed = await new Promise<boolean>((resolve) => Alert.alert(
+        'Replace all Forge data?',
+        `This backup has ${inspection.workoutCount} completed workouts, ${inspection.planCount} plans and ${inspection.customExerciseCount} custom exercises. Current device data will be replaced after a safety copy is made.`,
+        [{ text: 'Cancel', style: 'cancel', onPress: () => resolve(false) }, { text: 'Replace data', style: 'destructive', onPress: () => resolve(true) }],
+      ));
+      if (!confirmed) return;
+      await restoreSqliteBackup(inspection);
+      await refresh();
+      await recordDiagnostic('backup-restored');
+      Alert.alert('Backup restored', 'Forge has reloaded the restored data.');
+    });
+  };
   return (
     <View style={styles.stack}>
       <SettingsSection
-        title="Backup"
-        footer="Full backups include all Forge data. Restore makes a safety copy first."
+        title="Data transfer"
+        footer="Portable JSON adds data without replacing your current workouts. Text is a read-only summary for sharing."
       >
-        <Action title="Create backup" divider />
-        <Action title="Restore backup" />
+        <Action title="Export JSON" divider onPress={() => void run(async () => { await exportJson(); await recordDiagnostic('data-exported'); })} />
+        <Action title="Export text" divider onPress={() => void run(exportText)} />
+        <Action title="Import JSON" onPress={importData} />
       </SettingsSection>
       <SettingsSection
-        title="Workout data"
-        footer="JSON import adds training without overwriting existing workouts."
+        title="Database backup"
+        footer={Platform.OS === 'web' ? 'Full SQLite backup and restore are available in iOS and Android builds.' : 'A complete Forge .sqlite file includes WAL changes. Restore validates it first and creates an in-app safety copy.'}
       >
-        <Action title="Export workout data" subtitle="JSON or text" divider />
-        <Action title="Import JSON" />
+        <Action title="Create SQLite backup" divider disabled={Platform.OS === 'web'} onPress={() => void run(async () => { await createSqliteBackup(); await recordDiagnostic('backup-created'); })} />
+        <Action title="Restore SQLite backup" disabled={Platform.OS === 'web'} onPress={restore} />
       </SettingsSection>
-      <SettingsSection
-        title="Reset"
-        footer="Removes your data from this device. Built-in exercises remain."
-      >
-        <Action title="Reset all data" destructive />
-      </SettingsSection>
-      <Text style={styles.unavailable}>
-        Backup and data tools are not connected in this release.
-      </Text>
+      {busy ? <Text style={styles.unavailable}>Working securely with local data…</Text> : null}
     </View>
   );
+}
+
+function Logs() {
+  const [entries, setEntries] = React.useState<DiagnosticEntry[]>([]);
+  const [status, setStatus] = React.useState('Checking local storage…');
+  const refresh = React.useCallback(() => {
+    void Promise.all([loadDiagnostics(), databaseStatus()]).then(([next, database]) => {
+      setEntries(next); setStatus(`${database.database} · ${database.tables} tables · local only`);
+    }).catch(() => setStatus('Local storage is unavailable.'));
+  }, []);
+  React.useEffect(() => { refresh(); }, [refresh]);
+  const clear = (): void => Alert.alert('Clear diagnostic logs?', 'This removes local technical events. Workout names, values, notes and identifiers are never recorded here.', [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Clear', style: 'destructive', onPress: () => void clearDiagnostics().then(refresh) },
+  ]);
+  return <View style={styles.stack}>
+    <SettingsSection title="Local diagnostics" footer="Logs are private to this device and limited to 80 technical events. They never contain workout names, exercises, values, notes or identifiers.">
+      <Text style={styles.copy}>{status}</Text>
+    </SettingsSection>
+    <SettingsSection title="Recent events">
+      {entries.length ? entries.map((entry, index) => <Action key={entry.id} title={diagnosticLabel(entry)} subtitle={new Date(entry.at).toLocaleString()} divider={index < entries.length - 1} />) : <Text style={styles.copy}>No diagnostic events recorded.</Text>}
+    </SettingsSection>
+    <SettingsSection>
+      <Action title="Export logs" divider onPress={() => void exportDiagnostics()} />
+      <Action title="Clear logs" destructive onPress={clear} />
+    </SettingsSection>
+  </View>;
+}
+function diagnosticLabel(entry: DiagnosticEntry): string {
+  return ({ 'app-opened': 'App opened', 'data-exported': 'Data exported', 'data-imported': 'Data imported', 'backup-created': 'SQLite backup created', 'backup-restored': 'SQLite backup restored', 'operation-failed': 'Operation could not complete' } as Record<DiagnosticEntry['kind'], string>)[entry.kind];
 }
 function About() {
   const theme = useForgeTheme();
@@ -134,6 +214,7 @@ function Action({
   onPress,
   divider = false,
   destructive = false,
+  disabled = false,
 }: {
   title: string;
   subtitle?: string;
@@ -142,6 +223,7 @@ function Action({
   onPress?: () => void;
   divider?: boolean;
   destructive?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <SettingsRow
@@ -150,7 +232,7 @@ function Action({
       icon={icon}
       iconSize={iconSize}
       destructive={destructive}
-      disabled={!onPress}
+      disabled={!onPress || disabled}
       onPress={onPress ?? (() => undefined)}
       disclosure={!destructive}
       showDivider={divider}

@@ -12,6 +12,11 @@ export function SettingsProvider({ children }: ChildrenProps) {
   const [preferences, setPreferences] = useState<SettingsPreferences>(defaultSettingsPreferences);
   const [ready, setReady] = useState(false);
 
+  const reload = useCallback(async (): Promise<void> => {
+    const next = await loadSettingsPreferences();
+    setPreferences(next);
+    setReady(true);
+  }, []);
   useEffect(() => {
     let mounted = true;
     loadSettingsPreferences()
@@ -35,8 +40,8 @@ export function SettingsProvider({ children }: ChildrenProps) {
   }, []);
 
   const value = useMemo(
-    () => ({ ready, preferences, updatePreferences }),
-    [preferences, ready, updatePreferences],
+    () => ({ ready, preferences, updatePreferences, reload }),
+    [preferences, ready, updatePreferences, reload],
   );
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

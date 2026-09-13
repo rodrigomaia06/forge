@@ -105,6 +105,7 @@ export interface PlansState {
 }
 export interface PlansContextValue extends PlansState {
   ready: boolean;
+  reload: () => Promise<void>;
   createPlan: (name?: string) => WorkoutPlan;
   updatePlan: (planId: string, update: (plan: WorkoutPlan) => WorkoutPlan) => void;
   reorderPlans: (plans: WorkoutPlan[]) => void;
@@ -145,6 +146,7 @@ export interface WorkoutSetChanges {
 }
 export interface WorkoutContextValue extends WorkoutState {
   ready: boolean;
+  reload: () => Promise<void>;
   startWorkout: (options?: StartWorkoutOptions) => Workout;
   addExercise: (exercise: WorkoutExerciseInput | string) => void;
   addExercises: (exercises: readonly WorkoutExerciseInput[]) => void;

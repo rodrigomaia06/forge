@@ -42,6 +42,8 @@ Do not read `docs/archive/` or `docs/research/` as current requirements unless t
 
 Use the smallest useful check during iteration. Before finishing a TypeScript code change, run `npm run typecheck` and only the tests that directly cover the files, consumers, and behavior changed.
 
+Run automated tests at reduced system priority and use up to two thirds of the machine's available cores (rounded down, with a minimum of one). For example, use `nice -n 10 npx playwright test ... --workers=$(( $(getconf _NPROCESSORS_ONLN) * 2 / 3 ))`. This is the normal target, not a fixed single-worker default: use the available allowance so verification remains timely while the machine stays responsive. Do not consume all cores for verification unless the user explicitly overrides this constraint. Preserve memory headroom too: run only one resource-heavy suite at a time, reduce workers only when observed suite memory pressure requires it, and never configure a verification command to consume all available RAM.
+
 Do not run unrelated test suites by default. Use `npm run verify` only when the changed surface is genuinely repository-wide and the full suite is therefore the smallest correct scope, or when the user explicitly requests it.
 
 If targeted verification cannot run or an affected area has no relevant test, report exactly what was not verified and why.
@@ -91,6 +93,8 @@ src/
 │   ├── rest
 │   └── workouts
 ├── data
+│   ├── backupRepository.ts
+│   ├── diagnosticsRepository.ts
 │   ├── mockWorkouts.ts
 │   └── workoutRepository.ts
 ├── debug
@@ -105,7 +109,9 @@ src/
 │   ├── HistoryScreen.tsx
 │   └── PlaceholderScreen.tsx
 ├── state
+│   ├── RestTimerContext.tsx
 │   ├── WorkoutContext.tsx
+│   ├── restTimerLiveActivity.ts
 │   └── workoutMutations.ts
 ├── theme
 │   ├── dashboardTheme.ts
@@ -116,7 +122,9 @@ src/
 │   ├── theme.ts
 │   ├── ui.ts
 │   └── workout.ts
-└── types.ts
+├── types.ts
+└── widgets
+    └── RestTimerLiveActivity.tsx
 tests/
 
 This section should be updated as files are created for an updated overview of the project.

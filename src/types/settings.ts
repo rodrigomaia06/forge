@@ -52,4 +52,5 @@ export interface SettingsContextValue {
   ready: boolean;
   preferences: SettingsPreferences;
   updatePreferences: (changes: Partial<SettingsPreferences>) => void;
+  reload: () => Promise<void>;
 }

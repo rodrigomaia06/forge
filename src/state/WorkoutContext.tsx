@@ -55,6 +55,18 @@ export function WorkoutProvider({ children }: ChildrenProps) {
     },
     [queueActiveSave],
   );
+  const reload = useCallback(async (): Promise<void> => {
+    if (activeSaveTimerRef.current) {
+      clearTimeout(activeSaveTimerRef.current);
+      activeSaveTimerRef.current = null;
+    }
+    const state = await loadWorkoutState();
+    skipNextActivePersistenceRef.current = true;
+    skipNextCompletedPersistenceRef.current = true;
+    setActiveWorkout(state.activeWorkout);
+    setCompletedWorkouts(state.completedWorkouts);
+    setReady(true);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -216,6 +228,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
   const value = useMemo(
     () => ({
       ready,
+      reload,
       activeWorkout,
       completedWorkouts,
       startWorkout,
@@ -237,6 +250,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
     }),
     [
       ready,
+      reload,
       activeWorkout,
       completedWorkouts,
       startWorkout,

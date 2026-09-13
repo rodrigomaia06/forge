@@ -14,11 +14,16 @@ export type ForgeDatabase = SQLite.SQLiteDatabase;
 
 /** Expo SQLite uses one native connection; serialize transaction starts across repositories. */
 export function withDatabaseTransaction(work: (db: ForgeDatabase) => Promise<void>): Promise<void> {
-  const next = writeQueue.catch(() => undefined).then(async () => {
-    const db = await openForgeDatabase();
-    await db.withTransactionAsync(async () => work(db));
-  });
-  writeQueue = next;
+  return withDatabaseMaintenance(async (db) => db.withTransactionAsync(async () => work(db)));
+}
+
+/**
+ * Serializes maintenance work with ordinary repository writes. Database backup
+ * and restore use this to avoid taking a snapshot halfway through a queued edit.
+ */
+export function withDatabaseMaintenance<T>(work: (db: ForgeDatabase) => Promise<T>): Promise<T> {
+  const next = writeQueue.catch(() => undefined).then(async () => work(await openForgeDatabase()));
+  writeQueue = next.then(() => undefined, () => undefined);
   return next;
 }
 

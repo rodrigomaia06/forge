@@ -133,13 +133,13 @@ test.describe('Settings', () => {
     await page.getByRole('button', { name: 'Save measurement' }).click();
     await expect(page.getByText('81.4 kg').first()).toBeVisible();
     await expect(page.getByLabel('1 measurements chart')).toBeVisible();
-    await expect(page.getByText('History', { exact: true }).last()).toBeVisible();
+    await expect(page.getByText(/^History · /).last()).toBeVisible();
 
     await page.reload();
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Measurements' }).click();
     await expect(page.getByText('81.4 kg').first()).toBeVisible();
-    await expect(page.getByText('History', { exact: true }).last()).toBeVisible();
+    await expect(page.getByText(/^History · /).last()).toBeVisible();
   });
 
   test('keeps measures user-defined and lets the user choose their chart colour', async ({ page }) => {
@@ -155,7 +155,7 @@ test.describe('Settings', () => {
     await page.getByLabel('Measure name').fill('Body fat');
     await page.getByLabel('Measure unit').fill('%');
     await page.getByRole('button', { name: 'Add measure', exact: true }).last().click();
-    await expect(page.getByRole('button', { name: 'Body fat', exact: true })).toBeVisible();
+    await expect(page.getByRole('radio', { name: 'Body fat' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Record body fat' })).toBeVisible();
   });
 
@@ -220,9 +220,9 @@ test.describe('Settings', () => {
 
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('button', { name: 'Backup & Export' }).click();
-    await expectRowHeight(page.getByRole('button', { name: 'Create backup' }), 56);
-    await expectRowHeight(page.getByRole('button', { name: 'Export workout data' }), 68);
-    await expectFontSize(page.getByText('Create backup', { exact: true }), 16);
+    await expectRowHeight(page.getByRole('button', { name: 'Export JSON' }), 56);
+    await expectRowHeight(page.getByRole('button', { name: 'Create SQLite backup' }), 56);
+    await expectFontSize(page.getByText('Export JSON', { exact: true }), 16);
 
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('button', { name: 'About' }).click();

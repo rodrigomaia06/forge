@@ -16,6 +16,10 @@ export function PlansProvider({ children }: ChildrenProps) {
   const [state, setState] = useState<PlansState>(emptyState);
   const [ready, setReady] = useState(false);
 
+  const reload = useCallback(async (): Promise<void> => {
+    setState(await loadPlansState());
+    setReady(true);
+  }, []);
   useEffect(() => {
     loadPlansState()
       .then(setState)
@@ -261,6 +265,7 @@ export function PlansProvider({ children }: ChildrenProps) {
     () => ({
       ...state,
       ready,
+      reload,
       createPlan,
       updatePlan,
       reorderPlans,

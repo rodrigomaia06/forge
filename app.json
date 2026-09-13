@@ -2,6 +2,7 @@
   "expo": {
     "name": "Forge",
     "slug": "forge",
+    "scheme": "forge",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
@@ -30,7 +31,14 @@
         }
       ],
       "expo-sqlite",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-widgets",
+        {
+          "bundleIdentifier": "com.forge.training.widgets",
+          "groupIdentifier": "group.com.forge.training"
+        }
+      ]
     ]
   }
 }
