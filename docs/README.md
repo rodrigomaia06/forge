@@ -32,6 +32,22 @@ The transfer contains personal training data. Store it privately and only
 import files you trust. If Forge rejects a file, export it again from a
 compatible Forge installation rather than editing it by hand.
 
+## Migrating a legacy Swift Forge database
+
+The previous Swift app used a Core Data SQLite schema, so it cannot be restored
+as a current Forge SQLite backup. Convert a copy into the portable JSON format
+instead:
+
+```bash
+python3 scripts/migrate_legacy_forge_sqlite.py old-forge.sqlite forge-import.json
+```
+
+The converter opens the source read-only, preserves completed history, plans,
+routines, custom exercises, notes, set measurements and targets, then validates
+the resulting Forge JSON. It deliberately excludes legacy “current workout”
+rows because current Forge permits only one active workout; a migration can be
+reviewed in the JSON import screen before it writes to the app.
+
 ## Unsigned iOS sideload build
 
 The manual **Build unsigned iOS IPA** GitHub workflow uses Forge's explicit
@@ -45,4 +61,6 @@ for 30 days. The workflow submits EAS without waiting on the EAS command, then
 polls the build from its inexpensive Ubuntu runner and reports each real EAS
 state in the GitHub log and job summary. When EAS provides Xcode/build logs,
 the same run retains them as `Forge-unsigned-ios-build-logs` for the same
-period.
+period. The custom build publishes a ready `.ipa`, so the workflow downloads
+its `applicationArchiveUrl` directly and validates its `Payload/Forge.app`
+before upload; it does not use the EAS CLI downloader's TAR extraction path.

@@ -83,16 +83,33 @@ jobs:
             esac
             sleep 30
           done
-      - name: Download the completed IPA
+      - name: Download the completed IPA and diagnostics
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
+          set -euo pipefail
           BUILD_ID="${{ steps.eas-build.outputs.build_id }}"
-          eas build:download --build-id "$BUILD_ID" --all-artifacts --non-interactive --json > /tmp/forge-eas-download.json
-          IPA_PATH="$(node -e "const artifact = require('/tmp/forge-eas-download.json'); if (!artifact?.path?.endsWith('.ipa')) throw new Error('EAS did not download an IPA'); process.stdout.write(artifact.path);")"
-          mkdir -p artifacts
-          cp "$IPA_PATH" artifacts/Forge-unsigned.ipa
-          node -e "const fs = require('fs'); const path = require('path'); const artifacts = require('/tmp/forge-eas-download.json'); fs.mkdirSync('artifacts/logs', { recursive: true }); for (const [name, source] of Object.entries(artifacts)) { if (name !== 'path' && typeof source === 'string') fs.copyFileSync(source, path.join('artifacts/logs', path.basename(source))); }"
+          eas build:view "$BUILD_ID" --json > /tmp/forge-eas-final.json
+          node scripts/eas-build-artifacts.mjs /tmp/forge-eas-final.json > /tmp/forge-eas-artifacts.json
+          IPA_URL="$(node -e "process.stdout.write(require('/tmp/forge-eas-artifacts.json').applicationArchiveUrl);")"
+          LOGS_URL="$(node -e "process.stdout.write(require('/tmp/forge-eas-artifacts.json').xcodeBuildLogsUrl ?? '');")"
+          mkdir -p artifacts/logs
+          printf 'build_id=%s\nstatus=FINISHED\nbuild_url=%s\napplication_archive_url=%s\n' "$BUILD_ID" "${{ steps.eas-build.outputs.build_url }}" "$IPA_URL" > artifacts/logs/eas-build-status.txt
+          curl --fail --location --retry 3 --retry-delay 2 --retry-all-errors --output artifacts/Forge-unsigned.ipa "$IPA_URL"
+          unzip -t artifacts/Forge-unsigned.ipa >/dev/null
+          if ! unzip -Z1 artifacts/Forge-unsigned.ipa | grep -q '^Payload/Forge\.app/'; then
+            echo '::error::The EAS application archive is not an installable Forge IPA.'
+            exit 1
+          fi
+          if [ -n "$LOGS_URL" ]; then
+            if ! curl --fail --location --retry 3 --retry-delay 2 --retry-all-errors --output artifacts/logs/xcode-build-logs.tar.gz "$LOGS_URL"; then
+              rm -f artifacts/logs/xcode-build-logs.tar.gz
+              echo '::warning::Could not download EAS Xcode build logs; the IPA is still available.'
+            fi
+          else
+            echo 'No EAS Xcode log archive was published for this build.' >> artifacts/logs/eas-build-status.txt
+          fi
+          echo 'IPA validated and downloaded from EAS applicationArchiveUrl.' >> "$GITHUB_STEP_SUMMARY"
       - name: Upload IPA to GitHub
         uses: actions/upload-artifact@v6
         with:
