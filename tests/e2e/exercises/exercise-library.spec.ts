@@ -380,6 +380,33 @@ test.describe('Exercise library', () => {
     await expect(page.getByText('Cable Pec Deck', { exact: true })).toHaveCount(1);
   });
 
+  test('keeps Add variation equipment choices scrollable above its fixed Apply action', async ({ page }, testInfo) => {
+    await openAllExercises(page);
+    await page.getByLabel('Search exercises').fill('Biceps Curl');
+    await page.getByRole('button', { name: 'Biceps Curl & 11 variations' }).click();
+    await page.getByRole('button', { name: 'Add variation to Biceps Curl' }).click();
+    await page.getByRole('button', { name: 'Equipment' }).click();
+
+    const formSurface = page.getByTestId('custom-exercise-form-surface');
+    const equipmentScroll = page.getByTestId('exercise-equipment-selector-scroll');
+    const apply = page.getByRole('button', { name: /Apply equipment/ });
+    const viewportHeight = await page.evaluate(() => window.innerHeight);
+    expect((await formSurface.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(
+      Math.min(viewportHeight * 0.72, 620) - 1,
+    );
+    await expect(equipmentScroll.getByRole('button', { name: /Apply equipment/ })).toHaveCount(0);
+
+    const initialApplyBox = await apply.boundingBox();
+    const metrics = await scrollToEnd(equipmentScroll);
+    expect(metrics.maximumOffset).toBeGreaterThan(0);
+    await expect(page.getByRole('checkbox', { name: 'Equipment Machine' })).toBeVisible();
+    const finalApplyBox = await apply.boundingBox();
+    expect(finalApplyBox?.y).toBeCloseTo(initialApplyBox?.y ?? 0, 0);
+    if (testInfo.project.name === 'iphone-air') {
+      await page.screenshot({ path: testInfo.outputPath('add-variation-equipment-iphone.png') });
+    }
+  });
+
   test('creates and persists a custom movement', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();

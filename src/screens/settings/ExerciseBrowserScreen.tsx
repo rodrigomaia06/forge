@@ -415,6 +415,13 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   // A searchable selector must remain above the keyboard instead of expanding
   // the parent sheet to the top of the viewport.
   const compactSelectorMaxHeight = Math.min(viewportHeight * 0.52, 440);
+  // Equipment is commonly the longest Add variation picker. Give its list
+  // enough context to compare choices while keeping the confirmation action
+  // fixed at the bottom of the sheet.
+  const equipmentSelectorMaxHeight = Math.min(viewportHeight * 0.72, 620);
+  const activeSelectorMaxHeight = formView === 'equipment'
+    ? equipmentSelectorMaxHeight
+    : compactSelectorMaxHeight;
   const compactSelectorHeight = Math.min(
     compactSelectorMaxHeight,
     // Handle + header + picker padding + the actual choice rows. This keeps a
@@ -541,7 +548,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
               styles.formSheet,
               formView === 'details'
                 ? { height: detailFormHeight }
-                : { height: selectorIsLong ? compactSelectorMaxHeight : compactSelectorHeight },
+                : { height: selectorIsLong ? activeSelectorMaxHeight : compactSelectorHeight },
             ]}>
               <ForgeBottomSheetHandle />
               <ForgeSheetHeader
@@ -681,9 +688,14 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   />
                 </>
               ) : (
+                <>
                 <ScrollView
+                  testID={formView === 'equipment' ? 'exercise-equipment-selector-scroll' : undefined}
                   style={styles.formScroll}
-                  contentContainerStyle={styles.formPickerContent}
+                  contentContainerStyle={[
+                    styles.formPickerContent,
+                    formView === 'equipment' && { paddingBottom: floatingCtaClearance },
+                  ]}
                   keyboardShouldPersistTaps="handled"
                   keyboardDismissMode="on-drag"
                   directionalLockEnabled
@@ -762,16 +774,6 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                         onSelect={(value) => toggleEquipmentDraft(value)}
                         sourceIcon
                       />
-                      <ForgeFloatingCta
-                        label={`Apply${equipmentDraft.length ? ` (${equipmentDraft.length})` : ''}`}
-                        accessibilityLabel="Apply equipment"
-                        disabled={!equipmentDraft.length}
-                        tone="success"
-                        onPress={() => {
-                          setEquipmentValues(equipmentDraft);
-                          transitionFormView('details');
-                        }}
-                      />
                     </>
                   ) : null}
                   {formView === 'customEquipment' ? (
@@ -836,6 +838,19 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                     </View>
                   ) : null}
                 </ScrollView>
+                {formView === 'equipment' ? (
+                  <ForgeFloatingCta
+                    label={`Apply${equipmentDraft.length ? ` (${equipmentDraft.length})` : ''}`}
+                    accessibilityLabel="Apply equipment"
+                    disabled={!equipmentDraft.length}
+                    tone="success"
+                    onPress={() => {
+                      setEquipmentValues(equipmentDraft);
+                      transitionFormView('details');
+                    }}
+                  />
+                ) : null}
+                </>
               )}
             </View>
           )}
