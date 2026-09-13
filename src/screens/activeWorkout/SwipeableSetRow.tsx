@@ -36,6 +36,7 @@ function SwipeableSetRowComponent({
   showCompletion = true,
   onInputFocus,
   trackingType,
+  setTargetMode = 'next-session',
 }: SwipeableSetRowProps) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -209,6 +210,7 @@ function SwipeableSetRowComponent({
             onInputFocus={onInputFocus}
             showCompletion={showCompletion}
             trackingType={trackingType}
+            setTargetMode={setTargetMode}
           />
           {detailsOpen ? (
             <SetDetailsCard
@@ -219,6 +221,7 @@ function SwipeableSetRowComponent({
               onDelete={handleDelete}
               onDone={() => setDetailsOpen(false)}
               trackingType={trackingType}
+              targetMode={setTargetMode}
             />
           ) : null}
         </RNAnimated.View>

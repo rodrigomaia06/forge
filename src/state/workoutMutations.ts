@@ -11,6 +11,7 @@ export function makeWorkoutId(prefix: string): string {
 }
 
 export function createWorkout(options: StartWorkoutOptions): Workout {
+  const isRoutineStart = Boolean(options.routineId);
   return {
     id: makeWorkoutId('workout'),
     name: options.name || 'Workout',
@@ -36,10 +37,18 @@ export function createWorkout(options: StartWorkoutOptions): Workout {
         weight: set.weight || '',
         reps: set.reps || '',
         previous: set.previous,
-        targetWeight: set.targetWeight,
-        targetReps: set.targetReps,
+        tag: set.tag,
+        comment: set.comment,
         measurements: set.measurements,
-        targets: set.targets,
+        // A routine can guide the current session with a planned interval,
+        // but it must never manufacture a next-session target. Those are a
+        // deliberate user choice in the prior completed workout.
+        plannedTargets: set.plannedTargets,
+        ...(!isRoutineStart ? {
+          targetWeight: set.targetWeight,
+          targetReps: set.targetReps,
+          targets: set.targets,
+        } : {}),
         completed: false,
       })),
     })),

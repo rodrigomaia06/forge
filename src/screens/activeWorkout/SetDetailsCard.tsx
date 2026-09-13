@@ -45,6 +45,8 @@ interface SetDetailsCardProps {
   onDone: () => void;
   editable?: boolean;
   trackingType?: TrackingType;
+  /** Routines edit their own interval, never the next-session target. */
+  targetMode?: 'next-session' | 'routine';
 }
 
 /** Detail editor shared by active-workout sets and read-only history sets. */
@@ -57,6 +59,7 @@ export function SetDetailsCard({
   onDone,
   editable = true,
   trackingType = 'weight-reps',
+  targetMode = 'next-session',
 }: SetDetailsCardProps) {
   const styles = useThemedStyles(createStyles);
   const [dismissTextKeyboardOnTap, setDismissTextKeyboardOnTap] = React.useState(true);
@@ -137,6 +140,7 @@ export function SetDetailsCard({
                   trackingType={trackingType}
                   editable={editable}
                   setLabel={setLabel}
+                  mode={targetMode}
                   onChange={onChange}
                   onNumberFocus={() => setDismissTextKeyboardOnTap(false)}
                 />
@@ -436,6 +440,7 @@ function TargetsSection({
   trackingType,
   editable,
   setLabel,
+  mode,
   onChange,
   onNumberFocus,
 }: {
@@ -443,28 +448,38 @@ function TargetsSection({
   trackingType: TrackingType;
   editable: boolean;
   setLabel: string;
+  mode: 'next-session' | 'routine';
   onChange: (changes: WorkoutSetChanges) => void;
   onNumberFocus: () => void;
 }) {
   const styles = useThemedStyles(createStyles);
+  const isRoutineInterval = mode === 'routine';
+  const applicableFields = isRoutineInterval
+    ? trackingFields[trackingType].filter((kind) => kind !== 'weight' && kind !== 'addedWeight')
+    : trackingFields[trackingType];
+  const targetList = isRoutineInterval ? set.plannedTargets : set.targets;
   return (
     <View testID="set-next-session-section" style={[styles.section, styles.targetSection]}>
-      <Text style={styles.sectionLabel}>NEXT SESSION</Text>
+      <Text style={styles.sectionLabel}>{isRoutineInterval ? 'ROUTINE INTERVAL' : 'NEXT SESSION'}</Text>
       <ForgeCard variant="outlined" style={styles.targetCardGroup}>
-        {trackingFields[trackingType].map((kind, index) => (
+        {applicableFields.map((kind, index) => (
           <TargetRow
             key={kind}
             showDivider={index > 0}
-            label={trackingFieldLabel(trackingType, kind)}
-            value={targetText(set, kind)}
-            placeholder="—"
+            label={isRoutineInterval ? `${trackingFieldLabel(trackingType, kind)} interval` : trackingFieldLabel(trackingType, kind)}
+            value={targetText(targetList, set, kind, isRoutineInterval)}
+            placeholder={isRoutineInterval ? 'e.g. 8–12' : '—'}
             unit={targetUnitLabel(kind)}
             editable={editable}
             keyboardType={kind === 'reps' || kind === 'duration' ? 'number-pad' : 'decimal-pad'}
-            accessibilityLabel={`Next-time ${trackingFieldLabel(trackingType, kind).toLowerCase()} target for ${setLabel.toLowerCase()}`}
+            accessibilityLabel={`${isRoutineInterval ? 'Routine' : 'Next-time'} ${trackingFieldLabel(trackingType, kind).toLowerCase()} ${isRoutineInterval ? 'interval' : 'target'} for ${setLabel.toLowerCase()}`}
             onChangeText={(value) => onChange({
-              ...(kind === 'reps' ? { targetReps: value } : kind === 'weight' || kind === 'addedWeight' ? { targetWeight: value } : {}),
-              targets: updateTargets(set, kind, value),
+              ...(isRoutineInterval
+                ? { plannedTargets: updateTargets(targetList, set.id, kind, value) }
+                : {
+                    ...(kind === 'reps' ? { targetReps: value } : kind === 'weight' || kind === 'addedWeight' ? { targetWeight: value } : {}),
+                    targets: updateTargets(targetList, set.id, kind, value),
+                  }),
             })}
             onFocus={onNumberFocus}
           />
@@ -474,19 +489,20 @@ function TargetsSection({
   );
 }
 
-function targetText(set: WorkoutSet, kind: SetMeasurementKind): string {
-  const target = set.targets?.find((item) => item.kind === kind);
+function targetText(targets: WorkoutSet['targets'] | undefined, set: WorkoutSet, kind: SetMeasurementKind, isRoutineInterval: boolean): string {
+  const target = targets?.find((item) => item.kind === kind);
   if (target?.minValue !== undefined) return target.maxValue !== undefined && target.maxValue !== target.minValue ? `${target.minValue}–${target.maxValue}` : String(target.minValue);
+  if (isRoutineInterval) return '';
   return kind === 'reps' ? set.targetReps ?? '' : kind === 'weight' || kind === 'addedWeight' ? set.targetWeight ?? '' : '';
 }
 function targetUnitLabel(kind: SetMeasurementKind): string {
   return kind === 'reps' ? 'reps' : measurementUnit[kind];
 }
-function updateTargets(set: WorkoutSet, kind: SetMeasurementKind, text: string): NonNullable<WorkoutSet['targets']> {
+function updateTargets(targets: WorkoutSet['targets'] | undefined, setId: string, kind: SetMeasurementKind, text: string): NonNullable<WorkoutSet['targets']> {
   const values = text.split(/[-–—]/).map((value) => Number(value.trim())).filter(Number.isFinite);
-  const retained = (set.targets ?? []).filter((target) => target.kind !== kind);
+  const retained = (targets ?? []).filter((target) => target.kind !== kind);
   if (!values.length) return retained;
-  return [...retained, { id: `${set.id}-target-${kind}`, kind, unit: measurementUnit[kind], minValue: values[0], maxValue: values[1] ?? values[0] }];
+  return [...retained, { id: `${setId}-target-${kind}`, kind, unit: measurementUnit[kind], minValue: values[0], maxValue: values[1] ?? values[0] }];
 }
 
 function TargetRow({

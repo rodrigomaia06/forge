@@ -25,6 +25,7 @@ export function SetRow({
   onInputFocus,
   showCompletion = true,
   trackingType = 'weight-reps',
+  setTargetMode = 'next-session',
 }: SetRowProps) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -105,7 +106,7 @@ export function SetRow({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Open details for set ${index + 1}`}
-        accessibilityHint="Opens set tags, comments, and next-time targets"
+        accessibilityHint={setTargetMode === 'routine' ? 'Opens set type, comments, effort, and routine interval' : 'Opens set tags, comments, and next-time targets'}
         accessibilityActions={[{ name: 'delete', label: 'Delete set' }]}
         onPress={onOpenDetails}
         onAccessibilityAction={(event) => {
@@ -139,7 +140,8 @@ export function SetRow({
       {trackingFields[trackingType].map((kind) => {
         const value = measurementText(set, kind);
         const legacy = kind === 'reps' ? { reps: value } : kind === 'weight' || kind === 'addedWeight' ? { weight: value } : {};
-        return <AnimatedTextInput key={kind} accessibilityLabel={`${trackingFieldLabel(trackingType, kind)} for set ${index + 1}`} value={value} selection={{ start: value.length, end: value.length }} onChangeText={(text: string) => onChange({ ...legacy, measurements: updateMeasurement(set, kind, text) })} onTouchStart={onInputTouchStart} onTouchMove={onInputTouchMove} onTouchEnd={onInputTouchEnd} onFocus={reportInputFocus} keyboardType={kind === 'reps' || kind === 'duration' ? 'number-pad' : 'decimal-pad'} selectTextOnFocus={false} placeholder="—" style={[styles.input, styles.inputColumn, { borderColor: theme.divider }, invalidStyle(kind === 'reps' ? repsInvalidProgress : weightInvalidProgress)]} />;
+        const planned = plannedIntervalText(set, kind);
+        return <AnimatedTextInput key={kind} accessibilityLabel={`${trackingFieldLabel(trackingType, kind)} for set ${index + 1}${planned ? `, routine interval ${planned}` : ''}`} value={value} selection={{ start: value.length, end: value.length }} onChangeText={(text: string) => onChange({ ...legacy, measurements: updateMeasurement(set, kind, text) })} onTouchStart={onInputTouchStart} onTouchMove={onInputTouchMove} onTouchEnd={onInputTouchEnd} onFocus={reportInputFocus} keyboardType={kind === 'reps' || kind === 'duration' ? 'number-pad' : 'decimal-pad'} selectTextOnFocus={false} placeholder={planned || '—'} style={[styles.input, styles.inputColumn, { borderColor: theme.divider }, invalidStyle(kind === 'reps' ? repsInvalidProgress : weightInvalidProgress)]} />;
       })}
       <View style={styles.check}>
         {showCompletion ? (
@@ -158,6 +160,14 @@ export function SetRow({
       </View>
     </View>
   );
+}
+
+function plannedIntervalText(set: import('../../types').WorkoutSet, kind: import('../../types').SetMeasurementKind): string {
+  const target = set.plannedTargets?.find((item) => item.kind === kind);
+  if (target?.minValue === undefined) return '';
+  return target.maxValue !== undefined && target.maxValue !== target.minValue
+    ? `${target.minValue}–${target.maxValue}`
+    : String(target.minValue);
 }
 
 const createStyles = (theme: import('../../types').ForgeTheme) => {

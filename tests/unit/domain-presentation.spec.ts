@@ -142,6 +142,27 @@ test('tracking modes specify only their applicable measurements and retain an ex
   expect(workout.exercises[0]).toMatchObject({ exerciseId: 'parallel-bar-dip', trackingType: exercise.trackingType, exerciseSnapshot: { id: 'parallel-bar-dip', catalogueVersion: 3 } });
 });
 
+test('keeps routine intervals advisory and never turns them into next-session targets', () => {
+  const routineWorkout = createWorkout({
+    routineId: 'routine-upper',
+    exercises: [{
+      name: 'Bench Press',
+      sets: [{
+        id: 'set-1',
+        targetReps: '8–12',
+        targets: [{ id: 'old-routine-target', kind: 'reps', unit: 'count', minValue: 8, maxValue: 12 }],
+        plannedTargets: [{ id: 'routine-interval', kind: 'reps', unit: 'count', minValue: 8, maxValue: 12 }],
+      }],
+    }],
+  });
+  expect(routineWorkout.exercises[0].sets[0]).toMatchObject({ plannedTargets: [{ minValue: 8, maxValue: 12 }] });
+  expect(routineWorkout.exercises[0].sets[0].targets).toBeUndefined();
+  expect(routineWorkout.exercises[0].sets[0].targetReps).toBeUndefined();
+
+  const directWorkout = createWorkout({ exercises: [{ name: 'Bench Press', sets: [{ id: 'set-2', targetReps: '10' }] }] });
+  expect(directWorkout.exercises[0].sets[0].targetReps).toBe('10');
+});
+
 test('snapshots keep variation and primary-equipment metadata while legacy cards remain name-only', () => {
   const bench = exerciseCatalog.find((exercise) => exercise.id === 'barbell-bench-press')!;
   const weightedDip = exerciseCatalog.find((exercise) => exercise.id === 'weighted-dip')!;

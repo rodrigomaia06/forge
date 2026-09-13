@@ -151,7 +151,6 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
             id: makeWorkoutId('routine-set'),
             weight: '',
             reps: '',
-            targetReps: '8–12',
           })),
         })),
       ],
@@ -177,6 +176,10 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
       name,
       type,
       note: optional(draft.note),
+      exercises: draft.exercises.map((exercise) => ({
+        ...exercise,
+        sets: (exercise.sets ?? []).map(normalizeRoutineSet),
+      })),
       ...normalizeAttributes(draft.attributes, draft.attributeIcons),
     };
     if (creating) {
@@ -288,6 +291,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
         forceCollapsed={reorderingExercises}
         showMoreOptions={false}
         showSetCompletion={false}
+        setTargetMode="routine"
         onSetInputFocus={onSetInputFocus}
         dragHandle={
           drag && !viewing ? (
@@ -668,8 +672,11 @@ function asWorkoutExercise(
   const exerciseId = exercise.id ?? makeWorkoutId('routine-exercise');
   return {
     id: exerciseId,
+    exerciseId: exercise.exerciseId,
     name: exercise.name,
     note: exercise.note,
+    trackingType: exercise.trackingType,
+    exerciseSnapshot: exercise.exerciseSnapshot,
     sets: (exercise.sets ?? []).map((set, index) => {
       const id = set.id ?? `${exerciseId}-set-${index}`;
       return {
@@ -677,8 +684,9 @@ function asWorkoutExercise(
         weight: set.weight ?? '',
         reps: set.reps ?? '',
         previous: set.previous,
-        targetWeight: set.targetWeight,
-        targetReps: set.targetReps,
+        tag: set.tag,
+        comment: set.comment,
+        plannedTargets: routineTargets(set),
         completed: completedSetIds.includes(id),
       };
     }),
@@ -694,12 +702,37 @@ function addRoutineSet(index: number, change: RoutineDraftChange): void {
             ...exercise,
             sets: [
               ...(exercise.sets ?? []),
-              { id: makeWorkoutId('routine-set'), weight: '', reps: '', targetReps: '8–12' },
+              { id: makeWorkoutId('routine-set'), weight: '', reps: '' },
             ],
           }
         : exercise,
     ),
   }));
+}
+
+/**
+ * The original Forge routine model used target-rep fields for its interval.
+ * Keep that user data as a routine-only guide while removing the accidental
+ * semantic link to a user-authored next-session target.
+ */
+function normalizeRoutineSet(set: import('../types').WorkoutSetInput): import('../types').WorkoutSetInput {
+  const plannedTargets = routineTargets(set);
+  const { targetWeight: _targetWeight, targetReps: _targetReps, targets: _targets, ...routineSet } = set;
+  return { ...routineSet, ...(plannedTargets.length ? { plannedTargets } : {}) };
+}
+
+function routineTargets(set: import('../types').WorkoutSetInput): import('../types').SetTarget[] {
+  const permitted = new Set<import('../types').SetMeasurementKind>(['reps', 'duration', 'distance']);
+  const existing = (set.plannedTargets ?? set.targets ?? []).filter((target) => permitted.has(target.kind));
+  if (existing.length || !set.targetReps?.trim()) return existing;
+  const values = set.targetReps.split(/[-–—]/).map((value) => Number(value.trim())).filter(Number.isFinite);
+  return values.length ? [{
+    id: `${set.id ?? 'routine-set'}-planned-reps`,
+    kind: 'reps',
+    unit: 'count',
+    minValue: values[0],
+    maxValue: values[1] ?? values[0],
+  }] : [];
 }
 
 function removeRoutineSet(index: number, setId: string, change: RoutineDraftChange): void {

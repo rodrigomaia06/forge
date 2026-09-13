@@ -31,6 +31,8 @@ export interface ExerciseSectionProps {
   showCatalogMetadata?: boolean;
   /** Routine drafts do not record completed sets. */
   showSetCompletion?: boolean;
+  /** Routines edit non-propagating intervals; live/history sets own next-session targets. */
+  setTargetMode?: 'next-session' | 'routine';
   showWarmupSets?: boolean;
   /** Lets an owning editor keep a focused set input clear of its keyboard. */
   onSetInputFocus?: (measure: MeasureSetInput) => void;
@@ -47,6 +49,7 @@ export interface SwipeableSetRowProps {
   showCompletion?: boolean;
   onInputFocus?: (measure: MeasureSetInput) => void;
   trackingType?: import('../../types').TrackingType;
+  setTargetMode?: 'next-session' | 'routine';
 }
 
 export interface SetRowProps extends Omit<

@@ -19,6 +19,8 @@ export interface WorkoutSet {
   completed: boolean;
   measurements?: SetMeasurement[];
   targets?: SetTarget[];
+  /** A routine's rep/time/distance interval. It guides this workout only and is never a next-session target. */
+  plannedTargets?: SetTarget[];
 }
 
 export interface WorkoutExercise {
@@ -66,7 +68,11 @@ export interface WorkoutSetInput {
   targetWeight?: string;
   targetReps?: string;
   targets?: SetTarget[];
+  /** A routine's rep/time/distance interval, copied as a non-propagating hint when it starts. */
+  plannedTargets?: SetTarget[];
   measurements?: SetMeasurement[];
+  tag?: string;
+  comment?: string;
 }
 
 export interface WorkoutExerciseInput {
@@ -143,6 +149,7 @@ export interface WorkoutSetChanges {
   comment?: string;
   measurements?: SetMeasurement[];
   targets?: SetTarget[];
+  plannedTargets?: SetTarget[];
 }
 export interface WorkoutContextValue extends WorkoutState {
   ready: boolean;
