@@ -16,7 +16,8 @@ jobs:
     # EAS performs the native compilation remotely. A standard Linux runner is
     # faster to start and substantially cheaper than occupying a macOS runner.
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # The runner must wait for EAS only when GitHub should retain the IPA.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v5
         with:
@@ -35,7 +36,7 @@ jobs:
             exit 1
           fi
       - name: Set up Expo and EAS
-        uses: expo/expo-github-action@v8
+        uses: expo/expo-github-action@v9
         with:
           eas-version: latest
           packager: npm
@@ -43,7 +44,33 @@ jobs:
       - name: Install config dependencies
         # EAS resolves app plugins locally before it can upload the project.
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Create unsigned IPA for iLoader on EAS
+      - name: Build unsigned IPA on EAS
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: eas build --platform ios --profile sideload --non-interactive --no-wait
+        run: eas build --platform ios --profile sideload --non-interactive --wait --json > eas-build.json
+      - name: Download the completed IPA
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          BUILD_ID="$(node -e "const builds = require('./eas-build.json'); const build = Array.isArray(builds) ? builds[0] : builds; if (!build?.id) throw new Error('EAS did not return a build ID'); process.stdout.write(build.id);")"
+          eas build:download --build-id "$BUILD_ID" --all-artifacts --non-interactive --json > eas-download.json
+          IPA_PATH="$(node -e "const artifact = require('./eas-download.json'); if (!artifact?.path?.endsWith('.ipa')) throw new Error('EAS did not download an IPA'); process.stdout.write(artifact.path);")"
+          mkdir -p artifacts
+          cp "$IPA_PATH" artifacts/Forge-unsigned.ipa
+          node -e "const fs = require('fs'); const path = require('path'); const artifacts = require('./eas-download.json'); fs.mkdirSync('artifacts/logs', { recursive: true }); for (const [name, source] of Object.entries(artifacts)) { if (name !== 'path' && typeof source === 'string') fs.copyFileSync(source, path.join('artifacts/logs', path.basename(source))); }"
+      - name: Upload IPA to GitHub
+        uses: actions/upload-artifact@v6
+        with:
+          name: Forge-unsigned-ios-ipa
+          path: artifacts/Forge-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+      - name: Upload EAS build logs to GitHub
+        uses: actions/upload-artifact@v6
+        with:
+          name: Forge-unsigned-ios-build-logs
+          path: artifacts/logs
+          if-no-files-found: warn
+          retention-days: 30
+          compression-level: 0

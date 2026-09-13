@@ -38,4 +38,7 @@ The manual **Build unsigned iOS IPA** GitHub workflow produces the `sideload`
 EAS profile without Apple signing credentials. It is intended for iLoader,
 which re-signs the IPA with the user's Apple ID before installation. The
 sideload archive retains Forge's Live Activity/widget extension and App Group,
-which iLoader provisions as it re-signs the IPA.
+which iLoader provisions as it re-signs the IPA. After EAS completes, the
+workflow retains the final IPA as the `Forge-unsigned-ios-ipa` GitHub Actions
+artifact for 30 days. When EAS provides Xcode/build logs, the same run retains
+them as `Forge-unsigned-ios-build-logs` for the same period.
