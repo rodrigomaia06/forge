@@ -259,7 +259,6 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
     },
     restTimerSheet: {
       width: '100%',
-      paddingHorizontal: 20,
       paddingTop: 12,
       paddingBottom: 20,
       gap: 8,
@@ -305,6 +304,7 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       alignItems: 'stretch',
       gap: 18,
       paddingTop: 8,
+      paddingHorizontal: 20,
     },
     restTimeDisplay: { alignItems: 'center', gap: 2 },
     restTimeValue: {
@@ -333,7 +333,7 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       minHeight: 48,
     },
     restStopButton: { width: '100%', minHeight: 48 },
-    durationPicker: { height: 282, position: 'relative', overflow: 'hidden', marginTop: 8 },
+    durationPicker: { height: 282, position: 'relative', overflow: 'hidden', marginTop: 8, marginHorizontal: 20 },
     durationPickerContent: { paddingVertical: 119 },
     durationRow: { height: 44, alignItems: 'center', justifyContent: 'center' },
     durationRowPressed: { backgroundColor: dashboardTheme.surfaceMuted, borderRadius: 12 },
@@ -351,6 +351,7 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
     },
     restStartButton: {
       minHeight: 48,
+      marginHorizontal: 20,
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: 12,

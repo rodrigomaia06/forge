@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, View } from 'react-native';
-import { ForgeText as Text, ForgeTextInput as TextInput } from '../../components/ui';
+import { ForgeText as Text, ForgeTextInput as TextInput, Icon } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
@@ -98,7 +98,6 @@ export function SetRow({
       style={[
         styles.setRow,
         set.completed && styles.setCompleted,
-        set.comment && styles.setRowWithComment,
       ]}
     >
       <Pressable
@@ -112,14 +111,21 @@ export function SetRow({
         }}
         style={styles.setNumberWrap}
       >
-        <Text
-          style={[
-            styles.setNumber,
-            tag && { color: tag.color, backgroundColor: `${tag.color}20` },
-          ]}
-        >
-          {tag?.letter ?? index + 1}
-        </Text>
+        <View testID={`live-set-number-chip-${index + 1}`} style={styles.setNumberChip}>
+          <Text
+            style={[
+              styles.setNumber,
+              tag && { color: tag.color, backgroundColor: `${tag.color}20` },
+            ]}
+          >
+            {tag?.letter ?? index + 1}
+          </Text>
+          {set.comment?.trim() ? (
+            <View accessibilityLabel={`Set ${index + 1} has a comment`} style={styles.commentIndicator}>
+              <Icon name="comment" size={9} color={theme.ink} />
+            </View>
+          ) : null}
+        </View>
       </Pressable>
       <Text style={styles.previous} numberOfLines={1}>
         {previous}
@@ -144,11 +150,6 @@ export function SetRow({
           </Pressable>
         ) : null}
       </View>
-      {set.comment ? (
-        <Text style={styles.comment} numberOfLines={2}>
-          {set.comment}
-        </Text>
-      ) : null}
     </View>
   );
 }
@@ -164,8 +165,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     gap: 6,
   },
   setCompleted: {},
-  setRowWithComment: { minHeight: 66 },
-  setNumberWrap: { width: 46, height: 44, alignItems: 'center', justifyContent: 'center' },
+  setNumberWrap: { position: 'relative', width: 46, height: 44, alignItems: 'center', justifyContent: 'center' },
+  setNumberChip: { position: 'relative', width: 30, height: 30 },
   setNumber: {
     width: 30,
     height: 30,
@@ -201,13 +202,18 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     overflow: 'hidden',
   },
   checkPressable: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  comment: {
+  commentIndicator: {
     position: 'absolute',
-    right: 0,
-    bottom: 3,
-    left: 52,
-    color: dashboardTheme.slate,
-    ...typeScale.caption,
+    right: -3,
+    bottom: -3,
+    width: 13,
+    height: 13,
+    borderRadius: 6.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: dashboardTheme.surface,
+    borderWidth: 1,
+    borderColor: dashboardTheme.background,
   },
   });
 };

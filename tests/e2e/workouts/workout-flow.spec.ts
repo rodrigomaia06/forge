@@ -392,7 +392,7 @@ test.describe('Active workout flow', () => {
     await page.screenshot({ path: testInfo.outputPath('rest-timer-compact.png') });
     const progressFill = page.getByTestId('rest-timer-progress-fill');
     const progressBeforeAdjustment = await progressFill.evaluate((element) => element.getBoundingClientRect().width);
-    await page.getByRole('button', { name: 'Increase rest by 15 seconds' }).click();
+    await page.getByRole('button', { name: 'Increase rest by 10 seconds' }).click();
     await expect.poll(async () => progressFill.evaluate((element) => element.getBoundingClientRect().width)).toBeGreaterThan(progressBeforeAdjustment);
     const stopTimer = page.getByRole('button', { name: 'Stop rest timer' });
     await expect(stopTimer).toHaveCSS('background-color', 'rgb(246, 220, 221)');
@@ -579,19 +579,45 @@ test.describe('Active workout flow', () => {
         }),
       );
     if (targetRects.length !== 2) throw new Error('Expected two target inputs to be measurable');
-    const [firstTarget, secondTarget] = [...targetRects].sort((a, b) => a.x - b.x);
-    expect(secondTarget.x).toBeGreaterThanOrEqual(firstTarget.x + firstTarget.width - 1);
-    expect(firstTarget.width).toBeGreaterThanOrEqual(140);
+    const [firstTarget, secondTarget] = [...targetRects].sort((a, b) => a.y - b.y);
+    expect(firstTarget.height).toBeCloseTo(56, 0);
+    expect(secondTarget.y).toBeGreaterThanOrEqual(firstTarget.y + 55);
+    expect(firstTarget.width).toBeGreaterThanOrEqual(280);
     expect(Math.abs(firstTarget.width - secondTarget.width)).toBeLessThanOrEqual(1);
+    if (testInfo.project.name === 'iphone-air') {
+      await page
+        .locator('input[aria-label^="Next-time"]')
+        .first()
+        .locator('xpath=../../..')
+        .screenshot({ path: testInfo.outputPath('set-next-time-target-iphone.png') });
+    }
 
     await sheet.getByRole('button', { name: 'Close Set 1' }).click();
     await expect(page.getByText('TYPE', { exact: true })).toHaveCount(0);
 
     await page.getByLabel('Open details for set 1').click();
     await page.getByLabel('Comment for set 1').fill('Keep this form');
-    await expect(page.getByText('14/120', { exact: true })).toBeVisible();
+    await expect(page.getByText('14/120', { exact: true })).toHaveCount(0);
     await page.getByTestId('set-details-sheet').getByRole('button', { name: 'Close Set 1' }).click();
-    await expect(page.getByText('Keep this form', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('set-details-sheet')).toHaveCount(0);
+    await expect(page.getByText('Keep this form', { exact: true })).toHaveCount(0);
+    await expect(page.getByLabel('Set 1 has a comment')).toBeVisible();
+    const [chipBox, dotBox] = await Promise.all([
+      page.getByTestId('live-set-number-chip-1').boundingBox(),
+      page.getByLabel('Set 1 has a comment').boundingBox(),
+    ]);
+    expect(chipBox).not.toBeNull();
+    expect(dotBox).not.toBeNull();
+    if (!chipBox || !dotBox) throw new Error('Expected a measurable set chip and comment dot');
+    expect(dotBox.x).toBeGreaterThan(chipBox.x + chipBox.width / 2);
+    expect(dotBox.y).toBeGreaterThan(chipBox.y + chipBox.height / 2);
+    expect(dotBox.x).toBeLessThan(chipBox.x + chipBox.width);
+    expect(dotBox.y).toBeLessThan(chipBox.y + chipBox.height);
+    expect(dotBox.x + dotBox.width).toBeGreaterThan(chipBox.x + chipBox.width);
+    expect(dotBox.y + dotBox.height).toBeGreaterThan(chipBox.y + chipBox.height);
+    if (testInfo.project.name === 'iphone-air') {
+      await page.screenshot({ path: testInfo.outputPath('set-comment-indicator-iphone.png') });
+    }
   });
 
   test('navigates between the primary destinations', async ({ page }) => {
@@ -751,9 +777,13 @@ test.describe('Active workout flow', () => {
 
     await page.getByRole('button', { name: 'Previous sessions' }).click();
     await expect(page.getByText('No completed sessions for this exercise yet.', { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Close Previous sessions', exact: true }).click();
-    await expect(page.getByText('Pause at the chest', { exact: true })).toBeVisible();
-    await expect(page.getByLabel('Exercise note')).toBeVisible();
+    await page.getByRole('button', { name: /Close previous sessions/i }).click();
+    await expect(page.getByText('Previous sessions', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Pause at the chest', { exact: true })).toHaveCount(0);
+    await expect(page.locator('svg[aria-label="Exercise has a comment"]')).toBeVisible();
+    if (testInfo.project.name === 'iphone-air') {
+      await page.screenshot({ path: testInfo.outputPath('commented-exercise-card-iphone.png') });
+    }
 
     await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
     await page.getByRole('button', { name: 'Warm-up sets' }).click();

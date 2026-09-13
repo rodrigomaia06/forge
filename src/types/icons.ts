@@ -32,6 +32,7 @@ export type IconName =
   | 'check'
   | 'measure'
   | 'note'
+  | 'comment'
   | 'history'
   | 'warm-up'
   | 'info'

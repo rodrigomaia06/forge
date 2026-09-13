@@ -30,7 +30,8 @@ import { useExerciseCatalog } from '../../state/ExerciseCatalogContext';
 import { useSettings } from '../../state/SettingsContext';
 import { CompletionCheck } from './CompletionCheck';
 import { animateLayout, lightHaptic, mediumHaptic, selectionHaptic } from './activeWorkoutFeedback';
-import type { WorkoutExercise } from '../../types';
+import type { Workout, WorkoutExercise } from '../../types';
+import { ExerciseInfoContent, PreviousSessionsContent } from './ExerciseOptionSheets';
 import { catalogFacets, filterCatalog, groupCatalogByPrimaryEquipment } from '../../domain/exercises/catalogSelectors';
 import { formatPickerPrimaryEquipment } from '../../domain/exercises/exercisePresentation';
 import {
@@ -546,6 +547,7 @@ export function ExerciseOptionsSheet({
   onOpenPreviousSessions,
   onOpenWarmupSets,
   onOpenExerciseInfo,
+  completedWorkouts = [],
   onRemove,
 }: {
   visible: boolean;
@@ -555,13 +557,14 @@ export function ExerciseOptionsSheet({
   onOpenPreviousSessions?: () => void;
   onOpenWarmupSets?: () => void;
   onOpenExerciseInfo?: () => void;
+  completedWorkouts?: readonly Workout[];
   onRemove: () => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const [view, setView] = useState<'actions' | 'note'>('actions');
+  const [view, setView] = useState<'actions' | 'note' | 'history' | 'info'>('actions');
   const [noteDraft, setNoteDraft] = useState(exercise.note ?? '');
-  const [noteHeight, setNoteHeight] = useState(52);
+  const [noteHeight, setNoteHeight] = useState(156);
 
   const commitNote = (): void => {
     onEditNote?.(noteDraft.trim());
@@ -591,9 +594,9 @@ export function ExerciseOptionsSheet({
           dismiss: false,
           onPress: () => setView('note'),
         }] : []),
-        ...(onOpenPreviousSessions ? [{ icon: 'history' as const, label: 'Previous sessions', onPress: onOpenPreviousSessions }] : []),
+        ...(onOpenPreviousSessions ? [{ icon: 'history' as const, label: 'Previous sessions', dismiss: false, onPress: () => setView('history') }] : []),
         ...(onOpenWarmupSets ? [{ icon: 'warm-up' as const, label: 'Warm-up sets', onPress: onOpenWarmupSets }] : []),
-        ...(onOpenExerciseInfo ? [{ icon: 'info' as const, label: 'Exercise info', onPress: onOpenExerciseInfo }] : []),
+        ...(onOpenExerciseInfo ? [{ icon: 'info' as const, label: 'Exercise info', dismiss: false, onPress: () => setView('info') }] : []),
         {
           icon: 'trash',
           label: 'Remove exercise',
@@ -602,16 +605,18 @@ export function ExerciseOptionsSheet({
           onPress: onRemove,
         },
       ]}
-      replacement={view === 'note' ? (closeSheet) => (
+      replacement={view !== 'actions' ? (closeSheet) => (
         <>
           <ForgeBottomSheetHandle />
           <ForgeSheetHeader
-            title="Exercise note"
+            title={view === 'note' ? 'Exercise note' : view === 'history' ? 'Previous sessions' : 'Exercise info'}
             onClose={closeSheet}
-            closeAccessibilityLabel="Close exercise note"
+            closeAccessibilityLabel={`Close ${view === 'note' ? 'exercise note' : view === 'history' ? 'previous sessions' : 'exercise info'}`}
             leading={<ForgeEditorBackButton onPress={backToActions} accessibilityLabel="Back to exercise options" />}
           />
-          <View style={styles.exerciseNoteContent}>
+          {view === 'history' ? <PreviousSessionsContent exercise={exercise} workouts={completedWorkouts} /> : null}
+          {view === 'info' ? <ExerciseInfoContent exercise={exercise} /> : null}
+          {view === 'note' ? <View style={styles.exerciseNoteContent}>
             <ForgeCard variant="inset" style={styles.exerciseNoteCard}>
               <TextInput
                 accessibilityLabel="Exercise note"
@@ -621,7 +626,7 @@ export function ExerciseOptionsSheet({
                   const contentHeight = Math.ceil(event.nativeEvent.contentSize.height);
                   // Web reports the rendered input height here. Grow only when text
                   // needs more room so that measurement cannot feed back into layout.
-                  setNoteHeight((current) => Math.max(current, 52, contentHeight));
+                  setNoteHeight((current) => Math.max(current, 156, contentHeight));
                 }}
                 multiline
                 scrollEnabled={false}
@@ -630,7 +635,7 @@ export function ExerciseOptionsSheet({
                 style={[styles.exerciseNoteInput, { height: noteHeight, color: theme.textPrimary }]}
               />
             </ForgeCard>
-          </View>
+          </View> : null}
         </>
       ) : null}
     />
@@ -891,7 +896,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     exerciseNoteContent: { paddingHorizontal: 20, paddingBottom: 28 },
     exerciseNoteCard: { paddingHorizontal: 14 },
     exerciseNoteInput: {
-      minHeight: 52,
+      minHeight: 156,
       paddingVertical: 12,
       textAlignVertical: 'top',
       ...typeScale.body,

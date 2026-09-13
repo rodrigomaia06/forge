@@ -63,6 +63,7 @@ export interface SetRowProps extends Omit<
 export interface RestTimerSheetProps {
   visible: boolean;
   selectedDuration: number;
+  endAt: number | null;
   remaining: number;
   duration: number;
   running: boolean;

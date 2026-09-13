@@ -51,7 +51,7 @@ import { createExerciseSnapshot } from '../domain/exercises/exerciseSnapshot';
 import { workoutTypeIcon } from './settings/workoutTypeIcon';
 
 type ActiveWorkoutScreenProps = RootTabScreenProps<'ActiveWorkout'>;
-export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
+export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenProps) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createActiveWorkoutStyles);
   const dockScrollInset = useForgeDockScrollInset();
@@ -71,7 +71,6 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     cancelWorkout,
     finishWorkout,
   } = useWorkouts();
-  const [now, setNow] = useState(() => Date.now());
   const [restSelection, setRestSelection] = useState(90);
   const [restSheetOpen, setRestSheetOpen] = useState(false);
   const [durationSheetOpen, setDurationSheetOpen] = useState(false);
@@ -88,25 +87,12 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
   const [attributeIconsDraft, setAttributeIconsDraft] = useState<Record<string, import('../types').IconName>>({});
   const [editorView, setEditorView] = useState<'form' | 'type-picker'>('form');
   const [attributeDraft, setAttributeDraft] = useState<{ original?: string; label: string; value: string; icon: import('../types').IconName } | null>(null);
-  const timerLongPressRef = useRef(false);
   const { preferences } = useSettings();
   const restTimer = useRestTimer();
 
-  useEffect(() => {
-    if (!activeWorkout || activeWorkout.automaticTimeTracking === false) return undefined;
-    const update = () => setNow(Date.now());
-    update();
-    const timer = setInterval(update, 1000);
-    return () => clearInterval(timer);
-  }, [activeWorkout]);
-
-  const elapsed = activeWorkout
-    ? activeWorkout.automaticTimeTracking === false
-      ? activeWorkout.durationSeconds ?? 0
-      : Math.max(0, Math.floor((now - activeWorkout.startedAt) / 1000))
-    : 0;
   const restRemaining = restTimer.remaining;
   const restRunning = restTimer.running;
+  const restEndAt = restTimer.endAt;
   const restDuration = restTimer.duration || preferences.defaultRestSeconds;
 
   const startRestTimer = useCallback((duration = 60): void => {
@@ -118,6 +104,11 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     if (restRunning) setRestSelection(restDuration);
     setRestSheetOpen(true);
   };
+  useEffect(() => {
+    if (route.params?.openRestTimer !== 'open') return;
+    openRestTimer();
+    navigation.setParams({ openRestTimer: undefined });
+  }, [navigation, route.params?.openRestTimer]);
   const adjustRestTimer = (amount: number): void => {
     lightHaptic();
     restTimer.adjust(amount);
@@ -137,7 +128,6 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
         ? { ...current, automaticTimeTracking: true, startedAt: changedAt - frozenSeconds * 1000, durationSeconds: undefined }
         : { ...current, automaticTimeTracking: false, durationSeconds: frozenSeconds };
     });
-    setNow(changedAt);
   };
   const resetWorkoutStartTime = (): void => {
     const resetAt = Date.now();
@@ -146,11 +136,9 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
       startedAt: resetAt,
       durationSeconds: current.automaticTimeTracking === false ? 0 : undefined,
     }));
-    setNow(resetAt);
   };
   const setWorkoutStartTime = (startedAt: number): void => {
     updateActiveWorkout((current) => ({ ...current, startedAt }));
-    setNow(Date.now());
   };
   const handleAddExerciseClose = useCallback(() => setSheetOpen(false), []);
   const openAddExercise = useCallback(() => setSheetOpen(true), []);
@@ -287,39 +275,20 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
           style={({ pressed }) => [styles.elapsedInfo, pressed && pressedFeedback]}
         >
             <Icon name="time-outline" size={22} color={theme.slate} />
-            <Text style={styles.elapsedValue}>{formatElapsed(elapsed)}</Text>
+            <ElapsedTimer workout={activeWorkout} style={styles.elapsedValue} />
             <Text style={styles.timerLabel}>Elapsed</Text>
           </Pressable>
           <View style={styles.timerDivider} />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={
-              restRunning
-                ? `Rest timer, ${Math.abs(restRemaining)} seconds remaining`
-                : 'Start rest timer'
-            }
-            onPress={() => {
-              if (timerLongPressRef.current) {
-                timerLongPressRef.current = false;
-                return;
-              }
-              openRestTimer();
-            }}
-            onLongPress={() => {
-              timerLongPressRef.current = true;
-              startRestTimer(restDuration);
-            }}
-            delayLongPress={450}
-            accessibilityHint="Tap to open the rest timer or hold to restart it"
-            style={({ pressed }) => [styles.timerReset, pressed && pressedFeedback]}
-          >
-            <RestTimerIndicator
-              remaining={restRemaining}
-              duration={restDuration}
-              running={restRunning}
-            />
-            <Text style={styles.timerLabel}>Rest</Text>
-          </Pressable>
+          <RestTimerHeaderAction
+            endAt={restEndAt}
+            fallbackRemaining={restRemaining}
+            duration={restDuration}
+            running={restRunning}
+            style={styles.timerReset}
+            labelStyle={styles.timerLabel}
+            onOpen={openRestTimer}
+            onRestart={() => startRestTimer(restDuration)}
+          />
         </View>
         {headerElevated ? <HeaderEdge /> : null}
       </View>
@@ -477,6 +446,7 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
         <RestTimerSheet
           visible
           selectedDuration={restSelection}
+          endAt={restEndAt}
           remaining={restRemaining}
           duration={restDuration}
           running={restRunning}
@@ -490,6 +460,64 @@ export function ActiveWorkoutScreen({ navigation }: ActiveWorkoutScreenProps) {
     </AppScreen>
   );
 }
+
+/** Keeps the per-second clock out of the editing screen and its mounted sheets. */
+const ElapsedTimer = React.memo(function ElapsedTimer({
+  workout,
+  style,
+}: {
+  workout: Workout;
+  style: import('react-native').StyleProp<import('react-native').TextStyle>;
+}) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (workout.automaticTimeTracking === false) return undefined;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [workout.automaticTimeTracking, workout.startedAt]);
+  const elapsed = workout.automaticTimeTracking === false
+    ? workout.durationSeconds ?? 0
+    : Math.max(0, Math.floor((now - workout.startedAt) / 1000));
+  return <Text style={style}>{formatElapsed(elapsed)}</Text>;
+});
+
+/** Owns the rest clock so the editable workout screen never renders per second. */
+const RestTimerHeaderAction = React.memo(function RestTimerHeaderAction({
+  endAt, fallbackRemaining, duration, running, style, labelStyle, onOpen, onRestart,
+}: {
+  endAt: number | null;
+  fallbackRemaining: number;
+  duration: number;
+  running: boolean;
+  style: import('react-native').StyleProp<import('react-native').ViewStyle>;
+  labelStyle: import('react-native').StyleProp<import('react-native').TextStyle>;
+  onOpen: () => void;
+  onRestart: () => void;
+}) {
+  const [now, setNow] = useState(() => Date.now());
+  const [displayRemaining, setDisplayRemaining] = useState(fallbackRemaining);
+  const longPress = useRef(false);
+  useEffect(() => {
+    if (!endAt) return undefined;
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [endAt]);
+  const remaining = endAt ? Math.ceil((endAt - now) / 1000) : fallbackRemaining;
+  useEffect(() => { setDisplayRemaining(remaining); }, [remaining]);
+  return <Pressable
+    accessibilityRole="button"
+    accessibilityLabel={running ? `Rest timer, ${Math.abs(displayRemaining)} seconds remaining` : 'Start rest timer'}
+    onPress={() => { if (longPress.current) { longPress.current = false; return; } onOpen(); }}
+    onLongPress={() => { longPress.current = true; onRestart(); }}
+    delayLongPress={450}
+    accessibilityHint="Tap to open the rest timer or hold to restart it"
+    style={({ pressed }) => [style, pressed && pressedFeedback]}
+  >
+    <RestTimerIndicator remaining={remaining} duration={duration} running={running} endAt={endAt} onRemainingChange={setDisplayRemaining} />
+    <Text style={labelStyle}>Rest</Text>
+  </Pressable>;
+});
 
 const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
   workout,

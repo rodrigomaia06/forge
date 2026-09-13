@@ -43,8 +43,17 @@ export function BottomNavigation({
 }: BottomNavigationProps) {
   const { navigation, state } = tabBarProps;
   const activeWorkout = useWorkouts().activeWorkout;
-  const { remaining: restRemaining, running: restRunning } = useRestTimer();
+  const { endAt: restEndAt } = useRestTimer();
   const { preferences } = useSettings();
+  const [restNow, setRestNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!restEndAt) return undefined;
+    setRestNow(Date.now());
+    const interval = setInterval(() => setRestNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [restEndAt]);
+  const restRemaining = restEndAt ? Math.ceil((restEndAt - restNow) / 1000) : 0;
+  const restRunning = Boolean(restEndAt && (restRemaining > 0 || preferences.keepRestTimerRunning));
   const [itemLayouts, setItemLayouts] = useState<
     Partial<Record<BottomNavigationScreen, ItemLayout>>
   >({});

@@ -331,7 +331,6 @@ function CommentSection({
               placeholderTextColor={theme.muted}
               style={styles.commentInput}
             />
-            <Text style={styles.commentCount}>{`${value.length}/120`}</Text>
           </View>
         ) : (
           <Text style={styles.recordedValue}>{value || 'No comment recorded'}</Text>
@@ -360,10 +359,11 @@ function TargetsSection({
   return (
     <View style={[styles.section, styles.targetSection]}>
       <Text style={styles.sectionLabel}>NEXT-TIME TARGET</Text>
-      <View style={styles.targetCards}>
-        {trackingFields[trackingType].map((kind) => (
-          <TargetCard
+      <ForgeCard variant="outlined" style={styles.targetCardGroup}>
+        {trackingFields[trackingType].map((kind, index) => (
+          <TargetRow
             key={kind}
+            showDivider={index > 0}
             label={trackingFieldLabel(trackingType, kind)}
             value={targetText(set, kind)}
             placeholder="—"
@@ -378,7 +378,7 @@ function TargetsSection({
             onFocus={onNumberFocus}
           />
         ))}
-      </View>
+      </ForgeCard>
     </View>
   );
 }
@@ -398,7 +398,7 @@ function updateTargets(set: WorkoutSet, kind: SetMeasurementKind, text: string):
   return [...retained, { id: `${set.id}-target-${kind}`, kind, unit: measurementUnit[kind], minValue: values[0], maxValue: values[1] ?? values[0] }];
 }
 
-function TargetCard({
+function TargetRow({
   label,
   value,
   placeholder,
@@ -408,6 +408,7 @@ function TargetCard({
   accessibilityLabel,
   onChangeText,
   onFocus,
+  showDivider,
 }: {
   label: string;
   value: string;
@@ -418,6 +419,7 @@ function TargetCard({
   accessibilityLabel: string;
   onChangeText: (value: string) => void;
   onFocus: () => void;
+  showDivider: boolean;
 }) {
   const styles = useThemedStyles(createStyles);
   const theme = useForgeTheme();
@@ -428,42 +430,40 @@ function TargetCard({
   }, [value.length]);
 
   return (
-    <ForgeCard variant="outlined" style={styles.targetCard}>
-      <Pressable
-        accessibilityRole={editable ? 'button' : undefined}
-        accessibilityLabel={editable ? accessibilityLabel : undefined}
-        onPress={editable ? focusInput : undefined}
-        disabled={!editable}
-        style={({ pressed }) => [styles.targetPressable, pressed && pressedFeedbackSubtle]}
-      >
-        <Text style={styles.targetLabel}>{label}</Text>
-        <View style={styles.targetValue}>
-          {editable ? (
-            <TextInput
-              ref={inputRef}
-              accessibilityLabel={accessibilityLabel}
-              value={value}
-              selection={{ start: value.length, end: value.length }}
-              onChangeText={onChangeText}
-              onFocus={() => {
-                onFocus();
-                requestAnimationFrame(() => inputRef.current?.setSelection(value.length, value.length));
-              }}
-              onTouchStart={(event) => event.stopPropagation()}
-              keyboardType={keyboardType}
-              inputMode={keyboardType === 'decimal-pad' ? 'decimal' : 'numeric'}
-              selectTextOnFocus={false}
-              placeholder={placeholder}
-              placeholderTextColor={theme.ink}
-              style={styles.targetInput}
-            />
-          ) : (
-            <Text style={styles.targetStaticValue}>{value || placeholder}</Text>
-          )}
-          <Text style={styles.targetUnit}>{unit}</Text>
-        </View>
-      </Pressable>
-    </ForgeCard>
+    <Pressable
+      accessibilityRole={editable ? 'button' : undefined}
+      accessibilityLabel={editable ? accessibilityLabel : undefined}
+      onPress={editable ? focusInput : undefined}
+      disabled={!editable}
+      style={({ pressed }) => [styles.targetRow, showDivider && styles.targetRowDivider, pressed && pressedFeedbackSubtle]}
+    >
+      <Text style={styles.targetLabel}>{label}</Text>
+      <View style={styles.targetValue}>
+        {editable ? (
+          <TextInput
+            ref={inputRef}
+            accessibilityLabel={accessibilityLabel}
+            value={value}
+            selection={{ start: value.length, end: value.length }}
+            onChangeText={onChangeText}
+            onFocus={() => {
+              onFocus();
+              requestAnimationFrame(() => inputRef.current?.setSelection(value.length, value.length));
+            }}
+            onTouchStart={(event) => event.stopPropagation()}
+            keyboardType={keyboardType}
+            inputMode={keyboardType === 'decimal-pad' ? 'decimal' : 'numeric'}
+            selectTextOnFocus={false}
+            placeholder={placeholder}
+            placeholderTextColor={theme.ink}
+            style={styles.targetInput}
+          />
+        ) : (
+          <Text style={styles.targetStaticValue}>{value || placeholder}</Text>
+        )}
+        <Text style={styles.targetUnit}>{unit}</Text>
+      </View>
+    </Pressable>
   );
 }
 
@@ -553,12 +553,13 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       ...typeScale.label,
       textAlignVertical: 'center',
     },
-    commentCount: { color: theme.slate, ...typeScale.caption },
     effortCard: { borderRadius: 14, padding: 12, gap: 10 },
     effortHint: { color: theme.slate, ...typeScale.supporting },
     effortChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     effortChoice: {
-      width: 48,
+      flexGrow: 1,
+      flexBasis: '27%',
+      minWidth: 0,
       height: 40,
       borderWidth: 1,
       borderRadius: 12,
@@ -566,10 +567,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       justifyContent: 'center',
     },
     effortValue: { color: theme.ink, ...typeScale.label },
-    targetCards: { flexDirection: 'row', gap: 10 },
-    targetCard: { flex: 1, minWidth: 0, height: 56, borderRadius: 14 },
-    targetPressable: {
-      flex: 1,
+    targetCardGroup: { overflow: 'hidden', borderRadius: 14 },
+    targetRow: {
+      minHeight: 56,
       minWidth: 0,
       flexDirection: 'row',
       alignItems: 'center',
@@ -577,6 +577,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       paddingHorizontal: 14,
       gap: 6,
     },
+    targetRowDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
     targetLabel: { flexShrink: 1, color: theme.ink, ...typeScale.label },
     targetValue: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 3 },
     targetInput: {

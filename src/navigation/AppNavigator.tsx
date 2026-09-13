@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, NavigationContainer, type LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { enableFreeze } from 'react-native-screens';
 import { WorkoutDetailsScreen } from '../screens/WorkoutDetailsScreen';
@@ -18,6 +18,19 @@ import type { RootStackParamList } from '../types';
 import { MainTabNavigator } from './MainTabNavigator';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+const linking: LinkingOptions<RootStackParamList> = {
+  prefixes: ['forge://'],
+  config: {
+    screens: {
+      MainTabs: {
+        screens: {
+          ActiveWorkout: 'rest-timer/:openRestTimer',
+        },
+      },
+    },
+  },
+};
 
 enableFreeze(true);
 
@@ -45,7 +58,7 @@ export function AppNavigator() {
   if (!ready) return null;
 
   return (
-    <NavigationContainer theme={navigationTheme}>
+    <NavigationContainer linking={linking} theme={navigationTheme}>
       <Stack.Navigator
         initialRouteName="MainTabs"
         screenOptions={{

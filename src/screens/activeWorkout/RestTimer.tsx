@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, {
   Extrapolation,
@@ -22,20 +22,26 @@ export function RestTimerIndicator({
   remaining,
   duration,
   running,
+  endAt,
+  onRemainingChange,
 }: {
   remaining: number;
   duration: number;
   running: boolean;
+  endAt?: number | null;
+  onRemainingChange?: (remaining: number) => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createActiveWorkoutStyles);
+  const liveRemaining = useLiveRemaining(endAt, remaining);
+  useEffect(() => { onRemainingChange?.(liveRemaining); }, [liveRemaining, onRemainingChange]);
   const contentColor = !running
     ? theme.ink
-    : remaining <= 0
+    : liveRemaining <= 0
       ? '#C85C5C'
-      : remaining <= duration * 0.2
+      : liveRemaining <= duration * 0.2
         ? '#C58A45'
-        : remaining <= duration * 0.5
+        : liveRemaining <= duration * 0.5
           ? theme.selectionIndicator
           : theme.ink;
 
@@ -43,7 +49,7 @@ export function RestTimerIndicator({
     <View style={styles.timerIndicator}>
       <Icon name="stopwatch-outline" size={22} color={contentColor} />
       {running && (
-        <Text style={[styles.restValue, { color: contentColor }]}>{formatRest(remaining)}</Text>
+        <Text style={[styles.restValue, { color: contentColor }]}>{formatRest(liveRemaining)}</Text>
       )}
     </View>
   );
@@ -53,6 +59,7 @@ export function RestTimerIndicator({
 export function RestTimerSheet({
   visible,
   selectedDuration,
+  endAt,
   remaining,
   duration,
   running,
@@ -85,6 +92,7 @@ export function RestTimerSheet({
             <ActiveRestTimer
               remaining={remaining}
               duration={duration}
+              endAt={endAt}
               onAdjust={onAdjust}
               onStop={() => {
                 onStop();
@@ -110,25 +118,28 @@ export function RestTimerSheet({
 function ActiveRestTimer({
   remaining,
   duration,
+  endAt,
   onAdjust,
   onStop,
 }: {
   remaining: number;
   duration: number;
+  endAt: number | null;
   onAdjust: (amount: number) => void;
   onStop: () => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createActiveWorkoutStyles);
-  const progress = duration > 0 ? Math.max(0, Math.min(1, remaining / duration)) : 0;
-  const isOverdue = remaining < 0;
-  const stateColor = isOverdue ? '#C85C5C' : remaining <= duration * 0.2 ? '#C58A45' : theme.selectionIndicator;
+  const liveRemaining = useLiveRemaining(endAt, remaining);
+  const progress = duration > 0 ? Math.max(0, Math.min(1, liveRemaining / duration)) : 0;
+  const isOverdue = liveRemaining < 0;
+  const stateColor = isOverdue ? '#C85C5C' : liveRemaining <= duration * 0.2 ? '#C58A45' : theme.selectionIndicator;
 
   return (
     <View style={styles.activeRestTimer}>
       <View style={styles.restTimeDisplay}>
         <Text testID="rest-timer-value" style={[styles.restTimeValue, { color: stateColor }]}>
-          {isOverdue ? `+${formatRest(remaining)}` : formatRest(remaining)}
+          {isOverdue ? `+${formatRest(liveRemaining)}` : formatRest(liveRemaining)}
         </Text>
         <Text style={[styles.restTimeCaption, isOverdue && { color: stateColor }]}>
           {isOverdue ? 'rest exceeded' : 'remaining'}
@@ -138,7 +149,7 @@ function ActiveRestTimer({
         testID="rest-timer-progress-track"
         accessibilityRole="progressbar"
         accessibilityLabel="Rest timer progress"
-        accessibilityValue={{ min: 0, max: Math.max(duration, 1), now: Math.max(0, remaining) }}
+        accessibilityValue={{ min: 0, max: Math.max(duration, 1), now: Math.max(0, liveRemaining) }}
         style={[styles.restProgressTrack, { backgroundColor: theme.surfaceMuted }]}
       >
         <View
@@ -169,19 +180,19 @@ function ActiveRestTimer({
         ) : (
           <>
             <Button
-              accessibilityLabel="Decrease rest by 15 seconds"
-              label="−15s"
+              accessibilityLabel="Decrease rest by 10 seconds"
+              label="−10s"
               variant="outline"
               haptic="none"
-              onPress={() => onAdjust(-15)}
+              onPress={() => onAdjust(-10)}
               style={styles.restQuickButton}
             />
             <Button
-              accessibilityLabel="Increase rest by 15 seconds"
-              label="+15s"
+              accessibilityLabel="Increase rest by 10 seconds"
+              label="+10s"
               variant="outline"
               haptic="none"
-              onPress={() => onAdjust(15)}
+              onPress={() => onAdjust(10)}
               style={styles.restQuickButton}
             />
           </>
@@ -198,6 +209,18 @@ function ActiveRestTimer({
       />
     </View>
   );
+}
+
+/** The per-second heartbeat belongs only to timer visuals, never the workout screen. */
+function useLiveRemaining(endAt: number | null | undefined, fallback: number): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!endAt) return undefined;
+    setNow(Date.now());
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [endAt]);
+  return endAt ? Math.ceil((endAt - now) / 1000) : fallback;
 }
 
 export function RestDurationPicker({

@@ -215,9 +215,14 @@ export const ExerciseSection = React.memo(function ExerciseSection({
               >
                 {dragHandle}
                 <View style={styles.collapsibleExerciseCopy}>
-                  <Text style={[styles.exerciseName, styles.collapsibleExerciseName]}>
-                    {exercise.name}
-                  </Text>
+                  <View style={styles.exerciseNameRow}>
+                    <Text numberOfLines={1} style={[styles.exerciseName, styles.collapsibleExerciseName]}>
+                      {exercise.name}
+                    </Text>
+                    {exercise.note?.trim() ? (
+                      <Icon accessibilityLabel="Exercise has a comment" name="comment" size={15} color={theme.slate} />
+                    ) : null}
+                  </View>
                   <Text style={styles.collapsibleExerciseMeta}>
                     {`${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'}`}
                   </Text>
@@ -231,25 +236,22 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 </View>
               </Pressable>
             ) : (
-              <View style={[styles.exerciseHeader, (catalogMetadata || exercise.note) && styles.exerciseHeaderWithMetadata, size === 'large' && styles.exerciseHeaderLarge]}>
+              <View style={[styles.exerciseHeader, catalogMetadata && styles.exerciseHeaderWithMetadata, size === 'large' && styles.exerciseHeaderLarge]}>
                 {dragHandle}
                 <View style={styles.exerciseCopy}>
-                  <Text style={[styles.exerciseName, size === 'large' && styles.exerciseNameLarge]}>
-                    {exercise.name}
-                  </Text>
+                  <View style={styles.exerciseNameRow}>
+                    <Text numberOfLines={1} style={[styles.exerciseName, size === 'large' && styles.exerciseNameLarge]}>
+                      {exercise.name}
+                    </Text>
+                    {exercise.note?.trim() ? (
+                      <Icon accessibilityLabel="Exercise has a comment" name="comment" size={16} color={theme.slate} />
+                    ) : null}
+                  </View>
                   {catalogMetadata && (
                     <Text numberOfLines={1} style={styles.exerciseMetadata}>
                       {catalogMetadata}
                     </Text>
                   )}
-                  {exercise.note?.trim() ? (
-                    <View accessibilityLabel="Exercise note" style={styles.exerciseNoteRow}>
-                      <Icon name="note" size={15} color={theme.slate} />
-                      <Text numberOfLines={2} style={styles.exerciseNote}>
-                        {exercise.note.trim()}
-                      </Text>
-                    </View>
-                  ) : null}
                 </View>
                 {showMoreOptions && (
                   <Pressable
@@ -320,22 +322,15 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 exercise={exercise}
                 onClose={() => setOptionsOpen(false)}
                 onEditNote={updateExercise ? (note) => updateExercise(exercise.id, { note }) : undefined}
-                onOpenPreviousSessions={() => afterOptionsClose(() => setOptionView('history'))}
+                onOpenPreviousSessions={() => undefined}
                 onOpenWarmupSets={canBuildWarmups ? () => afterOptionsClose(() => setOptionView('warmup')) : undefined}
-                onOpenExerciseInfo={hasExerciseInfo ? () => afterOptionsClose(() => setOptionView('info')) : undefined}
+                onOpenExerciseInfo={hasExerciseInfo ? () => undefined : undefined}
+                completedWorkouts={completedWorkouts}
                 onRemove={() => {
                   afterOptionsClose(() => setRemoveConfirmationOpen(true));
                 }}
               />
             )}
-            {optionView === 'history' ? (
-              <PreviousSessionsSheet
-                visible
-                exercise={exercise}
-                workouts={completedWorkouts}
-                onClose={() => setOptionView(null)}
-              />
-            ) : null}
             {optionView === 'warmup' && addWarmupSets ? (
               <WarmupSetsSheet
                 visible
@@ -344,9 +339,6 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 onClose={() => setOptionView(null)}
                 onAdd={(sets) => addWarmupSets(exercise.id, sets)}
               />
-            ) : null}
-            {optionView === 'info' ? (
-              <ExerciseInfoSheet visible exercise={exercise} onClose={() => setOptionView(null)} />
             ) : null}
             <ForgeConfirmationDialog
               visible={removeConfirmationOpen}
@@ -399,20 +391,18 @@ export function ReadOnlyExerciseSection({
       >
         <View style={styles.readOnlyExerciseCopy}>
           <View style={styles.readOnlyExerciseTitleRow}>
-            <Text numberOfLines={1} style={styles.readOnlyExerciseName}>
-              {exercise.name}
-            </Text>
+            <View style={styles.readOnlyExerciseNameRow}>
+              <Text numberOfLines={1} style={styles.readOnlyExerciseName}>
+                {exercise.name}
+              </Text>
+              {exercise.note?.trim() ? (
+                <Icon accessibilityLabel="Exercise has a comment" name="comment" size={15} color={theme.slate} />
+              ) : null}
+            </View>
             <Text style={styles.readOnlyExerciseCount}>
               {`· ${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'}`}
             </Text>
-            {exercise.note?.trim() ? <Icon name="note" size={15} color={theme.slate} /> : null}
           </View>
-          {exercise.note?.trim() ? (
-            <View accessibilityLabel="Exercise note" style={styles.readOnlyExerciseNoteRow}>
-              <Icon name="note" size={14} color={theme.slate} />
-              <Text numberOfLines={2} style={styles.readOnlyExerciseNote}>{exercise.note.trim()}</Text>
-            </View>
-          ) : null}
         </View>
         <Icon
           name={expanded ? 'chevron-down' : 'chevron-forward'}
@@ -475,7 +465,7 @@ function ReadOnlyHistorySetRow({
   const styles = useThemedStyles(createStyles);
   const targetSummary = nextTimeTargetSummary(set, trackingType);
   const tag = setTagPresentation(set.tag);
-  const hasAnnotations = Boolean(set.tag || targetSummary || set.comment?.trim());
+  const hasAnnotations = Boolean(set.tag || targetSummary);
   return (
     <View
       testID={`workout-details-set-${set.id}`}
@@ -496,14 +486,21 @@ function ReadOnlyHistorySetRow({
           }}
           style={styles.setNumberWrap}
         >
-          <Text
-            style={[
-              styles.setNumber,
-              tag && { color: tag.color, backgroundColor: `${tag.color}20` },
-            ]}
-          >
-            {tag?.letter ?? index + 1}
-          </Text>
+          <View testID={`history-set-number-chip-${index + 1}`} style={styles.historySetNumberChip}>
+            <Text
+              style={[
+                styles.setNumber,
+                tag && { color: tag.color, backgroundColor: `${tag.color}20` },
+              ]}
+            >
+              {tag?.letter ?? index + 1}
+            </Text>
+            {set.comment?.trim() ? (
+              <View accessibilityLabel={`Set ${index + 1} has a comment`} style={styles.historySetCommentIndicator}>
+                <Icon name="comment" size={9} color={theme.ink} />
+              </View>
+            ) : null}
+          </View>
         </Pressable>
         <Text style={styles.previous} numberOfLines={1}>
           {set.previous || '—'}
@@ -529,12 +526,6 @@ function ReadOnlyHistorySetRow({
             </View>
           ) : null}
           {targetSummary ? <Text style={styles.historySetTarget}>{`Next time · ${targetSummary}`}</Text> : null}
-          {set.comment?.trim() ? (
-            <View accessibilityLabel="Set comment" style={styles.historySetCommentRow}>
-              <Icon name="note" size={14} color={theme.slate} />
-              <Text style={styles.historySetComment}>{set.comment.trim()}</Text>
-            </View>
-          ) : null}
         </View>
       ) : null}
     </View>
@@ -643,6 +634,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       alignItems: 'baseline',
       gap: 4,
     },
+    readOnlyExerciseNameRow: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 5 },
     readOnlyExerciseName: {
       flexShrink: 1,
       color: dashboardTheme.ink,
@@ -654,8 +646,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       color: dashboardTheme.slate,
       ...typeScale.label,
     },
-    readOnlyExerciseNoteRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 5 },
-    readOnlyExerciseNote: { flex: 1, color: dashboardTheme.slate, ...typeScale.supporting },
     readOnlySets: { paddingHorizontal: 12, paddingBottom: 4 },
     readOnlyMinimalSets: { paddingBottom: 0 },
     exerciseHeader: {
@@ -682,10 +672,12 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       borderTopColor: dashboardTheme.border,
     },
     exerciseName: {
+      flexShrink: 1,
       color: dashboardTheme.ink,
       ...typeScale.cardTitle,
     },
     exerciseCopy: { flex: 1, minWidth: 0, justifyContent: 'center' },
+    exerciseNameRow: { flexDirection: 'row', alignItems: 'center', gap: 5, minWidth: 0 },
     exerciseMetadata: { marginTop: 1, color: dashboardTheme.slate, ...typeScale.supporting },
     exerciseNoteRow: { marginTop: 3, flexDirection: 'row', alignItems: 'flex-start', gap: 5 },
     exerciseNote: { flex: 1, color: dashboardTheme.slate, ...typeScale.supporting },
@@ -727,7 +719,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     readOnlySetRowWithAnnotations: { paddingBottom: 8 },
     readOnlyMinimalSetRow: { minHeight: 44, borderBottomWidth: 0 },
     readOnlySetValues: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6 },
-    setNumberWrap: { width: 46, height: 44, alignItems: 'center', justifyContent: 'center' },
+    setNumberWrap: { position: 'relative', width: 46, height: 44, alignItems: 'center', justifyContent: 'center' },
+    historySetNumberChip: { position: 'relative', width: 30, height: 30 },
     setNumber: {
       width: 30,
       height: 30,
@@ -737,6 +730,19 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       color: dashboardTheme.ink,
       ...typeScale.caption,
       lineHeight: 30,
+    },
+    historySetCommentIndicator: {
+      position: 'absolute',
+      right: -3,
+      bottom: -3,
+      width: 13,
+      height: 13,
+      borderRadius: 6.5,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: dashboardTheme.surface,
+      borderWidth: 1,
+      borderColor: dashboardTheme.background,
     },
     previous: {
       flex: 1,
@@ -760,7 +766,5 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     historySetTagDot: { width: 7, height: 7, borderRadius: 4 },
     historySetTag: { color: dashboardTheme.slate, ...typeScale.caption },
     historySetTarget: { color: dashboardTheme.slate, ...typeScale.caption },
-    historySetCommentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 5 },
-    historySetComment: { flex: 1, color: dashboardTheme.slate, ...typeScale.caption },
   });
 };

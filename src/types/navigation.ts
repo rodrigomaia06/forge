@@ -8,7 +8,7 @@ import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-n
 
 export type RootTabParamList = {
   Dashboard: { selectedDate?: string } | undefined;
-  ActiveWorkout: undefined;
+  ActiveWorkout: { openRestTimer?: 'open' } | undefined;
   History: undefined;
   Plans: { openCreation?: boolean } | undefined;
   Settings: undefined;

@@ -1,13 +1,16 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { successHaptic } from '../components/ui/haptics';
 import { useSettings } from './SettingsContext';
 import { useWorkouts } from './WorkoutContext';
+import { syncRestTimerLiveActivity } from './restTimerLiveActivity';
 
 const restTimerNotificationId = 'forge-rest-timer-complete';
 const restTimerChannelId = 'forge-rest-timer';
+const restTimerStorageKey = '@forge/rest-timer-v1';
 
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
@@ -84,10 +87,10 @@ async function replaceRestTimerNotification(
  */
 export function RestTimerProvider({ children }: { children: React.ReactNode }) {
   const { preferences } = useSettings();
-  const { activeWorkout } = useWorkouts();
+  const { activeWorkout, ready: workoutsReady } = useWorkouts();
   const [endAt, setEndAt] = useState<number | null>(null);
   const [duration, setDuration] = useState(0);
-  const [now, setNow] = useState(() => Date.now());
+  const [hydrated, setHydrated] = useState(false);
   const didNotifyCompletion = useRef(false);
   const notificationQueue = useRef(Promise.resolve());
 
@@ -102,25 +105,42 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!endAt) return undefined;
-    const tick = () => setNow(Date.now());
-    tick();
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, [endAt]);
-
-  const rawRemaining = endAt ? Math.ceil((endAt - now) / 1000) : 0;
-  const remaining = endAt
-    ? preferences.keepRestTimerRunning ? rawRemaining : Math.max(0, rawRemaining)
-    : 0;
-  const running = Boolean(endAt && (rawRemaining > 0 || preferences.keepRestTimerRunning));
+    if (!workoutsReady) return;
+    if (!activeWorkout) {
+      didNotifyCompletion.current = false;
+      setEndAt(null); setDuration(0); setHydrated(true);
+      void AsyncStorage.removeItem(restTimerStorageKey);
+      return;
+    }
+    let mounted = true;
+    void AsyncStorage.getItem(restTimerStorageKey).then((raw) => {
+      if (!mounted) return;
+      try {
+        const saved = JSON.parse(raw ?? 'null') as { endAt?: unknown; duration?: unknown } | null;
+        if (typeof saved?.endAt === 'number' && typeof saved.duration === 'number' && saved.duration > 0) {
+          setEndAt(saved.endAt); setDuration(saved.duration);
+        }
+      } finally { if (mounted) setHydrated(true); }
+    });
+    return () => { mounted = false; };
+  }, [activeWorkout, workoutsReady]);
 
   useEffect(() => {
-    if (!endAt || now < endAt || didNotifyCompletion.current) return;
-    didNotifyCompletion.current = true;
-    if (preferences.restTimerHaptic) successHaptic();
-    if (!preferences.keepRestTimerRunning) setEndAt(null);
-  }, [endAt, now, preferences.keepRestTimerRunning, preferences.restTimerHaptic]);
+    if (!hydrated) return;
+    if (!endAt) { void AsyncStorage.removeItem(restTimerStorageKey); return; }
+    void AsyncStorage.setItem(restTimerStorageKey, JSON.stringify({ endAt, duration }));
+  }, [duration, endAt, hydrated]);
+
+  useEffect(() => {
+    if (!endAt) return undefined;
+    const timeout = setTimeout(() => {
+      if (didNotifyCompletion.current) return;
+      didNotifyCompletion.current = true;
+      if (preferences.restTimerHaptic) successHaptic();
+      if (!preferences.keepRestTimerRunning) setEndAt(null);
+    }, Math.max(0, endAt - Date.now()));
+    return () => clearTimeout(timeout);
+  }, [endAt, preferences.keepRestTimerRunning, preferences.restTimerHaptic]);
 
   // Keep the system-owned end alert synchronized with every timer or
   // preference change. This also immediately removes it when the user hides
@@ -128,7 +148,7 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // At expiry leave the already-due notification alone: cancelling it in
     // the same tick can race iOS/Android's sound and lock-screen delivery.
-    if ((endAt && endAt <= now && didNotifyCompletion.current) || (!endAt && didNotifyCompletion.current)) return;
+    if (!hydrated || (endAt && endAt <= Date.now() && didNotifyCompletion.current) || (!endAt && didNotifyCompletion.current)) return;
     notificationQueue.current = notificationQueue.current
       .then(() => replaceRestTimerNotification(
         preferences.showRestTimer ? endAt : null,
@@ -136,14 +156,18 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
         preferences.restTimerSound,
       ))
       .catch(() => undefined);
-  }, [duration, endAt, now, preferences.restTimerSound, preferences.showRestTimer]);
+  }, [duration, endAt, hydrated, preferences.restTimerSound, preferences.showRestTimer]);
 
+  // ActivityKit is a secondary presentation of the same timestamp state. It
+  // deliberately receives updates only for semantic timer changes, never from
+  // the once-per-second React display components.
   useEffect(() => {
-    if (activeWorkout) return;
-    didNotifyCompletion.current = false;
-    setEndAt(null);
-    setDuration(0);
-  }, [activeWorkout]);
+    if (!hydrated) return;
+    void syncRestTimerLiveActivity({
+      endAt: preferences.showRestTimer ? endAt : null,
+      duration,
+    }).catch(() => undefined);
+  }, [duration, endAt, hydrated, preferences.showRestTimer]);
 
   const start = useCallback((nextDuration: number): void => {
     const safeDuration = Math.max(1, Math.round(nextDuration));
@@ -151,7 +175,6 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
     const nextEndAt = startedAt + safeDuration * 1000;
     didNotifyCompletion.current = false;
     setDuration(safeDuration);
-    setNow(startedAt);
     setEndAt(nextEndAt);
   }, []);
 
@@ -162,7 +185,6 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
     const nextEndAt = nextRemaining ? adjustedAt + nextRemaining * 1000 : adjustedAt;
     const nextDuration = Math.max(1, duration + nextRemaining - currentRemaining);
     if (nextRemaining) didNotifyCompletion.current = false;
-    setNow(adjustedAt);
     setDuration(nextDuration);
     setEndAt(nextEndAt);
   }, [duration, endAt]);
@@ -172,6 +194,9 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
     setEndAt(null);
   }, []);
 
+  const rawRemaining = endAt ? Math.ceil((endAt - Date.now()) / 1000) : 0;
+  const remaining = endAt ? (preferences.keepRestTimerRunning ? rawRemaining : Math.max(0, rawRemaining)) : 0;
+  const running = Boolean(endAt && (rawRemaining > 0 || preferences.keepRestTimerRunning));
   const value = useMemo<RestTimerContextValue>(() => ({
     endAt,
     duration,

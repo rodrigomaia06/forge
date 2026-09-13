@@ -123,16 +123,7 @@ export function ExerciseInfoSheet({
     <ForgeBottomSheet visible={visible} onClose={onClose} accessibilityLabel="Close exercise information">
       <ForgeBottomSheetHandle />
       <ForgeSheetHeader title="Exercise info" onClose={onClose} />
-      <ScrollView contentContainerStyle={styles.compactContent}>
-        <ForgeCard variant="outlined" style={styles.infoCard}>
-          {fields.map(([label, value], index) => (
-            <View key={label} style={[styles.infoRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
-              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{label}</Text>
-              <Text style={styles.infoValue}>{value}</Text>
-            </View>
-          ))}
-        </ForgeCard>
-      </ScrollView>
+      <ExerciseInfoContent exercise={exercise} />
     </ForgeBottomSheet>
   );
 }
@@ -155,21 +146,32 @@ export function PreviousSessionsSheet({
     <ForgeBottomSheet visible={visible} onClose={onClose} accessibilityLabel="Close previous sessions">
       <ForgeBottomSheetHandle />
       <ForgeSheetHeader title="Previous sessions" onClose={onClose} />
-      <ScrollView contentContainerStyle={styles.compactContent}>
-        {sessions.length ? <ForgeCard variant="outlined" style={styles.sessionCard}>
-          {sessions.map(({ workout, exercise: sessionExercise }, index) => (
-            <View key={workout.id} style={[styles.sessionRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
-              <View style={styles.sessionCopy}>
-                <Text style={styles.sessionDate}>{new Date(workout.completedAt ?? workout.startedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</Text>
-                <Text style={[styles.sessionDetail, { color: theme.textSecondary }]} numberOfLines={2}>{formatSessionSets(sessionExercise)}</Text>
-              </View>
-              <Icon name="history" size={20} color={theme.textSecondary} />
-            </View>
-          ))}
-        </ForgeCard> : <View style={[styles.emptyCard, { borderColor: theme.border, backgroundColor: theme.surfaceMuted }]}><Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>No completed sessions for this exercise yet.</Text></View>}
-      </ScrollView>
+      <PreviousSessionsContent exercise={exercise} workouts={workouts} />
     </ForgeBottomSheet>
   );
+}
+
+export function ExerciseInfoContent({ exercise }: { exercise: WorkoutExercise }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  const detail = useMemo(() => catalogueDetail(exercise), [exercise]);
+  if (!detail) return null;
+  const fields = [
+    ['Exercise', detail.name],
+    ...(detail.variation ? [['Variation', detail.variation]] : []),
+    ['Category', detail.category], ['Equipment', detail.equipment], ['Movement family', detail.group],
+    ['Tracking', trackingFields[detail.trackingType ?? 'weight-reps'].map((kind) => trackingFieldLabel(detail.trackingType ?? 'weight-reps', kind)).join(' & ')],
+    ['Primary muscle', detail.primaryMuscle],
+    ...(detail.secondaryMuscles?.length ? [['Secondary muscles', detail.secondaryMuscles.join(' & ')]] : []),
+  ];
+  return <ScrollView contentContainerStyle={styles.compactContent}><ForgeCard variant="outlined" style={styles.infoCard}>{fields.map(([label, value], index) => <View key={label} style={[styles.infoRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}><Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{label}</Text><Text style={styles.infoValue}>{value}</Text></View>)}</ForgeCard></ScrollView>;
+}
+
+export function PreviousSessionsContent({ exercise, workouts }: { exercise: WorkoutExercise; workouts: readonly Workout[] }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  const sessions = useMemo(() => findPreviousSessions(exercise, workouts), [exercise, workouts]);
+  return <ScrollView contentContainerStyle={styles.compactContent}>{sessions.length ? <ForgeCard variant="outlined" style={styles.sessionCard}>{sessions.map(({ workout, exercise: sessionExercise }, index) => <View key={workout.id} style={[styles.sessionRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}><View style={styles.sessionCopy}><Text style={styles.sessionDate}>{new Date(workout.completedAt ?? workout.startedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</Text><Text style={[styles.sessionDetail, { color: theme.textSecondary }]} numberOfLines={2}>{formatSessionSets(sessionExercise)}</Text></View><Icon name="history" size={20} color={theme.textSecondary} /></View>)}</ForgeCard> : <View style={[styles.emptyCard, { borderColor: theme.border, backgroundColor: theme.surfaceMuted }]}><Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>No completed sessions for this exercise yet.</Text></View>}</ScrollView>;
 }
 
 function catalogueDetail(exercise: WorkoutExercise): ExerciseCatalogItem | undefined {

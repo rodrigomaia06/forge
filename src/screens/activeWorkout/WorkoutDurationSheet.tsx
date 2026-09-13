@@ -162,8 +162,8 @@ function formatTime(value: Date): string {
 }
 
 const styles = StyleSheet.create({
-  sheet: { paddingHorizontal: 20, paddingBottom: 52, gap: 12 },
-  settingsCard: { overflow: 'hidden' },
+  sheet: { paddingBottom: 52, gap: 12 },
+  settingsCard: { overflow: 'hidden', marginHorizontal: 20 },
   startRow: { minHeight: 62, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowLabel: { flex: 1, minWidth: 0, ...typeScale.body },
   startValues: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   valueText: { ...typeScale.supporting },
   divider: { height: StyleSheet.hairlineWidth, marginHorizontal: 16 },
   trackingRow: { minHeight: 62, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  resetButton: { minHeight: 52 },
+  resetButton: { minHeight: 52, marginHorizontal: 20 },
   // Keep Done at the shared Button height rather than giving picker actions a local size.
-  doneButton: { marginTop: 4 },
+  doneButton: { marginTop: 4, marginHorizontal: 20 },
 });

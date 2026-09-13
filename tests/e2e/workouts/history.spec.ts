@@ -207,7 +207,7 @@ test.describe('History screen', () => {
     await expect(page.getByRole('button', { name: 'Back to History' })).toHaveCount(0);
   });
 
-  test('keeps workout details read-only and expands exercises individually', async ({ page }) => {
+  test('keeps workout details read-only and expands exercises individually', async ({ page }, testInfo) => {
     await page.getByRole('button', { name: 'Open Muay Thai' }).click();
     await expect(
       page.getByTestId('workout-details-summary').getByText('Exercises', { exact: true }),
@@ -232,7 +232,27 @@ test.describe('History screen', () => {
       page.getByTestId('workout-details-set-completion-muay-thai-set-0-1'),
     ).not.toHaveCSS('background-color', 'rgb(98, 201, 138)');
     const firstSet = page.getByTestId('workout-details-set-muay-thai-set-0-0');
-    await expect(firstSet).toContainText('History note');
+    await expect(firstSet).not.toContainText('History note');
+    await expect(firstSet.getByLabel('Set 1 has a comment')).toBeVisible();
+    const historyExercise = page.getByTestId('history-exercise-muay-thai-exercise-0');
+    await expect(historyExercise).not.toContainText('Exercise history note');
+    await expect(historyExercise.locator('svg[aria-label="Exercise has a comment"]')).toBeVisible();
+    const [chipBox, dotBox] = await Promise.all([
+      page.getByTestId('history-set-number-chip-1').boundingBox(),
+      firstSet.getByLabel('Set 1 has a comment').boundingBox(),
+    ]);
+    expect(chipBox).not.toBeNull();
+    expect(dotBox).not.toBeNull();
+    if (!chipBox || !dotBox) throw new Error('Expected a measurable history set chip and comment dot');
+    expect(dotBox.x).toBeGreaterThan(chipBox.x + chipBox.width / 2);
+    expect(dotBox.y).toBeGreaterThan(chipBox.y + chipBox.height / 2);
+    expect(dotBox.x).toBeLessThan(chipBox.x + chipBox.width);
+    expect(dotBox.y).toBeLessThan(chipBox.y + chipBox.height);
+    expect(dotBox.x + dotBox.width).toBeGreaterThan(chipBox.x + chipBox.width);
+    expect(dotBox.y + dotBox.height).toBeGreaterThan(chipBox.y + chipBox.height);
+    if (testInfo.project.name === 'iphone-air') {
+      await page.screenshot({ path: testInfo.outputPath('commented-history-exercise-iphone.png') });
+    }
     await expect(firstSet).toContainText('Next time · Kg 65');
     await expect(page.getByLabel('Workout options')).toBeVisible();
     await page.getByRole('button', { name: 'Open details for set 1' }).click();
@@ -288,6 +308,7 @@ function makeWorkout(
     exercises: Array.from({ length: exerciseCount }, (_, exerciseIndex) => ({
       id: `${id}-exercise-${exerciseIndex}`,
       name: `Exercise ${exerciseIndex + 1}`,
+      note: exerciseIndex === 0 ? 'Exercise history note' : undefined,
       sets: Array.from(
         {
           length:
