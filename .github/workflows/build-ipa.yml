@@ -1,0 +1,30 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-ipa-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  trigger-build:
+    name: Trigger internal iOS build
+    # EAS performs the native build remotely. A standard Linux runner is both
+    # faster to start and substantially cheaper than occupying a macOS runner.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+      - name: Set up Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Create internal-distribution IPA on EAS
+        run: eas build --platform ios --profile preview --non-interactive --no-wait
