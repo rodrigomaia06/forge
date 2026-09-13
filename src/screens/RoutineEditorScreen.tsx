@@ -4,6 +4,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
@@ -591,33 +592,40 @@ function RoutineTypePicker({
         <View style={styles.typePicker}>
           <ForgeBottomSheetHandle />
           <ForgeSheetHeader title="Workout type" onClose={close} />
-          <View accessibilityRole="radiogroup" style={styles.typePickerList}>
-            {types.map((type, index) => {
-              const selected = type.name === selectedType;
-              return (
-                <Pressable
-                  key={type.id}
-                  accessibilityRole="radio"
-                  accessibilityLabel={`Use ${type.name} workout type`}
-                  accessibilityState={{ selected, checked: selected }}
-                  onPress={() => {
-                    selectionHaptic();
-                    onSelect(type.name);
-                  }}
-                  style={({ pressed }) => [
-                    styles.typeChoice,
-                    index > 0 && styles.typeChoiceDivider,
-                    selected && styles.typeChoiceSelected,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <View style={[styles.choiceDot, { backgroundColor: type.color }]} />
-                  <Text style={styles.typeChoiceText}>{type.name}</Text>
-                  {selected && <Icon name="check" size={17} color={theme.success} weight="bold" />}
-                </Pressable>
-              );
-            })}
-          </View>
+          <ScrollView
+            testID="routine-type-selection-scroll"
+            style={styles.typePickerScroll}
+            contentContainerStyle={styles.typePickerContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <View accessibilityRole="radiogroup" style={styles.typePickerList}>
+              {types.map((type, index) => {
+                const selected = type.name === selectedType;
+                return (
+                  <Pressable
+                    key={type.id}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`Use ${type.name} workout type`}
+                    accessibilityState={{ selected, checked: selected }}
+                    onPress={() => {
+                      selectionHaptic();
+                      onSelect(type.name);
+                    }}
+                    style={({ pressed }) => [
+                      styles.typeChoice,
+                      index > 0 && styles.typeChoiceDivider,
+                      selected && styles.typeChoiceSelected,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <View style={[styles.choiceDot, { backgroundColor: type.color }]} />
+                    <Text style={styles.typeChoiceText}>{type.name}</Text>
+                    {selected && <Icon name="check" size={17} color={theme.success} weight="bold" />}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </ScrollView>
         </View>
       )}
     </ForgeBottomSheet>
@@ -850,7 +858,9 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    typePicker: { paddingBottom: 24 },
+    typePicker: { maxHeight: '84%', paddingBottom: 24 },
+    typePickerScroll: { flexShrink: 1, minHeight: 0 },
+    typePickerContent: { paddingBottom: 4 },
     typePickerList: {
       marginHorizontal: 20,
       overflow: 'hidden',

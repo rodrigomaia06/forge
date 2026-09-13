@@ -179,6 +179,41 @@ test.describe('Plans and routines', () => {
     await expect(page.getByRole('button', { name: 'Workout type, Recovery' })).toBeVisible();
   });
 
+  test('keeps a long routine workout-type list inside a bounded scroller', async ({ page }, testInfo) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Workout types' }).click();
+    for (let index = 1; index <= 14; index += 1) {
+      await page.getByRole('button', { name: 'Add workout type' }).click();
+      await page.getByLabel('Workout type name').fill(`Long picker type ${index}`);
+      await page.getByRole('button', { name: 'Save workout type' }).click();
+    }
+    await page.getByRole('button', { name: 'Back to Settings' }).click();
+
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
+    await page
+      .getByTestId('plans-creation-popover')
+      .getByRole('button', { name: 'New routine' })
+      .click();
+    await page.getByRole('button', { name: 'Workout type, Strength' }).click();
+
+    const typeScroll = page.getByTestId('routine-type-selection-scroll');
+    await expect(typeScroll).toBeVisible();
+    const hasOverflow = await typeScroll.evaluate((element) => element.scrollHeight > element.clientHeight);
+    expect(hasOverflow).toBe(true);
+    const scrollTop = await typeScroll.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+      return element.scrollTop;
+    });
+    expect(scrollTop).toBeGreaterThan(0);
+    const lastType = page.getByRole('radio', { name: 'Use Long picker type 14 workout type' });
+    await expect(lastType).toBeInViewport();
+    if (testInfo.project.name === 'iphone-air') {
+      await page.screenshot({ path: testInfo.outputPath('routine-type-picker-scroll-iphone.png') });
+    }
+  });
+
   test('uses a centred Forge confirmation card to keep or discard an edited routine draft', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Plans' }).click();
