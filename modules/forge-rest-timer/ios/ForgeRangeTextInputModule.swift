@@ -156,6 +156,11 @@ final class ForgeRangeKeyboard: UIInputView, UIInputViewAudioFeedback {
   init(textInput: UITextField) {
     self.textInput = textInput
     super.init(frame: .zero, inputViewStyle: .keyboard)
+    // `UIInputView` is not given a usable intrinsic height by every responder
+    // host (notably the Expo Fabric text-input host). Make the input view own
+    // its fitting size so UIKit can lay out the four key rows rather than
+    // presenting an empty keyboard surface.
+    allowsSelfSizing = true
     // UIKit exposes dynamic semantic colours, rather than the private colours
     // used by the system keyboard. These two roles track the iPhone number pad
     // closely in both appearances without freezing an app-specific palette.
@@ -167,6 +172,28 @@ final class ForgeRangeKeyboard: UIInputView, UIInputViewAudioFeedback {
 
   required init?(coder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
+  }
+
+  override var intrinsicContentSize: CGSize {
+    CGSize(width: UIView.noIntrinsicMetric, height: preferredHeight)
+  }
+
+  override func systemLayoutSizeFitting(_ targetSize: CGSize) -> CGSize {
+    CGSize(width: targetSize.width, height: preferredHeight)
+  }
+
+  override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+    super.traitCollectionDidChange(previousTraitCollection)
+    if previousTraitCollection?.verticalSizeClass != traitCollection.verticalSizeClass {
+      invalidateIntrinsicContentSize()
+    }
+  }
+
+  private var preferredHeight: CGFloat {
+    // These are the compact and regular heights UIKit uses for the iPhone
+    // number pad. The width remains owned by UIKit, so split view, rotation,
+    // and different iPhone widths retain the normal system geometry.
+    traitCollection.verticalSizeClass == .compact ? 216 : 291
   }
 
   private func buildKeyboard() {
