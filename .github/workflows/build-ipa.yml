@@ -34,18 +34,24 @@ jobs:
         run: sudo xcode-select --switch /Applications/Xcode_26.3.app/Contents/Developer
       - name: Install JavaScript dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Patch ExpoModulesJSI for Swift 6.2
+      - name: Patch ExpoModulesJSI for Xcode 26
         # SDK 57 annotates C++ constructors with SWIFT_RETURNS_RETAINED. Xcode
         # 26's Swift 6.2 compiler rejects that annotation on constructors;
         # removing the two annotations preserves their normal shared-reference
-        # ownership semantics. Keep the count check so an Expo update that
-        # removes or changes this upstream workaround cannot silently drift.
+        # ownership semantics. The same SDK's strict Swift 6 mode then rejects
+        # its own actor-isolated raw-pointer trampolines, so compile this
+        # dependency in Swift 5 mode until Expo completes that migration. Keep
+        # the count checks so an Expo update cannot silently drift this patch.
         run: |
           set -euo pipefail
           HEADER='node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI-Cxx/include/RuntimeScheduler.h'
+          MANIFEST='node_modules/expo-modules-jsi/apple/Package.swift'
           test "$(grep -F -c 'SWIFT_RETURNS_RETAINED RuntimeScheduler' "$HEADER")" -eq 2
+          test "$(grep -F -c 'swiftLanguageModes: [.v6]' "$MANIFEST")" -eq 1
           perl -0pi -e 's/SWIFT_RETURNS_RETAINED RuntimeScheduler/RuntimeScheduler/g' "$HEADER"
+          perl -0pi -e 's/swiftLanguageModes: \[\.v6\]/swiftLanguageModes: [.v5]/g' "$MANIFEST"
           ! grep -F 'SWIFT_RETURNS_RETAINED RuntimeScheduler' "$HEADER"
+          grep -Fqx '  swiftLanguageModes: [.v5],' "$MANIFEST"
       - name: Generate the iOS project
         # Prebuild also runs Forge's local plugin, which adds the direct
         # ActivityKit extension and the app-local numeric range keyboard.
