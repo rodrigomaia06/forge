@@ -29,9 +29,11 @@ export function DashboardShell({
   onCalendarMenuDismiss?: () => void;
 }) {
   const navigation = useNavigation<RootNavigationProp>();
+  const { startWorkout } = useWorkouts();
   const openWorkout = () => {
     lightHaptic();
-    navigation.navigate('Plans', { openCreation: true });
+    startWorkout();
+    navigation.navigate('ActiveWorkout', { openAddExercises: 'open' });
   };
   return (
     <AppScreen testID="dashboard-app-screen" backgroundColor={theme.background} edges={['top']}>

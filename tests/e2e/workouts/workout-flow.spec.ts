@@ -62,12 +62,9 @@ async function scrollCatalogueUp(page: Page): Promise<void> {
 
 async function startBlankWorkout(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Start workout' }).click();
-  await expect(page.getByTestId('plans-creation-popover')).toBeVisible();
-  await page
-    .getByTestId('plans-creation-popover')
-    .getByRole('button', { name: 'New workout', exact: true })
-    .click();
-  await expect(page.getByRole('button', { name: 'Add exercise' })).toBeVisible();
+  await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
+  await page.getByTestId('forge-sheet-drag-area').getByRole('button', { name: 'Close add exercises' }).click();
+  await expect(page.getByRole('button', { name: 'Add exercise', exact: true })).toBeVisible();
 }
 
 async function swipeLeftFrom(page: Page, locator: Locator): Promise<void> {
@@ -131,7 +128,7 @@ test.describe('Active workout flow', () => {
   test('reorders an active-workout draft and confirms before discarding it', async ({ page }, testInfo) => {
     await page.goto('/');
     await startBlankWorkout(page);
-    await page.getByRole('button', { name: 'Add exercise' }).click();
+    await page.getByTestId('active-workout-list').getByRole('button', { name: 'Add exercise' }).click();
     await selectStandardBarbellBenchPress(page);
     await page.getByLabel('Search exercises').fill('barbell back squat');
     await page.getByRole('checkbox').first().click({ force: true });
@@ -140,6 +137,10 @@ test.describe('Active workout flow', () => {
     await page.getByRole('button', { name: 'Edit live workout' }).click();
     await expect(page.getByRole('button', { name: 'Expand Barbell Bench Press' })).toBeVisible();
     await expect(page.getByLabel('Weight for set 1')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'More options for Barbell Bench Press' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Expand Barbell Bench Press' }).click();
+    await expect(page.getByRole('checkbox')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Collapse Barbell Bench Press' }).click();
     const handles = page.getByRole('button', { name: /Drag to reorder/ });
     await expect(handles).toHaveCount(2);
     const [firstHandle, secondHandle] = await Promise.all([

@@ -234,10 +234,8 @@ test.describe('Forge screen captures', () => {
   test('captures Live Workout and set options', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Start workout' }).click();
-    await page
-      .getByTestId('plans-creation-popover')
-      .getByRole('button', { name: 'New workout', exact: true })
-      .click();
+    await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
+    await page.getByTestId('forge-sheet-drag-area').getByRole('button', { name: 'Close add exercises' }).click();
     await expect(page.getByRole('button', { name: 'Finish workout' })).toBeVisible();
     await capture(page, 'live-workout');
 

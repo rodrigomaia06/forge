@@ -114,6 +114,14 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     openRestTimer();
     navigation.setParams({ openRestTimer: undefined });
   }, [navigation, route.params?.openRestTimer]);
+  useEffect(() => {
+    if (route.params?.openAddExercises !== 'open') return;
+    // Keep the picker present from the destination's first visible frame. This
+    // avoids flashing an empty Live Workout between Dashboard's start action
+    // and the mandatory Add exercises decision.
+    setSheetOpen(true);
+    navigation.setParams({ openAddExercises: undefined });
+  }, [navigation, route.params?.openAddExercises]);
   const adjustRestTimer = (amount: number): void => {
     lightHaptic();
     restTimer.adjust(amount);
@@ -290,7 +298,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
         dockScrollInset={dockScrollInset}
       />
       <ExtractedAddExerciseSheet
-        visible={sheetOpen}
+        visible={sheetOpen || route.params?.openAddExercises === 'open'}
         onClose={handleAddExerciseClose}
         onSubmit={handleAddExercises}
       />

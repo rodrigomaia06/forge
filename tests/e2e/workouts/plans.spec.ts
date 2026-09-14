@@ -32,16 +32,12 @@ test.describe('Plans and routines', () => {
     await expect(page.getByText('Build your first routine', { exact: true })).toBeVisible();
   });
 
-  test('routes the Dashboard creation action into the Plans creation popover', async ({ page }) => {
+  test('starts a blank workout directly from Dashboard with its exercise picker open', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Start workout' }).click();
-    await expect(page.getByText('Plans', { exact: true })).toBeVisible();
-    await expect(page.getByTestId('plans-creation-popover')).toBeVisible();
-    await expect(
-      page
-        .getByTestId('plans-creation-popover')
-        .getByRole('button', { name: 'New workout', exact: true }),
-    ).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Workout', exact: true })).toBeVisible();
+    await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
+    await expect(page.getByTestId('plans-creation-popover')).toHaveCount(0);
   });
 
   test('starts a blank workout and creates a plan from the header popover', async ({ page }) => {

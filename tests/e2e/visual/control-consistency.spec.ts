@@ -84,10 +84,8 @@ test.describe('Interactive control consistency', () => {
       await dimensions(page.getByRole('button', { name: 'Start workout' }))
     ).background;
     await page.getByRole('button', { name: 'Start workout' }).click();
-    await page
-      .getByTestId('plans-creation-popover')
-      .getByRole('button', { name: 'New workout', exact: true })
-      .click();
+    await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
+    await page.getByTestId('forge-sheet-drag-area').getByRole('button', { name: 'Close add exercises' }).click();
 
     expect(
       (await dimensions(page.getByRole('button', { name: 'Cancel workout' }))).background,
@@ -113,10 +111,8 @@ test.describe('Interactive control consistency', () => {
 
     await page.getByRole('tab', { name: 'Dashboard' }).click();
     await page.getByRole('button', { name: 'Start workout' }).click();
-    await page
-      .getByTestId('plans-creation-popover')
-      .getByRole('button', { name: 'New workout', exact: true })
-      .click();
+    await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
+    await page.getByTestId('forge-sheet-drag-area').getByRole('button', { name: 'Close add exercises' }).click();
     const finishButton = page.getByRole('button', { name: 'Finish workout' });
     const finish = await dimensions(finishButton);
     expect(finish.background).toBe('rgb(245, 247, 248)');
