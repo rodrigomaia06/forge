@@ -34,6 +34,7 @@ export function SetRow({
   const invalidTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const setRowRef = useRef<View>(null);
   const [routineRangeDrafts, setRoutineRangeDrafts] = useState<Partial<Record<import('../../types').SetMeasurementKind, string>>>({});
+  const [focusedInputs, setFocusedInputs] = useState<Partial<Record<import('../../types').SetMeasurementKind, boolean>>>({});
   const previous = set.previous || '—';
   const tag = setTagPresentation(set.tag);
   const rpe = measurementText(set, 'rpe');
@@ -148,7 +149,12 @@ export function SetRow({
         const storedValue = allowsRange ? planned : measurementText(set, kind);
         const draftValue = routineRangeDrafts[kind];
         const value = allowsRange && draftValue !== undefined ? draftValue : storedValue;
-        const legacy = kind === 'reps' ? { reps: value } : kind === 'weight' || kind === 'addedWeight' ? { weight: value } : {};
+        // Every set field keeps its normal neutral box. A live empty field is
+        // guidance rather than a recorded value, so only its text hierarchy
+        // changes; completion remains exclusively with the check control.
+        const quietValue = setTargetMode !== 'routine' && !value.trim();
+        const inputFocused = focusedInputs[kind] === true;
+        const inputTextColor = quietValue ? theme.textSecondary : theme.ink;
         const writeMeasurement = (text: string): void => {
           if (allowsRange) {
             const draft = numericRangeText(text);
@@ -157,7 +163,15 @@ export function SetRow({
             return;
           }
           onChange({
-            ...legacy,
+            // Legacy rows still read weight/reps when their structured entry
+            // is absent. Use the incoming text—not the previous rendered
+            // value—so deleting the final digit persists an actual empty
+            // legacy field instead of resurrecting that digit on rerender.
+            ...(kind === 'reps'
+              ? { reps: text }
+              : kind === 'weight' || kind === 'addedWeight'
+                ? { weight: text }
+                : {}),
             measurements: updateMeasurement(set, kind, text),
           });
         };
@@ -171,8 +185,12 @@ export function SetRow({
                 onTouchStart={onInputTouchStart}
                 onTouchMove={onInputTouchMove}
                 onTouchEnd={onInputTouchEnd}
-                onFocus={reportInputFocus}
+                onFocus={() => {
+                  setFocusedInputs((current) => ({ ...current, [kind]: true }));
+                  reportInputFocus();
+                }}
                 onBlur={() => {
+                  setFocusedInputs((current) => ({ ...current, [kind]: false }));
                   setRoutineRangeDrafts((current) => {
                     const next = { ...current };
                     delete next[kind];
@@ -180,13 +198,16 @@ export function SetRow({
                   });
                 }}
                 placeholder={planned || '—'}
-                placeholderTextColor={planned ? theme.ink : theme.slate}
-                textColor={theme.ink}
+                placeholderTextColor={theme.textDisabled}
+                textAlign="center"
+                textColor={inputTextColor}
                 fontSize={typeScale.supporting.fontSize}
                 style={[
                   styles.input,
                   styles.inputColumn,
-                  { borderColor: theme.divider },
+                  styles.inputFilled,
+                  inputFocused && styles.inputFocused,
+                  { color: inputTextColor },
                 ]}
               />
             ) : (
@@ -198,8 +219,12 @@ export function SetRow({
               onTouchStart={onInputTouchStart}
               onTouchMove={onInputTouchMove}
               onTouchEnd={onInputTouchEnd}
-              onFocus={reportInputFocus}
+              onFocus={() => {
+                setFocusedInputs((current) => ({ ...current, [kind]: true }));
+                reportInputFocus();
+              }}
               onBlur={() => {
+                setFocusedInputs((current) => ({ ...current, [kind]: false }));
                 if (!allowsRange) return;
                 setRoutineRangeDrafts((current) => {
                   const next = { ...current };
@@ -210,11 +235,13 @@ export function SetRow({
               keyboardType={kind === 'reps' || kind === 'duration' ? 'number-pad' : 'decimal-pad'}
               selectTextOnFocus={false}
               placeholder={planned || '—'}
-              placeholderTextColor={planned ? theme.ink : theme.slate}
+              placeholderTextColor={theme.textDisabled}
               style={[
                 styles.input,
                 styles.inputColumn,
-                { borderColor: theme.divider },
+                styles.inputFilled,
+                inputFocused && styles.inputFocused,
+                { color: inputTextColor },
                 invalidStyle(kind === 'reps' ? repsInvalidProgress : weightInvalidProgress),
               ]}
             />
@@ -277,6 +304,9 @@ function updateRoutineRangeTargets(
 function numericRangeValues(value: string): number[] {
   return value
     .split('-')
+    // `Number('')` is zero. Ignore empty sides so clearing a routine range
+    // removes its planned target instead of silently replacing it with `0`.
+    .filter((part) => part.trim().length > 0)
     .map((part) => Number(part.trim()))
     .filter(Number.isFinite);
 }
@@ -323,11 +353,17 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     minHeight: 36,
     borderWidth: 1,
     borderRadius: 8,
-    backgroundColor: dashboardTheme.surfaceMuted,
-    color: dashboardTheme.ink,
     ...typeScale.supporting,
     textAlign: 'center',
     paddingHorizontal: 3,
+  },
+  inputFilled: {
+    backgroundColor: dashboardTheme.surfaceMuted,
+    borderColor: dashboardTheme.divider,
+  },
+  inputFocused: {
+    backgroundColor: dashboardTheme.surfaceMuted,
+    borderColor: dashboardTheme.focus,
   },
   check: {
     width: 44,

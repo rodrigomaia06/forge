@@ -736,8 +736,11 @@ function normalizeRoutineSet(set: import('../types').WorkoutSetInput): import('.
 
 function routineTargets(set: import('../types').WorkoutSetInput): import('../types').SetTarget[] {
   const permitted = new Set<import('../types').SetMeasurementKind>(['reps', 'duration', 'distance']);
-  const existing = (set.plannedTargets ?? set.targets ?? []).filter((target) => permitted.has(target.kind));
-  if (existing.length || !set.targetReps?.trim()) return existing;
+  // An explicit empty planned-target list means the user cleared a range. It
+  // must not fall back to the legacy targetReps value and resurrect it.
+  const configuredTargets = set.plannedTargets ?? set.targets;
+  if (configuredTargets !== undefined) return configuredTargets.filter((target) => permitted.has(target.kind));
+  if (!set.targetReps?.trim()) return [];
   const values = set.targetReps.split(/[-–—]/).map((value) => Number(value.trim())).filter(Number.isFinite);
   return values.length ? [{
     id: `${set.id ?? 'routine-set'}-planned-reps`,

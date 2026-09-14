@@ -87,8 +87,7 @@ final class ForgeRangeTextInputView: ExpoView, UITextFieldDelegate {
     DispatchQueue.main.async { [weak self] in
       guard let self else { return }
       self.textField.becomeFirstResponder()
-      let end = self.textField.endOfDocument
-      self.textField.selectedTextRange = self.textField.textRange(from: end, to: end)
+      self.moveCaretToEnd()
     }
   }
 
@@ -98,11 +97,28 @@ final class ForgeRangeTextInputView: ExpoView, UITextFieldDelegate {
   }
 
   @objc private func textDidBeginEditing() {
+    moveCaretToEnd()
     onFocus()
+  }
+
+  func textFieldDidChangeSelection(_ textField: UITextField) {
+    // Set entry is append/backspace-only: a tap cannot leave the insertion
+    // point inside a centred range and accidentally split it.
+    moveCaretToEnd()
   }
 
   @objc private func textDidEndEditing() {
     onBlur()
+  }
+
+  private func moveCaretToEnd() {
+    let end = textField.endOfDocument
+    if let selection = textField.selectedTextRange,
+       textField.compare(selection.start, to: end) == .orderedSame,
+       textField.compare(selection.end, to: end) == .orderedSame {
+      return
+    }
+    textField.selectedTextRange = textField.textRange(from: end, to: end)
   }
 
   func textField(

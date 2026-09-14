@@ -127,7 +127,6 @@ export function ForgeNumericRangeInput({
       onTouchStart={onTouchStart}
       placeholder={placeholder}
       placeholderTextColor={placeholderTextColor}
-      selection={{ start: value.length, end: value.length }}
       selectTextOnFocus={false}
       style={style}
       testID={testID}

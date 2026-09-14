@@ -48,10 +48,13 @@ type CatalogCategoryData = {
 
 export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   visible,
+  session = 0,
   onClose,
   onSubmit,
 }: {
   visible: boolean;
+  /** Changes for each opening so the same sheet instance can start cleanly. */
+  session?: number;
   onClose: () => void;
   onSubmit: (exercises: ExerciseCatalogItem[]) => void;
 }) {
@@ -141,7 +144,7 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
     animateLayout();
     setExpandedEquipment(expanded ? null : key);
   }, []);
-  const reset = (): void => {
+  const reset = useCallback((): void => {
     Keyboard.dismiss();
     setQuery('');
     setSelected(new Set());
@@ -149,7 +152,10 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
     setFilters(emptyCatalogFilters());
     setExpandedGroup(null);
     setExpandedEquipment(null);
-  };
+  }, []);
+  useEffect(() => {
+    if (visible) reset();
+  }, [reset, session, visible]);
   const submit = (): void => {
     const exercises = exerciseCatalog.filter((exercise) => selected.has(exercise.id));
     if (!exercises.length) return;

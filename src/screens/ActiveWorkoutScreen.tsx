@@ -69,6 +69,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
   const [discardConfirmationOpen, setDiscardConfirmationOpen] = useState(false);
   const [emptyFinishConfirmationOpen, setEmptyFinishConfirmationOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [addExerciseSession, setAddExerciseSession] = useState(0);
   const [headerElevated, setHeaderElevated] = useState(false);
   const { preferences } = useSettings();
   const restTimer = useRestTimer();
@@ -119,6 +120,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     // Keep the picker present from the destination's first visible frame. This
     // avoids flashing an empty Live Workout between Dashboard's start action
     // and the mandatory Add exercises decision.
+    setAddExerciseSession((current) => current + 1);
     setSheetOpen(true);
     navigation.setParams({ openAddExercises: undefined });
   }, [navigation, route.params?.openAddExercises]);
@@ -154,7 +156,12 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     updateActiveWorkout((current) => ({ ...current, startedAt }));
   };
   const handleAddExerciseClose = useCallback(() => setSheetOpen(false), []);
-  const openAddExercise = useCallback(() => setSheetOpen(true), []);
+  const openAddExercise = useCallback(() => {
+    // Each presentation gets fresh picker state. This releases any interrupted
+    // sheet gesture/focus state before the next Add exercise tap.
+    setAddExerciseSession((current) => current + 1);
+    setSheetOpen(true);
+  }, []);
   const handleWorkoutScrollOffset = useCallback((offset: number) => {
     setHeaderElevated(offset > 1);
   }, []);
@@ -299,6 +306,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
       />
       <ExtractedAddExerciseSheet
         visible={sheetOpen || route.params?.openAddExercises === 'open'}
+        session={addExerciseSession}
         onClose={handleAddExerciseClose}
         onSubmit={handleAddExercises}
       />
