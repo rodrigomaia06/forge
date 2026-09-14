@@ -43,9 +43,9 @@ jobs:
         run: |
           set -euo pipefail
           HEADER='node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI-Cxx/include/RuntimeScheduler.h'
-          test "$(rg -F -c 'SWIFT_RETURNS_RETAINED RuntimeScheduler' "$HEADER")" -eq 2
+          test "$(grep -F -c 'SWIFT_RETURNS_RETAINED RuntimeScheduler' "$HEADER")" -eq 2
           perl -0pi -e 's/SWIFT_RETURNS_RETAINED RuntimeScheduler/RuntimeScheduler/g' "$HEADER"
-          ! rg -F 'SWIFT_RETURNS_RETAINED RuntimeScheduler' "$HEADER"
+          ! grep -F 'SWIFT_RETURNS_RETAINED RuntimeScheduler' "$HEADER"
       - name: Generate the iOS project
         # Prebuild also runs Forge's local plugin, which adds the direct
         # ActivityKit extension and the app-local numeric range keyboard.
