@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { ForgeNumericRangeAccessory, ForgeText as Text, ForgeTextInput as TextInput } from '../../components/ui';
+import { Animated, Pressable, StyleSheet, View } from 'react-native';
+import { ForgeNumericRangeInput, ForgeText as Text, ForgeTextInput as TextInput } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
@@ -149,7 +149,6 @@ export function SetRow({
         const draftValue = routineRangeDrafts[kind];
         const value = allowsRange && draftValue !== undefined ? draftValue : storedValue;
         const legacy = kind === 'reps' ? { reps: value } : kind === 'weight' || kind === 'addedWeight' ? { weight: value } : {};
-        const rangeAccessoryId = `forge-range-set-${set.id}-${kind}`;
         const writeMeasurement = (text: string): void => {
           if (allowsRange) {
             const draft = numericRangeText(text);
@@ -164,7 +163,34 @@ export function SetRow({
         };
         return (
           <React.Fragment key={kind}>
-            <AnimatedTextInput
+            {allowsRange ? (
+              <ForgeNumericRangeInput
+                accessibilityLabel={`${trackingFieldLabel(trackingType, kind)} for set ${index + 1}${planned ? `, routine interval ${planned}` : ''}`}
+                value={value}
+                onChangeText={writeMeasurement}
+                onTouchStart={onInputTouchStart}
+                onTouchMove={onInputTouchMove}
+                onTouchEnd={onInputTouchEnd}
+                onFocus={reportInputFocus}
+                onBlur={() => {
+                  setRoutineRangeDrafts((current) => {
+                    const next = { ...current };
+                    delete next[kind];
+                    return next;
+                  });
+                }}
+                placeholder={planned || '—'}
+                placeholderTextColor={planned ? theme.ink : theme.slate}
+                textColor={theme.ink}
+                fontSize={typeScale.supporting.fontSize}
+                style={[
+                  styles.input,
+                  styles.inputColumn,
+                  { borderColor: theme.divider },
+                ]}
+              />
+            ) : (
+              <AnimatedTextInput
               accessibilityLabel={`${trackingFieldLabel(trackingType, kind)} for set ${index + 1}${planned ? `, routine interval ${planned}` : ''}`}
               value={value}
               selection={{ start: value.length, end: value.length }}
@@ -181,14 +207,7 @@ export function SetRow({
                   return next;
                 });
               }}
-              keyboardType={
-                allowsRange && Platform.OS !== 'ios'
-                  ? 'default'
-                  : kind === 'reps' || kind === 'duration'
-                    ? 'number-pad'
-                    : 'decimal-pad'
-              }
-              inputAccessoryViewID={allowsRange ? rangeAccessoryId : undefined}
+              keyboardType={kind === 'reps' || kind === 'duration' ? 'number-pad' : 'decimal-pad'}
               selectTextOnFocus={false}
               placeholder={planned || '—'}
               placeholderTextColor={planned ? theme.ink : theme.slate}
@@ -199,13 +218,7 @@ export function SetRow({
                 invalidStyle(kind === 'reps' ? repsInvalidProgress : weightInvalidProgress),
               ]}
             />
-            {allowsRange ? (
-              <ForgeNumericRangeAccessory
-                nativeID={rangeAccessoryId}
-                disabled={!canAppendRangeSeparator(value)}
-                onInsertSeparator={() => writeMeasurement(`${value}-`)}
-              />
-            ) : null}
+            )}
           </React.Fragment>
         );
       })}
@@ -226,10 +239,6 @@ export function SetRow({
       </View>
     </View>
   );
-}
-
-function canAppendRangeSeparator(value: string): boolean {
-  return /\d/.test(value) && !/[-–—]/.test(value);
 }
 
 function numericRangeText(value: string): string {

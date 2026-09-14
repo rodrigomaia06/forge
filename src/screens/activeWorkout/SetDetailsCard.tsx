@@ -1,12 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   View,
-  type TextInput as NativeTextInput,
-  type TextInputProps,
 } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -20,7 +17,7 @@ import {
   ForgeBottomSheetHandle,
   ForgeBackButton,
   ForgeCard,
-  ForgeNumericRangeAccessory,
+  ForgeNumericRangeInput,
   ForgeSheetHeader,
   ForgeText as Text,
   ForgeTextInput as TextInput,
@@ -473,7 +470,6 @@ function TargetsSection({
             placeholder={isRoutineInterval ? 'e.g. 8–12' : '—'}
             unit={targetUnitLabel(kind)}
             editable={editable}
-            keyboardType={Platform.OS === 'ios' ? 'number-pad' : 'default'}
             accessibilityLabel={`${isRoutineInterval ? 'Routine' : 'Next-time'} ${trackingFieldLabel(trackingType, kind).toLowerCase()} ${isRoutineInterval ? 'interval' : 'target'} for ${setLabel.toLowerCase()}`}
             onChangeText={(value) => onChange({
               ...(isRoutineInterval
@@ -526,7 +522,6 @@ function TargetRow({
   placeholder,
   unit,
   editable,
-  keyboardType,
   accessibilityLabel,
   onChangeText,
   onFocus,
@@ -537,7 +532,6 @@ function TargetRow({
   placeholder: string;
   unit: string;
   editable: boolean;
-  keyboardType: TextInputProps['keyboardType'];
   accessibilityLabel: string;
   onChangeText: (value: string) => void;
   onFocus: () => void;
@@ -545,7 +539,6 @@ function TargetRow({
 }) {
   const styles = useThemedStyles(createStyles);
   const theme = useForgeTheme();
-  const inputRef = useRef<NativeTextInput>(null);
   // Targets are normalized to numeric values as the routine draft changes.
   // Keep the raw focused text locally so an incomplete range such as `8–`
   // is not immediately reformatted to `8` before its upper bound can be
@@ -553,6 +546,7 @@ function TargetRow({
   const [draftValue, setDraftValue] = useState(value);
   const draftValueRef = useRef(value);
   const editingRef = useRef(false);
+  const [focusRequest, setFocusRequest] = useState(0);
 
   useEffect(() => {
     if (!editingRef.current) {
@@ -562,24 +556,12 @@ function TargetRow({
   }, [value]);
 
   const focusInput = useCallback(() => {
-    inputRef.current?.focus();
-    requestAnimationFrame(() => inputRef.current?.setSelection(draftValueRef.current.length, draftValueRef.current.length));
+    setFocusRequest((request) => request + 1);
   }, []);
   const inputFit = targetInputFit(draftValue);
-  const rangeAccessoryId = `forge-range-target-${accessibilityLabel.replace(/[^a-z0-9]/gi, '-').toLowerCase()}`;
-  const canInsertSeparator = canAppendRangeSeparator(draftValue);
-  const insertSeparator = (): void => {
-    if (!canInsertSeparator) return;
-    const nextValue = `${draftValue}-`;
-    draftValueRef.current = nextValue;
-    setDraftValue(nextValue);
-    onChangeText(nextValue);
-    inputRef.current?.focus();
-  };
 
   return (
-    <>
-      <Pressable
+    <Pressable
         accessibilityRole={editable ? 'button' : undefined}
         accessibilityLabel={editable ? accessibilityLabel : undefined}
         onPress={editable ? focusInput : undefined}
@@ -589,11 +571,9 @@ function TargetRow({
         <Text style={styles.targetLabel}>{label}</Text>
         <View style={styles.targetValue}>
           {editable ? (
-            <TextInput
-              ref={inputRef}
+            <ForgeNumericRangeInput
               accessibilityLabel={accessibilityLabel}
               value={draftValue}
-              selection={{ start: draftValue.length, end: draftValue.length }}
               onChangeText={(nextValue) => {
                 draftValueRef.current = nextValue;
                 setDraftValue(nextValue);
@@ -602,7 +582,6 @@ function TargetRow({
               onFocus={() => {
                 editingRef.current = true;
                 onFocus();
-                requestAnimationFrame(() => inputRef.current?.setSelection(draftValueRef.current.length, draftValueRef.current.length));
               }}
               onBlur={() => {
                 editingRef.current = false;
@@ -615,12 +594,11 @@ function TargetRow({
                 onChangeText(rawValue);
               }}
               onTouchStart={(event) => event.stopPropagation()}
-              keyboardType={keyboardType}
-              inputAccessoryViewID={rangeAccessoryId}
-              multiline={false}
-              selectTextOnFocus={false}
+              focusRequest={focusRequest}
               placeholder={placeholder}
               placeholderTextColor={theme.ink}
+              textColor={theme.ink}
+              fontSize={inputFit.fontSize}
               style={[styles.targetInput, inputFit]}
             />
           ) : (
@@ -629,19 +607,7 @@ function TargetRow({
           <Text style={styles.targetUnit}>{unit}</Text>
         </View>
       </Pressable>
-      {editable ? (
-        <ForgeNumericRangeAccessory
-          nativeID={rangeAccessoryId}
-          disabled={!canInsertSeparator}
-          onInsertSeparator={insertSeparator}
-        />
-      ) : null}
-    </>
   );
-}
-
-function canAppendRangeSeparator(value: string): boolean {
-  return /\d/.test(value) && !/[-–—]/.test(value);
 }
 
 /**

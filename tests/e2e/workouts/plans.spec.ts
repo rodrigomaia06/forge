@@ -478,7 +478,7 @@ test.describe('Plans and routines', () => {
     await expect(exercise.getByText('Barbell Bench Press', { exact: true })).toBeVisible();
   });
 
-  test('keeps an in-progress routine time range editable until it is complete', async ({ page }) => {
+  test('keeps an in-progress routine time range editable until it is complete', async ({ page }, testInfo) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Plans' }).click();
     await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
@@ -491,6 +491,9 @@ test.describe('Plans and routines', () => {
     const exercise = page.getByTestId(/^routine-exercise-/);
     await exercise.getByRole('button', { name: 'Expand Elliptical' }).click();
     const duration = exercise.getByRole('textbox', { name: 'Sec for set 1' });
+    if (testInfo.project.name === 'iphone-air') {
+      await exercise.screenshot({ path: testInfo.outputPath('routine-range-input-iphone.png') });
+    }
     await duration.pressSequentially('30-60');
     await expect(duration).toHaveValue('30-60');
     await duration.blur();

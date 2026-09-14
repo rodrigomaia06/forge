@@ -2,7 +2,7 @@ export { AppScreen } from './AppScreen';
 export { Button } from './Button';
 export { Divider } from './Divider';
 export { ForgeText, ForgeTextInput } from './ForgeText';
-export { ForgeNumericRangeAccessory } from './ForgeNumericRangeAccessory';
+export { ForgeNumericRangeInput } from './ForgeNumericRangeInput';
 export { ForgeSearchField } from './ForgeSearchField';
 export { ForgeBackButton, HeaderAction } from './HeaderAction';
 export { ForgeSwitch } from './ForgeSwitch';
