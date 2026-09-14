@@ -686,6 +686,10 @@ function asWorkoutExercise(
         previous: set.previous,
         tag: set.tag,
         comment: set.comment,
+        // Duration and distance do not have legacy string fields. Preserve
+        // their structured measurements while rendering the routine draft so
+        // input remains visible after the parent updates.
+        measurements: set.measurements,
         plannedTargets: routineTargets(set),
         completed: completedSetIds.includes(id),
       };

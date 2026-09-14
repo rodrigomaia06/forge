@@ -471,7 +471,10 @@ function TargetsSection({
             placeholder={isRoutineInterval ? 'e.g. 8–12' : '—'}
             unit={targetUnitLabel(kind)}
             editable={editable}
-            keyboardType={kind === 'reps' || kind === 'duration' ? 'number-pad' : 'decimal-pad'}
+            // An iOS number pad has no range separator. Targets accept a
+            // single number or an interval, so use the standard keyboard for
+            // every target field and normalize its numeric content on blur.
+            keyboardType="default"
             accessibilityLabel={`${isRoutineInterval ? 'Routine' : 'Next-time'} ${trackingFieldLabel(trackingType, kind).toLowerCase()} ${isRoutineInterval ? 'interval' : 'target'} for ${setLabel.toLowerCase()}`}
             onChangeText={(value) => onChange({
               ...(isRoutineInterval
@@ -602,7 +605,7 @@ function TargetRow({
             }}
             onTouchStart={(event) => event.stopPropagation()}
             keyboardType={keyboardType}
-            inputMode={keyboardType === 'decimal-pad' ? 'decimal' : 'numeric'}
+            inputMode="text"
             selectTextOnFocus={false}
             placeholder={placeholder}
             placeholderTextColor={theme.ink}
