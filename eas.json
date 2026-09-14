@@ -6,13 +6,6 @@
   "build": {
     "preview": {
       "distribution": "internal"
-    },
-    "sideload": {
-      "ios": {
-        "withoutCredentials": true,
-        "buildConfiguration": "Release",
-        "config": "ios-unsigned.yml"
-      }
     }
   }
 }

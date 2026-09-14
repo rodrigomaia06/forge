@@ -11,14 +11,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  trigger-build:
-    name: Trigger unsigned iOS build
-    # EAS performs the native compilation remotely. A standard Linux runner is
-    # faster to start and substantially cheaper than occupying a macOS runner.
-    runs-on: ubuntu-latest
-    # EAS runs the native build independently; this Linux runner only polls it
-    # so the GitHub run shows its actual state and can retain its artifacts.
-    timeout-minutes: 90
+  build-ipa:
+    name: Build unsigned iOS IPA
+    # Xcode is necessary for a device IPA. This direct macOS build avoids the
+    # EAS iOS-build quota; the EXPO_TOKEN secret may remain configured but is
+    # intentionally not required by this workflow.
+    runs-on: macos-15
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v5
         with:
@@ -28,88 +27,58 @@ jobs:
         with:
           node-version: 22.x
           cache: npm
-      - name: Verify Expo access
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          if [ -z "$EXPO_TOKEN" ]; then
-            echo "::error::Add the EXPO_TOKEN repository secret before running this workflow."
-            exit 1
-          fi
-      - name: Set up Expo and EAS
-        uses: expo/expo-github-action@v9
-        with:
-          eas-version: latest
-          packager: npm
-          token: ${{ secrets.EXPO_TOKEN }}
-      - name: Install config dependencies
-        # EAS resolves app plugins locally before it can upload the project.
+      - name: Install JavaScript dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Start unsigned IPA build on EAS
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      - name: Generate the iOS project
+        # Prebuild also runs Forge's local plugin, which adds the direct
+        # ActivityKit extension and the app-local numeric range keyboard.
+        run: npx expo prebuild --no-install --platform ios
+      - name: Install CocoaPods
+        working-directory: ios
+        run: pod install
+      - name: Archive unsigned device app
         run: |
-          eas build --platform ios --profile sideload --non-interactive --no-wait --json > /tmp/forge-eas-build.json
-          BUILD_ID="$(node -e "const builds = require('/tmp/forge-eas-build.json'); const build = Array.isArray(builds) ? builds[0] : builds; if (!build?.id) throw new Error('EAS did not return a build ID'); process.stdout.write(build.id);")"
-          BUILD_URL="$(node -e "const builds = require('/tmp/forge-eas-build.json'); const build = Array.isArray(builds) ? builds[0] : builds; process.stdout.write(build?.buildDetailsPageUrl ?? '');")"
-          echo "build_id=$BUILD_ID" >> "$GITHUB_OUTPUT"
-          echo "build_url=$BUILD_URL" >> "$GITHUB_OUTPUT"
-          {
-            echo "## EAS unsigned iOS build"
-            echo
-            echo "Build ID: \`$BUILD_ID\`"
-            if [ -n "$BUILD_URL" ]; then echo "[Open EAS build]($BUILD_URL)"; fi
-          } >> "$GITHUB_STEP_SUMMARY"
-        id: eas-build
-      - name: Poll EAS build status
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          BUILD_ID: ${{ steps.eas-build.outputs.build_id }}
-          BUILD_URL: ${{ steps.eas-build.outputs.build_url }}
-        run: |
-          set -eu
-          while :; do
-            eas build:view "$BUILD_ID" --json > /tmp/forge-eas-status.json
-            STATUS="$(node -e "const build = require('/tmp/forge-eas-status.json'); process.stdout.write(build.status ?? 'unknown');")"
-            NORMALIZED_STATUS="$(printf '%s' "$STATUS" | tr '[:upper:]' '[:lower:]')"
-            echo "$(date -u +'%Y-%m-%dT%H:%M:%SZ') EAS build $BUILD_ID: $STATUS"
-            echo "EAS status: \`$STATUS\`" >> "$GITHUB_STEP_SUMMARY"
-            case "$NORMALIZED_STATUS" in
-              finished) break ;;
-              errored|canceled)
-                if [ -n "$BUILD_URL" ]; then echo "::error::EAS build $STATUS: $BUILD_URL"; fi
-                exit 1
-                ;;
-            esac
-            sleep 30
-          done
-      - name: Download the completed IPA and diagnostics
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          set -o pipefail
+          mkdir -p build
+          xcodebuild \
+            -workspace ios/Forge.xcworkspace \
+            -scheme Forge \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$PWD/build/Forge.xcarchive" \
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY='' \
+            | tee build/xcodebuild.log
+      - name: Package and validate IPA
         run: |
           set -euo pipefail
-          BUILD_ID="${{ steps.eas-build.outputs.build_id }}"
-          eas build:view "$BUILD_ID" --json > /tmp/forge-eas-final.json
-          node scripts/eas-build-artifacts.mjs /tmp/forge-eas-final.json > /tmp/forge-eas-artifacts.json
-          IPA_URL="$(node -e "process.stdout.write(require('/tmp/forge-eas-artifacts.json').applicationArchiveUrl);")"
-          LOGS_URL="$(node -e "process.stdout.write(require('/tmp/forge-eas-artifacts.json').xcodeBuildLogsUrl ?? '');")"
-          mkdir -p artifacts/logs
-          printf 'build_id=%s\nstatus=FINISHED\nbuild_url=%s\napplication_archive_url=%s\n' "$BUILD_ID" "${{ steps.eas-build.outputs.build_url }}" "$IPA_URL" > artifacts/logs/eas-build-status.txt
-          curl --fail --location --retry 3 --retry-delay 2 --retry-all-errors --output artifacts/Forge-unsigned.ipa "$IPA_URL"
+          APP_PATH='build/Forge.xcarchive/Products/Applications/Forge.app'
+          WIDGET_PATH="$APP_PATH/PlugIns/ForgeRestTimerWidget.appex"
+          test -x "$APP_PATH/Forge"
+          test -f "$APP_PATH/Info.plist"
+          test -x "$WIDGET_PATH/ForgeRestTimerWidget"
+          test -f "$WIDGET_PATH/Info.plist"
+          EXECUTABLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP_PATH/Info.plist")"
+          test "$EXECUTABLE" = 'Forge'
+          mkdir -p artifacts/Payload
+          ditto "$APP_PATH" artifacts/Payload/Forge.app
+          (
+            cd artifacts
+            /usr/bin/zip -qry Forge-unsigned.ipa Payload
+          )
           unzip -t artifacts/Forge-unsigned.ipa >/dev/null
-          if ! unzip -Z1 artifacts/Forge-unsigned.ipa | grep -q '^Payload/Forge\.app/'; then
-            echo '::error::The EAS application archive is not an installable Forge IPA.'
-            exit 1
-          fi
-          if [ -n "$LOGS_URL" ]; then
-            if ! curl --fail --location --retry 3 --retry-delay 2 --retry-all-errors --output artifacts/logs/xcode-build-logs.tar.gz "$LOGS_URL"; then
-              rm -f artifacts/logs/xcode-build-logs.tar.gz
-              echo '::warning::Could not download EAS Xcode build logs; the IPA is still available.'
-            fi
-          else
-            echo 'No EAS Xcode log archive was published for this build.' >> artifacts/logs/eas-build-status.txt
-          fi
-          echo 'IPA validated and downloaded from EAS applicationArchiveUrl.' >> "$GITHUB_STEP_SUMMARY"
+          unzip -Z1 artifacts/Forge-unsigned.ipa | grep -qx 'Payload/Forge.app/Forge'
+          unzip -Z1 artifacts/Forge-unsigned.ipa | grep -qx 'Payload/Forge.app/PlugIns/ForgeRestTimerWidget.appex/ForgeRestTimerWidget'
+          {
+            echo '## Unsigned IPA built on GitHub macOS'
+            echo
+            echo "Commit: \`${GITHUB_SHA}\`"
+            echo "Xcode: \`$(xcodebuild -version | tr '\n' ' ')\`"
+            echo 'Signing: disabled; iLoader re-signs the IPA before installation.'
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Upload IPA to GitHub
         uses: actions/upload-artifact@v6
         with:
@@ -118,11 +87,11 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           compression-level: 0
-      - name: Upload EAS build logs to GitHub
+      - name: Upload native build logs to GitHub
         uses: actions/upload-artifact@v6
         with:
           name: Forge-unsigned-ios-build-logs
-          path: artifacts/logs
-          if-no-files-found: warn
+          path: build/xcodebuild.log
+          if-no-files-found: error
           retention-days: 30
           compression-level: 0

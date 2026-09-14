@@ -1,58 +1,189 @@
 import { expect, test } from '@playwright/test';
 import { REST_DURATION_OPTIONS } from '../../src/domain/rest/restDurationOptions';
-import { catalogFacets, filterCatalog, groupCatalogByPrimaryEquipment, groupCatalogByMovement } from '../../src/domain/exercises/catalogSelectors';
+import {
+  catalogFacets,
+  filterCatalog,
+  groupCatalogByPrimaryEquipment,
+  groupCatalogByMovement,
+} from '../../src/domain/exercises/catalogSelectors';
 import { exerciseCatalog, taxonomyLabel } from '../../src/data/exerciseCatalog';
-import { countWorkoutSets, formatCompactDuration, getWorkoutTypePresentation } from '../../src/domain/workouts/presentation';
+import {
+  countWorkoutSets,
+  formatCompactDuration,
+  getWorkoutTypePresentation,
+} from '../../src/domain/workouts/presentation';
 import { defaultSettingsPreferences } from '../../src/data/settingsDefaults';
 import { parseSettingsPreferences } from '../../src/data/settingsPreferences';
 import { builtInWorkoutTypeColors } from '../../src/domain/workouts/workoutTypeDefaults';
 import { lightTheme } from '../../src/theme/tokens';
-import { bundledExercises, bundledLegacyIdMap, bundledCatalogVersion, validateCatalog } from '../../src/data/catalog/loadCatalog';
+import {
+  bundledExercises,
+  bundledLegacyIdMap,
+  bundledCatalogVersion,
+  validateCatalog,
+} from '../../src/data/catalog/loadCatalog';
 import catalogSource from '../../src/data/catalog/forge_exercise_catalog_v3_flat.json';
 import { trackingFields } from '../../src/domain/exercises/tracking';
-import { addExercisesToWorkout, addWarmupSetsToWorkout, createWorkout, recordRestTimerSample, updateWorkoutExercise } from '../../src/state/workoutMutations';
+import {
+  addExercisesToWorkout,
+  addWarmupSetsToWorkout,
+  createWorkout,
+  recordRestTimerSample,
+  updateWorkoutExercise,
+} from '../../src/state/workoutMutations';
 import { createExerciseSnapshot } from '../../src/domain/exercises/exerciseSnapshot';
-import { formatExerciseMetadata, formatPickerPrimaryEquipment } from '../../src/domain/exercises/exercisePresentation';
+import {
+  formatExerciseMetadata,
+  formatPickerPrimaryEquipment,
+} from '../../src/domain/exercises/exercisePresentation';
 import { buildWarmupPlan, warmupSteps } from '../../src/domain/workouts/warmup';
 import { uniqueById } from '../../src/data/uniqueById';
 import { mergeImportedPlans } from '../../src/data/dataTransferPlans';
+import { normalizeDataTransfer } from '../../src/data/dataTransferNormalization';
 import { normalizePersistedWorkout } from '../../src/data/workoutNormalization';
 import { adjustRestTimer } from '../../src/domain/rest/restTimerAdjustment';
 import { routineExercisesWithNextSessionTargets } from '../../src/domain/workouts/nextSessionTargets';
 
 test('keeps the first stable record when a persistence boundary receives duplicate ids', () => {
-  expect(uniqueById([
-    { id: 'first', value: 1 },
-    { id: 'duplicate', value: 2 },
-    { id: 'duplicate', value: 3 },
-    { id: 'last', value: 4 },
-  ])).toEqual([
+  expect(
+    uniqueById([
+      { id: 'first', value: 1 },
+      { id: 'duplicate', value: 2 },
+      { id: 'duplicate', value: 3 },
+      { id: 'last', value: 4 },
+    ]),
+  ).toEqual([
     { id: 'first', value: 1 },
     { id: 'duplicate', value: 2 },
     { id: 'last', value: 4 },
   ]);
 });
 
+test('normalizes JSON exercises and sets without changing their imported order', () => {
+  const exercises = [
+    {
+      id: 'first',
+      name: 'First',
+      sets: [
+        { id: 'set-first' },
+        { id: 'set-duplicate', source: 'first' },
+        { id: 'set-duplicate', source: 'second' },
+        { id: 'set-last' },
+      ],
+    },
+    { id: 'duplicate', name: 'Duplicate first', sets: [] },
+    { id: 'duplicate', name: 'Duplicate second', sets: [] },
+    { id: 'last', name: 'Last', sets: [] },
+  ];
+  const transfer = normalizeDataTransfer({
+    settings: { workoutTypes: [], dailyMeasurementDefinitions: [], dailyMeasurementEntries: [] },
+    plans: {
+      plans: [{ id: 'plan', routines: [{ id: 'routine', exercises }] }],
+      standaloneRoutines: [],
+    },
+    workouts: { activeWorkout: { id: 'active', exercises }, completedWorkouts: [] },
+    customExercises: [],
+  });
+
+  const routineExercises = transfer.plans.plans[0].routines[0].exercises;
+  expect(routineExercises.map((exercise) => exercise.id)).toEqual(['first', 'duplicate', 'last']);
+  expect(routineExercises[0].sets.map((set) => set.id)).toEqual([
+    'set-first',
+    'set-duplicate',
+    'set-last',
+  ]);
+  expect(routineExercises[0].sets[1]).toMatchObject({ source: 'first' });
+  expect(transfer.workouts.activeWorkout?.exercises.map((exercise) => exercise.id)).toEqual([
+    'first',
+    'duplicate',
+    'last',
+  ]);
+});
+
 test('merges imported routines into their existing plan without losing device order', () => {
   const current = {
-    plans: [{
-      id: 'push', name: 'Device push', createdAt: 1, updatedAt: 1,
-      routines: [{ id: 'chest', name: 'Chest', type: 'Strength', exercises: [], planId: 'push', createdAt: 1, updatedAt: 1 }],
-    }],
-    standaloneRoutines: [{ id: 'walk', name: 'Walk', type: 'Cardio', exercises: [], createdAt: 1, updatedAt: 1 }],
+    plans: [
+      {
+        id: 'push',
+        name: 'Device push',
+        createdAt: 1,
+        updatedAt: 1,
+        routines: [
+          {
+            id: 'chest',
+            name: 'Chest',
+            type: 'Strength',
+            exercises: [{ id: 'device-bench', name: 'Device bench', sets: [] }],
+            planId: 'push',
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      },
+    ],
+    standaloneRoutines: [
+      { id: 'walk', name: 'Walk', type: 'Cardio', exercises: [], createdAt: 1, updatedAt: 1 },
+    ],
   };
   const incoming = {
-    plans: [{
-      id: 'push', name: 'Imported push', createdAt: 2, updatedAt: 2,
-      routines: [
-        { id: 'chest', name: 'Imported chest', type: 'Strength', exercises: [], planId: 'push', createdAt: 2, updatedAt: 2 },
-        { id: 'triceps', name: 'Triceps', type: 'Strength', exercises: [], planId: 'push', createdAt: 2, updatedAt: 2 },
-      ],
-    }, {
-      id: 'pull', name: 'Pull', createdAt: 2, updatedAt: 2,
-      routines: [{ id: 'back', name: 'Back', type: 'Strength', exercises: [], planId: 'pull', createdAt: 2, updatedAt: 2 }],
-    }],
-    standaloneRoutines: [{ id: 'walk', name: 'Imported walk', type: 'Cardio', exercises: [], createdAt: 2, updatedAt: 2 }],
+    plans: [
+      {
+        id: 'push',
+        name: 'Imported push',
+        createdAt: 2,
+        updatedAt: 2,
+        routines: [
+          {
+            id: 'chest',
+            name: 'Imported chest',
+            type: 'Strength',
+            exercises: [{ id: 'imported-bench', name: 'Imported bench', sets: [] }],
+            planId: 'push',
+            createdAt: 2,
+            updatedAt: 2,
+          },
+          {
+            id: 'triceps',
+            name: 'Triceps',
+            type: 'Strength',
+            exercises: [
+              { id: 'imported-triceps-first', name: 'First', sets: [] },
+              { id: 'imported-triceps-last', name: 'Last', sets: [] },
+            ],
+            planId: 'push',
+            createdAt: 2,
+            updatedAt: 2,
+          },
+        ],
+      },
+      {
+        id: 'pull',
+        name: 'Pull',
+        createdAt: 2,
+        updatedAt: 2,
+        routines: [
+          {
+            id: 'back',
+            name: 'Back',
+            type: 'Strength',
+            exercises: [],
+            planId: 'pull',
+            createdAt: 2,
+            updatedAt: 2,
+          },
+        ],
+      },
+    ],
+    standaloneRoutines: [
+      {
+        id: 'walk',
+        name: 'Imported walk',
+        type: 'Cardio',
+        exercises: [],
+        createdAt: 2,
+        updatedAt: 2,
+      },
+    ],
   };
 
   const merged = mergeImportedPlans(current, incoming);
@@ -60,8 +191,17 @@ test('merges imported routines into their existing plan without losing device or
   expect(merged.plans[0]).toMatchObject({ name: 'Device push' });
   expect(merged.plans[0].routines.map((routine) => routine.id)).toEqual(['chest', 'triceps']);
   expect(merged.plans[0].routines[0]).toMatchObject({ name: 'Chest', planId: 'push' });
+  expect(merged.plans[0].routines[0].exercises.map((exercise) => exercise.id)).toEqual([
+    'device-bench',
+  ]);
+  expect(merged.plans[0].routines[1].exercises.map((exercise) => exercise.id)).toEqual([
+    'imported-triceps-first',
+    'imported-triceps-last',
+  ]);
   expect(merged.plans[1].routines.map((routine) => routine.id)).toEqual(['back']);
-  expect(merged.standaloneRoutines).toEqual([expect.objectContaining({ id: 'walk', name: 'Walk' })]);
+  expect(merged.standaloneRoutines).toEqual([
+    expect.objectContaining({ id: 'walk', name: 'Walk' }),
+  ]);
 });
 
 test('formats compact workout durations and counts sets', () => {
@@ -71,7 +211,13 @@ test('formats compact workout durations and counts sets', () => {
 
 test('keeps a truthful average for only the rest intervals Forge started', () => {
   const workout = {
-    id: 'workout', name: 'Push', type: 'Strength', startedAt: 1, completedAt: null, note: '', exercises: [],
+    id: 'workout',
+    name: 'Push',
+    type: 'Strength',
+    startedAt: 1,
+    completedAt: null,
+    note: '',
+    exercises: [],
   };
   const first = recordRestTimerSample(workout, 90);
   const second = recordRestTimerSample(first, 120);
@@ -95,12 +241,22 @@ test('restarts an expired rest from its original duration when extending it', ()
 
 test('normalizes legacy workout child collections before screens consume them', () => {
   const workout = normalizePersistedWorkout({
-    id: 'legacy-workout', name: 'Legacy', type: 'Strength', startedAt: 1,
-    completedAt: 2, note: '', exercises: undefined as never,
+    id: 'legacy-workout',
+    name: 'Legacy',
+    type: 'Strength',
+    startedAt: 1,
+    completedAt: 2,
+    note: '',
+    exercises: undefined as never,
   });
   const partialExercise = normalizePersistedWorkout({
-    id: 'partial-workout', name: 'Partial', type: 'Strength', startedAt: 1,
-    completedAt: 2, note: '', exercises: [{ id: 'exercise', name: 'Bench', sets: undefined as never }],
+    id: 'partial-workout',
+    name: 'Partial',
+    type: 'Strength',
+    startedAt: 1,
+    completedAt: 2,
+    note: '',
+    exercises: [{ id: 'exercise', name: 'Bench', sets: undefined as never }],
   });
   expect(workout.exercises).toEqual([]);
   expect(partialExercise.exercises[0].sets).toEqual([]);
@@ -131,14 +287,14 @@ test('presents saved, fallback, custom, and unknown workout types consistently',
     color: lightTheme.muted,
     background: 'rgba(138,150,158,0.16)',
   });
-  expect(REST_DURATION_OPTIONS).toEqual(
-    Array.from({ length: 115 }, (_, index) => 30 + index * 5),
-  );
+  expect(REST_DURATION_OPTIONS).toEqual(Array.from({ length: 115 }, (_, index) => 30 + index * 5));
 });
 
 test('uses the original Forge swatches for built-ins without duplicates', () => {
   const builtIns = defaultSettingsPreferences.workoutTypes;
-  expect(builtIns.map((type) => type.color)).toHaveLength(new Set(builtIns.map((type) => type.color)).size);
+  expect(builtIns.map((type) => type.color)).toHaveLength(
+    new Set(builtIns.map((type) => type.color)).size,
+  );
   expect(builtInWorkoutTypeColors).toMatchObject({
     strength: '#7C8CF8',
     'court-sport': '#6BD48F',
@@ -146,21 +302,25 @@ test('uses the original Forge swatches for built-ins without duplicates', () => 
     cardio: '#F4A261',
     mobility: '#B78AF0',
   });
-  const migrated = parseSettingsPreferences(JSON.stringify({
-    workoutTypes: defaultSettingsPreferences.workoutTypes.map((type) =>
-      type.id === 'strength' ? { ...type, color: '#687CF2' } : type,
-    ),
-  }));
+  const migrated = parseSettingsPreferences(
+    JSON.stringify({
+      workoutTypes: defaultSettingsPreferences.workoutTypes.map((type) =>
+        type.id === 'strength' ? { ...type, color: '#687CF2' } : type,
+      ),
+    }),
+  );
   expect(migrated.workoutTypes.find((type) => type.id === 'strength')?.color).toBe('#7C8CF8');
 });
 
 test('allows custom workout types to reuse an included Forge colour', () => {
-  const parsed = parseSettingsPreferences(JSON.stringify({
-    workoutTypes: [
-      ...defaultSettingsPreferences.workoutTypes,
-      { id: 'custom-strength', name: 'Custom strength', color: '#7C8CF8', source: 'custom' },
-    ],
-  }));
+  const parsed = parseSettingsPreferences(
+    JSON.stringify({
+      workoutTypes: [
+        ...defaultSettingsPreferences.workoutTypes,
+        { id: 'custom-strength', name: 'Custom strength', color: '#7C8CF8', source: 'custom' },
+      ],
+    }),
+  );
   expect(parsed.workoutTypes.find((type) => type.id === 'custom-strength')).toMatchObject({
     color: '#7C8CF8',
     source: 'custom',
@@ -169,19 +329,60 @@ test('allows custom workout types to reuse an included Forge colour', () => {
 
 test('filters and groups exercise catalog entries without changing feature selection state', () => {
   const items = [
-    { id: 'bench', name: 'Close grip', group: 'Bench Cluster', equipment: 'Barbell & Bench', equipmentIds: ['barbell', 'bench'], primaryEquipment: 'barbell', category: 'Chest', primaryMuscle: 'Triceps', secondaryMuscles: ['Chest'], aliases: ['press'], workoutTypeIds: ['strength'] },
-    { id: 'pec', name: 'Pec Deck', group: 'Pec Deck', equipment: 'Machine', equipmentIds: ['machine'], primaryEquipment: 'machine', category: 'Chest', primaryMuscle: 'Chest', secondaryMuscles: [], aliases: ['fly'], workoutTypeIds: ['strength'] },
+    {
+      id: 'bench',
+      name: 'Close grip',
+      group: 'Bench Cluster',
+      equipment: 'Barbell & Bench',
+      equipmentIds: ['barbell', 'bench'],
+      primaryEquipment: 'barbell',
+      category: 'Chest',
+      primaryMuscle: 'Triceps',
+      secondaryMuscles: ['Chest'],
+      aliases: ['press'],
+      workoutTypeIds: ['strength'],
+    },
+    {
+      id: 'pec',
+      name: 'Pec Deck',
+      group: 'Pec Deck',
+      equipment: 'Machine',
+      equipmentIds: ['machine'],
+      primaryEquipment: 'machine',
+      category: 'Chest',
+      primaryMuscle: 'Chest',
+      secondaryMuscles: [],
+      aliases: ['fly'],
+      workoutTypeIds: ['strength'],
+    },
   ];
   expect(filterCatalog(items, { query: 'cluster', includeGroupInSearch: false })).toHaveLength(0);
-  expect(filterCatalog(items, { query: 'bench cluster', includeGroupInSearch: true })).toHaveLength(1);
-  expect(filterCatalog(items, { query: 'fly', equipment: ['Machine'], categories: ['Chest'] })).toEqual([items[1]]);
+  expect(filterCatalog(items, { query: 'bench cluster', includeGroupInSearch: true })).toHaveLength(
+    1,
+  );
+  expect(
+    filterCatalog(items, { query: 'fly', equipment: ['Machine'], categories: ['Chest'] }),
+  ).toEqual([items[1]]);
   expect(filterCatalog(items, { categories: ['Triceps'] })).toEqual([items[0]]);
   expect(filterCatalog(items, { exerciseCategories: ['Chest'] })).toEqual(items);
-  expect(filterCatalog([...items, { ...items[0], id: 'conditioning-press', category: 'Cardio' }], { exerciseCategories: ['Chest'] })).toEqual(items);
+  expect(
+    filterCatalog([...items, { ...items[0], id: 'conditioning-press', category: 'Cardio' }], {
+      exerciseCategories: ['Chest'],
+    }),
+  ).toEqual(items);
   expect(filterCatalog(items, { query: 'triceps' })).toEqual([items[0]]);
-  expect(catalogFacets(items)).toEqual({ equipment: ['Barbell', 'Bench', 'Machine'], categories: ['Chest', 'Triceps'] });
-  expect(groupCatalogByMovement(items).map(([name]) => name)).toEqual(['Bench Cluster', 'Pec Deck']);
-  expect(groupCatalogByPrimaryEquipment(items).map(([name]) => name)).toEqual(['Barbell', 'Machine']);
+  expect(catalogFacets(items)).toEqual({
+    equipment: ['Barbell', 'Bench', 'Machine'],
+    categories: ['Chest', 'Triceps'],
+  });
+  expect(groupCatalogByMovement(items).map(([name]) => name)).toEqual([
+    'Bench Cluster',
+    'Pec Deck',
+  ]);
+  expect(groupCatalogByPrimaryEquipment(items).map(([name]) => name)).toEqual([
+    'Barbell',
+    'Machine',
+  ]);
   // Support equipment remains an all-equipment filter even though the hierarchy shows Barbell.
   expect(filterCatalog(items, { equipment: ['Bench'] })).toEqual([items[0]]);
 });
@@ -192,110 +393,268 @@ test('ships the validated v3 baseline, unique picker identities, and all built-i
   expect(new Set(bundledExercises.map((exercise) => exercise.id)).size).toBe(381);
   const normalize = (value: string) => value.trim().replace(/\s+/g, ' ').toLowerCase();
   expect(new Set(bundledExercises.map((exercise) => normalize(exercise.name))).size).toBe(381);
-  expect(bundledExercises.some((exercise) => exercise.variation && normalize(exercise.variation) === normalize(exercise.name))).toBe(false);
-  const pickerKeys = bundledExercises.map((exercise) => [
-    normalize(exercise.group),
-    [...exercise.equipment].map(normalize).sort().join('|'),
-    normalize(exercise.variation || exercise.name),
-  ].join('::'));
+  expect(
+    bundledExercises.some(
+      (exercise) =>
+        exercise.variation && normalize(exercise.variation) === normalize(exercise.name),
+    ),
+  ).toBe(false);
+  const pickerKeys = bundledExercises.map((exercise) =>
+    [
+      normalize(exercise.group),
+      [...exercise.equipment].map(normalize).sort().join('|'),
+      normalize(exercise.variation || exercise.name),
+    ].join('::'),
+  );
   expect(new Set(pickerKeys).size).toBe(381);
   const byId = new Map(bundledExercises.map((exercise) => [exercise.id, exercise]));
-  expect([...byId.values()].filter((exercise) => exercise.group === 'Bench Press').map((exercise) => exercise.id).sort()).toEqual([
-    'barbell-bench-press',
-    'dumbbell-bench-press',
-    'smith-machine-bench-press',
-  ]);
-  expect(byId.get('floor-press-barbell')).toMatchObject({ familyId: 'floor-press', group: 'Floor Press' });
-  expect(byId.get('floor-press-dumbbell')).toMatchObject({ familyId: 'floor-press', group: 'Floor Press' });
-  expect(byId.get('machine-chest-press')).toMatchObject({ familyId: 'chest-press', group: 'Chest Press' });
+  expect(
+    [...byId.values()]
+      .filter((exercise) => exercise.group === 'Bench Press')
+      .map((exercise) => exercise.id)
+      .sort(),
+  ).toEqual(['barbell-bench-press', 'dumbbell-bench-press', 'smith-machine-bench-press']);
+  expect(byId.get('floor-press-barbell')).toMatchObject({
+    familyId: 'floor-press',
+    group: 'Floor Press',
+  });
+  expect(byId.get('floor-press-dumbbell')).toMatchObject({
+    familyId: 'floor-press',
+    group: 'Floor Press',
+  });
+  expect(byId.get('machine-chest-press')).toMatchObject({
+    familyId: 'chest-press',
+    group: 'Chest Press',
+  });
   const benchPresses = exerciseCatalog.filter((exercise) => exercise.group === 'Bench Press');
   expect(groupCatalogByPrimaryEquipment(benchPresses).map(([equipment]) => equipment)).toEqual([
     'Barbell',
     'Dumbbell',
     'Smith Machine',
   ]);
-  expect(filterCatalog(exerciseCatalog, { equipment: ['Bench'] }).map((exercise) => exercise.id)).toContain('barbell-bench-press');
+  expect(
+    filterCatalog(exerciseCatalog, { equipment: ['Bench'] }).map((exercise) => exercise.id),
+  ).toContain('barbell-bench-press');
   expect(bundledLegacyIdMap.dips).toBe('parallel-bar-dip');
-  expect(defaultSettingsPreferences.workoutTypes.map((type) => type.id)).toEqual(['strength', 'calisthenics', 'cardio', 'mobility', 'functional', 'olympic-weightlifting', 'plyometrics', 'court-sport', 'field-sport', 'martial-arts']);
+  expect(defaultSettingsPreferences.workoutTypes.map((type) => type.id)).toEqual([
+    'strength',
+    'calisthenics',
+    'cardio',
+    'mobility',
+    'functional',
+    'olympic-weightlifting',
+    'plyometrics',
+    'court-sport',
+    'field-sport',
+    'martial-arts',
+  ]);
 });
 
 test('rejects duplicate catalogue names and picker labels before release data is exposed', () => {
   const [first] = catalogSource.exercises;
   const duplicateName = {
     ...catalogSource,
-    exercises: catalogSource.exercises.map((exercise, index) => index === 1 ? { ...first, id: 'duplicate-name', name: ` ${first.name} ` } : exercise),
+    exercises: catalogSource.exercises.map((exercise, index) =>
+      index === 1 ? { ...first, id: 'duplicate-name', name: ` ${first.name} ` } : exercise,
+    ),
   };
   const duplicatePickerLabel = {
     ...catalogSource,
-    exercises: catalogSource.exercises.map((exercise, index) => index === 1 ? { ...first, id: 'duplicate-picker-label', name: 'Different exercise', variation: first.variation ?? first.name } : exercise),
+    exercises: catalogSource.exercises.map((exercise, index) =>
+      index === 1
+        ? {
+            ...first,
+            id: 'duplicate-picker-label',
+            name: 'Different exercise',
+            variation: first.variation ?? first.name,
+          }
+        : exercise,
+    ),
   };
   const redundantVariation = {
     ...catalogSource,
-    exercises: catalogSource.exercises.map((exercise, index) => index === 0 ? { ...exercise, variation: exercise.name } : exercise),
+    exercises: catalogSource.exercises.map((exercise, index) =>
+      index === 0 ? { ...exercise, variation: exercise.name } : exercise,
+    ),
   };
 
-  expect(() => validateCatalog(duplicateName as Parameters<typeof validateCatalog>[0])).toThrow('duplicate exercise name');
-  expect(() => validateCatalog(duplicatePickerLabel as Parameters<typeof validateCatalog>[0])).toThrow('duplicates a picker variation');
-  expect(() => validateCatalog(redundantVariation as Parameters<typeof validateCatalog>[0])).toThrow('repeats its name as a variation');
+  expect(() => validateCatalog(duplicateName as Parameters<typeof validateCatalog>[0])).toThrow(
+    'duplicate exercise name',
+  );
+  expect(() =>
+    validateCatalog(duplicatePickerLabel as Parameters<typeof validateCatalog>[0]),
+  ).toThrow('duplicates a picker variation');
+  expect(() =>
+    validateCatalog(redundantVariation as Parameters<typeof validateCatalog>[0]),
+  ).toThrow('repeats its name as a variation');
 });
 
 test('tracking modes specify only their applicable measurements and retain an exercise snapshot', () => {
   expect(Object.keys(trackingFields)).toHaveLength(9);
   expect(trackingFields['distance-duration']).toEqual(['distance', 'duration']);
   const exercise = bundledExercises.find((item) => item.id === 'parallel-bar-dip')!;
-  const workout = createWorkout({ exercises: [{ exerciseId: exercise.id, name: exercise.name, trackingType: exercise.trackingType, exerciseSnapshot: { id: exercise.id, name: exercise.name, catalogueVersion: 3, trackingType: exercise.trackingType } }] });
-  expect(workout.exercises[0]).toMatchObject({ exerciseId: 'parallel-bar-dip', trackingType: exercise.trackingType, exerciseSnapshot: { id: 'parallel-bar-dip', catalogueVersion: 3 } });
+  const workout = createWorkout({
+    exercises: [
+      {
+        exerciseId: exercise.id,
+        name: exercise.name,
+        trackingType: exercise.trackingType,
+        exerciseSnapshot: {
+          id: exercise.id,
+          name: exercise.name,
+          catalogueVersion: 3,
+          trackingType: exercise.trackingType,
+        },
+      },
+    ],
+  });
+  expect(workout.exercises[0]).toMatchObject({
+    exerciseId: 'parallel-bar-dip',
+    trackingType: exercise.trackingType,
+    exerciseSnapshot: { id: 'parallel-bar-dip', catalogueVersion: 3 },
+  });
 });
 
 test('keeps routine intervals advisory and never turns them into next-session targets', () => {
   const routineWorkout = createWorkout({
     routineId: 'routine-upper',
-    exercises: [{
-      name: 'Bench Press',
-      sets: [{
-        id: 'set-1',
-        targetReps: '8–12',
-        targets: [{ id: 'old-routine-target', kind: 'reps', unit: 'count', minValue: 8, maxValue: 12 }],
-        plannedTargets: [{ id: 'routine-interval', kind: 'reps', unit: 'count', minValue: 8, maxValue: 12 }],
-      }],
-    }],
+    exercises: [
+      {
+        name: 'Bench Press',
+        sets: [
+          {
+            id: 'set-1',
+            targetReps: '8–12',
+            targets: [
+              { id: 'old-routine-target', kind: 'reps', unit: 'count', minValue: 8, maxValue: 12 },
+            ],
+            plannedTargets: [
+              { id: 'routine-interval', kind: 'reps', unit: 'count', minValue: 8, maxValue: 12 },
+            ],
+          },
+        ],
+      },
+    ],
   });
-  expect(routineWorkout.exercises[0].sets[0]).toMatchObject({ plannedTargets: [{ minValue: 8, maxValue: 12 }] });
+  expect(routineWorkout.exercises[0].sets[0]).toMatchObject({
+    plannedTargets: [{ minValue: 8, maxValue: 12 }],
+  });
   expect(routineWorkout.exercises[0].sets[0].targets).toBeUndefined();
   expect(routineWorkout.exercises[0].sets[0].targetReps).toBeUndefined();
 
-  const directWorkout = createWorkout({ exercises: [{ name: 'Bench Press', sets: [{ id: 'set-2', targetReps: '10' }] }] });
+  const directWorkout = createWorkout({
+    exercises: [{ name: 'Bench Press', sets: [{ id: 'set-2', targetReps: '10' }] }],
+  });
   expect(directWorkout.exercises[0].sets[0].targetReps).toBe('10');
 });
 
 test('uses next-session targets once for the matching routine exercise and set', () => {
   const routine = {
-    id: 'routine-upper', name: 'Upper', type: 'Strength', createdAt: 1, updatedAt: 1,
-    exercises: [{
-      id: 'routine-bench', name: 'Bench Press', trackingType: 'weight-reps' as const,
-      sets: [
-        { id: 'routine-bench-1', plannedTargets: [{ id: 'routine-reps-1', kind: 'reps' as const, unit: 'count' as const, minValue: 8, maxValue: 12 }] },
-        { id: 'routine-bench-2', plannedTargets: [{ id: 'routine-reps-2', kind: 'reps' as const, unit: 'count' as const, minValue: 8, maxValue: 12 }] },
-      ],
-    }],
+    id: 'routine-upper',
+    name: 'Upper',
+    type: 'Strength',
+    createdAt: 1,
+    updatedAt: 1,
+    exercises: [
+      {
+        id: 'routine-bench',
+        name: 'Bench Press',
+        trackingType: 'weight-reps' as const,
+        sets: [
+          {
+            id: 'routine-bench-1',
+            plannedTargets: [
+              {
+                id: 'routine-reps-1',
+                kind: 'reps' as const,
+                unit: 'count' as const,
+                minValue: 8,
+                maxValue: 12,
+              },
+            ],
+          },
+          {
+            id: 'routine-bench-2',
+            plannedTargets: [
+              {
+                id: 'routine-reps-2',
+                kind: 'reps' as const,
+                unit: 'count' as const,
+                minValue: 8,
+                maxValue: 12,
+              },
+            ],
+          },
+        ],
+      },
+    ],
   };
   const olderWithTarget = {
-    id: 'completed-old', name: 'Upper', type: 'Strength', startedAt: 1, completedAt: 2, note: '', routineId: routine.id,
-    exercises: [{ id: 'old-bench', name: 'Bench Press', trackingType: 'weight-reps' as const, sets: [{ id: 'old-1', weight: '', reps: '', completed: true, targets: [{ id: 'old-weight', kind: 'weight' as const, unit: 'kg' as const, minValue: 70 }, { id: 'old-reps', kind: 'reps' as const, unit: 'count' as const, minValue: 6, maxValue: 8 }] }, { id: 'old-2', weight: '', reps: '', completed: true }] }],
+    id: 'completed-old',
+    name: 'Upper',
+    type: 'Strength',
+    startedAt: 1,
+    completedAt: 2,
+    note: '',
+    routineId: routine.id,
+    exercises: [
+      {
+        id: 'old-bench',
+        name: 'Bench Press',
+        trackingType: 'weight-reps' as const,
+        sets: [
+          {
+            id: 'old-1',
+            weight: '',
+            reps: '',
+            completed: true,
+            targets: [
+              { id: 'old-weight', kind: 'weight' as const, unit: 'kg' as const, minValue: 70 },
+              {
+                id: 'old-reps',
+                kind: 'reps' as const,
+                unit: 'count' as const,
+                minValue: 6,
+                maxValue: 8,
+              },
+            ],
+          },
+          { id: 'old-2', weight: '', reps: '', completed: true },
+        ],
+      },
+    ],
   };
 
   const next = routineExercisesWithNextSessionTargets(routine, [olderWithTarget]);
-  expect(next[0].sets?.[0].plannedTargets).toEqual(expect.arrayContaining([
-    expect.objectContaining({ kind: 'weight', minValue: 70 }),
-    expect.objectContaining({ kind: 'reps', minValue: 6, maxValue: 8 }),
-  ]));
+  expect(next[0].sets?.[0].plannedTargets).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ kind: 'weight', minValue: 70 }),
+      expect.objectContaining({ kind: 'reps', minValue: 6, maxValue: 8 }),
+    ]),
+  );
   expect(next[0].sets?.[1].plannedTargets).toEqual([
     expect.objectContaining({ kind: 'reps', minValue: 8, maxValue: 12 }),
   ]);
   expect(next[0].sets?.[0].targets).toBeUndefined();
 
-  const newerWithoutTarget = { ...olderWithTarget, id: 'completed-new', completedAt: 3, exercises: [{ ...olderWithTarget.exercises[0], sets: [{ ...olderWithTarget.exercises[0].sets[0], targets: undefined }, olderWithTarget.exercises[0].sets[1]] }] };
-  const following = routineExercisesWithNextSessionTargets(routine, [olderWithTarget, newerWithoutTarget]);
+  const newerWithoutTarget = {
+    ...olderWithTarget,
+    id: 'completed-new',
+    completedAt: 3,
+    exercises: [
+      {
+        ...olderWithTarget.exercises[0],
+        sets: [
+          { ...olderWithTarget.exercises[0].sets[0], targets: undefined },
+          olderWithTarget.exercises[0].sets[1],
+        ],
+      },
+    ],
+  };
+  const following = routineExercisesWithNextSessionTargets(routine, [
+    olderWithTarget,
+    newerWithoutTarget,
+  ]);
   expect(following[0].sets?.[0].plannedTargets).toEqual([
     expect.objectContaining({ kind: 'reps', minValue: 8, maxValue: 12 }),
   ]);
@@ -314,10 +673,14 @@ test('snapshots keep variation and primary-equipment metadata while legacy cards
   expect(formatExerciseMetadata(createExerciseSnapshot(weightedDip))).toBe('Dip Bars');
   expect(formatExerciseMetadata(createExerciseSnapshot(assistedDip))).toBe('Machine');
   expect(formatPickerPrimaryEquipment(assistedDip, 'Machine')).toBe('Machine · Assisted');
-  const weightedExercises = exerciseCatalog.filter((exercise) => /\bweighted\b/i.test(exercise.name));
+  const weightedExercises = exerciseCatalog.filter((exercise) =>
+    /\bweighted\b/i.test(exercise.name),
+  );
   expect(weightedExercises).not.toHaveLength(0);
   for (const exercise of weightedExercises) {
-    expect(formatExerciseMetadata(createExerciseSnapshot(exercise))?.toLocaleLowerCase()).not.toMatch(/^weighted\b/);
+    expect(
+      formatExerciseMetadata(createExerciseSnapshot(exercise))?.toLocaleLowerCase(),
+    ).not.toMatch(/^weighted\b/);
   }
   for (const exercise of exerciseCatalog) {
     const metadata = formatExerciseMetadata(createExerciseSnapshot(exercise));
@@ -332,27 +695,58 @@ test('snapshots keep variation and primary-equipment metadata while legacy cards
       expect(metadata?.split(' · ').filter((part) => part !== equipment)).not.toContain(variation);
     }
   }
-  const assistedExercises = exerciseCatalog.filter((exercise) => exercise.trackingType === 'assisted-bodyweight');
+  const assistedExercises = exerciseCatalog.filter(
+    (exercise) => exercise.trackingType === 'assisted-bodyweight',
+  );
   expect(assistedExercises).toHaveLength(5);
   for (const exercise of assistedExercises) {
-    expect(formatPickerPrimaryEquipment(exercise, exercise.primaryEquipment ?? exercise.equipment)).toMatch(/ · Assisted$/);
+    expect(
+      formatPickerPrimaryEquipment(exercise, exercise.primaryEquipment ?? exercise.equipment),
+    ).toMatch(/ · Assisted$/);
   }
-  expect(formatExerciseMetadata({ name: 'Legacy Bench Press', trackingType: 'weight-reps' })).toBeNull();
+  expect(
+    formatExerciseMetadata({ name: 'Legacy Bench Press', trackingType: 'weight-reps' }),
+  ).toBeNull();
 });
 
 test('adds picker selections in one immutable workout update with three empty sets each', () => {
   const source = createWorkout({ exercises: [{ name: 'Existing' }] });
   const next = addExercisesToWorkout(source, [
-    { exerciseId: 'bench', name: 'Bench Press', trackingType: 'weight-reps', exerciseSnapshot: { id: 'bench', name: 'Bench Press', catalogueVersion: 3, trackingType: 'weight-reps' } },
-    { exerciseId: 'walk', name: 'Walk', trackingType: 'duration', exerciseSnapshot: { id: 'walk', name: 'Walk', catalogueVersion: 3, trackingType: 'duration' } },
+    {
+      exerciseId: 'bench',
+      name: 'Bench Press',
+      trackingType: 'weight-reps',
+      exerciseSnapshot: {
+        id: 'bench',
+        name: 'Bench Press',
+        catalogueVersion: 3,
+        trackingType: 'weight-reps',
+      },
+    },
+    {
+      exerciseId: 'walk',
+      name: 'Walk',
+      trackingType: 'duration',
+      exerciseSnapshot: { id: 'walk', name: 'Walk', catalogueVersion: 3, trackingType: 'duration' },
+    },
   ]);
 
   expect(next).not.toBe(source);
   expect(next?.exercises).toHaveLength(3);
-  expect(next?.exercises.slice(1)).toEqual(expect.arrayContaining([
-    expect.objectContaining({ exerciseId: 'bench', trackingType: 'weight-reps', exerciseSnapshot: expect.objectContaining({ id: 'bench', catalogueVersion: 3 }) }),
-    expect.objectContaining({ exerciseId: 'walk', trackingType: 'duration', exerciseSnapshot: expect.objectContaining({ id: 'walk', catalogueVersion: 3 }) }),
-  ]));
+  expect(next?.exercises.slice(1)).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        exerciseId: 'bench',
+        trackingType: 'weight-reps',
+        exerciseSnapshot: expect.objectContaining({ id: 'bench', catalogueVersion: 3 }),
+      }),
+      expect.objectContaining({
+        exerciseId: 'walk',
+        trackingType: 'duration',
+        exerciseSnapshot: expect.objectContaining({ id: 'walk', catalogueVersion: 3 }),
+      }),
+    ]),
+  );
   expect(next?.exercises.slice(1).every((exercise) => exercise.sets.length === 3)).toBe(true);
   expect(next?.exercises.slice(1).flatMap((exercise) => exercise.sets)).toEqual(
     expect.arrayContaining([expect.objectContaining({ weight: '', reps: '', completed: false })]),
@@ -360,7 +754,12 @@ test('adds picker selections in one immutable workout update with three empty se
 });
 
 test('builds progressive warm-up plans and inserts them before working sets immutably', () => {
-  expect(warmupSteps(3)).toEqual([[0.4, 5], [0.55, 3], [0.7, 2], [0.85, 1]]);
+  expect(warmupSteps(3)).toEqual([
+    [0.4, 5],
+    [0.55, 3],
+    [0.7, 2],
+    [0.85, 1],
+  ]);
   expect(buildWarmupPlan(100, 8)).toEqual([
     { weight: '40', reps: '8' },
     { weight: '60', reps: '5' },
@@ -368,7 +767,11 @@ test('builds progressive warm-up plans and inserts them before working sets immu
   ]);
   expect(buildWarmupPlan(20, 8)).toEqual([]);
 
-  const source = createWorkout({ exercises: [{ id: 'bench', name: 'Bench Press', sets: [{ id: 'working', weight: '100', reps: '8' }] }] });
+  const source = createWorkout({
+    exercises: [
+      { id: 'bench', name: 'Bench Press', sets: [{ id: 'working', weight: '100', reps: '8' }] },
+    ],
+  });
   const next = addWarmupSetsToWorkout(source, 'bench', buildWarmupPlan(100, 8));
   expect(next).not.toBe(source);
   expect(source.exercises[0].sets).toHaveLength(1);
@@ -385,7 +788,9 @@ test('builds progressive warm-up plans and inserts them before working sets immu
 });
 
 test('v3 multi-equipment facets remain individual taxonomy labels', () => {
-  const multiEquipment = exerciseCatalog.find((exercise) => (exercise.equipmentIds?.length ?? 0) > 1)!;
+  const multiEquipment = exerciseCatalog.find(
+    (exercise) => (exercise.equipmentIds?.length ?? 0) > 1,
+  )!;
   const facets = catalogFacets([multiEquipment]);
   expect(facets.equipment).toEqual(multiEquipment.equipment.split(' & ').sort());
   expect(facets.equipment).not.toContain(multiEquipment.equipment);

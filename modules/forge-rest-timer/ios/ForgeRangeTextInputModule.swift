@@ -155,11 +155,16 @@ final class ForgeRangeKeyboard: UIInputView, UIInputViewAudioFeedback {
 
   init(textInput: UITextField) {
     self.textInput = textInput
-    super.init(frame: .zero, inputViewStyle: .keyboard)
-    // `UIInputView` is not given a usable intrinsic height by every responder
-    // host (notably the Expo Fabric text-input host). Make the input view own
-    // its fitting size so UIKit can lay out the four key rows rather than
-    // presenting an empty keyboard surface.
+    // Expo Fabric can ask the input view to fit before it has assigned a
+    // bounds width. Start with a valid keyboard-sized frame so the grid never
+    // inherits that transient zero-width measurement.
+    super.init(
+      frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 291),
+      inputViewStyle: .keyboard
+    )
+    // With self sizing enabled UIKit uses systemLayoutSizeFitting(_:). This
+    // lets the view retain its own row height while still accepting a real
+    // responder width after attachment.
     allowsSelfSizing = true
     // UIKit exposes dynamic semantic colours, rather than the private colours
     // used by the system keyboard. These two roles track the iPhone number pad
@@ -175,11 +180,11 @@ final class ForgeRangeKeyboard: UIInputView, UIInputViewAudioFeedback {
   }
 
   override var intrinsicContentSize: CGSize {
-    CGSize(width: UIView.noIntrinsicMetric, height: preferredHeight)
+    CGSize(width: fallbackWidth, height: preferredHeight)
   }
 
   override func systemLayoutSizeFitting(_ targetSize: CGSize) -> CGSize {
-    CGSize(width: targetSize.width, height: preferredHeight)
+    CGSize(width: validWidth(from: targetSize.width), height: preferredHeight)
   }
 
   override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -194,6 +199,17 @@ final class ForgeRangeKeyboard: UIInputView, UIInputViewAudioFeedback {
     // number pad. The width remains owned by UIKit, so split view, rotation,
     // and different iPhone widths retain the normal system geometry.
     traitCollection.verticalSizeClass == .compact ? 216 : 291
+  }
+
+  private var fallbackWidth: CGFloat {
+    // A custom input view always occupies the responder's width once attached.
+    // Before that happens, use the screen width rather than passing through a
+    // zero or `noIntrinsicMetric` fitting proposal from Fabric.
+    max(UIScreen.main.bounds.width, 1)
+  }
+
+  private func validWidth(from proposedWidth: CGFloat) -> CGFloat {
+    proposedWidth.isFinite && proposedWidth > 1 ? proposedWidth : fallbackWidth
   }
 
   private func buildKeyboard() {

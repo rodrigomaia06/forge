@@ -50,17 +50,13 @@ reviewed in the JSON import screen before it writes to the app.
 
 ## Unsigned iOS sideload build
 
-The manual **Build unsigned iOS IPA** GitHub workflow uses Forge's explicit
-`ios-unsigned.yml` EAS build. It deliberately skips Apple credentials and
-packages an unsigned device archive; it is intended for iLoader, which
-re-signs the IPA with the user's Apple ID before installation. The sideload
-archive retains Forge's direct Live Activity/widget extension, which does not
-depend on an App Group when iLoader re-signs the IPA. After EAS completes, the workflow
-retains the final IPA as the `Forge-unsigned-ios-ipa` GitHub Actions artifact
-for 30 days. The workflow submits EAS without waiting on the EAS command, then
-polls the build from its inexpensive Ubuntu runner and reports each real EAS
-state in the GitHub log and job summary. When EAS provides Xcode/build logs,
-the same run retains them as `Forge-unsigned-ios-build-logs` for the same
-period. The custom build publishes a ready `.ipa`, so the workflow downloads
-its `applicationArchiveUrl` directly and validates its `Payload/Forge.app`
-before upload; it does not use the EAS CLI downloader's TAR extraction path.
+The manual **Build unsigned iOS IPA** GitHub workflow runs the Forge build
+directly on the standard `macos-15` runner. It generates the iOS project,
+builds an unsigned device archive with Xcode, packages `Payload/Forge.app`,
+and verifies both the app and its direct Live Activity/widget extension before
+upload. It deliberately needs neither an EAS build nor Apple credentials; it
+is intended for iLoader, which re-signs the IPA with the user's Apple ID before
+installation. The sideload archive does not depend on an App Group when
+iLoader re-signs it. The IPA and `xcodebuild` log remain separate GitHub
+Actions artifacts for 30 days. The repository's `EXPO_TOKEN` may remain stored
+for other Expo operations, but this workflow does not read it.
