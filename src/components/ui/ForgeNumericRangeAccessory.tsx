@@ -1,7 +1,6 @@
-import { InputAccessoryView, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { InputAccessoryView, Platform, PlatformColor, Pressable, StyleSheet, View } from 'react-native';
 
 import { useThemedStyles } from '../../theme/useThemedStyles';
-import { typeScale } from '../../theme/tokens';
 import { ForgeText as Text } from './ForgeText';
 import { pressedFeedbackSubtle } from './pressFeedback';
 
@@ -31,12 +30,13 @@ export function ForgeNumericRangeAccessory({
           disabled={disabled}
           onPress={onInsertSeparator}
           style={({ pressed }) => [
-            styles.key,
-            disabled && styles.keyDisabled,
-            pressed && !disabled && pressedFeedbackSubtle,
+            styles.keyHitTarget,
+            pressed && !disabled && styles.keyPressed,
           ]}
         >
-          <Text style={[styles.keyText, disabled && styles.keyTextDisabled]}>−</Text>
+          <View style={[styles.key, disabled && styles.keyDisabled]}>
+            <Text style={[styles.keyText, disabled && styles.keyTextDisabled]}>−</Text>
+          </View>
         </Pressable>
       </View>
     </InputAccessoryView>
@@ -51,21 +51,28 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       flexDirection: 'row',
       justifyContent: 'flex-end',
       alignItems: 'center',
-      backgroundColor: theme.surfaceElevated,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: theme.divider,
+      // This is keyboard chrome, not an in-app Forge toolbar. System colors
+      // deliberately keep it continuous with the active iOS keyboard.
+      backgroundColor: Platform.OS === 'ios' ? PlatformColor('tertiarySystemBackground') : theme.surfaceElevated,
     },
+    keyHitTarget: { width: 52, height: 44, alignItems: 'center', justifyContent: 'center' },
     key: {
       width: 52,
-      height: 44,
+      height: 36,
       alignItems: 'center',
       justifyContent: 'center',
-      borderRadius: 10,
-      borderWidth: 1,
-      borderColor: theme.border,
-      backgroundColor: theme.surfaceMuted,
+      borderRadius: 8,
+      backgroundColor: Platform.OS === 'ios' ? PlatformColor('systemGray') : theme.surfaceMuted,
     },
-    keyDisabled: { opacity: 0.42 },
-    keyText: { color: theme.ink, ...typeScale.sectionTitle },
-    keyTextDisabled: { color: theme.muted },
+    keyPressed: pressedFeedbackSubtle,
+    keyDisabled: { opacity: 0.38 },
+    // Native system font is intentional here: this control is physically
+    // attached to Apple's keyboard rather than part of Forge screen chrome.
+    keyText: {
+      color: Platform.OS === 'ios' ? PlatformColor('label') : theme.ink,
+      fontSize: 24,
+      lineHeight: 30,
+      fontWeight: '400',
+    },
+    keyTextDisabled: { color: Platform.OS === 'ios' ? PlatformColor('secondaryLabel') : theme.muted },
   });
