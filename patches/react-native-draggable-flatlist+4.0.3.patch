@@ -1,0 +1,41 @@
+diff --git a/node_modules/react-native-draggable-flatlist/src/components/DraggableFlatList.tsx b/node_modules/react-native-draggable-flatlist/src/components/DraggableFlatList.tsx
+index 7c88afc..ef72d2a 100644
+--- a/node_modules/react-native-draggable-flatlist/src/components/DraggableFlatList.tsx
++++ b/node_modules/react-native-draggable-flatlist/src/components/DraggableFlatList.tsx
+@@ -10,7 +10,6 @@ import {
+   ListRenderItem,
+   FlatListProps,
+   LayoutChangeEvent,
+-  InteractionManager,
+ } from "react-native";
+ import {
+   FlatList,
+@@ -56,6 +55,19 @@ const AnimatedFlatList = (Animated.createAnimatedComponent(
+   FlatList
+ ) as unknown) as <T>(props: RNGHFlatListProps<T>) => React.ReactElement;
+ 
++const scheduleAfterInteractions = (callback: () => void): void => {
++  const requestIdle = (
++    globalThis as typeof globalThis & {
++      requestIdleCallback?: (idleCallback: () => void) => unknown;
++    }
++  ).requestIdleCallback;
++  if (typeof requestIdle === "function") {
++    requestIdle(callback);
++    return;
++  }
++  setTimeout(callback, 0);
++};
++
+ function DraggableFlatListInner<T>(props: DraggableFlatListProps<T>) {
+   const {
+     cellDataRef,
+@@ -119,7 +131,7 @@ function DraggableFlatListInner<T>(props: DraggableFlatListProps<T>) {
+   if (dataHasChanged) {
+     // When data changes make sure `activeKey` is nulled out in the same render pass
+     activeKey = null;
+-    InteractionManager.runAfterInteractions(() => {
++    scheduleAfterInteractions(() => {
+       reset();
+     });
+   }
