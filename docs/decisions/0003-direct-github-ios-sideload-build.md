@@ -24,9 +24,10 @@ installing dependencies; Swift 6.2 rejects those annotations but preserves the
 class's ordinary shared-reference ownership without them. The guarded patch is
 deliberately local to the CI dependency install and must be removed or updated
 when Expo changes the affected header. SDK 57 also does not yet pass Swift 6's
-strict concurrency checking in its raw-pointer JavaScript trampolines, so the
-same guarded patch compiles that dependency in Swift 5 language mode while
-retaining the Xcode 26.3 toolchain for the rest of the archive. It must be
+strict concurrency checking when its actor-isolated raw-pointer trampolines use
+standalone `nonisolated(unsafe)` bindings. The same guarded patch replaces
+those bindings with Expo's existing `NonisolatedUnsafeVar` wrapper, retaining
+Swift 6 checking and the Xcode 26.3 toolchain for the full archive. It must be
 removed when Expo's upstream migration makes the module Swift 6 clean.
 The existing `EXPO_TOKEN` secret may remain configured but is not used for this
 workflow. No Apple account or EAS build is needed.
