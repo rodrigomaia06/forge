@@ -302,12 +302,18 @@ test.describe('Exercise library', () => {
     await expect(page.getByText('Primary muscle', { exact: true })).toBeVisible();
     await expect(page.getByText('Chest', { exact: true }).first()).toBeVisible();
     await expect(page.getByTestId('exercise-section-type-strength').locator('svg')).toBeVisible();
+    await expect(page.getByText('ESSENTIALS', { exact: true })).toBeVisible();
+    await expect(page.getByText('TRAINING PROFILE', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Change rest time, currently Default' })).toBeVisible();
     const detailSheet = page.getByTestId('exercise-detail-sheet-surface');
     await page.waitForTimeout(250);
     await page.getByRole('button', { name: 'Change rest time, currently Default' }).click();
     await expect(page.getByTestId('exercise-rest-selection-view')).toBeVisible();
-    await expect(page.getByText('Rest Time', { exact: true })).toBeVisible();
+    await expect(page.getByText('Duration', { exact: true })).toBeVisible();
+    const restTimeTitle = page.getByText('Duration', { exact: true });
+    const defaultAction = page.getByRole('button', { name: 'Use default rest time' });
+    await expect(defaultAction).toBeVisible();
+    expect(Math.abs(((await defaultAction.boundingBox())?.y ?? 0) - ((await restTimeTitle.boundingBox())?.y ?? Infinity))).toBeLessThan(12);
     const restPicker = page.getByTestId('exercise-rest-selection-list');
     await page.waitForTimeout(250);
     const sheetBox = await detailSheet.boundingBox();
@@ -317,7 +323,7 @@ test.describe('Exercise library', () => {
     expect(sheetBox?.height ?? 0).toBeGreaterThanOrEqual((listBox?.height ?? Infinity) + 88);
     expect((sheetBox?.y ?? Infinity) + (sheetBox?.height ?? 0)).toBeCloseTo(page.viewportSize()?.height ?? 0, 0);
     await expect(page.getByTestId('exercise-detail-sheet-surface')).toHaveCount(1);
-    await expect(page.getByRole('button', { name: 'Use default rest time' })).toBeVisible();
+    await expect(defaultAction).toBeVisible();
     await expect(restPicker).toHaveAttribute('role', 'radiogroup');
     await expect(restPicker.locator('svg')).toHaveCount(0);
     await page.getByRole('button', { name: 'Back to exercise details' }).click();
@@ -326,7 +332,9 @@ test.describe('Exercise library', () => {
     await page.getByRole('radio', { name: 'Rest duration 02:00' }).click();
     await expect(page.getByRole('button', { name: 'Change rest time, currently 2:00' })).toBeVisible();
     await page.getByRole('button', { name: 'Change rest time, currently 2:00' }).click();
-    await expect(page.getByRole('radio', { name: 'Rest duration 02:00' })).toHaveAttribute('aria-checked', 'true');
+    const selectedDuration = page.getByRole('radio', { name: 'Rest duration 02:00' });
+    await expect(selectedDuration).toHaveAttribute('aria-checked', 'true');
+    await expect(selectedDuration).toHaveCSS('background-color', 'rgb(227, 238, 232)');
     await restPicker.getByLabel('Selection options').evaluate((element) => {
       element.scrollTop = element.scrollHeight;
       element.dispatchEvent(new Event('scroll', { bubbles: true }));
@@ -470,8 +478,11 @@ test.describe('Exercise library', () => {
     await page.getByRole('button', { name: 'Save variation' }).click();
     await page.getByRole('button', { name: 'Open Rows' }).click();
     const details = page.getByRole('dialog');
-    await expect(page.getByRole('button', { name: 'Delete variation' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Edit variation' })).toBeVisible();
+    const edit = page.getByRole('button', { name: 'Edit variation' });
+    const remove = page.getByRole('button', { name: 'Delete variation' });
+    await expect(edit).toBeVisible();
+    await expect(remove).toBeVisible();
+    expect((await edit.boundingBox())?.y ?? Infinity).toBeLessThan((await remove.boundingBox())?.y ?? 0);
     await expect(details).toContainText('Mobility');
     await expect(details).toContainText('Lats');
     await expect(details).toContainText('Biceps');

@@ -876,9 +876,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
               <View testID="exercise-rest-selection-view" style={styles.restTimeSheet}>
                 <ForgeBottomSheetHandle />
                 <ForgeSheetHeader
-                  title="Rest Time"
-                  onClose={close}
-                  closeAccessibilityLabel="Close exercise details"
+                  title="Duration"
                   leading={
                     <ForgeBackButton
                       accessibilityLabel="Back to exercise details"
@@ -886,36 +884,40 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                     />
                   }
                   trailing={
-                    <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Use default rest time"
-                    accessibilityState={{ selected: restOverride(detail) === undefined }}
-                    onPress={() => {
-                      selectionHaptic();
-                      chooseRestOverride(detail, undefined);
-                      transitionDetailSheet('details');
-                    }}
-                    style={({ pressed }) => [
-                      styles.restTimeDefaultAction,
-                      restOverride(detail) === undefined && styles.restTimeDefaultActionSelected,
-                      pressed && pressedFeedback,
-                    ]}
-                  >
-                    <Text style={styles.restTimeDefaultLabel}>Default</Text>
-                  </Pressable>
+                    <HeaderAction
+                      accessibilityLabel="Use default rest time"
+                      label="Default"
+                      icon="time-outline"
+                      variant="secondary"
+                      haptic="none"
+                      onPress={() => {
+                        selectionHaptic();
+                        chooseRestOverride(detail, undefined);
+                        transitionDetailSheet('details');
+                      }}
+                      style={[
+                        styles.restTimeDefaultAction,
+                        restOverride(detail) === undefined && styles.restTimeDefaultActionSelected,
+                      ]}
+                    />
                   }
                 />
-                <ForgeSingleSelectList<number>
-                  testID="exercise-rest-selection-list"
-                  options={restTimeOptions}
-                  selectedValue={restOverride(detail) ?? -1}
-                  maxVisibleRows={6}
-                  onSelect={(value) => {
-                    chooseRestOverride(detail, value);
-                    transitionDetailSheet('details');
-                  }}
-                  onSelectedPress={() => transitionDetailSheet('details')}
-                />
+                <View style={styles.restTimePickerContent}>
+                  <ForgeCard variant="inset" size="compact" style={styles.restTimeChoiceCard}>
+                    <ForgeSingleSelectList<number>
+                      testID="exercise-rest-selection-list"
+                      options={restTimeOptions}
+                      selectedValue={restOverride(detail) ?? -1}
+                      selectedTone="success"
+                      maxVisibleRows={6}
+                      onSelect={(value) => {
+                        chooseRestOverride(detail, value);
+                        transitionDetailSheet('details');
+                      }}
+                      onSelectedPress={() => transitionDetailSheet('details')}
+                    />
+                  </ForgeCard>
+                </View>
               </View>
             ) : (
               <View style={styles.detailSheet}>
@@ -928,96 +930,84 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   trailing={
                     isCustom(detail) ? (
                       <HeaderAction
-                        accessibilityLabel="Delete variation"
-                        icon="trash"
+                        accessibilityLabel="Edit variation"
+                        icon="note"
                         iconOnly
-                        tone="destructive"
+                        style={styles.editVariationHeaderAction}
                         onPress={() => {
-                          catalog.removeCustomExercise(detail.id);
                           close();
+                          openEdit(detail);
                         }}
                       />
                     ) : undefined
                   }
                 />
                 <View style={styles.detailContent}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Change rest time, currently ${restLabel(detail)}`}
-                    accessibilityHint="Opens the rest duration picker"
-                    onPress={() => {
-                      lightHaptic();
-                      transitionDetailSheet('restTime');
-                    }}
-                    style={({ pressed }) => [styles.detailRow, pressed && pressedFeedback]}
-                  >
-                    <Text style={styles.detailLabel}>Rest Time</Text>
-                    <View style={styles.detailAction}>
-                      <Text style={styles.detailSelectableValue}>{restLabel(detail)}</Text>
-                      <Icon name="chevron-forward" size={21} color={theme.textSecondary} />
-                    </View>
-                  </Pressable>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Workout types</Text>
-                    <View style={styles.sectionTypes}>
-                      {detail.workoutTypeIds.map((id) => {
-                        const type = preferences.workoutTypes.find((item) => item.id === id);
-                        return (
-                          <View
-                            key={id}
-                            testID={`exercise-section-type-${id}`}
-                            style={styles.sectionType}
-                          >
-                            <Icon
-                              name={type ? workoutTypeIcon(type) : 'layers'}
-                              size={18}
-                              color={theme.ink}
-                            />
+                  <ForgeCard variant="inset" style={styles.restTimeCard}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Change rest time, currently ${restLabel(detail)}`}
+                      accessibilityHint="Opens the rest duration picker"
+                      onPress={() => {
+                        lightHaptic();
+                        transitionDetailSheet('restTime');
+                      }}
+                      style={({ pressed }) => [styles.restTimeCardPressable, pressed && pressedFeedback]}
+                    >
+                      <View style={styles.restTimeCardIcon}><Icon name="stopwatch-outline" size={20} color={theme.textSecondary} /></View>
+                      <View style={styles.restTimeCardCopy}>
+                        <Text style={styles.restTimeCardTitle}>Rest time</Text>
+                      </View>
+                      <View style={styles.detailAction}>
+                        <Text style={styles.detailSelectableValue}>{restLabel(detail)}</Text>
+                        <Icon name="chevron-forward" size={21} color={theme.textSecondary} />
+                      </View>
+                    </Pressable>
+                  </ForgeCard>
+
+                  <Text style={styles.detailSectionLabel}>ESSENTIALS</Text>
+                  <ForgeCard variant="inset" size="compact" style={styles.detailFactGrid}>
+                    <ExerciseDetailFact label="Category" value={detail.category} />
+                    <ExerciseDetailFact label="Equipment" value={detail.equipment} />
+                    <ExerciseDetailFact label="Tracking" value={formatTrackingType(detail.trackingType)} />
+                    <ExerciseDetailFact label="Movement family" value={detail.group} />
+                  </ForgeCard>
+
+                  <Text style={styles.detailSectionLabel}>TRAINING PROFILE</Text>
+                  <ForgeCard variant="inset" size="compact" style={styles.detailProfileCard}>
+                    {detail.workoutTypeIds.length > 0 ? <View style={styles.detailProfileRow}>
+                      <Text style={styles.detailProfileLabel}>Workout types</Text>
+                      <View style={styles.sectionTypes}>
+                        {detail.workoutTypeIds.map((id) => {
+                          const type = preferences.workoutTypes.find((item) => item.id === id);
+                          return <View key={id} testID={`exercise-section-type-${id}`} style={styles.sectionType}>
+                            <Icon name={type ? workoutTypeIcon(type) : 'layers'} size={17} color={theme.textSecondary} />
                             <Text style={styles.sectionTypeName}>{type?.name ?? id}</Text>
-                          </View>
-                        );
-                      })}
+                          </View>;
+                        })}
+                      </View>
+                    </View> : null}
+                    <View style={styles.detailProfileRow}>
+                      <Text style={styles.detailProfileLabel}>Primary muscle</Text>
+                      <Text style={styles.detailProfileValue}>{detail.primaryMuscle}</Text>
                     </View>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Category</Text>
-                    <Text style={styles.detailValue}>{detail.category}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Equipment</Text>
-                    <Text style={styles.detailValue}>{detail.equipment}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Exercise group</Text>
-                    <Text style={styles.detailValue}>{detail.group}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Tracking</Text>
-                    <Text style={styles.detailValue}>{formatTrackingType(detail.trackingType)}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Primary muscle</Text>
-                    <Text style={styles.detailValue}>{detail.primaryMuscle}</Text>
-                  </View>
-                  {detail.secondaryMuscles.length > 0 && (
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Secondary muscles</Text>
-                      <Text style={styles.detailValue}>{detail.secondaryMuscles.join(', ')}</Text>
-                    </View>
-                  )}
+                    {detail.secondaryMuscles.length > 0 ? <View style={styles.detailProfileRow}>
+                      <Text style={styles.detailProfileLabel}>Secondary muscles</Text>
+                      <Text style={styles.detailProfileValue}>{detail.secondaryMuscles.join(', ')}</Text>
+                    </View> : null}
+                  </ForgeCard>
                   {isCustom(detail) ? (
-                    <>
-                      <Button
-                        label="Edit variation"
-                        variant="secondary"
-                        haptic="none"
-                        style={styles.editVariationAction}
-                        onPress={() => {
-                          close();
-                          openEdit(detail);
-                        }}
-                      />
-                    </>
+                    <Button
+                      label="Delete variation"
+                      variant="outline"
+                      tone="destructive"
+                      haptic="none"
+                      style={styles.deleteVariationAction}
+                      onPress={() => {
+                        catalog.removeCustomExercise(detail.id);
+                        close();
+                      }}
+                    />
                   ) : null}
                 </View>
               </View>
@@ -1026,6 +1016,16 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
         </ForgeBottomSheet>
       </View>
     </AppScreen>
+  );
+}
+
+function ExerciseDetailFact({ label, value }: { label: string; value: string }) {
+  const styles = useThemedStyles(createStyles);
+  return (
+    <View style={styles.detailFact}>
+      <Text style={styles.detailFactLabel}>{label}</Text>
+      <Text numberOfLines={2} style={styles.detailFactValue}>{value}</Text>
+    </View>
   );
 }
 
@@ -1513,19 +1513,12 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     restTimeTitle: { flex: 1, textAlign: 'center', ...typeScale.headerTitle, color: theme.ink },
     restTimeHeaderSpacer: { width: forgeSheetHeader.closeSize },
     restTimeDefaultAction: {
-      minWidth: 80,
-      height: 38,
-      minHeight: 38,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: 14,
-      borderWidth: 1,
-      borderColor: theme.border,
-      backgroundColor: theme.surfaceMuted,
+      minWidth: 112,
       paddingHorizontal: 12,
     },
-    restTimeDefaultActionSelected: { borderColor: theme.selectionIndicator },
-    restTimeDefaultLabel: { ...typeScale.controlLabel, color: theme.textPrimary },
+    restTimeDefaultActionSelected: { borderColor: theme.success, backgroundColor: theme.successSurface },
+    restTimePickerContent: { paddingHorizontal: 20, paddingBottom: 24, gap: 10 },
+    restTimeChoiceCard: { overflow: 'hidden', borderRadius: 18 },
     detailRow: {
       minHeight: 44,
       flexDirection: 'row',
@@ -1608,8 +1601,23 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     formChoice: { minHeight: 56, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
     formChoiceDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.divider },
     formChoiceText: { flex: 1, ...typeScale.cardTitle, color: theme.textPrimary },
-    detailContent: { paddingHorizontal: 20, paddingBottom: 12, paddingTop: 0, gap: 0 },
-    editVariationAction: { marginTop: 16, marginBottom: 8 },
+    detailContent: { paddingHorizontal: 20, paddingBottom: 30, paddingTop: 2, gap: 8 },
+    detailSectionLabel: { marginTop: 6, paddingHorizontal: 4, color: theme.textSecondary, ...typeScale.caption },
+    restTimeCard: { overflow: 'hidden', borderRadius: 18 },
+    restTimeCardPressable: { minHeight: 64, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    restTimeCardIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
+    restTimeCardCopy: { flex: 1, minWidth: 0 },
+    restTimeCardTitle: { ...typeScale.cardTitle, color: theme.textPrimary },
+    detailFactGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 2, padding: 8 },
+    detailFact: { flexBasis: '48%', flexGrow: 1, minWidth: 124, minHeight: 56, padding: 8, gap: 1, justifyContent: 'flex-start' },
+    detailFactLabel: { ...typeScale.caption, color: theme.textSecondary },
+    detailFactValue: { ...typeScale.label, color: theme.textPrimary },
+    detailProfileCard: { overflow: 'hidden', borderRadius: 18 },
+    detailProfileRow: { minHeight: 54, paddingHorizontal: 14, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
+    detailProfileLabel: { flex: 1, ...typeScale.label, color: theme.textSecondary },
+    detailProfileValue: { flexShrink: 1, maxWidth: '62%', textAlign: 'right', ...typeScale.label, color: theme.textPrimary },
+    editVariationHeaderAction: { backgroundColor: theme.surfaceMuted, borderColor: theme.border, borderWidth: 1 },
+    deleteVariationAction: { marginTop: 8, marginBottom: 4 },
     input: {
       minHeight: 48,
       paddingHorizontal: 14,

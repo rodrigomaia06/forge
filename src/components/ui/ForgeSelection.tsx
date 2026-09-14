@@ -32,6 +32,9 @@ interface ForgeSingleSelectListProps<T extends SelectionValue> {
   maxVisibleRows?: number;
   /** Use when this control lives inside an existing vertical ScrollView. */
   disableVirtualization?: boolean;
+  /** A contextual selection can use Forge's success treatment without
+   * changing the neutral treatment used by ordinary settings. */
+  selectedTone?: 'neutral' | 'success';
   testID?: string;
 }
 
@@ -43,6 +46,7 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
   onSelectedPress,
   maxVisibleRows = DEFAULT_MAX_VISIBLE_ROWS,
   disableVirtualization = false,
+  selectedTone = 'neutral',
   testID,
 }: ForgeSingleSelectListProps<T>) {
   const hasDescriptions = options.some((option) => option.description);
@@ -64,6 +68,7 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
       key={String(option.value)}
       option={option}
       selected={option.value === selectedValue}
+      selectedTone={selectedTone}
       onSelect={onSelect}
       onSelectedPress={onSelectedPress}
       showSeparator={index < options.length - 1}
@@ -109,6 +114,7 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
 interface ForgeSelectionRowProps<T extends SelectionValue> {
   option: ForgeSingleSelectOption<T>;
   selected: boolean;
+  selectedTone: 'neutral' | 'success';
   onSelect: (value: T) => void;
   onSelectedPress?: (value: T) => void;
   showSeparator: boolean;
@@ -117,6 +123,7 @@ interface ForgeSelectionRowProps<T extends SelectionValue> {
 function ForgeSelectionRow<T extends SelectionValue>({
   option,
   selected,
+  selectedTone,
   onSelect,
   onSelectedPress,
   showSeparator,
@@ -136,7 +143,11 @@ function ForgeSelectionRow<T extends SelectionValue>({
         selectionHaptic();
         onSelect(option.value);
       }}
-      style={({ pressed }) => [styles.selectionRow, pressed && pressedFeedback]}
+      style={({ pressed }) => [
+        styles.selectionRow,
+        selected && selectedTone === 'success' && { backgroundColor: theme.successSurface },
+        pressed && pressedFeedback,
+      ]}
     >
       <View style={styles.selectionCopy}>
         <Text
@@ -154,7 +165,7 @@ function ForgeSelectionRow<T extends SelectionValue>({
           </Text>
         )}
       </View>
-      {selected && <Icon name="check" size={22} color={theme.selectionIndicator} weight="bold" />}
+      {selected && <Icon name="check" size={22} color={selectedTone === 'success' ? theme.success : theme.selectionIndicator} weight="bold" />}
       {showSeparator && (
         <View
           style={[
