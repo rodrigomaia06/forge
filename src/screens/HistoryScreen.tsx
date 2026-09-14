@@ -462,7 +462,7 @@ function TimelineRow({
         <Text style={styles.month}>{date.toLocaleDateString('en-GB', { month: 'short' })}</Text>
       </View>
       <View style={styles.timelineRail}>
-        <View testID={`history-marker-${workout.id}`} style={[styles.marker, first && styles.markerActive]} />
+        <View testID={`history-marker-${workout.id}`} style={[styles.marker, !hasExerciseSummary && styles.markerCompact, first && styles.markerActive]} />
       </View>
       <View testID={`history-swipe-${workout.id}`} style={styles.swipeShell}>
         <ReanimatedSwipeable
@@ -546,8 +546,8 @@ function TimelineRow({
 const swipeSpring = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
 const historyCardRadius = 16;
 const historyRailCenter = 58.5;
-const historyGroupRailTop = 68;
-const historyGroupGap = 18;
+const historyGroupRailTop = 61;
+const historyGroupGap = 14;
 
 function hasWorkoutExerciseSummary(workout: Workout): boolean {
   return workout.exercises.length > 0 && countWorkoutSets(workout) > 0;
@@ -656,8 +656,8 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   historyMonthCard: { minHeight: 72, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
   historyMonthCopy: { flex: 1, alignItems: 'center' },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 16, paddingTop: 18, gap: 18 },
-  group: { gap: 8, position: 'relative' },
+  content: { paddingHorizontal: 16, paddingTop: 18, gap: 14 },
+  group: { gap: 6, position: 'relative' },
   // One solid rail lives behind all rows in its week, crossing row gaps. The
   // gradient bridge across a period label reads as chronology without making
   // the week boundary feel like a hard break.
@@ -670,8 +670,8 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     backgroundColor: theme.divider,
     opacity: 0.78,
   },
-  groupRailDetailed: { bottom: 36 },
-  groupRailCompact: { bottom: 24 },
+  groupRailDetailed: { bottom: 35 },
+  groupRailCompact: { bottom: 30 },
   periodRailConnector: {
     position: 'absolute',
     zIndex: 0,
@@ -680,23 +680,26 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     height: historyGroupRailTop + historyGroupGap,
     overflow: 'hidden',
   },
-  periodRailConnectorDetailed: { top: -(36 + historyGroupGap), height: historyGroupRailTop + 36 + historyGroupGap },
-  periodRailConnectorCompact: { top: -(24 + historyGroupGap), height: historyGroupRailTop + 24 + historyGroupGap },
+  periodRailConnectorDetailed: { top: -(35 + historyGroupGap), height: historyGroupRailTop + 35 + historyGroupGap },
+  periodRailConnectorCompact: { top: -(30 + historyGroupGap), height: historyGroupRailTop + 30 + historyGroupGap },
   groupTitle: {
     marginLeft: 70,
     color: theme.slate,
     ...typeScale.supporting,
   },
-  timelineRow: { minHeight: 76, flexDirection: 'row', alignItems: 'stretch' },
-  timelineRowCompact: { minHeight: 64 },
-  dateColumn: { width: 47, alignItems: 'flex-end', paddingTop: 14, paddingRight: 5 },
+  timelineRow: { minHeight: 70, flexDirection: 'row', alignItems: 'stretch' },
+  // ReanimatedSwipeable measures its child before applying flex constraints on
+  // web. Give compact rows an explicit height so the sparse card cannot inherit
+  // the detailed row's 70pt measurement.
+  timelineRowCompact: { minHeight: 60, height: 60 },
+  dateColumn: { width: 47, alignItems: 'flex-end', paddingTop: 10, paddingRight: 5 },
   weekday: { color: theme.slate, ...typeScale.caption },
   day: { color: theme.ink, ...typeScale.metricMedium },
   month: { color: theme.slate, ...typeScale.caption },
   timelineRail: { width: 23, alignItems: 'center', position: 'relative' },
   marker: {
     zIndex: 1,
-    marginTop: 33,
+    marginTop: 28,
     width: 14,
     height: 14,
     borderWidth: 1.5,
@@ -704,6 +707,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     borderRadius: 7,
     backgroundColor: theme.background,
   },
+  markerCompact: { marginTop: 23 },
   markerActive: { borderColor: theme.ink, backgroundColor: theme.ink },
   swipeShell: { flex: 1, minWidth: 0, alignSelf: 'stretch' },
   swipeContainer: {
@@ -730,11 +734,11 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   swipeContent: { zIndex: 1, flex: 1, alignSelf: 'stretch' },
   card: {
     flex: 1,
-    minHeight: 76,
+    minHeight: 70,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 12,
+    gap: 8,
+    paddingHorizontal: 10,
     borderWidth: 1,
     borderColor: theme.border,
     borderRadius: historyCardRadius,
@@ -745,7 +749,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  cardCompact: { minHeight: 64 },
+  cardCompact: { minHeight: 60, height: 60 },
   pressed: { shadowOpacity: 0.08 },
   cardLeadingOutline: {
     position: 'absolute',
@@ -773,9 +777,9 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   durationChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
     borderRadius: 12,
     backgroundColor: theme.surfaceMuted,
   },

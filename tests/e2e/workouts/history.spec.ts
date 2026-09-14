@@ -41,13 +41,24 @@ test.describe('History screen', () => {
     await expect(page.getByText('1:12h', { exact: true })).toBeVisible();
     const typeIcon = await page.getByTestId('history-type-icon-empty-session').boundingBox();
     expect(typeIcon?.width).toBeCloseTo(44, 0);
+    const [detailedCard, compactCard] = await Promise.all([
+      page.getByTestId('history-card-muay-thai').boundingBox(),
+      page.getByTestId('history-card-empty-session').boundingBox(),
+    ]);
+    expect(detailedCard?.height).toBeCloseTo(70, 0);
+    expect(compactCard?.height).toBeCloseTo(60, 0);
     await expect(page.getByTestId(/^history-period-connector-/)).toHaveCount(2);
-    const firstMarker = await page.getByTestId('history-marker-muay-thai').boundingBox();
-    const firstConnector = await page.getByTestId(/^history-period-connector-/).first().boundingBox();
-    expect((firstMarker?.x ?? 0) + (firstMarker?.width ?? 0) / 2).toBeCloseTo(
-      (firstConnector?.x ?? 0) + (firstConnector?.width ?? 0) / 2,
-      0,
-    );
+    const railCenters = await page
+      .getByTestId(/^(history-marker-|history-period-connector-)/)
+      .evaluateAll((elements) => elements.map((element) => {
+        const box = element.getBoundingClientRect();
+        return box.left + box.width / 2;
+      }));
+    expect(railCenters.length).toBeGreaterThan(2);
+    railCenters.forEach((center) => expect(center).toBeCloseTo(railCenters[0], 0));
+    const bridgeGradients = page.locator('linearGradient[id^="history-period-rail-"]');
+    await expect(bridgeGradients).toHaveCount(2);
+    await expect(bridgeGradients.first().locator('stop').nth(2)).toHaveAttribute('stop-opacity', '0.08');
     expect(await page.locator('svg').count()).toBeGreaterThan(0);
     if (testInfo.project.name === 'iphone-air') {
       await page.waitForTimeout(250);
