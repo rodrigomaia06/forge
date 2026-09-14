@@ -16,6 +16,8 @@ The manual IPA workflow runs directly on GitHub's standard `macos-15` runner.
 It generates the Expo iOS project, builds a Release device archive with signing
 disabled, packages `Payload/Forge.app` as an IPA, validates the app and widget
 extension executables, and uploads the IPA and native build log separately.
+It explicitly selects Xcode 26.3 because the runner's default Xcode 16.4
+provides Swift tools 6.1, while ExpoModulesJSI's SwiftPM package requires 6.2.
 The existing `EXPO_TOKEN` secret may remain configured but is not used for this
 workflow. No Apple account or EAS build is needed.
 

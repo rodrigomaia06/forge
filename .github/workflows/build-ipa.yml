@@ -27,6 +27,11 @@ jobs:
         with:
           node-version: 22.x
           cache: npm
+      - name: Select Xcode with Swift 6.2
+        # ExpoModulesJSI's SwiftPM package declares swift-tools-version 6.2.
+        # macos-15 still defaults to Xcode 16.4 (Swift 6.1), even though the
+        # image also includes Xcode 26.3.
+        run: sudo xcode-select --switch /Applications/Xcode_26.3.app/Contents/Developer
       - name: Install JavaScript dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Generate the iOS project
