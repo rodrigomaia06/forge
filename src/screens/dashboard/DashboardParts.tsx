@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { DashboardHeader } from '../../components/DashboardHeader';
 import { Calendar, type CalendarMenuState } from '../../components/Calendar';
 import { WorkoutRow } from '../../components/WorkoutRow';
-import { AppScreen, Button, ForgeText as Text, lightHaptic } from '../../components/ui';
+import { AppScreen, Button, ForgeActionSheet, ForgeText as Text, lightHaptic } from '../../components/ui';
 import { useLayoutProbe } from '../../debug/layoutProbe';
 import { useForgeDockScrollInset } from '../../components/DockChrome';
 import { useSettings } from '../../state/SettingsContext';
@@ -30,9 +30,15 @@ export function DashboardShell({
 }) {
   const navigation = useNavigation<RootNavigationProp>();
   const { startWorkout } = useWorkouts();
+  const [workoutSourceOpen, setWorkoutSourceOpen] = React.useState(false);
   const openWorkout = () => {
     lightHaptic();
+    setWorkoutSourceOpen(true);
+  };
+  const startBlankWorkout = () => {
     startWorkout();
+    // The destination mounts the picker as visible, so it still makes its
+    // normal bottom-sheet entrance instead of flashing an empty workout.
     navigation.navigate('ActiveWorkout', { openAddExercises: 'open' });
   };
   return (
@@ -69,6 +75,28 @@ export function DashboardShell({
             </View>
           </>
         )}
+        <ForgeActionSheet
+          visible={workoutSourceOpen}
+          onClose={() => setWorkoutSourceOpen(false)}
+          accessibilityLabel="Dismiss workout source chooser"
+          title="Start workout"
+          testID="dashboard-workout-source-chooser"
+          waitForContentLayoutBeforeEnter
+          actions={[
+            {
+              label: 'Blank workout',
+              description: 'Choose exercises for a new session',
+              icon: 'fitness',
+              onPress: startBlankWorkout,
+            },
+            {
+              label: 'From routine or plan',
+              description: 'Use one of your saved templates',
+              icon: 'book',
+              onPress: () => navigation.navigate('Plans'),
+            },
+          ]}
+        />
       </View>
     </AppScreen>
   );

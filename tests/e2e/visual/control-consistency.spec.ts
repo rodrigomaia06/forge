@@ -84,6 +84,7 @@ test.describe('Interactive control consistency', () => {
       await dimensions(page.getByRole('button', { name: 'Start workout' }))
     ).background;
     await page.getByRole('button', { name: 'Start workout' }).click();
+    await page.getByTestId('dashboard-workout-source-chooser').getByRole('button', { name: 'Blank workout' }).click();
     await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
     await page.getByTestId('forge-sheet-drag-area').getByRole('button', { name: 'Close add exercises' }).click();
 
@@ -111,6 +112,7 @@ test.describe('Interactive control consistency', () => {
 
     await page.getByRole('tab', { name: 'Dashboard' }).click();
     await page.getByRole('button', { name: 'Start workout' }).click();
+    await page.getByTestId('dashboard-workout-source-chooser').getByRole('button', { name: 'Blank workout' }).click();
     await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
     await page.getByTestId('forge-sheet-drag-area').getByRole('button', { name: 'Close add exercises' }).click();
     const finishButton = page.getByRole('button', { name: 'Finish workout' });

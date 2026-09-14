@@ -178,6 +178,10 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
       // The catalogue owns vertical drags, including when the search keyboard is open.
       dismissTextKeyboardOnTap={false}
       surfaceTestID="add-exercise-sheet-surface"
+      // The Dashboard blank-workout handoff presents this mandatory picker
+      // immediately. Measure first so the complete card enters from below
+      // rather than being visible before its Forge sheet animation begins.
+      waitForContentLayoutBeforeEnter
       style={styles.pickerSheet}
     >
       {(closeSheet) => (

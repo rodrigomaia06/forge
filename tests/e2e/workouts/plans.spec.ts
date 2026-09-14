@@ -32,12 +32,25 @@ test.describe('Plans and routines', () => {
     await expect(page.getByText('Build your first routine', { exact: true })).toBeVisible();
   });
 
-  test('starts a blank workout directly from Dashboard with its exercise picker open', async ({ page }) => {
+  test('chooses a blank Dashboard workout source and opens its exercise picker', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Start workout' }).click();
+    const sourceChooser = page.getByTestId('dashboard-workout-source-chooser');
+    await expect(sourceChooser.getByText('Start workout', { exact: true })).toBeVisible();
+    await expect(sourceChooser.getByRole('button', { name: 'From routine or plan' })).toBeVisible();
+    await sourceChooser.getByRole('button', { name: 'Blank workout' }).click();
     await expect(page.getByRole('tab', { name: 'Workout', exact: true })).toBeVisible();
     await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
     await expect(page.getByTestId('plans-creation-popover')).toHaveCount(0);
+  });
+
+  test('opens Plans when the Dashboard workout source is a saved template', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Start workout' }).click();
+    await page.getByTestId('dashboard-workout-source-chooser')
+      .getByRole('button', { name: 'From routine or plan' })
+      .click();
+    await expect(page.getByText('Plans', { exact: true })).toBeVisible();
   });
 
   test('starts a blank workout and creates a plan from the header popover', async ({ page }) => {

@@ -4,15 +4,19 @@ async function startEmptyWorkoutWithExercise(page: Page): Promise<void> {
   await page.goto('/');
   await startBlankWorkout(page);
   await page.getByRole('button', { name: 'Add exercise' }).click();
+  await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
+  // The picker deliberately enters after its card has measured. Wait for that
+  // short Forge transition before exercising a row rather than dispatching a
+  // press while the sheet is still below its resting position.
+  await page.waitForTimeout(260);
   await selectStandardBarbellBenchPress(page);
   await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
 }
 
 async function selectStandardBarbellBenchPress(page: Page): Promise<void> {
   await page.getByLabel('Search exercises').fill('barbell bench press');
-  await page
-    .getByRole('checkbox', { name: 'Bench Press, variation' })
-    .click({ force: true });
+  const variation = page.getByRole('checkbox', { name: 'Bench Press, variation' });
+  await variation.click();
 }
 
 async function revealCatalogueItem(page: Page, locator: Locator): Promise<void> {
@@ -62,6 +66,7 @@ async function scrollCatalogueUp(page: Page): Promise<void> {
 
 async function startBlankWorkout(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Start workout' }).click();
+  await page.getByTestId('dashboard-workout-source-chooser').getByRole('button', { name: 'Blank workout' }).click();
   await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
   await page.getByTestId('forge-sheet-drag-area').getByRole('button', { name: 'Close add exercises' }).click();
   await expect(page.getByRole('button', { name: 'Add exercise', exact: true })).toBeVisible();
