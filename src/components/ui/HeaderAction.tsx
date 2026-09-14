@@ -63,6 +63,7 @@ export function HeaderAction({
 }: HeaderActionProps) {
   const theme = useForgeTheme();
   const isBackControl = iconOnly && icon === 'chevron-back';
+  const isBorderlessSheetCircle = iconOnly && theme.colorScheme === 'dark';
   return (
     <Button
       accessibilityLabel={accessibilityLabel}
@@ -86,6 +87,10 @@ export function HeaderAction({
           borderColor: theme.border,
         },
         style,
+        // Only circular header/sheet controls drop their outline in Dark.
+        // Standard Save, Delete, Clear and labelled actions retain the
+        // semantic border supplied by the shared Button primitive.
+        isBorderlessSheetCircle && styles.borderlessDarkCircle,
       ]}
     />
   );
@@ -103,4 +108,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     borderRadius: 22,
   },
+  borderlessDarkCircle: { borderWidth: 0, borderColor: 'transparent' },
 });
