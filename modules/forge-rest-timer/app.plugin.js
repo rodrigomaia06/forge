@@ -226,8 +226,22 @@ function addTarget(config, widgetBundleIdentifier) {
       project.addBuildPhase([], 'PBXFrameworksBuildPhase', 'Frameworks', targetUuid, 'app_extension', '""');
     }
     const fontResource = `${TARGET_NAME}/Manrope-SemiBold.ttf`;
+    // `xcode`'s addResourceFile assumes the parent app contains a PBXGroup
+    // literally named Resources. Expo's generated projects do not guarantee
+    // that group, and correctForResourcesPath then dereferences null during
+    // prebuild. A resource build phase does not need that presentation group,
+    // so add the font through the same phase API used for the extension Swift
+    // source. It remains idempotent because the file reference is reused on
+    // subsequent prebuilds.
     if (!project.hasFile(fontResource)) {
-      project.addResourceFile(fontResource, { target: targetUuid });
+      project.addBuildPhase(
+        [fontResource],
+        'PBXResourcesBuildPhase',
+        'Resources',
+        targetUuid,
+        'app_extension',
+        '""',
+      );
     }
     return config;
   });

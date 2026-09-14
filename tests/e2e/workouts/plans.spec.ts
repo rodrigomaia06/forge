@@ -44,13 +44,35 @@ test.describe('Plans and routines', () => {
     await expect(page.getByTestId('plans-creation-popover')).toHaveCount(0);
   });
 
-  test('opens Plans when the Dashboard workout source is a saved template', async ({ page }) => {
+  test('chooses and starts a routine from the Dashboard source flow without opening Plans', async ({ page }, testInfo) => {
+    await page.addInitScript(() => {
+      const now = Date.now();
+      localStorage.setItem('@forge/plans-v1', JSON.stringify({
+        plans: [],
+        standaloneRoutines: [{
+          id: 'dashboard-template',
+          name: 'Dashboard template',
+          type: 'Strength',
+          exercises: [],
+          createdAt: now,
+          updatedAt: now,
+        }],
+      }));
+    });
     await page.goto('/');
     await page.getByRole('button', { name: 'Start workout' }).click();
     await page.getByTestId('dashboard-workout-source-chooser')
       .getByRole('button', { name: 'From routine or plan' })
       .click();
-    await expect(page.getByText('Plans', { exact: true })).toBeVisible();
+    await expect(page.getByText('Standalone routines', { exact: true })).toBeVisible();
+    if (testInfo.project.name === 'iphone-air') {
+      await page.waitForTimeout(250);
+      await page.screenshot({ path: testInfo.outputPath('dashboard-routine-source-iphone.png') });
+    }
+    await page.getByRole('button', { name: 'Use Dashboard template routine' }).click();
+    await expect(page.getByRole('tab', { name: 'Workout', selected: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Finish workout' })).toBeVisible();
+    await expect(page.getByTestId('dashboard-workout-source-chooser')).toHaveCount(0);
   });
 
   test('starts a blank workout and creates a plan from the header popover', async ({ page }) => {

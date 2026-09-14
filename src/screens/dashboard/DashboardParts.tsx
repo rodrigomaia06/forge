@@ -1,14 +1,32 @@
 import React from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { DashboardHeader } from '../../components/DashboardHeader';
 import { Calendar, type CalendarMenuState } from '../../components/Calendar';
 import { WorkoutRow } from '../../components/WorkoutRow';
-import { AppScreen, Button, ForgeActionSheet, ForgeText as Text, lightHaptic } from '../../components/ui';
+import {
+  AppScreen,
+  Button,
+  ForgeActionSheet,
+  ForgeBackButton,
+  ForgeBottomSheet,
+  ForgeBottomSheetHandle,
+  ForgeCard,
+  ForgeSheetHeader,
+  ForgeText as Text,
+  Icon,
+  lightHaptic,
+  pressedFeedbackSubtle,
+  selectionHaptic,
+} from '../../components/ui';
 import { useLayoutProbe } from '../../debug/layoutProbe';
 import { useForgeDockScrollInset } from '../../components/DockChrome';
 import { useSettings } from '../../state/SettingsContext';
 import { useWorkouts } from '../../state/WorkoutContext';
+import { usePlans } from '../../state/PlansContext';
+import { useForgeTheme } from '../../theme/ThemeProvider';
+import { useThemedStyles } from '../../theme/useThemedStyles';
+import { typeScale } from '../../theme/tokens';
 import type { ReactElement, ReactNode } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { ScrollView as ScrollViewType, StyleProp, ViewStyle } from 'react-native';
@@ -16,6 +34,9 @@ import type { ForgeTheme, RootNavigationProp, WorkoutMap, WorkoutSummary } from 
 import { styles } from './dashboardStyles';
 import { summarizeWorkoutTypes } from './dashboardMetrics';
 import { calendarDateKey } from '../../domain/workouts/calendarDate';
+import { workoutTypeIcon } from '../settings/workoutTypeIcon';
+
+type DashboardRoutineSourceStep = 'routine-list' | { planId: string } | null;
 
 export function DashboardShell({
   children,
@@ -30,7 +51,9 @@ export function DashboardShell({
 }) {
   const navigation = useNavigation<RootNavigationProp>();
   const { startWorkout } = useWorkouts();
+  const { plans, standaloneRoutines } = usePlans();
   const [workoutSourceOpen, setWorkoutSourceOpen] = React.useState(false);
+  const [routineSourceStep, setRoutineSourceStep] = React.useState<DashboardRoutineSourceStep>(null);
   const openWorkout = () => {
     lightHaptic();
     setWorkoutSourceOpen(true);
@@ -40,6 +63,23 @@ export function DashboardShell({
     // The destination mounts the picker as visible, so it still makes its
     // normal bottom-sheet entrance instead of flashing an empty workout.
     navigation.navigate('ActiveWorkout', { openAddExercises: 'open' });
+  };
+  const startRoutineWorkout = (routine: import('../../types').WorkoutRoutine, plan?: import('../../types').WorkoutPlan) => {
+    selectionHaptic();
+    startWorkout({
+      name: plan ? `${plan.name} - ${routine.name}` : routine.name,
+      type: routine.type,
+      note: routine.note,
+      attributes: routine.attributes
+        ? Object.fromEntries(Object.keys(routine.attributes).map((label) => [label, '']))
+        : undefined,
+      attributeIcons: routine.attributeIcons,
+      routineId: routine.id,
+      planId: plan?.id ?? routine.planId,
+      exercises: routine.exercises,
+    });
+    setRoutineSourceStep(null);
+    navigation.navigate('ActiveWorkout');
   };
   return (
     <AppScreen testID="dashboard-app-screen" backgroundColor={theme.background} edges={['top']}>
@@ -93,14 +133,153 @@ export function DashboardShell({
               label: 'From routine or plan',
               description: 'Use one of your saved templates',
               icon: 'book',
-              onPress: () => navigation.navigate('Plans'),
+              onPress: () => {
+                setWorkoutSourceOpen(false);
+                setRoutineSourceStep('routine-list');
+              },
             },
           ]}
+        />
+        <DashboardRoutineSourceSheet
+          step={routineSourceStep}
+          plans={plans}
+          standaloneRoutines={standaloneRoutines}
+          onClose={() => {
+            setRoutineSourceStep(null);
+            setWorkoutSourceOpen(true);
+          }}
+          onBack={() => setRoutineSourceStep('routine-list')}
+          onChoosePlan={(planId) => setRoutineSourceStep({ planId })}
+          onSelectRoutine={startRoutineWorkout}
         />
       </View>
     </AppScreen>
   );
 }
+
+function DashboardRoutineSourceSheet({
+  step,
+  plans,
+  standaloneRoutines,
+  onClose,
+  onBack,
+  onChoosePlan,
+  onSelectRoutine,
+}: {
+  step: DashboardRoutineSourceStep;
+  plans: import('../../types').WorkoutPlan[];
+  standaloneRoutines: import('../../types').WorkoutRoutine[];
+  onClose: () => void;
+  onBack: () => void;
+  onChoosePlan: (planId: string) => void;
+  onSelectRoutine: (routine: import('../../types').WorkoutRoutine, plan?: import('../../types').WorkoutPlan) => void;
+}) {
+  const theme = useForgeTheme();
+  const sourceStyles = useThemedStyles(createRoutineSourceStyles);
+  const selectedPlan = step && typeof step === 'object' ? plans.find((plan) => plan.id === step.planId) : undefined;
+  return (
+    <ForgeBottomSheet
+      visible={step !== null}
+      onClose={onClose}
+      accessibilityLabel="Close routine chooser"
+      initialOffset={440}
+      closeDistance={480}
+      dragEnabled={false}
+      style={sourceStyles.sheet}
+    >
+      {() => (
+        <>
+          <ForgeBottomSheetHandle />
+          <ForgeSheetHeader
+            title={selectedPlan ? selectedPlan.name : 'Choose routine'}
+            onClose={onClose}
+            leading={selectedPlan ? <ForgeBackButton accessibilityLabel="Back to routines" onPress={onBack} /> : undefined}
+          />
+          <ScrollView contentContainerStyle={sourceStyles.content} showsVerticalScrollIndicator={false}>
+            {selectedPlan ? (
+              selectedPlan.routines.length ? (
+                <DashboardRoutineChoiceCard routines={selectedPlan.routines} onPress={(routine) => onSelectRoutine(routine, selectedPlan)} />
+              ) : <Text style={sourceStyles.empty}>This plan has no routines yet.</Text>
+            ) : (
+              <>
+                {standaloneRoutines.length ? <View style={sourceStyles.group}>
+                  <Text style={sourceStyles.label}>Standalone routines</Text>
+                  <DashboardRoutineChoiceCard routines={standaloneRoutines} onPress={(routine) => onSelectRoutine(routine)} />
+                </View> : null}
+                {plans.length ? <View style={sourceStyles.group}>
+                  <Text style={sourceStyles.label}>Plans</Text>
+                  <ForgeCard variant="inset" size="compact">
+                    {plans.map((plan, index) => (
+                      <Pressable
+                        key={plan.id}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Choose routine from ${plan.name}`}
+                        onPress={() => {
+                          lightHaptic();
+                          onChoosePlan(plan.id);
+                        }}
+                        style={({ pressed }) => [sourceStyles.row, index > 0 && sourceStyles.divider, pressed && pressedFeedbackSubtle]}
+                      >
+                        <Icon name="layers" size={21} color={theme.ink} />
+                        <View style={sourceStyles.rowText}>
+                          <Text style={sourceStyles.rowLabel}>{plan.name}</Text>
+                          <Text style={sourceStyles.rowDetail}>{plan.routines.length === 1 ? '1 routine' : `${plan.routines.length} routines`}</Text>
+                        </View>
+                        <Icon name="chevron-forward" size={20} color={theme.slate} />
+                      </Pressable>
+                    ))}
+                  </ForgeCard>
+                </View> : null}
+                {!standaloneRoutines.length && !plans.length ? <Text style={sourceStyles.empty}>Create a routine first, then start it from here.</Text> : null}
+              </>
+            )}
+          </ScrollView>
+        </>
+      )}
+    </ForgeBottomSheet>
+  );
+}
+
+function DashboardRoutineChoiceCard({
+  routines,
+  onPress,
+}: {
+  routines: import('../../types').WorkoutRoutine[];
+  onPress: (routine: import('../../types').WorkoutRoutine) => void;
+}) {
+  const theme = useForgeTheme();
+  const sourceStyles = useThemedStyles(createRoutineSourceStyles);
+  const { preferences } = useSettings();
+  return (
+    <ForgeCard variant="inset" size="compact">
+      {routines.map((routine, index) => {
+        const type = preferences.workoutTypes.find((item) => item.name === routine.type)
+          ?? { id: 'retained-routine-type', name: routine.type, color: theme.ink, source: 'custom' as const, hidden: true };
+        return <Pressable key={routine.id} accessibilityRole="button" accessibilityLabel={`Use ${routine.name} routine`} onPress={() => onPress(routine)} style={({ pressed }) => [sourceStyles.row, index > 0 && sourceStyles.divider, pressed && pressedFeedbackSubtle]}>
+          <Icon name={workoutTypeIcon(type)} size={21} color={theme.ink} />
+          <View style={sourceStyles.rowText}>
+            <Text style={sourceStyles.rowLabel}>{routine.name}</Text>
+            <Text style={sourceStyles.rowDetail}>{routine.type}</Text>
+          </View>
+          <Icon name="chevron-forward" size={20} color={theme.slate} />
+        </Pressable>;
+      })}
+    </ForgeCard>
+  );
+}
+
+const createRoutineSourceStyles = (theme: ForgeTheme) => StyleSheet.create({
+  sheet: { maxHeight: '84%', paddingHorizontal: 20, paddingBottom: 24 },
+  content: { paddingTop: 14, paddingBottom: 20, gap: 18 },
+  group: { gap: 8 },
+  label: { color: theme.slate, ...typeScale.label },
+  row: { minHeight: 60, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
+  rowText: { flex: 1, gap: 2 },
+  rowLabel: { color: theme.ink, ...typeScale.label },
+  rowDetail: { color: theme.slate, ...typeScale.caption },
+  empty: { paddingHorizontal: 4, color: theme.slate, ...typeScale.supporting },
+});
 
 export function DashboardCalendar({
   selectedDate,
