@@ -55,6 +55,7 @@ export function Button({
   const isPrimary = variant === 'primary';
   const isOutline = variant === 'outline';
   const isGhost = variant === 'ghost';
+  const isBorderlessDarkControl = resolvedTheme.colorScheme === 'dark' && (variant === 'secondary' || isOutline);
   const resolvedTone = tone ?? 'neutral';
   const textColor = disabled || loading
     ? resolvedTheme.textDisabled
@@ -82,6 +83,10 @@ export function Button({
         (disabled || loading) && [styles.disabled, { backgroundColor: resolvedTheme.surfaceMuted, borderColor: resolvedTheme.surfaceMuted }],
         pressed && !(disabled || loading) && pressedSurface(variant, resolvedTone, resolvedTheme),
         style,
+        // Dark Forge controls use their filled tonal surface for separation.
+        // A thin light outline becomes visual noise there, including when a
+        // caller supplies a reusable header/button style with a border.
+        isBorderlessDarkControl && styles.borderlessDarkControl,
       ]}
     >
       {loading ? (
@@ -111,6 +116,7 @@ const styles = StyleSheet.create({
   secondary: { borderWidth: 1 },
   outline: { borderWidth: 2 },
   ghost: { borderWidth: 0 },
+  borderlessDarkControl: { borderWidth: 0, borderColor: 'transparent' },
   label: typeScale.controlLabel,
   disabled: { opacity: 1 },
 });

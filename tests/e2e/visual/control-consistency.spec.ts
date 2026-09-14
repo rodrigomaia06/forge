@@ -129,9 +129,9 @@ test.describe('Interactive control consistency', () => {
 
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('button', { name: 'Workout types' }).click();
-    expect((await dimensions(page.getByRole('button', { name: 'Back to Settings' }))).background).toBe(
-      'rgb(48, 54, 59)',
-    );
+    const back = await dimensions(page.getByRole('button', { name: 'Back to Settings' }));
+    expect(back.background).toBe('rgb(48, 54, 59)');
+    expect(back.borderWidth).toBe('0px');
     const strengthColors = await page
       .getByRole('button', { name: 'Strength workout type' })
       .locator('div')
