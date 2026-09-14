@@ -17,6 +17,7 @@ import { buildWarmupPlan, warmupSteps } from '../../src/domain/workouts/warmup';
 import { uniqueById } from '../../src/data/uniqueById';
 import { mergeImportedPlans } from '../../src/data/dataTransferPlans';
 import { normalizePersistedWorkout } from '../../src/data/workoutNormalization';
+import { adjustRestTimer } from '../../src/domain/rest/restTimerAdjustment';
 
 test('keeps the first stable record when a persistence boundary receives duplicate ids', () => {
   expect(uniqueById([
@@ -77,6 +78,18 @@ test('keeps a truthful average for only the rest intervals Forge started', () =>
 
   const legacy = recordRestTimerSample({ ...workout, averageRestSeconds: 60 }, 120);
   expect(legacy).toMatchObject({ averageRestSeconds: 90, restTimerSamples: 2 });
+});
+
+test('restarts an expired rest from its original duration when extending it', () => {
+  const now = 1_000_000;
+  expect(adjustRestTimer({ duration: 10, endAt: now - 1_000, seconds: 10, now })).toEqual({
+    duration: 20,
+    endAt: now + 20_000,
+  });
+  expect(adjustRestTimer({ duration: 90, endAt: now + 45_000, seconds: -10, now })).toEqual({
+    duration: 80,
+    endAt: now + 35_000,
+  });
 });
 
 test('normalizes legacy workout child collections before screens consume them', () => {

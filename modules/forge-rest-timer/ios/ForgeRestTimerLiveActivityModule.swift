@@ -8,7 +8,14 @@ struct ForgeRestTimerAttributes: ActivityAttributes {
     var startDate: Date
     var endDate: Date
     var isOverrun: Bool = false
+    var tint: ForgeRestTimerTint = .normal
   }
+}
+
+enum ForgeRestTimerTint: String, Codable, Hashable {
+  case normal
+  case warning
+  case overdue
 }
 
 /**
@@ -20,7 +27,7 @@ final class ForgeRestTimerLiveActivityController {
 
   private let queue = DispatchQueue(label: "com.forge.training.rest-timer-live-activity")
   private var activity: Activity<ForgeRestTimerAttributes>?
-  private var overrunTask: Task<Void, Never>?
+  private var tintTask: Task<Void, Never>?
 
   private init() {}
 
@@ -42,11 +49,13 @@ final class ForgeRestTimerLiveActivityController {
       return
     }
 
-    let isOverrun = end <= Date()
+    let now = Date()
+    let isOverrun = end <= now
     let state = ForgeRestTimerAttributes.ContentState(
       startDate: start,
       endDate: end,
-      isOverrun: isOverrun
+      isOverrun: isOverrun,
+      tint: timerTint(start: start, end: end, now: now)
     )
     let content = ActivityContent(state: state, staleDate: end)
 
@@ -71,34 +80,36 @@ final class ForgeRestTimerLiveActivityController {
     }
 
     if isOverrun {
-      overrunTask?.cancel()
-      overrunTask = nil
+      tintTask?.cancel()
+      tintTask = nil
     } else {
-      scheduleOverrun(start: start, end: end)
+      scheduleTintUpdate(start: start, end: end, now: now)
     }
   }
 
-  private func scheduleOverrun(start: Date, end: Date) {
-    overrunTask?.cancel()
-    overrunTask = Task { [weak self] in
-      let delay = end.timeIntervalSinceNow
+  private func timerTint(start: Date, end: Date, now: Date) -> ForgeRestTimerTint {
+    guard end > now else { return .overdue }
+    let totalDuration = max(1, end.timeIntervalSince(start))
+    return end.timeIntervalSince(now) <= totalDuration * 0.2 ? .warning : .normal
+  }
+
+  private func scheduleTintUpdate(start: Date, end: Date, now: Date) {
+    tintTask?.cancel()
+    let warningAt = end.addingTimeInterval(-max(1, end.timeIntervalSince(start)) * 0.2)
+    let nextTransition = now < warningAt ? warningAt : end
+    tintTask = Task { [weak self] in
+      let delay = nextTransition.timeIntervalSinceNow
       if delay > 0 {
         try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
       }
       guard !Task.isCancelled else { return }
-      self?.queue.async { self?.pushOverrun(start: start, end: end) }
+      self?.queue.async { self?.apply(start: start, end: end) }
     }
   }
 
-  private func pushOverrun(start: Date, end: Date) {
-    guard let activity else { return }
-    let state = ForgeRestTimerAttributes.ContentState(startDate: start, endDate: end, isOverrun: true)
-    Task { await activity.update(ActivityContent(state: state, staleDate: end)) }
-  }
-
   private func endAll() {
-    overrunTask?.cancel()
-    overrunTask = nil
+    tintTask?.cancel()
+    tintTask = nil
     activity = nil
     for activity in Activity<ForgeRestTimerAttributes>.activities {
       Task { await activity.end(nil, dismissalPolicy: .immediate) }

@@ -7,6 +7,7 @@ import { successHaptic } from '../components/ui/haptics';
 import { useSettings } from './SettingsContext';
 import { useWorkouts } from './WorkoutContext';
 import { syncRestTimerLiveActivity } from './restTimerLiveActivity';
+import { adjustRestTimer } from '../domain/rest/restTimerAdjustment';
 
 const restTimerNotificationId = 'forge-rest-timer-complete';
 // Android notification-channel sound is immutable once installed. A versioned
@@ -78,6 +79,9 @@ async function replaceRestTimerNotification(
       body: `${restDurationLabel(duration)} complete. Back to work.`,
       sound: soundEnabled ? restTimerSound : false,
       data: { forgeTimer: 'rest' },
+      // Android permits a semantic notification accent. iOS owns notification
+      // chrome and consistently presents the Forge app icon instead.
+      color: Platform.OS === 'android' ? '#C85C5C' : undefined,
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DATE,
@@ -226,13 +230,10 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
 
   const adjust = useCallback((seconds: number): void => {
     const adjustedAt = Date.now();
-    const currentRemaining = endAt ? Math.max(0, Math.ceil((endAt - adjustedAt) / 1000)) : 0;
-    const nextRemaining = Math.max(0, currentRemaining + seconds);
-    const nextEndAt = nextRemaining ? adjustedAt + nextRemaining * 1000 : adjustedAt;
-    const nextDuration = Math.max(1, duration + nextRemaining - currentRemaining);
-    if (nextRemaining) didNotifyCompletion.current = false;
-    setDuration(nextDuration);
-    setEndAt(nextEndAt);
+    const next = adjustRestTimer({ duration, endAt, seconds, now: adjustedAt });
+    if ((next.endAt ?? adjustedAt) > adjustedAt) didNotifyCompletion.current = false;
+    setDuration(next.duration);
+    setEndAt(next.endAt);
   }, [duration, endAt]);
 
   const stop = useCallback((): void => {
