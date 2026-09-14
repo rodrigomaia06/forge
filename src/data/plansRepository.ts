@@ -1,11 +1,12 @@
 import type { PlansState, WorkoutPlan, WorkoutRoutine } from '../types';
 import { database, withDatabaseTransaction } from './database';
 import { uniqueById } from './uniqueById';
+import { canonicalizeRoutine } from './exerciseCanonicalization';
 const EMPTY: PlansState = { plans: [], standaloneRoutines: [] };
 
 /** Imported records from older Forge versions can omit optional child collections. */
 function normalizeRoutine(routine: WorkoutRoutine): WorkoutRoutine {
-  return {
+  return canonicalizeRoutine({
     ...routine,
     exercises: Array.isArray(routine.exercises)
       ? routine.exercises.map((exercise) => ({
@@ -13,7 +14,7 @@ function normalizeRoutine(routine: WorkoutRoutine): WorkoutRoutine {
         sets: Array.isArray(exercise.sets) ? exercise.sets : [],
       }))
       : [],
-  };
+  });
 }
 
 function normalizePlan(plan: WorkoutPlan): WorkoutPlan {

@@ -1,4 +1,5 @@
 import { uniqueById } from './uniqueById';
+import { canonicalizeExerciseRecord } from './exerciseCanonicalization';
 
 type TransferRecord = Record<string, unknown>;
 
@@ -67,7 +68,7 @@ export function normalizeDataTransfer<T>(transfer: T): T {
   const records = <U extends TransferRecord>(items: unknown): Array<U & { id: string }> =>
     Array.isArray(items) ? items.filter(isObject).map((item) => assignId(item as U)) : [];
   const normalizeExercise = (exercise: TransferRecord): TransferRecord & { id: string } => {
-    const normalized = normalizeLegacyTracking(assignId(exercise));
+    const normalized = canonicalizeExerciseRecord(normalizeLegacyTracking(assignId(exercise)));
     return {
       ...normalized,
       sets: uniqueById(records<TransferRecord>(normalized.sets)),

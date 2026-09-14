@@ -1,9 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SQLite from 'expo-sqlite';
 import type { ExerciseCatalogItem } from './exerciseCatalog';
-import { bundledCatalogTaxonomies, bundledCatalogVersion, bundledExercises, bundledLegacyIdMap } from './catalog/loadCatalog';
+import { bundledCatalogTaxonomies, bundledCatalogVersion, bundledExercises } from './catalog/loadCatalog';
 import type { PlansState, SettingsPreferences, Workout, WorkoutState } from '../types';
 import { uniqueById } from './uniqueById';
+import { canonicalizeExerciseRecord } from './exerciseCanonicalization';
 
 const DATABASE = 'forge.db';
 export const BUNDLED_CATALOG_VERSION = bundledCatalogVersion;
@@ -50,6 +51,7 @@ export function openForgeDatabase(): Promise<ForgeDatabase> {
     `);
     await migrateBundledCatalog(db);
     await importLegacyOnce(db);
+    await migrateCanonicalExerciseRecords(db);
     return db;
   });
   return opening.catch((error) => {
@@ -69,19 +71,20 @@ async function migrateBundledCatalog(db: ForgeDatabase): Promise<void> {
   await db.runAsync('DELETE FROM bundled_catalog_taxonomies WHERE catalog_version = ?', BUNDLED_CATALOG_VERSION);
   for (const exercise of bundledExercises) await db.runAsync('INSERT INTO bundled_exercises (id, catalog_version, value_json) VALUES (?, ?, ?)', exercise.id, BUNDLED_CATALOG_VERSION, JSON.stringify(exercise));
   for (const [kind, value] of Object.entries(bundledCatalogTaxonomies)) await db.runAsync('INSERT INTO bundled_catalog_taxonomies (catalog_version, kind, value_json) VALUES (?, ?, ?)', BUNDLED_CATALOG_VERSION, kind, JSON.stringify(value));
-  await migrateLegacyExerciseIds(db);
   await db.runAsync('INSERT OR REPLACE INTO forge_meta (key, value) VALUES (?, ?)', 'bundled-catalog-version', String(BUNDLED_CATALOG_VERSION));
 }
 
-function migrateExerciseIds<T>(value: T): T {
+function canonicalizeStoredValue<T>(value: T): T {
   if (!value || typeof value !== 'object') return value;
-  if (Array.isArray(value)) return value.map(migrateExerciseIds) as T;
+  if (Array.isArray(value)) return value.map(canonicalizeStoredValue) as T;
   const record = value as Record<string, unknown>;
-  const migrated = Object.fromEntries(Object.entries(record).map(([key, child]) => [key, migrateExerciseIds(child)]));
-  if (typeof migrated.exerciseId === 'string' && bundledLegacyIdMap[migrated.exerciseId as keyof typeof bundledLegacyIdMap]) migrated.exerciseId = bundledLegacyIdMap[migrated.exerciseId as keyof typeof bundledLegacyIdMap];
-  if (migrated.exerciseSnapshot && typeof migrated.exerciseSnapshot === 'object') {
-    const snapshot = migrated.exerciseSnapshot as Record<string, unknown>;
-    if (typeof snapshot.id === 'string' && bundledLegacyIdMap[snapshot.id as keyof typeof bundledLegacyIdMap]) snapshot.id = bundledLegacyIdMap[snapshot.id as keyof typeof bundledLegacyIdMap];
+  const migrated = Object.fromEntries(Object.entries(record).map(([key, child]) => [key, canonicalizeStoredValue(child)]));
+  if (Array.isArray(migrated.exercises)) {
+    migrated.exercises = migrated.exercises.map((exercise) =>
+      exercise && typeof exercise === 'object'
+        ? canonicalizeExerciseRecord(exercise as Record<string, unknown>)
+        : exercise,
+    );
   }
   return migrated as T;
 }
@@ -91,16 +94,22 @@ function legacyRecords<T extends { id: string }>(value: unknown): T[] {
   return uniqueById(value.filter((item): item is T => Boolean(item) && typeof item === 'object' && typeof (item as { id?: unknown }).id === 'string'));
 }
 
-async function migrateLegacyExerciseIds(db: ForgeDatabase): Promise<void> {
-  for (const table of ['workouts', 'routines']) {
+async function migrateCanonicalExerciseRecords(db: ForgeDatabase): Promise<void> {
+  const completed = await db.getFirstAsync<{ value: string }>(
+    'SELECT value FROM forge_meta WHERE key = ?',
+    'canonical-exercise-records-v1',
+  );
+  if (completed) return;
+  for (const table of ['plans', 'workouts', 'routines']) {
     const rows = await db.getAllAsync<{ id: string; value_json: string }>(`SELECT id, value_json FROM ${table}`);
     for (const row of rows) {
       try {
-        const migrated = migrateExerciseIds(JSON.parse(row.value_json));
+        const migrated = canonicalizeStoredValue(JSON.parse(row.value_json));
         if (JSON.stringify(migrated) !== row.value_json) await db.runAsync(`UPDATE ${table} SET value_json = ? WHERE id = ?`, JSON.stringify(migrated), row.id);
       } catch { /* Corrupt user data is handled by each repository's reader. */ }
     }
   }
+  await db.runAsync('INSERT INTO forge_meta (key, value) VALUES (?, ?)', 'canonical-exercise-records-v1', '1');
 }
 
 async function importLegacyOnce(db: ForgeDatabase): Promise<void> {

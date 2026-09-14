@@ -20,7 +20,7 @@ A migration requires an explicit task or an approved architectural decision.
 
 UI components and screens should not directly own durable storage mechanics. Keep persistence access behind data/repository modules so storage technology can change without rewriting presentation code.
 
-Bundled exercise catalogues are immutable versioned release snapshots. SQLite seeds each release as Forge-owned baseline data, upgrades only those baseline rows, and never overwrites custom exercises, preferences, routines, or workout history. Completed workouts retain exercise and set snapshots so catalogue releases cannot reinterpret recorded history. Forge serializes all SQLite transactions through the repository boundary because providers share one native database connection.
+Bundled exercise catalogues are immutable versioned release snapshots. SQLite seeds each release as Forge-owned baseline data, upgrades only those baseline rows, and never overwrites custom exercises, preferences, routines, or workout history. An explicit, versioned canonical-identity migration may update a recognised catalogue exercise's identifier, display name and immutable snapshot across routines and workout history, but preserves user sets, notes, completion and ordering; custom or unrecognised records are never guessed or renamed. Forge serializes all SQLite transactions through the repository boundary because providers share one native database connection.
 
 ## Navigation boundary
 

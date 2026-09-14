@@ -15,6 +15,8 @@ test.describe('Core flow: live workout', () => {
     await page.getByRole('button', { name: 'Add exercise', exact: true }).click();
     await addExerciseFromPicker(page, 'barbell bench press', 'Bench Press, variation');
     await expect(page.getByText('Barbell Bench Press', { exact: true })).toBeVisible();
+    await expect(page.getByText('Flat', { exact: true })).toBeVisible();
+    await expect(page.getByText('Flat · Barbell', { exact: true })).toHaveCount(0);
 
     const weight = page.getByLabel('Kg for set 1');
     const reps = page.getByLabel('Reps for set 1');

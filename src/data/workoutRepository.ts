@@ -27,7 +27,8 @@ export async function loadWorkoutState(): Promise<WorkoutState> {
 export async function saveActiveWorkout(workout: Workout | null): Promise<void> {
   await withDatabaseTransaction(async (db) => {
     await db.runAsync('DELETE FROM workouts WHERE is_active = 1');
-    if (workout) await db.runAsync(`
+    const normalized = workout ? normalizePersistedWorkout(workout) : null;
+    if (normalized) await db.runAsync(`
       INSERT INTO workouts (id, is_active, completed_at, started_at, value_json)
       VALUES (?, 1, NULL, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
@@ -35,14 +36,14 @@ export async function saveActiveWorkout(workout: Workout | null): Promise<void> 
         completed_at = excluded.completed_at,
         started_at = excluded.started_at,
         value_json = excluded.value_json
-    `, workout.id, workout.startedAt, JSON.stringify(workout));
+    `, normalized.id, normalized.startedAt, JSON.stringify(normalized));
   });
 }
 
 export async function saveCompletedWorkouts(workouts: Workout[]): Promise<void> {
   await withDatabaseTransaction(async (db) => {
     await db.runAsync('DELETE FROM workouts WHERE is_active = 0');
-    for (const workout of workouts) {
+    for (const workout of workouts.map(normalizePersistedWorkout)) {
       await db.runAsync(
         completedWorkoutUpsert,
         workout.id,
@@ -57,12 +58,13 @@ export async function saveCompletedWorkouts(workouts: Workout[]): Promise<void> 
 /** Adds one completed workout without replacing the existing history archive. */
 export async function appendCompletedWorkout(workout: Workout): Promise<void> {
   await withDatabaseTransaction(async (db) => {
+    const normalized = normalizePersistedWorkout(workout);
     await db.runAsync(
       completedWorkoutUpsert,
-      workout.id,
-      workout.completedAt,
-      workout.startedAt,
-      JSON.stringify(workout),
+      normalized.id,
+      normalized.completedAt,
+      normalized.startedAt,
+      JSON.stringify(normalized),
     );
   });
 }

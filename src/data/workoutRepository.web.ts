@@ -24,18 +24,25 @@ export async function loadWorkoutState(): Promise<WorkoutState> {
   );
   const activeValue = parse<unknown>(active[1], null);
   const activeWorkout = isWorkoutRecord(activeValue) ? activeValue : null;
-  return {
+  const canonical = {
     activeWorkout: activeWorkout && !completedWorkouts.some((workout) => workout.id === activeWorkout.id)
       ? normalizePersistedWorkout(activeWorkout)
       : null,
     completedWorkouts,
   };
+  if (canonical.activeWorkout && JSON.stringify(canonical.activeWorkout) !== active[1]) {
+    await AsyncStorage.setItem(ACTIVE_KEY, JSON.stringify(canonical.activeWorkout));
+  }
+  if (JSON.stringify(canonical.completedWorkouts) !== completed[1]) {
+    await AsyncStorage.setItem(COMPLETED_KEY, JSON.stringify(canonical.completedWorkouts));
+  }
+  return canonical;
 }
 export async function saveActiveWorkout(workout: Workout | null): Promise<void> {
-  await AsyncStorage.setItem(ACTIVE_KEY, JSON.stringify(workout));
+  await AsyncStorage.setItem(ACTIVE_KEY, JSON.stringify(workout ? normalizePersistedWorkout(workout) : null));
 }
 export async function saveCompletedWorkouts(workouts: Workout[]): Promise<void> {
-  await AsyncStorage.setItem(COMPLETED_KEY, JSON.stringify(uniqueById(workouts)));
+  await AsyncStorage.setItem(COMPLETED_KEY, JSON.stringify(uniqueById(workouts.map(normalizePersistedWorkout))));
 }
 export async function appendCompletedWorkout(workout: Workout): Promise<void> {
   const current = parse<Workout[]>(await AsyncStorage.getItem(COMPLETED_KEY), []);

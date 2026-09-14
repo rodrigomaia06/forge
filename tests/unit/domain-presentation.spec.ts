@@ -43,6 +43,13 @@ import { normalizeDataTransfer } from '../../src/data/dataTransferNormalization'
 import { normalizePersistedWorkout } from '../../src/data/workoutNormalization';
 import { adjustRestTimer } from '../../src/domain/rest/restTimerAdjustment';
 import { routineExercisesWithNextSessionTargets } from '../../src/domain/workouts/nextSessionTargets';
+import {
+  auditedLegacyExerciseIdMap,
+  canonicalizeExercise,
+  canonicalizeRoutine,
+  canonicalizeWorkout,
+  resolveCanonicalExercise,
+} from '../../src/data/exerciseCanonicalization';
 
 test('keeps the first stable record when a persistence boundary receives duplicate ids', () => {
   expect(
@@ -100,6 +107,76 @@ test('normalizes JSON exercises and sets without changing their imported order',
   ]);
 });
 
+test('resolves approved legacy exercise ids to canonical v3 snapshots without changing user data', () => {
+  expect(resolveCanonicalExercise('butterfly-machine')?.id).toBe('pec-deck');
+  expect(resolveCanonicalExercise('biceps-hammer-curl-with-dumbbell')?.id).toBe('dumbbell-hammer-curl');
+  expect(resolveCanonicalExercise('user-created-machine-fly')).toBeUndefined();
+
+  const legacy = {
+    id: 'instance',
+    exerciseId: 'biceps-hammer-curl-with-dumbbell',
+    name: 'Biceps Curl: Dumbbell (Hammer)',
+    note: 'keep this note',
+    sets: [{ id: 'first', reps: '8' }, { id: 'last', reps: '12' }],
+  };
+  const canonical = canonicalizeExercise(legacy);
+  expect(canonical).toMatchObject({
+    id: 'instance',
+    exerciseId: 'dumbbell-hammer-curl',
+    name: 'Dumbbell Hammer Curl',
+    note: 'keep this note',
+    exerciseSnapshot: { id: 'dumbbell-hammer-curl', catalogueVersion: 3 },
+  });
+  expect(canonical.sets).toEqual(legacy.sets);
+  expect(canonicalizeExercise(canonical)).toEqual(canonical);
+  expect(canonicalizeExercise({
+    id: 'custom-instance', name: 'Pec Deck', exerciseId: 'custom-pec-deck', sets: [],
+  })).toMatchObject({ name: 'Pec Deck', exerciseId: 'custom-pec-deck' });
+});
+
+test('canonicalizes routine, active, completed, and imported exercises without reordering them', () => {
+  const exercises = [
+    { id: 'first', exerciseId: 'butterfly-machine', name: 'Flyes: Machine', sets: [{ id: 'set-first' }] },
+    { id: 'second', exerciseId: 'biceps-hammer-curl-with-dumbbell', name: 'Biceps Curl: Dumbbell (Hammer)', sets: [{ id: 'set-second' }] },
+  ];
+  const routine = canonicalizeRoutine({ id: 'routine', name: 'Routine', type: 'Strength', createdAt: 1, updatedAt: 1, exercises });
+  const workout = canonicalizeWorkout({
+    id: 'workout', name: 'Workout', type: 'Strength', startedAt: 1, completedAt: 2, note: '',
+    exercises: exercises.map((exercise) => ({
+      ...exercise,
+      sets: exercise.sets.map((set) => ({ ...set, weight: '', reps: '', completed: false })),
+    })),
+  });
+  expect(routine.exercises.map((exercise) => exercise.name)).toEqual(['Pec Deck', 'Dumbbell Hammer Curl']);
+  expect(workout.exercises.map((exercise) => exercise.exerciseSnapshot?.id)).toEqual(['pec-deck', 'dumbbell-hammer-curl']);
+
+  const transfer = normalizeDataTransfer({
+    settings: { workoutTypes: [], dailyMeasurementDefinitions: [], dailyMeasurementEntries: [] },
+    plans: { plans: [], standaloneRoutines: [routine] },
+    workouts: { activeWorkout: workout, completedWorkouts: [{ ...workout, id: 'completed-workout' }] },
+    customExercises: [],
+  });
+  expect(transfer.plans.standaloneRoutines[0].exercises.map((exercise) => exercise.name)).toEqual(['Pec Deck', 'Dumbbell Hammer Curl']);
+  expect(transfer.workouts.activeWorkout?.exercises.map((exercise) => exercise.name)).toEqual(['Pec Deck', 'Dumbbell Hammer Curl']);
+  expect(transfer.workouts.completedWorkouts[0].exercises.map((exercise) => exercise.name)).toEqual(['Pec Deck', 'Dumbbell Hammer Curl']);
+});
+
+test('audits every canonical subtitle and every approved legacy id destination', () => {
+  for (const exercise of exerciseCatalog) {
+    const subtitle = formatExerciseMetadata(createExerciseSnapshot(exercise));
+    if (!subtitle) continue;
+    expect(subtitle).not.toMatch(/[:(),]/);
+    expect(subtitle).not.toMatch(/^(Standard|Machine|Bodyweight)$/);
+    const titleWords = new Set(exercise.name.toLocaleLowerCase().match(/[a-z0-9]+/g) ?? []);
+    const subtitleWords = subtitle.toLocaleLowerCase().match(/[a-z0-9]+/g) ?? [];
+    expect(subtitleWords.some((word) => !titleWords.has(word))).toBe(true);
+  }
+  for (const [legacy, current] of Object.entries(auditedLegacyExerciseIdMap)) {
+    expect(resolveCanonicalExercise(legacy)?.id).toBe(current);
+    expect(exerciseCatalog.some((exercise) => exercise.id === current)).toBe(true);
+  }
+});
+
 test('repairs legacy externally loaded import tracking without reordering exercises or sets', () => {
   const transfer = normalizeDataTransfer({
     settings: { workoutTypes: [], dailyMeasurementDefinitions: [], dailyMeasurementEntries: [] },
@@ -145,8 +222,8 @@ test('repairs legacy externally loaded import tracking without reordering exerci
     exerciseSnapshot: { trackingType: 'weight-reps' },
   });
   expect(exercises[1]).toMatchObject({
-    trackingType: 'reps-only',
-    exerciseSnapshot: { trackingType: 'reps-only' },
+    trackingType: 'bodyweight-reps',
+    exerciseSnapshot: { trackingType: 'bodyweight-reps', catalogueVersion: 3 },
   });
 });
 
@@ -735,18 +812,17 @@ test('snapshots keep variation and primary-equipment metadata while legacy cards
     variation: 'Flat',
     primaryEquipment: 'barbell',
   });
-  expect(formatExerciseMetadata(createExerciseSnapshot(bench))).toBe('Flat · Barbell');
+  expect(formatExerciseMetadata(createExerciseSnapshot(bench))).toBe('Flat');
   expect(formatExerciseMetadata(createExerciseSnapshot(weightedDip))).toBe('Dip Bars');
-  expect(formatExerciseMetadata(createExerciseSnapshot(assistedDip))).toBe('Machine');
+  expect(formatExerciseMetadata(createExerciseSnapshot(assistedDip))).toBeNull();
   expect(formatPickerPrimaryEquipment(assistedDip, 'Machine')).toBe('Machine · Assisted');
   const weightedExercises = exerciseCatalog.filter((exercise) =>
     /\bweighted\b/i.test(exercise.name),
   );
   expect(weightedExercises).not.toHaveLength(0);
   for (const exercise of weightedExercises) {
-    expect(
-      formatExerciseMetadata(createExerciseSnapshot(exercise))?.toLocaleLowerCase(),
-    ).not.toMatch(/^weighted\b/);
+    const metadata = formatExerciseMetadata(createExerciseSnapshot(exercise))?.toLocaleLowerCase();
+    if (metadata) expect(metadata).not.toMatch(/^weighted\b/);
   }
   for (const exercise of exerciseCatalog) {
     const metadata = formatExerciseMetadata(createExerciseSnapshot(exercise));
@@ -758,7 +834,7 @@ test('snapshots keep variation and primary-equipment metadata while legacy cards
     const variationWords = variation.toLocaleLowerCase().match(/[a-z0-9]+/g) ?? [];
     const titleWords = new Set(exercise.name.toLocaleLowerCase().match(/[a-z0-9]+/g) ?? []);
     if (variationWords.length && variationWords.every((word) => titleWords.has(word))) {
-      expect(metadata?.split(' · ').filter((part) => part !== equipment)).not.toContain(variation);
+      expect(metadata?.split(' · ').filter((part) => part !== equipment) ?? []).not.toContain(variation);
     }
   }
   const assistedExercises = exerciseCatalog.filter(
