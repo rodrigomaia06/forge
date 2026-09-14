@@ -312,14 +312,14 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         // The active editor is a local draft: only the normal Live Workout list
         // can start or adjust the rest timer when a set is completed.
         onSetCompleted={() => undefined}
-        size="large"
-        // The active editor is deliberately compact on entry. It gives the
-        // workout list the same scan-first hierarchy as History; opening an
-        // exercise is an explicit edit decision rather than a wall of sets.
+        // Keep the active-workout draft structurally and visually identical
+        // to the routine editor. It deliberately excludes live-only metadata,
+        // completion state and next-session targets until the workout is
+        // logged from the actual Live Workout screen.
         collapsible={isActive}
         forceCollapsed={isActive && reorderingExercises}
-        showCatalogMetadata={isActive}
-        showWarmupSets={isActive}
+        showMoreOptions={!isActive}
+        showSetCompletion={!isActive}
         onSetInputFocus={isActive ? onSetInputFocus : undefined}
         deleteRevealed={openExerciseId === exercise.id}
         onDeleteRevealChange={(exerciseId, revealed) =>
@@ -1001,7 +1001,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   listViewport: { flex: 1 },
   content: { padding: 16, paddingBottom: 32, gap: 14 },
   listHeader: { gap: 14 },
-  draggableExerciseRow: { marginBottom: 10 },
+  draggableExerciseRow: { marginBottom: 12 },
   exerciseFooter: { paddingTop: 10 },
   formCard: {
     padding: 14,
@@ -1070,7 +1070,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   addExerciseText: { color: theme.ink, ...typeScale.label },
   exerciseList: { gap: 10 },
   dragHandle: {
-    width: 44,
+    width: 32,
     height: 44,
     marginLeft: -8,
     alignItems: 'center',

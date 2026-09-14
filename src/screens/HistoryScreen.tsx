@@ -132,8 +132,9 @@ export function HistoryScreen({
           scrollEventThrottle={16}
         >
           {groups.length ? (
-            groups.map((group) => (
+            groups.map((group, groupIndex) => (
               <View key={group.key} testID={`history-group-${group.key}`} style={styles.group}>
+                {groupIndex > 0 ? <View testID={`history-period-connector-${group.key}`} pointerEvents="none" style={styles.groupRailConnector} /> : null}
                 <Text style={styles.groupTitle}>{group.label}</Text>
                 {group.workouts.map((workout, index) => (
                   <TimelineRow
@@ -141,7 +142,7 @@ export function HistoryScreen({
                     workout={workout}
                     displayName={historyTitles.get(workout.id) ?? workout.name}
                     workoutTypes={preferences.workoutTypes}
-                    first={index === 0}
+                    first={groupIndex === 0 && index === 0}
                     onPress={() => {
                       selectionHaptic();
                       navigation.navigate('WorkoutDetails', { workoutId: workout.id });
@@ -624,7 +625,19 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   historyMonthCopy: { flex: 1, alignItems: 'center' },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 18, gap: 18 },
-  group: { gap: 8 },
+  group: { gap: 8, position: 'relative' },
+  // The timeline is one chronological rail, not a collection of disconnected
+  // weekly mini-timelines. This connector crosses the period label and the
+  // inter-group gap; its marker remains above it in each row.
+  groupRailConnector: {
+    position: 'absolute',
+    zIndex: 0,
+    top: -18,
+    bottom: 0,
+    left: 57,
+    width: 2,
+    backgroundColor: theme.divider,
+  },
   groupTitle: {
     marginLeft: 70,
     color: theme.slate,

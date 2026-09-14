@@ -25,7 +25,7 @@ test.describe('History screen', () => {
     await page.getByRole('tab', { name: 'History' }).click();
   });
 
-  test('groups completed sessions by period and renders timeline cards', async ({ page }) => {
+  test('groups completed sessions with one continuous timeline across periods', async ({ page }, testInfo) => {
     await expect(page.getByText('History', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Filter' })).toBeVisible();
     await expect(page.getByTestId('history-header')).toHaveCSS(
@@ -41,7 +41,12 @@ test.describe('History screen', () => {
     await expect(page.getByText('1:12h', { exact: true })).toBeVisible();
     const typeIcon = await page.getByTestId('history-type-icon-empty-session').boundingBox();
     expect(typeIcon?.width).toBeCloseTo(44, 0);
+    await expect(page.getByTestId(/^history-period-connector-/)).toHaveCount(2);
     expect(await page.locator('svg').count()).toBeGreaterThan(0);
+    if (testInfo.project.name === 'iphone-air') {
+      await page.waitForTimeout(250);
+      await page.screenshot({ path: testInfo.outputPath('history-continuous-timeline-iphone.png') });
+    }
   });
 
   test('labels imported plan workouts with their plan and routine source', async ({ page }) => {

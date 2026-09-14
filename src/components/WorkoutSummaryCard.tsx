@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { ForgeCard, ForgeText as Text, Icon, pressedFeedbackSubtle, selectionHaptic } from './ui';
 import { countWorkoutSets, formatCompactDuration, getWorkoutTypePresentation } from '../domain/workouts/presentation';
@@ -26,7 +26,9 @@ export function WorkoutSummaryCard({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const { width } = useWindowDimensions();
   const [detailsExpanded, setDetailsExpanded] = useState(false);
+  const usesWideSummary = width >= 640;
   const type = getWorkoutTypePresentation(workout.type, workoutTypes, theme, 0.16);
   const metadata = useMemo<Metadata[]>(() => [
     ...Object.entries(workout.attributes ?? {}).flatMap(([label, value]) => {
@@ -47,22 +49,24 @@ export function WorkoutSummaryCard({
 
   return (
       <ForgeCard testID={testID} style={styles.card}>
-      <View style={styles.identityRow}>
-        <View style={[styles.typeMarker, { backgroundColor: type.background }]}>
-          <Icon name={type.icon} size={26} color={type.color} />
+      <View style={[styles.summaryHeader, usesWideSummary && styles.summaryHeaderWide]}>
+        <View style={styles.identityRow}>
+          <View style={[styles.typeMarker, { backgroundColor: type.background }]}>
+            <Icon name={type.icon} size={26} color={type.color} />
+          </View>
+          <View style={styles.identityCopy}>
+            <Text style={styles.name} numberOfLines={2}>{workout.name}</Text>
+            <Text style={styles.summary} numberOfLines={1}>
+              {`${workout.exercises.length} ${workout.exercises.length === 1 ? 'exercise' : 'exercises'}, ${countWorkoutSets(workout)} ${countWorkoutSets(workout) === 1 ? 'set' : 'sets'}`}
+            </Text>
+          </View>
         </View>
-        <View style={styles.identityCopy}>
-          <Text style={styles.name} numberOfLines={2}>{workout.name}</Text>
-          <Text style={styles.summary} numberOfLines={1}>
-            {`${workout.exercises.length} ${workout.exercises.length === 1 ? 'exercise' : 'exercises'}, ${countWorkoutSets(workout)} ${countWorkoutSets(workout) === 1 ? 'set' : 'sets'}`}
-          </Text>
-        </View>
-      </View>
 
-      <View style={styles.timingRow}>
-        <TimingMetric icon="time-outline" label="Duration" value={duration} />
-        <View style={styles.verticalDivider} />
-        <TimingMetric icon="time-outline" label="Avg rest / set" value={rest} />
+        <View style={[styles.timingRow, usesWideSummary && styles.timingRowWide]}>
+          <TimingMetric icon="time-outline" label="Duration" value={duration} />
+          <View style={styles.verticalDivider} />
+          <TimingMetric icon="time-outline" label="Avg rest / set" value={rest} />
+        </View>
       </View>
 
       <View style={styles.divider} />
@@ -101,20 +105,22 @@ export function WorkoutSummaryCard({
         >
           <Icon name="ellipsis-horizontal" size={22} color={theme.slate} />
           <Text style={styles.detailsPreview} numberOfLines={1}>
-            {detailsExpanded ? 'Session details' : `Session details, ${detailPreview}${remainingDetails ? ` +${remainingDetails}` : ''}`}
+            {detailsExpanded ? 'Session details' : `Session details · ${detailPreview}${remainingDetails ? ` +${remainingDetails}` : ''}`}
           </Text>
           <Icon name="chevron-down" size={20} color={theme.slate} />
         </Pressable>
         {detailsExpanded ? (
-          <View style={styles.detailList}>
-            {metadata.map((item, index) => (
-              <View key={item.label} style={[styles.detailRow, index > 0 && styles.detailRowDivider]}>
+          <ForgeCard variant="inset" size="compact" style={styles.detailGrid}>
+            {metadata.map((item) => (
+              <View key={item.label} style={styles.detailItem}>
                 <Icon name={item.icon} size={18} color={theme.slate} />
-                <Text style={styles.detailLabel}>{item.label}</Text>
-                <Text style={styles.detailValue} numberOfLines={2}>{item.value}</Text>
+                <View style={styles.detailCopy}>
+                  <Text style={styles.detailLabel} numberOfLines={1}>{item.label}</Text>
+                  <Text style={styles.detailValue} numberOfLines={2}>{item.value}</Text>
+                </View>
               </View>
             ))}
-          </View>
+          </ForgeCard>
         ) : null}
       </> : null}
       </ForgeCard>
@@ -166,7 +172,9 @@ function formatRest(seconds: number): string {
 
 const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create({
   card: { padding: 16, gap: 14 },
-  identityRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  summaryHeader: { gap: 14 },
+  summaryHeaderWide: { flexDirection: 'row', alignItems: 'center' },
+  identityRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   typeMarker: {
     width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: theme.border,
@@ -175,6 +183,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   name: { color: theme.ink, ...typeScale.sectionTitle },
   summary: { color: theme.slate, ...typeScale.supporting },
   timingRow: { flexDirection: 'row', minHeight: 55, alignItems: 'center', gap: 12 },
+  timingRowWide: { flex: 1.15, minWidth: 0 },
   timingMetric: { flex: 1, minWidth: 0, gap: 3 },
   timingValueRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   timingValue: { color: theme.ink, ...typeScale.cardTitle },
@@ -192,9 +201,9 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   note: { flex: 1, color: theme.ink, ...typeScale.body },
   detailsTrigger: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 10 },
   detailsPreview: { flex: 1, color: theme.slate, ...typeScale.body },
-  detailList: { marginTop: -4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
-  detailRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 9 },
-  detailRowDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
-  detailLabel: { flex: 0.8, color: theme.slate, ...typeScale.label },
-  detailValue: { flex: 1.2, color: theme.ink, ...typeScale.label, textAlign: 'right' },
+  detailGrid: { marginTop: -4, padding: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  detailItem: { flexBasis: '48%', flexGrow: 1, minWidth: 130, minHeight: 58, padding: 8, flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  detailCopy: { flex: 1, minWidth: 0, gap: 2 },
+  detailLabel: { color: theme.slate, ...typeScale.caption },
+  detailValue: { color: theme.ink, ...typeScale.label },
 });
