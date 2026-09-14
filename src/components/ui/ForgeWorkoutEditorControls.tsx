@@ -190,7 +190,7 @@ export function ForgeEditorBackButton({ onPress, accessibilityLabel = 'Back to e
 
 const styles = StyleSheet.create({
   editorScroll: { flexGrow: 0, flexShrink: 1 },
-  editorContent: { paddingTop: 14, gap: 18 },
+  editorContent: { paddingTop: 14, paddingHorizontal: 20, gap: 18 },
   typePickerContent: { paddingTop: 22, paddingBottom: 20 },
   formSection: { gap: 8 },
   fieldCard: { paddingHorizontal: 14 },

@@ -515,6 +515,22 @@ test('tracking modes specify only their applicable measurements and retain an ex
   });
 });
 
+test('starts an older routine with its snapshot tracking fields', () => {
+  const workout = createWorkout({
+    routineId: 'legacy-routine',
+    exercises: [{
+      name: 'Dumbbell curl',
+      // Some exported routines predate the top-level tracking field but do
+      // have the durable exercise snapshot. Weight must remain editable.
+      exerciseSnapshot: { name: 'Dumbbell curl', trackingType: 'weight-reps' },
+      sets: [{ id: 'curl-set' }],
+    }],
+  });
+
+  expect(workout.exercises[0].trackingType).toBe('weight-reps');
+  expect(trackingFields[workout.exercises[0].trackingType!]).toEqual(['weight', 'reps']);
+});
+
 test('keeps routine intervals advisory and never turns them into next-session targets', () => {
   const routineWorkout = createWorkout({
     routineId: 'routine-upper',

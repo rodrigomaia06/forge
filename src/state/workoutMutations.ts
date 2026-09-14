@@ -30,7 +30,10 @@ export function createWorkout(options: StartWorkoutOptions): Workout {
       name: exercise.name,
       note: exercise.note,
       supersetId: exercise.supersetId,
-      trackingType: exercise.trackingType,
+      // The snapshot is the routine's durable exercise contract. Older
+      // routines can have a snapshot while omitting the legacy top-level
+      // field, so prefer it when materialising a live workout.
+      trackingType: exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType ?? 'weight-reps',
       exerciseSnapshot: exercise.exerciseSnapshot,
       sets: (exercise.sets || []).map((set) => ({
         id: set.id || makeWorkoutId('set'),

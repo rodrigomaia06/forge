@@ -26,6 +26,8 @@ export interface ExerciseSectionProps {
   collapsible?: boolean;
   /** A parent reorder gesture collapses compact exercise cards before movement begins. */
   forceCollapsed?: boolean;
+  /** The parent drag owns pointer movement while an exercise is reordered. */
+  swipeEnabled?: boolean;
   showMoreOptions?: boolean;
   /** Live Workout presents saved catalogue variation and primary equipment beneath the canonical name. */
   showCatalogMetadata?: boolean;

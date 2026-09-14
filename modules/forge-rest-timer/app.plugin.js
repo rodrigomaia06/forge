@@ -3,11 +3,10 @@ const fs = require('fs');
 const path = require('path');
 
 const TARGET_NAME = 'ForgeRestTimerWidget';
-function widgetSource(timerGlyphBase64) {
+function widgetSource() {
   return `import ActivityKit
 import Foundation
 import SwiftUI
-import UIKit
 import WidgetKit
 
 struct ForgeRestTimerAttributes: ActivityAttributes {
@@ -63,26 +62,19 @@ private extension Font {
   }
 }
 
-// The extension has its own bundle, so it cannot read the parent app's asset
-// catalog at runtime. The build plugin embeds Forge's existing rest-timer
-// glyph into the extension source, preserving the same icon on every native
-// timer surface rather than falling back to Apple's generic timer symbol.
-private let forgeRestTimerGlyphData = "${timerGlyphBase64}"
-private let forgeRestTimerGlyph = Data(base64Encoded: forgeRestTimerGlyphData).flatMap { UIImage(data: $0) }
-
 private struct ForgeRestTimerGlyph: View {
   let color: Color
 
   var body: some View {
-    Group {
-      if let forgeRestTimerGlyph {
-        Image(uiImage: forgeRestTimerGlyph)
-          .resizable()
-          .renderingMode(.template)
-          .foregroundStyle(color)
-          .scaledToFit()
-      }
-    }
+    // Keep the compact native surface aligned with the live workout's
+    // stopwatch affordance. SF Symbols scale crisply in the island, lock
+    // screen, and notification presentation rather than rasterising a
+    // different clock glyph into the extension.
+    Image(systemName: "stopwatch")
+      .resizable()
+      .renderingMode(.template)
+      .foregroundStyle(color)
+      .scaledToFit()
   }
 }
 
@@ -260,7 +252,6 @@ module.exports = function withForgeRestTimerLiveActivity(config) {
   });
   config = withDangerousMod(config, ['ios', async (config) => {
     const directory = path.join(config.modRequest.platformProjectRoot, TARGET_NAME);
-    const glyphPath = path.join(config.modRequest.projectRoot, 'assets', 'forge-rest-notification-icon.png');
     const fontPath = path.join(
       config.modRequest.projectRoot,
       'node_modules',
@@ -269,16 +260,13 @@ module.exports = function withForgeRestTimerLiveActivity(config) {
       '600SemiBold',
       'Manrope_600SemiBold.ttf',
     );
-    if (!fs.existsSync(glyphPath)) {
-      throw new Error('ForgeRestTimerWidget requires assets/forge-rest-notification-icon.png.');
-    }
     if (!fs.existsSync(fontPath)) {
       throw new Error('ForgeRestTimerWidget requires the bundled Manrope SemiBold font.');
     }
     fs.mkdirSync(directory, { recursive: true });
     fs.writeFileSync(
       path.join(directory, 'ForgeRestTimerLiveActivity.swift'),
-      widgetSource(fs.readFileSync(glyphPath).toString('base64')),
+      widgetSource(),
     );
     fs.writeFileSync(
       path.join(directory, 'Info.plist'),

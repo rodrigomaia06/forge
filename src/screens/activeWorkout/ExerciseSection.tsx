@@ -53,6 +53,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   testID,
   collapsible = false,
   forceCollapsed = false,
+  swipeEnabled = true,
   showMoreOptions = true,
   showCatalogMetadata = false,
   showSetCompletion = true,
@@ -77,7 +78,8 @@ export const ExerciseSection = React.memo(function ExerciseSection({
     : null;
   const { completedWorkouts } = useWorkouts();
   const hasExerciseInfo = Boolean(exercise.exerciseSnapshot || exerciseCatalog.some((item) => item.id === exercise.exerciseId));
-  const canBuildWarmups = showWarmupSets && Boolean(addWarmupSets) && trackingFields[exercise.trackingType ?? 'weight-reps'].includes('weight');
+  const trackingType = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType ?? 'weight-reps';
+  const canBuildWarmups = showWarmupSets && Boolean(addWarmupSets) && trackingFields[trackingType].includes('weight');
 
   useEffect(
     () => () => {
@@ -136,6 +138,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   };
 
   const cardGesture = Gesture.Pan()
+    .enabled(swipeEnabled)
     .activeOffsetX([-8, 8])
     // Vertical intent must fail this horizontal-delete recognizer promptly;
     // otherwise a slightly diagonal scroll can leave the card under the finger.
@@ -274,8 +277,8 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 <View style={[styles.setHeader, size === 'large' && styles.setHeaderLarge]}>
                   <Text style={[styles.setHeaderText, styles.setColumn]}>Set</Text>
                   <Text style={[styles.setHeaderText, styles.previousColumn]}>Previous</Text>
-                  {trackingFields[exercise.trackingType ?? 'weight-reps'].map((kind) => (
-                    <Text key={kind} style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>{trackingFieldLabel(exercise.trackingType ?? 'weight-reps', kind)}</Text>
+                  {trackingFields[trackingType].map((kind) => (
+                    <Text key={kind} style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>{trackingFieldLabel(trackingType, kind)}</Text>
                   ))}
                   <View style={styles.checkColumn} />
                 </View>
@@ -298,7 +301,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     deleteRevealed={openSetId === set.id}
                     onDeleteRevealChange={(revealed) => setOpenSetId(revealed ? set.id : null)}
                     showCompletion={showSetCompletion}
-                    trackingType={exercise.trackingType}
+                    trackingType={trackingType}
                     setTargetMode={setTargetMode}
                     onInputFocus={onSetInputFocus}
                   />
@@ -556,7 +559,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       alignItems: 'center',
       justifyContent: 'center',
       gap: 4,
-      transform: [{ translateY: 3 }],
     },
     deleteExerciseActionPressed: { backgroundColor: dashboardTheme.destructiveSurfacePressed },
     deleteExerciseText: { color: dashboardTheme.textDestructive, ...typeScale.caption },

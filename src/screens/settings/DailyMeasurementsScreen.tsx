@@ -45,6 +45,7 @@ const metricColorChoices = [
 ] as const;
 const metricIcons: readonly IconName[] = [
   'weight', 'measure', 'heart', 'hydration', 'energy', 'sleep', 'recovery', 'activity',
+  'goal', 'running', 'fitness', 'time', 'temperature', 'nutrition', 'mood', 'focus',
 ];
 
 function localDateKey(date = new Date()): string {

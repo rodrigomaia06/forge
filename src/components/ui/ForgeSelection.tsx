@@ -205,6 +205,7 @@ export function ForgeSelectionSheet<T extends SelectionValue>({
   listTestID,
 }: ForgeSelectionSheetProps<T>) {
   const insets = useSafeAreaInsets();
+  const theme = useForgeTheme();
   return (
     <ForgeBottomSheet
       visible={visible}
@@ -219,17 +220,19 @@ export function ForgeSelectionSheet<T extends SelectionValue>({
         >
           <ForgeBottomSheetHandle />
           <ForgeSheetHeader title={title} onClose={close} />
-          <ForgeSingleSelectList
-            testID={listTestID}
-            options={options}
-            selectedValue={selectedValue}
-            maxVisibleRows={maxVisibleRows}
-            onSelect={(value) => {
-              onSelect(value);
-              close();
-            }}
-            onSelectedPress={close}
-          />
+          <View style={[styles.optionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <ForgeSingleSelectList
+              testID={listTestID}
+              options={options}
+              selectedValue={selectedValue}
+              maxVisibleRows={maxVisibleRows}
+              onSelect={(value) => {
+                onSelect(value);
+                close();
+              }}
+              onSelectedPress={close}
+            />
+          </View>
         </View>
       )}
     </ForgeBottomSheet>
@@ -257,5 +260,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 20,
   },
-  sheet: { flexShrink: 1 },
+  sheet: { flexShrink: 1, paddingHorizontal: 16 },
+  optionCard: { overflow: 'hidden', borderWidth: 1, borderRadius: 16 },
 });

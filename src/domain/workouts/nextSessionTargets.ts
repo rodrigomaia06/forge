@@ -31,7 +31,11 @@ export function routineExercisesWithNextSessionTargets(
     return {
       ...exercise,
       sets: (exercise.sets ?? []).map((set, index) =>
-        withNextSessionTargets(set, sourceExercise.sets[index], exercise.trackingType),
+        withNextSessionTargets(
+          set,
+          sourceExercise.sets[index],
+          exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType,
+        ),
       ),
     };
   });

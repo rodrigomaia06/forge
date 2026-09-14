@@ -108,6 +108,7 @@ export function PlansScreen({ navigation, route }: Props) {
     navigation.navigate('ActiveWorkout');
   };
   const addRoutine = (planId?: string): void => {
+    setCreationOpen(false);
     navigation.navigate('RoutineEditor', { mode: 'create', planId });
   };
 

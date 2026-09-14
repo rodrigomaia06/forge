@@ -330,8 +330,12 @@ test.describe('Settings', () => {
     await expect(confirmation).toBeVisible();
     await expect(confirmation.getByRole('button', { name: 'Keep data' })).toBeVisible();
     await expect(confirmation.getByRole('button', { name: 'Delete all data' })).toBeVisible();
-    await confirmation.getByRole('button', { name: 'Keep data' }).click();
-    await expect(confirmation).toBeHidden();
+    await confirmation.getByRole('button', { name: 'Delete all data' }).click();
+    const complete = page.getByTestId('delete-all-data-complete');
+    await expect(complete).toBeVisible();
+    await expect(complete.getByRole('button', { name: 'Done' })).toBeVisible();
+    await complete.getByRole('button', { name: 'Done' }).click();
+    await expect(complete).toBeHidden();
   });
 
   test('persists the first day of the week and applies it to the Calendar', async ({ page }) => {

@@ -1,6 +1,7 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -94,6 +95,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
   const [reorderingExercises, setReorderingExercises] = useState(false);
   const [headerElevated, setHeaderElevated] = useState(false);
   const [confirmation, setConfirmation] = useState<RoutineConfirmation | null>(null);
+  const changedSinceOpenRef = useRef(false);
   const exerciseListRef = React.useRef<GestureHandlerFlatList<WorkoutRoutine['exercises'][number]>>(null);
   const { onSetInputFocus, onScrollOffsetChange } = useFocusedSetKeyboardLift(exerciseListRef);
   const handleRoutineScrollOffset = (offset: number) => {
@@ -104,7 +106,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
     });
   };
 
-  const dirty = Boolean(
+  const dirty = changedSinceOpenRef.current || Boolean(
     draft && initialDraft && JSON.stringify(draft) !== JSON.stringify(initialDraft),
   );
   const noteHeight = routineNoteHeight(draft?.note);
@@ -132,6 +134,9 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
   }
 
   const change = (update: (current: WorkoutRoutine) => WorkoutRoutine): void => {
+    // React may batch the final text event with a rapid header press. Record
+    // the intent synchronously so Cancel still offers to preserve that draft.
+    changedSinceOpenRef.current = true;
     setDraft((current) => (current ? update(current) : current));
     setError(null);
   };
@@ -158,7 +163,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
     setAddingExercises(false);
   };
   const discard = (): void => {
-    if (!dirty) return navigation.goBack();
+    if (!(dirty || changedSinceOpenRef.current)) return navigation.goBack();
     confirmDiscard(() => navigation.goBack());
   };
   const save = (): void => {
@@ -289,6 +294,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
         onDeleteRevealChange={(id, revealed) => setRevealedExerciseId(revealed ? id : null)}
         collapsible
         forceCollapsed={reorderingExercises}
+        swipeEnabled={!reorderingExercises && !isActive}
         showMoreOptions={false}
         showSetCompletion={false}
         setTargetMode="routine"
@@ -388,6 +394,8 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           keyExtractor={(exercise, index) => exercise.id ?? `routine-exercise-${index}`}
           contentContainerStyle={[styles.content, { paddingBottom: styles.content.paddingBottom + bottomInset }]}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          onScrollBeginDrag={Keyboard.dismiss}
           automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
           scrollsChildToFocus
           activationDistance={12}
@@ -507,6 +515,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
             change((current) => ({ ...current, exercises: data }));
             setReorderingExercises(false);
           }}
+          onRelease={() => setReorderingExercises(false)}
           renderItem={({ item: exercise, getIndex, drag, isActive }) => {
             const index = getIndex() ?? draft.exercises.indexOf(exercise);
             return index < 0 ? null : renderRoutineExercise(exercise, index, drag, isActive);

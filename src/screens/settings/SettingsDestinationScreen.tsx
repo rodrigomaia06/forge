@@ -67,6 +67,7 @@ function BackupExport() {
   const [selection, setSelection] = React.useState<DataTransferSelection>(allDataTransferSelection);
   const [inspection, setInspection] = React.useState<DataTransferInspection | null>(null);
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = React.useState(false);
+  const [deleteCompleteOpen, setDeleteCompleteOpen] = React.useState(false);
   const [mergeSummary, setMergeSummary] = React.useState<DataTransferMergeResult | null>(null);
   const theme = useForgeTheme();
   const { reload: reloadSettings } = useSettings();
@@ -141,7 +142,7 @@ function BackupExport() {
       stopRestTimer();
       await eraseAllForgeData();
       await Promise.all([reloadSettings(), reloadPlans(), reloadWorkouts(), reloadExercises()]);
-      Alert.alert('All app data deleted', 'Forge is ready for a fresh start.');
+      setDeleteCompleteOpen(true);
     });
   };
   return (
@@ -213,6 +214,18 @@ function BackupExport() {
         onCancel={() => setMergeSummary(null)}
         onConfirm={() => setMergeSummary(null)}
         testID="data-merged-summary"
+      />
+      <ForgeConfirmationDialog
+        visible={deleteCompleteOpen}
+        title="All app data deleted"
+        message="Forge is ready for a fresh start."
+        cancelLabel="Done"
+        confirmLabel="Done"
+        confirmTone="success"
+        showCancel={false}
+        onCancel={() => setDeleteCompleteOpen(false)}
+        onConfirm={() => setDeleteCompleteOpen(false)}
+        testID="delete-all-data-complete"
       />
     </View>
   );
