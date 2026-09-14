@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Pressable,
+  Platform,
   ScrollView,
   StyleSheet,
   View,
@@ -471,10 +472,11 @@ function TargetsSection({
             placeholder={isRoutineInterval ? 'e.g. 8–12' : '—'}
             unit={targetUnitLabel(kind)}
             editable={editable}
-            // An iOS number pad has no range separator. Targets accept a
-            // single number or an interval, so use the standard keyboard for
-            // every target field and normalize its numeric content on blur.
-            keyboardType="default"
+            // The iOS numeric pads omit the range separator. Its
+            // numbers-and-punctuation keyboard keeps the numeric workflow
+            // while exposing `-` directly; other platforms retain a normal
+            // text keyboard so intervals remain possible everywhere.
+            keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'default'}
             accessibilityLabel={`${isRoutineInterval ? 'Routine' : 'Next-time'} ${trackingFieldLabel(trackingType, kind).toLowerCase()} ${isRoutineInterval ? 'interval' : 'target'} for ${setLabel.toLowerCase()}`}
             onChangeText={(value) => onChange({
               ...(isRoutineInterval
@@ -566,6 +568,7 @@ function TargetRow({
     inputRef.current?.focus();
     requestAnimationFrame(() => inputRef.current?.setSelection(draftValueRef.current.length, draftValueRef.current.length));
   }, []);
+  const inputFit = targetInputFit(draftValue);
 
   return (
     <Pressable
@@ -605,11 +608,11 @@ function TargetRow({
             }}
             onTouchStart={(event) => event.stopPropagation()}
             keyboardType={keyboardType}
-            inputMode="text"
+            multiline={false}
             selectTextOnFocus={false}
             placeholder={placeholder}
             placeholderTextColor={theme.ink}
-            style={styles.targetInput}
+            style={[styles.targetInput, inputFit]}
           />
         ) : (
           <Text style={styles.targetStaticValue}>{value || placeholder}</Text>
@@ -618,6 +621,25 @@ function TargetRow({
       </View>
     </Pressable>
   );
+}
+
+/**
+ * Targets stay on one line. They first use spare row width, then reduce from
+ * the section-title role down to the readable label role for longer decimal
+ * intervals instead of wrapping or clipping a partial target.
+ */
+function targetInputFit(value: string) {
+  const characterCount = Math.max(1, value.length);
+  const width = Math.min(132, Math.max(56, 20 + characterCount * 11));
+  const fontSize = Math.max(
+    typeScale.label.fontSize,
+    typeScale.sectionTitle.fontSize - Math.max(0, characterCount - 8) * 1.1,
+  );
+  return {
+    width,
+    fontSize,
+    lineHeight: Math.max(typeScale.label.lineHeight, fontSize + 5),
+  };
 }
 
 const createStyles = (theme: import('../../types').ForgeTheme) =>
