@@ -18,6 +18,7 @@ import { uniqueById } from '../../src/data/uniqueById';
 import { mergeImportedPlans } from '../../src/data/dataTransferPlans';
 import { normalizePersistedWorkout } from '../../src/data/workoutNormalization';
 import { adjustRestTimer } from '../../src/domain/rest/restTimerAdjustment';
+import { routineExercisesWithNextSessionTargets } from '../../src/domain/workouts/nextSessionTargets';
 
 test('keeps the first stable record when a persistence boundary receives duplicate ids', () => {
   expect(uniqueById([
@@ -265,6 +266,39 @@ test('keeps routine intervals advisory and never turns them into next-session ta
 
   const directWorkout = createWorkout({ exercises: [{ name: 'Bench Press', sets: [{ id: 'set-2', targetReps: '10' }] }] });
   expect(directWorkout.exercises[0].sets[0].targetReps).toBe('10');
+});
+
+test('uses next-session targets once for the matching routine exercise and set', () => {
+  const routine = {
+    id: 'routine-upper', name: 'Upper', type: 'Strength', createdAt: 1, updatedAt: 1,
+    exercises: [{
+      id: 'routine-bench', name: 'Bench Press', trackingType: 'weight-reps' as const,
+      sets: [
+        { id: 'routine-bench-1', plannedTargets: [{ id: 'routine-reps-1', kind: 'reps' as const, unit: 'count' as const, minValue: 8, maxValue: 12 }] },
+        { id: 'routine-bench-2', plannedTargets: [{ id: 'routine-reps-2', kind: 'reps' as const, unit: 'count' as const, minValue: 8, maxValue: 12 }] },
+      ],
+    }],
+  };
+  const olderWithTarget = {
+    id: 'completed-old', name: 'Upper', type: 'Strength', startedAt: 1, completedAt: 2, note: '', routineId: routine.id,
+    exercises: [{ id: 'old-bench', name: 'Bench Press', trackingType: 'weight-reps' as const, sets: [{ id: 'old-1', weight: '', reps: '', completed: true, targets: [{ id: 'old-weight', kind: 'weight' as const, unit: 'kg' as const, minValue: 70 }, { id: 'old-reps', kind: 'reps' as const, unit: 'count' as const, minValue: 6, maxValue: 8 }] }, { id: 'old-2', weight: '', reps: '', completed: true }] }],
+  };
+
+  const next = routineExercisesWithNextSessionTargets(routine, [olderWithTarget]);
+  expect(next[0].sets?.[0].plannedTargets).toEqual(expect.arrayContaining([
+    expect.objectContaining({ kind: 'weight', minValue: 70 }),
+    expect.objectContaining({ kind: 'reps', minValue: 6, maxValue: 8 }),
+  ]));
+  expect(next[0].sets?.[1].plannedTargets).toEqual([
+    expect.objectContaining({ kind: 'reps', minValue: 8, maxValue: 12 }),
+  ]);
+  expect(next[0].sets?.[0].targets).toBeUndefined();
+
+  const newerWithoutTarget = { ...olderWithTarget, id: 'completed-new', completedAt: 3, exercises: [{ ...olderWithTarget.exercises[0], sets: [{ ...olderWithTarget.exercises[0].sets[0], targets: undefined }, olderWithTarget.exercises[0].sets[1]] }] };
+  const following = routineExercisesWithNextSessionTargets(routine, [olderWithTarget, newerWithoutTarget]);
+  expect(following[0].sets?.[0].plannedTargets).toEqual([
+    expect.objectContaining({ kind: 'reps', minValue: 8, maxValue: 12 }),
+  ]);
 });
 
 test('snapshots keep variation and primary-equipment metadata while legacy cards remain name-only', () => {

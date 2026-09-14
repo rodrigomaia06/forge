@@ -29,6 +29,7 @@ import { spacing, typeScale } from '../theme/tokens';
 import { usePlans } from '../state/PlansContext';
 import { useSettings } from '../state/SettingsContext';
 import { useWorkouts } from '../state/WorkoutContext';
+import { routineExercisesWithNextSessionTargets } from '../domain/workouts/nextSessionTargets';
 import type {
   IconName,
   RootTabScreenProps,
@@ -51,7 +52,7 @@ export function PlansScreen({ navigation, route }: Props) {
   const dockScrollInset = useForgeDockScrollInset();
   const { preferences } = useSettings();
   const { plans, standaloneRoutines, createPlan, deletePlan, deleteRoutine } = usePlans();
-  const { startWorkout } = useWorkouts();
+  const { startWorkout, completedWorkouts } = useWorkouts();
   const [creationOpen, setCreationOpen] = useState(false);
   const [actionTarget, setActionTarget] = useState<PlanActionTarget | null>(null);
   const [headerElevated, setHeaderElevated] = useState(false);
@@ -82,7 +83,7 @@ export function PlansScreen({ navigation, route }: Props) {
       attributeIcons: routine.attributeIcons,
       routineId: routine.id,
       planId: routine.planId,
-      exercises: routine.exercises,
+      exercises: routineExercisesWithNextSessionTargets(routine, completedWorkouts),
     });
     navigation.navigate('ActiveWorkout');
   };

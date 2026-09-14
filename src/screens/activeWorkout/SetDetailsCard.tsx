@@ -491,7 +491,7 @@ function TargetsSection({
 
 function targetText(targets: WorkoutSet['targets'] | undefined, set: WorkoutSet, kind: SetMeasurementKind, isRoutineInterval: boolean): string {
   const target = targets?.find((item) => item.kind === kind);
-  if (target?.minValue !== undefined) return target.maxValue !== undefined && target.maxValue !== target.minValue ? `${target.minValue}–${target.maxValue}` : String(target.minValue);
+  if (target?.minValue !== undefined) return formatTargetValues(target.minValue, target.maxValue);
   if (isRoutineInterval) return '';
   return kind === 'reps' ? set.targetReps ?? '' : kind === 'weight' || kind === 'addedWeight' ? set.targetWeight ?? '' : '';
 }
@@ -499,10 +499,23 @@ function targetUnitLabel(kind: SetMeasurementKind): string {
   return kind === 'reps' ? 'reps' : measurementUnit[kind];
 }
 function updateTargets(targets: WorkoutSet['targets'] | undefined, setId: string, kind: SetMeasurementKind, text: string): NonNullable<WorkoutSet['targets']> {
-  const values = text.split(/[-–—]/).map((value) => Number(value.trim())).filter(Number.isFinite);
+  const values = targetValues(text);
   const retained = (targets ?? []).filter((target) => target.kind !== kind);
   if (!values.length) return retained;
   return [...retained, { id: `${setId}-target-${kind}`, kind, unit: measurementUnit[kind], minValue: values[0], maxValue: values[1] ?? values[0] }];
+}
+
+function targetValues(text: string): number[] {
+  return text.split(/[-–—]/).map((value) => Number(value.trim())).filter(Number.isFinite);
+}
+
+function formatTargetValues(minValue: number, maxValue?: number): string {
+  return maxValue !== undefined && maxValue !== minValue ? `${minValue}–${maxValue}` : String(minValue);
+}
+
+function normalizedTargetText(text: string): string {
+  const [minValue, maxValue] = targetValues(text);
+  return minValue === undefined ? '' : formatTargetValues(minValue, maxValue);
 }
 
 function TargetRow({
@@ -531,10 +544,25 @@ function TargetRow({
   const styles = useThemedStyles(createStyles);
   const theme = useForgeTheme();
   const inputRef = useRef<NativeTextInput>(null);
+  // Targets are normalized to numeric values as the routine draft changes.
+  // Keep the raw focused text locally so an incomplete range such as `8–`
+  // is not immediately reformatted to `8` before its upper bound can be
+  // entered. This also lets users use either a hyphen or an en dash.
+  const [draftValue, setDraftValue] = useState(value);
+  const draftValueRef = useRef(value);
+  const editingRef = useRef(false);
+
+  useEffect(() => {
+    if (!editingRef.current) {
+      draftValueRef.current = value;
+      setDraftValue(value);
+    }
+  }, [value]);
+
   const focusInput = useCallback(() => {
     inputRef.current?.focus();
-    requestAnimationFrame(() => inputRef.current?.setSelection(value.length, value.length));
-  }, [value.length]);
+    requestAnimationFrame(() => inputRef.current?.setSelection(draftValueRef.current.length, draftValueRef.current.length));
+  }, []);
 
   return (
     <Pressable
@@ -550,12 +578,27 @@ function TargetRow({
           <TextInput
             ref={inputRef}
             accessibilityLabel={accessibilityLabel}
-            value={value}
-            selection={{ start: value.length, end: value.length }}
-            onChangeText={onChangeText}
+            value={draftValue}
+            selection={{ start: draftValue.length, end: draftValue.length }}
+            onChangeText={(nextValue) => {
+              draftValueRef.current = nextValue;
+              setDraftValue(nextValue);
+              onChangeText(nextValue);
+            }}
             onFocus={() => {
+              editingRef.current = true;
               onFocus();
-              requestAnimationFrame(() => inputRef.current?.setSelection(value.length, value.length));
+              requestAnimationFrame(() => inputRef.current?.setSelection(draftValueRef.current.length, draftValueRef.current.length));
+            }}
+            onBlur={() => {
+              editingRef.current = false;
+              const rawValue = draftValueRef.current;
+              const canonicalValue = normalizedTargetText(rawValue);
+              // Preserve natural entry while focused, then use one canonical
+              // format after leaving the field (for example `8–12`).
+              draftValueRef.current = canonicalValue;
+              setDraftValue(canonicalValue);
+              onChangeText(rawValue);
             }}
             onTouchStart={(event) => event.stopPropagation()}
             keyboardType={keyboardType}

@@ -23,6 +23,7 @@ import { useLayoutProbe } from '../../debug/layoutProbe';
 import { useForgeDockScrollInset } from '../../components/DockChrome';
 import { useSettings } from '../../state/SettingsContext';
 import { useWorkouts } from '../../state/WorkoutContext';
+import { routineExercisesWithNextSessionTargets } from '../../domain/workouts/nextSessionTargets';
 import { usePlans } from '../../state/PlansContext';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
@@ -50,7 +51,7 @@ export function DashboardShell({
   onCalendarMenuDismiss?: () => void;
 }) {
   const navigation = useNavigation<RootNavigationProp>();
-  const { startWorkout } = useWorkouts();
+  const { startWorkout, completedWorkouts } = useWorkouts();
   const { plans, standaloneRoutines } = usePlans();
   const [workoutSourceOpen, setWorkoutSourceOpen] = React.useState(false);
   const [routineSourceStep, setRoutineSourceStep] = React.useState<DashboardRoutineSourceStep>(null);
@@ -76,7 +77,7 @@ export function DashboardShell({
       attributeIcons: routine.attributeIcons,
       routineId: routine.id,
       planId: plan?.id ?? routine.planId,
-      exercises: routine.exercises,
+      exercises: routineExercisesWithNextSessionTargets(routine, completedWorkouts),
     });
     setRoutineSourceStep(null);
     navigation.navigate('ActiveWorkout');

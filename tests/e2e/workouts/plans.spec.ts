@@ -478,6 +478,28 @@ test.describe('Plans and routines', () => {
     await expect(exercise.getByText('Barbell Bench Press', { exact: true })).toBeVisible();
   });
 
+  test('keeps an in-progress routine time range editable until it is complete', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
+    await page.getByTestId('plans-creation-popover').getByRole('button', { name: 'New routine' }).click();
+    await page.getByLabel('Routine name').fill('Intervals routine');
+    await page.getByRole('button', { name: 'Add exercises to routine' }).click();
+    await page.getByRole('checkbox', { name: 'Elliptical, variation' }).click();
+    await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
+
+    const exercise = page.getByTestId(/^routine-exercise-/);
+    await exercise.getByRole('button', { name: 'Expand Elliptical' }).click();
+    await exercise.getByRole('button', { name: 'Open details for set 1' }).click();
+    const interval = page.getByRole('textbox', { name: 'Routine sec interval for set 1' });
+    await interval.pressSequentially('30-60');
+    await expect(interval).toHaveValue('30-60');
+    await interval.blur();
+    await expect(interval).toHaveValue('30–60');
+    await page.getByTestId('set-details-sheet').getByRole('button', { name: 'Close Set 1' }).click();
+    await expect(exercise.getByLabel('Sec for set 1, routine interval 30–60')).toBeVisible();
+  });
+
   test('keeps routine view read-only and reserves exercise reordering for Edit', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Plans' }).click();
