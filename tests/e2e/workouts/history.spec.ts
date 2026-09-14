@@ -42,6 +42,12 @@ test.describe('History screen', () => {
     const typeIcon = await page.getByTestId('history-type-icon-empty-session').boundingBox();
     expect(typeIcon?.width).toBeCloseTo(44, 0);
     await expect(page.getByTestId(/^history-period-connector-/)).toHaveCount(2);
+    const firstMarker = await page.getByTestId('history-marker-muay-thai').boundingBox();
+    const firstConnector = await page.getByTestId(/^history-period-connector-/).first().boundingBox();
+    expect((firstMarker?.x ?? 0) + (firstMarker?.width ?? 0) / 2).toBeCloseTo(
+      (firstConnector?.x ?? 0) + (firstConnector?.width ?? 0) / 2,
+      0,
+    );
     expect(await page.locator('svg').count()).toBeGreaterThan(0);
     if (testInfo.project.name === 'iphone-air') {
       await page.waitForTimeout(250);

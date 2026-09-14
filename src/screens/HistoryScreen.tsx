@@ -3,6 +3,7 @@ import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import ReanimatedSwipeable, {
   type SwipeableMethods,
 } from 'react-native-gesture-handler/ReanimatedSwipeable';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import {
   AppScreen,
   Button,
@@ -132,9 +133,33 @@ export function HistoryScreen({
           scrollEventThrottle={16}
         >
           {groups.length ? (
-            groups.map((group, groupIndex) => (
+            groups.map((group, groupIndex) => {
+              const previousLastWorkout = groups[groupIndex - 1]?.workouts.at(-1);
+              const previousTail = previousLastWorkout && hasWorkoutExerciseSummary(previousLastWorkout)
+                ? styles.periodRailConnectorDetailed
+                : styles.periodRailConnectorCompact;
+              const groupTail = hasWorkoutExerciseSummary(group.workouts.at(-1)!)
+                ? styles.groupRailDetailed
+                : styles.groupRailCompact;
+              return (
               <View key={group.key} testID={`history-group-${group.key}`} style={styles.group}>
-                {groupIndex > 0 ? <View testID={`history-period-connector-${group.key}`} pointerEvents="none" style={styles.groupRailConnector} /> : null}
+                <View pointerEvents="none" style={[styles.groupRail, groupTail]} />
+                {groupIndex > 0 ? (
+                  <View testID={`history-period-connector-${group.key}`} pointerEvents="none" style={[styles.periodRailConnector, previousTail]}>
+                    <Svg width={1} height="100%">
+                      <Defs>
+                        <LinearGradient id={`history-period-rail-${group.key}`} x1="0" y1="0" x2="0" y2="1">
+                          <Stop offset="0" stopColor={theme.divider} stopOpacity={0.48} />
+                          <Stop offset="0.28" stopColor={theme.divider} stopOpacity={0.28} />
+                          <Stop offset="0.5" stopColor={theme.divider} stopOpacity={0.08} />
+                          <Stop offset="0.72" stopColor={theme.divider} stopOpacity={0.28} />
+                          <Stop offset="1" stopColor={theme.divider} stopOpacity={0.48} />
+                        </LinearGradient>
+                      </Defs>
+                      <Rect width="1" height="100%" fill={`url(#history-period-rail-${group.key})`} />
+                    </Svg>
+                  </View>
+                ) : null}
                 <Text style={styles.groupTitle}>{group.label}</Text>
                 {group.workouts.map((workout, index) => (
                   <TimelineRow
@@ -163,7 +188,8 @@ export function HistoryScreen({
                   />
                 ))}
               </View>
-            ))
+              );
+            })
           ) : (
             <View style={styles.empty}>
               <Image
@@ -418,7 +444,7 @@ function TimelineRow({
   const date = new Date(workout.completedAt ?? workout.startedAt);
   const type = getWorkoutTypePresentation(workout.type, workoutTypes, theme, 0.14);
   const setCount = countWorkoutSets(workout);
-  const hasExerciseSummary = workout.exercises.length > 0 && setCount > 0;
+  const hasExerciseSummary = hasWorkoutExerciseSummary(workout);
 
   React.useEffect(() => {
     if (!deleteRevealed) swipeableRef.current?.close();
@@ -436,8 +462,7 @@ function TimelineRow({
         <Text style={styles.month}>{date.toLocaleDateString('en-GB', { month: 'short' })}</Text>
       </View>
       <View style={styles.timelineRail}>
-        <View style={[styles.railLine, first && styles.railLineFirst]} />
-        <View style={[styles.marker, first && styles.markerActive]} />
+        <View testID={`history-marker-${workout.id}`} style={[styles.marker, first && styles.markerActive]} />
       </View>
       <View testID={`history-swipe-${workout.id}`} style={styles.swipeShell}>
         <ReanimatedSwipeable
@@ -520,6 +545,13 @@ function TimelineRow({
 
 const swipeSpring = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
 const historyCardRadius = 16;
+const historyRailCenter = 58.5;
+const historyGroupRailTop = 68;
+const historyGroupGap = 18;
+
+function hasWorkoutExerciseSummary(workout: Workout): boolean {
+  return workout.exercises.length > 0 && countWorkoutSets(workout) > 0;
+}
 
 function startOfDay(value: Date): Date {
   const result = new Date(value);
@@ -626,18 +658,30 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 18, gap: 18 },
   group: { gap: 8, position: 'relative' },
-  // The timeline is one chronological rail, not a collection of disconnected
-  // weekly mini-timelines. This connector crosses the period label and the
-  // inter-group gap; its marker remains above it in each row.
-  groupRailConnector: {
+  // One solid rail lives behind all rows in its week, crossing row gaps. The
+  // gradient bridge across a period label reads as chronology without making
+  // the week boundary feel like a hard break.
+  groupRail: {
     position: 'absolute',
     zIndex: 0,
-    top: -18,
-    bottom: 0,
-    left: 57,
-    width: 2,
+    top: historyGroupRailTop,
+    left: historyRailCenter - 0.5,
+    width: 1,
     backgroundColor: theme.divider,
+    opacity: 0.78,
   },
+  groupRailDetailed: { bottom: 36 },
+  groupRailCompact: { bottom: 24 },
+  periodRailConnector: {
+    position: 'absolute',
+    zIndex: 0,
+    left: historyRailCenter - 0.5,
+    width: 1,
+    height: historyGroupRailTop + historyGroupGap,
+    overflow: 'hidden',
+  },
+  periodRailConnectorDetailed: { top: -(36 + historyGroupGap), height: historyGroupRailTop + 36 + historyGroupGap },
+  periodRailConnectorCompact: { top: -(24 + historyGroupGap), height: historyGroupRailTop + 24 + historyGroupGap },
   groupTitle: {
     marginLeft: 70,
     color: theme.slate,
@@ -650,14 +694,6 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   day: { color: theme.ink, ...typeScale.metricMedium },
   month: { color: theme.slate, ...typeScale.caption },
   timelineRail: { width: 23, alignItems: 'center', position: 'relative' },
-  railLine: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    width: 2,
-    backgroundColor: theme.divider,
-  },
-  railLineFirst: { top: 37 },
   marker: {
     zIndex: 1,
     marginTop: 33,
