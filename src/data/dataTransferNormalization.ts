@@ -27,6 +27,34 @@ function assignId<T extends TransferRecord>(item: T): T & { id: string } {
 }
 
 /**
+ * The previous Forge exporter described every strength exercise as reps-only,
+ * even when its legacy snapshot named an externally loaded implement. Those
+ * snapshots have no catalogue version, so leave current Forge records and
+ * explicit custom tracking choices untouched.
+ */
+function isLegacyExternalLoadExercise(exercise: TransferRecord): boolean {
+  const snapshot = exercise.exerciseSnapshot;
+  if (
+    !isObject(snapshot)
+    || exercise.trackingType !== 'reps-only'
+    || snapshot.trackingType !== 'reps-only'
+    || snapshot.catalogueVersion !== undefined
+  ) return false;
+  const equipment = [snapshot.primaryEquipment, ...(Array.isArray(snapshot.equipment) ? snapshot.equipment : [])];
+  return equipment.some((item) => typeof item === 'string' && /(^|[\s:-])(barbell|dumbbell|kettlebell|cable|machine|smith|plate|resistance band)(?=$|[\s:-])/i.test(item));
+}
+
+function normalizeLegacyTracking<T extends TransferRecord>(exercise: T): T {
+  if (!isLegacyExternalLoadExercise(exercise)) return exercise;
+  const snapshot = exercise.exerciseSnapshot as TransferRecord;
+  return {
+    ...exercise,
+    trackingType: 'weight-reps',
+    exerciseSnapshot: { ...snapshot, trackingType: 'weight-reps' },
+  } as T;
+}
+
+/**
  * Keeps a valid JSON transfer structurally safe before either persistence
  * repository consumes it. Array transformations deliberately preserve source
  * order; duplicate ids retain their first source record.
@@ -38,10 +66,13 @@ export function normalizeDataTransfer<T>(transfer: T): T {
   const workouts = value.workouts as TransferRecord;
   const records = <U extends TransferRecord>(items: unknown): Array<U & { id: string }> =>
     Array.isArray(items) ? items.filter(isObject).map((item) => assignId(item as U)) : [];
-  const normalizeExercise = <U extends TransferRecord>(exercise: U): U & { id: string } => ({
-    ...assignId(exercise),
-    sets: uniqueById(records<TransferRecord>(exercise.sets)),
-  });
+  const normalizeExercise = (exercise: TransferRecord): TransferRecord & { id: string } => {
+    const normalized = normalizeLegacyTracking(assignId(exercise));
+    return {
+      ...normalized,
+      sets: uniqueById(records<TransferRecord>(normalized.sets)),
+    };
+  };
   const normalizeWorkout = <U extends TransferRecord>(workout: U): U & { id: string } => ({
     ...assignId(workout),
     exercises: uniqueById(records<TransferRecord>(workout.exercises).map(normalizeExercise)),

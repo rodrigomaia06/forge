@@ -100,6 +100,56 @@ test('normalizes JSON exercises and sets without changing their imported order',
   ]);
 });
 
+test('repairs legacy externally loaded import tracking without reordering exercises or sets', () => {
+  const transfer = normalizeDataTransfer({
+    settings: { workoutTypes: [], dailyMeasurementDefinitions: [], dailyMeasurementEntries: [] },
+    plans: {
+      plans: [],
+      standaloneRoutines: [{
+        id: 'routine',
+        exercises: [
+          {
+            id: 'dumbbell-press',
+            name: 'Shoulder Press: Dumbbell',
+            trackingType: 'reps-only',
+            exerciseSnapshot: {
+              name: 'Shoulder Press: Dumbbell',
+              trackingType: 'reps-only',
+              primaryEquipment: 'dumbbell',
+            },
+            sets: [{ id: 'press-first' }, { id: 'press-last' }],
+          },
+          {
+            id: 'pull-up',
+            name: 'Pull Up',
+            trackingType: 'reps-only',
+            exerciseSnapshot: {
+              name: 'Pull Up',
+              trackingType: 'reps-only',
+              primaryEquipment: 'body',
+            },
+            sets: [{ id: 'pull-set' }],
+          },
+        ],
+      }],
+    },
+    workouts: { activeWorkout: null, completedWorkouts: [] },
+    customExercises: [],
+  });
+
+  const exercises = transfer.plans.standaloneRoutines[0].exercises;
+  expect(exercises.map((exercise) => exercise.id)).toEqual(['dumbbell-press', 'pull-up']);
+  expect(exercises[0].sets.map((set) => set.id)).toEqual(['press-first', 'press-last']);
+  expect(exercises[0]).toMatchObject({
+    trackingType: 'weight-reps',
+    exerciseSnapshot: { trackingType: 'weight-reps' },
+  });
+  expect(exercises[1]).toMatchObject({
+    trackingType: 'reps-only',
+    exerciseSnapshot: { trackingType: 'reps-only' },
+  });
+});
+
 test('merges imported routines into their existing plan without losing device order', () => {
   const current = {
     plans: [
