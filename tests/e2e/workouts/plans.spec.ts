@@ -491,13 +491,12 @@ test.describe('Plans and routines', () => {
     const exercise = page.getByTestId(/^routine-exercise-/);
     await exercise.getByRole('button', { name: 'Expand Elliptical' }).click();
     const duration = exercise.getByRole('textbox', { name: 'Sec for set 1' });
-    await duration.pressSequentially('30');
-    await expect(duration).toHaveValue('30');
+    await duration.pressSequentially('30-60');
+    await expect(duration).toHaveValue('30-60');
+    await duration.blur();
+    await expect(duration).toHaveValue('30–60');
     await exercise.getByRole('button', { name: 'Open details for set 1' }).click();
     const interval = page.getByRole('textbox', { name: 'Routine sec interval for set 1' });
-    await interval.pressSequentially('30-60');
-    await expect(interval).toHaveValue('30-60');
-    await interval.blur();
     await expect(interval).toHaveValue('30–60');
     await page.getByTestId('set-details-sheet').getByRole('button', { name: 'Close Set 1' }).click();
     await expect(exercise.getByLabel('Sec for set 1, routine interval 30–60')).toBeVisible();

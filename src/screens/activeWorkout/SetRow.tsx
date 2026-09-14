@@ -1,13 +1,13 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, Pressable, StyleSheet, View } from 'react-native';
-import { ForgeText as Text, ForgeTextInput as TextInput } from '../../components/ui';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { ForgeNumericRangeAccessory, ForgeText as Text, ForgeTextInput as TextInput } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import { errorHaptic } from './activeWorkoutFeedback';
 import { CompletionCheck } from './CompletionCheck';
 import type { SetRowProps } from './activeWorkoutTypes';
-import { measurementText, trackingFieldLabel, trackingFields, updateMeasurement } from '../../domain/exercises/tracking';
+import { measurementText, measurementUnit, trackingFieldLabel, trackingFields, updateMeasurement } from '../../domain/exercises/tracking';
 import { hasNextSessionTarget, setTagPresentation } from '../../domain/workouts/setPresentation';
 
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
@@ -33,6 +33,7 @@ export function SetRow({
   const repsInvalidProgress = useRef(new Animated.Value(0)).current;
   const invalidTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const setRowRef = useRef<View>(null);
+  const [routineRangeDrafts, setRoutineRangeDrafts] = useState<Partial<Record<import('../../types').SetMeasurementKind, string>>>({});
   const previous = set.previous || '—';
   const tag = setTagPresentation(set.tag);
   const rpe = measurementText(set, 'rpe');
@@ -46,6 +47,10 @@ export function SetRow({
     },
     [repsInvalidProgress, weightInvalidProgress],
   );
+
+  useEffect(() => {
+    setRoutineRangeDrafts({});
+  }, [set.id]);
 
   const animateInvalidField = (field: 'weight' | 'reps', value: number, duration = 150): void => {
     Animated.timing(field === 'weight' ? weightInvalidProgress : repsInvalidProgress, {
@@ -138,10 +143,71 @@ export function SetRow({
         {previous}
       </Text>
       {trackingFields[trackingType].map((kind) => {
-        const value = measurementText(set, kind);
-        const legacy = kind === 'reps' ? { reps: value } : kind === 'weight' || kind === 'addedWeight' ? { weight: value } : {};
         const planned = plannedIntervalText(set, kind);
-        return <AnimatedTextInput key={kind} accessibilityLabel={`${trackingFieldLabel(trackingType, kind)} for set ${index + 1}${planned ? `, routine interval ${planned}` : ''}`} value={value} selection={{ start: value.length, end: value.length }} onChangeText={(text: string) => onChange({ ...legacy, measurements: updateMeasurement(set, kind, text) })} onTouchStart={onInputTouchStart} onTouchMove={onInputTouchMove} onTouchEnd={onInputTouchEnd} onFocus={reportInputFocus} keyboardType={kind === 'reps' || kind === 'duration' ? 'number-pad' : 'decimal-pad'} selectTextOnFocus={false} placeholder={planned || '—'} placeholderTextColor={planned ? theme.ink : theme.slate} style={[styles.input, styles.inputColumn, { borderColor: theme.divider }, invalidStyle(kind === 'reps' ? repsInvalidProgress : weightInvalidProgress)]} />;
+        const allowsRange = setTargetMode === 'routine' && (kind === 'reps' || kind === 'duration');
+        const storedValue = allowsRange ? planned : measurementText(set, kind);
+        const draftValue = routineRangeDrafts[kind];
+        const value = allowsRange && draftValue !== undefined ? draftValue : storedValue;
+        const legacy = kind === 'reps' ? { reps: value } : kind === 'weight' || kind === 'addedWeight' ? { weight: value } : {};
+        const rangeAccessoryId = `forge-range-set-${set.id}-${kind}`;
+        const writeMeasurement = (text: string): void => {
+          if (allowsRange) {
+            const draft = numericRangeText(text);
+            setRoutineRangeDrafts((current) => ({ ...current, [kind]: draft }));
+            onChange({ plannedTargets: updateRoutineRangeTargets(set.plannedTargets, set.id, kind, draft) });
+            return;
+          }
+          onChange({
+            ...legacy,
+            measurements: updateMeasurement(set, kind, text),
+          });
+        };
+        return (
+          <React.Fragment key={kind}>
+            <AnimatedTextInput
+              accessibilityLabel={`${trackingFieldLabel(trackingType, kind)} for set ${index + 1}${planned ? `, routine interval ${planned}` : ''}`}
+              value={value}
+              selection={{ start: value.length, end: value.length }}
+              onChangeText={writeMeasurement}
+              onTouchStart={onInputTouchStart}
+              onTouchMove={onInputTouchMove}
+              onTouchEnd={onInputTouchEnd}
+              onFocus={reportInputFocus}
+              onBlur={() => {
+                if (!allowsRange) return;
+                setRoutineRangeDrafts((current) => {
+                  const next = { ...current };
+                  delete next[kind];
+                  return next;
+                });
+              }}
+              keyboardType={
+                allowsRange && Platform.OS !== 'ios'
+                  ? 'default'
+                  : kind === 'reps' || kind === 'duration'
+                    ? 'number-pad'
+                    : 'decimal-pad'
+              }
+              inputAccessoryViewID={allowsRange ? rangeAccessoryId : undefined}
+              selectTextOnFocus={false}
+              placeholder={planned || '—'}
+              placeholderTextColor={planned ? theme.ink : theme.slate}
+              style={[
+                styles.input,
+                styles.inputColumn,
+                { borderColor: theme.divider },
+                invalidStyle(kind === 'reps' ? repsInvalidProgress : weightInvalidProgress),
+              ]}
+            />
+            {allowsRange ? (
+              <ForgeNumericRangeAccessory
+                nativeID={rangeAccessoryId}
+                disabled={!canAppendRangeSeparator(value)}
+                onInsertSeparator={() => writeMeasurement(`${value}-`)}
+              />
+            ) : null}
+          </React.Fragment>
+        );
       })}
       <View style={styles.check}>
         {showCompletion ? (
@@ -160,6 +226,50 @@ export function SetRow({
       </View>
     </View>
   );
+}
+
+function canAppendRangeSeparator(value: string): boolean {
+  return /\d/.test(value) && !/[-–—]/.test(value);
+}
+
+function numericRangeText(value: string): string {
+  let separatorFound = false;
+  return Array.from(value).reduce((result, character) => {
+    if (/\d/.test(character)) return `${result}${character}`;
+    if ((character === '-' || character === '–' || character === '—') && !separatorFound) {
+      separatorFound = true;
+      return `${result}-`;
+    }
+    return result;
+  }, '');
+}
+
+function updateRoutineRangeTargets(
+  targets: import('../../types').WorkoutSet['plannedTargets'],
+  setId: string,
+  kind: import('../../types').SetMeasurementKind,
+  text: string,
+): NonNullable<import('../../types').WorkoutSet['plannedTargets']> {
+  const values = numericRangeValues(text);
+  const retained = (targets ?? []).filter((target) => target.kind !== kind);
+  if (!values.length) return retained;
+  return [
+    ...retained,
+    {
+      id: `${setId}-planned-${kind}`,
+      kind,
+      unit: measurementUnit[kind],
+      minValue: values[0],
+      maxValue: values[1] ?? values[0],
+    },
+  ];
+}
+
+function numericRangeValues(value: string): number[] {
+  return value
+    .split('-')
+    .map((part) => Number(part.trim()))
+    .filter(Number.isFinite);
 }
 
 function plannedIntervalText(set: import('../../types').WorkoutSet, kind: import('../../types').SetMeasurementKind): string {

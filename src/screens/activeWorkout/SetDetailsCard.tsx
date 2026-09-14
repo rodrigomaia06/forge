@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Pressable,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   View,
@@ -20,6 +20,7 @@ import {
   ForgeBottomSheetHandle,
   ForgeBackButton,
   ForgeCard,
+  ForgeNumericRangeAccessory,
   ForgeSheetHeader,
   ForgeText as Text,
   ForgeTextInput as TextInput,
@@ -472,11 +473,7 @@ function TargetsSection({
             placeholder={isRoutineInterval ? 'e.g. 8–12' : '—'}
             unit={targetUnitLabel(kind)}
             editable={editable}
-            // The iOS numeric pads omit the range separator. Its
-            // numbers-and-punctuation keyboard keeps the numeric workflow
-            // while exposing `-` directly; other platforms retain a normal
-            // text keyboard so intervals remain possible everywhere.
-            keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'default'}
+            keyboardType={Platform.OS === 'ios' ? 'number-pad' : 'default'}
             accessibilityLabel={`${isRoutineInterval ? 'Routine' : 'Next-time'} ${trackingFieldLabel(trackingType, kind).toLowerCase()} ${isRoutineInterval ? 'interval' : 'target'} for ${setLabel.toLowerCase()}`}
             onChangeText={(value) => onChange({
               ...(isRoutineInterval
@@ -569,58 +566,82 @@ function TargetRow({
     requestAnimationFrame(() => inputRef.current?.setSelection(draftValueRef.current.length, draftValueRef.current.length));
   }, []);
   const inputFit = targetInputFit(draftValue);
+  const rangeAccessoryId = `forge-range-target-${accessibilityLabel.replace(/[^a-z0-9]/gi, '-').toLowerCase()}`;
+  const canInsertSeparator = canAppendRangeSeparator(draftValue);
+  const insertSeparator = (): void => {
+    if (!canInsertSeparator) return;
+    const nextValue = `${draftValue}-`;
+    draftValueRef.current = nextValue;
+    setDraftValue(nextValue);
+    onChangeText(nextValue);
+    inputRef.current?.focus();
+  };
 
   return (
-    <Pressable
-      accessibilityRole={editable ? 'button' : undefined}
-      accessibilityLabel={editable ? accessibilityLabel : undefined}
-      onPress={editable ? focusInput : undefined}
-      disabled={!editable}
-      style={({ pressed }) => [styles.targetRow, showDivider && styles.targetRowDivider, pressed && pressedFeedbackSubtle]}
-    >
-      <Text style={styles.targetLabel}>{label}</Text>
-      <View style={styles.targetValue}>
-        {editable ? (
-          <TextInput
-            ref={inputRef}
-            accessibilityLabel={accessibilityLabel}
-            value={draftValue}
-            selection={{ start: draftValue.length, end: draftValue.length }}
-            onChangeText={(nextValue) => {
-              draftValueRef.current = nextValue;
-              setDraftValue(nextValue);
-              onChangeText(nextValue);
-            }}
-            onFocus={() => {
-              editingRef.current = true;
-              onFocus();
-              requestAnimationFrame(() => inputRef.current?.setSelection(draftValueRef.current.length, draftValueRef.current.length));
-            }}
-            onBlur={() => {
-              editingRef.current = false;
-              const rawValue = draftValueRef.current;
-              const canonicalValue = normalizedTargetText(rawValue);
-              // Preserve natural entry while focused, then use one canonical
-              // format after leaving the field (for example `8–12`).
-              draftValueRef.current = canonicalValue;
-              setDraftValue(canonicalValue);
-              onChangeText(rawValue);
-            }}
-            onTouchStart={(event) => event.stopPropagation()}
-            keyboardType={keyboardType}
-            multiline={false}
-            selectTextOnFocus={false}
-            placeholder={placeholder}
-            placeholderTextColor={theme.ink}
-            style={[styles.targetInput, inputFit]}
-          />
-        ) : (
-          <Text style={styles.targetStaticValue}>{value || placeholder}</Text>
-        )}
-        <Text style={styles.targetUnit}>{unit}</Text>
-      </View>
-    </Pressable>
+    <>
+      <Pressable
+        accessibilityRole={editable ? 'button' : undefined}
+        accessibilityLabel={editable ? accessibilityLabel : undefined}
+        onPress={editable ? focusInput : undefined}
+        disabled={!editable}
+        style={({ pressed }) => [styles.targetRow, showDivider && styles.targetRowDivider, pressed && pressedFeedbackSubtle]}
+      >
+        <Text style={styles.targetLabel}>{label}</Text>
+        <View style={styles.targetValue}>
+          {editable ? (
+            <TextInput
+              ref={inputRef}
+              accessibilityLabel={accessibilityLabel}
+              value={draftValue}
+              selection={{ start: draftValue.length, end: draftValue.length }}
+              onChangeText={(nextValue) => {
+                draftValueRef.current = nextValue;
+                setDraftValue(nextValue);
+                onChangeText(nextValue);
+              }}
+              onFocus={() => {
+                editingRef.current = true;
+                onFocus();
+                requestAnimationFrame(() => inputRef.current?.setSelection(draftValueRef.current.length, draftValueRef.current.length));
+              }}
+              onBlur={() => {
+                editingRef.current = false;
+                const rawValue = draftValueRef.current;
+                const canonicalValue = normalizedTargetText(rawValue);
+                // Preserve natural entry while focused, then use one canonical
+                // format after leaving the field (for example `8–12`).
+                draftValueRef.current = canonicalValue;
+                setDraftValue(canonicalValue);
+                onChangeText(rawValue);
+              }}
+              onTouchStart={(event) => event.stopPropagation()}
+              keyboardType={keyboardType}
+              inputAccessoryViewID={rangeAccessoryId}
+              multiline={false}
+              selectTextOnFocus={false}
+              placeholder={placeholder}
+              placeholderTextColor={theme.ink}
+              style={[styles.targetInput, inputFit]}
+            />
+          ) : (
+            <Text style={styles.targetStaticValue}>{value || placeholder}</Text>
+          )}
+          <Text style={styles.targetUnit}>{unit}</Text>
+        </View>
+      </Pressable>
+      {editable ? (
+        <ForgeNumericRangeAccessory
+          nativeID={rangeAccessoryId}
+          disabled={!canInsertSeparator}
+          onInsertSeparator={insertSeparator}
+        />
+      ) : null}
+    </>
   );
+}
+
+function canAppendRangeSeparator(value: string): boolean {
+  return /\d/.test(value) && !/[-–—]/.test(value);
 }
 
 /**
