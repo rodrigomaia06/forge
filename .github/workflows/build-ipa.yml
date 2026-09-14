@@ -34,6 +34,18 @@ jobs:
         run: sudo xcode-select --switch /Applications/Xcode_26.3.app/Contents/Developer
       - name: Install JavaScript dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Patch ExpoModulesJSI for Swift 6.2
+        # SDK 57 annotates C++ constructors with SWIFT_RETURNS_RETAINED. Xcode
+        # 26's Swift 6.2 compiler rejects that annotation on constructors;
+        # removing the two annotations preserves their normal shared-reference
+        # ownership semantics. Keep the count check so an Expo update that
+        # removes or changes this upstream workaround cannot silently drift.
+        run: |
+          set -euo pipefail
+          HEADER='node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI-Cxx/include/RuntimeScheduler.h'
+          test "$(rg -F -c 'SWIFT_RETURNS_RETAINED RuntimeScheduler' "$HEADER")" -eq 2
+          perl -0pi -e 's/SWIFT_RETURNS_RETAINED RuntimeScheduler/RuntimeScheduler/g' "$HEADER"
+          ! rg -F 'SWIFT_RETURNS_RETAINED RuntimeScheduler' "$HEADER"
       - name: Generate the iOS project
         # Prebuild also runs Forge's local plugin, which adds the direct
         # ActivityKit extension and the app-local numeric range keyboard.

@@ -18,6 +18,12 @@ disabled, packages `Payload/Forge.app` as an IPA, validates the app and widget
 extension executables, and uploads the IPA and native build log separately.
 It explicitly selects Xcode 26.3 because the runner's default Xcode 16.4
 provides Swift tools 6.1, while ExpoModulesJSI's SwiftPM package requires 6.2.
+Until Expo SDK 57 ships its upstream fix, the workflow removes the two invalid
+`SWIFT_RETURNS_RETAINED` constructor annotations from ExpoModulesJSI after
+installing dependencies; Swift 6.2 rejects those annotations but preserves the
+class's ordinary shared-reference ownership without them. The guarded patch is
+deliberately local to the CI dependency install and must be removed or updated
+when Expo changes the affected header.
 The existing `EXPO_TOKEN` secret may remain configured but is not used for this
 workflow. No Apple account or EAS build is needed.
 
