@@ -175,20 +175,51 @@ test.describe('History screen', () => {
     expect(headings.at(-1)).toContain('Pull - Extension');
   });
 
-  test('opens an individual workout with a summary and no rest timer', async ({ page }) => {
+  test('opens an individual workout with a structured summary and no rest timer', async ({ page }) => {
     await page.getByRole('button', { name: 'Open Muay Thai' }).click();
 
     const summary = page.getByTestId('workout-details-summary');
-    await expect(summary.getByText('Muay Thai', { exact: true })).toHaveCount(0);
+    await expect(summary).toContainText('3 exercises, 8 sets');
     await expect(page.getByText('Muay Thai', { exact: true }).last()).toBeVisible();
-    await expect(summary.getByText('1:12h', { exact: true })).toBeVisible();
-    await expect(summary.getByText('Duration', { exact: true })).toBeVisible();
+    await expect(summary).toContainText('1:12h');
+    await expect(summary).toContainText('Duration');
+    await expect(summary).toContainText('Not recorded');
     await expect(page.getByText('Rest', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Back to History' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Back to History' })).not.toContainText('Back');
     await expect(page.getByRole('button', { name: 'Workout options' })).toContainText('More');
 
     await expect(page.getByText('Exercise 1', { exact: true })).toBeVisible();
+  });
+
+  test('keeps workout context compact until Session details is requested', async ({ page }, testInfo) => {
+    const workout = {
+      ...completedWorkouts.find((item) => item.id === 'muay-thai')!,
+      note: 'Felt strong overall. Increased the working weight.',
+      averageRestSeconds: 102,
+      attributes: { Location: 'Forge Gym', Energy: 'High', Goal: 'Strength', Sleep: '8 hours' },
+      attributeIcons: { Location: 'location', Energy: 'energy', Goal: 'goal', Sleep: 'sleep' },
+    };
+    await page.evaluate((nextWorkout) => {
+      localStorage.setItem('@forge/completed-workouts', JSON.stringify([nextWorkout]));
+    }, workout);
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'History' }).click();
+    await page.getByRole('button', { name: 'Open Muay Thai' }).click();
+
+    const summary = page.getByTestId('workout-details-summary');
+    await expect(summary.getByText('1m 42s', { exact: true })).toBeVisible();
+    await expect(summary.getByText('Felt strong overall. Increased the working weight.', { exact: true })).toBeVisible();
+    const details = summary.getByRole('button', { name: 'Show session details' });
+    await expect(details).toContainText('Location, Energy, Goal +1');
+    await expect(summary.getByText('Forge Gym', { exact: true })).toHaveCount(0);
+    await details.click();
+    await expect(summary.getByRole('button', { name: 'Hide session details' })).toBeVisible();
+    await expect(summary.getByText('Forge Gym', { exact: true })).toBeVisible();
+    await expect(summary.getByText('8 hours', { exact: true })).toBeVisible();
+    if (testInfo.project.name === 'iphone-air') {
+      await page.screenshot({ path: testInfo.outputPath('workout-summary-card-iphone.png') });
+    }
   });
 
   test('returns to History through the Back action after opening a workout', async ({ page }) => {

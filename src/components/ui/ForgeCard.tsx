@@ -7,6 +7,7 @@ export function ForgeCard({
   style,
   variant = 'outlined',
   size = 'standard',
+  testID,
 }: {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
@@ -14,10 +15,12 @@ export function ForgeCard({
   variant?: 'outlined' | 'elevated' | 'inset';
   /** Compact grouped rows retain Forge card treatment with a smaller corner radius. */
   size?: 'standard' | 'compact';
+  testID?: string;
 }) {
   const theme = useForgeTheme();
   return (
     <View
+      testID={testID}
       style={[
         styles.card,
         size === 'compact' && styles.compact,
