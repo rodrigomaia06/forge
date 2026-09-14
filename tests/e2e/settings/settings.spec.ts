@@ -321,6 +321,30 @@ test.describe('Settings', () => {
     await expect(page.getByText('Routine A', { exact: true })).toBeVisible();
   });
 
+  test('uses a Forge decision card when data transfer cannot complete', async ({ page }, testInfo) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Backup & Export' }).click();
+    const chooserPromise = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: 'Import JSON' }).click();
+    const chooser = await chooserPromise;
+    await chooser.setFiles({
+      name: 'not-forge.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from('{not-valid-json'),
+    });
+    const notice = page.getByTestId('backup-export-notice');
+    await expect(notice).toBeVisible();
+    await expect(notice).toContainText('Could not complete this action');
+    await expect(notice.getByRole('button', { name: 'Done' })).toBeVisible();
+    if (testInfo.project.name === 'iphone-air') {
+      await page.waitForTimeout(250);
+      await page.screenshot({ path: testInfo.outputPath('backup-export-error-forge-iphone.png') });
+    }
+    await notice.getByRole('button', { name: 'Done' }).click();
+    await expect(notice).toBeHidden();
+  });
+
   test('uses the Forge destructive confirmation card before deleting app data', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();

@@ -14,7 +14,7 @@ interface ForgeConfirmationDialogProps {
   confirmLabel: string;
   onCancel: () => void;
   onConfirm: () => void;
-  confirmTone?: 'destructive' | 'success';
+  confirmTone?: 'neutral' | 'destructive' | 'success';
   showCancel?: boolean;
   testID?: string;
 }

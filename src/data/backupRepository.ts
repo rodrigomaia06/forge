@@ -440,9 +440,7 @@ function hasSqliteHeader(bytes: Uint8Array): boolean {
 async function inspectBytes(bytes: Uint8Array): Promise<BackupInspection> {
   if (!hasSqliteHeader(bytes))
     throw new Error('Choose a Forge .sqlite backup, not a data transfer or another app database.');
-  let candidate: SQLite.SQLiteDatabase | undefined;
-  try {
-    candidate = await SQLite.deserializeDatabaseAsync(bytes);
+  return withTemporaryBackupDatabase(bytes, async (candidate) => {
     const integrity = await candidate.getFirstAsync<{ integrity_check: string }>(
       'PRAGMA integrity_check',
     );
@@ -475,8 +473,30 @@ async function inspectBytes(bytes: Uint8Array): Promise<BackupInspection> {
       planCount: plans?.count ?? 0,
       customExerciseCount: exercises?.count ?? 0,
     };
+  });
+}
+
+/**
+ * iOS can reject a deserialized in-memory database while preparing its first
+ * statement. Validate a cache-backed candidate instead, then always remove it
+ * once the check or restore completes.
+ */
+async function withTemporaryBackupDatabase<T>(
+  bytes: Uint8Array,
+  work: (database: SQLite.SQLiteDatabase) => Promise<T>,
+): Promise<T> {
+  const databaseName = `forge-restore-candidate-${stamp()}.sqlite`;
+  const file = cacheFile(databaseName, bytes);
+  let candidate: SQLite.SQLiteDatabase | undefined;
+  try {
+    candidate = await SQLite.openDatabaseAsync(databaseName, { useNewConnection: true }, Paths.cache.uri);
+    return await work(candidate);
   } finally {
-    await candidate?.closeAsync();
+    try {
+      await candidate?.closeAsync();
+    } finally {
+      if (file.exists) file.delete();
+    }
   }
 }
 
@@ -494,12 +514,9 @@ export async function restoreSqliteBackup(inspection: BackupInspection): Promise
   await withDatabaseMaintenance(async (live) => {
     await inspectBytes(inspection.bytes);
     cacheFile(`forge-safety-before-restore-${stamp()}.sqlite`, await live.serializeAsync());
-    const candidate = await SQLite.deserializeDatabaseAsync(inspection.bytes);
-    try {
+    await withTemporaryBackupDatabase(inspection.bytes, async (candidate) => {
       await SQLite.backupDatabaseAsync({ sourceDatabase: candidate, destDatabase: live });
-    } finally {
-      await candidate.closeAsync();
-    }
+    });
   });
 }
 

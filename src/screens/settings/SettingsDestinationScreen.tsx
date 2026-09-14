@@ -68,6 +68,8 @@ function BackupExport() {
   const [inspection, setInspection] = React.useState<DataTransferInspection | null>(null);
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = React.useState(false);
   const [deleteCompleteOpen, setDeleteCompleteOpen] = React.useState(false);
+  const [restoreInspection, setRestoreInspection] = React.useState<Awaited<ReturnType<typeof pickSqliteBackup>>>(null);
+  const [notice, setNotice] = React.useState<{ title: string; message: string; tone?: 'neutral' | 'success' } | null>(null);
   const [mergeSummary, setMergeSummary] = React.useState<DataTransferMergeResult | null>(null);
   const theme = useForgeTheme();
   const { reload: reloadSettings } = useSettings();
@@ -79,13 +81,16 @@ function BackupExport() {
     stopRestTimer();
     await Promise.all([reloadSettings(), reloadPlans(), reloadWorkouts(), reloadExercises()]);
   }, [reloadExercises, reloadPlans, reloadSettings, reloadWorkouts, stopRestTimer]);
-  const run = React.useCallback(async (work: () => Promise<void>, success?: string) => {
+  const run = React.useCallback(async (work: () => Promise<void>) => {
     if (busy) return;
     setBusy(true);
-    try { await work(); if (success) Alert.alert('Done', success); }
+    try { await work(); }
     catch (error) {
       await recordDiagnostic('operation-failed', error instanceof Error && /compatible|valid|SQLite/.test(error.message) ? 'invalid-file' : 'unknown');
-      Alert.alert('Could not complete this action', error instanceof Error ? error.message : 'Try again.');
+      setNotice({
+        title: 'Could not complete this action',
+        message: localDataErrorMessage(error),
+      });
     } finally { setBusy(false); }
   }, [busy]);
   const importData = (): void => {
@@ -121,16 +126,22 @@ function BackupExport() {
     void run(async () => {
       const inspection = await pickSqliteBackup();
       if (!inspection) return;
-      const confirmed = await new Promise<boolean>((resolve) => Alert.alert(
-        'Replace all Forge data?',
-        `This backup has ${inspection.workoutCount} completed workouts, ${inspection.planCount} plans and ${inspection.customExerciseCount} custom exercises. Current device data will be replaced after a safety copy is made.`,
-        [{ text: 'Cancel', style: 'cancel', onPress: () => resolve(false) }, { text: 'Replace data', style: 'destructive', onPress: () => resolve(true) }],
-      ));
-      if (!confirmed) return;
+      setRestoreInspection(inspection);
+    });
+  };
+  const confirmRestore = (): void => {
+    const inspection = restoreInspection;
+    if (!inspection) return;
+    setRestoreInspection(null);
+    void run(async () => {
       await restoreSqliteBackup(inspection);
       await refresh();
       await recordDiagnostic('backup-restored');
-      Alert.alert('Backup restored', 'Forge has reloaded the restored data.');
+      setNotice({
+        title: 'Backup restored',
+        message: 'Forge has reloaded the restored data.',
+        tone: 'success',
+      });
     });
   };
   const erase = (): void => {
@@ -204,6 +215,29 @@ function BackupExport() {
         testID="delete-all-data-confirmation"
       />
       <ForgeConfirmationDialog
+        visible={Boolean(restoreInspection)}
+        title="Replace all Forge data?"
+        message={restoreInspection ? `This backup has ${restoreInspection.workoutCount} completed workouts, ${restoreInspection.planCount} plans and ${restoreInspection.customExerciseCount} custom exercises. Current device data will be replaced after a safety copy is made.` : ''}
+        cancelLabel="Keep current data"
+        confirmLabel="Replace data"
+        confirmTone="destructive"
+        onCancel={() => setRestoreInspection(null)}
+        onConfirm={confirmRestore}
+        testID="restore-sqlite-confirmation"
+      />
+      <ForgeConfirmationDialog
+        visible={Boolean(notice)}
+        title={notice?.title ?? ''}
+        message={notice?.message ?? ''}
+        cancelLabel="Done"
+        confirmLabel="Done"
+        confirmTone={notice?.tone ?? 'neutral'}
+        showCancel={false}
+        onCancel={() => setNotice(null)}
+        onConfirm={() => setNotice(null)}
+        testID="backup-export-notice"
+      />
+      <ForgeConfirmationDialog
         visible={Boolean(mergeSummary)}
         title="Data merged"
         message={mergeSummary ? mergeSummaryMessage(mergeSummary) : ''}
@@ -229,6 +263,15 @@ function BackupExport() {
       />
     </View>
   );
+}
+
+function localDataErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : '';
+  if (/unable to open database|prepareAsync|SQLiteError/i.test(message))
+    return 'Forge could not open that SQLite file. Your current data was not changed. Choose a complete Forge backup and try again.';
+  if (/compatible|integrity|header/i.test(message))
+    return 'This file is not a valid Forge SQLite backup. Your current data was not changed.';
+  return 'Your local data was not changed. Try again.';
 }
 
 function mergeSummaryMessage(result: DataTransferMergeResult): string {
