@@ -5,6 +5,7 @@ import type {
   WorkoutExerciseInput,
   WorkoutSetChanges,
 } from '../types';
+import { routineStructureBaseline } from '../domain/workouts/routineStructure';
 
 export function makeWorkoutId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -21,6 +22,7 @@ export function createWorkout(options: StartWorkoutOptions): Workout {
     note: options.note || '',
     averageRestSeconds: options.averageRestSeconds,
     routineId: options.routineId,
+    routineStructureBaseline: isRoutineStart ? routineStructureBaseline(options.exercises ?? []) : undefined,
     planId: options.planId,
     attributes: options.attributes,
     attributeIcons: options.attributeIcons,

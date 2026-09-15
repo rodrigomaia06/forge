@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import {
   ForgeBottomSheet,
@@ -13,12 +13,12 @@ import {
   pressedFeedbackSubtle,
 } from '../../components/ui';
 import { exerciseCatalog, taxonomyLabel, type ExerciseCatalogItem } from '../../data/exerciseCatalog';
-import { trackingFieldLabel, trackingFields } from '../../domain/exercises/tracking';
+import { measurementText, trackingFieldLabel, trackingFields } from '../../domain/exercises/tracking';
 import { buildWarmupPlan } from '../../domain/workouts/warmup';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import type { Workout, WorkoutExercise } from '../../types';
+import type { Workout, WorkoutExercise, WorkoutSet } from '../../types';
 
 export function WarmupSetsSheet({
   visible,
@@ -167,11 +167,34 @@ export function ExerciseInfoContent({ exercise }: { exercise: WorkoutExercise })
   return <ScrollView contentContainerStyle={styles.compactContent}><ForgeCard variant="outlined" style={styles.infoCard}>{fields.map(([label, value], index) => <View key={label} style={[styles.infoRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}><Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{label}</Text><Text style={styles.infoValue}>{value}</Text></View>)}</ForgeCard></ScrollView>;
 }
 
-export function PreviousSessionsContent({ exercise, workouts }: { exercise: WorkoutExercise; workouts: readonly Workout[] }) {
+export function PreviousSessionsContent({
+  exercise,
+  workouts,
+  excludeWorkoutId,
+  onOpenWorkout,
+}: {
+  exercise: WorkoutExercise;
+  workouts: readonly Workout[];
+  excludeWorkoutId?: string;
+  onOpenWorkout?: (workoutId: string) => void;
+}) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const sessions = useMemo(() => findPreviousSessions(exercise, workouts), [exercise, workouts]);
-  return <ScrollView contentContainerStyle={styles.compactContent}>{sessions.length ? <ForgeCard variant="outlined" style={styles.sessionCard}>{sessions.map(({ workout, exercise: sessionExercise }, index) => <View key={workout.id} style={[styles.sessionRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}><View style={styles.sessionCopy}><Text style={styles.sessionDate}>{new Date(workout.completedAt ?? workout.startedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</Text><Text style={[styles.sessionDetail, { color: theme.textSecondary }]} numberOfLines={2}>{formatSessionSets(sessionExercise)}</Text></View><Icon name="history" size={20} color={theme.textSecondary} /></View>)}</ForgeCard> : <View style={[styles.emptyCard, { borderColor: theme.border, backgroundColor: theme.surfaceMuted }]}><Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>No completed sessions for this exercise yet.</Text></View>}</ScrollView>;
+  const [showAll, setShowAll] = useState(false);
+  const sessions = useMemo(
+    () => findPreviousSessions(exercise, workouts).filter(({ workout }) => workout.id !== excludeWorkoutId),
+    [excludeWorkoutId, exercise, workouts],
+  );
+  const visibleSessions = showAll ? sessions : sessions.slice(0, 3);
+  return <ScrollView contentContainerStyle={styles.compactContent}>{sessions.length ? <>
+    {visibleSessions.map(({ workout, exercise: sessionExercise }) => <Pressable key={workout.id} accessibilityRole={onOpenWorkout ? 'button' : undefined} accessibilityLabel={onOpenWorkout ? `Open ${workout.name}` : undefined} onPress={() => onOpenWorkout?.(workout.id)} style={({ pressed }) => [pressed && pressedFeedbackSubtle]}>
+      <ForgeCard variant="outlined" style={styles.previousSessionCard}>
+        <View style={styles.previousSessionHeader}><View style={styles.sessionCopy}><Text style={styles.sessionTitle} numberOfLines={1}>{workout.name}</Text><Text style={[styles.sessionDate, { color: theme.textSecondary }]}>{sessionDateTime(workout)}</Text></View>{onOpenWorkout ? <Icon name="chevron-forward" size={22} color={theme.textSecondary} /> : null}</View>
+        {sessionExercise.sets.map((set, index) => <View key={set.id} style={[styles.previousSetRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}><View style={styles.previousSetCopy}><Text style={styles.previousSetMetrics}>{formatRecordedSet(set, sessionExercise)}</Text>{set.comment?.trim() ? <Text style={[styles.previousSetComment, { color: theme.textSecondary }]}>{`“${set.comment.trim()}”`}</Text> : null}</View><View style={[styles.previousSetNumber, { backgroundColor: theme.background }]}><Text style={styles.previousSetNumberText}>{index + 1}</Text></View></View>)}
+      </ForgeCard>
+    </Pressable>)}
+    {!showAll && sessions.length > 3 ? <Pressable accessibilityRole="button" accessibilityLabel={`Show ${sessions.length - 3} more sessions`} onPress={() => setShowAll(true)} style={({ pressed }) => [styles.showMoreSessions, { backgroundColor: theme.surface }, pressed && pressedFeedbackSubtle]}><Text style={styles.showMoreText}>{`Show ${sessions.length - 3} more`}</Text></Pressable> : null}
+  </> : <View style={[styles.emptyCard, { borderColor: theme.border, backgroundColor: theme.surfaceMuted }]}><Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>No completed sessions for this exercise yet.</Text></View>}</ScrollView>;
 }
 
 function catalogueDetail(exercise: WorkoutExercise): ExerciseCatalogItem | undefined {
@@ -214,14 +237,23 @@ function normalizeName(value: string): string {
   return value.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 }
 
-function formatSessionSets(exercise: WorkoutExercise): string {
-  const values = exercise.sets.map((set) => {
-    const weight = set.weight ? `${set.weight} kg` : '';
-    const reps = set.reps ? `${set.reps} reps` : '';
-    const values = [weight, reps].filter(Boolean);
-    return values.length ? values.join(' × ') : 'No values';
-  });
-  return `${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'} · ${values.slice(0, 2).join(' · ')}${values.length > 2 ? ' …' : ''}`;
+function sessionDateTime(workout: Workout): string {
+  const date = new Date(workout.completedAt ?? workout.startedAt);
+  const today = new Date();
+  const sameDay = date.toDateString() === today.toDateString();
+  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+  const time = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  if (sameDay) return `Today at ${time}`;
+  if (date.toDateString() === yesterday.toDateString()) return `Yesterday at ${time}`;
+  return `${date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', ...(date.getFullYear() !== today.getFullYear() ? { year: 'numeric' } : {}) })} at ${time}`;
+}
+
+function formatRecordedSet(set: WorkoutSet, exercise: WorkoutExercise): string {
+  const tracking = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType ?? 'weight-reps';
+  const values = trackingFields[tracking].map((kind) => measurementText(set, kind)).filter(Boolean);
+  const recorded = values.length ? values.join(' × ') : 'Not recorded';
+  const range = (set.plannedTargets ?? []).map((target) => target.maxValue !== undefined && target.maxValue !== target.minValue ? `${target.minValue}–${target.maxValue}` : String(target.minValue ?? target.maxValue ?? '')).filter(Boolean).join(' · ');
+  return range ? `${recorded}   ${range}` : recorded;
 }
 
 const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.create({
@@ -244,10 +276,18 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   infoRow: { minHeight: 54, paddingHorizontal: 16, paddingVertical: 10, gap: 2 },
   infoLabel: { ...typeScale.caption },
   infoValue: { color: theme.ink, ...typeScale.label },
-  sessionCard: { overflow: 'hidden', borderRadius: 16 },
-  sessionRow: { minHeight: 68, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 12 },
+  previousSessionCard: { overflow: 'hidden', borderRadius: 22 },
+  previousSessionHeader: { minHeight: 72, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, gap: 12 },
   sessionCopy: { flex: 1, gap: 3 },
+  sessionTitle: { color: theme.ink, ...typeScale.sectionTitle },
   sessionDate: { color: theme.ink, ...typeScale.label },
-  sessionDetail: { ...typeScale.supporting },
+  previousSetRow: { minHeight: 58, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 10, gap: 12 },
+  previousSetCopy: { flex: 1, gap: 3 },
+  previousSetMetrics: { color: theme.ink, ...typeScale.body },
+  previousSetComment: { fontStyle: 'italic', ...typeScale.supporting },
+  previousSetNumber: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  previousSetNumberText: { color: theme.ink, ...typeScale.label },
+  showMoreSessions: { minHeight: 56, borderRadius: 20, justifyContent: 'center', paddingHorizontal: 24 },
+  showMoreText: { color: theme.ink, ...typeScale.sectionTitle },
   emptyCard: { borderWidth: 1, borderRadius: 16 },
 });

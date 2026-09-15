@@ -20,6 +20,7 @@ import {
 import { usePrimaryDock } from '../navigation/PrimaryDockContext';
 import { useForgeDockScrollInset } from '../components/DockChrome';
 import { useWorkouts } from '../state/WorkoutContext';
+import { usePlans } from '../state/PlansContext';
 import { useRestTimer } from '../state/RestTimerContext';
 import { useSettings } from '../state/SettingsContext';
 import { useExerciseCatalog } from '../state/ExerciseCatalogContext';
@@ -41,6 +42,7 @@ import { useFocusedSetKeyboardLift } from './activeWorkout/useFocusedSetKeyboard
 import { calendarDateKey } from '../domain/workouts/calendarDate';
 import { createExerciseSnapshot } from '../domain/exercises/exerciseSnapshot';
 import { recordRestTimerSample } from '../state/workoutMutations';
+import { applyWorkoutStructureToRoutine, hasRoutineStructureChanged } from '../domain/workouts/routineStructure';
 
 type ActiveWorkoutScreenProps = RootTabScreenProps<'ActiveWorkout'>;
 export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenProps) {
@@ -68,10 +70,13 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
   const [durationSheetOpen, setDurationSheetOpen] = useState(false);
   const [discardConfirmationOpen, setDiscardConfirmationOpen] = useState(false);
   const [emptyFinishConfirmationOpen, setEmptyFinishConfirmationOpen] = useState(false);
+  const [finishConfirmationOpen, setFinishConfirmationOpen] = useState(false);
+  const [routineUpdateConfirmationOpen, setRoutineUpdateConfirmationOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [addExerciseSession, setAddExerciseSession] = useState(0);
   const [headerElevated, setHeaderElevated] = useState(false);
   const { preferences } = useSettings();
+  const { findRoutine, updateRoutine } = usePlans();
   const restTimer = useRestTimer();
 
   const restRemaining = restTimer.remaining;
@@ -206,9 +211,22 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
       setEmptyFinishConfirmationOpen(true);
       return;
     }
+    setFinishConfirmationOpen(true);
+  };
+
+  const completeWorkout = (): void => {
     successHaptic();
-    const finished = finishWorkout();
-    returnToDashboard(finished);
+    returnToDashboard(finishWorkout());
+  };
+
+  const confirmFinish = (): void => {
+    setFinishConfirmationOpen(false);
+    const routine = activeWorkout.routineId ? findRoutine(activeWorkout.routineId) : undefined;
+    if (routine && hasRoutineStructureChanged(activeWorkout)) {
+      setRoutineUpdateConfirmationOpen(true);
+      return;
+    }
+    completeWorkout();
   };
 
   const discardWorkout = (): void => {
@@ -319,6 +337,34 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
         onAutomaticTrackingChange={setAutomaticTimeTracking}
         onStartedAtChange={setWorkoutStartTime}
         onResetStartTime={resetWorkoutStartTime}
+      />
+      <ForgeConfirmationDialog
+        visible={finishConfirmationOpen}
+        title="Finish workout?"
+        message="Your recorded workout will be saved to History."
+        cancelLabel="Keep working out"
+        confirmLabel="Finish workout"
+        onCancel={() => setFinishConfirmationOpen(false)}
+        onConfirm={confirmFinish}
+        testID="finish-workout-confirmation"
+      />
+      <ForgeConfirmationDialog
+        visible={routineUpdateConfirmationOpen}
+        title="Update routine?"
+        message="Your exercise and set structure changed during this workout."
+        cancelLabel="Keep routine"
+        confirmLabel="Update routine"
+        onCancel={() => {
+          setRoutineUpdateConfirmationOpen(false);
+          completeWorkout();
+        }}
+        onConfirm={() => {
+          const routine = activeWorkout.routineId ? findRoutine(activeWorkout.routineId) : undefined;
+          if (routine) updateRoutine(routine.id, (current) => applyWorkoutStructureToRoutine(current, activeWorkout));
+          setRoutineUpdateConfirmationOpen(false);
+          completeWorkout();
+        }}
+        testID="update-routine-confirmation"
       />
       <ForgeConfirmationDialog
         visible={discardConfirmationOpen}

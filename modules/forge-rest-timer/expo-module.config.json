@@ -1,6 +1,6 @@
 {
   "platforms": ["apple"],
   "apple": {
-    "modules": ["ForgeRestTimerLiveActivityModule", "ForgeRangeTextInputModule"]
+    "modules": ["ForgeRestTimerLiveActivityModule"]
   }
 }

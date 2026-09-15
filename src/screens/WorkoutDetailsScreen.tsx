@@ -32,9 +32,10 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [headerElevated, setHeaderElevated] = useState(false);
   const workout = completedWorkouts.find((item) => item.id === route.params.workoutId);
+  const returnDestination = route.params.returnTo ?? 'History';
   const returnToHistory = (): void => {
     if (navigation.canGoBack()) navigation.goBack();
-    else navigation.navigate('MainTabs', { screen: 'History' });
+    else navigation.navigate('MainTabs', { screen: returnDestination });
   };
   if (!ready)
     return (
@@ -65,7 +66,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
       <View style={styles.screen}>
         <View style={styles.header}>
           <ForgeBackButton
-            accessibilityLabel="Back to History"
+            accessibilityLabel={`Back to ${returnDestination === 'ActiveWorkout' ? 'workout' : 'History'}`}
             onPress={() => {
               returnToHistory();
             }}
@@ -99,7 +100,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
           />
           <View style={styles.exerciseList}>
             {workout.exercises.map((exercise) => (
-              <ReadOnlyExerciseSection key={exercise.id} exercise={exercise} />
+              <ReadOnlyExerciseSection key={exercise.id} exercise={exercise} workoutId={workout.id} />
             ))}
           </View>
         </ScrollView>

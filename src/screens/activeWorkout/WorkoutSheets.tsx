@@ -557,6 +557,9 @@ export function ExerciseOptionsSheet({
   onOpenPreviousSessions,
   onOpenWarmupSets,
   onOpenExerciseInfo,
+  onOpenWorkout,
+  excludeWorkoutId,
+  readOnly = false,
   completedWorkouts = [],
   onRemove,
 }: {
@@ -567,8 +570,11 @@ export function ExerciseOptionsSheet({
   onOpenPreviousSessions?: () => void;
   onOpenWarmupSets?: () => void;
   onOpenExerciseInfo?: () => void;
+  onOpenWorkout?: (workoutId: string) => void;
+  excludeWorkoutId?: string;
+  readOnly?: boolean;
   completedWorkouts?: readonly Workout[];
-  onRemove: () => void;
+  onRemove?: () => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -598,22 +604,22 @@ export function ExerciseOptionsSheet({
       closeDistance={520}
       dismissThreshold={260}
       actions={[
-        ...(onEditNote ? [{
+        ...((onEditNote || (readOnly && exercise.note?.trim())) ? [{
           icon: 'note' as const,
-          label: exercise.note?.trim() ? 'Edit note' : 'Add note',
+          label: readOnly ? 'View note' : exercise.note?.trim() ? 'Edit note' : 'Add note',
           dismiss: false,
           onPress: () => setView('note'),
         }] : []),
         ...(onOpenPreviousSessions ? [{ icon: 'history' as const, label: 'Previous sessions', dismiss: false, onPress: () => setView('history') }] : []),
         ...(onOpenWarmupSets ? [{ icon: 'warm-up' as const, label: 'Warm-up sets', onPress: onOpenWarmupSets }] : []),
         ...(onOpenExerciseInfo ? [{ icon: 'info' as const, label: 'Exercise info', dismiss: false, onPress: () => setView('info') }] : []),
-        {
-          icon: 'trash',
+        ...(!readOnly && onRemove ? [{
+          icon: 'trash' as const,
           label: 'Remove exercise',
           accessibilityLabel: `Remove ${exercise.name}`,
-          tone: 'destructive',
+          tone: 'destructive' as const,
           onPress: onRemove,
-        },
+        }] : []),
       ]}
       replacement={view !== 'actions' ? (closeSheet) => (
         <>
@@ -624,9 +630,10 @@ export function ExerciseOptionsSheet({
             closeAccessibilityLabel={`Close ${view === 'note' ? 'exercise note' : view === 'history' ? 'previous sessions' : 'exercise info'}`}
             leading={<ForgeEditorBackButton onPress={backToActions} accessibilityLabel="Back to exercise options" />}
           />
-          {view === 'history' ? <PreviousSessionsContent exercise={exercise} workouts={completedWorkouts} /> : null}
+          {view === 'history' ? <PreviousSessionsContent exercise={exercise} workouts={completedWorkouts} excludeWorkoutId={excludeWorkoutId} onOpenWorkout={onOpenWorkout} /> : null}
           {view === 'info' ? <ExerciseInfoContent exercise={exercise} /> : null}
-          {view === 'note' ? <View style={styles.exerciseNoteContent}>
+          {view === 'note' && readOnly ? <View style={styles.exerciseNoteContent}><ForgeCard variant="inset" style={styles.exerciseNoteCard}><Text style={styles.readOnlyExerciseNote}>{exercise.note}</Text></ForgeCard></View> : null}
+          {view === 'note' && !readOnly ? <View style={styles.exerciseNoteContent}>
             <ForgeCard variant="inset" style={styles.exerciseNoteCard}>
               <TextInput
                 accessibilityLabel="Exercise note"
@@ -905,6 +912,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     exerciseOptionEquipment: { color: '#4F625A', ...typeScale.label },
     exerciseNoteContent: { paddingHorizontal: 20, paddingBottom: 28 },
     exerciseNoteCard: { paddingHorizontal: 14 },
+    readOnlyExerciseNote: { color: theme.textPrimary, ...typeScale.body },
     exerciseNoteInput: {
       minHeight: 156,
       paddingVertical: 12,

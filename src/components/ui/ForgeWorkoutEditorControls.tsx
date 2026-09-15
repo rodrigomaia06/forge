@@ -136,7 +136,7 @@ export function ForgeSwipeableAttributeRow({
       <Animated.View style={[styles.swipeAttributeContent, { backgroundColor: theme.surface }, swipeStyle]}>
         <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${label} attribute`} onPress={() => { lightHaptic(); onEdit(); }} style={[styles.row, divider && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
           <Icon name={icon} size={22} color={theme.textPrimary} />
-          <ForgeText style={[styles.rowLabel, { color: theme.textPrimary }]}>{label}</ForgeText>
+          <ForgeText numberOfLines={2} style={[styles.rowLabel, { color: theme.textPrimary }]}>{label}</ForgeText>
           <ForgeText style={[styles.rowValue, { color: theme.slate }]}>{value || 'Add value'}</ForgeText>
           <Icon name="chevron-forward" size={20} color={theme.slate} />
         </Pressable>
@@ -196,10 +196,10 @@ const styles = StyleSheet.create({
   fieldCard: { paddingHorizontal: 14 },
   label: { ...typeScale.label },
   input: { minHeight: 52, paddingVertical: 0, textAlignVertical: 'center', ...typeScale.body },
-  row: { minHeight: 56, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  row: { minHeight: 56, paddingHorizontal: 16, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 12 },
   typeChoice: { minHeight: 52, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12, borderTopWidth: StyleSheet.hairlineWidth },
-  rowLabel: { flex: 1, ...typeScale.label },
-  rowValue: { maxWidth: '48%', ...typeScale.supporting, textAlign: 'right' },
+  rowLabel: { flexBasis: '28%', flexShrink: 1, ...typeScale.label },
+  rowValue: { flex: 1, flexShrink: 1, ...typeScale.supporting, textAlign: 'right' },
   swipeAttributeRow: { position: 'relative', overflow: 'hidden' },
   swipeAttributeContent: { zIndex: 1 },
   attributeDeleteAction: { position: 'absolute', top: 0, right: 0, bottom: 0, width: 56 },

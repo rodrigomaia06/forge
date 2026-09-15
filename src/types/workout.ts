@@ -57,6 +57,8 @@ export interface Workout {
   restTimerSamples?: number;
   exercises: WorkoutExercise[];
   routineId?: string;
+  /** Immutable routine structure captured at start so finishing can offer a safe update. */
+  routineStructureBaseline?: import('../domain/workouts/routineStructure').RoutineStructureBaseline;
   planId?: string;
   attributes?: Record<string, string>;
   /** Presentation chosen for a user-defined attribute. Existing records omit this safely. */

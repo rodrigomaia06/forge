@@ -50,6 +50,7 @@ import {
   canonicalizeWorkout,
   resolveCanonicalExercise,
 } from '../../src/data/exerciseCanonicalization';
+import { applyWorkoutStructureToRoutine, hasRoutineStructureChanged } from '../../src/domain/workouts/routineStructure';
 
 test('keeps the first stable record when a persistence boundary receives duplicate ids', () => {
   expect(
@@ -107,9 +108,10 @@ test('normalizes JSON exercises and sets without changing their imported order',
   ]);
 });
 
-test('resolves approved legacy exercise ids to canonical v3 snapshots without changing user data', () => {
+test('resolves approved legacy exercise ids to canonical v4 snapshots without changing user data', () => {
   expect(resolveCanonicalExercise('butterfly-machine')?.id).toBe('pec-deck');
   expect(resolveCanonicalExercise('biceps-hammer-curl-with-dumbbell')?.id).toBe('dumbbell-hammer-curl');
+  expect(resolveCanonicalExercise('kneeling-triceps-extension-with-cable-2')?.id).toBe('kinetic-kneeling-cable-triceps-extension');
   expect(resolveCanonicalExercise('user-created-machine-fly')).toBeUndefined();
 
   const legacy = {
@@ -125,13 +127,26 @@ test('resolves approved legacy exercise ids to canonical v3 snapshots without ch
     exerciseId: 'dumbbell-hammer-curl',
     name: 'Dumbbell Hammer Curl',
     note: 'keep this note',
-    exerciseSnapshot: { id: 'dumbbell-hammer-curl', catalogueVersion: 3 },
+    exerciseSnapshot: { id: 'dumbbell-hammer-curl', catalogueVersion: bundledCatalogVersion },
   });
   expect(canonical.sets).toEqual(legacy.sets);
   expect(canonicalizeExercise(canonical)).toEqual(canonical);
   expect(canonicalizeExercise({
     id: 'custom-instance', name: 'Pec Deck', exerciseId: 'custom-pec-deck', sets: [],
   })).toMatchObject({ name: 'Pec Deck', exerciseId: 'custom-pec-deck' });
+});
+
+test('compares only a routine workout structure and never copies recorded data back', () => {
+  const routine = { id: 'routine', name: 'Routine', type: 'Strength', createdAt: 1, updatedAt: 1, exercises: [{ id: 'exercise', exerciseId: 'bench', name: 'Bench', sets: [{ id: 'set', plannedTargets: [{ id: 'target', kind: 'reps' as const, unit: 'count' as const, minValue: 8, maxValue: 12 }] }] }] };
+  const workout = createWorkout({ routineId: routine.id, exercises: routine.exercises });
+  workout.exercises[0].sets[0] = { ...workout.exercises[0].sets[0], completed: true, reps: '10', comment: 'recorded', tag: 'Drop set' };
+  expect(hasRoutineStructureChanged(workout)).toBe(false);
+  workout.exercises[0].sets.push({ id: 'new-set', weight: '', reps: '', completed: false });
+  expect(hasRoutineStructureChanged(workout)).toBe(true);
+  const updated = applyWorkoutStructureToRoutine(routine, workout);
+  expect(updated.exercises[0].sets).toHaveLength(2);
+  expect(updated.exercises[0].sets?.[0]).not.toHaveProperty('comment');
+  expect(updated.exercises[0].sets?.[0]).not.toHaveProperty('reps');
 });
 
 test('canonicalizes routine, active, completed, and imported exercises without reordering them', () => {
@@ -223,7 +238,7 @@ test('repairs legacy externally loaded import tracking without reordering exerci
   });
   expect(exercises[1]).toMatchObject({
     trackingType: 'bodyweight-reps',
-    exerciseSnapshot: { trackingType: 'bodyweight-reps', catalogueVersion: 3 },
+    exerciseSnapshot: { trackingType: 'bodyweight-reps', catalogueVersion: bundledCatalogVersion },
   });
 });
 
@@ -514,12 +529,12 @@ test('filters and groups exercise catalog entries without changing feature selec
   expect(filterCatalog(items, { equipment: ['Bench'] })).toEqual([items[0]]);
 });
 
-test('ships the validated v3 baseline, unique picker identities, and all built-in workout types', () => {
-  expect(bundledCatalogVersion).toBe(3);
-  expect(bundledExercises).toHaveLength(381);
-  expect(new Set(bundledExercises.map((exercise) => exercise.id)).size).toBe(381);
+test('ships the validated v4 baseline, unique picker identities, and all built-in workout types', () => {
+  expect(bundledCatalogVersion).toBe(4);
+  expect(bundledExercises).toHaveLength(1189);
+  expect(new Set(bundledExercises.map((exercise) => exercise.id)).size).toBe(1189);
   const normalize = (value: string) => value.trim().replace(/\s+/g, ' ').toLowerCase();
-  expect(new Set(bundledExercises.map((exercise) => normalize(exercise.name))).size).toBe(381);
+  expect(new Set(bundledExercises.map((exercise) => normalize(exercise.name))).size).toBe(1189);
   expect(
     bundledExercises.some(
       (exercise) =>
@@ -533,7 +548,7 @@ test('ships the validated v3 baseline, unique picker identities, and all built-i
       normalize(exercise.variation || exercise.name),
     ].join('::'),
   );
-  expect(new Set(pickerKeys).size).toBe(381);
+  expect(new Set(pickerKeys).size).toBe(1189);
   const byId = new Map(bundledExercises.map((exercise) => [exercise.id, exercise]));
   expect(
     [...byId.values()]
@@ -629,7 +644,7 @@ test('tracking modes specify only their applicable measurements and retain an ex
         exerciseSnapshot: {
           id: exercise.id,
           name: exercise.name,
-          catalogueVersion: 3,
+          catalogueVersion: bundledCatalogVersion,
           trackingType: exercise.trackingType,
         },
       },
@@ -638,7 +653,7 @@ test('tracking modes specify only their applicable measurements and retain an ex
   expect(workout.exercises[0]).toMatchObject({
     exerciseId: 'parallel-bar-dip',
     trackingType: exercise.trackingType,
-    exerciseSnapshot: { id: 'parallel-bar-dip', catalogueVersion: 3 },
+    exerciseSnapshot: { id: 'parallel-bar-dip', catalogueVersion: bundledCatalogVersion },
   });
 });
 
@@ -861,7 +876,7 @@ test('adds picker selections in one immutable workout update with three empty se
       exerciseSnapshot: {
         id: 'bench',
         name: 'Bench Press',
-        catalogueVersion: 3,
+        catalogueVersion: bundledCatalogVersion,
         trackingType: 'weight-reps',
       },
     },
@@ -869,7 +884,7 @@ test('adds picker selections in one immutable workout update with three empty se
       exerciseId: 'walk',
       name: 'Walk',
       trackingType: 'duration',
-      exerciseSnapshot: { id: 'walk', name: 'Walk', catalogueVersion: 3, trackingType: 'duration' },
+      exerciseSnapshot: { id: 'walk', name: 'Walk', catalogueVersion: bundledCatalogVersion, trackingType: 'duration' },
     },
   ]);
 
@@ -880,12 +895,12 @@ test('adds picker selections in one immutable workout update with three empty se
       expect.objectContaining({
         exerciseId: 'bench',
         trackingType: 'weight-reps',
-        exerciseSnapshot: expect.objectContaining({ id: 'bench', catalogueVersion: 3 }),
+        exerciseSnapshot: expect.objectContaining({ id: 'bench', catalogueVersion: bundledCatalogVersion }),
       }),
       expect.objectContaining({
         exerciseId: 'walk',
         trackingType: 'duration',
-        exerciseSnapshot: expect.objectContaining({ id: 'walk', catalogueVersion: 3 }),
+        exerciseSnapshot: expect.objectContaining({ id: 'walk', catalogueVersion: bundledCatalogVersion }),
       }),
     ]),
   );

@@ -272,7 +272,7 @@ function numericRangeText(value: string): string {
   let separatorFound = false;
   return Array.from(value).reduce((result, character) => {
     if (/\d/.test(character)) return `${result}${character}`;
-    if ((character === '-' || character === '–' || character === '—') && !separatorFound) {
+    if ((character === ',' || character === '-' || character === '–' || character === '—') && !separatorFound) {
       separatorFound = true;
       return `${result}-`;
     }

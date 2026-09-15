@@ -76,5 +76,6 @@ test.describe('Core flow: live workout', () => {
     await assistance.fill('40');
     await replaceClearedSetValue(assistance, '35');
     await page.getByRole('button', { name: 'Finish workout' }).click();
+    await page.getByTestId('finish-workout-confirmation').getByRole('button', { name: 'Finish workout' }).click();
   });
 });

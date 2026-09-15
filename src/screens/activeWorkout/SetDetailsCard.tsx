@@ -504,7 +504,7 @@ function updateTargets(targets: WorkoutSet['targets'] | undefined, setId: string
 }
 
 function targetValues(text: string): number[] {
-  return text.split(/[-–—]/).map((value) => Number(value.trim())).filter(Number.isFinite);
+  return text.split(/[,-–—]/).map((value) => Number(value.trim())).filter(Number.isFinite);
 }
 
 function formatTargetValues(minValue: number, maxValue?: number): string {

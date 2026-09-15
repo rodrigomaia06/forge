@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -29,7 +30,7 @@ import {
   WarmupSetsSheet,
 } from './ExerciseOptionSheets';
 import type { ExerciseSectionProps } from './activeWorkoutTypes';
-import type { WorkoutExercise, WorkoutSet } from '../../types';
+import type { RootNavigationProp, WorkoutExercise, WorkoutSet } from '../../types';
 import { measurementText, trackingFieldLabel, trackingFields } from '../../domain/exercises/tracking';
 import { formatExerciseMetadata } from '../../domain/exercises/exercisePresentation';
 import { exerciseCatalog } from '../../data/exerciseCatalog';
@@ -77,6 +78,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
     ? formatExerciseMetadata(exercise.exerciseSnapshot)
     : null;
   const { completedWorkouts } = useWorkouts();
+  const navigation = useNavigation<RootNavigationProp>();
   const hasExerciseInfo = Boolean(exercise.exerciseSnapshot || exerciseCatalog.some((item) => item.id === exercise.exerciseId));
   const trackingType = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType ?? 'weight-reps';
   const canBuildWarmups = showWarmupSets && Boolean(addWarmupSets) && trackingFields[trackingType].includes('weight');
@@ -290,8 +292,10 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     onChange={(changes) => updateSet(exercise.id, set.id, changes)}
                     onToggle={() => {
                       lightHaptic();
-                      if (!set.completed) onSetCompleted(exercise);
                       toggleSet(exercise.id, set.id);
+                      // The rest timer must observe the completed transition,
+                      // not the pre-toggle state; unchecking never restarts it.
+                      if (!set.completed) onSetCompleted(exercise);
                     }}
                     onDelete={() => {
                       errorHaptic();
@@ -331,6 +335,10 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 onOpenWarmupSets={canBuildWarmups ? () => afterOptionsClose(() => setOptionView('warmup')) : undefined}
                 onOpenExerciseInfo={hasExerciseInfo ? () => undefined : undefined}
                 completedWorkouts={completedWorkouts}
+                onOpenWorkout={(workoutId) => {
+                  setOptionsOpen(false);
+                  navigation.navigate('WorkoutDetails', { workoutId, returnTo: 'ActiveWorkout' });
+                }}
                 onRemove={() => {
                   afterOptionsClose(() => setRemoveConfirmationOpen(true));
                 }}
@@ -368,20 +376,27 @@ export const ExerciseSection = React.memo(function ExerciseSection({
 export function ReadOnlyExerciseSection({
   exercise,
   minimal = false,
+  workoutId,
 }: {
   exercise: WorkoutExercise;
   /** Routine Visualize keeps the expanded set table visually inside its card. */
   minimal?: boolean;
+  /** Enables read-only exercise actions when rendered inside workout history. */
+  workoutId?: string;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const [expanded, setExpanded] = useState(false);
   const [openSetIndex, setOpenSetIndex] = useState<number | null>(null);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const { completedWorkouts } = useWorkouts();
+  const navigation = useNavigation<RootNavigationProp>();
   const openSet = openSetIndex === null ? null : exercise.sets[openSetIndex];
   const trackingType = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType ?? 'weight-reps';
 
   return (
     <View testID={`history-exercise-${exercise.id}`} style={styles.readOnlyExerciseCard}>
+      <View style={styles.readOnlyExerciseHeaderRow}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${expanded ? 'Collapse' : 'Expand'} ${exercise.name}`}
@@ -392,7 +407,7 @@ export function ReadOnlyExerciseSection({
           selectionHaptic();
           setExpanded((current) => !current);
         }}
-        style={[styles.readOnlyExerciseHeader, minimal && styles.readOnlyMinimalExerciseHeader]}
+        style={[styles.readOnlyExerciseHeader, styles.readOnlyExerciseHeaderPressable, minimal && styles.readOnlyMinimalExerciseHeader]}
       >
         <View style={styles.readOnlyExerciseCopy}>
           <View style={styles.readOnlyExerciseTitleRow}>
@@ -415,6 +430,8 @@ export function ReadOnlyExerciseSection({
           color={theme.slate}
         />
       </Pressable>
+      {workoutId ? <Pressable accessibilityRole="button" accessibilityLabel={`More options for ${exercise.name}`} onPress={() => { selectionHaptic(); setOptionsOpen(true); }} style={styles.readOnlyMoreButton}><Icon name="ellipsis-horizontal" size={20} color={theme.ink} /></Pressable> : null}
+      </View>
       {expanded && (
         <View style={[styles.readOnlySets, minimal && styles.readOnlyMinimalSets]}>
           <View style={[styles.setHeader, minimal && styles.readOnlyMinimalSetHeader]}>
@@ -449,6 +466,20 @@ export function ReadOnlyExerciseSection({
           trackingType={trackingType}
         />
       )}
+      {workoutId && optionsOpen ? <ExerciseOptionsSheet
+        visible
+        readOnly
+        exercise={exercise}
+        completedWorkouts={completedWorkouts}
+        excludeWorkoutId={workoutId}
+        onClose={() => setOptionsOpen(false)}
+        onOpenPreviousSessions={() => undefined}
+        onOpenExerciseInfo={() => undefined}
+        onOpenWorkout={(sessionWorkoutId) => {
+          setOptionsOpen(false);
+          navigation.navigate('WorkoutDetails', { workoutId: sessionWorkoutId, returnTo: 'History' });
+        }}
+      /> : null}
     </View>
   );
 }
@@ -584,7 +615,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       paddingTop: 0,
       paddingHorizontal: 0,
     },
-    readOnlyExerciseCard: {
+  readOnlyExerciseCard: {
       overflow: 'hidden',
       borderWidth: 1,
       borderColor: dashboardTheme.divider,
@@ -595,7 +626,10 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       shadowRadius: 5,
       shadowOffset: { width: 0, height: 2 },
       elevation: 1,
-    },
+  },
+  readOnlyExerciseHeaderRow: { flexDirection: 'row', alignItems: 'stretch' },
+  readOnlyExerciseHeaderPressable: { flex: 1 },
+  readOnlyMoreButton: { width: 44, alignItems: 'center', justifyContent: 'center' },
     readOnlyExerciseHeader: {
       minHeight: 56,
       flexDirection: 'row',

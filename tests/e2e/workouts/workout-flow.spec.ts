@@ -210,6 +210,8 @@ test.describe('Active workout flow', () => {
     await page.getByLabel('Complete set 1').click();
 
     await page.getByRole('button', { name: 'Finish workout' }).click();
+    await expect(page.getByTestId('finish-workout-confirmation')).toBeVisible();
+    await page.getByTestId('finish-workout-confirmation').getByRole('button', { name: 'Finish workout' }).click();
     await expect(page.getByTestId('dashboard-header-title').last()).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Workout', exact: true })).toHaveCount(0);
   });
