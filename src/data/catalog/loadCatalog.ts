@@ -1,5 +1,7 @@
 import source from './forge_exercise_catalog_v3_flat.json';
 
+export const CATALOG_VERSION = 4;
+export const CATALOG_EXERCISE_COUNT = 1189;
 export const TRACKING_TYPES = [
   'weight-reps', 'bodyweight-reps', 'weighted-bodyweight', 'assisted-bodyweight',
   'reps-only', 'duration', 'duration-weight', 'distance-duration', 'weight-distance',
@@ -20,7 +22,7 @@ function normalizeIdentity(value: string): string { return value.trim().replace(
 
 /** Validates the immutable release artifact before it is exposed to the app or SQLite. */
 export function validateCatalog(candidate: CatalogSource = source as CatalogSource): BundledExercise[] {
-  if (candidate.version !== 3 || candidate.schemaVersion !== '3.0.0-flat' || candidate.counts?.exercises !== 381 || candidate.exercises?.length !== 381) throw new Error('Expected the Forge v3 catalogue release with 381 exercises.');
+  if (candidate.version !== CATALOG_VERSION || candidate.schemaVersion !== '4.0.0-flat' || candidate.counts?.exercises !== CATALOG_EXERCISE_COUNT || candidate.exercises?.length !== CATALOG_EXERCISE_COUNT) throw new Error('Expected the Forge v4 catalogue release with 1189 exercises.');
   const required = ['workoutTypes', 'bodyRegions', 'categories', 'muscles', 'equipment', 'trackingTypes', 'movementPatterns', 'mechanics', 'laterality'];
   if (required.some((key) => !Array.isArray(candidate.taxonomies?.[key]))) throw new Error('Bundled catalogue taxonomy is incomplete.');
   const refs = Object.fromEntries(required.map((key) => [key, ids(candidate.taxonomies[key])])) as Record<string, Set<string>>;

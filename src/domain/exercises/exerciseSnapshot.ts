@@ -1,4 +1,5 @@
 import type { ExerciseCatalogItem } from '../../data/exerciseCatalog';
+import { CATALOG_VERSION } from '../../data/catalog/loadCatalog';
 import type { ExerciseSnapshot } from '../../types';
 
 /** Copies catalogue metadata into a workout-owned record so future releases cannot reinterpret it. */
@@ -6,7 +7,7 @@ export function createExerciseSnapshot(exercise: ExerciseCatalogItem): ExerciseS
   return {
     id: exercise.id,
     name: exercise.name,
-    catalogueVersion: 3,
+    catalogueVersion: CATALOG_VERSION,
     trackingType: exercise.trackingType ?? 'weight-reps',
     familyId: exercise.familyId,
     group: exercise.group,

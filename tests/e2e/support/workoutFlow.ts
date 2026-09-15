@@ -22,7 +22,7 @@ export async function addExerciseFromPicker(
   // The native-style catalogue batches its filtered rows. Wait for that
   // render before asking Playwright to resolve the compact selection target.
   await page.waitForTimeout(80);
-  const checkbox = page.getByRole('checkbox', { name: checkboxName });
+  const checkbox = page.getByRole('checkbox', { name: checkboxName, exact: true });
   await checkbox.scrollIntoViewIfNeeded();
   await checkbox.click();
   await page.getByRole('button', { name: 'Confirm selected exercises' }).click();

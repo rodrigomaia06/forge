@@ -1,4 +1,5 @@
 import { taxonomyLabel, type ExerciseCatalogItem } from '../../data/exerciseCatalog';
+import { CATALOG_VERSION } from '../../data/catalog/loadCatalog';
 import type { ExerciseSnapshot } from '../../types';
 
 function normalizedWords(value: string): Set<string> {
@@ -40,7 +41,7 @@ function titleAlreadySaysEquipment(name: string, equipment: string): boolean {
 export function formatExerciseMetadata(snapshot: ExerciseSnapshot | undefined): string | null {
   // Unresolved legacy/custom records remain name-only. Canonical migration
   // replaces recognised snapshots first, so this never guesses at user data.
-  if (snapshot?.catalogueVersion !== 3) return null;
+  if (snapshot?.catalogueVersion !== CATALOG_VERSION) return null;
   const primaryEquipment = snapshot?.primaryEquipment?.trim();
   const equipment = primaryEquipment ? taxonomyLabel('equipment', primaryEquipment) : undefined;
   const rawVariation = snapshot?.variation?.trim();
