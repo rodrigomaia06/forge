@@ -54,19 +54,20 @@ export function ForgeFloatingCta({
   const insets = useSafeAreaInsets();
   const contextTheme = useForgeTheme();
   const resolvedTheme = theme ?? contextTheme;
+  const gradientId = `forgeFloatingCtaFade${React.useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   return (
     <>
       <View style={[styles.fade, { pointerEvents: 'none' }]}>
-        <Svg style={StyleSheet.absoluteFill}>
+        <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
           <Defs>
-            <LinearGradient id="forgeFloatingCtaFade" x1="0" y1="0" x2="0" y2="1">
+            <LinearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
               <Stop offset="0" stopColor={resolvedTheme.surfaceElevated} stopOpacity="0" />
               <Stop offset="0.38" stopColor={resolvedTheme.surfaceElevated} stopOpacity="0.48" />
               <Stop offset="0.72" stopColor={resolvedTheme.surfaceElevated} stopOpacity="0.9" />
               <Stop offset="1" stopColor={resolvedTheme.surfaceElevated} stopOpacity="1" />
             </LinearGradient>
           </Defs>
-          <Rect x="0" y="0" width="100%" height="100%" fill="url(#forgeFloatingCtaFade)" />
+          <Rect x="0" y="0" width="100" height="100" fill={`url(#${gradientId})`} />
         </Svg>
       </View>
       <Animated.View style={[

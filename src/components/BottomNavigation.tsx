@@ -8,7 +8,6 @@ import Animated, {
   useReducedMotion,
   useSharedValue,
   withTiming,
-  type SharedValue,
 } from 'react-native-reanimated';
 
 import { NavigationItem, selectionHaptic } from './ui';
@@ -22,9 +21,6 @@ interface BottomNavigationProps {
   tabBarProps: BottomTabBarProps;
   theme?: ForgeTheme;
   compact?: boolean;
-  /** Animated outer dock width, supplied by DockSurface to prevent the
-   * selected capsule from briefly using stale JS layout measurements. */
-  surfaceWidth?: SharedValue<number>;
   onNavigate?: () => void;
 }
 type BottomNavigationScreen = keyof RootTabParamList;
@@ -37,7 +33,6 @@ export function BottomNavigation({
   tabBarProps,
   theme = colors,
   compact = false,
-  surfaceWidth,
   onNavigate,
 }: BottomNavigationProps) {
   const { navigation, state } = tabBarProps;
@@ -97,30 +92,20 @@ export function BottomNavigation({
     // pill strictly inside its measured slot in both heights, so changing to
     // compact state scales the middle selection with its slot instead of
     // retaining the former wide capsule or shifting sideways.
-    indicatorX.value = transition(layout.x + 2);
+    // `layout.x` is already relative to the padded navigation content. An
+    // additional inset shifts every capsule off its actual tab centre.
+    indicatorX.value = transition(layout.x);
     indicatorWidth.value = transition(Math.max(0, layout.width - 4));
     indicatorOpacity.value = transition(1);
   }, [activeRoute, compact, indicatorOpacity, indicatorWidth, indicatorX, itemLayouts, reducedMotion]);
 
-  const selectionIndicatorStyle = useAnimatedStyle(() => {
-    if (surfaceWidth) {
-      // DockSurface owns width on the UI thread. Deriving the slot directly
-      // from that same value keeps the capsule centred while the dock shrinks
-      // or grows, rather than waiting for an asynchronous onLayout callback.
-      const navigationWidth = Math.max(0, surfaceWidth.value - 12);
-      const slotWidth = Math.max(0, (navigationWidth - 4) / items.length);
-      return {
-        opacity: indicatorOpacity.value,
-        width: Math.max(0, slotWidth - 4),
-        transform: [{ translateX: 4 + activeIndex.value * slotWidth }],
-      };
-    }
-    return {
+  const selectionIndicatorStyle = useAnimatedStyle(() => (
+    {
       opacity: indicatorOpacity.value,
       width: indicatorWidth.value,
       transform: [{ translateX: indicatorX.value }],
-    };
-  }, [activeIndex, indicatorOpacity, indicatorWidth, indicatorX, items.length, surfaceWidth]);
+    }
+  ), [indicatorOpacity, indicatorWidth, indicatorX]);
 
   const updateItemLayout = (screen: BottomNavigationScreen, event: LayoutChangeEvent): void => {
     const { x, width } = event.nativeEvent.layout;

@@ -206,7 +206,7 @@ test.describe('Dashboard', () => {
     }
   });
 
-  test('keeps one persistent dock and moves its selected indicator between tabs', async ({ page }) => {
+  test('keeps one persistent dock and moves its selected indicator between tabs', async ({ page }, testInfo) => {
     await page.goto('/');
 
     const dock = page.getByTestId('dashboard-dock-cylinder');
@@ -253,6 +253,53 @@ test.describe('Dashboard', () => {
     expect(retainedHistoryIndicator).not.toBeNull();
     expect(historyIndicator?.x).toBeGreaterThan(dashboardIndicator?.x ?? 0);
     expect(retainedHistoryIndicator?.x).toBeCloseTo(historyIndicator?.x ?? 0, 0);
+
+    // The selected capsule is measured from each tab's actual slot. Validate
+    // every no-workout root rather than assuming equal four-tab arithmetic.
+    for (const tabName of ['Dashboard', 'History', 'Plans', 'Settings']) {
+      await page.getByRole('tab', { name: tabName }).click();
+      await page.waitForTimeout(180);
+      const activeTab = await page.getByRole('tab', { name: tabName }).boundingBox();
+      const activeIndicator = await indicator.boundingBox();
+      expect(activeTab).not.toBeNull();
+      expect(activeIndicator).not.toBeNull();
+      if (!activeTab || !activeIndicator) throw new Error('Expected dock geometry');
+      expect(Math.abs((activeIndicator.x + activeIndicator.width / 2) - (activeTab.x + activeTab.width / 2))).toBeLessThanOrEqual(1);
+    }
+    if (testInfo.project.name === 'iphone-air') await page.screenshot({ path: testInfo.outputPath('four-tab-selection-centred-iphone.png'), fullPage: true });
+  });
+
+  test('keeps the five-tab dock selection centred during an active workout', async ({ page }, testInfo) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Start workout' }).click();
+    await page
+      .getByTestId('dashboard-workout-source-chooser')
+      .getByRole('button', { name: 'Blank workout' })
+      .click();
+    await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
+    await page
+      .getByTestId('add-exercise-sheet-surface')
+      .getByRole('button', { name: 'Close add exercises' })
+      .click();
+
+    const indicator = page.getByTestId('dashboard-nav-selection-pill');
+    for (const tabName of ['Dashboard', 'History', 'Workout', 'Plans', 'Settings']) {
+      await page.getByRole('tab', { name: tabName }).click();
+      await page.waitForTimeout(180);
+      const activeTab = await page.getByRole('tab', { name: tabName }).boundingBox();
+      const activeIndicator = await indicator.boundingBox();
+      expect(activeTab).not.toBeNull();
+      expect(activeIndicator).not.toBeNull();
+      if (!activeTab || !activeIndicator) throw new Error('Expected active-workout dock geometry');
+      expect(
+        Math.abs(
+          activeIndicator.x + activeIndicator.width / 2 - (activeTab.x + activeTab.width / 2),
+        ),
+      ).toBeLessThanOrEqual(1);
+    }
+    if (testInfo.project.name === 'iphone-air') {
+      await page.screenshot({ path: testInfo.outputPath('five-tab-selection-centred-iphone.png'), fullPage: true });
+    }
   });
 
   test('uses the Forge semantic scale for page and supporting text', async ({ page }) => {

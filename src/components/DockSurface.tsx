@@ -102,7 +102,6 @@ export function DockSurface({
           tabBarProps={tabBarProps}
           theme={{ ...theme, surface: theme.surface }}
           compact={compact}
-          surfaceWidth={surfaceWidth}
           onNavigate={onNavigate}
         />
       )}
