@@ -74,6 +74,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
   const [finishConfirmationOpen, setFinishConfirmationOpen] = useState(false);
   const [routineUpdateConfirmationOpen, setRoutineUpdateConfirmationOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [replacingExerciseId, setReplacingExerciseId] = useState<string | null>(null);
   const [addExerciseSession, setAddExerciseSession] = useState(0);
   const [headerElevated, setHeaderElevated] = useState(false);
   const { preferences } = useSettings();
@@ -178,6 +179,22 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     },
     [addExercises],
   );
+  const replaceExercise = useCallback((exercises: import('../data/exerciseCatalog').ExerciseCatalogItem[]) => {
+    const replacement = exercises[0];
+    const exerciseId = replacingExerciseId;
+    if (!replacement || !exerciseId) return;
+    updateActiveWorkout((current) => ({
+      ...current,
+      exercises: current.exercises.map((exercise) => exercise.id === exerciseId ? {
+        ...exercise,
+        exerciseId: replacement.id,
+        name: replacement.name,
+        trackingType: replacement.trackingType,
+        exerciseSnapshot: createExerciseSnapshot(replacement),
+      } : exercise),
+    }));
+    setReplacingExerciseId(null);
+  }, [replacingExerciseId, updateActiveWorkout]);
   const returnToDashboard = (finished: Workout | null): void =>
     navigation.navigate(
       'Dashboard',
@@ -318,6 +335,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
         toggleSet={toggleSet}
         updateActiveWorkout={updateActiveWorkout}
         onSetCompleted={handleSetCompleted}
+        onReplaceExercise={setReplacingExerciseId}
         onOpenAddExercise={openAddExercise}
         onScrollOffsetChange={handleWorkoutScrollOffset}
         dockScrollInset={dockScrollInset}
@@ -332,6 +350,14 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
         workoutType={activeWorkout.type}
         onClose={handleAddExerciseClose}
         onSubmit={handleAddExercises}
+      />
+      <ExtractedAddExerciseSheet
+        visible={Boolean(replacingExerciseId)}
+        session={addExerciseSession + 1000}
+        workoutType={activeWorkout.type}
+        selectionLimit={1}
+        onClose={() => setReplacingExerciseId(null)}
+        onSubmit={replaceExercise}
       />
       <WorkoutDurationSheet
         visible={durationSheetOpen}
@@ -476,6 +502,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
   toggleSet,
   updateActiveWorkout,
   onSetCompleted,
+  onReplaceExercise,
   onOpenAddExercise,
   onScrollOffsetChange,
   dockScrollInset,
@@ -490,6 +517,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
   toggleSet: (exerciseId: string, setId: string) => void;
   updateActiveWorkout: (update: (workout: Workout) => Workout) => void;
   onSetCompleted: (exercise: WorkoutExercise) => void;
+  onReplaceExercise: (exerciseId: string) => void;
   onOpenAddExercise: () => void;
   onScrollOffsetChange: (offset: number) => void;
   dockScrollInset: number;
@@ -553,6 +581,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
         updateSet={updateSet}
         toggleSet={toggleSet}
         onSetCompleted={onSetCompleted}
+        onReplaceExercise={onReplaceExercise}
         showCatalogMetadata
         showWarmupSets
         onSetInputFocus={onSetInputFocus}
@@ -560,7 +589,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
         onDeleteRevealChange={handleExerciseDeleteReveal}
       />
     ),
-    [addSet, addWarmupSets, handleExerciseDeleteReveal, onSetCompleted, onSetInputFocus, openExerciseId, removeExercise, removeSet, toggleSet, updateExercise, updateSet],
+    [addSet, addWarmupSets, handleExerciseDeleteReveal, onReplaceExercise, onSetCompleted, onSetInputFocus, openExerciseId, removeExercise, removeSet, toggleSet, updateExercise, updateSet],
   );
   const liveAttributeEntries = Object.entries(workout.attributes ?? {});
 

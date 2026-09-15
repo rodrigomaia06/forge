@@ -29,6 +29,8 @@ export interface ExerciseSectionProps {
   /** The parent drag owns pointer movement while an exercise is reordered. */
   swipeEnabled?: boolean;
   showMoreOptions?: boolean;
+  /** Opens the owning editor's single-selection catalogue picker. */
+  onReplaceExercise?: (exerciseId: string) => void;
   /** Live Workout presents saved catalogue variation and primary equipment beneath the canonical name. */
   showCatalogMetadata?: boolean;
   /** Routine drafts do not record completed sets. */

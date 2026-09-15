@@ -33,7 +33,7 @@ import { animateLayout, lightHaptic, mediumHaptic, selectionHaptic } from './act
 import type { Workout, WorkoutExercise } from '../../types';
 import { ExerciseInfoContent, PreviousSessionsContent } from './ExerciseOptionSheets';
 import { catalogFacets, filterCatalog, groupCatalogByPrimaryEquipment } from '../../domain/exercises/catalogSelectors';
-import { formatPickerPrimaryEquipment } from '../../domain/exercises/exercisePresentation';
+import { formatCatalogVariation, formatPickerPrimaryEquipment } from '../../domain/exercises/exercisePresentation';
 import {
   buildVariationFamily,
   hasComposableInputs,
@@ -61,6 +61,7 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   visible,
   session = 0,
   workoutType,
+  selectionLimit,
   onClose,
   onSubmit,
 }: {
@@ -69,6 +70,8 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   session?: number;
   /** The active workout or editor type provides a removable initial scope. */
   workoutType?: string;
+  /** Replacement uses the same catalogue surface but must choose one movement. */
+  selectionLimit?: number;
   onClose: () => void;
   onSubmit: (exercises: ExerciseCatalogItem[]) => void;
 }) {
@@ -165,10 +168,13 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
     setSelected((current) => {
       const next = new Set(current);
       if (next.has(exercise.id)) next.delete(exercise.id);
-      else next.add(exercise.id);
+      else {
+        if (selectionLimit === 1) next.clear();
+        next.add(exercise.id);
+      }
       return next;
     });
-  }, []);
+  }, [selectionLimit]);
   const toggleModifier = useCallback((familyKey: string, inputId: string): void => {
     Keyboard.dismiss();
     lightHaptic();
@@ -430,7 +436,7 @@ function ExerciseOutputChooser({ resolution, onBack, onClose, onConfirm }: {
         return <Pressable accessibilityRole="checkbox" accessibilityLabel={item.exercise.name} accessibilityState={{ checked }} onPress={() => setSelected((current) => {
           const next = new Set(current); if (next.has(item.exercise.id)) next.delete(item.exercise.id); else next.add(item.exercise.id); return next;
         })} style={({ pressed }) => [styles.outputChoice, checked && styles.outputChoiceSelected, pressed && styles.exerciseOptionPressed]}>
-          <View style={styles.exerciseOptionCopy}><Text style={styles.groupName}>{item.exercise.name}</Text><Text style={styles.groupMeta}>{item.exercise.variation || (item.source === 'derived' ? 'New variation' : 'Catalogue exercise')}</Text></View>
+          <View style={styles.exerciseOptionCopy}><Text style={styles.groupName}>{item.exercise.name}</Text>{(formatCatalogVariation(item.exercise.name, item.exercise.variation) || item.source === 'derived') ? <Text style={styles.groupMeta}>{formatCatalogVariation(item.exercise.name, item.exercise.variation) || 'New variation'}</Text> : null}</View>
           <CompletionCheck selected={checked} tone="selection" />
         </Pressable>;
       }}
@@ -540,7 +546,7 @@ const CatalogCategory = React.memo(function CatalogCategory({
               {expanded && hasComposableInputs(family) && family.standalone.map((exercise) => {
                 const isSelected = selected.has(exercise.id);
                 return <Pressable key={exercise.id} accessibilityRole="checkbox" accessibilityLabel={`${group}, ${exercise.name}`} accessibilityState={{ checked: isSelected }} onPress={() => onToggleExercise(exercise)} style={({ pressed }) => [styles.subVariationRow, isSelected && styles.subVariationRowSelected, pressed && styles.exerciseOptionPressed]}>
-                  <View style={styles.exerciseOptionCopy}><Text style={styles.variationName}>{exercise.name}</Text><Text style={styles.equipmentMeta}>{exercise.variation || 'Named variation'}</Text></View>
+                  <View style={styles.exerciseOptionCopy}><Text style={styles.variationName}>{exercise.name}</Text>{formatCatalogVariation(exercise.name, exercise.variation) ? <Text style={styles.equipmentMeta}>{formatCatalogVariation(exercise.name, exercise.variation)}</Text> : null}</View>
                   <CompletionCheck selected={isSelected} tone="selection" testID={`exercise-selection-${exercise.id}`} />
                 </Pressable>;
               })}
@@ -601,7 +607,7 @@ const CatalogCategory = React.memo(function CatalogCategory({
                     </Pressable>
                     {equipmentExpanded && exercises.map((exercise) => {
                       const isSelected = selected.has(exercise.id);
-                      const label = exercise.variation || exercise.name;
+                      const label = formatCatalogVariation(exercise.name, exercise.variation) || exercise.name;
                       return (
                         <Pressable
                           key={exercise.id}
@@ -716,6 +722,7 @@ export function ExerciseOptionsSheet({
   readOnly = false,
   completedWorkouts = [],
   onRemove,
+  onReplaceExercise,
 }: {
   visible: boolean;
   exercise: WorkoutExercise;
@@ -729,6 +736,7 @@ export function ExerciseOptionsSheet({
   readOnly?: boolean;
   completedWorkouts?: readonly Workout[];
   onRemove?: () => void;
+  onReplaceExercise?: () => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -767,6 +775,7 @@ export function ExerciseOptionsSheet({
         ...(onOpenPreviousSessions ? [{ icon: 'history' as const, label: 'Previous sessions', dismiss: false, onPress: () => setView('history') }] : []),
         ...(onOpenWarmupSets ? [{ icon: 'warm-up' as const, label: 'Warm-up sets', onPress: onOpenWarmupSets }] : []),
         ...(onOpenExerciseInfo ? [{ icon: 'info' as const, label: 'Exercise info', dismiss: false, onPress: () => setView('info') }] : []),
+        ...(!readOnly && onReplaceExercise ? [{ icon: 'note' as const, label: 'Replace exercise', onPress: onReplaceExercise }] : []),
         ...(!readOnly && onRemove ? [{
           icon: 'trash' as const,
           label: 'Remove exercise',

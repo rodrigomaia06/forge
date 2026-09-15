@@ -833,6 +833,22 @@ test.describe('Active workout flow', () => {
     await page.mouse.down();
     await page.mouse.move(listBox.x + listBox.width / 2, listBox.y + 80, { steps: 10 });
     await page.mouse.up();
+    // The width and selected index can animate on separate frames. Sample the
+    // entire compacting transition, not only the settled endpoint, because a
+    // stale child-layout reading on iOS was the original offset regression.
+    for (let frame = 0; frame < 7; frame += 1) {
+      const [pillDuringTransition, workoutTabDuringTransition] = await Promise.all([
+        page.getByTestId('dashboard-nav-selection-pill').boundingBox(),
+        page.getByRole('tab', { name: 'Workout', exact: true }).boundingBox(),
+      ]);
+      if (!pillDuringTransition || !workoutTabDuringTransition)
+        throw new Error('Expected dock geometry during compact transition');
+      expect(Math.abs(
+        pillDuringTransition.x + pillDuringTransition.width / 2
+          - (workoutTabDuringTransition.x + workoutTabDuringTransition.width / 2),
+      )).toBeLessThan(2);
+      await page.waitForTimeout(40);
+    }
     await page.waitForTimeout(280);
 
     const [dock, pill, workoutTab, workoutIcon] = await Promise.all([

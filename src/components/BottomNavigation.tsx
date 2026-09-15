@@ -1,13 +1,15 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { LayoutAnimation, Platform, UIManager, View, StyleSheet } from 'react-native';
-import type { LayoutChangeEvent } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import Animated, {
   Easing,
+  measure,
+  useAnimatedRef,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withTiming,
+  type SharedValue,
 } from 'react-native-reanimated';
 
 import { NavigationItem, selectionHaptic } from './ui';
@@ -21,11 +23,12 @@ interface BottomNavigationProps {
   tabBarProps: BottomTabBarProps;
   theme?: ForgeTheme;
   compact?: boolean;
+  /** UI-thread dock width; required while the surface is animating. */
+  surfaceWidth?: SharedValue<number>;
   onNavigate?: () => void;
 }
 type BottomNavigationScreen = keyof RootTabParamList;
 type NavigationItemEntry = [IconName, string, BottomNavigationScreen, boolean];
-type ItemLayout = { x: number; width: number };
 
 let knownWorkoutId: string | null | undefined;
 
@@ -33,18 +36,15 @@ export function BottomNavigation({
   tabBarProps,
   theme = colors,
   compact = false,
+  surfaceWidth,
   onNavigate,
 }: BottomNavigationProps) {
   const { navigation, state } = tabBarProps;
   const activeWorkout = useWorkouts().activeWorkout;
   const { preferences } = useSettings();
-  const [itemLayouts, setItemLayouts] = useState<
-    Partial<Record<BottomNavigationScreen, ItemLayout>>
-  >({});
-  const indicatorX = useSharedValue(0);
-  const indicatorWidth = useSharedValue(0);
   const indicatorOpacity = useSharedValue(0);
   const activeIndex = useSharedValue(0);
+  const navigationRef = useAnimatedRef<Animated.View>();
   const reducedMotion = useReducedMotion();
   const hasActiveWorkout = Boolean(activeWorkout);
   const activeWorkoutIcon = activeWorkout
@@ -78,43 +78,25 @@ export function BottomNavigation({
 
   useEffect(() => {
     const next = Math.max(0, currentActiveIndex);
-    activeIndex.value = reducedMotion
-      ? next
-      : withTiming(next, { duration: 150, easing: Easing.out(Easing.cubic) });
-  }, [activeIndex, currentActiveIndex, reducedMotion]);
+    activeIndex.value = reducedMotion ? next : withTiming(next, { duration: 150, easing: Easing.out(Easing.cubic) });
+    indicatorOpacity.value = reducedMotion ? 1 : withTiming(1, { duration: 150, easing: Easing.out(Easing.cubic) });
+  }, [activeIndex, currentActiveIndex, indicatorOpacity, reducedMotion]);
 
-  useEffect(() => {
-    const layout = itemLayouts[activeRoute];
-    if (!layout) return;
-    const transition = (next: number) =>
-      reducedMotion ? next : withTiming(next, { duration: 150, easing: Easing.out(Easing.cubic) });
-    // The dock remains a five-slot layout while a workout is active. Keep the
-    // pill strictly inside its measured slot in both heights, so changing to
-    // compact state scales the middle selection with its slot instead of
-    // retaining the former wide capsule or shifting sideways.
-    // `layout.x` is already relative to the padded navigation content. An
-    // additional inset shifts every capsule off its actual tab centre.
-    indicatorX.value = transition(layout.x);
-    indicatorWidth.value = transition(Math.max(0, layout.width - 4));
-    indicatorOpacity.value = transition(1);
-  }, [activeRoute, compact, indicatorOpacity, indicatorWidth, indicatorX, itemLayouts, reducedMotion]);
-
-  const selectionIndicatorStyle = useAnimatedStyle(() => (
-    {
+  const selectionIndicatorStyle = useAnimatedStyle(() => {
+    // A native dock width changes on the UI thread; child onLayout callbacks
+    // arrive later on JS. Read the exact flex parent in the same worklet so a
+    // pill can never be calculated with mixed old/new geometry.
+    const measuredWidth = measure(navigationRef)?.width;
+    // Before native measurement (and on web), use DockSurface's explicit
+    // 1pt border + 6pt horizontal padding per side as a stable fallback.
+    const navigationWidth = measuredWidth ?? (surfaceWidth ? Math.max(0, surfaceWidth.value - 14) : 0);
+    const slotWidth = Math.max(0, (navigationWidth - 4) / items.length);
+    return {
       opacity: indicatorOpacity.value,
-      width: indicatorWidth.value,
-      transform: [{ translateX: indicatorX.value }],
-    }
-  ), [indicatorOpacity, indicatorWidth, indicatorX]);
-
-  const updateItemLayout = (screen: BottomNavigationScreen, event: LayoutChangeEvent): void => {
-    const { x, width } = event.nativeEvent.layout;
-    setItemLayouts((current) => {
-      const previous = current[screen];
-      if (previous?.x === x && previous.width === width) return current;
-      return { ...current, [screen]: { x, width } };
-    });
-  };
+      width: Math.max(0, slotWidth - 4),
+      transform: [{ translateX: 4 + activeIndex.value * slotWidth }],
+    };
+  }, [activeIndex, indicatorOpacity, items.length, navigationRef, surfaceWidth]);
 
   const goTo = (screen: BottomNavigationScreen): void => {
     const target = state.routes.find((route) => route.name === screen);
@@ -131,7 +113,7 @@ export function BottomNavigation({
   };
 
   return (
-    <View style={[styles.navigation, compact && styles.navigationCompact]}>
+    <Animated.View ref={navigationRef} style={[styles.navigation, compact && styles.navigationCompact]}>
       <Animated.View
         testID="dashboard-nav-selection-pill"
         style={[
@@ -163,7 +145,6 @@ export function BottomNavigation({
         return (
           <View
             key={label}
-            onLayout={(event) => updateItemLayout(screen, event)}
             style={[styles.itemSlot, compact && styles.itemSlotCompact]}
           >
             <NavigationItem
@@ -181,7 +162,7 @@ export function BottomNavigation({
           </View>
         );
       })}
-    </View>
+    </Animated.View>
   );
 }
 

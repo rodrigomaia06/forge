@@ -86,6 +86,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
   );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [addingExercises, setAddingExercises] = useState(false);
+  const [replacingExerciseIndex, setReplacingExerciseIndex] = useState<number | null>(null);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [attributeSheet, setAttributeSheet] = useState<AttributeSheetState>(null);
   const [error, setError] = useState<string | null>(null);
@@ -161,6 +162,21 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
       ],
     }));
     setAddingExercises(false);
+  };
+  const replaceExercise = (exercises: ExerciseCatalogItem[]): void => {
+    const replacement = exercises[0];
+    if (!replacement || replacingExerciseIndex === null) return;
+    change((current) => ({
+      ...current,
+      exercises: current.exercises.map((exercise, index) => index === replacingExerciseIndex ? {
+        ...exercise,
+        exerciseId: replacement.id,
+        name: replacement.name,
+        trackingType: replacement.trackingType,
+        exerciseSnapshot: createExerciseSnapshot(replacement),
+      } : exercise),
+    }));
+    setReplacingExerciseIndex(null);
   };
   const discard = (): void => {
     if (!(dirty || changedSinceOpenRef.current)) return navigation.goBack();
@@ -295,7 +311,8 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
         collapsible
         forceCollapsed={reorderingExercises}
         swipeEnabled={!reorderingExercises && !isActive}
-        showMoreOptions={false}
+        showMoreOptions={!viewing}
+        onReplaceExercise={() => setReplacingExerciseIndex(index)}
         showSetCompletion={false}
         setTargetMode="routine"
         onSetInputFocus={onSetInputFocus}
@@ -542,6 +559,9 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
         )}
         {addingExercises && (
           <AddExerciseSheet visible workoutType={draft.type} onClose={() => setAddingExercises(false)} onSubmit={addExercises} />
+        )}
+        {replacingExerciseIndex !== null && (
+          <AddExerciseSheet visible workoutType={draft.type} selectionLimit={1} onClose={() => setReplacingExerciseIndex(null)} onSubmit={replaceExercise} />
         )}
         <RoutineTypePicker
           visible={pickerOpen}

@@ -57,6 +57,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   forceCollapsed = false,
   swipeEnabled = true,
   showMoreOptions = true,
+  onReplaceExercise,
   showCatalogMetadata = false,
   showSetCompletion = true,
   setTargetMode = 'next-session',
@@ -344,6 +345,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 onRemove={() => {
                   afterOptionsClose(() => setRemoveConfirmationOpen(true));
                 }}
+                onReplaceExercise={onReplaceExercise ? () => afterOptionsClose(() => onReplaceExercise(exercise.id)) : undefined}
               />
             )}
             {optionView === 'warmup' && addWarmupSets ? (

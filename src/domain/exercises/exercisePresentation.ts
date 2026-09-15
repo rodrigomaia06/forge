@@ -40,6 +40,26 @@ function readableDetail(value: string): string {
     .join(' ');
 }
 
+/**
+ * Picker rows already use the canonical exercise name as their primary label.
+ * Do not repeat facets which that name expresses (including Forge's canonical
+ * Chin-Up/Pull-Up grip names).  This is presentation-only: catalogue facets
+ * remain intact for search, matching and the variation resolver.
+ */
+export function formatCatalogVariation(name: string, rawVariation: string | undefined): string | null {
+  if (!rawVariation?.trim()) return null;
+  const detail = readableDetail(rawVariation);
+  if (!detail) return null;
+  const implied = new Set<string>();
+  const normalizedName = name.toLocaleLowerCase();
+  if (/\bchin[ -]?up\b/.test(normalizedName)) implied.add('supinated');
+  if (/\bpull[ -]?up\b/.test(normalizedName) && !/\bchin[ -]?up\b/.test(normalizedName)) implied.add('pronated');
+  const titleWords = normalizedWords(name);
+  const remaining = detail.split(/\s*[·,–—-]\s*|\s+/)
+    .filter((word) => word && !titleWords.has(word.toLocaleLowerCase()) && !implied.has(word.toLocaleLowerCase()));
+  return remaining.length ? remaining.join(' ') : null;
+}
+
 function titleAlreadySaysEquipment(name: string, equipment: string): boolean {
   const equipmentWords = normalizedWords(equipment);
   const titleWords = normalizedWords(name);
@@ -57,12 +77,7 @@ export function formatExerciseMetadata(snapshot: ExerciseSnapshot | undefined): 
   const variation = rawVariation && equipment
     ? readableDetail(removePrimaryEquipment(rawVariation, equipment))
     : rawVariation ? readableDetail(rawVariation) : undefined;
-  const distinctVariation = variation && snapshot
-    ? variationNotInTitle(snapshot.name, variation)
-    : variation;
-  const visibleVariation = distinctVariation && snapshot && !titleAlreadySaysVariation(snapshot.name, distinctVariation)
-    ? distinctVariation
-    : undefined;
+  const visibleVariation = snapshot ? formatCatalogVariation(snapshot.name, variation) ?? undefined : variation;
   const visibleEquipment = equipment && !genericDetail.has(equipment.toLocaleLowerCase())
     && !titleAlreadySaysEquipment(snapshot.name, equipment)
     ? equipment

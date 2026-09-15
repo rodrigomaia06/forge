@@ -63,6 +63,7 @@ import {
   filterCatalog,
   groupCatalogByMovement,
 } from '../../domain/exercises/catalogSelectors';
+import { formatCatalogVariation } from '../../domain/exercises/exercisePresentation';
 import { REST_DURATION_OPTIONS } from '../../domain/rest/restDurationOptions';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 
@@ -927,7 +928,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
               <View style={styles.detailSheet}>
                 <ForgeBottomSheetHandle />
                 <ForgeSheetHeader
-                  title={detail.variation || detail.name}
+                  title={detail.name}
                   onClose={close}
                   closeAccessibilityLabel="Close exercise details"
                   closePosition={isCustom(detail) ? 'left' : 'right'}
@@ -1240,7 +1241,7 @@ function Movement({
             <View key={label} style={styles.equipmentGroup}>
               <Text style={styles.equipmentTitle}>{label}</Text>
               {variants.map((item) => {
-                const label = item.variation || item.name;
+                const label = formatCatalogVariation(item.name, item.variation) || item.name;
                 const variation = (onPress: () => void) => (
                   <Pressable
                     accessibilityRole="button"
@@ -1352,7 +1353,7 @@ function SwipeCustomExerciseRow({
     lightHaptic();
     onOpen();
   };
-  const label = item.variation || item.name;
+  const label = formatCatalogVariation(item.name, item.variation) || item.name;
 
   return (
     <GestureDetector gesture={pan}>
