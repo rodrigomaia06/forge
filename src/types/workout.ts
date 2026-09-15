@@ -43,6 +43,8 @@ export interface WorkoutExerciseChanges {
 export type TrackingType = 'weight-reps' | 'bodyweight-reps' | 'weighted-bodyweight' | 'assisted-bodyweight' | 'reps-only' | 'duration' | 'duration-weight' | 'distance-duration' | 'weight-distance';
 export interface ExerciseVariationFacets {
   load?: string;
+  /** Assistance method is meaningful only with the Assisted load mode. */
+  assistance?: string;
   grip?: string;
   stance?: string;
   setup?: string;
