@@ -35,6 +35,15 @@ import { ExerciseInfoContent, PreviousSessionsContent } from './ExerciseOptionSh
 import { catalogFacets, filterCatalog, groupCatalogByPrimaryEquipment } from '../../domain/exercises/catalogSelectors';
 import { formatPickerPrimaryEquipment } from '../../domain/exercises/exercisePresentation';
 import {
+  buildVariationFamily,
+  hasComposableInputs,
+  resolveVariationPalette,
+  variationAxes,
+  variationAxisLabel,
+  type ResolvedVariation,
+  type VariationFamily,
+} from '../../domain/exercises/variationResolver';
+import {
   catalogFilterCount,
   emptyCatalogFilters,
   type CatalogFilterFacet,
@@ -45,6 +54,8 @@ type CatalogCategoryData = {
   category: string;
   groups: { group: string; variations: ExerciseCatalogItem[] }[];
 };
+
+type VariationResolution = { direct: ExerciseCatalogItem[]; choices: ResolvedVariation[] };
 
 export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   visible,
@@ -61,14 +72,16 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   onClose: () => void;
   onSubmit: (exercises: ExerciseCatalogItem[]) => void;
 }) {
-  const { exercises: exerciseCatalog } = useExerciseCatalog();
+  const { exercises: exerciseCatalog, addCustomExercise } = useExerciseCatalog();
   const { preferences } = useSettings();
   const theme = useForgeTheme();
   const dashboardTheme = theme;
   const styles = useThemedStyles(createStyles);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
+  const [modifierSelections, setModifierSelections] = useState<ReadonlyMap<string, ReadonlySet<string>>>(() => new Map());
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [variationResolution, setVariationResolution] = useState<VariationResolution | null>(null);
   const [filters, setFilters] = useState<CatalogFilterState>(emptyCatalogFilters());
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [expandedEquipment, setExpandedEquipment] = useState<string | null>(null);
@@ -121,6 +134,16 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
     }),
     [exerciseCatalog, filters.equipment, filters.exerciseCategories, filters.types, query],
   );
+  const allVariantsByGroup = useMemo(() => {
+    const groups = new Map<string, ExerciseCatalogItem[]>();
+    exerciseCatalog.forEach((exercise) => {
+      const key = `${exercise.category}\u0001${exercise.group}`;
+      const current = groups.get(key) ?? [];
+      current.push(exercise);
+      groups.set(key, current);
+    });
+    return groups;
+  }, [exerciseCatalog]);
   const groupedExercises = useMemo<CatalogCategoryData[]>(() => {
     const categories = new Map<string, Map<string, ExerciseCatalogItem[]>>();
     filteredExercises.forEach((exercise) => {
@@ -146,6 +169,17 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
       return next;
     });
   }, []);
+  const toggleModifier = useCallback((familyKey: string, inputId: string): void => {
+    Keyboard.dismiss();
+    lightHaptic();
+    setModifierSelections((current) => {
+      const next = new Map(current);
+      const values = new Set(current.get(familyKey) ?? []);
+      if (values.has(inputId)) values.delete(inputId); else values.add(inputId);
+      if (values.size) next.set(familyKey, values); else next.delete(familyKey);
+      return next;
+    });
+  }, []);
   const toggleGroup = useCallback((key: string, expanded: boolean): void => {
     Keyboard.dismiss();
     selectionHaptic();
@@ -163,7 +197,9 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
     Keyboard.dismiss();
     setQuery('');
     setSelected(new Set());
+    setModifierSelections(new Map());
     setFiltersOpen(false);
+    setVariationResolution(null);
     setFilters({ ...emptyCatalogFilters(), types: defaultTypeKey ? defaultTypeKey.split('\u0001') : [] });
     setExpandedGroup(null);
     setExpandedEquipment(null);
@@ -180,18 +216,33 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
     initializedSession.current = session;
     reset();
   }, [reset, session, visible]);
-  const submit = (): void => {
-    const exercises = exerciseCatalog.filter((exercise) => selected.has(exercise.id));
-    if (!exercises.length) return;
+  const commit = useCallback((exercises: ExerciseCatalogItem[]): void => {
+    const unique = [...new Map(exercises.map((exercise) => [exercise.id, exercise])).values()];
+    if (!unique.length) return;
+    unique.filter((exercise) => exercise.id.startsWith('custom-derived-') && !exerciseCatalog.some((item) => item.id === exercise.id)).forEach(addCustomExercise);
     Keyboard.dismiss();
     setQuery('');
     setSelected(new Set());
+    setModifierSelections(new Map());
     setFiltersOpen(false);
+    setVariationResolution(null);
     setFilters({ ...emptyCatalogFilters(), types: defaultTypeKey ? defaultTypeKey.split('\u0001') : [] });
     setExpandedGroup(null);
     setExpandedEquipment(null);
     mediumHaptic();
-    onSubmit(exercises);
+    onSubmit(unique);
+  }, [addCustomExercise, defaultTypeKey, exerciseCatalog, onSubmit]);
+  const submit = (): void => {
+    const direct = exerciseCatalog.filter((exercise) => selected.has(exercise.id));
+    const ambiguous: ResolvedVariation[] = [];
+    modifierSelections.forEach((ids, familyKey) => {
+      const variants = allVariantsByGroup.get(familyKey) ?? [];
+      const resolved = resolveVariationPalette(buildVariationFamily(variants), ids);
+      if (resolved.length === 1) direct.push(resolved[0].exercise);
+      else if (resolved.length > 1) ambiguous.push(...resolved);
+    });
+    if (!ambiguous.length) { commit(direct); return; }
+    setVariationResolution({ direct, choices: [...new Map(ambiguous.map((item) => [item.exercise.id, item])).values()] });
   };
 
   return (
@@ -219,7 +270,14 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
     >
       {(closeSheet) => (
         <>
-          {filtersOpen ? (
+          {variationResolution ? (
+            <ExerciseOutputChooser
+              resolution={variationResolution}
+              onBack={() => setVariationResolution(null)}
+              onClose={closeSheet}
+              onConfirm={(choices) => commit([...variationResolution.direct, ...choices])}
+            />
+          ) : filtersOpen ? (
             <View style={styles.filterSheetFill}>
               <ForgeCatalogFilterContent
                 filters={filters}
@@ -315,6 +373,8 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
                 onToggleExercise={toggleExercise}
                 onToggleGroup={toggleGroup}
                 onToggleEquipment={toggleEquipment}
+                modifierSelections={modifierSelections}
+                onToggleModifier={toggleModifier}
               />
             )}
             ListEmptyComponent={!filteredExercises.length ? (
@@ -331,13 +391,13 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
             ) : null}
           />
           <ForgeFloatingCta
-            label={`Add exercises${selected.size ? ` (${selected.size})` : ''}`}
+            label={`Add exercises${selected.size + [...modifierSelections.values()].reduce((count, values) => count + values.size, 0) ? ` (${selected.size + [...modifierSelections.values()].reduce((count, values) => count + values.size, 0)})` : ''}`}
             accessibilityLabel="Confirm selected exercises"
-            disabled={!selected.size}
+            disabled={!selected.size && !modifierSelections.size}
             onPress={submit}
             theme={dashboardTheme}
             icon="check"
-            tone={selected.size ? 'success' : 'neutral'}
+            tone={selected.size || modifierSelections.size ? 'success' : 'neutral'}
           />
             </>
           )}
@@ -348,6 +408,37 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   );
 });
 
+function ExerciseOutputChooser({ resolution, onBack, onClose, onConfirm }: {
+  resolution: VariationResolution;
+  onBack: () => void;
+  onClose: () => void;
+  onConfirm: (choices: ExerciseCatalogItem[]) => void;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
+  return <>
+    <ForgeBottomSheetHandle />
+    <ForgeSheetHeader title="Choose exercises" onClose={onClose} leading={<ForgeEditorBackButton onPress={onBack} accessibilityLabel="Back to exercise choices" />} />
+    <FlatList
+      testID="variation-output-chooser"
+      data={resolution.choices}
+      keyExtractor={(item) => item.exercise.id}
+      contentContainerStyle={[styles.outputChooserContent, { paddingBottom: 124 }]}
+      renderItem={({ item }) => {
+        const checked = selected.has(item.exercise.id);
+        return <Pressable accessibilityRole="checkbox" accessibilityLabel={item.exercise.name} accessibilityState={{ checked }} onPress={() => setSelected((current) => {
+          const next = new Set(current); if (next.has(item.exercise.id)) next.delete(item.exercise.id); else next.add(item.exercise.id); return next;
+        })} style={({ pressed }) => [styles.outputChoice, checked && styles.outputChoiceSelected, pressed && styles.exerciseOptionPressed]}>
+          <View style={styles.exerciseOptionCopy}><Text style={styles.groupName}>{item.exercise.name}</Text><Text style={styles.groupMeta}>{item.exercise.variation || (item.source === 'derived' ? 'New variation' : 'Catalogue exercise')}</Text></View>
+          <CompletionCheck selected={checked} tone="selection" />
+        </Pressable>;
+      }}
+    />
+    <ForgeFloatingCta label={`Add exercises${selected.size ? ` (${selected.size + resolution.direct.length})` : ''}`} accessibilityLabel="Confirm resolved exercises" disabled={!selected.size && !resolution.direct.length} icon="check" tone={selected.size || resolution.direct.length ? 'success' : 'neutral'} theme={theme} onPress={() => onConfirm(resolution.choices.filter((item) => selected.has(item.exercise.id)).map((item) => item.exercise))} />
+  </>;
+}
+
 const CatalogCategory = React.memo(function CatalogCategory({
   category,
   groups,
@@ -357,6 +448,8 @@ const CatalogCategory = React.memo(function CatalogCategory({
   onToggleExercise,
   onToggleGroup,
   onToggleEquipment,
+  modifierSelections,
+  onToggleModifier,
 }: {
   category: string;
   groups: CatalogCategoryData['groups'];
@@ -366,6 +459,8 @@ const CatalogCategory = React.memo(function CatalogCategory({
   onToggleExercise: (exercise: ExerciseCatalogItem) => void;
   onToggleGroup: (key: string, expanded: boolean) => void;
   onToggleEquipment: (key: string, expanded: boolean) => void;
+  modifierSelections: ReadonlyMap<string, ReadonlySet<string>>;
+  onToggleModifier: (familyKey: string, inputId: string) => void;
 }) {
   const styles = useThemedStyles(createStyles);
 
@@ -375,8 +470,11 @@ const CatalogCategory = React.memo(function CatalogCategory({
       <View style={styles.categoryCard}>
         {groups.map(({ group, variations }, groupIndex) => {
           const groupKey = `${category}-${group}`;
+          const familyKey = `${category}\u0001${group}`;
           const expanded = expandedGroup === groupKey;
-          const selectedCount = variations.filter((exercise) => selected.has(exercise.id)).length;
+          const family = buildVariationFamily(variations);
+          const selectedModifiers = modifierSelections.get(familyKey) ?? new Set<string>();
+          const selectedCount = variations.filter((exercise) => selected.has(exercise.id)).length + selectedModifiers.size;
           const equipmentGroups = expanded
             ? groupCatalogByPrimaryEquipment(variations).map(([equipment, exercises]) => ({ equipment, exercises }))
             : [];
@@ -401,6 +499,7 @@ const CatalogCategory = React.memo(function CatalogCategory({
               >
                 <View style={styles.exerciseOptionCopy}>
                   <Text style={styles.groupName}>{group}</Text>
+                  {exercise.variation ? <Text style={styles.groupMeta}>{exercise.variation}</Text> : null}
                 </View>
                 <CompletionCheck
                   selected={isSelected}
@@ -437,7 +536,15 @@ const CatalogCategory = React.memo(function CatalogCategory({
                   <AnimatedChevron expanded={expanded} />
                 </View>
               </Pressable>
-              {equipmentGroups.map(({ equipment, exercises }) => {
+              {expanded && hasComposableInputs(family) ? <FacetPickerRows family={family} familyKey={familyKey} selected={selectedModifiers} onToggle={onToggleModifier} /> : null}
+              {expanded && hasComposableInputs(family) && family.standalone.map((exercise) => {
+                const isSelected = selected.has(exercise.id);
+                return <Pressable key={exercise.id} accessibilityRole="checkbox" accessibilityLabel={`${group}, ${exercise.name}`} accessibilityState={{ checked: isSelected }} onPress={() => onToggleExercise(exercise)} style={({ pressed }) => [styles.subVariationRow, isSelected && styles.subVariationRowSelected, pressed && styles.exerciseOptionPressed]}>
+                  <View style={styles.exerciseOptionCopy}><Text style={styles.variationName}>{exercise.name}</Text><Text style={styles.equipmentMeta}>{exercise.variation || 'Named variation'}</Text></View>
+                  <CompletionCheck selected={isSelected} tone="selection" testID={`exercise-selection-${exercise.id}`} />
+                </Pressable>;
+              })}
+              {!hasComposableInputs(family) && equipmentGroups.map(({ equipment, exercises }) => {
                 const equipmentSelectedCount = exercises.filter((exercise) => selected.has(exercise.id)).length;
                 const hasSubVariations = exercises.length > 1;
                 const equipmentKey = `${groupKey}-${equipment}`;
@@ -527,6 +634,31 @@ const CatalogCategory = React.memo(function CatalogCategory({
     </View>
   );
 });
+
+function FacetPickerRows({ family, familyKey, selected, onToggle }: {
+  family: VariationFamily;
+  familyKey: string;
+  selected: ReadonlySet<string>;
+  onToggle: (familyKey: string, inputId: string) => void;
+}) {
+  const styles = useThemedStyles(createStyles);
+  const assistedSelected = family.inputs.some((input) => input.axis === 'load' && input.value === 'Assisted' && selected.has(input.id));
+  const groups = variationAxes.map((axis) => ({ axis, inputs: family.inputs.filter((input) => input.axis === axis && (axis !== 'assistance' || assistedSelected)) })).filter((group) => group.inputs.length);
+  return <View style={styles.facetPicker}>
+    {groups.map(({ axis, inputs }) => <View key={axis} style={styles.facetGroup}>
+      <Text style={styles.facetGroupTitle}>{variationAxisLabel(axis)}</Text>
+      <ForgeCard variant="outlined" style={styles.facetGroupCard}>
+        {inputs.map((input, index) => {
+          const checked = selected.has(input.id);
+          return <Pressable key={input.id} accessibilityRole="checkbox" accessibilityLabel={`${family.group}, ${input.label}`} accessibilityState={{ checked }} onPress={() => onToggle(familyKey, input.id)} style={({ pressed }) => [styles.facetRow, index > 0 && styles.groupRowDivider, checked && styles.subVariationRowSelected, pressed && styles.exerciseOptionPressed]}>
+            <Text style={styles.variationName}>{input.label}</Text>
+            <CompletionCheck selected={checked} tone="selection" />
+          </Pressable>;
+        })}
+      </ForgeCard>
+    </View>)}
+  </View>;
+}
 
 function AnimatedChevron({ expanded }: { expanded: boolean }) {
   const theme = useForgeTheme();
@@ -848,6 +980,18 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     },
     groupRowDivider: { borderTopWidth: 1, borderTopColor: dashboardTheme.divider },
     groupRowPressed: { backgroundColor: dashboardTheme.surfaceMuted },
+    composerTrigger: {
+      minHeight: 58,
+      paddingHorizontal: 18,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: dashboardTheme.divider,
+      backgroundColor: dashboardTheme.surfaceMuted,
+    },
+    composerTriggerTitle: { color: dashboardTheme.ink, ...typeScale.label },
+    composerTriggerDetail: { color: dashboardTheme.slate, ...typeScale.caption },
     singleGroupRow: {
       backgroundColor: dashboardTheme.surface,
     },
@@ -953,5 +1097,25 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       textAlign: 'center',
     },
     emptyState: { alignItems: 'center', paddingHorizontal: 20 },
+    composerContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 124, gap: 14 },
+    composerTitle: { color: dashboardTheme.ink, ...typeScale.sectionTitle },
+    composerDescription: { ...typeScale.body },
+    composerCard: { overflow: 'hidden', borderRadius: 16 },
+    composerFacetRow: { minHeight: 62, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' },
+    composerFacetDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: dashboardTheme.divider },
+    composerFacetLabel: { color: dashboardTheme.ink, ...typeScale.label },
+    composerFacetValue: { ...typeScale.body },
+    composerPreview: { padding: 14, gap: 3 },
+    composerPreviewLabel: { color: dashboardTheme.slate, ...typeScale.caption },
+    composerPreviewTitle: { color: dashboardTheme.ink, ...typeScale.cardTitle },
+    composerPreviewMeta: { ...typeScale.body },
+    facetPicker: { padding: 14, gap: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: dashboardTheme.divider, backgroundColor: dashboardTheme.surfaceMuted },
+    facetGroup: { gap: 6 },
+    facetGroupTitle: { ...typeScale.label, color: dashboardTheme.slate, paddingHorizontal: 2 },
+    facetGroupCard: { overflow: 'hidden', borderRadius: 14 },
+    facetRow: { minHeight: 58, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center' },
+    outputChooserContent: { paddingHorizontal: 20, paddingTop: 8, gap: 10 },
+    outputChoice: { minHeight: 64, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: dashboardTheme.border, borderRadius: 16, backgroundColor: dashboardTheme.surface },
+    outputChoiceSelected: { backgroundColor: dashboardTheme.successSurface, borderColor: dashboardTheme.success },
   });
 };
