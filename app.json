@@ -45,11 +45,6 @@
       ],
       "./modules/forge-rest-timer/app.plugin.js"
     ],
-    "extra": {
-      "eas": {
-        "projectId": "6b8083d6-e0fc-4ebe-b5c9-4e38a6f7c9e0"
-      }
-    },
     "owner": "pristine6589"
   }
 }
