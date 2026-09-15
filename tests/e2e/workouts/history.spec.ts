@@ -391,6 +391,7 @@ test.describe('History screen', () => {
       'aria-expanded',
       'true',
     );
+    await expect(page.getByText('Previous', { exact: true })).toHaveCount(0);
     await expect(page.getByTestId('workout-details-set-muay-thai-set-0-0')).toContainText('60');
     await expect(page.getByTestId('workout-details-set-completion-muay-thai-set-0-0')).toHaveCSS(
       'background-color',
@@ -455,6 +456,35 @@ test.describe('History screen', () => {
       await page.waitForTimeout(250);
       await page.screenshot({ path: testInfo.outputPath('history-set-editor-iphone.png') });
     }
+  });
+
+  test('keeps Previous sessions usable after inspecting a prior set', async ({ page }, testInfo) => {
+    await page.getByRole('button', { name: 'Open Muay Thai' }).click();
+    await page.getByRole('button', { name: 'More options for Exercise 1' }).click();
+    await page.getByRole('button', { name: 'Previous sessions' }).click();
+
+    // Muay Thai itself is excluded. Four older Exercise 1 sessions leave
+    // three detailed cards and a fully reachable Show more control.
+    await expect(page.getByText('Previous sessions', { exact: true }).last()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Show 1 more sessions' })).toBeVisible();
+    const priorSetButtons = page.getByRole('button', { name: 'Open details for set 1' });
+    await expect(priorSetButtons).toHaveCount(3);
+    if (testInfo.project.name === 'iphone-air') {
+      await page.screenshot({ path: testInfo.outputPath('previous-sessions-cards-iphone.png') });
+    }
+
+    await priorSetButtons.nth(0).click();
+    await expect(page.getByTestId('set-details-sheet')).toBeVisible();
+    await page.getByRole('button', { name: 'Close Set 1 details' }).click();
+    await expect(page.getByTestId('set-details-sheet')).toHaveCount(0);
+
+    // Closing the nested read-only sheet must not leave an invisible overlay
+    // over the remaining circular controls.
+    await priorSetButtons.nth(1).click();
+    await expect(page.getByTestId('set-details-sheet')).toBeVisible();
+    await page.getByRole('button', { name: 'Close Set 1 details' }).click();
+    await page.getByRole('button', { name: 'Show 1 more sessions' }).click();
+    await expect(page.getByRole('button', { name: 'Show 1 more sessions' })).toHaveCount(0);
   });
 
   test('keeps the empty state available without completed sessions', async ({ page }) => {

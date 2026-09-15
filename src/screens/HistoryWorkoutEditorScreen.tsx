@@ -532,6 +532,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
       </KeyboardAvoidingView>
       <AddExerciseSheet
         visible={addExerciseOpen}
+        workoutType={draft.type}
         onClose={() => setAddExerciseOpen(false)}
         onSubmit={(exercises) => {
           exercises.forEach((exercise) =>

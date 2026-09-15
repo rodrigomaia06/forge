@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { REST_DURATION_OPTIONS } from '../../src/domain/rest/restDurationOptions';
 import {
   catalogFacets,
+  catalogSearchKey,
   filterCatalog,
   groupCatalogByPrimaryEquipment,
   groupCatalogByMovement,
@@ -351,7 +352,7 @@ test('formats compact workout durations and counts sets', () => {
   expect(countWorkoutSets({ exercises: [{ sets: [] }, { sets: [{}, {}] }] } as never)).toBe(2);
 });
 
-test('keeps a truthful average for only the rest intervals Forge started', () => {
+test('derives average rest from recorded completion intervals, not timer defaults', () => {
   const workout = {
     id: 'workout',
     name: 'Push',
@@ -359,14 +360,17 @@ test('keeps a truthful average for only the rest intervals Forge started', () =>
     startedAt: 1,
     completedAt: null,
     note: '',
-    exercises: [],
+    exercises: [{ id: 'bench', name: 'Bench', sets: [
+      { id: 'one', weight: '', reps: '', completed: true, completedAt: 1_000 },
+      { id: 'two', weight: '', reps: '', completed: true, completedAt: 91_000 },
+      { id: 'three', weight: '', reps: '', completed: true, completedAt: 211_000 },
+    ] }],
   };
-  const first = recordRestTimerSample(workout, 90);
-  const second = recordRestTimerSample(first, 120);
-  expect(second).toMatchObject({ averageRestSeconds: 105, restTimerSamples: 2 });
+  const measured = recordRestTimerSample(workout, 30);
+  expect(measured).toMatchObject({ averageRestSeconds: 105, restTimerSamples: 2 });
 
   const legacy = recordRestTimerSample({ ...workout, averageRestSeconds: 60 }, 120);
-  expect(legacy).toMatchObject({ averageRestSeconds: 90, restTimerSamples: 2 });
+  expect(legacy).toMatchObject({ averageRestSeconds: 105, restTimerSamples: 2 });
 });
 
 test('restarts an expired rest from its original duration when extending it', () => {
@@ -531,10 +535,10 @@ test('filters and groups exercise catalog entries without changing feature selec
 
 test('ships the validated v4 baseline, unique picker identities, and all built-in workout types', () => {
   expect(bundledCatalogVersion).toBe(4);
-  expect(bundledExercises).toHaveLength(1189);
-  expect(new Set(bundledExercises.map((exercise) => exercise.id)).size).toBe(1189);
+  expect(bundledExercises).toHaveLength(1176);
+  expect(new Set(bundledExercises.map((exercise) => exercise.id)).size).toBe(1176);
   const normalize = (value: string) => value.trim().replace(/\s+/g, ' ').toLowerCase();
-  expect(new Set(bundledExercises.map((exercise) => normalize(exercise.name))).size).toBe(1189);
+  expect(new Set(bundledExercises.map((exercise) => normalize(exercise.name))).size).toBe(1176);
   expect(
     bundledExercises.some(
       (exercise) =>
@@ -548,8 +552,42 @@ test('ships the validated v4 baseline, unique picker identities, and all built-i
       normalize(exercise.variation || exercise.name),
     ].join('::'),
   );
-  expect(new Set(pickerKeys).size).toBe(1189);
+  expect(new Set(pickerKeys).size).toBe(1176);
   const byId = new Map(bundledExercises.map((exercise) => [exercise.id, exercise]));
+  const canonicalName = (value: string) => value
+    .toLocaleLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\bpullups\b/g, 'pull up')
+    .split(' ')
+    .map((word) => word === 'ups' ? 'up' : word.length > 3 && /[^s]s$/.test(word) ? word.slice(0, -1) : word)
+    .join(' ');
+  expect(new Set(bundledExercises.map((exercise) => canonicalName(exercise.name))).size).toBe(1176);
+  expect(byId.get('weighted-wide-pronated-pull-up')).toMatchObject({
+    group: 'Pull-Up',
+    variation: 'Weighted · Wide · Pronated',
+    variationFacets: { load: 'Weighted', stance: 'Wide', grip: 'Pronated' },
+  });
+  expect(filterCatalog(exerciseCatalog, { query: 'weighted wide pronated pullups' }))
+    .toEqual(expect.arrayContaining([expect.objectContaining({ id: 'weighted-wide-pronated-pull-up' })]));
+  expect(filterCatalog(exerciseCatalog, { query: 'pullups' }))
+    .toEqual(expect.arrayContaining([expect.objectContaining({ id: 'pull-up' })]));
+  const catalogById = new Map(exerciseCatalog.map((exercise) => [exercise.id, exercise]));
+  for (const bundledExercise of bundledExercises) {
+    const exercise = catalogById.get(bundledExercise.id)!;
+    const searchableDetails = [
+      bundledExercise.name,
+      ...bundledExercise.aliases,
+      ...(bundledExercise.variation ? [bundledExercise.variation] : []),
+      ...Object.values(bundledExercise.variationFacets ?? {}).flatMap((value) => Array.isArray(value) ? value : value ? [value] : []),
+    ];
+    for (const detail of searchableDetails) {
+      expect(filterCatalog([exercise], { query: detail })).toEqual([exercise]);
+    }
+  }
+  expect(catalogSearchKey('Pull-Ups')).toBe(catalogSearchKey('pullup'));
+  expect(bundledLegacyIdMap['kinetic-pullups']).toBe('pull-up');
+  expect(bundledLegacyIdMap['kinetic-weighted-pull-ups']).toBe('weighted-pull-up');
   expect(
     [...byId.values()]
       .filter((exercise) => exercise.group === 'Bench Press')
@@ -590,6 +628,15 @@ test('ships the validated v4 baseline, unique picker identities, and all built-i
     'field-sport',
     'martial-arts',
   ]);
+});
+
+test('groups imported exercise variants into Forge movement and equipment paths', () => {
+  const triceps = groupCatalogByMovement(exerciseCatalog).find(([group]) => group === 'Triceps Extension')?.[1] ?? [];
+  expect(triceps).toHaveLength(39);
+  expect(triceps.find((exercise) => exercise.id === 'kinetic-kneeling-cable-triceps-extension')).toMatchObject({
+    primaryEquipment: 'cable', variation: 'Kneeling', familyId: 'triceps-extension',
+  });
+  expect(triceps.every((exercise) => exercise.variation?.toLocaleLowerCase() !== exercise.name.toLocaleLowerCase())).toBe(true);
 });
 
 test('rejects duplicate catalogue names and picker labels before release data is exposed', () => {

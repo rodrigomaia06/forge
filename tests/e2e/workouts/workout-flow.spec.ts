@@ -68,7 +68,8 @@ async function startBlankWorkout(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Start workout' }).click();
   await page.getByTestId('dashboard-workout-source-chooser').getByRole('button', { name: 'Blank workout' }).click();
   await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
-  await page.getByTestId('forge-sheet-drag-area').getByRole('button', { name: 'Close add exercises' }).click();
+  await page.getByTestId('add-exercise-sheet-surface').getByRole('button', { name: 'Close add exercises' }).click();
+  await expect(page.getByTestId('add-exercise-sheet-surface')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Add exercise', exact: true })).toBeVisible();
 }
 
@@ -472,8 +473,8 @@ test.describe('Active workout flow', () => {
 
     await expect(page.getByText('+00:01', { exact: true })).toHaveCSS('color', 'rgb(200, 92, 92)');
     await expect(page.getByText('rest exceeded', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Extend rest by 10 seconds' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Extend rest by 30 seconds' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Extend rest by 1 minute' })).toBeVisible();
   });
 
   test('opens a compact Workout duration sheet from elapsed time', async ({ page }, testInfo) => {

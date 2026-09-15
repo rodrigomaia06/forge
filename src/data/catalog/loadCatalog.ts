@@ -1,7 +1,8 @@
 import source from './forge_exercise_catalog_v3_flat.json';
+import type { ExerciseVariationFacets } from '../../types';
 
 export const CATALOG_VERSION = 4;
-export const CATALOG_EXERCISE_COUNT = 1189;
+export const CATALOG_EXERCISE_COUNT = 1176;
 export const TRACKING_TYPES = [
   'weight-reps', 'bodyweight-reps', 'weighted-bodyweight', 'assisted-bodyweight',
   'reps-only', 'duration', 'duration-weight', 'distance-duration', 'weight-distance',
@@ -10,7 +11,7 @@ export type TrackingType = typeof TRACKING_TYPES[number];
 export interface CatalogTaxonomyLabel { id: string; label: string; }
 export interface BundledExercise {
   id: string; name: string; familyId: string; group: string; category: string; bodyRegion: string;
-  equipment: string[]; primaryEquipment: string; variation?: string; primaryMuscle: string;
+  equipment: string[]; primaryEquipment: string; variation?: string; variationFacets?: ExerciseVariationFacets; primaryMuscle: string;
   secondaryMuscles: string[]; workoutTypeIds: string[]; trackingType: TrackingType;
   movementPattern: string; mechanics: string; laterality: string; aliases: string[]; searchTerms: string[];
 }
@@ -22,7 +23,7 @@ function normalizeIdentity(value: string): string { return value.trim().replace(
 
 /** Validates the immutable release artifact before it is exposed to the app or SQLite. */
 export function validateCatalog(candidate: CatalogSource = source as CatalogSource): BundledExercise[] {
-  if (candidate.version !== CATALOG_VERSION || candidate.schemaVersion !== '4.0.0-flat' || candidate.counts?.exercises !== CATALOG_EXERCISE_COUNT || candidate.exercises?.length !== CATALOG_EXERCISE_COUNT) throw new Error('Expected the Forge v4 catalogue release with 1189 exercises.');
+  if (candidate.version !== CATALOG_VERSION || candidate.schemaVersion !== '4.0.0-flat' || candidate.counts?.exercises !== CATALOG_EXERCISE_COUNT || candidate.exercises?.length !== CATALOG_EXERCISE_COUNT) throw new Error('Expected the Forge v4 catalogue release with 1176 exercises.');
   const required = ['workoutTypes', 'bodyRegions', 'categories', 'muscles', 'equipment', 'trackingTypes', 'movementPatterns', 'mechanics', 'laterality'];
   if (required.some((key) => !Array.isArray(candidate.taxonomies?.[key]))) throw new Error('Bundled catalogue taxonomy is incomplete.');
   const refs = Object.fromEntries(required.map((key) => [key, ids(candidate.taxonomies[key])])) as Record<string, Set<string>>;
@@ -40,6 +41,7 @@ export function validateCatalog(candidate: CatalogSource = source as CatalogSour
     if (!strings(exercise.equipment) || !exercise.equipment.length || !strings(exercise.workoutTypeIds) || !exercise.workoutTypeIds.length || (exercise.aliases !== undefined && !strings(exercise.aliases)) || !strings(exercise.searchTerms) || (exercise.secondaryMuscles !== undefined && !strings(exercise.secondaryMuscles))) throw new Error(`Bundled exercise ${exercise.id} has incomplete arrays.`);
     exercise.equipment.forEach((value) => reference(value, refs.equipment, 'equipment', exercise.id)); exercise.workoutTypeIds.forEach((value) => reference(value, refs.workoutTypes, 'workout type', exercise.id)); (exercise.secondaryMuscles ?? []).forEach((value) => reference(value, refs.muscles, 'secondary muscle', exercise.id));
     if (exercise.variation && normalizeIdentity(exercise.variation) === normalizedName) throw new Error(`Bundled exercise ${exercise.id} repeats its name as a variation.`);
+    if (exercise.variationFacets && Object.values(exercise.variationFacets).some((value) => value !== undefined && !(typeof value === 'string' || (Array.isArray(value) && value.every((item) => typeof item === 'string'))))) throw new Error(`Bundled exercise ${exercise.id} has invalid variation facets.`);
     const pickerKey = [
       normalizeIdentity(exercise.group),
       exercise.equipment.map(normalizeIdentity).sort().join('|'),

@@ -111,13 +111,13 @@ export function WorkoutSummaryCard({
         </Pressable>
         {detailsExpanded ? (
           <ForgeCard variant="inset" size="compact" style={styles.detailGrid}>
-            {metadata.map((item) => (
-              <View key={item.label} style={styles.detailItem}>
+            {metadata.map((item, index) => (
+              <View key={item.label} style={[styles.detailItem, index > 0 && styles.detailItemDivider]}>
                 <Icon name={item.icon} size={18} color={theme.slate} />
                 <View style={styles.detailCopy}>
                   <Text style={styles.detailLabel} numberOfLines={1}>{item.label}</Text>
-                  <Text style={styles.detailValue} numberOfLines={2}>{item.value}</Text>
                 </View>
+                <Text style={styles.detailValue}>{item.value}</Text>
               </View>
             ))}
           </ForgeCard>
@@ -201,9 +201,10 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   note: { flex: 1, color: theme.ink, ...typeScale.body },
   detailsTrigger: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 10 },
   detailsPreview: { flex: 1, color: theme.slate, ...typeScale.body },
-  detailGrid: { marginTop: -4, padding: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  detailItem: { flexBasis: '48%', flexGrow: 1, minWidth: 130, minHeight: 58, padding: 8, flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  detailCopy: { flex: 1, minWidth: 0, gap: 2 },
-  detailLabel: { color: theme.slate, ...typeScale.caption },
-  detailValue: { color: theme.ink, ...typeScale.label },
+  detailGrid: { marginTop: -4, padding: 0, overflow: 'hidden' },
+  detailItem: { minHeight: 52, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  detailItemDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
+  detailCopy: { flexShrink: 1, maxWidth: '34%', minWidth: 0, paddingTop: 1 },
+  detailLabel: { color: theme.slate, ...typeScale.body },
+  detailValue: { flex: 1, minWidth: 0, color: theme.ink, ...typeScale.body, textAlign: 'right' },
 });

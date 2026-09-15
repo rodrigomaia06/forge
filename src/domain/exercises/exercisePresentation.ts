@@ -12,6 +12,15 @@ function titleAlreadySaysVariation(name: string, variation: string): boolean {
   return variationWords.size > 0 && [...variationWords].every((word) => titleWords.has(word));
 }
 
+/** Removes only variation words already expressed by the canonical title. */
+function variationNotInTitle(name: string, variation: string): string {
+  const titleWords = normalizedWords(name);
+  return variation
+    .split(/\s*[·,–—-]\s*|\s+/)
+    .filter((word) => word && !titleWords.has(word.toLocaleLowerCase()))
+    .join(' ');
+}
+
 function removePrimaryEquipment(variation: string, primaryEquipment: string): string {
   const expression = primaryEquipment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return variation.replace(new RegExp(expression, 'ig'), '').replace(/[·,–—-]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -48,8 +57,11 @@ export function formatExerciseMetadata(snapshot: ExerciseSnapshot | undefined): 
   const variation = rawVariation && equipment
     ? readableDetail(removePrimaryEquipment(rawVariation, equipment))
     : rawVariation ? readableDetail(rawVariation) : undefined;
-  const visibleVariation = variation && snapshot && !titleAlreadySaysVariation(snapshot.name, variation)
-    ? variation
+  const distinctVariation = variation && snapshot
+    ? variationNotInTitle(snapshot.name, variation)
+    : variation;
+  const visibleVariation = distinctVariation && snapshot && !titleAlreadySaysVariation(snapshot.name, distinctVariation)
+    ? distinctVariation
     : undefined;
   const visibleEquipment = equipment && !genericDetail.has(equipment.toLocaleLowerCase())
     && !titleAlreadySaysEquipment(snapshot.name, equipment)

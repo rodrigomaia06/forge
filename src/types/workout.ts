@@ -17,6 +17,8 @@ export interface WorkoutSet {
   tag?: string;
   comment?: string;
   completed: boolean;
+  /** Timestamp of the current completion transition. Legacy records omit it. */
+  completedAt?: number;
   measurements?: SetMeasurement[];
   targets?: SetTarget[];
   /** A routine's rep/time/distance interval. It guides this workout only and is never a next-session target. */
@@ -39,7 +41,16 @@ export interface WorkoutExerciseChanges {
   note?: string;
 }
 export type TrackingType = 'weight-reps' | 'bodyweight-reps' | 'weighted-bodyweight' | 'assisted-bodyweight' | 'reps-only' | 'duration' | 'duration-weight' | 'distance-duration' | 'weight-distance';
-export interface ExerciseSnapshot { id?: string; name: string; catalogueVersion?: number; trackingType: TrackingType; familyId?: string; group?: string; variation?: string; equipment?: string[]; primaryEquipment?: string; workoutTypeIds?: string[]; category?: string; bodyRegion?: string; primaryMuscle?: string; secondaryMuscles?: string[]; aliases?: string[]; searchTerms?: string[]; movementPattern?: string; /** Per-exercise rest preference captured with the workout for offline use. */ restSeconds?: number; }
+export interface ExerciseVariationFacets {
+  load?: string;
+  grip?: string;
+  stance?: string;
+  setup?: string;
+  laterality?: string;
+  /** Curated source detail that does not fit one of Forge's standard facets. */
+  other?: string[];
+}
+export interface ExerciseSnapshot { id?: string; name: string; catalogueVersion?: number; trackingType: TrackingType; familyId?: string; group?: string; variation?: string; variationFacets?: ExerciseVariationFacets; equipment?: string[]; primaryEquipment?: string; workoutTypeIds?: string[]; category?: string; bodyRegion?: string; primaryMuscle?: string; secondaryMuscles?: string[]; aliases?: string[]; searchTerms?: string[]; movementPattern?: string; /** Per-exercise rest preference captured with the workout for offline use. */ restSeconds?: number; }
 
 export interface Workout {
   id: string;

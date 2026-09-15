@@ -36,6 +36,7 @@ import { formatExerciseMetadata } from '../../domain/exercises/exercisePresentat
 import { exerciseCatalog } from '../../data/exerciseCatalog';
 import { useWorkouts } from '../../state/WorkoutContext';
 import { hasNextSessionTarget, setTagPresentation } from '../../domain/workouts/setPresentation';
+import { HistorySetRow } from './HistorySetRow';
 
 export const ExerciseSection = React.memo(function ExerciseSection({
   exercise,
@@ -336,8 +337,9 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 onOpenExerciseInfo={hasExerciseInfo ? () => undefined : undefined}
                 completedWorkouts={completedWorkouts}
                 onOpenWorkout={(workoutId) => {
-                  setOptionsOpen(false);
-                  navigation.navigate('WorkoutDetails', { workoutId, returnTo: 'ActiveWorkout' });
+                  // Keep the sheet mounted behind the detail stack entry. A pop
+                  // returns to this exact session list rather than the tab root.
+                  navigation.push('WorkoutDetails', { workoutId, returnTo: 'ActiveWorkout', returnContext: 'previous-sessions' });
                 }}
                 onRemove={() => {
                   afterOptionsClose(() => setRemoveConfirmationOpen(true));
@@ -436,18 +438,17 @@ export function ReadOnlyExerciseSection({
         <View style={[styles.readOnlySets, minimal && styles.readOnlyMinimalSets]}>
           <View style={[styles.setHeader, minimal && styles.readOnlyMinimalSetHeader]}>
             <Text style={[styles.setHeaderText, styles.setColumn]}>Set</Text>
-            <Text style={[styles.setHeaderText, styles.previousColumn]}>Previous</Text>
             {trackingFields[trackingType].map((kind) => (
               <Text key={kind} style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>{trackingFieldLabel(trackingType, kind)}</Text>
             ))}
             <View style={styles.checkColumn} />
           </View>
           {exercise.sets.map((set, index) => (
-            <ReadOnlyHistorySetRow
+            <HistorySetRow
               key={set.id}
               set={set}
               index={index}
-              minimal={minimal}
+              isLast={index === exercise.sets.length - 1}
               trackingType={trackingType}
               onOpenDetails={() => setOpenSetIndex(index)}
             />
@@ -476,91 +477,9 @@ export function ReadOnlyExerciseSection({
         onOpenPreviousSessions={() => undefined}
         onOpenExerciseInfo={() => undefined}
         onOpenWorkout={(sessionWorkoutId) => {
-          setOptionsOpen(false);
-          navigation.navigate('WorkoutDetails', { workoutId: sessionWorkoutId, returnTo: 'History' });
+          navigation.push('WorkoutDetails', { workoutId: sessionWorkoutId, returnTo: 'History', returnContext: 'previous-sessions' });
         }}
       /> : null}
-    </View>
-  );
-}
-
-function ReadOnlyHistorySetRow({
-  set,
-  index,
-  minimal = false,
-  trackingType,
-  onOpenDetails,
-}: {
-  set: WorkoutSet;
-  index: number;
-  minimal?: boolean;
-  trackingType: import('../../types').TrackingType;
-  onOpenDetails: () => void;
-}) {
-  const theme = useForgeTheme();
-  const styles = useThemedStyles(createStyles);
-  const tag = setTagPresentation(set.tag);
-  const rpe = measurementText(set, 'rpe');
-  const hasNextTarget = hasNextSessionTarget(set);
-  return (
-    <View
-      testID={`workout-details-set-${set.id}`}
-      style={[
-        styles.readOnlySetRow,
-        minimal && styles.readOnlyMinimalSetRow,
-      ]}
-    >
-      <View style={styles.readOnlySetValues}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Open details for set ${index + 1}`}
-          accessibilityHint="Opens recorded set details"
-          onPress={() => {
-            selectionHaptic();
-            onOpenDetails();
-          }}
-          style={styles.setNumberWrap}
-        >
-          <View testID={`history-set-number-chip-${index + 1}`} style={styles.historySetNumberChip}>
-            <Text
-              style={[
-                styles.setNumber,
-                tag && { color: tag.color, backgroundColor: `${tag.color}20` },
-              ]}
-            >
-              {tag?.letter ?? index + 1}
-            </Text>
-            {hasNextTarget ? (
-              <View accessibilityLabel={`Set ${index + 1} has a next session target`} style={styles.historySetTargetIndicator} />
-            ) : null}
-            {rpe ? (
-              <Text accessibilityLabel={`Set ${index + 1} RPE ${rpe}`} style={styles.historySetRpeIndicator}>{rpe}</Text>
-            ) : null}
-            {set.comment?.trim() ? (
-              <View accessibilityLabel={`Set ${index + 1} has a comment`} style={styles.historySetCommentIndicator} />
-            ) : null}
-          </View>
-        </Pressable>
-        <Text style={styles.previous} numberOfLines={1}>
-          {set.previous || 'Not recorded'}
-        </Text>
-        {trackingFields[trackingType].map((kind) => {
-          const planned = set.plannedTargets?.find((target) => target.kind === kind);
-          const interval = planned?.minValue === undefined ? '' : planned.maxValue !== undefined && planned.maxValue !== planned.minValue
-            ? `${planned.minValue}–${planned.maxValue}` : String(planned.minValue);
-          return (
-            <View key={kind} style={[styles.readOnlyInput, styles.inputColumn]}>
-              <Text style={styles.readOnlyInputText}>{measurementText(set, kind) || (minimal ? interval : '') || 'Not recorded'}</Text>
-            </View>
-          );
-        })}
-        <View style={styles.check}>
-          <CompletionCheck
-            selected={set.completed}
-            testID={`workout-details-set-completion-${set.id}`}
-          />
-        </View>
-      </View>
     </View>
   );
 }
@@ -629,7 +548,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   },
   readOnlyExerciseHeaderRow: { flexDirection: 'row', alignItems: 'stretch' },
   readOnlyExerciseHeaderPressable: { flex: 1 },
-  readOnlyMoreButton: { width: 44, alignItems: 'center', justifyContent: 'center' },
+  readOnlyMoreButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: 6 },
     readOnlyExerciseHeader: {
       minHeight: 56,
       flexDirection: 'row',
@@ -665,7 +584,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       color: dashboardTheme.slate,
       ...typeScale.label,
     },
-    readOnlySets: { paddingHorizontal: 12, paddingBottom: 4 },
+    readOnlySets: { paddingHorizontal: 12, paddingBottom: 0 },
     readOnlyMinimalSets: { paddingBottom: 0 },
     exerciseHeader: {
       minHeight: 30,
@@ -777,7 +696,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     previous: {
       flex: 1,
       color: dashboardTheme.ink,
-      ...typeScale.label,
+      ...typeScale.body,
       textAlign: 'center',
     },
     readOnlyInput: {

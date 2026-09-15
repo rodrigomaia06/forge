@@ -70,11 +70,7 @@ export function AppNavigator() {
         }}
       >
         <Stack.Screen name="MainTabs" component={MainTabNavigator} options={{ gestureEnabled: false }} />
-        <Stack.Screen
-          name="WorkoutDetails"
-          component={WorkoutDetailsScreen}
-          options={{ gestureEnabled: true }}
-        />
+        <Stack.Screen name="WorkoutDetails" component={WorkoutDetailsScreen} options={{ gestureEnabled: true, animation: 'slide_from_right' }} />
         <Stack.Screen
           name="HistoryWorkoutEditor"
           component={HistoryWorkoutEditorScreen}

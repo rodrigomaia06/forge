@@ -17,6 +17,7 @@ import { lightHaptic, selectionHaptic } from './activeWorkoutFeedback';
 import type { RestTimerSheetProps } from './activeWorkoutTypes';
 import type { NativeScrollEvent } from 'react-native';
 import { REST_DURATION_OPTIONS } from '../../domain/rest/restDurationOptions';
+import { useSynchronizedNow } from '../../domain/rest/synchronizedClock';
 
 export function RestTimerIndicator({
   remaining,
@@ -161,19 +162,19 @@ function ActiveRestTimer({
         {isOverdue ? (
           <>
             <Button
+              accessibilityLabel="Extend rest by 10 seconds"
+              label="+10s"
+              variant="outline"
+              haptic="none"
+              onPress={() => onAdjust(10)}
+              style={styles.restQuickButton}
+            />
+            <Button
               accessibilityLabel="Extend rest by 30 seconds"
               label="+30s"
               variant="outline"
               haptic="none"
               onPress={() => onAdjust(30)}
-              style={styles.restQuickButton}
-            />
-            <Button
-              accessibilityLabel="Extend rest by 1 minute"
-              label="+1 min"
-              variant="outline"
-              haptic="none"
-              onPress={() => onAdjust(60)}
               style={styles.restQuickButton}
             />
           </>
@@ -213,13 +214,7 @@ function ActiveRestTimer({
 
 /** The per-second heartbeat belongs only to timer visuals, never the workout screen. */
 function useLiveRemaining(endAt: number | null | undefined, fallback: number): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!endAt) return undefined;
-    setNow(Date.now());
-    const interval = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(interval);
-  }, [endAt]);
+  const now = useSynchronizedNow();
   return endAt ? Math.ceil((endAt - now) / 1000) : fallback;
 }
 

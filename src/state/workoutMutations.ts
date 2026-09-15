@@ -65,16 +65,19 @@ export function createWorkout(options: StartWorkoutOptions): Workout {
  * set. Older workouts did not retain individual rests, so their existing
  * average is treated as one legacy sample rather than being overwritten.
  */
-export function recordRestTimerSample(workout: Workout, durationSeconds: number): Workout {
-  const duration = Math.max(1, Math.round(durationSeconds));
-  const sampleCount = workout.restTimerSamples
-    ?? (workout.averageRestSeconds === undefined ? 0 : 1);
-  const nextCount = sampleCount + 1;
-  const total = (workout.averageRestSeconds ?? 0) * sampleCount + duration;
+export function recordRestTimerSample(workout: Workout, _durationSeconds: number): Workout {
+  const completionTimes = workout.exercises
+    .flatMap((exercise) => exercise.sets)
+    .filter((set) => set.completed && typeof set.completedAt === 'number')
+    .map((set) => set.completedAt as number)
+    .sort((left, right) => left - right);
+  const intervals = completionTimes.slice(1).map((time, index) => Math.max(0, Math.round((time - completionTimes[index]) / 1000)));
+  if (!intervals.length) return { ...workout, averageRestSeconds: undefined, restTimerSamples: 0 };
+  const total = intervals.reduce((sum, interval) => sum + interval, 0);
   return {
     ...workout,
-    averageRestSeconds: Math.round(total / nextCount),
-    restTimerSamples: nextCount,
+    averageRestSeconds: Math.round(total / intervals.length),
+    restTimerSamples: intervals.length,
   };
 }
 
@@ -237,7 +240,9 @@ export function toggleWorkoutSet(
         ? {
             ...exercise,
             sets: exercise.sets.map((set) =>
-              set.id === setId ? { ...set, completed: !set.completed } : set,
+              set.id === setId
+                ? { ...set, completed: !set.completed, completedAt: set.completed ? undefined : Date.now() }
+                : set,
             ),
           }
         : exercise,

@@ -1,4 +1,4 @@
-import { trackingFields } from '../exercises/tracking';
+import { measurementText, trackingFields } from '../exercises/tracking';
 import type { SetMeasurementKind, SetTarget, Workout, WorkoutExerciseInput, WorkoutRoutine, WorkoutSet, WorkoutSetInput } from '../../types';
 
 /**
@@ -31,14 +31,26 @@ export function routineExercisesWithNextSessionTargets(
     return {
       ...exercise,
       sets: (exercise.sets ?? []).map((set, index) =>
-        withNextSessionTargets(
-          set,
+        withPreviousSessionData(
+          withNextSessionTargets(set, sourceExercise.sets[index], exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType),
           sourceExercise.sets[index],
           exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType,
         ),
       ),
     };
   });
+}
+
+function withPreviousSessionData(
+  routineSet: WorkoutSetInput,
+  previousSet: WorkoutSet | undefined,
+  trackingType: WorkoutExerciseInput['trackingType'],
+): WorkoutSetInput {
+  if (!previousSet) return routineSet;
+  const values = trackingFields[trackingType ?? 'weight-reps']
+    .map((kind) => measurementText(previousSet, kind))
+    .filter(Boolean);
+  return values.length ? { ...routineSet, previous: values.join(' × ') } : routineSet;
 }
 
 function completedAt(workout: Workout): number {

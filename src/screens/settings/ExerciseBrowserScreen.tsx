@@ -2,6 +2,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   LayoutAnimation,
+  FlatList,
   Platform,
   Pressable,
   ScrollView,
@@ -54,7 +55,6 @@ import { useSettings } from '../../state/SettingsContext';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import { useScrollLayoutProbe } from '../../debug/layoutProbe';
 import type { IconName, RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { workoutTypeIcon } from './workoutTypeIcon';
@@ -85,6 +85,17 @@ function formatPickerDuration(seconds: number): string {
 }
 function formatTrackingType(type: ExerciseCatalogItem['trackingType']): string {
   return (type ?? 'weight-reps').split('-').map((part) => part === 'reps' ? 'reps' : part[0].toUpperCase() + part.slice(1)).join(' + ');
+}
+function customVariationFacets(value: string): import('../../types').ExerciseVariationFacets | undefined {
+  const words = value.toLocaleLowerCase().split(/[^a-z]+/).filter(Boolean);
+  const pick = (...choices: string[]) => choices.find((choice) => words.includes(choice));
+  const load = pick('weighted', 'assisted');
+  const grip = pick('pronated', 'supinated', 'neutral');
+  const stance = pick('wide', 'narrow', 'close');
+  const setup = pick('kneeling', 'standing', 'seated', 'lying', 'incline', 'decline');
+  const laterality = pick('unilateral', 'alternating');
+  const facets = { ...(load ? { load } : {}), ...(grip ? { grip } : {}), ...(stance ? { stance } : {}), ...(setup ? { setup } : {}), ...(laterality ? { laterality } : {}) };
+  return Object.keys(facets).length ? facets : undefined;
 }
 
 const restTimeOptions: readonly ForgeSingleSelectOption<number>[] = REST_DURATION_OPTIONS.map(
@@ -136,13 +147,6 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     : (preferences.workoutTypes.find((item) => item.id === fixedTypeId)?.name ?? 'All exercises');
   const visibleTypes = preferences.workoutTypes.filter((item) => !item.hidden);
   const active = catalogFilterCount(filters);
-  const browserScrollProbe = useScrollLayoutProbe<ScrollView>('exercise-browser-scroll', {
-    customOnly,
-    fixedTypeId,
-    query: deferredQuery,
-    activeFilters: active,
-    expanded,
-  });
   const filtered = useMemo(
     () =>
       filterCatalog(source, {
@@ -330,6 +334,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
       name: name.trim(),
       group: group.trim() || name.trim(),
       variation: name.trim(),
+      variationFacets: customVariationFacets(name),
       equipment: equipmentValues.join(' & ') || parent?.equipment || 'Bodyweight',
       equipmentIds: equipmentValues.length ? equipmentValues : ['Bodyweight'],
       primaryEquipment: equipmentValues[0] ?? 'Bodyweight',
@@ -449,22 +454,22 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
             />
           }
         />
-        <ScrollView
-          ref={browserScrollProbe.ref}
+        <FlatList
           testID="exercise-browser-scroll"
           style={styles.scroll}
           contentContainerStyle={[styles.content, { paddingBottom: styles.content.paddingBottom + bottomInset }]}
+          data={groups}
+          keyExtractor={([group]) => group}
+          initialNumToRender={12}
+          maxToRenderPerBatch={8}
+          windowSize={7}
+          removeClippedSubviews={Platform.OS !== 'web'}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           directionalLockEnabled
           onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
-          onLayout={browserScrollProbe.onLayout}
-          onContentSizeChange={browserScrollProbe.onContentSizeChange}
-          onMomentumScrollEnd={browserScrollProbe.onMomentumScrollEnd}
-          onScrollEndDrag={browserScrollProbe.onScrollEndDrag}
           scrollEventThrottle={16}
-        >
-          <View style={styles.searchRow}>
+          ListHeaderComponent={<View style={styles.searchRow}>
             <View style={styles.search}>
               <Icon name="search" size={20} color={theme.slate} />
               <TextInput
@@ -489,10 +494,9 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                 style={[styles.filters, active > 0 && styles.filtersActive]}
               />
             )}
-          </View>
-          {groups.map(([group, items]) => (
+          </View>}
+          renderItem={({ item: [group, items] }) => (
             <Movement
-              key={group}
               group={group}
               items={items}
               expanded={expanded === group}
@@ -508,15 +512,15 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
               isCustom={isCustom}
               onRemove={(item) => catalog.removeCustomExercise(item.id)}
             />
-          ))}
-          {!groups.length && (
+          )}
+          ListEmptyComponent={!groups.length ? (
             <View style={styles.empty}>
               <Text style={styles.movementName}>No exercises found</Text>
               <Text style={styles.meta}>{query && active ? 'Try clearing the search or filters.' : query ? 'Try clearing the search.' : 'Try clearing filters or creating a custom exercise.'}</Text>
               {(query || active > 0) && <Button label={active ? 'Clear filters' : 'Clear search'} variant="ghost" onPress={() => active ? setFilters(emptyCatalogFilters()) : setQuery('')} />}
             </View>
-          )}
-        </ScrollView>
+          ) : null}
+        />
         {!customOnly && <ForgeCatalogFilterSheet
           testID="exercise-filter-sheet"
           visible={filtersOpen}

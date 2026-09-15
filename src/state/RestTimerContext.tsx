@@ -8,6 +8,7 @@ import { useSettings } from './SettingsContext';
 import { useWorkouts } from './WorkoutContext';
 import { syncRestTimerLiveActivity } from './restTimerLiveActivity';
 import { adjustRestTimer } from '../domain/rest/restTimerAdjustment';
+import { synchronizeNow } from '../domain/rest/synchronizedClock';
 
 const restTimerNotificationId = 'forge-rest-timer-complete';
 // Android notification-channel sound is immutable once installed. A versioned
@@ -123,6 +124,8 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
   const [endAt, setEndAt] = useState<number | null>(null);
   const [duration, setDuration] = useState(0);
   const [hydrated, setHydrated] = useState(false);
+  const activeWorkoutId = activeWorkout?.id ?? null;
+  const hydrationGeneration = useRef(0);
   const didNotifyCompletion = useRef(false);
   const notificationQueue = useRef(Promise.resolve());
 
@@ -144,30 +147,36 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!workoutsReady) return;
-    if (!activeWorkout) {
+    const generation = ++hydrationGeneration.current;
+    if (!activeWorkoutId) {
       didNotifyCompletion.current = false;
       setEndAt(null); setDuration(0); setHydrated(true);
       void AsyncStorage.removeItem(restTimerStorageKey);
       return;
     }
+    setHydrated(false);
     let mounted = true;
     void AsyncStorage.getItem(restTimerStorageKey).then((raw) => {
-      if (!mounted) return;
+      if (!mounted || generation !== hydrationGeneration.current) return;
       try {
-        const saved = JSON.parse(raw ?? 'null') as { endAt?: unknown; duration?: unknown } | null;
-        if (typeof saved?.endAt === 'number' && typeof saved.duration === 'number' && saved.duration > 0) {
+        const saved = JSON.parse(raw ?? 'null') as { workoutId?: unknown; endAt?: unknown; duration?: unknown } | null;
+        // A rest timer belongs to one live workout. Old unscoped values are
+        // intentionally discarded rather than attaching a stale countdown.
+        if (saved?.workoutId === activeWorkoutId && typeof saved.endAt === 'number' && typeof saved.duration === 'number' && saved.duration > 0) {
           setEndAt(saved.endAt); setDuration(saved.duration);
+        } else {
+          setEndAt(null); setDuration(0);
         }
       } finally { if (mounted) setHydrated(true); }
     });
     return () => { mounted = false; };
-  }, [activeWorkout, workoutsReady]);
+  }, [activeWorkoutId, workoutsReady]);
 
   useEffect(() => {
     if (!hydrated) return;
     if (!endAt) { void AsyncStorage.removeItem(restTimerStorageKey); return; }
-    void AsyncStorage.setItem(restTimerStorageKey, JSON.stringify({ endAt, duration }));
-  }, [duration, endAt, hydrated]);
+    void AsyncStorage.setItem(restTimerStorageKey, JSON.stringify({ workoutId: activeWorkoutId, endAt, duration }));
+  }, [activeWorkoutId, duration, endAt, hydrated]);
 
   useEffect(() => {
     if (!endAt) return undefined;
@@ -221,15 +230,19 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
 
   const start = useCallback((nextDuration: number): void => {
     const safeDuration = Math.max(1, Math.round(nextDuration));
-    const startedAt = Date.now();
+    const startedAt = synchronizeNow();
     const nextEndAt = startedAt + safeDuration * 1000;
     didNotifyCompletion.current = false;
+    // A direct user/completion transition always wins over an in-flight disk
+    // read for this workout.
+    hydrationGeneration.current += 1;
+    setHydrated(true);
     setDuration(safeDuration);
     setEndAt(nextEndAt);
   }, []);
 
   const adjust = useCallback((seconds: number): void => {
-    const adjustedAt = Date.now();
+    const adjustedAt = synchronizeNow();
     const next = adjustRestTimer({ duration, endAt, seconds, now: adjustedAt });
     if ((next.endAt ?? adjustedAt) > adjustedAt) didNotifyCompletion.current = false;
     setDuration(next.duration);

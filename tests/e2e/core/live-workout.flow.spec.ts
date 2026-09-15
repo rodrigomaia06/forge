@@ -1,5 +1,12 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { addExerciseFromPicker, replaceClearedSetValue, startBlankWorkout } from '../support/workoutFlow';
+
+async function clearInitialWorkoutTypeScope(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Filters, 1 active' }).click();
+  await page.getByRole('button', { name: 'Clear filters' }).click();
+  await page.getByRole('button', { name: 'Apply filters' }).click();
+  await expect(page.getByRole('button', { name: 'Filters' })).toBeVisible();
+}
 
 test.describe('Core flow: live workout', () => {
   test('reopens Add exercise reliably and persists editable set values', async ({ page }, testInfo) => {
@@ -58,6 +65,7 @@ test.describe('Core flow: live workout', () => {
     }
 
     await page.getByRole('button', { name: 'Add exercise', exact: true }).click();
+    await clearInitialWorkoutTypeScope(page);
     await addExerciseFromPicker(page, 'elliptical', 'Elliptical, variation');
     await expect(page.getByText('Elliptical', { exact: true })).toBeVisible();
     await page.waitForTimeout(350);
@@ -71,7 +79,8 @@ test.describe('Core flow: live workout', () => {
     await expect(distance).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 
     await page.getByRole('button', { name: 'Add exercise', exact: true }).click();
-    await addExerciseFromPicker(page, 'assisted dip', 'Dip, Machine · Assisted');
+    await clearInitialWorkoutTypeScope(page);
+    await addExerciseFromPicker(page, 'assisted dip', 'Dip, variation');
     const assistance = page.getByLabel('Assist Kg for set 1');
     await assistance.fill('40');
     await replaceClearedSetValue(assistance, '35');

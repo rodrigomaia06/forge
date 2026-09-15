@@ -12,6 +12,7 @@ export function createExerciseSnapshot(exercise: ExerciseCatalogItem): ExerciseS
     familyId: exercise.familyId,
     group: exercise.group,
     variation: exercise.variation,
+    variationFacets: exercise.variationFacets,
     equipment: exercise.equipmentIds,
     primaryEquipment: exercise.primaryEquipment,
     workoutTypeIds: exercise.workoutTypeIds,

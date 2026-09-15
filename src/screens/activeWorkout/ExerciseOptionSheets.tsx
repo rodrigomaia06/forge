@@ -19,6 +19,8 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import type { Workout, WorkoutExercise, WorkoutSet } from '../../types';
+import { HistorySetRow } from './HistorySetRow';
+import { SetDetailsCard } from './SetDetailsCard';
 
 export function WarmupSetsSheet({
   visible,
@@ -181,20 +183,21 @@ export function PreviousSessionsContent({
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const [showAll, setShowAll] = useState(false);
+  const [openSet, setOpenSet] = useState<{ set: WorkoutSet; index: number; trackingType: NonNullable<WorkoutExercise['trackingType']> } | null>(null);
   const sessions = useMemo(
     () => findPreviousSessions(exercise, workouts).filter(({ workout }) => workout.id !== excludeWorkoutId),
     [excludeWorkoutId, exercise, workouts],
   );
   const visibleSessions = showAll ? sessions : sessions.slice(0, 3);
-  return <ScrollView contentContainerStyle={styles.compactContent}>{sessions.length ? <>
-    {visibleSessions.map(({ workout, exercise: sessionExercise }) => <Pressable key={workout.id} accessibilityRole={onOpenWorkout ? 'button' : undefined} accessibilityLabel={onOpenWorkout ? `Open ${workout.name}` : undefined} onPress={() => onOpenWorkout?.(workout.id)} style={({ pressed }) => [pressed && pressedFeedbackSubtle]}>
-      <ForgeCard variant="outlined" style={styles.previousSessionCard}>
-        <View style={styles.previousSessionHeader}><View style={styles.sessionCopy}><Text style={styles.sessionTitle} numberOfLines={1}>{workout.name}</Text><Text style={[styles.sessionDate, { color: theme.textSecondary }]}>{sessionDateTime(workout)}</Text></View>{onOpenWorkout ? <Icon name="chevron-forward" size={22} color={theme.textSecondary} /> : null}</View>
-        {sessionExercise.sets.map((set, index) => <View key={set.id} style={[styles.previousSetRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}><View style={styles.previousSetCopy}><Text style={styles.previousSetMetrics}>{formatRecordedSet(set, sessionExercise)}</Text>{set.comment?.trim() ? <Text style={[styles.previousSetComment, { color: theme.textSecondary }]}>{`“${set.comment.trim()}”`}</Text> : null}</View><View style={[styles.previousSetNumber, { backgroundColor: theme.background }]}><Text style={styles.previousSetNumberText}>{index + 1}</Text></View></View>)}
-      </ForgeCard>
-    </Pressable>)}
+  return <><ScrollView style={styles.previousSessionsScroll} contentContainerStyle={styles.compactContent}>{sessions.length ? <>
+    {visibleSessions.map(({ workout, exercise: sessionExercise }) => <ForgeCard key={workout.id} variant="outlined" style={styles.previousSessionCard}>
+      <Pressable accessibilityRole={onOpenWorkout ? 'button' : undefined} accessibilityLabel={onOpenWorkout ? `Open ${workout.name}` : undefined} onPress={() => onOpenWorkout?.(workout.id)} style={({ pressed }) => [styles.previousSessionHeader, pressed && pressedFeedbackSubtle]}>
+        <View style={styles.sessionCopy}><Text style={styles.sessionTitle} numberOfLines={1}>{workout.name}</Text><Text style={[styles.sessionDate, { color: theme.textSecondary }]}>{sessionDateTime(workout)}</Text></View>{onOpenWorkout ? <Icon name="chevron-forward" size={22} color={theme.textSecondary} /> : null}
+      </Pressable>
+      {sessionExercise.sets.map((set, index) => <HistorySetRow key={set.id} set={set} index={index} compact isLast={index === sessionExercise.sets.length - 1} trackingType={sessionExercise.exerciseSnapshot?.trackingType ?? sessionExercise.trackingType ?? 'weight-reps'} onOpenDetails={() => setOpenSet({ set, index, trackingType: sessionExercise.exerciseSnapshot?.trackingType ?? sessionExercise.trackingType ?? 'weight-reps' })} />)}
+    </ForgeCard>)}
     {!showAll && sessions.length > 3 ? <Pressable accessibilityRole="button" accessibilityLabel={`Show ${sessions.length - 3} more sessions`} onPress={() => setShowAll(true)} style={({ pressed }) => [styles.showMoreSessions, { backgroundColor: theme.surface }, pressed && pressedFeedbackSubtle]}><Text style={styles.showMoreText}>{`Show ${sessions.length - 3} more`}</Text></Pressable> : null}
-  </> : <View style={[styles.emptyCard, { borderColor: theme.border, backgroundColor: theme.surfaceMuted }]}><Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>No completed sessions for this exercise yet.</Text></View>}</ScrollView>;
+  </> : <View style={[styles.emptyCard, { borderColor: theme.border, backgroundColor: theme.surfaceMuted }]}><Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>No completed sessions for this exercise yet.</Text></View>}</ScrollView>{openSet ? <SetDetailsCard visible set={openSet.set} index={openSet.index} editable={false} onChange={() => undefined} onDelete={() => undefined} onDone={() => setOpenSet(null)} trackingType={openSet.trackingType} /> : null}</>;
 }
 
 function catalogueDetail(exercise: WorkoutExercise): ExerciseCatalogItem | undefined {
@@ -257,7 +260,8 @@ function formatRecordedSet(set: WorkoutSet, exercise: WorkoutExercise): string {
 }
 
 const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.create({
-  compactContent: { paddingHorizontal: 20, paddingBottom: 28, gap: 12 },
+  compactContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 72, gap: 14 },
+  previousSessionsScroll: { maxHeight: '82%' },
   supporting: { ...typeScale.body },
   sectionLabel: { marginTop: 4, color: theme.slate, ...typeScale.caption },
   workingCard: { overflow: 'hidden', borderRadius: 16 },
@@ -276,17 +280,11 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   infoRow: { minHeight: 54, paddingHorizontal: 16, paddingVertical: 10, gap: 2 },
   infoLabel: { ...typeScale.caption },
   infoValue: { color: theme.ink, ...typeScale.label },
-  previousSessionCard: { overflow: 'hidden', borderRadius: 22 },
-  previousSessionHeader: { minHeight: 72, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, gap: 12 },
+  previousSessionCard: { overflow: 'hidden', borderRadius: 22, marginBottom: 2 },
+  previousSessionHeader: { minHeight: 78, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, gap: 12 },
   sessionCopy: { flex: 1, gap: 3 },
-  sessionTitle: { color: theme.ink, ...typeScale.sectionTitle },
-  sessionDate: { color: theme.ink, ...typeScale.label },
-  previousSetRow: { minHeight: 58, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 10, gap: 12 },
-  previousSetCopy: { flex: 1, gap: 3 },
-  previousSetMetrics: { color: theme.ink, ...typeScale.body },
-  previousSetComment: { fontStyle: 'italic', ...typeScale.supporting },
-  previousSetNumber: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  previousSetNumberText: { color: theme.ink, ...typeScale.label },
+  sessionTitle: { color: theme.ink, ...typeScale.cardTitle },
+  sessionDate: { color: theme.ink, ...typeScale.body },
   showMoreSessions: { minHeight: 56, borderRadius: 20, justifyContent: 'center', paddingHorizontal: 24 },
   showMoreText: { color: theme.ink, ...typeScale.sectionTitle },
   emptyCard: { borderWidth: 1, borderRadius: 16 },

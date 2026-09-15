@@ -541,7 +541,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           />
         )}
         {addingExercises && (
-          <AddExerciseSheet visible onClose={() => setAddingExercises(false)} onSubmit={addExercises} />
+          <AddExerciseSheet visible workoutType={draft.type} onClose={() => setAddingExercises(false)} onSubmit={addExercises} />
         )}
         <RoutineTypePicker
           visible={pickerOpen}

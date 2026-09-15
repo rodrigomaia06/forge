@@ -1,7 +1,8 @@
 import { bundledExercises, bundledCatalogTaxonomies, type TrackingType } from './catalog/loadCatalog';
+import type { ExerciseVariationFacets } from '../types';
 export interface ExerciseCatalogItem {
   id: string; name: string; familyId?: string; group: string; equipment: string; equipmentIds?: string[]; primaryEquipment?: string;
-  variation?: string; category: string; bodyRegion?: string; primaryMuscle: string; secondaryMuscles: string[];
+  variation?: string; variationFacets?: ExerciseVariationFacets; category: string; bodyRegion?: string; primaryMuscle: string; secondaryMuscles: string[];
   aliases: string[]; searchTerms?: string[]; workoutTypeIds: string[]; trackingType?: TrackingType;
   movementPattern?: string; mechanics?: string; laterality?: string; restSeconds?: number;
 }

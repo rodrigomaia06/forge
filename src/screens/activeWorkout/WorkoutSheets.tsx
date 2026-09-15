@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Keyboard, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -49,12 +49,15 @@ type CatalogCategoryData = {
 export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   visible,
   session = 0,
+  workoutType,
   onClose,
   onSubmit,
 }: {
   visible: boolean;
   /** Changes for each opening so the same sheet instance can start cleanly. */
   session?: number;
+  /** The active workout or editor type provides a removable initial scope. */
+  workoutType?: string;
   onClose: () => void;
   onSubmit: (exercises: ExerciseCatalogItem[]) => void;
 }) {
@@ -69,7 +72,19 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   const [filters, setFilters] = useState<CatalogFilterState>(emptyCatalogFilters());
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [expandedEquipment, setExpandedEquipment] = useState<string | null>(null);
+  const initializedSession = useRef<number | null>(null);
   const floatingCtaClearance = useForgeFloatingCtaClearance();
+  const defaultTypeIds = useMemo(() => {
+    const name = workoutType?.trim().toLocaleLowerCase();
+    if (!name) return [];
+    return preferences.workoutTypes
+      .filter((type) => type.name.trim().toLocaleLowerCase() === name)
+      .map((type) => type.id);
+  }, [preferences.workoutTypes, workoutType]);
+  // Settings hydration reconstructs its workout-type array even when the
+  // resolved IDs have not changed. Keep this scalar stable so an in-flight
+  // catalogue search is never reset by that harmless provider refresh.
+  const defaultTypeKey = defaultTypeIds.join('\u0001');
   const filterFacets = useMemo<CatalogFilterFacet[]>(() => {
     const optionsFor = (draft: CatalogFilterState, includeEquipment: boolean) => {
       const scoped = filterCatalog(exerciseCatalog, {
@@ -149,12 +164,21 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
     setQuery('');
     setSelected(new Set());
     setFiltersOpen(false);
-    setFilters(emptyCatalogFilters());
+    setFilters({ ...emptyCatalogFilters(), types: defaultTypeKey ? defaultTypeKey.split('\u0001') : [] });
     setExpandedGroup(null);
     setExpandedEquipment(null);
-  }, []);
+  }, [defaultTypeKey]);
   useEffect(() => {
-    if (visible) reset();
+    if (!visible) {
+      initializedSession.current = null;
+      return;
+    }
+    // A modal can render more than once while its host route and settings
+    // settle. Reset only once per explicitly opened picker session; otherwise
+    // an innocent render can clear a just-tapped exercise.
+    if (initializedSession.current === session) return;
+    initializedSession.current = session;
+    reset();
   }, [reset, session, visible]);
   const submit = (): void => {
     const exercises = exerciseCatalog.filter((exercise) => selected.has(exercise.id));
@@ -163,7 +187,7 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
     setQuery('');
     setSelected(new Set());
     setFiltersOpen(false);
-    setFilters(emptyCatalogFilters());
+    setFilters({ ...emptyCatalogFilters(), types: defaultTypeKey ? defaultTypeKey.split('\u0001') : [] });
     setExpandedGroup(null);
     setExpandedEquipment(null);
     mediumHaptic();
@@ -175,7 +199,10 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
     <ForgeBottomSheet
       visible={visible}
       onClose={onClose}
-      onCloseStart={reset}
+      // The picker can be dismissed while an automation clock is frozen for a
+      // rest-timer scenario; release its modal ownership at close start rather
+      // than waiting for a motion callback that has no advancing frame clock.
+      onCloseStart={() => { reset(); onClose(); }}
       accessibilityLabel="Close add exercises"
       initialOffset={360}
       closeDistance={520}
@@ -363,7 +390,6 @@ const CatalogCategory = React.memo(function CatalogCategory({
                 accessibilityRole="checkbox"
                 accessibilityLabel={`${group}, variation`}
                 accessibilityState={{ checked: isSelected }}
-                unstable_pressDelay={80}
                 onPress={() => onToggleExercise(exercise)}
                 style={({ pressed }) => [
                   styles.groupRow,
@@ -390,7 +416,6 @@ const CatalogCategory = React.memo(function CatalogCategory({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`${group} & ${variations.length} variations`}
-                unstable_pressDelay={80}
                 onPress={() => onToggleGroup(groupKey, expanded)}
                 style={({ pressed }) => [
                   styles.groupRow,
@@ -428,7 +453,6 @@ const CatalogCategory = React.memo(function CatalogCategory({
                       accessibilityRole="checkbox"
                       accessibilityLabel={`${group}, ${equipmentLabel}`}
                       accessibilityState={{ checked: isSelected }}
-                      unstable_pressDelay={80}
                       onPress={() => onToggleExercise(exercise)}
                       style={({ pressed }) => [
                         styles.equipmentRow,
@@ -451,7 +475,6 @@ const CatalogCategory = React.memo(function CatalogCategory({
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={`${equipment} & ${exercises.length} variations`}
-                      unstable_pressDelay={80}
                       onPress={() => onToggleEquipment(equipmentKey, equipmentExpanded)}
                       style={({ pressed }) => [styles.equipmentRow, pressed && styles.exerciseOptionPressed]}
                     >
@@ -478,7 +501,6 @@ const CatalogCategory = React.memo(function CatalogCategory({
                           accessibilityRole="checkbox"
                           accessibilityLabel={`${group}, ${equipment}, ${label}`}
                           accessibilityState={{ checked: isSelected }}
-                          unstable_pressDelay={80}
                           onPress={() => onToggleExercise(exercise)}
                           style={({ pressed }) => [
                             styles.subVariationRow,
@@ -632,7 +654,7 @@ export function ExerciseOptionsSheet({
           />
           {view === 'history' ? <PreviousSessionsContent exercise={exercise} workouts={completedWorkouts} excludeWorkoutId={excludeWorkoutId} onOpenWorkout={onOpenWorkout} /> : null}
           {view === 'info' ? <ExerciseInfoContent exercise={exercise} /> : null}
-          {view === 'note' && readOnly ? <View style={styles.exerciseNoteContent}><ForgeCard variant="inset" style={styles.exerciseNoteCard}><Text style={styles.readOnlyExerciseNote}>{exercise.note}</Text></ForgeCard></View> : null}
+          {view === 'note' && readOnly ? <ExerciseNoteView note={exercise.note ?? ''} /> : null}
           {view === 'note' && !readOnly ? <View style={styles.exerciseNoteContent}>
             <ForgeCard variant="inset" style={styles.exerciseNoteCard}>
               <TextInput
@@ -657,6 +679,11 @@ export function ExerciseOptionsSheet({
       ) : null}
     />
   );
+}
+
+function ExerciseNoteView({ note }: { note: string }) {
+  const styles = useThemedStyles(createStyles);
+  return <View style={styles.exerciseNoteContent}><ForgeCard variant="inset" style={styles.exerciseNoteCard}><Text style={styles.readOnlyExerciseNote}>{note}</Text></ForgeCard></View>;
 }
 
 export function WorkoutOptionsSheet({
@@ -911,7 +938,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     exerciseOptionName: { color: dashboardTheme.ink, ...typeScale.cardTitle },
     exerciseOptionEquipment: { color: '#4F625A', ...typeScale.label },
     exerciseNoteContent: { paddingHorizontal: 20, paddingBottom: 28 },
-    exerciseNoteCard: { paddingHorizontal: 14 },
+    exerciseNoteCard: { paddingHorizontal: 14, paddingVertical: 12, minHeight: 156 },
     readOnlyExerciseNote: { color: theme.textPrimary, ...typeScale.body },
     exerciseNoteInput: {
       minHeight: 156,

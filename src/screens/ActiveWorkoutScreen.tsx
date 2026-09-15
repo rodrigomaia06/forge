@@ -43,6 +43,7 @@ import { calendarDateKey } from '../domain/workouts/calendarDate';
 import { createExerciseSnapshot } from '../domain/exercises/exerciseSnapshot';
 import { recordRestTimerSample } from '../state/workoutMutations';
 import { applyWorkoutStructureToRoutine, hasRoutineStructureChanged } from '../domain/workouts/routineStructure';
+import { useSynchronizedNow } from '../domain/rest/synchronizedClock';
 
 type ActiveWorkoutScreenProps = RootTabScreenProps<'ActiveWorkout'>;
 export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenProps) {
@@ -96,12 +97,11 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     return override ?? snapshotRest ?? catalogRest ?? preferences.defaultRestSeconds;
   }, [catalogExercises, preferences.defaultRestSeconds, preferences.exerciseRestSeconds]);
   const handleSetCompleted = useCallback((exercise: WorkoutExercise): void => {
-    if (!preferences.showRestTimer) return;
     const duration = restDurationForExercise(exercise);
-    // Store the completed-set rest interval with the workout. This makes the
-    // History metric useful for future sessions without pretending that old
-    // records, which never captured individual rests, have precise data.
+    // Completion timestamps, not the configured countdown, own the actual
+    // rest metric. Keep collecting them when the visible rest timer is off.
     updateActiveWorkout((current) => recordRestTimerSample(current, duration));
+    if (!preferences.showRestTimer) return;
     startRestTimer(duration);
   }, [preferences.showRestTimer, restDurationForExercise, startRestTimer, updateActiveWorkout]);
   const openRestTimer = () => {
@@ -323,8 +323,13 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
         dockScrollInset={dockScrollInset}
       />
       <ExtractedAddExerciseSheet
-        visible={sheetOpen || route.params?.openAddExercises === 'open'}
+        // The route effect increments the picker session before making this
+        // surface visible. Rendering directly from the route parameter briefly
+        // mounted a session-0 picker, then reset a selection as session 1
+        // arrived (most visible when starting a brand-new workout).
+        visible={sheetOpen}
         session={addExerciseSession}
+        workoutType={activeWorkout.type}
         onClose={handleAddExerciseClose}
         onSubmit={handleAddExercises}
       />
@@ -421,12 +426,7 @@ const ElapsedTimer = React.memo(function ElapsedTimer({
   workout: Workout;
   style: import('react-native').StyleProp<import('react-native').TextStyle>;
 }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (workout.automaticTimeTracking === false) return undefined;
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [workout.automaticTimeTracking, workout.startedAt]);
+  const now = useSynchronizedNow();
   const elapsed = workout.automaticTimeTracking === false
     ? workout.durationSeconds ?? 0
     : Math.max(0, Math.floor((now - workout.startedAt) / 1000));
@@ -446,15 +446,9 @@ const RestTimerHeaderAction = React.memo(function RestTimerHeaderAction({
   onOpen: () => void;
   onRestart: () => void;
 }) {
-  const [now, setNow] = useState(() => Date.now());
+  const now = useSynchronizedNow();
   const [displayRemaining, setDisplayRemaining] = useState(fallbackRemaining);
   const longPress = useRef(false);
-  useEffect(() => {
-    if (!endAt) return undefined;
-    setNow(Date.now());
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [endAt]);
   const remaining = endAt ? Math.ceil((endAt - now) / 1000) : fallbackRemaining;
   useEffect(() => { setDisplayRemaining(remaining); }, [remaining]);
   return <Pressable
@@ -505,6 +499,8 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
   const [openExerciseId, setOpenExerciseId] = useState<string | null>(null);
   const workoutListRef = useRef<FlatList<WorkoutExercise>>(null);
   const dockCompactOnUi = useSharedValue(false);
+  const dockLastOffsetOnUi = useSharedValue(0);
+  const dockDirectionDistanceOnUi = useSharedValue(0);
   const { setCompact: setDockCompact } = usePrimaryDock();
   const { onSetInputFocus, onScrollOffsetChange: recordScrollOffset } = useFocusedSetKeyboardLift(workoutListRef);
   const handleDockCompactChange = useCallback((nextCompact: boolean): void => setDockCompact(nextCompact), [setDockCompact]);
@@ -516,10 +512,22 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
   const workoutScrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       runOnJS(handleWorkoutScrollOffset)(event.contentOffset.y);
-      const nextCompact = event.contentOffset.y > 12;
-      if (nextCompact !== dockCompactOnUi.value) {
-        dockCompactOnUi.value = nextCompact;
-        runOnJS(handleDockCompactChange)(nextCompact);
+      const nextOffset = Math.max(0, event.contentOffset.y);
+      const delta = nextOffset - dockLastOffsetOnUi.value;
+      dockLastOffsetOnUi.value = nextOffset;
+      if (Math.abs(delta) < 1) return;
+      const movingDown = delta > 0;
+      dockDirectionDistanceOnUi.value = (dockDirectionDistanceOnUi.value * (Math.sign(dockDirectionDistanceOnUi.value) === Math.sign(delta) ? 1 : 0)) + delta;
+      // Directional hysteresis deliberately does not inspect the absolute
+      // offset: arriving at the top cannot enlarge the dock by itself.
+      if (movingDown && !dockCompactOnUi.value && dockDirectionDistanceOnUi.value >= 18) {
+        dockCompactOnUi.value = true;
+        dockDirectionDistanceOnUi.value = 0;
+        runOnJS(handleDockCompactChange)(true);
+      } else if (!movingDown && dockCompactOnUi.value && dockDirectionDistanceOnUi.value <= -18) {
+        dockCompactOnUi.value = false;
+        dockDirectionDistanceOnUi.value = 0;
+        runOnJS(handleDockCompactChange)(false);
       }
     },
   });
@@ -592,13 +600,15 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
                           color={theme.textPrimary}
                         />
                         <Text style={styles.liveAttributeLabel} numberOfLines={1}>{label}</Text>
-                        <ForgeTextInput
+                          <ForgeTextInput
                           accessibilityLabel={`${label} value`}
                           value={value}
                           onChangeText={(nextValue) => updateLiveAttribute(label, nextValue)}
                           placeholder="Add value"
-                          placeholderTextColor={theme.textDisabled}
-                          style={styles.liveAttributeInput}
+                            placeholderTextColor={theme.textDisabled}
+                            multiline
+                            scrollEnabled={false}
+                            style={styles.liveAttributeInput}
                         />
                       </View>
                     ))}

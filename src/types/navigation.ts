@@ -16,7 +16,7 @@ export type RootTabParamList = {
 
 export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<RootTabParamList> | undefined;
-  WorkoutDetails: { workoutId: string; returnTo?: 'History' | 'ActiveWorkout' };
+  WorkoutDetails: { workoutId: string; returnTo?: 'History' | 'ActiveWorkout'; returnContext?: 'previous-sessions' };
   HistoryWorkoutEditor:
     | { mode: 'edit'; workoutId: string }
     | { mode: 'create'; selectedDate: string }
