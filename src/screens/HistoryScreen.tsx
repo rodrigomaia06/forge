@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FlatList, Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import ReanimatedSwipeable, {
   type SwipeableMethods,
 } from 'react-native-gesture-handler/ReanimatedSwipeable';
@@ -54,6 +54,80 @@ function emptyHistoryFilters(now = new Date()): HistoryFilterState {
   return { types: [], dateMode: 'all', month: month.getTime(), from: startOfDay(now).getTime(), to: startOfDay(now).getTime() };
 }
 
+const keyExtractor = (group: HistoryGroup): string => group.key;
+
+/**
+ * One virtualized item is a full week block: its rail, period bridge, label, and
+ * rows. Rendering the week as the virtualization unit keeps the continuous date
+ * rail and cross-period connector geometry intact while the archive off-screen
+ * stays unmounted.
+ */
+const HistoryGroupBlock = React.memo(function HistoryGroupBlock({
+  group,
+  groupIndex,
+  previousLastWorkout,
+  historyTitles,
+  workoutTypes,
+  deleteRevealedId,
+  onRowPress,
+  onRowDelete,
+  onRowDeleteRevealChange,
+}: {
+  group: HistoryGroup;
+  groupIndex: number;
+  previousLastWorkout: Workout | undefined;
+  historyTitles: Map<string, string>;
+  workoutTypes: import('../types').WorkoutTypePreference[];
+  deleteRevealedId: string | null;
+  onRowPress: (workout: Workout) => void;
+  onRowDelete: (workoutId: string) => void;
+  onRowDeleteRevealChange: (workoutId: string, revealed: boolean) => void;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  const previousTail = previousLastWorkout && hasWorkoutExerciseSummary(previousLastWorkout)
+    ? styles.periodRailConnectorDetailed
+    : styles.periodRailConnectorCompact;
+  const groupTail = hasWorkoutExerciseSummary(group.workouts.at(-1)!)
+    ? styles.groupRailDetailed
+    : styles.groupRailCompact;
+  return (
+    <View testID={`history-group-${group.key}`} style={styles.group}>
+      <View pointerEvents="none" style={[styles.groupRail, groupTail]} />
+      {groupIndex > 0 ? (
+        <View testID={`history-period-connector-${group.key}`} pointerEvents="none" style={[styles.periodRailConnector, previousTail]}>
+          <Svg width={1} height="100%">
+            <Defs>
+              <LinearGradient id={`history-period-rail-${group.key}`} x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor={theme.divider} stopOpacity={0.48} />
+                <Stop offset="0.28" stopColor={theme.divider} stopOpacity={0.28} />
+                <Stop offset="0.5" stopColor={theme.divider} stopOpacity={0.08} />
+                <Stop offset="0.72" stopColor={theme.divider} stopOpacity={0.28} />
+                <Stop offset="1" stopColor={theme.divider} stopOpacity={0.48} />
+              </LinearGradient>
+            </Defs>
+            <Rect width="1" height="100%" fill={`url(#history-period-rail-${group.key})`} />
+          </Svg>
+        </View>
+      ) : null}
+      <Text style={styles.groupTitle}>{group.label}</Text>
+      {group.workouts.map((workout, index) => (
+        <TimelineRow
+          key={workout.id}
+          workout={workout}
+          displayName={historyTitles.get(workout.id) ?? workout.name}
+          workoutTypes={workoutTypes}
+          first={groupIndex === 0 && index === 0}
+          onPress={onRowPress}
+          deleteRevealed={deleteRevealedId === workout.id}
+          onDeleteRevealChange={onRowDeleteRevealChange}
+          onDelete={onRowDelete}
+        />
+      ))}
+    </View>
+  );
+});
+
 export function HistoryScreen({
   navigation,
 }: RootTabScreenProps<'History'>) {
@@ -66,6 +140,9 @@ export function HistoryScreen({
   const dockScrollInset = useForgeDockScrollInset();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters, setFilters] = useState(emptyHistoryFilters);
+  // This tab is warmed at app start (it mounts eagerly, then freezes off-screen),
+  // so its projection is computed once up front and the timeline is virtualized —
+  // there is no per-open deferral to make the first visit feel slow.
   const historyTypeOptions = useMemo(() => {
     const presentTypes = new Set(completedWorkouts.map((workout) => workout.type));
     return [...presentTypes]
@@ -109,6 +186,34 @@ export function HistoryScreen({
   const activeFilterCount = filters.types.length + (filters.dateMode === 'all' ? 0 : 1);
   const [deleteRevealedId, setDeleteRevealedId] = useState<string | null>(null);
   const [headerElevated, setHeaderElevated] = useState(false);
+  // Stable list callbacks so a header-elevation change or a single row swipe
+  // never rebuilds the timeline: memoized rows only compare these references.
+  const handleRowPress = useCallback((workout: Workout) => {
+    selectionHaptic();
+    navigation.navigate('WorkoutDetails', { workoutId: workout.id });
+  }, [navigation]);
+  const handleRowDelete = useCallback((workoutId: string) => {
+    animateLayout(reducedMotion);
+    errorHaptic();
+    deleteCompletedWorkout(workoutId);
+    setDeleteRevealedId(null);
+  }, [deleteCompletedWorkout, reducedMotion]);
+  const handleRowDeleteRevealChange = useCallback((workoutId: string, revealed: boolean) => {
+    setDeleteRevealedId((current) => (revealed ? workoutId : current === workoutId ? null : current));
+  }, []);
+  const renderGroup = useCallback(({ item, index }: { item: HistoryGroup; index: number }) => (
+    <HistoryGroupBlock
+      group={item}
+      groupIndex={index}
+      previousLastWorkout={index > 0 ? groups[index - 1]?.workouts.at(-1) : undefined}
+      historyTitles={historyTitles}
+      workoutTypes={preferences.workoutTypes}
+      deleteRevealedId={deleteRevealedId}
+      onRowPress={handleRowPress}
+      onRowDelete={handleRowDelete}
+      onRowDeleteRevealChange={handleRowDeleteRevealChange}
+    />
+  ), [deleteRevealedId, groups, handleRowDelete, handleRowDeleteRevealChange, handleRowPress, historyTitles, preferences.workoutTypes]);
   return (
     <AppScreen backgroundColor={theme.background} edges={['top']}>
       <View style={styles.screen}>
@@ -127,111 +232,61 @@ export function HistoryScreen({
           />
           {headerElevated ? <HeaderEdge /> : null}
         </View>
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset }]}
-          showsVerticalScrollIndicator={false}
-          onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
-          scrollEventThrottle={16}
-        >
-          {groups.length ? (
-            groups.map((group, groupIndex) => {
-              const previousLastWorkout = groups[groupIndex - 1]?.workouts.at(-1);
-              const previousTail = previousLastWorkout && hasWorkoutExerciseSummary(previousLastWorkout)
-                ? styles.periodRailConnectorDetailed
-                : styles.periodRailConnectorCompact;
-              const groupTail = hasWorkoutExerciseSummary(group.workouts.at(-1)!)
-                ? styles.groupRailDetailed
-                : styles.groupRailCompact;
-              return (
-              <View key={group.key} testID={`history-group-${group.key}`} style={styles.group}>
-                <View pointerEvents="none" style={[styles.groupRail, groupTail]} />
-                {groupIndex > 0 ? (
-                  <View testID={`history-period-connector-${group.key}`} pointerEvents="none" style={[styles.periodRailConnector, previousTail]}>
-                    <Svg width={1} height="100%">
-                      <Defs>
-                        <LinearGradient id={`history-period-rail-${group.key}`} x1="0" y1="0" x2="0" y2="1">
-                          <Stop offset="0" stopColor={theme.divider} stopOpacity={0.48} />
-                          <Stop offset="0.28" stopColor={theme.divider} stopOpacity={0.28} />
-                          <Stop offset="0.5" stopColor={theme.divider} stopOpacity={0.08} />
-                          <Stop offset="0.72" stopColor={theme.divider} stopOpacity={0.28} />
-                          <Stop offset="1" stopColor={theme.divider} stopOpacity={0.48} />
-                        </LinearGradient>
-                      </Defs>
-                      <Rect width="1" height="100%" fill={`url(#history-period-rail-${group.key})`} />
-                    </Svg>
-                  </View>
-                ) : null}
-                <Text style={styles.groupTitle}>{group.label}</Text>
-                {group.workouts.map((workout, index) => (
-                  <TimelineRow
-                    key={workout.id}
-                    workout={workout}
-                    displayName={historyTitles.get(workout.id) ?? workout.name}
-                    workoutTypes={preferences.workoutTypes}
-                    first={groupIndex === 0 && index === 0}
-                    onPress={() => {
-                      selectionHaptic();
-                      navigation.navigate('WorkoutDetails', { workoutId: workout.id });
-                    }}
-                    deleteRevealed={deleteRevealedId === workout.id}
-                    onDeleteRevealChange={(revealed) => {
-                      setDeleteRevealedId((current) => {
-                        if (revealed) return workout.id;
-                        return current === workout.id ? null : current;
-                      });
-                    }}
-                    onDelete={() => {
-                      animateLayout(reducedMotion);
-                      errorHaptic();
-                      deleteCompletedWorkout(workout.id);
-                      setDeleteRevealedId(null);
-                    }}
+        <FlatList
+            style={styles.scroll}
+            contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset }, !groups.length && styles.contentEmpty]}
+            data={groups}
+            keyExtractor={keyExtractor}
+            renderItem={renderGroup}
+            extraData={renderGroup}
+            showsVerticalScrollIndicator={false}
+            onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
+            scrollEventThrottle={16}
+            initialNumToRender={6}
+            maxToRenderPerBatch={3}
+            updateCellsBatchingPeriod={50}
+            windowSize={7}
+            removeClippedSubviews={Platform.OS !== 'web'}
+            ListEmptyComponent={(
+              <View style={styles.empty}>
+                <Image
+                  testID="history-empty-illustration"
+                  source={require('../../assets/illustrations/empty-history.png')}
+                  style={styles.emptyIllustration}
+                  tintColor={theme.muted}
+                  resizeMode="contain"
+                  accessible={false}
+                />
+                <Text style={styles.emptyTitle}>
+                  {activeFilterCount ? 'No matching workouts' : 'No completed workouts'}
+                </Text>
+                <Text style={styles.emptySubtitle}>
+                  {activeFilterCount
+                    ? 'Try changing or clearing the filter.'
+                    : 'Finish a workout and it will appear here.'}
+                </Text>
+                {activeFilterCount ? (
+                  <Button
+                    label="Clear filters"
+                    variant="secondary"
+                    onPress={() => setFilters(emptyHistoryFilters())}
+                    theme={theme}
+                    style={styles.emptyAction}
                   />
-                ))}
+                ) : (
+                  <Button
+                    label="Start a workout"
+                    onPress={() => {
+                      startWorkout();
+                      navigation.navigate('ActiveWorkout');
+                    }}
+                    theme={theme}
+                    style={styles.emptyAction}
+                  />
+                )}
               </View>
-              );
-            })
-          ) : (
-            <View style={styles.empty}>
-              <Image
-                testID="history-empty-illustration"
-                source={require('../../assets/illustrations/empty-history.png')}
-                style={styles.emptyIllustration}
-                tintColor={theme.muted}
-                resizeMode="contain"
-                accessible={false}
-              />
-              <Text style={styles.emptyTitle}>
-                {activeFilterCount ? 'No matching workouts' : 'No completed workouts'}
-              </Text>
-              <Text style={styles.emptySubtitle}>
-                {activeFilterCount
-                  ? 'Try changing or clearing the filter.'
-                  : 'Finish a workout and it will appear here.'}
-              </Text>
-              {activeFilterCount ? (
-                <Button
-                  label="Clear filters"
-                  variant="secondary"
-                  onPress={() => setFilters(emptyHistoryFilters())}
-                  theme={theme}
-                  style={styles.emptyAction}
-                />
-              ) : (
-                <Button
-                  label="Start a workout"
-                  onPress={() => {
-                    startWorkout();
-                    navigation.navigate('ActiveWorkout');
-                  }}
-                  theme={theme}
-                  style={styles.emptyAction}
-                />
-              )}
-            </View>
-          )}
-        </ScrollView>
+            )}
+          />
         <HistoryFilterSheet
           testID="history-filter-sheet"
           visible={filtersOpen}
@@ -420,7 +475,7 @@ function HistoryDateRangeControls({ filters, onSetMode, onPreviousMonth, onNextM
   </ScrollView>;
 }
 
-function TimelineRow({
+const TimelineRow = React.memo(function TimelineRow({
   workout,
   displayName,
   workoutTypes,
@@ -434,10 +489,10 @@ function TimelineRow({
   displayName: string;
   workoutTypes: import('../types').WorkoutTypePreference[];
   first: boolean;
-  onPress: () => void;
+  onPress: (workout: Workout) => void;
   deleteRevealed: boolean;
-  onDeleteRevealChange: (revealed: boolean) => void;
-  onDelete: () => void;
+  onDeleteRevealChange: (workoutId: string, revealed: boolean) => void;
+  onDelete: (workoutId: string) => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -482,15 +537,15 @@ function TimelineRow({
           onSwipeableWillOpen={() => {
             mediumHaptic();
           }}
-          onSwipeableOpen={() => onDeleteRevealChange(true)}
-          onSwipeableClose={() => onDeleteRevealChange(false)}
+          onSwipeableOpen={() => onDeleteRevealChange(workout.id, true)}
+          onSwipeableClose={() => onDeleteRevealChange(workout.id, false)}
           renderRightActions={() => (
             <View style={styles.deleteActionLayer}>
               <Pressable
                 testID={`history-delete-${workout.id}`}
                 accessibilityRole="button"
                 accessibilityLabel={`Delete ${displayName}`}
-                onPress={onDelete}
+                onPress={() => onDelete(workout.id)}
                 style={({ pressed }) => [styles.deleteAction, pressed && styles.deleteActionPressed]}
               >
                 <Icon name="trash" size={18} color={theme.textDestructive} />
@@ -509,7 +564,7 @@ function TimelineRow({
                 suppressNextPress.current = false;
                 return;
               }
-              onPress();
+              onPress(workout);
             }}
             style={({ pressed }) => [
               styles.card,
@@ -544,7 +599,7 @@ function TimelineRow({
       </View>
     </View>
   );
-}
+});
 
 const swipeSpring = forgeMotion.swipeSpring;
 const historyCardRadius = 16;
@@ -660,6 +715,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   historyMonthCopy: { flex: 1, alignItems: 'center' },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 18, gap: 14 },
+  contentEmpty: { flexGrow: 1 },
   group: { gap: 6, position: 'relative' },
   // One solid rail lives behind all rows in its week, crossing row gaps. The
   // gradient bridge across a period label reads as chronology without making
