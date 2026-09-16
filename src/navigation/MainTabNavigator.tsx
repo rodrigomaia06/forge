@@ -34,6 +34,11 @@ export function MainTabNavigator() {
         initialRouteName={activeWorkout ? 'ActiveWorkout' : 'Dashboard'}
         screenOptions={{
           headerShown: false,
+          // Warm every tab scene up front so switching tabs is instant for the
+          // rest of the session. The heavy catalogue/history projections inside
+          // each screen still defer their own bodies past the initial paint, so
+          // this eager mount stays cheap; freezeOnBlur then pauses the inactive
+          // scenes off-screen without discarding their route or scroll state.
           lazy: false,
           freezeOnBlur: true,
           // The tab scenes remain visible under the fade. Keep that shared
