@@ -134,13 +134,11 @@ export function NavigationItem({
             }
             size={iconSize}
             color={
-              emphasis && active
-                ? theme.onActionPrimary
+              active
+                ? theme.dockForeground || theme.surface
                 : emphasis
                   ? theme.actionPrimary
-                  : active
-                    ? theme.dockForeground || theme.surface
-                    : theme.dockMuted || theme.slate
+                  : theme.dockMuted || theme.slate
             }
             weight={emphasis ? 'thin' : active ? 'fill' : 'regular'}
           />

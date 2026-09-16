@@ -50,6 +50,8 @@ Do not copy exact visual constants from an external design guideline when the pl
 
 Use Forge's semantic type roles and shared text primitives rather than raw font values in product UI. Readable content must use at least the `label` role (13px); `caption` (12px) is reserved for non-essential compact metadata. Preserve user text scaling through Forge's shared 1.5× cap and ensure layouts reflow or expose full text at that scale.
 
+Descriptive titles, section labels, and field labels use sentence or title case, never all caps. Preserve all caps only where it carries compact semantic meaning: date rails and calendars, well-known abbreviations such as RPE, and units or initialisms such as kg or km.
+
 Textual actions use the shared `controlLabel` role (15px) and retain a 44pt minimum touch target. Do not use smaller labels simply because an action is placed in compact header chrome.
 
 ## Accessibility is part of correctness

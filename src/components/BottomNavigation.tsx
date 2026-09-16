@@ -122,10 +122,7 @@ export function BottomNavigation({
           compact && styles.selectionPillCompact,
           selectionIndicatorStyle,
           {
-            backgroundColor:
-              activeRoute === 'ActiveWorkout'
-                ? theme.actionPrimary
-                : theme.dockSelected || theme.slate,
+            backgroundColor: theme.dockSelected || theme.slate,
           },
         ]}
       />

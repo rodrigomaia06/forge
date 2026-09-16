@@ -301,7 +301,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                 </View>
               </View>
               <View style={styles.summaryStats}>
-                <MeasurementSummaryStat label="LATEST" value={latest ? formatValue(latest.value, displayUnit) : '—'} />
+                <MeasurementSummaryStat label="Latest" value={latest ? formatValue(latest.value, displayUnit) : '—'} />
                 <View style={styles.summaryDivider} />
                 <MeasurementSummaryStat label={`${range} DAY CHANGE`} value={trendDelta} />
               </View>
