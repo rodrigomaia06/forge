@@ -27,6 +27,7 @@ export type IconName =
   | 'tennis-ball'
   | 'stopwatch'
   | 'stopwatch-outline'
+  | 'hourglass'
   | 'trash'
   | 'duplicate'
   | 'replace'

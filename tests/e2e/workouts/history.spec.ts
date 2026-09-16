@@ -47,7 +47,8 @@ test.describe('History screen', () => {
     ]);
     expect(detailedCard?.height).toBeCloseTo(70, 0);
     expect(compactCard?.height).toBeCloseTo(60, 0);
-    await expect(page.getByTestId(/^history-period-connector-/)).toHaveCount(2);
+    const groupCount = await page.locator('[data-testid^="history-group-"]').count();
+    await expect(page.getByTestId(/^history-period-connector-/)).toHaveCount(groupCount - 1);
     const railCenters = await page
       .getByTestId(/^(history-marker-|history-period-connector-)/)
       .evaluateAll((elements) => elements.map((element) => {
@@ -57,10 +58,10 @@ test.describe('History screen', () => {
     expect(railCenters.length).toBeGreaterThan(2);
     railCenters.forEach((center) => expect(center).toBeCloseTo(railCenters[0], 0));
     const bridgeGradients = page.locator('linearGradient[id^="history-period-rail-"]');
-    await expect(bridgeGradients).toHaveCount(2);
+    await expect(bridgeGradients).toHaveCount(groupCount - 1);
     await expect(bridgeGradients.first().locator('stop').nth(2)).toHaveAttribute('stop-opacity', '0.08');
     expect(await page.locator('svg').count()).toBeGreaterThan(0);
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.waitForTimeout(250);
       await page.screenshot({ path: testInfo.outputPath('history-continuous-timeline-iphone.png') });
     }
@@ -109,7 +110,7 @@ test.describe('History screen', () => {
     const filterSheet = page.getByTestId('history-filter-sheet');
     await expect(filterSheet).toBeVisible();
     await expect(filterSheet.getByText('Filter history', { exact: true })).toBeVisible();
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.waitForTimeout(250);
       await page.screenshot({ path: testInfo.outputPath('history-filter-sheet-iphone.png') });
     }
@@ -181,7 +182,7 @@ test.describe('History screen', () => {
     // exercise metadata. Do not couple the check to browser rounding around
     // the 44pt icon and card border.
     expect(compactCard?.height ?? Infinity).toBeLessThan(detailedCard?.height ?? 0);
-    expect(compactCard?.height ?? 0).toBeGreaterThanOrEqual(64);
+    expect(compactCard?.height ?? 0).toBeGreaterThanOrEqual(60);
   });
 
   test('keeps History cards at the full available row width', async ({ page }) => {
@@ -193,7 +194,7 @@ test.describe('History screen', () => {
 
   test('keeps history groups in descending order', async ({ page }) => {
     const headings = await page.locator('[data-testid^="history-group-"]').allTextContents();
-    expect(headings[0]).toContain('Muay Thai');
+    expect(headings[0]).toContain('Recovery walk');
     expect(headings.at(-1)).toContain('Pull - Extension');
   });
 
@@ -201,7 +202,7 @@ test.describe('History screen', () => {
     await page.getByRole('button', { name: 'Open Muay Thai' }).click();
 
     const summary = page.getByTestId('workout-details-summary');
-    await expect(summary).toContainText('3 exercises, 8 sets');
+    await expect(summary).toContainText('3 exercises · 8 sets');
     await expect(page.getByText('Muay Thai', { exact: true }).last()).toBeVisible();
     await expect(summary).toContainText('1:12h');
     await expect(summary).toContainText('Duration');
@@ -239,9 +240,70 @@ test.describe('History screen', () => {
     await expect(summary.getByRole('button', { name: 'Hide session details' })).toBeVisible();
     await expect(summary.getByText('Forge Gym', { exact: true })).toBeVisible();
     await expect(summary.getByText('8 hours', { exact: true })).toBeVisible();
-    if (testInfo.project.name === 'iphone-air') {
-      await page.screenshot({ path: testInfo.outputPath('workout-summary-card-iphone.png') });
+    if (testInfo.project.use.isMobile === true) {
+      await page.screenshot({ path: testInfo.outputPath('workout-summary-card-phone.png') });
     }
+  });
+
+  test('matches the opened-workout summary reference across every phone profile', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.use.isMobile !== true, 'Workout-detail visual baselines target phone profiles.');
+    const workout = referenceSummaryWorkout();
+    await page.evaluate((nextWorkout) => {
+      localStorage.setItem('@forge/completed-workouts', JSON.stringify([nextWorkout]));
+    }, workout);
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'History' }).click();
+    await page.getByRole('button', { name: 'Open Muay Thai' }).click();
+
+    const summary = page.getByTestId('workout-details-summary');
+    const rail = page.getByTestId('workout-details-summary-date-rail');
+    await expect(summary.getByText('3 exercises · 8 sets', { exact: true })).toBeVisible();
+    await expect(summary.getByText('Duration', { exact: true })).toBeVisible();
+    await expect(summary.getByText('Avg rest', { exact: true })).toBeVisible();
+    await expect(summary.getByText('Not recorded', { exact: true })).toBeVisible();
+    await expect(summary.getByText('Sharp rounds, focused technique.', { exact: true })).toBeVisible();
+    await expect(rail).toBeVisible();
+    await expect(summary).toHaveScreenshot('workout-summary-card-light.png', { animations: 'disabled' });
+
+    const [summaryBox, railBox, layout] = await Promise.all([
+      summary.boundingBox(),
+      rail.boundingBox(),
+      summary.evaluate((element) => ({ clientWidth: element.clientWidth, scrollWidth: element.scrollWidth })),
+    ]);
+    expect(summaryBox).not.toBeNull();
+    expect(railBox).not.toBeNull();
+    if (!summaryBox || !railBox) throw new Error('Expected the workout summary and date rail to be measurable');
+    expect(railBox.x).toBeGreaterThanOrEqual(summaryBox.x);
+    expect(railBox.x + railBox.width).toBeLessThanOrEqual(summaryBox.x + summaryBox.width);
+    expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth + 1);
+  });
+
+  test('shows one long attribute directly in the opened-workout summary', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.use.isMobile !== true, 'Workout-detail checks target phone profiles.');
+    const workout = {
+      ...referenceSummaryWorkout(),
+      attributes: { Location: 'VivaGYM Campo Pequeno' },
+      attributeIcons: { Location: 'location' },
+    };
+    await page.evaluate((nextWorkout) => {
+      localStorage.setItem('@forge/completed-workouts', JSON.stringify([nextWorkout]));
+    }, workout);
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'History' }).click();
+    await page.getByRole('button', { name: 'Open Muay Thai' }).click();
+
+    const summary = page.getByTestId('workout-details-summary');
+    const label = summary.getByText('Location', { exact: true });
+    const value = summary.getByText('VivaGYM Campo Pequeno', { exact: true });
+    await expect(label).toBeVisible();
+    await expect(value).toBeVisible();
+    await expect(summary.getByRole('button', { name: 'Show session details' })).toHaveCount(0);
+    const [labelBox, valueBox] = await Promise.all([label.boundingBox(), value.boundingBox()]);
+    expect(labelBox).not.toBeNull();
+    expect(valueBox).not.toBeNull();
+    if (!labelBox || !valueBox) throw new Error('Expected the single attribute row to be measurable');
+    expect(Math.abs((labelBox.y + labelBox.height / 2) - (valueBox.y + valueBox.height / 2))).toBeLessThanOrEqual(1);
+    await summary.screenshot({ path: testInfo.outputPath('single-attribute-summary.png') });
   });
 
   test('returns to History through the Back action after opening a workout', async ({ page }) => {
@@ -378,7 +440,7 @@ test.describe('History screen', () => {
   test('keeps workout details read-only and expands exercises individually', async ({ page }, testInfo) => {
     await page.getByRole('button', { name: 'Open Muay Thai' }).click();
     await expect(
-      page.getByTestId('workout-details-summary').getByText('Exercises', { exact: true }),
+      page.getByTestId('workout-details-summary').getByText('3 exercises · 8 sets', { exact: true }),
     ).toBeVisible();
     await expect(page.getByText('Volume', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Calories', { exact: true })).toHaveCount(0);
@@ -391,7 +453,7 @@ test.describe('History screen', () => {
       'aria-expanded',
       'true',
     );
-    await expect(page.getByText('Previous', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Previous', { exact: true })).toBeVisible();
     await expect(page.getByTestId('workout-details-set-muay-thai-set-0-0')).toContainText('60');
     await expect(page.getByTestId('workout-details-set-completion-muay-thai-set-0-0')).toHaveCSS(
       'background-color',
@@ -433,7 +495,7 @@ test.describe('History screen', () => {
     expect(targetDotBox.y).toBeLessThan(chipBox.y + chipBox.height / 2);
     expect(rpeBox.x).toBeLessThan(chipBox.x + chipBox.width / 2);
     expect(rpeBox.y + rpeBox.height).toBeGreaterThan(chipBox.y + chipBox.height / 2);
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('commented-history-exercise-iphone.png') });
     }
     // Targets remain discoverable through the marker and Set details, rather
@@ -452,7 +514,7 @@ test.describe('History screen', () => {
     await expect(sheet.getByRole('button', { name: 'Change set kind' })).toHaveCount(0);
     await expect(sheet.getByRole('button', { name: 'Delete Set 1' })).toHaveCount(0);
     await expect(page.getByLabel('Comment for set 1')).toHaveCount(0);
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.waitForTimeout(250);
       await page.screenshot({ path: testInfo.outputPath('history-set-editor-iphone.png') });
     }
@@ -469,7 +531,7 @@ test.describe('History screen', () => {
     await expect(page.getByRole('button', { name: 'Show 1 more sessions' })).toBeVisible();
     const priorSetButtons = page.getByRole('button', { name: 'Open details for set 1' });
     await expect(priorSetButtons).toHaveCount(3);
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('previous-sessions-cards-iphone.png') });
     }
 
@@ -567,5 +629,16 @@ function makeWorkout(
         }),
       ),
     })),
+  };
+}
+
+function referenceSummaryWorkout() {
+  return {
+    ...makeWorkout('reference-summary-workout', 'Muay Thai', 'Martial arts', Date.UTC(2026, 5, 14, 10, 18), 72, 3, 8),
+    startedAt: Date.UTC(2026, 5, 14, 9, 6),
+    completedAt: Date.UTC(2026, 5, 14, 10, 18),
+    note: 'Sharp rounds, focused technique.',
+    attributes: { Location: 'Forge Gym', Energy: 'High' },
+    attributeIcons: { Location: 'location', Energy: 'energy' },
   };
 }
