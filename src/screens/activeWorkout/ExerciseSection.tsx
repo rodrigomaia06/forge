@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { InteractionManager, Pressable, StyleSheet, View } from 'react-native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -68,6 +68,9 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   const styles = useThemedStyles(createStyles);
   const deleteActionWidth = 64;
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [optionsVisible, setOptionsVisible] = useState(false);
+  const [restorePreviousSessions, setRestorePreviousSessions] = useState(false);
+  const [previousSessionPushStarted, setPreviousSessionPushStarted] = useState(false);
   const [optionView, setOptionView] = useState<'history' | 'warmup' | 'info' | null>(null);
   const [removeConfirmationOpen, setRemoveConfirmationOpen] = useState(false);
   const optionTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -81,8 +84,12 @@ export const ExerciseSection = React.memo(function ExerciseSection({
     : null;
   const { completedWorkouts } = useWorkouts();
   const navigation = useNavigation<RootNavigationProp>();
+  const screenIsFocused = useIsFocused();
   const hasExerciseInfo = Boolean(exercise.exerciseSnapshot || exerciseCatalog.some((item) => item.id === exercise.exerciseId));
   const trackingType = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType ?? 'weight-reps';
+  // Keep the live grid stable. A missing prior value is meaningful information,
+  // not a reason to move all measurement fields into a different column.
+  const showPrevious = true;
   const canBuildWarmups = showWarmupSets && Boolean(addWarmupSets) && trackingFields[trackingType].includes('weight');
 
   useEffect(
@@ -91,6 +98,22 @@ export const ExerciseSection = React.memo(function ExerciseSection({
     },
     [],
   );
+
+  useEffect(() => {
+    if (!screenIsFocused) {
+      if (previousSessionPushStarted) setPreviousSessionPushStarted(false);
+      return;
+    }
+    if (restorePreviousSessions && !previousSessionPushStarted) {
+      // Let the native stack's pop complete before the native modal rises
+      // again, rather than making two independent surfaces compete mid-frame.
+      const interaction = InteractionManager.runAfterInteractions(() => {
+        setOptionsVisible(true);
+        setRestorePreviousSessions(false);
+      });
+      return () => interaction.cancel();
+    }
+  }, [previousSessionPushStarted, restorePreviousSessions, screenIsFocused]);
 
   const afterOptionsClose = (action: () => void): void => {
     if (optionTransitionTimer.current) clearTimeout(optionTransitionTimer.current);
@@ -213,6 +236,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 unstable_pressDelay={80}
                 onPress={() => {
                   selectionHaptic();
+                  animateLayout();
                   setExpanded((current) => !current);
                 }}
                 style={({ pressed }) => [
@@ -268,6 +292,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     onPress={() => {
                       selectionHaptic();
                       setOptionsOpen(true);
+                      setOptionsVisible(true);
                     }}
                     style={({ pressed }) => [styles.moreButton, pressed && pressedFeedback]}
                   >
@@ -307,6 +332,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     deleteRevealed={openSetId === set.id}
                     onDeleteRevealChange={(revealed) => setOpenSetId(revealed ? set.id : null)}
                     showCompletion={showSetCompletion}
+                    showPrevious={showPrevious}
                     trackingType={trackingType}
                     setTargetMode={setTargetMode}
                     onInputFocus={onSetInputFocus}
@@ -329,17 +355,23 @@ export const ExerciseSection = React.memo(function ExerciseSection({
             )}
             {showMoreOptions && optionsOpen && (
               <ExerciseOptionsSheet
-                visible
                 exercise={exercise}
-                onClose={() => setOptionsOpen(false)}
+                visible={optionsVisible}
+                onClose={() => {
+                  setOptionsVisible(false);
+                  setOptionsOpen(false);
+                }}
                 onEditNote={updateExercise ? (note) => updateExercise(exercise.id, { note }) : undefined}
                 onOpenPreviousSessions={() => undefined}
                 onOpenWarmupSets={canBuildWarmups ? () => afterOptionsClose(() => setOptionView('warmup')) : undefined}
                 onOpenExerciseInfo={hasExerciseInfo ? () => undefined : undefined}
                 completedWorkouts={completedWorkouts}
                 onOpenWorkout={(workoutId) => {
-                  // Keep the sheet mounted behind the detail stack entry. A pop
-                  // returns to this exact session list rather than the tab root.
+                  // The option-sheet component stays mounted so its history view,
+                  // expanded cards, and scroll offset can return after this push.
+                  setOptionsVisible(false);
+                  setRestorePreviousSessions(true);
+                  setPreviousSessionPushStarted(true);
                   navigation.push('WorkoutDetails', { workoutId, returnTo: 'ActiveWorkout', returnContext: 'previous-sessions' });
                 }}
                 onRemove={() => {
@@ -393,10 +425,28 @@ export function ReadOnlyExerciseSection({
   const [expanded, setExpanded] = useState(false);
   const [openSetIndex, setOpenSetIndex] = useState<number | null>(null);
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [optionsVisible, setOptionsVisible] = useState(false);
+  const [restorePreviousSessions, setRestorePreviousSessions] = useState(false);
+  const [previousSessionPushStarted, setPreviousSessionPushStarted] = useState(false);
   const { completedWorkouts } = useWorkouts();
   const navigation = useNavigation<RootNavigationProp>();
+  const screenIsFocused = useIsFocused();
   const openSet = openSetIndex === null ? null : exercise.sets[openSetIndex];
   const trackingType = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType ?? 'weight-reps';
+
+  useEffect(() => {
+    if (!screenIsFocused) {
+      if (previousSessionPushStarted) setPreviousSessionPushStarted(false);
+      return;
+    }
+    if (restorePreviousSessions && !previousSessionPushStarted) {
+      const interaction = InteractionManager.runAfterInteractions(() => {
+        setOptionsVisible(true);
+        setRestorePreviousSessions(false);
+      });
+      return () => interaction.cancel();
+    }
+  }, [previousSessionPushStarted, restorePreviousSessions, screenIsFocused]);
 
   return (
     <View testID={`history-exercise-${exercise.id}`} style={styles.readOnlyExerciseCard}>
@@ -409,6 +459,7 @@ export function ReadOnlyExerciseSection({
         unstable_pressDelay={80}
         onPress={() => {
           selectionHaptic();
+          animateLayout();
           setExpanded((current) => !current);
         }}
         style={[styles.readOnlyExerciseHeader, styles.readOnlyExerciseHeaderPressable, minimal && styles.readOnlyMinimalExerciseHeader]}
@@ -434,12 +485,13 @@ export function ReadOnlyExerciseSection({
           color={theme.slate}
         />
       </Pressable>
-      {workoutId ? <Pressable accessibilityRole="button" accessibilityLabel={`More options for ${exercise.name}`} onPress={() => { selectionHaptic(); setOptionsOpen(true); }} style={styles.readOnlyMoreButton}><Icon name="ellipsis-horizontal" size={20} color={theme.ink} /></Pressable> : null}
+      {workoutId ? <Pressable accessibilityRole="button" accessibilityLabel={`More options for ${exercise.name}`} onPress={() => { selectionHaptic(); setOptionsOpen(true); setOptionsVisible(true); }} style={styles.readOnlyMoreButton}><Icon name="ellipsis-horizontal" size={20} color={theme.ink} /></Pressable> : null}
       </View>
       {expanded && (
         <View style={[styles.readOnlySets, minimal && styles.readOnlyMinimalSets]}>
           <View style={[styles.setHeader, minimal && styles.readOnlyMinimalSetHeader]}>
             <Text style={[styles.setHeaderText, styles.setColumn]}>Set</Text>
+            <Text style={[styles.setHeaderText, styles.previousColumn]}>Previous</Text>
             {trackingFields[trackingType].map((kind) => (
               <Text key={kind} style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>{trackingFieldLabel(trackingType, kind)}</Text>
             ))}
@@ -452,6 +504,7 @@ export function ReadOnlyExerciseSection({
               index={index}
               isLast={index === exercise.sets.length - 1}
               trackingType={trackingType}
+              showPrevious
               onOpenDetails={() => setOpenSetIndex(index)}
             />
           ))}
@@ -470,15 +523,21 @@ export function ReadOnlyExerciseSection({
         />
       )}
       {workoutId && optionsOpen ? <ExerciseOptionsSheet
-        visible
+        visible={optionsVisible}
         readOnly
         exercise={exercise}
         completedWorkouts={completedWorkouts}
         excludeWorkoutId={workoutId}
-        onClose={() => setOptionsOpen(false)}
+        onClose={() => {
+          setOptionsVisible(false);
+          setOptionsOpen(false);
+        }}
         onOpenPreviousSessions={() => undefined}
         onOpenExerciseInfo={() => undefined}
         onOpenWorkout={(sessionWorkoutId) => {
+          setOptionsVisible(false);
+          setRestorePreviousSessions(true);
+          setPreviousSessionPushStarted(true);
           navigation.push('WorkoutDetails', { workoutId: sessionWorkoutId, returnTo: 'History', returnContext: 'previous-sessions' });
         }}
       /> : null}
@@ -548,9 +607,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       shadowOffset: { width: 0, height: 2 },
       elevation: 1,
   },
-  readOnlyExerciseHeaderRow: { flexDirection: 'row', alignItems: 'stretch' },
+  readOnlyExerciseHeaderRow: { flexDirection: 'row', alignItems: 'center' },
   readOnlyExerciseHeaderPressable: { flex: 1 },
-  readOnlyMoreButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: 6 },
+  readOnlyMoreButton: { width: 44, height: 44, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', marginRight: 6 },
     readOnlyExerciseHeader: {
       minHeight: 56,
       flexDirection: 'row',
@@ -643,6 +702,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     setColumn: { width: 46 },
     previousColumn: { flex: 1 },
     inputColumn: { width: 60 },
+    firstInputWithoutPrevious: { marginLeft: 'auto' },
     inputHeader: { textAlign: 'center' },
     checkColumn: { width: 44 },
     addSet: {

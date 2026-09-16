@@ -487,6 +487,23 @@ test.describe('History screen', () => {
     await expect(page.getByRole('button', { name: 'Show 1 more sessions' })).toHaveCount(0);
   });
 
+  test('closes Previous sessions for a workout drill-in and restores it on Back', async ({ page }) => {
+    await page.getByRole('button', { name: 'Open Muay Thai' }).click();
+    await page.getByRole('button', { name: 'More options for Exercise 1' }).click();
+    await page.getByRole('button', { name: 'Previous sessions' }).click();
+
+    const sessionCard = page.getByTestId('previous-session-card-pull-25');
+    await expect(sessionCard).toBeVisible();
+    await sessionCard.getByRole('button', { name: 'Open Pull - Extension' }).click();
+
+    // A native modal must not remain over the detail stack entry.
+    await expect(page.getByText('Previous sessions', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Back to History' })).toBeVisible();
+    await page.getByRole('button', { name: 'Back to History' }).click();
+    await expect(page.getByText('Previous sessions', { exact: true }).last()).toBeVisible();
+    await expect(page.getByTestId('previous-session-card-pull-25')).toBeVisible();
+  });
+
   test('keeps the empty state available without completed sessions', async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem('@forge/completed-workouts', '[]');

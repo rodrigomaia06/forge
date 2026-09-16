@@ -34,6 +34,7 @@ function SwipeableSetRowComponent({
   deleteRevealed,
   onDeleteRevealChange,
   showCompletion = true,
+  showPrevious = true,
   onInputFocus,
   trackingType,
   setTargetMode = 'next-session',
@@ -150,13 +151,21 @@ function SwipeableSetRowComponent({
   const deleteSwipeStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: deleteTranslateX.value }],
   }));
+  // The delete layer must not be visible until a swipe exposes it. Web can
+  // otherwise leak a one-pixel destructive edge through nested animation
+  // layers even though the foreground row is visually at rest.
+  const deleteLayerStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(1, Math.max(0, -deleteTranslateX.value / DELETE_ACTION_WIDTH)),
+  }));
 
   return (
     <GestureDetector gesture={deleteGesture}>
       <View style={styles.swipeRow}>
-      <View
+      <Animated.View
+        testID={`live-set-delete-layer-${index + 1}`}
         style={[
           styles.deleteActionLayer,
+          deleteLayerStyle,
           { pointerEvents: deleteRevealed ? 'auto' : 'none' },
         ]}
       >
@@ -168,7 +177,7 @@ function SwipeableSetRowComponent({
         >
           <Icon name="trash" size={18} color={theme.textDestructive} weight="regular" />
         </Pressable>
-      </View>
+      </Animated.View>
       <Animated.View
         accessibilityLabel={`Set ${index + 1}`}
         accessibilityActions={[{ name: 'delete', label: 'Delete set' }]}
@@ -209,6 +218,7 @@ function SwipeableSetRowComponent({
             onInputTouchEnd={onInputTouchEnd}
             onInputFocus={onInputFocus}
             showCompletion={showCompletion}
+            showPrevious={showPrevious}
             trackingType={trackingType}
             setTargetMode={setTargetMode}
           />
@@ -238,7 +248,8 @@ export const SwipeableSetRow = React.memo(
     previous.set === next.set &&
     previous.index === next.index &&
     previous.deleteRevealed === next.deleteRevealed &&
-    previous.showCompletion === next.showCompletion,
+    previous.showCompletion === next.showCompletion &&
+    previous.showPrevious === next.showPrevious,
 );
 
 const createStyles = (theme: import('../../types').ForgeTheme) => {

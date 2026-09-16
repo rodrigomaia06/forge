@@ -123,6 +123,9 @@ test('combines compatible modifiers directly and resolves conflicting choices', 
   await page.getByRole('checkbox', { name: 'Pull-Up, Pronated' }).click();
   await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
   await expect(page.getByTestId('variation-output-chooser')).toBeVisible();
+  // A resolved title is canonical and self-describing; derived does not mean
+  // it needs a generic secondary label in the chooser.
+  await expect(page.getByText('New variation', { exact: true })).toHaveCount(0);
   if (testInfo.project.name === 'iphone-air') {
     await page.screenshot({ path: testInfo.outputPath('ambiguous-pull-up-output-iphone.png'), fullPage: true });
   }

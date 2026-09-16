@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Keyboard, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, {
+  FadeInDown,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -29,7 +30,7 @@ import type { ExerciseCatalogItem } from '../../data/exerciseCatalog';
 import { useExerciseCatalog } from '../../state/ExerciseCatalogContext';
 import { useSettings } from '../../state/SettingsContext';
 import { CompletionCheck } from './CompletionCheck';
-import { animateLayout, lightHaptic, mediumHaptic, selectionHaptic } from './activeWorkoutFeedback';
+import { animateLayout, animateSheetContent, lightHaptic, mediumHaptic, selectionHaptic } from './activeWorkoutFeedback';
 import type { Workout, WorkoutExercise } from '../../types';
 import { ExerciseInfoContent, PreviousSessionsContent } from './ExerciseOptionSheets';
 import { catalogFacets, filterCatalog, groupCatalogByPrimaryEquipment } from '../../domain/exercises/catalogSelectors';
@@ -189,14 +190,14 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   const toggleGroup = useCallback((key: string, expanded: boolean): void => {
     Keyboard.dismiss();
     selectionHaptic();
-    animateLayout();
+    animateSheetContent();
     setExpandedGroup(expanded ? null : key);
     setExpandedEquipment(null);
   }, []);
   const toggleEquipment = useCallback((key: string, expanded: boolean): void => {
     Keyboard.dismiss();
     selectionHaptic();
-    animateLayout();
+    animateSheetContent();
     setExpandedEquipment(expanded ? null : key);
   }, []);
   const reset = useCallback((): void => {
@@ -425,7 +426,7 @@ function ExerciseOutputChooser({ resolution, onBack, onClose, onConfirm }: {
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
   return <>
     <ForgeBottomSheetHandle />
-    <ForgeSheetHeader title="Choose exercises" onClose={onClose} leading={<ForgeEditorBackButton onPress={onBack} accessibilityLabel="Back to exercise choices" />} />
+    <ForgeSheetHeader title="Choose exercises" compactTitle onClose={onClose} leading={<ForgeEditorBackButton onPress={onBack} accessibilityLabel="Back to exercise choices" />} />
     <FlatList
       testID="variation-output-chooser"
       data={resolution.choices}
@@ -436,7 +437,7 @@ function ExerciseOutputChooser({ resolution, onBack, onClose, onConfirm }: {
         return <Pressable accessibilityRole="checkbox" accessibilityLabel={item.exercise.name} accessibilityState={{ checked }} onPress={() => setSelected((current) => {
           const next = new Set(current); if (next.has(item.exercise.id)) next.delete(item.exercise.id); else next.add(item.exercise.id); return next;
         })} style={({ pressed }) => [styles.outputChoice, checked && styles.outputChoiceSelected, pressed && styles.exerciseOptionPressed]}>
-          <View style={styles.exerciseOptionCopy}><Text style={styles.groupName}>{item.exercise.name}</Text>{(formatCatalogVariation(item.exercise.name, item.exercise.variation) || item.source === 'derived') ? <Text style={styles.groupMeta}>{formatCatalogVariation(item.exercise.name, item.exercise.variation) || 'New variation'}</Text> : null}</View>
+          <View style={styles.exerciseOptionCopy}><Text style={styles.groupName}>{item.exercise.name}</Text>{formatCatalogVariation(item.exercise.name, item.exercise.variation) ? <Text style={styles.groupMeta}>{formatCatalogVariation(item.exercise.name, item.exercise.variation)}</Text> : null}</View>
           <CompletionCheck selected={checked} tone="selection" />
         </Pressable>;
       }}
@@ -743,16 +744,36 @@ export function ExerciseOptionsSheet({
   const [view, setView] = useState<'actions' | 'note' | 'history' | 'info'>('actions');
   const [noteDraft, setNoteDraft] = useState(exercise.note ?? '');
   const [noteHeight, setNoteHeight] = useState(156);
+  const [historyShowAll, setHistoryShowAll] = useState(false);
+  const [historyScrollOffset, setHistoryScrollOffset] = useState(0);
+  const pendingWorkoutIdRef = useRef<string | null>(null);
 
   const commitNote = (): void => {
     onEditNote?.(noteDraft.trim());
   };
+  const openView = (nextView: 'note' | 'history' | 'info'): void => {
+    // These destinations deliberately replace the action list in one Forge
+    // sheet. Give its height/content change the same short native transition
+    // used by catalogue expansion instead of snapping the body in place.
+    animateSheetContent();
+    setView(nextView);
+  };
   const close = (): void => {
     if (view === 'note') commitNote();
+    const pendingWorkoutId = pendingWorkoutIdRef.current;
+    pendingWorkoutIdRef.current = null;
+    // A React Native Modal always sits above a native-stack screen. Complete
+    // its close before pushing, otherwise the previous-sessions card remains
+    // physically in front of the destination despite navigation succeeding.
+    if (pendingWorkoutId) {
+      onOpenWorkout?.(pendingWorkoutId);
+      return;
+    }
     onClose();
   };
   const backToActions = (): void => {
     commitNote();
+    animateSheetContent();
     setView('actions');
   };
 
@@ -770,12 +791,12 @@ export function ExerciseOptionsSheet({
           icon: 'note' as const,
           label: readOnly ? 'View note' : exercise.note?.trim() ? 'Edit note' : 'Add note',
           dismiss: false,
-          onPress: () => setView('note'),
+          onPress: () => openView('note'),
         }] : []),
-        ...(onOpenPreviousSessions ? [{ icon: 'history' as const, label: 'Previous sessions', dismiss: false, onPress: () => setView('history') }] : []),
+        ...(onOpenPreviousSessions ? [{ icon: 'history' as const, label: 'Previous sessions', dismiss: false, onPress: () => openView('history') }] : []),
         ...(onOpenWarmupSets ? [{ icon: 'warm-up' as const, label: 'Warm-up sets', onPress: onOpenWarmupSets }] : []),
-        ...(onOpenExerciseInfo ? [{ icon: 'info' as const, label: 'Exercise info', dismiss: false, onPress: () => setView('info') }] : []),
-        ...(!readOnly && onReplaceExercise ? [{ icon: 'note' as const, label: 'Replace exercise', onPress: onReplaceExercise }] : []),
+        ...(onOpenExerciseInfo ? [{ icon: 'info' as const, label: 'Exercise info', dismiss: false, onPress: () => openView('info') }] : []),
+        ...(!readOnly && onReplaceExercise ? [{ icon: 'replace' as const, label: 'Replace exercise', onPress: onReplaceExercise }] : []),
         ...(!readOnly && onRemove ? [{
           icon: 'trash' as const,
           label: 'Remove exercise',
@@ -785,7 +806,7 @@ export function ExerciseOptionsSheet({
         }] : []),
       ]}
       replacement={view !== 'actions' ? (closeSheet) => (
-        <>
+        <Animated.View key={view} entering={FadeInDown.duration(180)}>
           <ForgeBottomSheetHandle />
           <ForgeSheetHeader
             title={view === 'note' ? 'Exercise note' : view === 'history' ? 'Previous sessions' : 'Exercise info'}
@@ -793,7 +814,19 @@ export function ExerciseOptionsSheet({
             closeAccessibilityLabel={`Close ${view === 'note' ? 'exercise note' : view === 'history' ? 'previous sessions' : 'exercise info'}`}
             leading={<ForgeEditorBackButton onPress={backToActions} accessibilityLabel="Back to exercise options" />}
           />
-          {view === 'history' ? <PreviousSessionsContent exercise={exercise} workouts={completedWorkouts} excludeWorkoutId={excludeWorkoutId} onOpenWorkout={onOpenWorkout} /> : null}
+          {view === 'history' ? <PreviousSessionsContent
+            exercise={exercise}
+            workouts={completedWorkouts}
+            excludeWorkoutId={excludeWorkoutId}
+            showAll={historyShowAll}
+            onShowAllChange={setHistoryShowAll}
+            scrollOffset={historyScrollOffset}
+            onScrollOffsetChange={setHistoryScrollOffset}
+            onOpenWorkout={(workoutId) => {
+              pendingWorkoutIdRef.current = workoutId;
+              closeSheet();
+            }}
+          /> : null}
           {view === 'info' ? <ExerciseInfoContent exercise={exercise} /> : null}
           {view === 'note' && readOnly ? <ExerciseNoteView note={exercise.note ?? ''} /> : null}
           {view === 'note' && !readOnly ? <View style={styles.exerciseNoteContent}>
@@ -816,7 +849,7 @@ export function ExerciseOptionsSheet({
               />
             </ForgeCard>
           </View> : null}
-        </>
+        </Animated.View>
       ) : null}
     />
   );

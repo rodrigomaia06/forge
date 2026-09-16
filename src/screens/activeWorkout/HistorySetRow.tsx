@@ -18,6 +18,7 @@ export function HistorySetRow({
   trackingType,
   compact = false,
   isLast = false,
+  showPrevious = false,
   onOpenDetails,
 }: {
   set: WorkoutSet;
@@ -25,6 +26,8 @@ export function HistorySetRow({
   trackingType: TrackingType;
   compact?: boolean;
   isLast?: boolean;
+  /** Workout detail tables share the live-workout Previous column. */
+  showPrevious?: boolean;
   onOpenDetails: () => void;
 }) {
   const theme = useForgeTheme();
@@ -49,7 +52,7 @@ export function HistorySetRow({
       </Pressable>
     </View>;
   }
-  return <View testID={`workout-details-set-${set.id}`} style={[styles.fullRow, !isLast && { borderBottomWidth: 1, borderBottomColor: theme.divider }]}><Pressable accessibilityRole="button" accessibilityLabel={`Open details for set ${index + 1}`} onPress={() => { selectionHaptic(); onOpenDetails(); }} style={styles.numberButton}><View testID={`history-set-number-chip-${index + 1}`} style={styles.chipWrap}><Text style={[styles.chip, tag && { color: tag.color, backgroundColor: `${tag.color}20` }]}>{tag?.letter ?? index + 1}</Text>{target ? <View accessibilityLabel={`Set ${index + 1} has a next session target`} style={[styles.targetDot, { backgroundColor: theme.setTargetIndicator }]} /> : null}{rpe ? <Text accessibilityLabel={`Set ${index + 1} RPE ${rpe}`} style={styles.rpe}>{rpe}</Text> : null}{set.comment?.trim() ? <View accessibilityLabel={`Set ${index + 1} has a comment`} style={[styles.commentDot, { backgroundColor: theme.ink }]} /> : null}</View></Pressable>{trackingFields[trackingType].map((kind) => <View key={kind} accessibilityLabel={trackingFieldLabel(trackingType, kind)} style={[styles.value, { borderColor: theme.divider, backgroundColor: theme.surfaceMuted }]}><Text style={styles.valueText}>{measurementText(set, kind) || 'Not recorded'}</Text></View>)}<View style={styles.check}><CompletionCheck selected={set.completed} testID={`workout-details-set-completion-${set.id}`} /></View></View>;
+  return <View testID={`workout-details-set-${set.id}`} style={[styles.fullRow, !isLast && { borderBottomWidth: 1, borderBottomColor: theme.divider }]}><Pressable accessibilityRole="button" accessibilityLabel={`Open details for set ${index + 1}`} onPress={() => { selectionHaptic(); onOpenDetails(); }} style={styles.numberButton}><View testID={`history-set-number-chip-${index + 1}`} style={styles.chipWrap}><Text style={[styles.chip, tag && { color: tag.color, backgroundColor: `${tag.color}20` }]}>{tag?.letter ?? index + 1}</Text>{target ? <View accessibilityLabel={`Set ${index + 1} has a next session target`} style={[styles.targetDot, { backgroundColor: theme.setTargetIndicator }]} /> : null}{rpe ? <Text accessibilityLabel={`Set ${index + 1} RPE ${rpe}`} style={styles.rpe}>{rpe}</Text> : null}{set.comment?.trim() ? <View accessibilityLabel={`Set ${index + 1} has a comment`} style={[styles.commentDot, { backgroundColor: theme.ink }]} /> : null}</View></Pressable>{showPrevious ? <Text style={styles.previous}>{set.previous?.trim() || 'Not recorded'}</Text> : null}{trackingFields[trackingType].map((kind) => <View key={kind} accessibilityLabel={trackingFieldLabel(trackingType, kind)} style={[styles.value, { borderColor: theme.divider, backgroundColor: theme.surfaceMuted }]}><Text style={styles.valueText}>{measurementText(set, kind) || 'Not recorded'}</Text></View>)}<View style={styles.check}><CompletionCheck selected={set.completed} testID={`workout-details-set-completion-${set.id}`} /></View></View>;
 }
 
 const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.create({
@@ -62,6 +65,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   rpe: { position: 'absolute', left: 3, bottom: 1, color: theme.ink, ...typeScale.caption },
   value: { width: 60, minHeight: 36, borderWidth: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   valueText: { color: theme.ink, ...typeScale.supporting },
+  previous: { flex: 1, minWidth: 0, color: theme.ink, ...typeScale.body, textAlign: 'center' },
   check: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   compactRow: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 18, paddingRight: 10, paddingVertical: 7, borderTopWidth: StyleSheet.hairlineWidth },
   compactCopy: { flex: 1, minWidth: 0, gap: 2 },

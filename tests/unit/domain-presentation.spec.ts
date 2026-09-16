@@ -34,9 +34,16 @@ import {
 } from '../../src/state/workoutMutations';
 import { createExerciseSnapshot } from '../../src/domain/exercises/exerciseSnapshot';
 import {
+  formatCatalogVariation,
   formatExerciseMetadata,
   formatPickerPrimaryEquipment,
 } from '../../src/domain/exercises/exercisePresentation';
+
+test('omits picker metadata already represented in canonical exercise names', () => {
+  expect(formatCatalogVariation('Assisted Band Pull-Up', 'Assisted · Band')).toBeNull();
+  expect(formatCatalogVariation('Weighted Wide Pronated Pull-Up', 'Weighted · Wide · Pronated')).toBeNull();
+  expect(formatCatalogVariation('Cable Row', 'Neutral')).toBe('Neutral');
+});
 import { buildWarmupPlan, warmupSteps } from '../../src/domain/workouts/warmup';
 import { uniqueById } from '../../src/data/uniqueById';
 import { mergeImportedPlans } from '../../src/data/dataTransferPlans';

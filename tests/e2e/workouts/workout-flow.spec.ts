@@ -981,6 +981,9 @@ test.describe('Active workout flow', () => {
   test('reveals delete action when swiping a set to the left', async ({ page }) => {
     await startEmptyWorkoutWithExercise(page);
 
+    // The destructive underlay is mounted for gestures but must be entirely
+    // hidden at rest; otherwise RN web leaks a thin red edge beside inputs.
+    await expect(page.getByTestId('live-set-delete-layer-1')).toHaveCSS('opacity', '0');
     const completeButton = page.getByRole('checkbox', { name: 'Complete set 1' });
     await swipeLeftFrom(page, completeButton);
 

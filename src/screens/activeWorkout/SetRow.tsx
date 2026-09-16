@@ -24,6 +24,7 @@ export function SetRow({
   onInputTouchEnd,
   onInputFocus,
   showCompletion = true,
+  showPrevious = true,
   trackingType = 'weight-reps',
   setTargetMode = 'next-session',
 }: SetRowProps) {
@@ -140,9 +141,7 @@ export function SetRow({
           ) : null}
         </View>
       </Pressable>
-      <Text style={styles.previous} numberOfLines={1}>
-        {previous}
-      </Text>
+      {showPrevious ? <Text style={styles.previous} numberOfLines={1}>{previous}</Text> : null}
       {trackingFields[trackingType].map((kind) => {
         const planned = plannedIntervalText(set, kind);
         const allowsRange = setTargetMode === 'routine' && (kind === 'reps' || kind === 'duration');
@@ -345,10 +344,12 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   previous: {
     flex: 1,
     color: dashboardTheme.ink,
-    ...typeScale.label,
+    // Previous performance is a primary scanning value, not compact metadata.
+    ...typeScale.body,
     textAlign: 'center',
   },
   inputColumn: { width: 60 },
+  firstInputWithoutPrevious: { marginLeft: 'auto' },
   input: {
     minHeight: 36,
     borderWidth: 1,

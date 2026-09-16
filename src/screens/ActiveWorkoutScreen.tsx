@@ -9,11 +9,13 @@ import {
   AppScreen,
   Button,
   ForgeText as Text,
+  ForgeAttributeEditorSheet,
+  ForgeBottomSheet,
   HeaderAction,
   HeaderEdge,
   ForgeCard,
   ForgeConfirmationDialog,
-  ForgeTextInput,
+  ForgeSwipeableAttributeRow,
   Icon,
   pressedFeedback,
 } from '../components/ui';
@@ -26,6 +28,7 @@ import { useSettings } from '../state/SettingsContext';
 import { useExerciseCatalog } from '../state/ExerciseCatalogContext';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
+import type { ForgeAttributeDraft } from '../components/ui';
 import type { RootTabScreenProps, Workout, WorkoutExercise, WorkoutSetChanges } from '../types';
 import { lightHaptic, successHaptic } from './activeWorkout/activeWorkoutFeedback';
 import {
@@ -525,6 +528,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
   const theme = useForgeTheme();
   const styles = useThemedStyles(createActiveWorkoutStyles);
   const [openExerciseId, setOpenExerciseId] = useState<string | null>(null);
+  const [attributeDraft, setAttributeDraft] = useState<ForgeAttributeDraft | null>(null);
   const workoutListRef = useRef<FlatList<WorkoutExercise>>(null);
   const dockCompactOnUi = useSharedValue(false);
   const dockLastOffsetOnUi = useSharedValue(0);
@@ -562,11 +566,35 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
   const handleExerciseDeleteReveal = useCallback((exerciseId: string, revealed: boolean): void => {
     setOpenExerciseId(revealed ? exerciseId : null);
   }, []);
-  const updateLiveAttribute = useCallback((label: string, value: string): void => {
-    updateActiveWorkout((current) => ({
-      ...current,
-      attributes: { ...(current.attributes ?? {}), [label]: value },
-    }));
+  const saveLiveAttribute = useCallback((next: ForgeAttributeDraft): void => {
+    const label = next.label.trim();
+    if (!label) return;
+    updateActiveWorkout((current) => {
+      const attributes = { ...(current.attributes ?? {}) };
+      const attributeIcons = { ...(current.attributeIcons ?? {}) };
+      if (next.original && next.original !== label) {
+        delete attributes[next.original];
+        delete attributeIcons[next.original];
+      }
+      attributes[label] = next.value;
+      attributeIcons[label] = next.icon;
+      return { ...current, attributes, attributeIcons };
+    });
+    setAttributeDraft(null);
+  }, [updateActiveWorkout]);
+  const deleteLiveAttribute = useCallback((label: string): void => {
+    updateActiveWorkout((current) => {
+      const attributes = { ...(current.attributes ?? {}) };
+      const attributeIcons = { ...(current.attributeIcons ?? {}) };
+      delete attributes[label];
+      delete attributeIcons[label];
+      return {
+        ...current,
+        attributes: Object.keys(attributes).length ? attributes : undefined,
+        attributeIcons: Object.keys(attributeIcons).length ? attributeIcons : undefined,
+      };
+    });
+    setAttributeDraft(null);
   }, [updateActiveWorkout]);
   const renderExercise = useCallback(
     ({ item, index }: { item: WorkoutExercise; index: number }) => (
@@ -621,25 +649,16 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
                   <Text style={styles.listSectionTitle}>Attributes</Text>
                   <ForgeCard variant="outlined" size="compact">
                     {liveAttributeEntries.map(([label, value], index) => (
-                      <View key={label} style={[styles.liveAttributeRow, index > 0 && styles.joinedAttributeRow]}>
-                        <Icon
-                          testID={`live-attribute-icon-${label}`}
-                          name={workout.attributeIcons?.[label] ?? 'note'}
-                          size={20}
-                          color={theme.textPrimary}
-                        />
-                        <Text style={styles.liveAttributeLabel} numberOfLines={1}>{label}</Text>
-                          <ForgeTextInput
-                          accessibilityLabel={`${label} value`}
-                          value={value}
-                          onChangeText={(nextValue) => updateLiveAttribute(label, nextValue)}
-                          placeholder="Add value"
-                            placeholderTextColor={theme.textDisabled}
-                            multiline
-                            scrollEnabled={false}
-                            style={styles.liveAttributeInput}
-                        />
-                      </View>
+                      <ForgeSwipeableAttributeRow
+                        key={label}
+                        label={label}
+                        value={value}
+                        icon={workout.attributeIcons?.[label] ?? 'note'}
+                        divider={index > 0}
+                        compact
+                        onEdit={() => setAttributeDraft({ original: label, label, value, icon: workout.attributeIcons?.[label] ?? 'note' })}
+                        onDelete={() => deleteLiveAttribute(label)}
+                      />
                     ))}
                   </ForgeCard>
                 </View>
@@ -660,6 +679,11 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
           />
         }
       />
+      {attributeDraft ? (
+        <ForgeBottomSheet visible onClose={() => setAttributeDraft(null)} accessibilityLabel="Close attribute editor">
+          {() => <ForgeAttributeEditorSheet value={attributeDraft} onClose={() => setAttributeDraft(null)} onSave={saveLiveAttribute} onDelete={() => deleteLiveAttribute(attributeDraft.original ?? attributeDraft.label)} />}
+        </ForgeBottomSheet>
+      ) : null}
     </KeyboardAvoidingView>
   );
 });

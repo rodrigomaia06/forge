@@ -21,6 +21,19 @@ export function animateLayout(): void {
   );
 }
 
+/** A sheet body can change substantially in height when it replaces its action list. */
+export function animateSheetContent(): void {
+  if (Platform.OS === 'web') return;
+  if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental)
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  LayoutAnimation.configureNext({
+    duration: 180,
+    create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+    update: { type: LayoutAnimation.Types.easeInEaseOut },
+    delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+  });
+}
+
 export function animateSetRemoval(): void {
   if (Platform.OS === 'web') return;
   if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental)

@@ -92,6 +92,7 @@ export function ForgeSwipeableAttributeRow({
   value,
   icon,
   divider,
+  compact = false,
   onEdit,
   onDelete,
 }: {
@@ -99,6 +100,8 @@ export function ForgeSwipeableAttributeRow({
   value: string;
   icon: IconName;
   divider: boolean;
+  /** Live Workout retains the same row language in its denser running view. */
+  compact?: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -134,7 +137,7 @@ export function ForgeSwipeableAttributeRow({
         </Pressable>
       </View>
       <Animated.View style={[styles.swipeAttributeContent, { backgroundColor: theme.surface }, swipeStyle]}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${label} attribute`} onPress={() => { lightHaptic(); onEdit(); }} style={[styles.row, divider && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${label} attribute`} onPress={() => { lightHaptic(); onEdit(); }} style={[styles.row, compact && styles.rowCompact, divider && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
           <Icon name={icon} size={22} color={theme.textPrimary} />
           <ForgeText numberOfLines={2} style={[styles.rowLabel, { color: theme.textPrimary }]}>{label}</ForgeText>
           <ForgeText style={[styles.rowValue, { color: theme.slate }]}>{value || 'Add value'}</ForgeText>
@@ -197,6 +200,7 @@ const styles = StyleSheet.create({
   label: { ...typeScale.label },
   input: { minHeight: 52, paddingVertical: 0, textAlignVertical: 'center', ...typeScale.body },
   row: { minHeight: 56, paddingHorizontal: 16, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  rowCompact: { minHeight: 48, paddingVertical: 4 },
   typeChoice: { minHeight: 52, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12, borderTopWidth: StyleSheet.hairlineWidth },
   rowLabel: { flexBasis: '28%', flexShrink: 1, ...typeScale.label },
   rowValue: { flex: 1, flexShrink: 1, ...typeScale.supporting, textAlign: 'right' },

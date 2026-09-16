@@ -29,6 +29,7 @@ export type IconName =
   | 'stopwatch-outline'
   | 'trash'
   | 'duplicate'
+  | 'replace'
   | 'check'
   | 'measure'
   | 'note'

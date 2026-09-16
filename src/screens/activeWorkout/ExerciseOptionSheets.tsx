@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 import {
   ForgeBottomSheet,
@@ -21,6 +22,7 @@ import { typeScale } from '../../theme/tokens';
 import type { Workout, WorkoutExercise, WorkoutSet } from '../../types';
 import { HistorySetRow } from './HistorySetRow';
 import { SetDetailsCard } from './SetDetailsCard';
+import { animateLayout } from './activeWorkoutFeedback';
 
 export function WarmupSetsSheet({
   visible,
@@ -174,29 +176,65 @@ export function PreviousSessionsContent({
   workouts,
   excludeWorkoutId,
   onOpenWorkout,
+  showAll: controlledShowAll,
+  onShowAllChange,
+  scrollOffset,
+  onScrollOffsetChange,
 }: {
   exercise: WorkoutExercise;
   workouts: readonly Workout[];
   excludeWorkoutId?: string;
   onOpenWorkout?: (workoutId: string) => void;
+  /** State is lifted by option sheets that temporarily close for a stack push. */
+  showAll?: boolean;
+  onShowAllChange?: (showAll: boolean) => void;
+  /** Preserves the list position when returning from a read-only workout detail. */
+  scrollOffset?: number;
+  onScrollOffsetChange?: (offset: number) => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const [showAll, setShowAll] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [uncontrolledShowAll, setUncontrolledShowAll] = useState(false);
   const [openSet, setOpenSet] = useState<{ set: WorkoutSet; index: number; trackingType: NonNullable<WorkoutExercise['trackingType']> } | null>(null);
   const sessions = useMemo(
     () => findPreviousSessions(exercise, workouts).filter(({ workout }) => workout.id !== excludeWorkoutId),
     [excludeWorkoutId, exercise, workouts],
   );
+  const showAll = controlledShowAll ?? uncontrolledShowAll;
   const visibleSessions = showAll ? sessions : sessions.slice(0, 3);
-  return <><ScrollView style={styles.previousSessionsScroll} contentContainerStyle={styles.compactContent}>{sessions.length ? <>
-    {visibleSessions.map(({ workout, exercise: sessionExercise }) => <ForgeCard key={workout.id} variant="outlined" style={styles.previousSessionCard}>
+  const revealAll = (): void => {
+    animateLayout();
+    if (onShowAllChange) onShowAllChange(true);
+    else setUncontrolledShowAll(true);
+  };
+
+  useEffect(() => {
+    if (!scrollOffset) return;
+    const frame = requestAnimationFrame(() => scrollViewRef.current?.scrollTo({ y: scrollOffset, animated: false }));
+    return () => cancelAnimationFrame(frame);
+    // The sheet remounts after a stack drill-in. Do not react to each user
+    // scroll update here or the list would continually command itself back to
+    // the current pixel while the user is dragging.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showAll]);
+
+  return <><ScrollView
+    ref={scrollViewRef}
+    style={styles.previousSessionsScroll}
+    contentContainerStyle={styles.previousSessionsContent}
+    onScroll={(event) => onScrollOffsetChange?.(event.nativeEvent.contentOffset.y)}
+    scrollEventThrottle={16}
+  >{sessions.length ? <>
+    {visibleSessions.map(({ workout, exercise: sessionExercise }, index) => <Animated.View key={workout.id} entering={index >= 3 ? FadeIn.duration(140) : undefined}>
+      <ForgeCard testID={`previous-session-card-${workout.id}`} variant="outlined" style={styles.previousSessionCard}>
       <Pressable accessibilityRole={onOpenWorkout ? 'button' : undefined} accessibilityLabel={onOpenWorkout ? `Open ${workout.name}` : undefined} onPress={() => onOpenWorkout?.(workout.id)} style={({ pressed }) => [styles.previousSessionHeader, pressed && pressedFeedbackSubtle]}>
         <View style={styles.sessionCopy}><Text style={styles.sessionTitle} numberOfLines={1}>{workout.name}</Text><Text style={[styles.sessionDate, { color: theme.textSecondary }]}>{sessionDateTime(workout)}</Text></View>{onOpenWorkout ? <Icon name="chevron-forward" size={22} color={theme.textSecondary} /> : null}
       </Pressable>
       {sessionExercise.sets.map((set, index) => <HistorySetRow key={set.id} set={set} index={index} compact isLast={index === sessionExercise.sets.length - 1} trackingType={sessionExercise.exerciseSnapshot?.trackingType ?? sessionExercise.trackingType ?? 'weight-reps'} onOpenDetails={() => setOpenSet({ set, index, trackingType: sessionExercise.exerciseSnapshot?.trackingType ?? sessionExercise.trackingType ?? 'weight-reps' })} />)}
-    </ForgeCard>)}
-    {!showAll && sessions.length > 3 ? <Pressable accessibilityRole="button" accessibilityLabel={`Show ${sessions.length - 3} more sessions`} onPress={() => setShowAll(true)} style={({ pressed }) => [styles.showMoreSessions, { backgroundColor: theme.surface }, pressed && pressedFeedbackSubtle]}><Text style={styles.showMoreText}>{`Show ${sessions.length - 3} more`}</Text></Pressable> : null}
+      </ForgeCard>
+    </Animated.View>)}
+    {!showAll && sessions.length > 3 ? <Pressable accessibilityRole="button" accessibilityLabel={`Show ${sessions.length - 3} more sessions`} onPress={revealAll} style={({ pressed }) => [styles.showMoreSessions, { backgroundColor: theme.surface }, pressed && pressedFeedbackSubtle]}><Text style={styles.showMoreText}>{`Show ${sessions.length - 3} more`}</Text></Pressable> : null}
   </> : <View style={[styles.emptyCard, { borderColor: theme.border, backgroundColor: theme.surfaceMuted }]}><Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>No completed sessions for this exercise yet.</Text></View>}</ScrollView>{openSet ? <SetDetailsCard visible set={openSet.set} index={openSet.index} editable={false} onChange={() => undefined} onDelete={() => undefined} onDone={() => setOpenSet(null)} trackingType={openSet.trackingType} /> : null}</>;
 }
 
@@ -261,7 +299,10 @@ function formatRecordedSet(set: WorkoutSet, exercise: WorkoutExercise): string {
 
 const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.create({
   compactContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 72, gap: 14 },
-  previousSessionsScroll: { maxHeight: '82%' },
+  // Let the list occupy all remaining sheet height. The former percentage cap
+  // left an inert band under the final card and could clip Show more.
+  previousSessionsScroll: { flexShrink: 1 },
+  previousSessionsContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 14 },
   supporting: { ...typeScale.body },
   sectionLabel: { marginTop: 4, color: theme.slate, ...typeScale.caption },
   workingCard: { overflow: 'hidden', borderRadius: 16 },

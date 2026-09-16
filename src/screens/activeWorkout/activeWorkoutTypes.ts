@@ -51,6 +51,8 @@ export interface SwipeableSetRowProps {
   deleteRevealed: boolean;
   onDeleteRevealChange: (revealed: boolean) => void;
   showCompletion?: boolean;
+  /** Hide the Previous column completely when no matching history exists. */
+  showPrevious?: boolean;
   onInputFocus?: (measure: MeasureSetInput) => void;
   trackingType?: import('../../types').TrackingType;
   setTargetMode?: 'next-session' | 'routine';
