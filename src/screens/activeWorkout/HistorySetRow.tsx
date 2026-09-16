@@ -64,7 +64,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   commentDot: { position: 'absolute', right: 1, bottom: 1, width: 7, height: 7, borderRadius: 4 },
   rpe: { position: 'absolute', left: 3, bottom: 1, color: theme.ink, ...typeScale.caption },
   value: { width: 60, minHeight: 36, borderWidth: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  valueText: { color: theme.ink, ...typeScale.supporting },
+  valueText: { color: theme.ink, ...typeScale.body },
   previous: { flex: 1, minWidth: 0, color: theme.ink, ...typeScale.body, textAlign: 'center' },
   check: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   compactRow: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 18, paddingRight: 10, paddingVertical: 7, borderTopWidth: StyleSheet.hairlineWidth },

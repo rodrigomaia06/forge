@@ -168,7 +168,7 @@ export function ExerciseInfoContent({ exercise }: { exercise: WorkoutExercise })
     ['Primary muscle', detail.primaryMuscle],
     ...(detail.secondaryMuscles?.length ? [['Secondary muscles', detail.secondaryMuscles.join(' & ')]] : []),
   ];
-  return <ScrollView contentContainerStyle={styles.compactContent}><ForgeCard variant="outlined" style={styles.infoCard}>{fields.map(([label, value], index) => <View key={label} style={[styles.infoRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}><Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{label}</Text><Text style={styles.infoValue}>{value}</Text></View>)}</ForgeCard></ScrollView>;
+  return <ScrollView testID="exercise-info-content" contentContainerStyle={styles.infoContent}><ForgeCard testID="exercise-info-card" variant="outlined" style={styles.infoCard}>{fields.map(([label, value], index) => <View key={label} style={[styles.infoRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}><Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{label}</Text><Text style={styles.infoValue}>{value}</Text></View>)}</ForgeCard></ScrollView>;
 }
 
 export function PreviousSessionsContent({
@@ -299,6 +299,9 @@ function formatRecordedSet(set: WorkoutSet, exercise: WorkoutExercise): string {
 
 const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.create({
   compactContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 72, gap: 14 },
+  // Warm-up editing needs room above its final confirmation control; static
+  // Exercise info only keeps the normal short-sheet safe trailing clearance.
+  infoContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24 },
   // Let the list occupy all remaining sheet height. The former percentage cap
   // left an inert band under the final card and could clip Show more.
   previousSessionsScroll: { flexShrink: 1 },

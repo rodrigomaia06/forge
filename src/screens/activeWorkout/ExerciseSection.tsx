@@ -770,7 +770,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       borderRadius: 8,
       backgroundColor: dashboardTheme.surfaceMuted,
     },
-    readOnlyInputText: { color: dashboardTheme.ink, ...typeScale.supporting },
+    readOnlyInputText: { color: dashboardTheme.ink, ...typeScale.body },
     check: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   });
 };

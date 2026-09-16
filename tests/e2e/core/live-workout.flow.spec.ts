@@ -81,7 +81,7 @@ test.describe('Core flow: live workout', () => {
     await page.getByRole('button', { name: 'Add exercise', exact: true }).click();
     await clearInitialWorkoutTypeScope(page);
     await addExerciseFromPicker(page, 'assisted dip', 'Dip, variation');
-    const assistance = page.getByLabel('Assist Kg for set 1');
+    const assistance = page.getByLabel('Assisted kg for set 1');
     await assistance.fill('40');
     await replaceClearedSetValue(assistance, '35');
     await page.getByRole('button', { name: 'Finish workout' }).click();

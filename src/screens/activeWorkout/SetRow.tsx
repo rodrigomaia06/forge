@@ -200,7 +200,7 @@ export function SetRow({
                 placeholderTextColor={theme.textDisabled}
                 textAlign="center"
                 textColor={inputTextColor}
-                fontSize={typeScale.supporting.fontSize}
+                fontSize={typeScale.body.fontSize}
                 style={[
                   styles.input,
                   styles.inputColumn,
@@ -354,7 +354,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     minHeight: 36,
     borderWidth: 1,
     borderRadius: 8,
-    ...typeScale.supporting,
+    ...typeScale.body,
     textAlign: 'center',
     paddingHorizontal: 3,
   },

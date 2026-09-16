@@ -73,6 +73,14 @@ async function startBlankWorkout(page: Page): Promise<void> {
   await expect(page.getByRole('button', { name: 'Add exercise', exact: true })).toBeVisible();
 }
 
+async function clearInitialWorkoutTypeScope(page: Page): Promise<void> {
+  const filters = page.getByRole('button', { name: 'Filters, 1 active' });
+  if (!await filters.count()) return;
+  await filters.click();
+  await page.getByRole('button', { name: 'Clear filters' }).click();
+  await page.getByRole('button', { name: 'Apply filters' }).click();
+}
+
 async function swipeLeftFrom(page: Page, locator: Locator): Promise<void> {
   await locator.scrollIntoViewIfNeeded();
   const box = await locator.boundingBox();
@@ -638,9 +646,9 @@ test.describe('Active workout flow', () => {
     await expect(sheet.getByText('Set 1', { exact: true })).toBeVisible();
     await expect(sheet.getByRole('button', { name: 'Close Set 1' })).toBeVisible();
     await expect(sheet.getByRole('button', { name: 'Delete Set 1' })).toBeVisible();
-    await expect(page.getByText('SET KIND', { exact: true })).toBeVisible();
-    await expect(page.getByText('SESSION NOTE & EFFORT', { exact: true })).toBeVisible();
-    await expect(page.getByText('NEXT SESSION', { exact: true })).toBeVisible();
+    await expect(page.getByText('Set kind', { exact: true })).toBeVisible();
+    await expect(page.getByText('Session note & effort', { exact: true })).toBeVisible();
+    await expect(page.getByText('Next session', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Type help' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Next-time target help' })).toHaveCount(0);
 
@@ -668,7 +676,9 @@ test.describe('Active workout flow', () => {
     }
     await changeKind.click();
     await expect(sheet.getByRole('button', { name: 'Back to Set 1' })).toBeVisible();
-    await expect(sheet.getByText('SET KIND', { exact: true })).toHaveCount(0);
+    // The internal picker keeps its title-case sheet header, while the body
+    // section label is replaced by the picker content.
+    await expect(sheet.getByText('Set kind', { exact: true })).toHaveCount(1);
     await sheet.getByRole('button', { name: 'Back to Set 1' }).click();
     await expect(sheet.getByText('Drop Set', { exact: true })).toBeVisible();
     await sheet.getByRole('button', { name: 'Clear set kind' }).click();
@@ -726,7 +736,7 @@ test.describe('Active workout flow', () => {
     }
 
     await sheet.getByRole('button', { name: 'Close Set 1' }).click();
-    await expect(page.getByText('SET KIND', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Set kind', { exact: true })).toHaveCount(0);
     const [targetChipBox, targetDotBox, rpeBox] = await Promise.all([
       page.getByTestId('live-set-number-chip-1').boundingBox(),
       page.getByLabel('Set 1 has a next session target').boundingBox(),
@@ -766,6 +776,46 @@ test.describe('Active workout flow', () => {
     expect(dotBox.y + dotBox.height).toBeGreaterThan(chipBox.y + chipBox.height - 3);
     if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('set-comment-indicator-iphone.png') });
+    }
+  });
+
+  test('uses exercise-specific numeric next-session targets', async ({ page }, testInfo) => {
+    await page.goto('/');
+    await startBlankWorkout(page);
+    await page.getByRole('button', { name: 'Add exercise', exact: true }).click();
+    await clearInitialWorkoutTypeScope(page);
+    await page.getByLabel('Search exercises').fill('assisted dip');
+    await page.getByRole('checkbox', { name: 'Dip, variation' }).click();
+    await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
+
+    await page.getByLabel('Open details for set 1').click();
+    const assistedTarget = page.getByRole('textbox', { name: 'Next-time assisted kg target for set 1' });
+    const assistedReps = page.getByRole('textbox', { name: 'Next-time reps target for set 1' });
+    await expect(assistedTarget).toBeVisible();
+    await expect(assistedReps).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Next-time kg target for set 1' })).toHaveCount(0);
+    await expect(assistedTarget).toHaveAttribute('inputmode', 'decimal');
+    await assistedTarget.fill('40abc');
+    await expect(assistedTarget).toHaveValue('40');
+    if (testInfo.project.use.isMobile) {
+      await page.getByTestId('set-next-session-section').scrollIntoViewIfNeeded();
+      await page.screenshot({ path: testInfo.outputPath('assisted-next-session-targets.png') });
+    }
+    await page.getByTestId('set-details-sheet').getByRole('button', { name: 'Close Set 1' }).click();
+
+    await page.getByRole('button', { name: 'Add exercise', exact: true }).click();
+    await clearInitialWorkoutTypeScope(page);
+    await page.getByLabel('Search exercises').fill('band glute kickback');
+    await page.getByRole('checkbox', { name: 'Glute Kickback, variation' }).click();
+    await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
+    await page.getByLabel('Open details for set 1').last().click();
+    const repsOnlyTarget = page.getByRole('textbox', { name: 'Next-time reps target for set 1' });
+    await expect(repsOnlyTarget).toBeVisible();
+    await expect(page.locator('input[aria-label^="Next-time"]')).toHaveCount(1);
+    await expect(repsOnlyTarget).toHaveAttribute('inputmode', 'decimal');
+    if (testInfo.project.use.isMobile) {
+      await page.getByTestId('set-next-session-section').scrollIntoViewIfNeeded();
+      await page.screenshot({ path: testInfo.outputPath('reps-only-next-session-targets.png') });
     }
   });
 
@@ -855,6 +905,31 @@ test.describe('Active workout flow', () => {
 
     await page.getByRole('tab', { name: 'Dashboard' }).click();
     await expect(workoutItem).toBeVisible();
+  });
+
+  test('keeps the selected Workout dock icon high contrast in Dark', async ({ page }, testInfo) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance: 'dark' }));
+    });
+    await page.goto('/');
+    await startBlankWorkout(page);
+
+    const workoutItem = page.getByRole('tab', { name: 'Workout', exact: true });
+    const workoutIcon = workoutItem.locator('svg');
+    const selectionPill = page.getByTestId('dashboard-nav-selection-pill');
+    await expect(selectionPill).toHaveCSS('background-color', 'rgba(247, 248, 246, 0.2)');
+    await expect(workoutIcon).toHaveAttribute('stroke', '#F7F8F6');
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await page.getByRole('tab', { name: 'Dashboard' }).click();
+      await page.waitForTimeout(180);
+      await workoutItem.click();
+      await page.waitForTimeout(180);
+      await expect(workoutIcon).toHaveAttribute('stroke', '#F7F8F6');
+    }
+    if (testInfo.project.use.isMobile === true) {
+      await page.screenshot({ path: testInfo.outputPath('dark-selected-workout-dock.png') });
+    }
   });
 
   test('keeps compact active-workout dock tabs centred inside the selection pill', async ({
@@ -1001,6 +1076,12 @@ test.describe('Active workout flow', () => {
     await expect(page.getByText('Variation', { exact: true })).toBeVisible();
     await expect(page.getByText('Movement family', { exact: true })).toBeVisible();
     await expect(page.getByText('Bench Press', { exact: true })).toBeVisible();
+    const [infoContent, infoCard] = await Promise.all([
+      page.getByTestId('exercise-info-content').boundingBox(),
+      page.getByTestId('exercise-info-card').boundingBox(),
+    ]);
+    if (!infoContent || !infoCard) throw new Error('Expected Exercise info content and card to be measurable');
+    expect(infoContent.y).toBeLessThanOrEqual(infoCard.y);
     if (testInfo.project.use.isMobile === true) {
       await page.waitForTimeout(260);
       await page.screenshot({ path: testInfo.outputPath('exercise-options-info-iphone.png') });

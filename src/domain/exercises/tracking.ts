@@ -5,7 +5,7 @@ export const trackingFields: Record<TrackingType, readonly SetMeasurementKind[]>
 export const measurementUnit: Record<SetMeasurementKind, SetMeasurement['unit']> = { reps: 'count', weight: 'kg', addedWeight: 'kg', duration: 'sec', distance: 'km', rpe: 'rpe' };
 export const trackingLabels: Record<SetMeasurementKind, string> = { reps: 'Reps', weight: 'Kg', addedWeight: 'Kg', duration: 'Sec', distance: 'KM', rpe: 'RPE' };
 export function trackingFieldLabel(type: TrackingType, kind: SetMeasurementKind): string {
-  if (kind === 'addedWeight') return type === 'assisted-bodyweight' ? 'Assist Kg' : 'Added Kg';
+  if (kind === 'addedWeight') return type === 'assisted-bodyweight' ? 'Assisted kg' : 'Added kg';
   return trackingLabels[kind];
 }
 export function measurementsFor(mode: TrackingType | undefined, set: WorkoutSet): SetMeasurement[] {
