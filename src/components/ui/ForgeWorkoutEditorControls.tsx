@@ -95,6 +95,7 @@ export function ForgeSwipeableAttributeRow({
   compact = false,
   onEdit,
   onDelete,
+  valueInput,
 }: {
   label: string;
   value: string;
@@ -102,8 +103,10 @@ export function ForgeSwipeableAttributeRow({
   divider: boolean;
   /** Live Workout retains the same row language in its denser running view. */
   compact?: boolean;
-  onEdit: () => void;
+  onEdit?: () => void;
   onDelete: () => void;
+  /** Live Workout supplies a direct value field while labels/icons remain editable. */
+  valueInput?: React.ReactNode;
 }) {
   const theme = useForgeTheme();
   const [deleteRevealed, setDeleteRevealed] = useState(false);
@@ -137,12 +140,22 @@ export function ForgeSwipeableAttributeRow({
         </Pressable>
       </View>
       <Animated.View style={[styles.swipeAttributeContent, { backgroundColor: theme.surface }, swipeStyle]}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${label} attribute`} onPress={() => { lightHaptic(); onEdit(); }} style={[styles.row, compact && styles.rowCompact, divider && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
-          <Icon name={icon} size={22} color={theme.textPrimary} />
-          <ForgeText numberOfLines={2} style={[styles.rowLabel, { color: theme.textPrimary }]}>{label}</ForgeText>
-          <ForgeText style={[styles.rowValue, { color: theme.slate }]}>{value || 'Add value'}</ForgeText>
-          <Icon name="chevron-forward" size={20} color={theme.slate} />
-        </Pressable>
+        {valueInput ? (
+          <View style={[styles.row, compact && styles.rowCompact, divider && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
+            <View style={styles.directAttributeMeta}>
+              <Icon name={icon} size={22} color={theme.textPrimary} />
+              <ForgeText numberOfLines={2} style={[styles.directAttributeLabel, { color: theme.textPrimary }]}>{label}</ForgeText>
+            </View>
+            <View style={styles.directAttributeValue}>{valueInput}</View>
+          </View>
+        ) : (
+          <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${label} attribute`} onPress={() => { lightHaptic(); onEdit?.(); }} style={[styles.row, compact && styles.rowCompact, divider && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
+            <Icon name={icon} size={22} color={theme.textPrimary} />
+            <ForgeText numberOfLines={2} style={[styles.rowLabel, { color: theme.textPrimary }]}>{label}</ForgeText>
+            <ForgeText style={[styles.rowValue, { color: theme.slate }]}>{value || 'Add value'}</ForgeText>
+            <Icon name="chevron-forward" size={20} color={theme.slate} />
+          </Pressable>
+        )}
       </Animated.View>
     </View>
   );
@@ -201,6 +214,9 @@ const styles = StyleSheet.create({
   input: { minHeight: 52, paddingVertical: 0, textAlignVertical: 'center', ...typeScale.body },
   row: { minHeight: 56, paddingHorizontal: 16, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowCompact: { minHeight: 48, paddingVertical: 4 },
+  directAttributeMeta: { maxWidth: '48%', minWidth: 0, minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  directAttributeLabel: { flexShrink: 1, ...typeScale.label },
+  directAttributeValue: { flex: 1, minWidth: 0, minHeight: 44, justifyContent: 'center' },
   typeChoice: { minHeight: 52, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12, borderTopWidth: StyleSheet.hairlineWidth },
   rowLabel: { flexBasis: '28%', flexShrink: 1, ...typeScale.label },
   rowValue: { flex: 1, flexShrink: 1, ...typeScale.supporting, textAlign: 'right' },

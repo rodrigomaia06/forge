@@ -9,6 +9,7 @@ import {
   AppScreen,
   Button,
   ForgeText as Text,
+  ForgeTextInput,
   ForgeAttributeEditorSheet,
   ForgeBottomSheet,
   HeaderAction,
@@ -262,7 +263,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
       style={[styles.screen, { backgroundColor: theme.background }]}
     >
       <View style={styles.header}>
-        <View style={styles.headerTop}>
+        <View testID="live-workout-header" style={styles.headerTop}>
           <View style={styles.headerLeadingActions}>
             <HeaderAction
               accessibilityLabel="Cancel workout"
@@ -270,15 +271,20 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
               label="Cancel"
               iconOnly
               onPress={handleCancel}
+              variant="ghost"
+              style={styles.joinedHeaderAction}
             />
+            <View pointerEvents="none" style={styles.headerActionDivider} />
             <HeaderAction
               accessibilityLabel="Edit live workout"
               icon="note"
               iconOnly
               onPress={openWorkoutEditor}
+              variant="ghost"
+              style={styles.joinedHeaderAction}
             />
           </View>
-          <View style={styles.titleBlock}>
+          <View pointerEvents="none" testID="live-workout-header-title" style={styles.titleBlock}>
             <View
               style={styles.titleWrap}
               accessibilityLabel={`Workout type: ${activeWorkout.type}`}
@@ -291,10 +297,12 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
           <HeaderAction
             accessibilityLabel="Finish workout"
             icon="check"
-            label="Finish"
+            iconSize={24}
+            iconOnly
             onPress={handleFinish}
             variant="primary"
             haptic="none"
+            style={styles.finishAction}
           />
         </View>
         <View style={styles.elapsedPanel}>
@@ -596,6 +604,12 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
     });
     setAttributeDraft(null);
   }, [updateActiveWorkout]);
+  const updateLiveAttributeValue = useCallback((label: string, value: string): void => {
+    updateActiveWorkout((current) => ({
+      ...current,
+      attributes: { ...(current.attributes ?? {}), [label]: value },
+    }));
+  }, [updateActiveWorkout]);
   const renderExercise = useCallback(
     ({ item, index }: { item: WorkoutExercise; index: number }) => (
       <ExtractedExerciseSection
@@ -656,8 +670,17 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
                         icon={workout.attributeIcons?.[label] ?? 'note'}
                         divider={index > 0}
                         compact
-                        onEdit={() => setAttributeDraft({ original: label, label, value, icon: workout.attributeIcons?.[label] ?? 'note' })}
                         onDelete={() => deleteLiveAttribute(label)}
+                        valueInput={
+                          <ForgeTextInput
+                            accessibilityLabel={`${label} value`}
+                            value={value}
+                            onChangeText={(nextValue) => updateLiveAttributeValue(label, nextValue)}
+                            placeholder="Add value"
+                            placeholderTextColor={theme.textDisabled}
+                            style={styles.liveAttributeInput}
+                          />
+                        }
                       />
                     ))}
                   </ForgeCard>

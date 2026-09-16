@@ -158,7 +158,7 @@ test.describe('Active workout flow', () => {
     await page.mouse.down();
     await page.waitForTimeout(240);
     await page.mouse.move(secondHandle.x + secondHandle.width / 2, secondHandle.y + secondHandle.height / 2 + 28, { steps: 12 });
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('live-workout-editor-reorder-iphone.png') });
     }
     await page.mouse.up();
@@ -192,10 +192,7 @@ test.describe('Active workout flow', () => {
     await expect(page.getByRole('button', { name: 'Cancel workout' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Finish workout' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Cancel workout' })).not.toContainText('Cancel');
-    await expect(page.getByRole('button', { name: 'Finish workout' })).toContainText('Finish');
-    await expect(
-      page.getByRole('button', { name: 'Finish workout' }).getByText('Finish'),
-    ).toHaveCSS('font-weight', '500');
+    await expect(page.getByRole('button', { name: 'Finish workout' })).toHaveText('');
     await expect(page.getByText('Elapsed', { exact: true })).toBeVisible();
     await expect(page.getByText('Rest', { exact: true })).toBeVisible();
 
@@ -215,6 +212,47 @@ test.describe('Active workout flow', () => {
     await page.getByTestId('finish-workout-confirmation').getByRole('button', { name: 'Finish workout' }).click();
     await expect(page.getByTestId('dashboard-header-title').last()).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Workout', exact: true })).toHaveCount(0);
+  });
+
+  test('keeps a long live-workout title clear and attributes directly editable on phones', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.use.isMobile !== true, 'Long-title visual acceptance is phone-only.');
+    await page.emulateMedia({ colorScheme: 'dark' });
+    const longName = 'Upper body pull and extension session';
+    await page.addInitScript((name) => {
+      localStorage.setItem('@forge/active-workout', JSON.stringify({
+        id: 'long-live-workout-header', name, type: 'Strength',
+        startedAt: Date.UTC(2026, 8, 16, 17, 20), completedAt: null,
+        note: '', exercises: [], attributes: { Location: '' }, attributeIcons: { Location: 'location' },
+      }));
+      localStorage.setItem('@forge/completed-workouts', '[]');
+      localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance: 'dark' }));
+    }, longName);
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Workout', exact: true }).click();
+
+    const close = page.getByRole('button', { name: 'Cancel workout' });
+    const edit = page.getByRole('button', { name: 'Edit live workout' });
+    const title = page.getByTestId('live-workout-header-title');
+    const done = page.getByRole('button', { name: 'Finish workout' });
+    await expect(title).toContainText(longName);
+    await expect(done).toHaveText('');
+    const locationValue = page.getByLabel('Location value');
+    await expect(locationValue).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Edit Location attribute' })).toHaveCount(0);
+    await locationValue.fill('Home gym');
+    await expect(locationValue).toHaveValue('Home gym');
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('@forge/active-workout') ?? 'null')?.attributes?.Location)).toBe('Home gym');
+
+    const [closeBox, editBox, titleBox, doneBox] = await Promise.all([
+      close.boundingBox(), edit.boundingBox(), title.boundingBox(), done.boundingBox(),
+    ]);
+    if (!closeBox || !editBox || !titleBox || !doneBox) throw new Error('Expected the Live Workout header controls to be measurable');
+    expect(editBox.x - (closeBox.x + closeBox.width)).toBeLessThanOrEqual(7);
+    expect(titleBox.x).toBeGreaterThanOrEqual(editBox.x + editBox.width);
+    expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(doneBox.x);
+    expect(doneBox.width).toBeCloseTo(56, 0);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath('live-workout-long-title-header.png') });
   });
 
   test('groups exercise variations and selects single-variation exercises directly', async ({
@@ -625,7 +663,7 @@ test.describe('Active workout flow', () => {
     const clearKind = sheet.getByRole('button', { name: 'Clear set kind' });
     await expect(clearKind).toBeVisible();
     await expect(clearKind).toHaveCSS('background-color', 'rgb(246, 220, 221)');
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('set-kind-actions-iphone.png') });
     }
     await changeKind.click();
@@ -635,7 +673,7 @@ test.describe('Active workout flow', () => {
     await expect(sheet.getByText('Drop Set', { exact: true })).toBeVisible();
     await sheet.getByRole('button', { name: 'Clear set kind' }).click();
     await expect(sheet.getByText('No type', { exact: true })).toBeVisible();
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('set-editor-iphone.png') });
     }
 
@@ -649,7 +687,7 @@ test.describe('Active workout flow', () => {
     if (!effortScrollBox || !selectedRpeBox) throw new Error('Expected horizontal RPE selector geometry');
     expect(selectedRpeBox.height).toBeGreaterThanOrEqual(44);
     expect(Math.abs(selectedRpeBox.x + selectedRpeBox.width / 2 - (effortScrollBox.x + effortScrollBox.width / 2))).toBeLessThanOrEqual(3);
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('set-editor-rpe-iphone.png') });
     }
 
@@ -679,7 +717,7 @@ test.describe('Active workout flow', () => {
     expect(firstTarget.width).toBeGreaterThanOrEqual(280);
     expect(Math.abs(firstTarget.width - secondTarget.width)).toBeLessThanOrEqual(1);
     await page.getByRole('textbox', { name: 'Next-time kg target for set 1' }).fill('62');
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page
         .locator('input[aria-label^="Next-time"]')
         .first()
@@ -726,7 +764,7 @@ test.describe('Active workout flow', () => {
     expect(dotBox.y + dotBox.height).toBeLessThanOrEqual(chipBox.y + chipBox.height);
     expect(dotBox.x + dotBox.width).toBeGreaterThan(chipBox.x + chipBox.width - 3);
     expect(dotBox.y + dotBox.height).toBeGreaterThan(chipBox.y + chipBox.height - 3);
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('set-comment-indicator-iphone.png') });
     }
   });
@@ -743,7 +781,7 @@ test.describe('Active workout flow', () => {
 
     const dot = page.getByLabel('Set 1 has a comment');
     await expect(dot).toHaveCSS('background-color', 'rgb(247, 248, 246)');
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('dark-set-comment-indicator-iphone.png') });
     }
   });
@@ -760,7 +798,7 @@ test.describe('Active workout flow', () => {
 
     const dot = page.getByLabel('Set 1 has a next session target');
     await expect(dot).toHaveCSS('background-color', 'rgb(255, 255, 255)');
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('dark-set-target-indicator-iphone.png') });
     }
   });
@@ -875,7 +913,7 @@ test.describe('Active workout flow', () => {
     ).toBeLessThan(2);
     expect(workoutIcon.width).toBeGreaterThanOrEqual(32);
     expect(workoutIcon.height).toBeGreaterThanOrEqual(32);
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('compact-workout-dock-iphone.png') });
     }
   });
@@ -928,7 +966,7 @@ test.describe('Active workout flow', () => {
     await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
     await expect(page.getByRole('button', { name: 'Measure by' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Add note' }).click();
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.waitForTimeout(260);
       await page.screenshot({ path: testInfo.outputPath('exercise-note-iphone.png') });
     }
@@ -945,7 +983,7 @@ test.describe('Active workout flow', () => {
     await expect(page.getByText('Previous sessions', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Pause at the chest', { exact: true })).toHaveCount(0);
     await expect(page.locator('svg[aria-label="Exercise has a comment"]')).toBeVisible();
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('commented-exercise-card-iphone.png') });
     }
 
@@ -963,7 +1001,7 @@ test.describe('Active workout flow', () => {
     await expect(page.getByText('Variation', { exact: true })).toBeVisible();
     await expect(page.getByText('Movement family', { exact: true })).toBeVisible();
     await expect(page.getByText('Bench Press', { exact: true })).toBeVisible();
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.waitForTimeout(260);
       await page.screenshot({ path: testInfo.outputPath('exercise-options-info-iphone.png') });
     }
