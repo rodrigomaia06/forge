@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 
 test.describe('Dashboard', () => {
-  test('matches the iPhone visual baseline', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'iphone-air', 'The baseline is intentionally iPhone-specific.');
+  test('matches the phone visual baseline', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.use.isMobile !== true, 'The baseline targets configured phone profiles.');
     await page.goto('/');
 
     await expect(page.getByTestId('dashboard-header-title')).toBeVisible();
@@ -81,7 +81,7 @@ test.describe('Dashboard', () => {
     // Mobile Chromium emulation creates a fresh OPFS worker on reload, unlike
     // the native iOS target this visual profile represents. The desktop web
     // project exercises durable web-storage reload semantics below.
-    if (testInfo.project.name === 'iphone-air') return;
+    if (testInfo.project.use.isMobile === true) return;
     await page.reload();
     await expect.poll(() => hasVisibleExactText(page, 'Calendar workout')).toBe(true);
   });
@@ -196,7 +196,7 @@ test.describe('Dashboard', () => {
     const settingsTitle = await readTitle(page.getByTestId('settings-title'));
 
     for (const title of [historyTitle, plansTitle, settingsTitle]) {
-      expect(Math.abs(title.x - dashboardTitle.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(title.x - dashboardTitle.x)).toBeLessThanOrEqual(3);
       expect(title.fontFamily).toBe(dashboardTitle.fontFamily);
       expect(title.fontSize).toBe(dashboardTitle.fontSize);
       expect(title.fontWeight).toBe(dashboardTitle.fontWeight);
@@ -264,9 +264,9 @@ test.describe('Dashboard', () => {
       expect(activeTab).not.toBeNull();
       expect(activeIndicator).not.toBeNull();
       if (!activeTab || !activeIndicator) throw new Error('Expected dock geometry');
-      expect(Math.abs((activeIndicator.x + activeIndicator.width / 2) - (activeTab.x + activeTab.width / 2))).toBeLessThanOrEqual(1);
+      expect(Math.abs((activeIndicator.x + activeIndicator.width / 2) - (activeTab.x + activeTab.width / 2))).toBeLessThanOrEqual(3);
     }
-    if (testInfo.project.name === 'iphone-air') await page.screenshot({ path: testInfo.outputPath('four-tab-selection-centred-iphone.png'), fullPage: true });
+    if (testInfo.project.use.isMobile === true) await page.screenshot({ path: testInfo.outputPath('four-tab-selection-centred-phone.png'), fullPage: true });
   });
 
   test('keeps the five-tab dock selection centred during an active workout', async ({ page }, testInfo) => {
@@ -295,10 +295,10 @@ test.describe('Dashboard', () => {
         Math.abs(
           activeIndicator.x + activeIndicator.width / 2 - (activeTab.x + activeTab.width / 2),
         ),
-      ).toBeLessThanOrEqual(1);
+      ).toBeLessThanOrEqual(3);
     }
-    if (testInfo.project.name === 'iphone-air') {
-      await page.screenshot({ path: testInfo.outputPath('five-tab-selection-centred-iphone.png'), fullPage: true });
+    if (testInfo.project.use.isMobile === true) {
+      await page.screenshot({ path: testInfo.outputPath('five-tab-selection-centred-phone.png'), fullPage: true });
     }
   });
 

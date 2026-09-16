@@ -33,14 +33,14 @@ test('keeps Strength families concise and names leg movements correctly', async 
   await expect(page.getByText('Crunch Legs Exercise', { exact: true })).toHaveCount(0);
   await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
   await page.waitForTimeout(180);
-  if (testInfo.project.name === 'iphone-air') {
+  if (testInfo.project.use.isMobile === true) {
     await page.screenshot({ path: testInfo.outputPath('concise-strength-lateral-raise-iphone.png') });
   }
 
   await page.getByLabel('Search exercises').fill('leg curl');
   await expect(page.getByRole('button', { name: /Leg Curl & \d+ variations/ })).toBeVisible();
   await expect(page.getByRole('checkbox', { name: 'Leg', exact: true })).toHaveCount(0);
-  if (testInfo.project.name === 'iphone-air') {
+  if (testInfo.project.use.isMobile === true) {
     // The picker is a bounded sheet; its viewport is the exact visual state
     // under review and avoids asking WebKit to rasterize virtualized content
     // beyond the visible sheet.
@@ -61,7 +61,7 @@ test('presents no-equipment trunk rotation as Bodyweight', async ({ page }, test
   await family.click();
   await expect(page.getByText('Bodyweight', { exact: true })).toBeVisible();
   await expect(page.getByText('None', { exact: true })).toHaveCount(0);
-  if (testInfo.project.name === 'iphone-air') {
+  if (testInfo.project.use.isMobile === true) {
     await page.screenshot({ path: testInfo.outputPath('trunk-rotation-bodyweight-iphone.png') });
   }
 });
@@ -91,7 +91,7 @@ test('finds and selects a curated compound variation from the default workout-ty
   await variation.click();
   await page.screenshot({ path: testInfo.outputPath('compound-after-tap-iphone.png'), fullPage: true });
   await expect(page.getByText('Add exercises (1)', { exact: true })).toBeVisible();
-  if (testInfo.project.name === 'iphone-air') {
+  if (testInfo.project.use.isMobile === true) {
     await page.screenshot({ path: testInfo.outputPath('curated-compound-pull-up-iphone.png'), fullPage: true });
   }
   await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
@@ -109,7 +109,7 @@ test('combines compatible modifiers directly and resolves conflicting choices', 
   await pullUps.click();
   await page.getByRole('checkbox', { name: 'Pull-Up, Weighted' }).click();
   await page.getByRole('checkbox', { name: 'Pull-Up, Pronated' }).click();
-  if (testInfo.project.name === 'iphone-air') {
+  if (testInfo.project.use.isMobile === true) {
     await page.screenshot({ path: testInfo.outputPath('facet-pull-up-variation-iphone.png'), fullPage: true });
   }
   await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
@@ -126,7 +126,7 @@ test('combines compatible modifiers directly and resolves conflicting choices', 
   // A resolved title is canonical and self-describing; derived does not mean
   // it needs a generic secondary label in the chooser.
   await expect(page.getByText('New variation', { exact: true })).toHaveCount(0);
-  if (testInfo.project.name === 'iphone-air') {
+  if (testInfo.project.use.isMobile === true) {
     await page.screenshot({ path: testInfo.outputPath('ambiguous-pull-up-output-iphone.png'), fullPage: true });
   }
   await page.getByRole('checkbox', { name: 'Weighted Chin-Up' }).click();

@@ -266,7 +266,7 @@ test.describe('Settings', () => {
     await sheet.getByRole('checkbox', { name: 'Remove Measurements' }).click();
     await expect(sheet.getByRole('checkbox', { name: 'Include Measurements' })).not.toBeChecked();
     await expect(sheet.getByRole('button', { name: 'Export selected data' })).toBeVisible();
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('export-data-selection-iphone.png') });
     }
   });
@@ -311,7 +311,7 @@ test.describe('Settings', () => {
     await expect(summary).toBeVisible();
     await expect(summary).toContainText('7 plans and routines');
     await expect(summary).toContainText('stayed on device');
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.waitForTimeout(250);
       await page.screenshot({ path: testInfo.outputPath('import-merged-summary-iphone.png') });
     }
@@ -337,7 +337,7 @@ test.describe('Settings', () => {
     await expect(notice).toBeVisible();
     await expect(notice).toContainText('Could not complete this action');
     await expect(notice.getByRole('button', { name: 'Done' })).toBeVisible();
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.waitForTimeout(250);
       await page.screenshot({ path: testInfo.outputPath('backup-export-error-forge-iphone.png') });
     }
@@ -429,7 +429,7 @@ test.describe('Settings', () => {
       await expect(appearanceSheet).toBeVisible();
       const appearanceBox = await page.getByTestId('appearance-selection-list').boundingBox();
       expect(appearanceBox?.height).toBeCloseTo(52 * 3, 0);
-      if (testInfo.project.name === 'iphone-air') {
+      if (testInfo.project.use.isMobile === true) {
         await page.waitForTimeout(250);
         await page.screenshot({ path: testInfo.outputPath('appearance-picker-iphone.png') });
       }

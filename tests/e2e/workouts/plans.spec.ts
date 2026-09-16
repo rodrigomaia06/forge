@@ -65,7 +65,7 @@ test.describe('Plans and routines', () => {
       .getByRole('button', { name: 'From routine or plan' })
       .click();
     await expect(page.getByText('Standalone routines', { exact: true })).toBeVisible();
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.waitForTimeout(250);
       await page.screenshot({ path: testInfo.outputPath('dashboard-routine-source-iphone.png') });
     }
@@ -240,7 +240,7 @@ test.describe('Plans and routines', () => {
     expect(scrollTop).toBeGreaterThan(0);
     const lastType = page.getByRole('radio', { name: 'Use Long picker type 14 workout type' });
     await expect(lastType).toBeInViewport();
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('routine-type-picker-scroll-iphone.png') });
     }
   });
@@ -491,7 +491,7 @@ test.describe('Plans and routines', () => {
     const exercise = page.getByTestId(/^routine-exercise-/);
     await exercise.getByRole('button', { name: 'Expand Elliptical' }).click();
     const duration = exercise.getByRole('textbox', { name: 'Sec for set 1' });
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await exercise.screenshot({ path: testInfo.outputPath('routine-range-input-iphone.png') });
     }
     await duration.pressSequentially('30-60');
@@ -564,7 +564,7 @@ test.describe('Plans and routines', () => {
     await expect(routineActionButton).toContainText('Strength');
     await expect(routineActionButton).not.toContainText('0 exercises');
     await expect(routineActionButton).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('plans-root-forge-cards-iphone.png') });
     }
     await routineActionButton.click();

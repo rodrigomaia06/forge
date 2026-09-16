@@ -60,7 +60,7 @@ test.describe('Core flow: live workout', () => {
     await weight.fill('60');
     await page.getByRole('checkbox', { name: 'Complete set 1' }).click();
     await expect(page.getByRole('checkbox', { name: 'Set 1 completed' })).toBeVisible();
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('live-workout-entered-set-iphone.png') });
     }
 

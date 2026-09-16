@@ -9,7 +9,7 @@ async function captureDiagnostic(
   await expect(page.getByTestId('dashboard-shell')).toBeVisible();
   await mutate(page);
   await page.screenshot({
-    path: `tests/results/diagnostics/dashboard-${name}.png`,
+    path: test.info().outputPath(`dashboard-${name}.png`),
     fullPage: true,
   });
 }
@@ -23,7 +23,7 @@ test.describe('Dashboard dock diagnostics', () => {
     await page.getByTestId('dashboard-dock-slot').evaluate((element) => {
       element.style.display = 'none';
     });
-    await contextCard.screenshot({ path: 'tests/results/diagnostics/dashboard-context-card.png' });
+    await contextCard.screenshot({ path: test.info().outputPath('dashboard-context-card.png') });
   });
 
   test('captures each suspected layer in isolation', async ({ page }) => {

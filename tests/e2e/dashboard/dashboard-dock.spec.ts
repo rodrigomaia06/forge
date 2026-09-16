@@ -48,7 +48,12 @@ test.describe('Dashboard dock geometry', () => {
     await expect(page.getByTestId('dashboard-nav-workout')).toHaveCount(0);
   });
 
-  test('captures the dock as a single bounded surface', async ({ page }) => {
+  test('captures the dock as a single bounded surface', async ({ page }, testInfo) => {
+    test.skip(
+      testInfo.project.use.isMobile !== true,
+      'Desktop remains functional coverage only; phone profiles own visual acceptance.',
+    );
+
     const dockSlot = page.getByTestId('dashboard-dock-slot');
     await expect(dockSlot).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     await expect(page.getByTestId('dashboard-dock-cylinder')).toHaveScreenshot(

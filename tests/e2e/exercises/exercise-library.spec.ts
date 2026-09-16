@@ -119,8 +119,8 @@ test.describe('Exercise library', () => {
     // clears the 34 pt home-indicator region after scrolling to the end.
     expect((finalBox?.y ?? Infinity) + (finalBox?.height ?? Infinity)).toBeLessThanOrEqual(666);
     await finalAction.click({ trial: true });
-    if (testInfo.project.name === 'iphone-air') {
-      await page.screenshot({ path: 'tests/results/captures/exercise-browser-bottom-safe-area.png' });
+    if (testInfo.project.use.isMobile === true) {
+      await page.screenshot({ path: testInfo.outputPath('exercise-browser-bottom-safe-area.png') });
     }
     // Place a card across the old 666 pt clipping boundary. It must remain
     // painted within the lower safe area while the list is between items.
@@ -138,8 +138,8 @@ test.describe('Exercise library', () => {
       const box = element.getBoundingClientRect();
       return element.contains(document.elementFromPoint(box.x + 20, 690));
     })).toBe(true);
-    if (testInfo.project.name === 'iphone-air') {
-      await page.screenshot({ path: 'tests/results/captures/exercise-browser-through-bottom-safe-area.png' });
+    if (testInfo.project.use.isMobile === true) {
+      await page.screenshot({ path: testInfo.outputPath('exercise-browser-through-bottom-safe-area.png') });
     }
   });
 
@@ -172,8 +172,8 @@ test.describe('Exercise library', () => {
     await waitForFilterSheet(page);
     await expect(sheet.getByRole('button', { name: 'Edit Equipment filter, Bench' })).toBeVisible();
     await expect.poll(async () => Math.round((await sheet.boundingBox())?.height ?? Infinity)).toBeLessThan(340);
-    if (testInfo.project.name === 'iphone-air') {
-      await page.screenshot({ path: 'tests/results/captures/exercise-filters-compact-safe-area.png' });
+    if (testInfo.project.use.isMobile === true) {
+      await page.screenshot({ path: testInfo.outputPath('exercise-filters-compact-safe-area.png') });
     }
   });
 
@@ -410,7 +410,7 @@ test.describe('Exercise library', () => {
     await expect(page.getByRole('checkbox', { name: 'Equipment Machine' })).toBeVisible();
     const finalApplyBox = await apply.boundingBox();
     expect(finalApplyBox?.y).toBeCloseTo(initialApplyBox?.y ?? 0, 0);
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('add-variation-equipment-iphone.png') });
     }
   });

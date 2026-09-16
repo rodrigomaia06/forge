@@ -1,7 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const captureDirectory = 'tests/results/captures';
-
 const completedWorkouts = [
   {
     id: 'capture-upper-push',
@@ -48,12 +46,12 @@ async function enableDark(page: Page): Promise<void> {
 async function capture(page: Page, name: string): Promise<void> {
   // Let short entrance/layout animations settle so captures show final UI, not an in-between frame.
   await page.waitForTimeout(250);
-  await page.screenshot({ path: `${captureDirectory}/${name}.png`, fullPage: true });
+  await page.screenshot({ path: test.info().outputPath(`${name}.png`), fullPage: true });
 }
 
 test.describe('Forge screen captures', () => {
   test.beforeEach(async ({}, testInfo) => {
-    test.skip(testInfo.project.name !== 'iphone-air', 'Product visual captures use the iPhone profile.');
+    test.skip(testInfo.project.use.isMobile !== true, 'Product visual captures use the configured phone profiles.');
   });
 
   test('captures Dashboard, Plans and Settings', async ({ page }) => {

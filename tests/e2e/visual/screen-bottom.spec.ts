@@ -88,8 +88,8 @@ test.describe('Page bottom safe areas', () => {
     await expect(menu).toHaveCount(0);
     await expect(page.getByLabel('Routine name')).toBeVisible();
     await expectPageBottom(page);
-    if (testInfo.project.name === 'iphone-air') {
-      await page.screenshot({ path: 'tests/results/captures/routine-editor-bottom-safe-area.png' });
+    if (testInfo.project.use.isMobile === true) {
+      await page.screenshot({ path: testInfo.outputPath('routine-editor-bottom-safe-area.png') });
     }
   });
 });

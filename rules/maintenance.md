@@ -87,7 +87,7 @@ Use the machine's available capacity to reduce verification time without making 
 
 For every user-reported visual, layout, gesture, navigation, or interaction condition, capture and inspect a targeted screenshot of that exact changed state before completion. Keep screenshots narrowly scoped to the reported condition; do not substitute unrelated full-app captures, generic happy paths, or a visually similar sibling screen. Report which reported state each inspected artifact verified. Use the normal two-thirds CPU allowance at reduced priority, reducing concurrency only for observed memory pressure or a concrete shared-resource constraint.
 
-Capture and inspect product screenshots in the configured iPhone Playwright profile. Desktop browser captures may support functional diagnosis, but they are not the visual-verification artifact.
+Capture and inspect product screenshots in every configured Forge phone Playwright profile: iPhone Air and Samsung Galaxy S24. Desktop browser captures may support functional diagnosis, but they are not the visual-verification artifact.
 
 ## Explicit multi-item requests
 

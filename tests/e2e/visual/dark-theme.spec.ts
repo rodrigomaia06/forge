@@ -1,7 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const output = 'tests/results/captures/dark';
-
 async function enableDark(page: Page) {
   await page.addInitScript(() => {
     localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance: 'dark' }));
@@ -10,7 +8,7 @@ async function enableDark(page: Page) {
 
 async function capture(page: Page, name: string) {
   await page.waitForTimeout(350);
-  await page.screenshot({ path: `${output}/${name}.png`, fullPage: true });
+  await page.screenshot({ path: test.info().outputPath(`dark-${name}.png`), fullPage: true });
 }
 
 async function rect(page: Page, testId: string) {
@@ -123,7 +121,7 @@ test('keeps layout stable and resolves Light, Dark and System at runtime', async
   expect(await rect(page, 'dashboard-dock-cylinder')).toEqual(lightDock);
   await expectThemeBackgrounds(page);
 
-  if (testInfo.project.name === 'iphone-air') {
+  if (testInfo.project.use.isMobile === true) {
     await page.getByRole('tab', { name: 'Settings' }).click();
     await expect.poll(() => page.getByTestId('settings-scroll').evaluate((element) => {
       for (let parent: HTMLElement | null = element as HTMLElement; parent; parent = parent.parentElement) {
@@ -139,7 +137,7 @@ test('keeps layout stable and resolves Light, Dark and System at runtime', async
       element.style.borderRadius = '40px';
       element.style.overflow = 'hidden';
     });
-    await page.screenshot({ path: `${output}/navigation-backing-surface.png` });
+    await page.screenshot({ path: test.info().outputPath('dark-navigation-backing-surface.png') });
     await content.evaluate((element: HTMLElement) => {
       element.style.removeProperty('transform');
       element.style.removeProperty('border-radius');

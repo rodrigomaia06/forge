@@ -12,6 +12,10 @@ export default defineConfig({
       use: { ...devices['iPhone Air'] },
     },
     {
+      name: 'samsung-galaxy-s24',
+      use: { ...devices['Galaxy S24'] },
+    },
+    {
       name: 'desktop-chromium',
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 1024 } },
     },

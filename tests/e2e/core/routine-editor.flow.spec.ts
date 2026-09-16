@@ -19,7 +19,7 @@ test.describe('Core flow: routine editor', () => {
     await exercise.getByRole('button', { name: 'Expand Elliptical' }).click();
     const duration = exercise.getByRole('textbox', { name: 'Sec for set 1' });
     await expect(duration).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-    if (testInfo.project.name === 'iphone-air') {
+    if (testInfo.project.use.isMobile === true) {
       await exercise.screenshot({ path: testInfo.outputPath('routine-empty-range-box-iphone.png') });
     }
 
