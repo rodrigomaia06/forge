@@ -34,13 +34,12 @@ export function MainTabNavigator() {
         initialRouteName={activeWorkout ? 'ActiveWorkout' : 'Dashboard'}
         screenOptions={{
           headerShown: false,
-          // Warm every tab scene up front so switching tabs is instant for the
-          // rest of the session. The heavy catalogue/history projections inside
-          // each screen still defer their own bodies past the initial paint, so
-          // this eager mount stays cheap; freezeOnBlur then pauses the inactive
-          // scenes off-screen without discarding their route or scroll state.
+          // Warm every tab scene up front and keep it live so switching is a
+          // pure cross-fade with no freeze/thaw re-render burst. Only the Active
+          // Workout scene (whose rest-timer ticks once per second) is frozen
+          // off-screen, below, so it does not re-render while another tab is up.
           lazy: false,
-          freezeOnBlur: true,
+          freezeOnBlur: false,
           // The tab scenes remain visible under the fade. Keep that shared
           // surface theme-aware so Dark mode never flashes React Navigation's
           // default white scene between tabs.
@@ -60,7 +59,7 @@ export function MainTabNavigator() {
       >
         <Tab.Screen name="Dashboard" component={DashboardScreen} />
         <Tab.Screen name="History" component={HistoryScreen} />
-        <Tab.Screen name="ActiveWorkout" component={ActiveWorkoutScreen} />
+        <Tab.Screen name="ActiveWorkout" component={ActiveWorkoutScreen} options={{ freezeOnBlur: true }} />
         <Tab.Screen name="Plans" component={PlansScreen} />
         <Tab.Screen name="Settings" component={SettingsScreen} />
       </Tab.Navigator>
