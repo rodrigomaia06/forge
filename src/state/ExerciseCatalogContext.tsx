@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { exerciseCatalog, type ExerciseCatalogItem } from '../data/exerciseCatalog';
+import { warmCatalogIndex } from '../domain/exercises/catalogSelectors';
 import { loadCustomExercises, saveCustomExercises } from '../data/exerciseRepository';
 import type { ChildrenProps } from '../types';
 
@@ -44,6 +45,12 @@ export function ExerciseCatalogProvider({ children }: ChildrenProps) {
   useEffect(() => {
     void reload();
   }, [reload]);
+  // Warm the search/facet index for the bundled catalogue once, in idle chunks,
+  // so the first exercise picker or browser opens without a synchronous
+  // normalization spike on the phone.
+  useEffect(() => {
+    warmCatalogIndex(exerciseCatalog);
+  }, []);
   const addCustomExercise = (exercise: ExerciseCatalogItem) => {
     setCustomExercises((current) => {
       const next = withoutDuplicateVariations([...current, exercise]);

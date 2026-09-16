@@ -1,6 +1,7 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   LayoutAnimation,
   FlatList,
   Platform,
@@ -108,6 +109,7 @@ const restTimeOptions: readonly ForgeSingleSelectOption<number>[] = REST_DURATIO
   }),
 );
 const swipeSpring = forgeMotion.swipeSpring;
+const EMPTY_ITEMS: ExerciseCatalogItem[] = [];
 
 export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const { bottom: bottomInset } = useSafeAreaInsets();
@@ -145,6 +147,19 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const [detailSheetView, setDetailSheetView] = useState<DetailSheetView>('details');
   const savingVariation = useRef(false);
   const source = customOnly ? catalog.customExercises : catalog.exercises;
+  // The header, Back, and search field mount immediately. The full-catalogue
+  // index build (search + facets) is deferred until the drill-in push settles,
+  // so first entry shows a compact loading state in the list body rather than
+  // blocking the navigation transition.
+  const [bodyReady, setBodyReady] = useState(false);
+  useEffect(() => {
+    // Yield one frame so the drill-in push and screen shell paint before the
+    // full-catalogue index build runs, then never gate on it again.
+    const frame = requestAnimationFrame(() => setBodyReady(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  const projectionSource = bodyReady ? source : EMPTY_ITEMS;
+  const forgeCatalogSource = bodyReady ? catalog.exercises : EMPTY_ITEMS;
   const title = customOnly
     ? 'Custom exercises'
     : (preferences.workoutTypes.find((item) => item.id === fixedTypeId)?.name ?? 'All exercises');
@@ -152,22 +167,22 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const active = catalogFilterCount(filters);
   const filtered = useMemo(
     () =>
-      filterCatalog(source, {
+      filterCatalog(projectionSource, {
         query: deferredQuery,
         types: filters.types,
         equipment: filters.equipment,
         exerciseCategories: filters.exerciseCategories,
         includeGroupInSearch: true,
       }).filter((item) => !fixedTypeId || item.workoutTypeIds.includes(fixedTypeId)),
-    [source, fixedTypeId, filters, deferredQuery],
+    [projectionSource, fixedTypeId, filters, deferredQuery],
   );
   const groups = useMemo(() => groupCatalogByMovement(filtered), [filtered]);
-  const { equipment } = catalogFacets(source);
-  const { equipment: forgeEquipment } = catalogFacets(catalog.exercises);
-  const { categories: muscles } = catalogFacets(catalog.exercises);
+  const { equipment } = catalogFacets(projectionSource);
+  const { equipment: forgeEquipment } = catalogFacets(forgeCatalogSource);
+  const { categories: muscles } = catalogFacets(forgeCatalogSource);
   const filterFacets = useMemo<CatalogFilterFacet[]>(() => {
     const scoped = (draft: CatalogFilterState, includeEquipment: boolean) =>
-      filterCatalog(source, {
+      filterCatalog(projectionSource, {
         types: fixedTypeId ? [fixedTypeId] : draft.types,
         equipment: includeEquipment ? draft.equipment : [],
         includeGroupInSearch: false,
@@ -187,12 +202,12 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
       },
       {
         key: 'exerciseCategories', title: 'Category', icon: 'activity',
-        options: [...new Set(source.map((item) => item.category))].sort().map((value) => ({ value, label: value })),
+        options: [...new Set(projectionSource.map((item) => item.category))].sort().map((value) => ({ value, label: value })),
         optionsFor: (draft) => [...new Set(scoped(draft, true).map((item) => item.category))].sort().map((value) => ({ value, label: value })),
       },
     ];
     return [typeFacet, ...common];
-  }, [equipment, fixedTypeId, source, visibleTypes]);
+  }, [equipment, fixedTypeId, projectionSource, visibleTypes]);
   const editableFilterFacets = useMemo(
     () => filterFacets.filter((facet) => !facet.readOnly),
     [filterFacets],
@@ -274,8 +289,10 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
       ? selectableEquipment.filter((item) => item.toLocaleLowerCase().includes(normalized))
       : selectableEquipment;
   }, [selectableEquipment, deferredSelectorQuery]);
-  const isCustom = (item: ExerciseCatalogItem) =>
-    catalog.customExercises.some((custom) => custom.id === item.id);
+  const isCustom = useCallback(
+    (item: ExerciseCatalogItem) => catalog.customExercises.some((custom) => custom.id === item.id),
+    [catalog.customExercises],
+  );
   const restOverride = (item: ExerciseCatalogItem) =>
     isCustom(item) ? item.restSeconds : preferences.exerciseRestSeconds[item.id];
   const restLabel = (item: ExerciseCatalogItem) => {
@@ -284,7 +301,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
       ? 'Default'
       : `${Math.floor(value / 60)}:${String(value % 60).padStart(2, '0')}`;
   };
-  const openCreate = (parent: string | null) => {
+  const openCreate = useCallback((parent: string | null) => {
     lightHaptic();
     savingVariation.current = false;
     const inherited = parent
@@ -295,7 +312,9 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     setShowOptionalDetails(false);
     setName('');
     setGroup(parent ?? '');
-    setCategorySource(parent ? sourceForCategory(parent) : null);
+    setCategorySource(parent
+      ? (forgeCategoryOptions.some((item) => item.toLocaleLowerCase() === parent.toLocaleLowerCase()) ? 'forge' : 'custom')
+      : null);
     const nextEquipment = inherited?.equipmentIds?.length
       ? inherited.equipmentIds.map((value) => taxonomyLabel('equipment', value))
       : [inherited?.primaryEquipment ?? inherited?.equipment ?? 'Bodyweight'];
@@ -306,7 +325,19 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     setSecondaryMuscles(inherited?.secondaryMuscles ?? []);
     setWorkoutTypeIds(inherited?.workoutTypeIds ?? (fixedTypeId ? [fixedTypeId] : ['strength']));
     setFormParent(parent);
-  };
+  }, [catalog.exercises, catalog.customExercises, fixedTypeId, forgeCategoryOptions]);
+  const handleToggleMovement = useCallback((movement: string) => {
+    selectionHaptic();
+    setExpanded((current) => (current === movement ? null : movement));
+  }, []);
+  const handleOpenExercise = useCallback((item: ExerciseCatalogItem) => {
+    setDetailSheetView('details');
+    setDetail(item);
+  }, []);
+  const handleRemoveExercise = useCallback(
+    (item: ExerciseCatalogItem) => catalog.removeCustomExercise(item.id),
+    [catalog],
+  );
   const openEdit = (item: ExerciseCatalogItem) => {
     lightHaptic();
     savingVariation.current = false;
@@ -486,6 +517,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
           directionalLockEnabled
           onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
           scrollEventThrottle={16}
+          extraData={expanded}
           ListHeaderComponent={<View style={styles.searchRow}>
             <View style={styles.search}>
               <Icon name="search" size={20} color={theme.slate} />
@@ -517,20 +549,18 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
               group={group}
               items={items}
               expanded={expanded === group}
-              onToggle={() => {
-                selectionHaptic();
-                setExpanded(expanded === group ? null : group);
-              }}
-              onOpen={(item) => {
-                setDetailSheetView('details');
-                setDetail(item);
-              }}
-              onAdd={() => openCreate(group)}
+              onToggle={handleToggleMovement}
+              onOpen={handleOpenExercise}
+              onAdd={openCreate}
               isCustom={isCustom}
-              onRemove={(item) => catalog.removeCustomExercise(item.id)}
+              onRemove={handleRemoveExercise}
             />
           )}
-          ListEmptyComponent={!groups.length ? (
+          ListEmptyComponent={!bodyReady ? (
+            <View testID="exercise-browser-loading" style={styles.empty}>
+              <ActivityIndicator size="small" color={theme.textSecondary} />
+            </View>
+          ) : !groups.length ? (
             <View style={styles.empty}>
               <Text style={styles.movementName}>No exercises found</Text>
               <Text style={styles.meta}>{query && active ? 'Try clearing the search or filters.' : query ? 'Try clearing the search.' : 'Try clearing filters or creating a custom exercise.'}</Text>
@@ -1168,7 +1198,7 @@ function ExerciseFormOptionList({
   );
 }
 
-function Movement({
+const Movement = React.memo(function Movement({
   group,
   items,
   expanded,
@@ -1181,9 +1211,9 @@ function Movement({
   group: string;
   items: ExerciseCatalogItem[];
   expanded: boolean;
-  onToggle: () => void;
+  onToggle: (group: string) => void;
   onOpen: (item: ExerciseCatalogItem) => void;
-  onAdd: () => void;
+  onAdd: (group: string) => void;
   isCustom: (item: ExerciseCatalogItem) => boolean;
   onRemove: (item: ExerciseCatalogItem) => void;
 }) {
@@ -1228,7 +1258,7 @@ function Movement({
           iconSize={16}
           variant="outline"
           hitSlop={4}
-          onPress={onAdd}
+          onPress={() => onAdd(group)}
           style={styles.singleAddVariation}
         />
       </SettingsSection>
@@ -1241,7 +1271,7 @@ function Movement({
         subtitle={`${items.length} ${items.length === 1 ? 'variation' : 'variations'}`}
         accessibilityLabel={`${group} & ${items.length} variations`}
         accessibilityState={{ expanded }}
-        onPress={onToggle}
+        onPress={() => onToggle(group)}
         haptic="none"
         trailing={
           <Icon
@@ -1296,9 +1326,7 @@ function Movement({
             </View>
           ))}
           <Button
-            onPress={() => {
-              onAdd();
-            }}
+            onPress={() => onAdd(group)}
             accessibilityLabel={`Add variation to ${group}`}
             label="Add variation"
             icon="add"
@@ -1311,7 +1339,7 @@ function Movement({
       )}
     </SettingsSection>
   );
-}
+});
 
 function SwipeCustomExerciseRow({
   item,

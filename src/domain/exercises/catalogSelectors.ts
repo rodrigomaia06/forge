@@ -21,33 +21,88 @@ export function catalogSearchKey(value: string): string {
     .join(' ');
 }
 
+/**
+ * Search and facet projection of one catalogue item, normalized once and reused
+ * across every screen, query, and filter sheet. The catalogue is immutable for a
+ * given item identity, so the index is memoized per item rather than recomputed
+ * on each keystroke or filter pass.
+ */
+type CatalogItemIndex = {
+  equipment: string[];
+  muscles: string[];
+  haystack: string;
+  haystackWithGroup: string;
+};
+
+const itemIndexCache = new WeakMap<ExerciseCatalogItem, CatalogItemIndex>();
+
+function catalogItemIndex(item: ExerciseCatalogItem): CatalogItemIndex {
+  const cached = itemIndexCache.get(item);
+  if (cached) return cached;
+  const equipment = item.equipmentIds?.map((id) => taxonomyLabel('equipment', id)) ?? [item.equipment];
+  const muscles = [item.primaryMuscle, ...item.secondaryMuscles];
+  const facetTerms = item.variationFacets
+    ? Object.values(item.variationFacets).flatMap((value) => (Array.isArray(value) ? value : value ? [value] : []))
+    : [];
+  const searchable = [item.name, ...equipment, item.category, item.primaryMuscle, ...item.secondaryMuscles, ...item.aliases, ...(item.searchTerms ?? []), ...facetTerms];
+  const haystack = catalogSearchKey(searchable.join(' '));
+  const index: CatalogItemIndex = {
+    equipment,
+    muscles,
+    haystack,
+    haystackWithGroup: catalogSearchKey([...searchable, item.group].join(' ')),
+  };
+  itemIndexCache.set(item, index);
+  return index;
+}
+
+/**
+ * Precompute the per-item index for a whole catalogue in small chunks, off the
+ * interaction path. Warming it once at startup keeps the first picker/browser
+ * open from paying the full normalization cost in a single JS frame.
+ */
+export function warmCatalogIndex(items: ExerciseCatalogItem[], chunkSize = 40): void {
+  let cursor = 0;
+  const step = (): void => {
+    const end = Math.min(cursor + chunkSize, items.length);
+    for (; cursor < end; cursor += 1) catalogItemIndex(items[cursor]);
+    if (cursor < items.length) {
+      (globalThis.requestAnimationFrame ?? ((cb: () => void) => setTimeout(cb, 16)))(step);
+    }
+  };
+  if (items.length) step();
+}
+
 export function filterCatalog(items: ExerciseCatalogItem[], filters: CatalogFilters): ExerciseCatalogItem[] {
   const query = catalogSearchKey(filters.query ?? '');
+  const terms = query ? query.split(' ') : [];
   return items.filter((item) => {
     if (filters.types?.length && !item.workoutTypeIds.some((id) => filters.types?.includes(id))) return false;
-    const equipment = item.equipmentIds?.map((id) => taxonomyLabel('equipment', id)) ?? [item.equipment];
-    if (filters.equipment?.length && !equipment.some((value) => filters.equipment?.includes(value))) return false;
-    const muscles = [item.primaryMuscle, ...item.secondaryMuscles];
-    if (filters.categories?.length && !muscles.some((muscle) => filters.categories?.includes(muscle))) return false;
+    const index = catalogItemIndex(item);
+    if (filters.equipment?.length && !index.equipment.some((value) => filters.equipment?.includes(value))) return false;
+    if (filters.categories?.length && !index.muscles.some((muscle) => filters.categories?.includes(muscle))) return false;
     if (filters.exerciseCategories?.length && !filters.exerciseCategories.includes(item.category)) return false;
-    if (!query) return true;
-    const facetTerms = item.variationFacets ? Object.values(item.variationFacets).flatMap((value) => Array.isArray(value) ? value : value ? [value] : []) : [];
-    const searchable = [item.name, ...equipment, item.category, item.primaryMuscle, ...item.secondaryMuscles, ...item.aliases, ...(item.searchTerms ?? []), ...facetTerms];
-    if (filters.includeGroupInSearch) searchable.push(item.group);
-    const haystack = catalogSearchKey(searchable.join(' '));
+    if (!terms.length) return true;
     // Facets are stored in display order (for example `Weighted · Wide ·
     // Pronated`), while people naturally search them in any order. Matching
     // each normalized token keeps compound-variation selection independent of
     // that presentation order.
-    return query.split(' ').every((term) => haystack.includes(term));
+    const haystack = filters.includeGroupInSearch ? index.haystackWithGroup : index.haystack;
+    return terms.every((term) => haystack.includes(term));
   });
 }
 
+const facetsCache = new WeakMap<ExerciseCatalogItem[], { equipment: string[]; categories: string[] }>();
+
 export function catalogFacets(items: ExerciseCatalogItem[]): { equipment: string[]; categories: string[] } {
-  return {
-    equipment: [...new Set(items.flatMap((item) => item.equipmentIds?.map((id) => taxonomyLabel('equipment', id)) ?? [item.equipment]))].sort(),
-    categories: [...new Set(items.flatMap((item) => [item.primaryMuscle, ...item.secondaryMuscles]))].sort(),
+  const cached = facetsCache.get(items);
+  if (cached) return cached;
+  const facets = {
+    equipment: [...new Set(items.flatMap((item) => catalogItemIndex(item).equipment))].sort(),
+    categories: [...new Set(items.flatMap((item) => catalogItemIndex(item).muscles))].sort(),
   };
+  facetsCache.set(items, facets);
+  return facets;
 }
 
 export function groupCatalogByMovement(items: ExerciseCatalogItem[]): [string, ExerciseCatalogItem[]][] {
