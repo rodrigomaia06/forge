@@ -257,6 +257,8 @@ test.describe('History screen', () => {
 
     const summary = page.getByTestId('workout-details-summary');
     const rail = page.getByTestId('workout-details-summary-date-rail');
+    const dateDay = page.getByTestId('workout-details-summary-date-day');
+    const title = page.getByTestId('workout-details-summary-title');
     await expect(summary.getByText('3 exercises · 8 sets', { exact: true })).toBeVisible();
     await expect(summary.getByText('Duration', { exact: true })).toBeVisible();
     await expect(summary.getByText('Avg rest', { exact: true })).toBeVisible();
@@ -265,9 +267,11 @@ test.describe('History screen', () => {
     await expect(rail).toBeVisible();
     await expect(summary).toHaveScreenshot('workout-summary-card-light.png', { animations: 'disabled' });
 
-    const [summaryBox, railBox, layout] = await Promise.all([
+    const [summaryBox, railBox, dayBox, titleBox, layout] = await Promise.all([
       summary.boundingBox(),
       rail.boundingBox(),
+      dateDay.boundingBox(),
+      title.boundingBox(),
       summary.evaluate((element) => ({ clientWidth: element.clientWidth, scrollWidth: element.scrollWidth })),
     ]);
     expect(summaryBox).not.toBeNull();
@@ -276,6 +280,9 @@ test.describe('History screen', () => {
     expect(railBox.x).toBeGreaterThanOrEqual(summaryBox.x);
     expect(railBox.x + railBox.width).toBeLessThanOrEqual(summaryBox.x + summaryBox.width);
     expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth + 1);
+    expect(dayBox).not.toBeNull();
+    expect(titleBox).not.toBeNull();
+    if (dayBox && titleBox) expect(Math.abs(dayBox.y - titleBox.y)).toBeLessThanOrEqual(24);
   });
 
   test('shows one long attribute directly in the opened-workout summary', async ({ page }, testInfo) => {
@@ -336,7 +343,7 @@ test.describe('History screen', () => {
     await expect(page.getByText('Muay Thai', { exact: true })).toHaveCount(0);
   });
 
-  test('edits a completed workout and persists the saved session', async ({ page }) => {
+  test('edits a completed workout and persists the saved session', async ({ page }, testInfo) => {
     await page.getByRole('button', { name: 'Open Muay Thai' }).click();
     await page.getByRole('button', { name: 'Workout options' }).click();
     await page.getByRole('button', { name: 'Edit workout' }).click();
@@ -367,6 +374,46 @@ test.describe('History screen', () => {
     await endTimePicker.getByRole('radio', { name: 'Hours 19' }).click();
     await page.getByRole('button', { name: 'Save selected date and time' }).click();
     await page.getByRole('button', { name: 'Add attribute' }).click();
+    const iconChoice = page.getByRole('button', { name: 'Choose attribute icon' });
+    const attributeLabel = page.getByLabel('Attribute label');
+    const attributeValue = page.getByLabel('Attribute value');
+    const saveAttribute = page.getByRole('button', { name: 'Save attribute' });
+    await expect(iconChoice).toBeVisible();
+    await expect(attributeLabel).toBeVisible();
+    await expect(attributeValue).toBeVisible();
+    await expect(saveAttribute).toBeVisible();
+    if (testInfo.project.use.isMobile) {
+      const [iconBox, iconPreviewBox, iconGlyphBox, iconChangeBox, labelBox, valueBox, saveBox] = await Promise.all([
+        iconChoice.boundingBox(),
+        page.getByTestId('attribute-editor-icon-preview').boundingBox(),
+        page.getByTestId('attribute-editor-icon-glyph').boundingBox(),
+        page.getByTestId('attribute-editor-icon-change').boundingBox(),
+        attributeLabel.boundingBox(),
+        attributeValue.boundingBox(),
+        saveAttribute.boundingBox(),
+      ]);
+      expect(iconBox).not.toBeNull();
+      expect(iconPreviewBox).not.toBeNull();
+      expect(iconGlyphBox).not.toBeNull();
+      expect(iconChangeBox).not.toBeNull();
+      expect(labelBox).not.toBeNull();
+      expect(valueBox).not.toBeNull();
+      expect(saveBox).not.toBeNull();
+      if (iconBox && iconPreviewBox && iconGlyphBox && iconChangeBox && labelBox && valueBox && saveBox) {
+        expect(iconBox.x).toBeLessThan(labelBox.x);
+        const previewCenterX = iconPreviewBox.x + iconPreviewBox.width / 2;
+        const previewCenterY = iconPreviewBox.y + iconPreviewBox.height / 2;
+        const iconCenterX = iconGlyphBox.x + iconGlyphBox.width / 2;
+        const iconCenterY = iconGlyphBox.y + iconGlyphBox.height / 2;
+        expect(Math.abs(iconCenterX - previewCenterX)).toBeLessThanOrEqual(3);
+        expect(iconCenterY - previewCenterY).toBeGreaterThanOrEqual(3);
+        expect(iconCenterY - previewCenterY).toBeLessThanOrEqual(5);
+        expect(iconGlyphBox.y + iconGlyphBox.height).toBeLessThanOrEqual(iconChangeBox.y - 8);
+        expect(labelBox.height).toBeLessThanOrEqual(56);
+        expect(valueBox.height).toBeLessThanOrEqual(56);
+        expect(saveBox.y - (valueBox.y + valueBox.height)).toBeLessThan(32);
+      }
+    }
     await page.getByLabel('Attribute label').fill('Location');
     await page.getByLabel('Attribute value').fill('Forge Gym');
     await page.getByRole('button', { name: 'Choose attribute icon' }).click();
@@ -507,9 +554,9 @@ test.describe('History screen', () => {
     await expect(sheet.getByText('Set 1', { exact: true })).toBeVisible();
     await expect(sheet.getByText('History note', { exact: true })).toBeVisible();
     await expect(sheet.getByText('No type recorded', { exact: true })).toBeVisible();
-    await expect(sheet.getByText('SET KIND', { exact: true })).toBeVisible();
-    await expect(sheet.getByText('SESSION NOTE & EFFORT', { exact: true })).toBeVisible();
-    await expect(sheet.getByText('NEXT SESSION', { exact: true })).toBeVisible();
+    await expect(sheet.getByText('Set kind', { exact: true })).toBeVisible();
+    await expect(sheet.getByText('Session note & effort', { exact: true })).toBeVisible();
+    await expect(sheet.getByText('Next session', { exact: true })).toBeVisible();
     await expect(sheet.getByRole('radio')).toHaveCount(0);
     await expect(sheet.getByRole('button', { name: 'Change set kind' })).toHaveCount(0);
     await expect(sheet.getByRole('button', { name: 'Delete Set 1' })).toHaveCount(0);

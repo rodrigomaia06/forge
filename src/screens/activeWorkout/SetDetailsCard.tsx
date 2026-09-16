@@ -170,11 +170,11 @@ function SessionNoteEffortSection({
   const recorded = measurementText(set, 'rpe');
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionLabel}>SESSION NOTE &amp; EFFORT</Text>
+      <Text style={styles.sectionLabel}>Session note &amp; effort</Text>
       <View testID="set-session-note-effort-card">
       <ForgeCard variant="outlined" style={styles.sessionCard}>
         <View style={styles.sessionNoteSection}>
-          <Text style={styles.subsectionLabel}>COMMENT</Text>
+          <Text style={styles.subsectionLabel}>Comment</Text>
           {editable ? (
             <TextInput
               accessibilityLabel={`Comment for ${setLabel.toLowerCase()}`}
@@ -194,7 +194,7 @@ function SessionNoteEffortSection({
         </View>
         <View style={styles.sessionDivider} />
         <View style={styles.sessionEffortSection}>
-          <Text style={styles.subsectionLabel}>EFFORT (RPE)</Text>
+          <Text style={styles.subsectionLabel}>Effort (RPE)</Text>
           {editable ? (
             <EffortSelector set={set} onChange={onChange} />
           ) : (
@@ -282,7 +282,7 @@ function SetKindSection({
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionLabel}>SET KIND</Text>
+      <Text style={styles.sectionLabel}>Set kind</Text>
       {editable ? (
         <ForgeCard variant="outlined" style={styles.setKindCard}>
           <View style={styles.setKindSummary}>
@@ -459,7 +459,7 @@ function TargetsSection({
   const targetList = isRoutineInterval ? set.plannedTargets : set.targets;
   return (
     <View testID="set-next-session-section" style={[styles.section, styles.targetSection]}>
-      <Text style={styles.sectionLabel}>{isRoutineInterval ? 'ROUTINE INTERVAL' : 'NEXT SESSION'}</Text>
+      <Text style={styles.sectionLabel}>{isRoutineInterval ? 'Routine interval' : 'Next session'}</Text>
       <ForgeCard variant="outlined" style={styles.targetCardGroup}>
         {applicableFields.map((kind, index) => (
           <TargetRow
@@ -575,9 +575,13 @@ function TargetRow({
               accessibilityLabel={accessibilityLabel}
               value={draftValue}
               onChangeText={(nextValue) => {
-                draftValueRef.current = nextValue;
-                setDraftValue(nextValue);
-                onChangeText(nextValue);
+                // The number keypad is the primary input path; keep pasted or
+                // hardware-keyboard text equally numeric so targets never
+                // retain alphabetic characters.
+                const numericValue = nextValue.replace(/[^0-9.,\-–—]/g, '');
+                draftValueRef.current = numericValue;
+                setDraftValue(numericValue);
+                onChangeText(numericValue);
               }}
               onFocus={() => {
                 editingRef.current = true;
@@ -649,7 +653,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     sectionLabel: {
       marginBottom: 9,
       color: theme.slate,
-      ...typeScale.label,
+      ...typeScale.cardTitle,
     },
     typeCard: { borderRadius: 16 },
     typeRow: {
@@ -710,7 +714,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     sessionCard: { overflow: 'hidden', borderRadius: 16 },
     sessionNoteSection: { padding: 14, gap: 8 },
     sessionEffortSection: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 14, gap: 10 },
-    subsectionLabel: { color: theme.slate, ...typeScale.caption, letterSpacing: 0.7 },
+    subsectionLabel: { color: theme.slate, ...typeScale.label },
     sessionDivider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.divider },
     commentInput: {
       minHeight: 80,

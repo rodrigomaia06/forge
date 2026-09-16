@@ -54,7 +54,7 @@ export function WorkoutSummaryCard({
         >
           <View style={styles.dateRailContent}>
             <Text style={styles.dateWeekday}>{formatDatePart(completedAt, 'weekday').toUpperCase()}</Text>
-            <Text style={styles.dateDay}>{new Date(completedAt).getDate()}</Text>
+            <Text testID={testID ? `${testID}-date-day` : undefined} style={styles.dateDay}>{new Date(completedAt).getDate()}</Text>
             <Text style={styles.dateMonth}>{formatDatePart(completedAt, 'month').toUpperCase()}</Text>
           </View>
         </View>
@@ -65,7 +65,7 @@ export function WorkoutSummaryCard({
               <Icon name={type.icon} size={26} color={type.color} />
             </View>
             <View style={styles.identityCopy}>
-              <Text style={styles.name} numberOfLines={2}>{workout.name}</Text>
+              <Text testID={testID ? `${testID}-title` : undefined} style={styles.name} numberOfLines={2}>{workout.name}</Text>
               <Text style={styles.summary} numberOfLines={2}>
                 {`${workout.exercises.length} ${workout.exercises.length === 1 ? 'exercise' : 'exercises'} · ${setCount} ${setCount === 1 ? 'set' : 'sets'}`}
               </Text>
@@ -173,7 +173,9 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     width: 64,
     flexShrink: 0,
     alignItems: 'center',
-    paddingTop: 22,
+    // Balance the weekday/day/month cluster against the identity title on
+    // phone-sized cards without pulling the day above that title.
+    paddingTop: 13,
     paddingBottom: 12,
     paddingHorizontal: 8,
     borderRightWidth: StyleSheet.hairlineWidth,

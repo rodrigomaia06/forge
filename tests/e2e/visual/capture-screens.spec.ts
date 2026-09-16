@@ -204,6 +204,8 @@ test.describe('Forge screen captures', () => {
     await openHistoricalEditorCapture(page);
     await expect(page.getByLabel('Workout name')).toBeVisible();
     await capture(page, 'history-workout-editor');
+    await openAttributeEditorCapture(page);
+    await capture(page, 'history-attribute-editor');
   });
 
   test('captures the dark History workout editor', async ({ page }) => {
@@ -217,6 +219,8 @@ test.describe('Forge screen captures', () => {
     await openHistoricalEditorCapture(page);
     await expect(page.getByLabel('Workout name')).toBeVisible();
     await capture(page, 'history-workout-editor-dark');
+    await openAttributeEditorCapture(page);
+    await capture(page, 'history-attribute-editor-dark');
   });
 
   test('captures the historical workout source chooser', async ({ page }) => {
@@ -251,7 +255,7 @@ test.describe('Forge screen captures', () => {
     await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
     await capture(page, 'live-workout-exercise-metadata');
     await page.getByLabel('Open details for set 1').click();
-    await expect(page.getByText('SET KIND', { exact: true })).toBeVisible();
+    await expect(page.getByText('Set kind', { exact: true })).toBeVisible();
     await capture(page, 'set-options');
   });
 });
@@ -265,4 +269,15 @@ async function openHistoricalEditorCapture(page: Page): Promise<void> {
   await page.getByLabel('Attribute label').fill('Readiness');
   await page.getByLabel('Attribute value').fill('High');
   await page.getByRole('button', { name: 'Save attribute' }).click();
+}
+
+async function openAttributeEditorCapture(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Add attribute' }).click();
+  await page.getByLabel('Attribute label').fill('Location');
+  await page.getByLabel('Attribute value').fill('VivaGYM Campo Pequeno');
+  await page.getByRole('button', { name: 'Choose attribute icon' }).click();
+  await page.getByRole('radio', { name: 'Use location icon' }).click();
+  await page.getByRole('button', { name: 'Save attribute' }).click();
+  await page.getByRole('button', { name: 'Edit Location attribute' }).click();
+  await page.getByRole('button', { name: 'Choose attribute icon' }).focus();
 }

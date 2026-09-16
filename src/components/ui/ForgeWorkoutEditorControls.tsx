@@ -5,9 +5,9 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-na
 import type { IconName, WorkoutTypePreference } from '../../types';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
+import { Button } from './Button';
 import { ForgeCard } from './ForgeCard';
 import { ForgeBottomSheetHandle } from './ForgeBottomSheet';
-import { ForgeFloatingCta, useForgeFloatingCtaClearance } from './ForgeFloatingCta';
 import { ForgeSheetHeader } from './ForgeSheetHeader';
 import { ForgeText, ForgeTextInput } from './ForgeText';
 import { ForgeBackButton, HeaderAction } from './HeaderAction';
@@ -41,7 +41,6 @@ export function ForgeAttributeEditorSheet({
   onDelete?: () => void;
 }) {
   const theme = useForgeTheme();
-  const floatingCtaClearance = useForgeFloatingCtaClearance();
   const [draft, setDraft] = useState(value);
   const [selectingIcon, setSelectingIcon] = useState(false);
   return (
@@ -51,37 +50,41 @@ export function ForgeAttributeEditorSheet({
         title={value.original ? 'Edit attribute' : 'Add attribute'}
         onClose={undefined}
         closePosition={onDelete ? 'left' : 'right'}
+        horizontalInset={0}
         leading={<ForgeEditorBackButton onPress={onClose} />}
         trailing={onDelete ? <HeaderAction accessibilityLabel="Remove attribute" icon="trash" iconOnly tone="destructive" haptic="none" onPress={() => { errorHaptic(); onDelete(); }} /> : undefined}
       />
-      <ScrollView style={styles.editorScroll} contentContainerStyle={[styles.editorContent, { paddingBottom: floatingCtaClearance }]} keyboardShouldPersistTaps="handled">
-        <View style={styles.formSection}>
-          <ForgeText style={[styles.label, { color: theme.slate }]}>Attribute name</ForgeText>
-          <ForgeCard variant="inset" style={styles.fieldCard}>
-            <ForgeTextInput accessibilityLabel="Attribute label" value={draft.label} onChangeText={(label) => setDraft((current) => ({ ...current, label }))} placeholder="Name" placeholderTextColor={theme.textDisabled} style={[styles.input, { color: theme.textPrimary }]} />
-          </ForgeCard>
-        </View>
-        <View style={styles.formSection}>
-          <ForgeText style={[styles.label, { color: theme.slate }]}>Value</ForgeText>
-          <ForgeCard variant="inset" style={styles.fieldCard}>
-            <ForgeTextInput accessibilityLabel="Attribute value" value={draft.value} onChangeText={(nextValue) => setDraft((current) => ({ ...current, value: nextValue }))} placeholder="Value (optional)" placeholderTextColor={theme.textDisabled} style={[styles.input, { color: theme.textPrimary }]} />
-          </ForgeCard>
-        </View>
-        <View style={styles.formSection}>
-          <ForgeText style={[styles.label, { color: theme.slate }]}>Icon</ForgeText>
-          <ForgeCard variant="inset">
-            <Pressable accessibilityRole="button" accessibilityLabel="Choose attribute icon" onPress={() => { lightHaptic(); setSelectingIcon((current) => !current); }} style={styles.row}>
-              <Icon name={draft.icon} size={22} color={theme.textPrimary} />
-              <ForgeText style={[styles.rowLabel, { color: theme.textPrimary }]}>Choose icon</ForgeText>
-              <Icon name={selectingIcon ? 'chevron-down' : 'chevron-forward'} size={20} color={theme.slate} />
+      <ScrollView style={styles.editorScroll} contentContainerStyle={styles.editorContent} keyboardShouldPersistTaps="handled">
+        <View style={styles.attributeEditorLayout}>
+          <ForgeCard variant="inset" style={styles.iconFieldCard}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Choose attribute icon" onPress={() => { lightHaptic(); setSelectingIcon((current) => !current); }} style={styles.iconFieldButton}>
+              <View testID="attribute-editor-icon-preview" style={styles.iconFieldPreview}>
+                <View testID="attribute-editor-icon-glyph" style={styles.iconFieldGlyph}>
+                  <Icon name={draft.icon} size={38} color={theme.textPrimary} />
+                </View>
+              </View>
+              <View testID="attribute-editor-icon-change" style={[styles.iconFieldChange, { backgroundColor: theme.surface }]}>
+                <ForgeText style={[styles.iconFieldChangeLabel, { color: theme.textPrimary }]}>Change</ForgeText>
+                <Icon name={selectingIcon ? 'chevron-down' : 'chevron-forward'} size={18} color={theme.slate} />
+              </View>
             </Pressable>
-            {selectingIcon ? <View style={[styles.iconChoices, { borderTopColor: theme.divider }]} accessibilityRole="radiogroup">
-              {attributeIcons.map((icon) => <Pressable key={icon} testID={icon === draft.icon ? `attribute-icon-choice-${icon}-selected` : `attribute-icon-choice-${icon}`} accessibilityRole="radio" accessibilityLabel={`Use ${icon} icon`} accessibilityState={{ checked: icon === draft.icon }} onPress={() => { selectionHaptic(); setDraft((current) => ({ ...current, icon })); setSelectingIcon(false); }} style={({ pressed }) => [styles.iconChoice, pressed && pressedFeedback]}><Icon name={icon} size={22} color={theme.textPrimary} />{icon === draft.icon ? <Icon name="check" size={16} color={theme.selectionIndicator} weight="bold" /> : null}</Pressable>)}
-            </View> : null}
           </ForgeCard>
+          <View style={styles.attributeFields}>
+            <ForgeCard variant="inset" style={styles.fieldCard}>
+              <ForgeTextInput accessibilityLabel="Attribute label" value={draft.label} onChangeText={(label) => setDraft((current) => ({ ...current, label }))} placeholder="Attribute name" placeholderTextColor={theme.textDisabled} style={[styles.input, { color: theme.textPrimary }]} />
+            </ForgeCard>
+            <ForgeCard variant="inset" style={styles.fieldCard}>
+              <ForgeTextInput accessibilityLabel="Attribute value" value={draft.value} onChangeText={(nextValue) => setDraft((current) => ({ ...current, value: nextValue }))} placeholder="Value (optional)" placeholderTextColor={theme.textDisabled} style={[styles.input, { color: theme.textPrimary }]} />
+            </ForgeCard>
+          </View>
         </View>
+        {selectingIcon ? <ForgeCard variant="inset">
+          <View style={styles.iconChoices} accessibilityRole="radiogroup">
+            {attributeIcons.map((icon) => <Pressable key={icon} testID={icon === draft.icon ? `attribute-icon-choice-${icon}-selected` : `attribute-icon-choice-${icon}`} accessibilityRole="radio" accessibilityLabel={`Use ${icon} icon`} accessibilityState={{ checked: icon === draft.icon }} onPress={() => { selectionHaptic(); setDraft((current) => ({ ...current, icon })); setSelectingIcon(false); }} style={({ pressed }) => [styles.iconChoice, pressed && pressedFeedback]}><Icon name={icon} size={22} color={theme.textPrimary} />{icon === draft.icon ? <Icon name="check" size={16} color={theme.selectionIndicator} weight="bold" /> : null}</Pressable>)}
+          </View>
+        </ForgeCard> : null}
+        <Button label="Save attribute" accessibilityLabel="Save attribute" onPress={() => onSave(draft)} disabled={!draft.label.trim()} tone="success" variant="outline" style={styles.inlineSaveButton} />
       </ScrollView>
-      <ForgeFloatingCta label="Save attribute" accessibilityLabel="Save attribute" onPress={() => onSave(draft)} disabled={!draft.label.trim()} tone="success" />
     </>
   );
 }
@@ -206,12 +209,19 @@ export function ForgeEditorBackButton({ onPress, accessibilityLabel = 'Back to e
 
 const styles = StyleSheet.create({
   editorScroll: { flexGrow: 0, flexShrink: 1 },
-  editorContent: { paddingTop: 14, paddingHorizontal: 20, gap: 18 },
+  editorContent: { paddingTop: 14, paddingBottom: 24, gap: 12 },
   typePickerContent: { paddingTop: 22, paddingBottom: 20 },
-  formSection: { gap: 8 },
-  fieldCard: { paddingHorizontal: 14 },
-  label: { ...typeScale.label },
-  input: { minHeight: 52, paddingVertical: 0, textAlignVertical: 'center', ...typeScale.body },
+  attributeEditorLayout: { flexDirection: 'row', alignItems: 'stretch', gap: 12 },
+  iconFieldCard: { width: 100, minWidth: 92, overflow: 'hidden' },
+  iconFieldButton: { flex: 1, minHeight: 116, position: 'relative' },
+  iconFieldPreview: { position: 'absolute', top: 0, right: 0, bottom: 44, left: 0, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  iconFieldGlyph: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', transform: [{ translateY: 4 }] },
+  iconFieldChange: { position: 'absolute', right: 0, bottom: 0, left: 0, minHeight: 44, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  iconFieldChangeLabel: { flexShrink: 1, ...typeScale.label },
+  attributeFields: { flex: 1, minWidth: 0, gap: 12 },
+  fieldCard: { minHeight: 52, paddingHorizontal: 14, justifyContent: 'center' },
+  input: { flex: 1, minHeight: 52, paddingVertical: 0, textAlignVertical: 'center', ...typeScale.body },
+  inlineSaveButton: { width: '100%', minHeight: 46, borderRadius: 16 },
   row: { minHeight: 56, paddingHorizontal: 16, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowCompact: { minHeight: 48, paddingVertical: 4 },
   directAttributeMeta: { maxWidth: '48%', minWidth: 0, minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -224,6 +234,6 @@ const styles = StyleSheet.create({
   swipeAttributeContent: { zIndex: 1 },
   attributeDeleteAction: { position: 'absolute', top: 0, right: 0, bottom: 0, width: 56 },
   attributeDeleteButton: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  iconChoices: { borderTopWidth: StyleSheet.hairlineWidth, padding: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  iconChoices: { padding: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   iconChoice: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 14, position: 'relative' },
 });
