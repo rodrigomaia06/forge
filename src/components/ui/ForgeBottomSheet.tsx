@@ -23,6 +23,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useForgeTheme } from '../../theme/ThemeProvider';
+import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import { lightHaptic } from './haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -37,16 +38,6 @@ export const forgeSheetHeader = {
 const webViewportFill = Platform.OS === 'web'
   ? ({ position: 'fixed', top: 0, right: 0, bottom: 0, left: 0 } as unknown as ViewStyle)
   : undefined;
-// Sheets should settle at their snap point without passing it. Overshoot can
-// momentarily expose content below a bottom-attached surface and makes the
-// surface feel detached from its anchor.
-const sheetSnapSpring = {
-  damping: 28,
-  stiffness: 280,
-  mass: 0.85,
-  overshootClamping: true,
-} as const;
-
 interface ForgeBottomSheetProps {
   visible: boolean;
   onClose: () => void;
@@ -101,6 +92,7 @@ export function ForgeBottomSheet({
   testID,
 }: ForgeBottomSheetProps) {
   const theme = useForgeTheme();
+  const reducedMotion = useForgeReducedMotion();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const translateY = useSharedValue(closeDistance);
@@ -121,11 +113,17 @@ export function ForgeBottomSheet({
     closing.value = true;
     onCloseStart?.();
     if (withHaptic) lightHaptic();
-    translateY.value = withTiming(closeDistance, { duration: 200 }, (finished) => {
+    if (reducedMotion) {
+      translateY.value = closeDistance;
+      backdropOpacity.value = 0;
+      finishClose();
+      return;
+    }
+    translateY.value = withTiming(closeDistance, { duration: forgeMotion.sheetExit }, (finished) => {
       if (finished) runOnJS(finishClose)();
     });
-    backdropOpacity.value = withTiming(0, { duration: 160 });
-  }, [backdropOpacity, closeDistance, closing, finishClose, onCloseStart, translateY]);
+    backdropOpacity.value = withTiming(0, { duration: forgeMotion.state });
+  }, [backdropOpacity, closeDistance, closing, finishClose, onCloseStart, reducedMotion, translateY]);
 
   useEffect(() => {
     if (!visible) {
@@ -141,12 +139,17 @@ export function ForgeBottomSheet({
     // The source chooser is a required first step. Do not make its sheet
     // visible until its action card has a stable layout to travel with it.
     if (waitForContentLayoutBeforeEnter && !entryContentReady) return undefined;
+    if (reducedMotion) {
+      translateY.value = 0;
+      backdropOpacity.value = 1;
+      return undefined;
+    }
     const frame = requestAnimationFrame(() => {
-      translateY.value = withSpring(0, sheetSnapSpring);
-      backdropOpacity.value = withTiming(1, { duration: 180 });
+      translateY.value = withSpring(0, forgeMotion.sheetSpring);
+      backdropOpacity.value = withTiming(1, { duration: forgeMotion.transition });
     });
     return () => cancelAnimationFrame(frame);
-  }, [backdropOpacity, closing, entryContentReady, initialOffset, translateY, visible, waitForContentLayoutBeforeEnter]);
+  }, [backdropOpacity, closing, entryContentReady, initialOffset, reducedMotion, translateY, visible, waitForContentLayoutBeforeEnter]);
 
   useEffect(() => {
     if (!visible || !keyboardAvoiding) {
@@ -155,6 +158,11 @@ export function ForgeBottomSheet({
       return undefined;
     }
     const transition = (nextVisible: boolean, event: KeyboardEvent) => {
+      if (reducedMotion) {
+        setKeyboardVisible(nextVisible);
+        setKeyboardHeight(nextVisible ? event.endCoordinates.height : 0);
+        return;
+      }
       if (Platform.OS === 'ios') Keyboard.scheduleLayoutAnimation(event);
       else {
         UIManager.setLayoutAnimationEnabledExperimental?.(true);
@@ -175,7 +183,7 @@ export function ForgeBottomSheet({
       show.remove();
       hide.remove();
     };
-  }, [keyboardAvoiding, visible]);
+  }, [keyboardAvoiding, reducedMotion, visible]);
 
   const pan = Gesture.Pan()
     .enabled(dragEnabled)
@@ -192,7 +200,7 @@ export function ForgeBottomSheet({
         // It avoids web gesture callbacks bypassing parent state updates.
         runOnJS(close)(false);
       } else {
-        translateY.value = withSpring(0, sheetSnapSpring);
+        translateY.value = reducedMotion ? 0 : withSpring(0, forgeMotion.sheetSpring);
       }
     });
   const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));

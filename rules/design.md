@@ -36,6 +36,14 @@ Primary dock icons use the shared navigation item and animate subtly between the
 
 Primary dock tabs use the persistent Forge tab bar. They cross-fade through the shared short tab transition rather than using a push or lateral slide, while a single local selection indicator moves to the active item. Retapping the active tab preserves its current navigation and scroll position. Their scroll bodies extend behind the lower system safe area and dock fade; only the dock's reachability inset is reserved, never a separate empty tab-bar band.
 
+## Motion
+
+Forge motion is quiet and purposeful: use it only to confirm a direct action, preserve navigation hierarchy, or keep a gesture physically connected to its result. Shared motion presets own the 120 ms feedback, 160–180 ms state transition, no-overshoot sheet settle, and direct-manipulation swipe settle. Do not add decorative entrances, staggered content reveals, bounce effects, or motion that delays repeated task entry.
+
+Tabs retain a short cross-fade and selection indicator; drill-in screens use one hierarchy-aware push/pop transition; shared sheets own their single entrance/exit and must not add a nested directional entrance. Gesture-driven sheets and destructive-row swipes follow the finger, then use the corresponding shared settle preset.
+
+Respect the operating system Reduce Motion preference without a separate Forge setting. In that mode, use immediate final states for scale, lateral, spring, and layout changes; retain only short opacity context where a screen or sheet transition would otherwise be disorienting. Haptics, semantics, and final interaction states must be unchanged.
+
 Across all vertically scrollable pages, including nested settings, details, and editors, the scroll viewport extends to the bottom screen edge. Reserve the bottom safe area inside the scrollable content so the final control can clear the home indicator; do not create an opaque safe-area strip outside the scroll viewport. Primary tabs include their floating dock clearance in that trailing space.
 
 Backgrounds exposed behind pages during navigation gestures and transitions must follow the active Forge theme, including the native app root.

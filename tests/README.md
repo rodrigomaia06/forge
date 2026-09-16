@@ -13,3 +13,5 @@
 Run the core flow matching the changed feature across the configured phone profiles, for example: `nice -n 10 npx playwright test tests/e2e/core/live-workout.flow.spec.ts --project=iphone-air --project=samsung-galaxy-s24 --workers=$(( $(getconf _NPROCESSORS_ONLN) * 2 / 3 ))`.
 
 Run all core flows only when a change crosses input, persistence, navigation, or transfer boundaries. Keep test processes at reduced priority and use at most two-thirds of available cores; run one resource-heavy suite at a time.
+
+Motion changes require focused phone coverage for dock/tab state, shared-sheet state, swipe reveal/settle, live-workout feedback, and stack back navigation. Run those checks with normal and emulated reduced motion, then manually inspect the corresponding Light and Dark captures on both configured phone profiles.

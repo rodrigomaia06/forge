@@ -18,6 +18,7 @@ import Animated, {
 import { Icon } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
+import { forgeMotion, forgeMotionDuration, useForgeReducedMotion } from '../../theme/motion';
 import { mediumHaptic } from './activeWorkoutFeedback';
 import { SetDetailsCard } from './SetDetailsCard';
 import { SetRow } from './SetRow';
@@ -51,27 +52,25 @@ function SwipeableSetRowComponent({
   const touchActiveRef = useRef(false);
   const openRef = useRef(deleteRevealed);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const reducedMotion = useForgeReducedMotion();
 
   useEffect(() => {
     RNAnimated.timing(entranceProgress, {
       toValue: 1,
-      duration: 120,
+      duration: forgeMotionDuration(reducedMotion, forgeMotion.feedback),
       useNativeDriver: Platform.OS !== 'web',
     }).start();
     return () => entranceProgress.stopAnimation();
-  }, [entranceProgress]);
+  }, [entranceProgress, reducedMotion]);
 
   useEffect(() => {
     openRef.current = deleteRevealed;
     deleteFractionRef.current = deleteRevealed ? 1 : 0;
     deleteOpen.value = deleteRevealed;
-    deleteTranslateX.value = withSpring(deleteRevealed ? -DELETE_ACTION_WIDTH : 0, {
-      damping: 22,
-      stiffness: 280,
-      mass: 0.65,
-      overshootClamping: true,
-    });
-  }, [deleteOpen, deleteRevealed, deleteTranslateX]);
+    deleteTranslateX.value = reducedMotion
+      ? (deleteRevealed ? -DELETE_ACTION_WIDTH : 0)
+      : withSpring(deleteRevealed ? -DELETE_ACTION_WIDTH : 0, forgeMotion.swipeSpring);
+  }, [deleteOpen, deleteRevealed, deleteTranslateX, reducedMotion]);
 
   useEffect(() => () => removalProgress.stopAnimation(), [removalProgress]);
 
@@ -80,7 +79,7 @@ function SwipeableSetRowComponent({
     removalStartedRef.current = true;
     RNAnimated.timing(removalProgress, {
       toValue: 1,
-      duration: 100,
+      duration: forgeMotionDuration(reducedMotion, forgeMotion.feedback),
       easing: Easing.out(Easing.cubic),
       useNativeDriver: Platform.OS !== 'web',
     }).start(({ finished }) => {
@@ -94,12 +93,9 @@ function SwipeableSetRowComponent({
       onDeleteRevealChange(shouldOpen);
       return;
     }
-    deleteTranslateX.value = withSpring(shouldOpen ? -DELETE_ACTION_WIDTH : 0, {
-      damping: 22,
-      stiffness: 280,
-      mass: 0.65,
-      overshootClamping: true,
-    });
+    deleteTranslateX.value = reducedMotion
+      ? (shouldOpen ? -DELETE_ACTION_WIDTH : 0)
+      : withSpring(shouldOpen ? -DELETE_ACTION_WIDTH : 0, forgeMotion.swipeSpring);
   };
 
   const updateDeleteFromDelta = (dx: number, dy = 0): boolean => {

@@ -5,6 +5,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-na
 import type { IconName, WorkoutTypePreference } from '../../types';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
+import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import { Button } from './Button';
 import { ForgeCard } from './ForgeCard';
 import { ForgeBottomSheetHandle } from './ForgeBottomSheet';
@@ -112,12 +113,15 @@ export function ForgeSwipeableAttributeRow({
   valueInput?: React.ReactNode;
 }) {
   const theme = useForgeTheme();
+  const reducedMotion = useForgeReducedMotion();
   const [deleteRevealed, setDeleteRevealed] = useState(false);
   const translateX = useSharedValue(0);
   const deleteWidth = 56;
   useEffect(() => {
-    translateX.value = withSpring(deleteRevealed ? -deleteWidth : 0, { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true });
-  }, [deleteRevealed, translateX]);
+    translateX.value = reducedMotion
+      ? (deleteRevealed ? -deleteWidth : 0)
+      : withSpring(deleteRevealed ? -deleteWidth : 0, forgeMotion.swipeSpring);
+  }, [deleteRevealed, reducedMotion, translateX]);
   const settle = (shouldOpen: boolean): void => {
     if (shouldOpen !== deleteRevealed) mediumHaptic();
     setDeleteRevealed(shouldOpen);

@@ -26,13 +26,14 @@ import { useSettings } from '../../state/SettingsContext';
 import { useWorkouts } from '../../state/WorkoutContext';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
+import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import type { RootStackParamList, WorkoutTypePreference } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 import { defaultCustomWorkoutTypeColor } from '../../domain/workouts/workoutTypeDefaults';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutTypes'>;
-const spring = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
+const spring = forgeMotion.swipeSpring;
 
 export function WorkoutTypesScreen({ navigation }: Props) {
   const { bottom: bottomInset } = useSafeAreaInsets();
@@ -241,6 +242,7 @@ function SwipeTypeRow({
   divider: boolean;
 }) {
   const theme = useForgeTheme();
+  const reducedMotion = useForgeReducedMotion();
   const width = 72;
   const x = useSharedValue(revealed ? -width : 0);
   const open = useSharedValue(revealed);
@@ -248,14 +250,14 @@ function SwipeTypeRow({
   const [expanded, setExpanded] = useState(false);
   useEffect(() => {
     open.value = revealed;
-    x.value = withSpring(revealed ? -width : 0, spring);
-  }, [open, revealed, x]);
+    x.value = reducedMotion ? (revealed ? -width : 0) : withSpring(revealed ? -width : 0, spring);
+  }, [open, reducedMotion, revealed, x]);
   const settle = (next: boolean, dragged: boolean) => {
     if (dragged) suppress.current = true;
     if (next !== revealed) {
       mediumHaptic();
       onReveal(next);
-    } else x.value = withSpring(next ? -width : 0, spring);
+    } else x.value = reducedMotion ? (next ? -width : 0) : withSpring(next ? -width : 0, spring);
   };
   const pan = Gesture.Pan()
     // Vertical list scrolling must win before a slight diagonal drag can reveal actions.

@@ -2,11 +2,9 @@ import React, { useEffect, useRef } from 'react';
 import { LayoutAnimation, Platform, UIManager, View, StyleSheet } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import Animated, {
-  Easing,
   measure,
   useAnimatedRef,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withTiming,
   type SharedValue,
@@ -15,6 +13,7 @@ import Animated, {
 import { NavigationItem, selectionHaptic } from './ui';
 import { getWorkoutTypePresentation } from '../domain/workouts/presentation';
 import { colors } from '../theme/tokens';
+import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
 import { useSettings } from '../state/SettingsContext';
 import { useWorkouts } from '../state/WorkoutContext';
 import type { ForgeTheme, IconName, RootTabParamList } from '../types';
@@ -30,8 +29,6 @@ interface BottomNavigationProps {
 type BottomNavigationScreen = keyof RootTabParamList;
 type NavigationItemEntry = [IconName, string, BottomNavigationScreen, boolean];
 
-let knownWorkoutId: string | null | undefined;
-
 export function BottomNavigation({
   tabBarProps,
   theme = colors,
@@ -45,25 +42,20 @@ export function BottomNavigation({
   const indicatorOpacity = useSharedValue(0);
   const activeIndex = useSharedValue(0);
   const navigationRef = useAnimatedRef<Animated.View>();
-  const reducedMotion = useReducedMotion();
+  const reducedMotion = useForgeReducedMotion();
   const hasActiveWorkout = Boolean(activeWorkout);
   const activeWorkoutIcon = activeWorkout
     ? getWorkoutTypePresentation(activeWorkout.type, preferences.workoutTypes, theme, 1).icon
     : 'fitness-outline';
-  const workoutStartedNow =
-    activeWorkout?.id !== undefined &&
-    activeWorkout.id !== knownWorkoutId &&
-    knownWorkoutId !== undefined;
-  knownWorkoutId = activeWorkout?.id ?? null;
   const workoutPresence = useRef(hasActiveWorkout);
   useEffect(() => {
     if (workoutPresence.current === hasActiveWorkout) return;
-    if (Platform.OS !== 'web') {
+    if (!reducedMotion && Platform.OS !== 'web') {
       if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     }
     workoutPresence.current = hasActiveWorkout;
-  }, [hasActiveWorkout]);
+  }, [hasActiveWorkout, reducedMotion]);
   const items: NavigationItemEntry[] = [
     ['home-outline', 'Dashboard', 'Dashboard', false],
     ['time-outline', 'History', 'History', false],
@@ -78,8 +70,8 @@ export function BottomNavigation({
 
   useEffect(() => {
     const next = Math.max(0, currentActiveIndex);
-    activeIndex.value = reducedMotion ? next : withTiming(next, { duration: 150, easing: Easing.out(Easing.cubic) });
-    indicatorOpacity.value = reducedMotion ? 1 : withTiming(1, { duration: 150, easing: Easing.out(Easing.cubic) });
+    activeIndex.value = reducedMotion ? next : withTiming(next, { duration: forgeMotion.state, easing: forgeMotion.easing });
+    indicatorOpacity.value = reducedMotion ? 1 : withTiming(1, { duration: forgeMotion.state, easing: forgeMotion.easing });
   }, [activeIndex, currentActiveIndex, indicatorOpacity, reducedMotion]);
 
   const selectionIndicatorStyle = useAnimatedStyle(() => {
@@ -152,7 +144,6 @@ export function BottomNavigation({
               onPress={() => goTo(screen)}
               theme={theme}
               iconSize={iconSize}
-              enterFromBottom={emphasis && workoutStartedNow}
               compact={compact}
               accessibilityLabel={label}
             />

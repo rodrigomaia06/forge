@@ -14,6 +14,7 @@ import { ExerciseLibraryScreen } from '../screens/settings/ExerciseLibraryScreen
 import { ExerciseBrowserScreen } from '../screens/settings/ExerciseBrowserScreen';
 import { useWorkouts } from '../state/WorkoutContext';
 import { useForgeTheme } from '../theme/ThemeProvider';
+import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
 import type { RootStackParamList } from '../types';
 import { MainTabNavigator } from './MainTabNavigator';
 
@@ -37,6 +38,7 @@ enableFreeze(true);
 export function AppNavigator() {
   const { ready } = useWorkouts();
   const theme = useForgeTheme();
+  const reducedMotion = useForgeReducedMotion();
   const navigationTheme = useMemo(
     () => {
       const base = theme.colorScheme === 'dark' ? DarkTheme : DefaultTheme;
@@ -63,14 +65,14 @@ export function AppNavigator() {
         initialRouteName="MainTabs"
         screenOptions={{
           headerShown: false,
-          animation: 'fade',
-          animationDuration: 180,
+          animation: reducedMotion ? 'fade' : 'slide_from_right',
+          animationDuration: forgeMotion.transition,
           freezeOnBlur: true,
           contentStyle: { backgroundColor: theme.background },
         }}
       >
         <Stack.Screen name="MainTabs" component={MainTabNavigator} options={{ gestureEnabled: false }} />
-        <Stack.Screen name="WorkoutDetails" component={WorkoutDetailsScreen} options={{ gestureEnabled: true, animation: 'slide_from_right' }} />
+        <Stack.Screen name="WorkoutDetails" component={WorkoutDetailsScreen} options={{ gestureEnabled: true }} />
         <Stack.Screen
           name="HistoryWorkoutEditor"
           component={HistoryWorkoutEditorScreen}

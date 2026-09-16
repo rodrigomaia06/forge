@@ -30,6 +30,7 @@ import { animateLayout, errorHaptic, mediumHaptic } from './activeWorkout/active
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
+import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
 import type { RootTabScreenProps, Workout } from '../types';
 import { useForgeDockScrollInset } from '../components/DockChrome';
 
@@ -60,6 +61,7 @@ export function HistoryScreen({
   const { plans } = usePlans();
   const { preferences } = useSettings();
   const theme = useForgeTheme();
+  const reducedMotion = useForgeReducedMotion();
   const styles = useThemedStyles(createStyles);
   const dockScrollInset = useForgeDockScrollInset();
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -180,7 +182,7 @@ export function HistoryScreen({
                       });
                     }}
                     onDelete={() => {
-                      animateLayout();
+                      animateLayout(reducedMotion);
                       errorHaptic();
                       deleteCompletedWorkout(workout.id);
                       setDeleteRevealedId(null);
@@ -439,6 +441,7 @@ function TimelineRow({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const reducedMotion = useForgeReducedMotion();
   const swipeableRef = useRef<SwipeableMethods>(null);
   const suppressNextPress = useRef(false);
   const date = new Date(workout.completedAt ?? workout.startedAt);
@@ -472,7 +475,7 @@ function TimelineRow({
           friction={1.35}
           rightThreshold={32}
           overshootRight={false}
-          animationOptions={swipeSpring}
+          animationOptions={reducedMotion ? { duration: 0 } : swipeSpring}
           onSwipeableOpenStartDrag={() => {
             suppressNextPress.current = true;
           }}
@@ -543,7 +546,7 @@ function TimelineRow({
   );
 }
 
-const swipeSpring = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
+const swipeSpring = forgeMotion.swipeSpring;
 const historyCardRadius = 16;
 const historyRailCenter = 58.5;
 const historyGroupRailTop = 61;

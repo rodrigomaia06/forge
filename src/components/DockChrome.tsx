@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DockSurface } from './DockSurface';
 import { useWorkouts } from '../state/WorkoutContext';
 import { dashboardTheme } from '../theme/dashboardTheme';
+import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
 import type { ForgeTheme } from '../types';
 
 /** Geometry shared by the floating primary dock and the tab scenes beneath it. */
@@ -84,15 +85,11 @@ export function DockChrome({
     '',
   );
   const compactProgress = useSharedValue(compact ? 1 : 0);
+  const reducedMotion = useForgeReducedMotion();
 
   useEffect(() => {
-    compactProgress.value = withSpring(compact ? 1 : 0, {
-      damping: 22,
-      stiffness: 340,
-      mass: 0.55,
-      overshootClamping: true,
-    });
-  }, [compact, compactProgress]);
+    compactProgress.value = reducedMotion ? (compact ? 1 : 0) : withSpring(compact ? 1 : 0, forgeMotion.dockSpring);
+  }, [compact, compactProgress, reducedMotion]);
 
   return (
     <View

@@ -4,6 +4,7 @@ import { ForgeNumericRangeInput, ForgeText as Text, ForgeTextInput as TextInput 
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
+import { forgeMotion, forgeMotionDuration, useForgeReducedMotion } from '../../theme/motion';
 import { errorHaptic } from './activeWorkoutFeedback';
 import { CompletionCheck } from './CompletionCheck';
 import type { SetRowProps } from './activeWorkoutTypes';
@@ -32,6 +33,7 @@ export function SetRow({
   const styles = useThemedStyles(createStyles);
   const weightInvalidProgress = useRef(new Animated.Value(0)).current;
   const repsInvalidProgress = useRef(new Animated.Value(0)).current;
+  const reducedMotion = useForgeReducedMotion();
   const invalidTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const setRowRef = useRef<View>(null);
   const [routineRangeDrafts, setRoutineRangeDrafts] = useState<Partial<Record<import('../../types').SetMeasurementKind, string>>>({});
@@ -54,16 +56,16 @@ export function SetRow({
     setRoutineRangeDrafts({});
   }, [set.id]);
 
-  const animateInvalidField = (field: 'weight' | 'reps', value: number, duration = 150): void => {
+  const animateInvalidField = (field: 'weight' | 'reps', value: number, duration: number = forgeMotion.feedback): void => {
     Animated.timing(field === 'weight' ? weightInvalidProgress : repsInvalidProgress, {
       toValue: value,
-      duration,
+      duration: forgeMotionDuration(reducedMotion, duration),
       useNativeDriver: false,
     }).start();
   };
 
   const updateField = (field: 'weight' | 'reps', value: string): void => {
-    animateInvalidField(field, 0, 300);
+    animateInvalidField(field, 0, forgeMotion.transition);
     onChange({ [field]: value });
   };
 
@@ -77,8 +79,8 @@ export function SetRow({
         animateInvalidField('reps', missingReps ? 1 : 0);
         if (invalidTimerRef.current) clearTimeout(invalidTimerRef.current);
         invalidTimerRef.current = setTimeout(() => {
-          animateInvalidField('weight', 0, 300);
-          animateInvalidField('reps', 0, 300);
+          animateInvalidField('weight', 0, forgeMotion.transition);
+          animateInvalidField('reps', 0, forgeMotion.transition);
           invalidTimerRef.current = null;
         }, 1200);
         errorHaptic();

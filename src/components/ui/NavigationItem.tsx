@@ -7,17 +7,11 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import Animated, {
-  Easing,
-  cancelAnimation,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
 import { Icon } from './Icon';
 import { ForgeText as Text } from './ForgeText';
 import { colors } from '../../theme/tokens';
 import { typeScale } from '../../theme/tokens';
+import { forgeMotion, forgeMotionDuration, useForgeReducedMotion } from '../../theme/motion';
 import type { ForgeTheme, IconName } from '../../types';
 
 interface NavigationItemProps {
@@ -28,7 +22,6 @@ interface NavigationItemProps {
   onPress: () => void;
   theme?: ForgeTheme;
   iconSize?: number;
-  enterFromBottom?: boolean;
   compact?: boolean;
   /** A compact, live metadata value such as the active rest countdown. */
   badge?: string;
@@ -43,53 +36,24 @@ export function NavigationItem({
   onPress,
   theme = colors,
   iconSize = 23,
-  enterFromBottom = false,
   compact = false,
   badge,
   accessibilityLabel,
 }: NavigationItemProps) {
   const activeProgress = useRef(new RNAnimated.Value(0)).current;
-  const entranceProgress = useSharedValue(enterFromBottom ? 0 : 1);
-  const entranceStarted = useRef(false);
+  const reducedMotion = useForgeReducedMotion();
 
   useEffect(() => {
     RNAnimated.timing(activeProgress, {
       toValue: active ? 1 : 0,
-      duration: 180,
+      duration: forgeMotionDuration(reducedMotion, forgeMotion.transition),
       easing: RNEasing.out(RNEasing.cubic),
       useNativeDriver: Platform.OS !== 'web',
     }).start();
-  }, [active, activeProgress]);
-
-  useEffect(() => {
-    if (!enterFromBottom) {
-      entranceStarted.current = false;
-      entranceProgress.value = 1;
-      return undefined;
-    }
-    if (entranceStarted.current) return () => cancelAnimation(entranceProgress);
-    entranceProgress.value = 0;
-    return () => cancelAnimation(entranceProgress);
-  }, [enterFromBottom, entranceProgress]);
-
-  const startEntranceAfterLayout = (): void => {
-    if (!enterFromBottom || entranceStarted.current) return;
-    entranceStarted.current = true;
-    entranceProgress.value = withTiming(1, {
-      duration: 600,
-      easing: Easing.out(Easing.cubic),
-    });
-  };
-
-  const entranceStyle = useAnimatedStyle(() => ({
-    opacity: entranceProgress.value,
-  }));
+  }, [active, activeProgress, reducedMotion]);
 
   return (
-    <Animated.View
-      onLayout={startEntranceAfterLayout}
-      style={[styles.itemAnimation, enterFromBottom && entranceStyle]}
-    >
+    <View style={styles.itemAnimation}>
       <Pressable
         testID={active ? 'dashboard-nav-active' : `dashboard-nav-${label.toLowerCase()}`}
         accessibilityRole="tab"
@@ -147,7 +111,7 @@ export function NavigationItem({
           </View> : null}
         </RNAnimated.View>
       </Pressable>
-    </Animated.View>
+    </View>
   );
 }
 

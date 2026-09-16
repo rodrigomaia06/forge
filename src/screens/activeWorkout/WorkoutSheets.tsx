@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Keyboard, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, {
-  FadeInDown,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -26,6 +25,7 @@ import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingC
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
+import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import type { ExerciseCatalogItem } from '../../data/exerciseCatalog';
 import { useExerciseCatalog } from '../../state/ExerciseCatalogContext';
 import { useSettings } from '../../state/SettingsContext';
@@ -76,6 +76,7 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   onClose: () => void;
   onSubmit: (exercises: ExerciseCatalogItem[]) => void;
 }) {
+  const reducedMotion = useForgeReducedMotion();
   const { exercises: exerciseCatalog, addCustomExercise } = useExerciseCatalog();
   const { preferences } = useSettings();
   const theme = useForgeTheme();
@@ -190,16 +191,16 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   const toggleGroup = useCallback((key: string, expanded: boolean): void => {
     Keyboard.dismiss();
     selectionHaptic();
-    animateSheetContent();
+    animateSheetContent(reducedMotion);
     setExpandedGroup(expanded ? null : key);
     setExpandedEquipment(null);
-  }, []);
+  }, [reducedMotion]);
   const toggleEquipment = useCallback((key: string, expanded: boolean): void => {
     Keyboard.dismiss();
     selectionHaptic();
-    animateSheetContent();
+    animateSheetContent(reducedMotion);
     setExpandedEquipment(expanded ? null : key);
-  }, []);
+  }, [reducedMotion]);
   const reset = useCallback((): void => {
     Keyboard.dismiss();
     setQuery('');
@@ -672,10 +673,11 @@ function AnimatedChevron({ expanded }: { expanded: boolean }) {
   const dashboardTheme = theme;
   const styles = useThemedStyles(createStyles);
   const progress = useSharedValue(expanded ? 1 : 0);
+  const reducedMotion = useForgeReducedMotion();
 
   useEffect(() => {
-    progress.value = withTiming(expanded ? 1 : 0, { duration: 140 });
-  }, [expanded, progress]);
+    progress.value = reducedMotion ? (expanded ? 1 : 0) : withTiming(expanded ? 1 : 0, { duration: forgeMotion.feedback });
+  }, [expanded, progress, reducedMotion]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${progress.value * 90}deg` }],
@@ -690,23 +692,10 @@ function AnimatedChevron({ expanded }: { expanded: boolean }) {
 
 function AnimatedCount({ count }: { count: number }) {
   const styles = useThemedStyles(createStyles);
-  const progress = useSharedValue(1);
-
-  useEffect(() => {
-    progress.value = 0.8;
-    progress.value = withSpring(1, { damping: 16, stiffness: 300 });
-  }, [count, progress]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: progress.value }],
-  }));
-
   return (
-    <Animated.Text
-      style={[styles.groupCountText, count > 0 && styles.groupCountTextActive, animatedStyle]}
-    >
+    <Text style={[styles.groupCountText, count > 0 && styles.groupCountTextActive]}>
       {count}
-    </Animated.Text>
+    </Text>
   );
 }
 
@@ -741,6 +730,7 @@ export function ExerciseOptionsSheet({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const reducedMotion = useForgeReducedMotion();
   const [view, setView] = useState<'actions' | 'note' | 'history' | 'info'>('actions');
   const [noteDraft, setNoteDraft] = useState(exercise.note ?? '');
   const [noteHeight, setNoteHeight] = useState(156);
@@ -755,7 +745,7 @@ export function ExerciseOptionsSheet({
     // These destinations deliberately replace the action list in one Forge
     // sheet. Give its height/content change the same short native transition
     // used by catalogue expansion instead of snapping the body in place.
-    animateSheetContent();
+    animateSheetContent(reducedMotion);
     setView(nextView);
   };
   const close = (): void => {
@@ -773,7 +763,7 @@ export function ExerciseOptionsSheet({
   };
   const backToActions = (): void => {
     commitNote();
-    animateSheetContent();
+    animateSheetContent(reducedMotion);
     setView('actions');
   };
 
@@ -806,7 +796,7 @@ export function ExerciseOptionsSheet({
         }] : []),
       ]}
       replacement={view !== 'actions' ? (closeSheet) => (
-        <Animated.View key={view} entering={FadeInDown.duration(180)}>
+        <View key={view}>
           <ForgeBottomSheetHandle />
           <ForgeSheetHeader
             title={view === 'note' ? 'Exercise note' : view === 'history' ? 'Previous sessions' : 'Exercise info'}
@@ -849,7 +839,7 @@ export function ExerciseOptionsSheet({
               />
             </ForgeCard>
           </View> : null}
-        </Animated.View>
+        </View>
       ) : null}
     />
   );

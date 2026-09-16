@@ -1,7 +1,6 @@
 import React, { useEffect, type ReactNode, type Ref } from 'react';
 import { StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import Animated, {
-  Easing,
   interpolate,
   useDerivedValue,
   type SharedValue,
@@ -12,6 +11,7 @@ import Animated, {
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BottomNavigation } from './BottomNavigation';
 import { dashboardTheme } from '../theme/dashboardTheme';
+import { forgeMotion, forgeMotionDuration, useForgeReducedMotion } from '../theme/motion';
 import type { ForgeTheme } from '../types';
 
 interface DockSurfaceProps {
@@ -51,6 +51,7 @@ export function DockSurface({
   // centred on its measured slot instead of overflowing the dock.
   const compactWidth = Math.min(Math.max(viewportWidth * 0.76, 304), 336);
   const activeWorkoutProgress = useSharedValue(activeWorkout ? 1 : 0);
+  const reducedMotion = useForgeReducedMotion();
   const surfaceWidth = useDerivedValue(() => {
     const expandedWidth = interpolate(
       activeWorkoutProgress.value,
@@ -63,17 +64,17 @@ export function DockSurface({
   useEffect(() => {
     if (compactProgress) return;
     internalProgress.value = withTiming(compact ? 1 : 0, {
-      duration: 220,
-      easing: Easing.out(Easing.cubic),
+      duration: forgeMotionDuration(reducedMotion, forgeMotion.transition),
+      easing: forgeMotion.easing,
     });
-  }, [compact, compactProgress, internalProgress]);
+  }, [compact, compactProgress, internalProgress, reducedMotion]);
 
   useEffect(() => {
     activeWorkoutProgress.value = withTiming(activeWorkout ? 1 : 0, {
-      duration: 260,
-      easing: Easing.out(Easing.cubic),
+      duration: forgeMotionDuration(reducedMotion, forgeMotion.transition),
+      easing: forgeMotion.easing,
     });
-  }, [activeWorkout, activeWorkoutProgress]);
+  }, [activeWorkout, activeWorkoutProgress, reducedMotion]);
 
   const surfaceAnimatedStyle = useAnimatedStyle(() => {
     return {

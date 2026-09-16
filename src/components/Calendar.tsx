@@ -4,6 +4,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors } from '../theme/tokens';
+import { forgeMotion, forgeMotionDuration, useForgeReducedMotion } from '../theme/motion';
 import { getWorkoutTypePresentation } from '../domain/workouts/presentation';
 import { calendarDateKey } from '../domain/workouts/calendarDate';
 import { ForgeText as Text, Icon, lightHaptic, pressedFeedback, pressedFeedbackSubtle } from './ui';
@@ -161,14 +162,15 @@ function CalendarViewMenu({
   style?: StyleProp<ViewStyle>;
 }) {
   const progress = useRef(new Animated.Value(0)).current;
+  const reducedMotion = useForgeReducedMotion();
   useEffect(() => {
     Animated.timing(progress, {
       toValue: 1,
-      duration: 160,
+      duration: forgeMotionDuration(reducedMotion, forgeMotion.state),
       easing: Easing.out(Easing.quad),
       useNativeDriver: Platform.OS !== 'web',
     }).start();
-  }, [progress]);
+  }, [progress, reducedMotion]);
   return (
     <Animated.View
       style={[
@@ -232,15 +234,16 @@ function CalendarContent({
   weekStartsOn: WeekStartsOn;
 }) {
   const progress = useRef(new Animated.Value(1)).current;
+  const reducedMotion = useForgeReducedMotion();
   useEffect(() => {
-    progress.setValue(0);
+    progress.setValue(reducedMotion ? 1 : 0);
     Animated.timing(progress, {
       toValue: 1,
-      duration: 180,
+      duration: forgeMotionDuration(reducedMotion, forgeMotion.transition),
       easing: Easing.out(Easing.cubic),
       useNativeDriver: Platform.OS !== 'web',
     }).start();
-  }, [view, progress]);
+  }, [view, progress, reducedMotion]);
   return (
     <Animated.View
       style={{
@@ -460,14 +463,15 @@ function DayCell({
   const isSelected = sameCalendarDay(date, selectedDate);
   const hasWorkout = Boolean(dayWorkouts);
   const selectionProgress = useRef(new Animated.Value(isSelected ? 1 : 0)).current;
+  const reducedMotion = useForgeReducedMotion();
   useEffect(() => {
     Animated.timing(selectionProgress, {
       toValue: isSelected ? 1 : 0,
-      duration: 160,
+      duration: forgeMotionDuration(reducedMotion, forgeMotion.state),
       easing: Easing.out(Easing.quad),
       useNativeDriver: Platform.OS !== 'web',
     }).start();
-  }, [isSelected, selectionProgress]);
+  }, [isSelected, reducedMotion, selectionProgress]);
   return (
     <Pressable
       testID={isSelected ? 'calendar-selected-day' : undefined}

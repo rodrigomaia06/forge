@@ -12,6 +12,7 @@ import { Button, ForgeConfirmationDialog, ForgeText as Text, Icon, pressedFeedba
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
+import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import {
   animateLayout,
   animateSetRemoval,
@@ -65,6 +66,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   onSetInputFocus,
 }: ExerciseSectionProps) {
   const theme = useForgeTheme();
+  const reducedMotion = useForgeReducedMotion();
   const styles = useThemedStyles(createStyles);
   const deleteActionWidth = 64;
   const [optionsOpen, setOptionsOpen] = useState(false);
@@ -122,18 +124,15 @@ export const ExerciseSection = React.memo(function ExerciseSection({
     optionTransitionTimer.current = setTimeout(() => {
       optionTransitionTimer.current = null;
       action();
-    }, 220);
+    }, reducedMotion ? 0 : forgeMotion.sheetExit);
   };
 
   useEffect(() => {
     cardOpen.value = deleteRevealed;
-    cardTranslateX.value = withSpring(deleteRevealed ? -deleteActionWidth : 0, {
-      damping: 22,
-      stiffness: 280,
-      mass: 0.65,
-      overshootClamping: true,
-    });
-  }, [cardOpen, cardTranslateX, deleteActionWidth, deleteRevealed]);
+    cardTranslateX.value = reducedMotion
+      ? (deleteRevealed ? -deleteActionWidth : 0)
+      : withSpring(deleteRevealed ? -deleteActionWidth : 0, forgeMotion.swipeSpring);
+  }, [cardOpen, cardTranslateX, deleteActionWidth, deleteRevealed, reducedMotion]);
 
   useEffect(() => {
     setExpanded(!collapsible);
@@ -148,12 +147,9 @@ export const ExerciseSection = React.memo(function ExerciseSection({
       mediumHaptic();
       onDeleteRevealChange(exercise.id, shouldOpen);
     } else {
-      cardTranslateX.value = withSpring(shouldOpen ? -deleteActionWidth : 0, {
-        damping: 22,
-        stiffness: 280,
-        mass: 0.65,
-        overshootClamping: true,
-      });
+      cardTranslateX.value = reducedMotion
+        ? (shouldOpen ? -deleteActionWidth : 0)
+        : withSpring(shouldOpen ? -deleteActionWidth : 0, forgeMotion.swipeSpring);
     }
     requestAnimationFrame(() => {
       suppressDeletePress.current = false;
@@ -202,7 +198,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
             onPress={() => {
               if (suppressDeletePress.current) return;
               errorHaptic();
-              animateLayout();
+              animateLayout(reducedMotion);
               removeExercise(exercise.id);
               onDeleteRevealChange(exercise.id, false);
             }}
@@ -236,7 +232,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 unstable_pressDelay={80}
                 onPress={() => {
                   selectionHaptic();
-                  animateLayout();
+                  animateLayout(reducedMotion);
                   setExpanded((current) => !current);
                 }}
                 style={({ pressed }) => [
@@ -326,7 +322,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     }}
                     onDelete={() => {
                       errorHaptic();
-                      animateSetRemoval();
+                      animateSetRemoval(reducedMotion);
                       removeSet(exercise.id, set.id);
                     }}
                     deleteRevealed={openSetId === set.id}
@@ -398,7 +394,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
               onCancel={() => setRemoveConfirmationOpen(false)}
               onConfirm={() => {
                 setRemoveConfirmationOpen(false);
-                animateLayout();
+                animateLayout(reducedMotion);
                 removeExercise(exercise.id);
               }}
             />
@@ -422,6 +418,7 @@ export function ReadOnlyExerciseSection({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const reducedMotion = useForgeReducedMotion();
   const [expanded, setExpanded] = useState(false);
   const [openSetIndex, setOpenSetIndex] = useState<number | null>(null);
   const [optionsOpen, setOptionsOpen] = useState(false);
@@ -459,7 +456,7 @@ export function ReadOnlyExerciseSection({
         unstable_pressDelay={80}
         onPress={() => {
           selectionHaptic();
-          animateLayout();
+          animateLayout(reducedMotion);
           setExpanded((current) => !current);
         }}
         style={[styles.readOnlyExerciseHeader, styles.readOnlyExerciseHeaderPressable, minimal && styles.readOnlyMinimalExerciseHeader]}

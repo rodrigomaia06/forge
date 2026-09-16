@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
-import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import {
   Button,
@@ -29,6 +29,7 @@ import { useSettings } from '../../state/SettingsContext';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
+import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import type { DailyMeasurementDefinition, IconName, RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
@@ -81,6 +82,7 @@ function formatValue(value: number, unit: string): string {
 export function DailyMeasurementsScreen({ navigation }: Props) {
   const { bottom: bottomInset } = useSafeAreaInsets();
   const theme = useForgeTheme();
+  const reducedMotion = useForgeReducedMotion();
   const styles = useThemedStyles(createStyles);
   const floatingCtaClearance = useForgeFloatingCtaClearance();
   const { preferences, updatePreferences } = useSettings();
@@ -286,8 +288,8 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
           <Animated.View
             key={selected.id}
             testID="measurements-active-metric"
-            entering={animateMetricChange ? FadeInRight.duration(180) : undefined}
-            exiting={animateMetricChange ? FadeOutLeft.duration(120) : undefined}
+            entering={animateMetricChange && !reducedMotion ? FadeIn.duration(forgeMotion.transition) : undefined}
+            exiting={animateMetricChange && !reducedMotion ? FadeOut.duration(forgeMotion.feedback) : undefined}
             style={styles.selectedMetricContent}
           >
             <ForgeCard variant="elevated" style={styles.summaryCard}>

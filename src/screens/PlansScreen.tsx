@@ -26,6 +26,7 @@ import {
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { spacing, typeScale } from '../theme/tokens';
+import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
 import { usePlans } from '../state/PlansContext';
 import { useSettings } from '../state/SettingsContext';
 import { useWorkouts } from '../state/WorkoutContext';
@@ -43,7 +44,7 @@ import { useForgeDockScrollInset } from '../components/DockChrome';
 type Props = RootTabScreenProps<'Plans'>;
 type PlanActionTarget =
   { kind: 'routine'; item: WorkoutRoutine } | { kind: 'plan'; item: WorkoutPlan };
-const swipeSpring = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
+const swipeSpring = forgeMotion.swipeSpring;
 
 export function PlansScreen({ navigation, route }: Props) {
   const { width } = useWindowDimensions();
@@ -485,6 +486,7 @@ function SwipeDelete({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const reducedMotion = useForgeReducedMotion();
   const actionWidth = 76;
   const [revealed, setRevealed] = useState(false);
   const offset = useSharedValue(0);
@@ -494,8 +496,8 @@ function SwipeDelete({
 
   useEffect(() => {
     open.value = revealed;
-    offset.value = withSpring(revealed ? -actionWidth : 0, swipeSpring);
-  }, [offset, open, revealed]);
+    offset.value = reducedMotion ? (revealed ? -actionWidth : 0) : withSpring(revealed ? -actionWidth : 0, swipeSpring);
+  }, [offset, open, reducedMotion, revealed]);
 
   const settle = (next: boolean, dragged: boolean): void => {
     if (dragged) suppressNextPress.current = true;
@@ -503,7 +505,7 @@ function SwipeDelete({
       mediumHaptic();
       setRevealed(next);
     } else {
-      offset.value = withSpring(next ? -actionWidth : 0, swipeSpring);
+      offset.value = reducedMotion ? (next ? -actionWidth : 0) : withSpring(next ? -actionWidth : 0, swipeSpring);
     }
     requestAnimationFrame(() => {
       suppressDeletePress.current = false;

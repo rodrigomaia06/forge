@@ -55,6 +55,7 @@ import { useSettings } from '../../state/SettingsContext';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
+import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import type { IconName, RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { workoutTypeIcon } from './workoutTypeIcon';
@@ -106,11 +107,12 @@ const restTimeOptions: readonly ForgeSingleSelectOption<number>[] = REST_DURATIO
     accessibilityLabel: `Rest duration ${formatPickerDuration(seconds)}`,
   }),
 );
-const swipeSpring = { damping: 22, stiffness: 280, mass: 0.65, overshootClamping: true };
+const swipeSpring = forgeMotion.swipeSpring;
 
 export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const { bottom: bottomInset } = useSafeAreaInsets();
   const theme = useForgeTheme();
+  const reducedMotion = useForgeReducedMotion();
   const styles = useThemedStyles(createStyles);
   const { height: viewportHeight } = useWindowDimensions();
   const floatingCtaClearance = useForgeFloatingCtaClearance();
@@ -386,17 +388,31 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     setRestOverride(item, seconds);
   };
   const transitionDetailSheet = (nextView: DetailSheetView) => {
+    if (reducedMotion) {
+      setDetailSheetView(nextView);
+      return;
+    }
     if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setDetailSheetView(nextView);
   };
   const transitionFormView = (nextView: ExerciseFormView) => {
+    if (reducedMotion) {
+      setSelectorQuery('');
+      setFormView(nextView);
+      return;
+    }
     if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setSelectorQuery('');
     setFormView(nextView);
   };
   const toggleOptionalDetails = () => {
+    if (reducedMotion) {
+      selectionHaptic();
+      setShowOptionalDetails((current) => !current);
+      return;
+    }
     if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     selectionHaptic();
@@ -1310,6 +1326,7 @@ function SwipeCustomExerciseRow({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const reducedMotion = useForgeReducedMotion();
   const actionWidth = 72;
   const [revealed, setRevealed] = useState(false);
   const offset = useSharedValue(0);
@@ -1318,8 +1335,8 @@ function SwipeCustomExerciseRow({
 
   useEffect(() => {
     open.value = revealed;
-    offset.value = withSpring(revealed ? -actionWidth : 0, swipeSpring);
-  }, [offset, open, revealed]);
+    offset.value = reducedMotion ? (revealed ? -actionWidth : 0) : withSpring(revealed ? -actionWidth : 0, swipeSpring);
+  }, [offset, open, reducedMotion, revealed]);
 
   const settle = (next: boolean, dragged: boolean): void => {
     if (dragged) suppressNextPress.current = true;
@@ -1328,7 +1345,7 @@ function SwipeCustomExerciseRow({
       setRevealed(next);
       return;
     }
-    offset.value = withSpring(next ? -actionWidth : 0, swipeSpring);
+    offset.value = reducedMotion ? (next ? -actionWidth : 0) : withSpring(next ? -actionWidth : 0, swipeSpring);
   };
   const pan = Gesture.Pan()
     // Do not let a diagonal list scroll activate this horizontal delete gesture.

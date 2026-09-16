@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
 
 import {
   ForgeBottomSheet,
@@ -19,6 +18,7 @@ import { buildWarmupPlan } from '../../domain/workouts/warmup';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
+import { useForgeReducedMotion } from '../../theme/motion';
 import type { Workout, WorkoutExercise, WorkoutSet } from '../../types';
 import { HistorySetRow } from './HistorySetRow';
 import { SetDetailsCard } from './SetDetailsCard';
@@ -194,6 +194,7 @@ export function PreviousSessionsContent({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const reducedMotion = useForgeReducedMotion();
   const scrollViewRef = useRef<ScrollView>(null);
   const [uncontrolledShowAll, setUncontrolledShowAll] = useState(false);
   const [openSet, setOpenSet] = useState<{ set: WorkoutSet; index: number; trackingType: NonNullable<WorkoutExercise['trackingType']> } | null>(null);
@@ -204,7 +205,7 @@ export function PreviousSessionsContent({
   const showAll = controlledShowAll ?? uncontrolledShowAll;
   const visibleSessions = showAll ? sessions : sessions.slice(0, 3);
   const revealAll = (): void => {
-    animateLayout();
+    animateLayout(reducedMotion);
     if (onShowAllChange) onShowAllChange(true);
     else setUncontrolledShowAll(true);
   };
@@ -226,14 +227,14 @@ export function PreviousSessionsContent({
     onScroll={(event) => onScrollOffsetChange?.(event.nativeEvent.contentOffset.y)}
     scrollEventThrottle={16}
   >{sessions.length ? <>
-    {visibleSessions.map(({ workout, exercise: sessionExercise }, index) => <Animated.View key={workout.id} entering={index >= 3 ? FadeIn.duration(140) : undefined}>
+    {visibleSessions.map(({ workout, exercise: sessionExercise }) => <View key={workout.id}>
       <ForgeCard testID={`previous-session-card-${workout.id}`} variant="outlined" style={styles.previousSessionCard}>
       <Pressable accessibilityRole={onOpenWorkout ? 'button' : undefined} accessibilityLabel={onOpenWorkout ? `Open ${workout.name}` : undefined} onPress={() => onOpenWorkout?.(workout.id)} style={({ pressed }) => [styles.previousSessionHeader, pressed && pressedFeedbackSubtle]}>
         <View style={styles.sessionCopy}><Text style={styles.sessionTitle} numberOfLines={1}>{workout.name}</Text><Text style={[styles.sessionDate, { color: theme.textSecondary }]}>{sessionDateTime(workout)}</Text></View>{onOpenWorkout ? <Icon name="chevron-forward" size={22} color={theme.textSecondary} /> : null}
       </Pressable>
       {sessionExercise.sets.map((set, index) => <HistorySetRow key={set.id} set={set} index={index} compact isLast={index === sessionExercise.sets.length - 1} trackingType={sessionExercise.exerciseSnapshot?.trackingType ?? sessionExercise.trackingType ?? 'weight-reps'} onOpenDetails={() => setOpenSet({ set, index, trackingType: sessionExercise.exerciseSnapshot?.trackingType ?? sessionExercise.trackingType ?? 'weight-reps' })} />)}
       </ForgeCard>
-    </Animated.View>)}
+    </View>)}
     {!showAll && sessions.length > 3 ? <Pressable accessibilityRole="button" accessibilityLabel={`Show ${sessions.length - 3} more sessions`} onPress={revealAll} style={({ pressed }) => [styles.showMoreSessions, { backgroundColor: theme.surface }, pressed && pressedFeedbackSubtle]}><Text style={styles.showMoreText}>{`Show ${sessions.length - 3} more`}</Text></Pressable> : null}
   </> : <View style={[styles.emptyCard, { borderColor: theme.border, backgroundColor: theme.surfaceMuted }]}><Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>No completed sessions for this exercise yet.</Text></View>}</ScrollView>{openSet ? <SetDetailsCard visible set={openSet.set} index={openSet.index} editable={false} onChange={() => undefined} onDelete={() => undefined} onDone={() => setOpenSet(null)} trackingType={openSet.trackingType} /> : null}</>;
 }

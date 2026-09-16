@@ -10,6 +10,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
+import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 
 import {
   Button,
@@ -396,10 +397,13 @@ function SetTypeOption({
   const styles = useThemedStyles(createStyles);
   const theme = useForgeTheme();
   const progress = useSharedValue(selected ? 1 : 0);
+  const reducedMotion = useForgeReducedMotion();
 
   useEffect(() => {
-    progress.value = withTiming(selected ? 1 : 0, { duration: 150 });
-  }, [progress, selected]);
+    progress.value = reducedMotion
+      ? (selected ? 1 : 0)
+      : withTiming(selected ? 1 : 0, { duration: forgeMotion.state });
+  }, [progress, reducedMotion, selected]);
 
   const selectedStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
   const radioDotStyle = useAnimatedStyle(() => ({

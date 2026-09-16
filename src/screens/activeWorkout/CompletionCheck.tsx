@@ -3,6 +3,7 @@ import { Animated, Easing, Platform, StyleSheet } from 'react-native';
 import { Icon } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
+import { forgeMotion, forgeMotionDuration, useForgeReducedMotion } from '../../theme/motion';
 
 export function CompletionCheck({
   selected,
@@ -17,15 +18,16 @@ export function CompletionCheck({
   const dashboardTheme = theme;
   const styles = useThemedStyles(createStyles);
   const progress = useRef(new Animated.Value(selected ? 1 : 0)).current;
+  const reducedMotion = useForgeReducedMotion();
 
   useEffect(() => {
     Animated.timing(progress, {
       toValue: selected ? 1 : 0,
-      duration: 180,
+      duration: forgeMotionDuration(reducedMotion, forgeMotion.transition),
       easing: Easing.out(Easing.cubic),
       useNativeDriver: Platform.OS !== 'web',
     }).start();
-  }, [progress, selected]);
+  }, [progress, reducedMotion, selected]);
 
   return (
     <Animated.View
