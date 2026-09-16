@@ -48,3 +48,17 @@ export async function appendCompletedWorkout(workout: Workout): Promise<void> {
   const current = parse<Workout[]>(await AsyncStorage.getItem(COMPLETED_KEY), []);
   await saveCompletedWorkouts([workout, ...current.filter((item) => item.id !== workout.id)]);
 }
+// Web persistence keeps the archive as a single AsyncStorage blob, so an
+// incremental write is a read-modify-write of that one key rather than a full
+// repository replacement, and it preserves the existing order for an in-place edit.
+export async function updateCompletedWorkoutRecord(workout: Workout): Promise<void> {
+  const current = parse<Workout[]>(await AsyncStorage.getItem(COMPLETED_KEY), []);
+  const next = current.some((item) => item.id === workout.id)
+    ? current.map((item) => (item.id === workout.id ? workout : item))
+    : [workout, ...current];
+  await saveCompletedWorkouts(next);
+}
+export async function deleteCompletedWorkoutRecord(workoutId: string): Promise<void> {
+  const current = parse<Workout[]>(await AsyncStorage.getItem(COMPLETED_KEY), []);
+  await saveCompletedWorkouts(current.filter((item) => item.id !== workoutId));
+}

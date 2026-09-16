@@ -93,14 +93,14 @@ async function replaceRestTimerNotification(
 }
 
 async function replaceUnfinishedWorkoutReminder(
-  activeWorkout: ReturnType<typeof useWorkouts>['activeWorkout'],
+  startedAt: number | null,
   enabled: boolean,
   delaySeconds: number,
 ): Promise<void> {
   if (Platform.OS === 'web') return;
   await Notifications.cancelScheduledNotificationAsync(unfinishedWorkoutReminderId).catch(() => undefined);
-  if (!enabled || !activeWorkout || !(await canScheduleNotifications())) return;
-  const reminderAt = activeWorkout.startedAt + delaySeconds * 1000;
+  if (!enabled || startedAt == null || !(await canScheduleNotifications())) return;
+  const reminderAt = startedAt + delaySeconds * 1000;
   if (reminderAt <= Date.now()) return;
   await Notifications.scheduleNotificationAsync({
     identifier: unfinishedWorkoutReminderId,
@@ -206,16 +206,19 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
   }, [duration, endAt, hydrated, preferences.restTimerSound, preferences.showRestTimer]);
 
   // General reminders are one durable local notification, not an in-app timer.
-  // It is replaced whenever the active workout or its preference changes, and
-  // is removed immediately as soon as the workout is finished or discarded.
+  // Its trigger only depends on the workout's identity/start time, so ordinary
+  // set and value edits (which produce a new workout object every keystroke)
+  // must not reschedule it. It is removed as soon as the workout is finished or
+  // discarded (identity clears), and rescheduled when the start time is edited.
+  const activeWorkoutStartedAt = activeWorkout?.startedAt ?? null;
   useEffect(() => {
     if (!workoutsReady) return;
     void replaceUnfinishedWorkoutReminder(
-      activeWorkout,
+      activeWorkoutStartedAt,
       preferences.unfinishedWorkoutReminderEnabled,
       preferences.unfinishedWorkoutReminderDelay,
     ).catch(() => undefined);
-  }, [activeWorkout, preferences.unfinishedWorkoutReminderDelay, preferences.unfinishedWorkoutReminderEnabled, workoutsReady]);
+  }, [activeWorkoutId, activeWorkoutStartedAt, preferences.unfinishedWorkoutReminderDelay, preferences.unfinishedWorkoutReminderEnabled, workoutsReady]);
 
   // ActivityKit is a secondary presentation of the same timestamp state. It
   // deliberately receives updates only for semantic timer changes, never from
