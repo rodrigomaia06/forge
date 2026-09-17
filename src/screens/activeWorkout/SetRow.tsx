@@ -346,8 +346,11 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   previous: {
     flex: 1,
     color: dashboardTheme.ink,
-    // Previous performance is a primary scanning value, not compact metadata.
+    // Previous performance is a primary scanning value, not compact metadata,
+    // so it reads a step larger than the body text elsewhere.
     ...typeScale.body,
+    fontSize: 16,
+    lineHeight: 22,
     textAlign: 'center',
   },
   inputColumn: { width: 60 },
