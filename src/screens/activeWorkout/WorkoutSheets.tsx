@@ -838,8 +838,10 @@ export function ExerciseOptionsSheet({
           <ForgeBottomSheetHandle />
           <ForgeSheetHeader
             title={view === 'note' ? 'Exercise note' : view === 'history' ? 'Previous sessions' : view === 'rest' ? 'Duration' : 'Exercise info'}
-            onClose={closeSheet}
-            closeAccessibilityLabel={`Close ${view === 'note' ? 'exercise note' : view === 'history' ? 'previous sessions' : view === 'rest' ? 'rest duration' : 'exercise info'}`}
+            // The Duration view drops the close X and gives its right slot to
+            // Default; Back returns to the info card and the sheet closes there.
+            onClose={view === 'rest' ? undefined : closeSheet}
+            closeAccessibilityLabel={`Close ${view === 'note' ? 'exercise note' : view === 'history' ? 'previous sessions' : 'exercise info'}`}
             leading={
               view === 'rest'
                 ? <ForgeEditorBackButton onPress={() => openView('info')} accessibilityLabel="Back to exercise info" />

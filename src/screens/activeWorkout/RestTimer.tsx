@@ -305,6 +305,9 @@ export function RestDurationPicker({
               key={duration}
               accessibilityRole="button"
               accessibilityLabel={`Rest duration ${formatRest(duration)}`}
+              // Let a drag win: hold the press briefly so the scroll can claim
+              // the gesture instead of a tap-to-select firing mid-drag.
+              unstable_pressDelay={110}
               onPress={() => scrollToIndex(index)}
               style={({ pressed }) => [styles.durationRow, pressed && styles.durationRowPressed]}
             >
