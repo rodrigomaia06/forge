@@ -314,7 +314,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         // logged from the actual Live Workout screen.
         collapsible={isActive}
         forceCollapsed={false}
-        showMoreOptions={!isActive}
+        showMoreOptions
         showSetCompletion={!isActive}
         onSetInputFocus={isActive ? onSetInputFocus : undefined}
         deleteRevealed={openExerciseId === exercise.id}
@@ -410,8 +410,8 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         style={({ pressed }) => [styles.targetToggleRow, pressed && pressedFeedbackSubtle]}
       >
         <View style={styles.targetToggleCopy}>
-          <Text style={styles.fieldLabel}>Don't count toward targets</Text>
-          <Text style={styles.targetToggleHint}>Skip this session when setting the next workout's previous values and targets.</Text>
+          <Text style={styles.fieldLabel}>Skip for targets</Text>
+          <Text style={styles.targetToggleHint}>Won't affect future targets.</Text>
         </View>
         <ForgeSwitch value={Boolean(draft.excludeFromTargets)} />
       </Pressable>
@@ -1018,9 +1018,9 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   headerSpacer: { width: 44, height: 44 },
   keyboardArea: { flex: 1 },
   listViewport: { flex: 1 },
-  content: { padding: 16, paddingBottom: 32, gap: 14 },
+  content: { padding: 16, paddingBottom: 32, gap: 10 },
   listHeader: { gap: 14 },
-  draggableExerciseRow: { marginBottom: 12 },
+  draggableExerciseRow: { marginBottom: 2 },
   exerciseFooter: { paddingTop: 10 },
   formCard: {
     padding: 14,
@@ -1090,7 +1090,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     backgroundColor: theme.surface,
   },
   addExerciseText: { color: theme.ink, ...typeScale.label },
-  exerciseList: { gap: 10 },
+  exerciseList: { gap: 8 },
   dragHandle: {
     width: 32,
     height: 44,
