@@ -31,7 +31,7 @@ type CatalogItemIndex = {
   equipment: string[];
   muscles: string[];
   haystack: string;
-  haystackWithGroup: string;
+  groupHaystack: string;
 };
 
 const itemIndexCache = new WeakMap<ExerciseCatalogItem, CatalogItemIndex>();
@@ -45,12 +45,15 @@ function catalogItemIndex(item: ExerciseCatalogItem): CatalogItemIndex {
     ? Object.values(item.variationFacets).flatMap((value) => (Array.isArray(value) ? value : value ? [value] : []))
     : [];
   const searchable = [item.name, ...equipment, item.category, item.primaryMuscle, ...item.secondaryMuscles, ...item.aliases, ...(item.searchTerms ?? []), ...facetTerms];
-  const haystack = catalogSearchKey(searchable.join(' '));
+  // Store one full haystack plus the small group-token string separately rather
+  // than a second near-duplicate haystack that repeats every field. The group is
+  // space-joined, so a single-word query term matches the combined text exactly
+  // when checked against either piece.
   const index: CatalogItemIndex = {
     equipment,
     muscles,
-    haystack,
-    haystackWithGroup: catalogSearchKey([...searchable, item.group].join(' ')),
+    haystack: catalogSearchKey(searchable.join(' ')),
+    groupHaystack: catalogSearchKey(item.group),
   };
   itemIndexCache.set(item, index);
   return index;
@@ -87,8 +90,9 @@ export function filterCatalog(items: ExerciseCatalogItem[], filters: CatalogFilt
     // Pronated`), while people naturally search them in any order. Matching
     // each normalized token keeps compound-variation selection independent of
     // that presentation order.
-    const haystack = filters.includeGroupInSearch ? index.haystackWithGroup : index.haystack;
-    return terms.every((term) => haystack.includes(term));
+    return filters.includeGroupInSearch
+      ? terms.every((term) => index.haystack.includes(term) || index.groupHaystack.includes(term))
+      : terms.every((term) => index.haystack.includes(term));
   });
 }
 
