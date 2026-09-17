@@ -78,7 +78,7 @@ export const darkTheme: ForgeTheme = {
   input: '#202226',
   dock: '#17191C',
   overlay: 'rgba(0,0,0,0.58)',
-  surfaceMuted: '#202226',
+  surfaceMuted: '#2B2F34',
   ink: '#F7F8F6',
   textPrimary: '#F7F8F6',
   textSecondary: '#C3C8CC',
