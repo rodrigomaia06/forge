@@ -1140,7 +1140,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     readOnlyExerciseNote: { color: theme.textPrimary, ...typeScale.body },
     exerciseNoteInput: {
       minHeight: 156,
-      paddingVertical: 12,
+      // The card already owns the vertical padding; adding it here too pushed
+      // the note text noticeably down from the top.
+      paddingVertical: 0,
       textAlignVertical: 'top',
       ...typeScale.body,
     },
