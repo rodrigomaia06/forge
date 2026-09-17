@@ -135,6 +135,19 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     setSheetOpen(true);
     navigation.setParams({ openAddExercises: undefined });
   }, [navigation, route.params?.openAddExercises]);
+  // This screen stays mounted across sessions, so an Add-exercise picker left
+  // open by one workout would otherwise reappear on the next one. When a
+  // different workout becomes live, close any leftover picker — unless this
+  // navigation explicitly asked to open it (the blank-start flow above).
+  const activeWorkoutId = activeWorkout?.id;
+  const lastWorkoutIdRef = useRef(activeWorkoutId);
+  useEffect(() => {
+    if (lastWorkoutIdRef.current === activeWorkoutId) return;
+    lastWorkoutIdRef.current = activeWorkoutId;
+    if (route.params?.openAddExercises === 'open') return;
+    setSheetOpen(false);
+    setReplacingExerciseId(null);
+  }, [activeWorkoutId, route.params?.openAddExercises]);
   const adjustRestTimer = (amount: number): void => {
     lightHaptic();
     restTimer.adjust(amount);
