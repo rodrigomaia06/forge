@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import {
   ForgeBottomSheet,
@@ -195,6 +195,7 @@ export function PreviousSessionsContent({
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const reducedMotion = useForgeReducedMotion();
+  const { height: windowHeight } = useWindowDimensions();
   const scrollViewRef = useRef<ScrollView>(null);
   const [uncontrolledShowAll, setUncontrolledShowAll] = useState(false);
   const [openSet, setOpenSet] = useState<{ set: WorkoutSet; index: number; trackingType: NonNullable<WorkoutExercise['trackingType']> } | null>(null);
@@ -222,8 +223,11 @@ export function PreviousSessionsContent({
 
   return <><ScrollView
     ref={scrollViewRef}
-    style={styles.previousSessionsScroll}
+    // A concrete cap gives the list a bounded viewport so it can scroll inside
+    // the sheet; flexShrink alone let it grow to its content height (no scroll).
+    style={[styles.previousSessionsScroll, { maxHeight: Math.round(windowHeight * 0.56) }]}
     contentContainerStyle={styles.previousSessionsContent}
+    nestedScrollEnabled
     onScroll={(event) => onScrollOffsetChange?.(event.nativeEvent.contentOffset.y)}
     scrollEventThrottle={16}
   >{sessions.length ? <>
