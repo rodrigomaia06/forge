@@ -28,6 +28,9 @@ export function routineExercisesWithNextSessionTargets(
     if (sourceExerciseIndex < 0) return exercise;
     consumedSourceExercises.add(sourceExerciseIndex);
     const sourceExercise = source.exercises[sourceExerciseIndex];
+    // The user marked that session as not representative (different gym/gear),
+    // so it must not seed the next session's previous values or targets.
+    if (sourceExercise.excludeFromTargets) return exercise;
     return {
       ...exercise,
       sets: (exercise.sets ?? []).map((set, index) =>

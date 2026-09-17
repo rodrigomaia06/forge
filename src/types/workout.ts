@@ -34,11 +34,18 @@ export interface WorkoutExercise {
   metric?: ExerciseSetMetric;
   exerciseSnapshot?: ExerciseSnapshot;
   trackingType?: TrackingType;
+  /**
+   * When true this exercise's recorded sets are ignored when deriving the next
+   * session's "previous" values and targets — for a session done off your usual
+   * gear or gym that should not skew future targets.
+   */
+  excludeFromTargets?: boolean;
   sets: WorkoutSet[];
 }
 /** Editable fields that belong to an exercise rather than an individual set. */
 export interface WorkoutExerciseChanges {
   note?: string;
+  excludeFromTargets?: boolean;
 }
 export type TrackingType = 'weight-reps' | 'bodyweight-reps' | 'weighted-bodyweight' | 'assisted-bodyweight' | 'reps-only' | 'duration' | 'duration-weight' | 'distance-duration' | 'weight-distance';
 export interface ExerciseVariationFacets {
@@ -102,6 +109,7 @@ export interface WorkoutExerciseInput {
   metric?: ExerciseSetMetric;
   exerciseSnapshot?: ExerciseSnapshot;
   trackingType?: TrackingType;
+  excludeFromTargets?: boolean;
   sets?: WorkoutSetInput[];
 }
 export interface WorkoutRoutine {
