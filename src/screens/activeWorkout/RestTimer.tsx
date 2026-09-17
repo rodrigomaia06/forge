@@ -288,7 +288,12 @@ export function RestDurationPicker({
         scrollEventThrottle={16}
         contentContainerStyle={styles.durationPickerContent}
         onScroll={handleScroll}
-        onScrollEndDrag={(event) => handleScrollEnd(event.nativeEvent)}
+        onScrollEndDrag={(event) => {
+          // Only commit on release when the wheel is essentially still, so a
+          // real flick still decelerates and snaps through onMomentumScrollEnd
+          // (the iOS picker feel) instead of jumping the value on lift.
+          if (Math.abs(event.nativeEvent.velocity?.y ?? 0) < 0.08) handleScrollEnd(event.nativeEvent);
+        }}
         onMomentumScrollEnd={(event) => handleScrollEnd(event.nativeEvent)}
       >
         {REST_DURATION_OPTIONS.map((duration, index) => {
