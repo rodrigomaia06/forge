@@ -3,7 +3,7 @@ import { ActivityIndicator, Image, StyleSheet, View, useColorScheme } from 'reac
 
 export function ForgeLoadingScreen() {
   const dark = useColorScheme() === 'dark';
-  const backgroundColor = dark ? '#17191C' : '#E8E8E8';
+  const backgroundColor = dark ? '#101216' : '#E8E8E8';
   const spinnerColor = dark ? '#F7F8F6' : '#1D252D';
   return (
     <View accessibilityLabel="Loading Forge" style={[styles.screen, { backgroundColor }]}>
