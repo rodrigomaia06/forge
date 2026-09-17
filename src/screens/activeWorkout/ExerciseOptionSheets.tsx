@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
-import Animated, { ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -240,12 +239,11 @@ export function PreviousSessionsContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showAll]);
 
-  return <><Animated.View
-    entering={reducedMotion ? undefined : ZoomIn.springify().damping(20).stiffness(210).mass(0.6)}
-  ><ScrollView
+  return <><ScrollView
     ref={scrollViewRef}
     // Fill nearly to the top safe area so the history reads as a full-screen
-    // card; the handle + header take the space subtracted here.
+    // card; the handle + header take the space subtracted here. The view swaps
+    // in via the sheet's shared content transition, like the other option views.
     style={[styles.previousSessionsScroll, { maxHeight: windowHeight - insets.top - 104 }]}
     contentContainerStyle={styles.previousSessionsContent}
     nestedScrollEnabled
@@ -261,7 +259,7 @@ export function PreviousSessionsContent({
       </ForgeCard>
     </View>)}
     {!showAll && sessions.length > 3 ? <Pressable accessibilityRole="button" accessibilityLabel={`Show ${sessions.length - 3} more sessions`} onPress={revealAll} style={({ pressed }) => [styles.showMoreSessions, { backgroundColor: theme.surface }, pressed && pressedFeedbackSubtle]}><Text style={styles.showMoreText}>{`Show ${sessions.length - 3} more`}</Text></Pressable> : null}
-  </> : <View style={[styles.emptyCard, { borderColor: theme.border, backgroundColor: theme.surfaceMuted }]}><Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>No completed sessions for this exercise yet.</Text></View>}</ScrollView></Animated.View>{openSet ? <SetDetailsCard visible set={openSet.set} index={openSet.index} editable={false} onChange={() => undefined} onDelete={() => undefined} onDone={() => setOpenSet(null)} trackingType={openSet.trackingType} /> : null}</>;
+  </> : <View style={[styles.emptyCard, { borderColor: theme.border, backgroundColor: theme.surfaceMuted }]}><Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>No completed sessions for this exercise yet.</Text></View>}</ScrollView>{openSet ? <SetDetailsCard visible set={openSet.set} index={openSet.index} editable={false} onChange={() => undefined} onDelete={() => undefined} onDone={() => setOpenSet(null)} trackingType={openSet.trackingType} /> : null}</>;
 }
 
 function catalogueDetail(exercise: WorkoutExercise): ExerciseCatalogItem | undefined {
