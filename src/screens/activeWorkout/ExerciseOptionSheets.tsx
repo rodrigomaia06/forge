@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { ZoomIn } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   ForgeBottomSheet,
@@ -213,6 +214,7 @@ export function PreviousSessionsContent({
   const styles = useThemedStyles(createStyles);
   const reducedMotion = useForgeReducedMotion();
   const { height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
   const [uncontrolledShowAll, setUncontrolledShowAll] = useState(false);
   const [openSet, setOpenSet] = useState<{ set: WorkoutSet; index: number; trackingType: NonNullable<WorkoutExercise['trackingType']> } | null>(null);
@@ -238,12 +240,13 @@ export function PreviousSessionsContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showAll]);
 
-  return <><Animated.View entering={reducedMotion ? undefined : ZoomIn.duration(200)}><ScrollView
+  return <><Animated.View
+    entering={reducedMotion ? undefined : ZoomIn.springify().damping(20).stiffness(210).mass(0.6)}
+  ><ScrollView
     ref={scrollViewRef}
-    // A concrete cap gives the list a bounded viewport so it can scroll inside
-    // the sheet; flexShrink alone let it grow to its content height (no scroll).
-    // Keep it tall (close to the prior content-driven height) and scroll past it.
-    style={[styles.previousSessionsScroll, { maxHeight: Math.round(windowHeight * 0.72) }]}
+    // Fill nearly to the top safe area so the history reads as a full-screen
+    // card; the handle + header take the space subtracted here.
+    style={[styles.previousSessionsScroll, { maxHeight: windowHeight - insets.top - 104 }]}
     contentContainerStyle={styles.previousSessionsContent}
     nestedScrollEnabled
     onScroll={(event) => onScrollOffsetChange?.(event.nativeEvent.contentOffset.y)}
