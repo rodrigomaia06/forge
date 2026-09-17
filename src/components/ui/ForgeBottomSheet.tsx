@@ -112,6 +112,7 @@ export function ForgeBottomSheet({
   const [exiting, setExiting] = useState(false);
   const closingRef = useRef(false);
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const entryFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const entryOffsetRef = useRef(initialOffset);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -184,7 +185,16 @@ export function ForgeBottomSheet({
     backdropOpacity.value = 0;
     // The source chooser is a required first step. Do not make its sheet
     // visible until its action card has a stable layout to travel with it.
-    if (waitForContentLayoutBeforeEnter && !entryContentReady) return undefined;
+    if (waitForContentLayoutBeforeEnter && !entryContentReady) {
+      // Guarantee entry even if the content onLayout never sets readiness (for
+      // example the keyboard is already up when the sheet opens, so onLayout
+      // skips): the sheet must never get stuck mounted-but-invisible.
+      entryFallbackRef.current = setTimeout(() => setEntryContentReady(true), 160);
+      return () => {
+        if (entryFallbackRef.current) clearTimeout(entryFallbackRef.current);
+        entryFallbackRef.current = null;
+      };
+    }
     if (reducedMotion) {
       translateY.value = 0;
       backdropOpacity.value = 1;

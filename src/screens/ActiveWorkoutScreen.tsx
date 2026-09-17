@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
+import { FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
 import Animated, {
   runOnJS,
   useAnimatedScrollHandler,
@@ -168,6 +168,10 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
   };
   const handleAddExerciseClose = useCallback(() => setSheetOpen(false), []);
   const openAddExercise = useCallback(() => {
+    // Dismiss any open set-entry keyboard first so the picker opens against a
+    // settled layout (a keyboard up at open time could otherwise stall the
+    // sheet's content-measured entrance).
+    Keyboard.dismiss();
     // Each presentation gets fresh picker state. This releases any interrupted
     // sheet gesture/focus state before the next Add exercise tap.
     setAddExerciseSession((current) => current + 1);
