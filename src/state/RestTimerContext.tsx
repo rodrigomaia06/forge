@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -125,6 +125,9 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
   const { activeWorkoutId, activeWorkoutStartedAt, ready: workoutsReady } = useWorkouts();
   const [endAt, setEndAt] = useState<number | null>(null);
   const [duration, setDuration] = useState(0);
+  // The most recent set completion (rest-timer start) within this workout, used
+  // to defer the unfinished-workout reminder while the session is active.
+  const [lastActivityAt, setLastActivityAt] = useState(0);
   const [hydrated, setHydrated] = useState(false);
   const hydrationGeneration = useRef(0);
   const didNotifyCompletion = useRef(false);
@@ -213,12 +216,32 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
   // discarded (identity clears), and rescheduled when the start time is edited.
   useEffect(() => {
     if (!workoutsReady) return;
+    // Count the delay from the last set completion when the user has been
+    // active, so the reminder only fires after a genuine lull. A new workout's
+    // start time is always newer than any prior activity, so the max never
+    // leaks a stale timestamp across sessions.
+    const remindFrom = activeWorkoutStartedAt
+      ? Math.max(activeWorkoutStartedAt, lastActivityAt)
+      : null;
     void replaceUnfinishedWorkoutReminder(
-      activeWorkoutStartedAt,
+      remindFrom,
       preferences.unfinishedWorkoutReminderEnabled,
       preferences.unfinishedWorkoutReminderDelay,
     ).catch(() => undefined);
-  }, [activeWorkoutId, activeWorkoutStartedAt, preferences.unfinishedWorkoutReminderDelay, preferences.unfinishedWorkoutReminderEnabled, workoutsReady]);
+  }, [activeWorkoutId, activeWorkoutStartedAt, lastActivityAt, preferences.unfinishedWorkoutReminderDelay, preferences.unfinishedWorkoutReminderEnabled, workoutsReady]);
+
+  // The app is in front of the user, so any delivered timer/reminder alert is
+  // stale. Clear them on foreground and keep at most the one still-scheduled
+  // rest alert. This is the only place delivered notifications are dismissed.
+  useEffect(() => {
+    if (Platform.OS === 'web') return undefined;
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      void Notifications.dismissNotificationAsync(restTimerNotificationId).catch(() => undefined);
+      void Notifications.dismissNotificationAsync(unfinishedWorkoutReminderId).catch(() => undefined);
+    });
+    return () => subscription.remove();
+  }, []);
 
   // ActivityKit is a secondary presentation of the same timestamp state. It
   // deliberately receives updates only for semantic timer changes, never from
@@ -235,6 +258,10 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
     const safeDuration = Math.max(1, Math.round(nextDuration));
     const startedAt = synchronizeNow();
     const nextEndAt = startedAt + safeDuration * 1000;
+    // A rest timer starts when a set is completed — real workout activity.
+    // Push the unfinished-workout reminder out from here so it only fires after
+    // an actual lull, not a fixed delay from when the workout began.
+    setLastActivityAt(startedAt);
     didNotifyCompletion.current = false;
     // A direct user/completion transition always wins over an in-flight disk
     // read for this workout.
