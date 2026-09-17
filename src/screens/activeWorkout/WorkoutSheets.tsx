@@ -16,12 +16,10 @@ import {
   ForgeEditorBackButton,
   ForgeFloatingCta,
   ForgeSheetHeader,
-  ForgeSingleSelectList,
   ForgeText as Text,
   ForgeTextInput as TextInput,
   HeaderAction,
   Icon,
-  type ForgeSingleSelectOption,
 } from '../../components/ui';
 import { forgeSheetHeader } from '../../components/ui/ForgeBottomSheet';
 import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
@@ -33,8 +31,7 @@ import type { ExerciseCatalogItem } from '../../data/exerciseCatalog';
 import { useExerciseCatalog } from '../../state/ExerciseCatalogContext';
 import { useSettings } from '../../state/SettingsContext';
 import { CompletionCheck } from './CompletionCheck';
-import { formatRest } from './activeWorkoutFormatters';
-import { REST_DURATION_OPTIONS } from '../../domain/rest/restDurationOptions';
+import { RestDurationPicker } from './RestTimer';
 import { animateLayout, animateSheetContent, lightHaptic, mediumHaptic, selectionHaptic } from './activeWorkoutFeedback';
 import type { Workout, WorkoutExercise } from '../../types';
 import { ExerciseInfoContent, PreviousSessionsContent } from './ExerciseOptionSheets';
@@ -726,12 +723,6 @@ function AnimatedCount({ count }: { count: number }) {
   );
 }
 
-const restTimeOptions: readonly ForgeSingleSelectOption<number>[] = REST_DURATION_OPTIONS.map((seconds) => ({
-  value: seconds,
-  label: formatRest(seconds),
-  accessibilityLabel: `Rest duration ${formatRest(seconds)}`,
-}));
-
 export function ExerciseOptionsSheet({
   visible,
   exercise,
@@ -776,13 +767,13 @@ export function ExerciseOptionsSheet({
   // in ActiveWorkoutScreen.restDurationForExercise.
   const restKey = exercise.exerciseId ?? exercise.exerciseSnapshot?.id ?? exercise.id;
   const restOverride = preferences.exerciseRestSeconds[restKey];
-  const chooseRest = (seconds: number | undefined): void => {
+  // The wheel sets the override live as it settles (like the live-workout Rest
+  // picker); "Default" clears it and steps back to the info card.
+  const applyRest = (seconds: number | undefined): void => {
     const next = { ...preferences.exerciseRestSeconds };
     if (seconds === undefined) delete next[restKey];
     else next[restKey] = seconds;
     updatePreferences({ exerciseRestSeconds: next });
-    selectionHaptic();
-    openView('info');
   };
 
   const commitNote = (): void => {
@@ -862,7 +853,7 @@ export function ExerciseOptionsSheet({
                   icon="time-outline"
                   variant="secondary"
                   haptic="none"
-                  onPress={() => chooseRest(undefined)}
+                  onPress={() => { applyRest(undefined); openView('info'); }}
                   style={restOverride === undefined ? styles.restDefaultActionSelected : undefined}
                 />
               ) : undefined
@@ -884,16 +875,10 @@ export function ExerciseOptionsSheet({
           {view === 'info' ? <ExerciseInfoContent exercise={exercise} onPressRest={readOnly ? undefined : () => openView('rest')} /> : null}
           {view === 'rest' ? (
             <View style={styles.restPickerContent}>
-              <ForgeCard variant="nested" size="compact" style={styles.restChoiceCard}>
-                <ForgeSingleSelectList<number>
-                  testID="exercise-rest-selection-list"
-                  options={restTimeOptions}
-                  selectedValue={restOverride ?? -1}
-                  selectedTone="success"
-                  maxVisibleRows={6}
-                  onSelect={(value) => chooseRest(value)}
-                />
-              </ForgeCard>
+              <RestDurationPicker
+                selectedDuration={restOverride ?? preferences.defaultRestSeconds}
+                onSelect={applyRest}
+              />
             </View>
           ) : null}
           {view === 'note' && readOnly ? <ExerciseNoteView note={exercise.note ?? ''} /> : null}

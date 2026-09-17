@@ -284,7 +284,10 @@ export function RestDurationPicker({
         showsVerticalScrollIndicator={false}
         snapToInterval={rowHeight}
         snapToAlignment="start"
-        decelerationRate="fast"
+        // Settle quickly on release rather than gliding for a beat, so the wheel
+        // snaps with the crisp feel of the Clock-app timer picker (spinning far
+        // with a big flick still works).
+        decelerationRate={0.9}
         scrollEventThrottle={16}
         contentContainerStyle={styles.durationPickerContent}
         onScroll={handleScroll}
