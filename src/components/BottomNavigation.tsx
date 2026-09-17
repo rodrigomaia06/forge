@@ -75,13 +75,15 @@ export function BottomNavigation({
   }, [activeIndex, currentActiveIndex, indicatorOpacity, reducedMotion]);
 
   const selectionIndicatorStyle = useAnimatedStyle(() => {
-    // A native dock width changes on the UI thread; child onLayout callbacks
-    // arrive later on JS. Read the exact flex parent in the same worklet so a
-    // pill can never be calculated with mixed old/new geometry.
-    const measuredWidth = measure(navigationRef)?.width;
-    // Before native measurement (and on web), use DockSurface's explicit
-    // 1pt border + 6pt horizontal padding per side as a stable fallback.
-    const navigationWidth = measuredWidth ?? (surfaceWidth ? Math.max(0, surfaceWidth.value - 14) : 0);
+    // Drive the pill from the SAME shared value that animates the dock width
+    // (surfaceWidth) rather than measure(): measuring the laid-out parent lags
+    // the width spring by a frame on native, so the pill trails the dock and
+    // appears to "bounce" to catch up during compact/expand. Reading surfaceWidth
+    // in this worklet keeps the pill in perfect lockstep. DockSurface's own 6pt
+    // horizontal padding + 1pt border per side give the navigation its width.
+    const navigationWidth = surfaceWidth
+      ? Math.max(0, surfaceWidth.value - 14)
+      : (measure(navigationRef)?.width ?? 0);
     // `navigation` has no horizontal padding, so the pill's absolute-left origin
     // and the flex slots share the same origin on every platform (no border-box
     // vs padding-box ambiguity between native and web). Each slot is an equal
