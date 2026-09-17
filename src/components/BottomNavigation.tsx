@@ -83,10 +83,14 @@ export function BottomNavigation({
     // 1pt border + 6pt horizontal padding per side as a stable fallback.
     const navigationWidth = measuredWidth ?? (surfaceWidth ? Math.max(0, surfaceWidth.value - 14) : 0);
     const slotWidth = Math.max(0, (navigationWidth - 4) / items.length);
+    // The pill is absolutely positioned inside `navigation` (paddingHorizontal 2)
+    // and inset 2pt within its slot. Its left origin is the parent's padding box
+    // (RN 0.86 Yoga matches web here), so a slot-centered pill starts at
+    // slotStart + inset = i*slotWidth + 2 — not + 4, which biased it 2pt right.
     return {
       opacity: indicatorOpacity.value,
       width: Math.max(0, slotWidth - 4),
-      transform: [{ translateX: 4 + activeIndex.value * slotWidth }],
+      transform: [{ translateX: 2 + activeIndex.value * slotWidth }],
     };
   }, [activeIndex, indicatorOpacity, items.length, navigationRef, surfaceWidth]);
 
