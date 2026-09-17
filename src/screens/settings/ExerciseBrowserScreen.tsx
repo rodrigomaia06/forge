@@ -42,6 +42,7 @@ import {
   selectionHaptic,
 } from '../../components/ui';
 import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
+import { ExerciseDetailBody } from '../../components/ExerciseDetailBody';
 import {
   catalogFilterCount,
   emptyCatalogFilters,
@@ -85,9 +86,6 @@ type CatalogSource = 'forge' | 'custom';
 function formatPickerDuration(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
   return `${String(minutes).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
-}
-function formatTrackingType(type: ExerciseCatalogItem['trackingType']): string {
-  return (type ?? 'weight-reps').split('-').map((part) => part === 'reps' ? 'reps' : part[0].toUpperCase() + part.slice(1)).join(' + ');
 }
 function customVariationFacets(value: string): import('../../types').ExerciseVariationFacets | undefined {
   const words = value.toLocaleLowerCase().split(/[^a-z]+/).filter(Boolean);
@@ -993,61 +991,14 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                     ) : undefined
                   }
                 />
-                <View style={styles.detailContent}>
-                  <ForgeCard variant="nested" style={styles.restTimeCard}>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Change rest time, currently ${restLabel(detail)}`}
-                      accessibilityHint="Opens the rest duration picker"
-                      onPress={() => {
-                        lightHaptic();
-                        transitionDetailSheet('restTime');
-                      }}
-                      style={({ pressed }) => [styles.restTimeCardPressable, pressed && pressedFeedback]}
-                    >
-                      <View style={styles.restTimeCardIcon}><Icon name="stopwatch-outline" size={20} color={theme.textSecondary} /></View>
-                      <View style={styles.restTimeCardCopy}>
-                        <Text style={styles.restTimeCardTitle}>Rest time</Text>
-                      </View>
-                      <View style={styles.detailAction}>
-                        <Text style={styles.detailSelectableValue}>{restLabel(detail)}</Text>
-                        <Icon name="chevron-forward" size={21} color={theme.textSecondary} />
-                      </View>
-                    </Pressable>
-                  </ForgeCard>
-
-                  <Text style={styles.detailSectionLabel}>ESSENTIALS</Text>
-                  <ForgeCard variant="nested" size="compact" style={styles.detailFactGrid}>
-                    <ExerciseDetailFact label="Category" value={detail.category} />
-                    <ExerciseDetailFact label="Equipment" value={detail.equipment} />
-                    <ExerciseDetailFact label="Tracking" value={formatTrackingType(detail.trackingType)} />
-                    <ExerciseDetailFact label="Movement family" value={detail.group} />
-                  </ForgeCard>
-
-                  <Text style={styles.detailSectionLabel}>TRAINING PROFILE</Text>
-                  <ForgeCard variant="nested" size="compact" style={styles.detailProfileCard}>
-                    {detail.workoutTypeIds.length > 0 ? <View style={styles.detailProfileRow}>
-                      <Text style={styles.detailProfileLabel}>Workout types</Text>
-                      <View style={styles.sectionTypes}>
-                        {detail.workoutTypeIds.map((id) => {
-                          const type = preferences.workoutTypes.find((item) => item.id === id);
-                          return <View key={id} testID={`exercise-section-type-${id}`} style={styles.sectionType}>
-                            <Icon name={type ? workoutTypeIcon(type) : 'layers'} size={17} color={theme.textSecondary} />
-                            <Text style={styles.sectionTypeName}>{type?.name ?? id}</Text>
-                          </View>;
-                        })}
-                      </View>
-                    </View> : null}
-                    <View style={styles.detailProfileRow}>
-                      <Text style={styles.detailProfileLabel}>Primary muscle</Text>
-                      <Text style={styles.detailProfileValue}>{detail.primaryMuscle}</Text>
-                    </View>
-                    {detail.secondaryMuscles.length > 0 ? <View style={styles.detailProfileRow}>
-                      <Text style={styles.detailProfileLabel}>Secondary muscles</Text>
-                      <Text style={styles.detailProfileValue}>{detail.secondaryMuscles.join(', ')}</Text>
-                    </View> : null}
-                  </ForgeCard>
-                  {isCustom(detail) ? (
+                <ExerciseDetailBody
+                  detail={detail}
+                  workoutTypes={preferences.workoutTypes}
+                  restLabel={restLabel(detail)}
+                  onPressRest={() => transitionDetailSheet('restTime')}
+                />
+                {isCustom(detail) ? (
+                  <View style={styles.deleteVariationWrap}>
                     <Button
                       label="Delete variation"
                       variant="outline"
@@ -1059,24 +1010,14 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                         close();
                       }}
                     />
-                  ) : null}
-                </View>
+                  </View>
+                ) : null}
               </View>
             ))
           }
         </ForgeBottomSheet>
       </View>
     </AppScreen>
-  );
-}
-
-function ExerciseDetailFact({ label, value }: { label: string; value: string }) {
-  const styles = useThemedStyles(createStyles);
-  return (
-    <View style={styles.detailFact}>
-      <Text style={styles.detailFactLabel}>{label}</Text>
-      <Text numberOfLines={2} style={styles.detailFactValue}>{value}</Text>
-    </View>
   );
 }
 
@@ -1668,6 +1609,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     detailProfileValue: { flexShrink: 1, maxWidth: '62%', textAlign: 'right', ...typeScale.label, color: theme.textPrimary },
     editVariationHeaderAction: { backgroundColor: theme.surfaceMuted, borderColor: theme.border, borderWidth: 1 },
     deleteVariationAction: { marginTop: 8, marginBottom: 4 },
+    deleteVariationWrap: { paddingHorizontal: 20, paddingBottom: 30 },
     input: {
       minHeight: 48,
       paddingHorizontal: 14,

@@ -12,6 +12,8 @@ import {
   Icon,
   pressedFeedbackSubtle,
 } from '../../components/ui';
+import { ExerciseDetailBody } from '../../components/ExerciseDetailBody';
+import { useSettings } from '../../state/SettingsContext';
 import { exerciseCatalog, taxonomyLabel, type ExerciseCatalogItem } from '../../data/exerciseCatalog';
 import { measurementText, trackingFieldLabel, trackingFields } from '../../domain/exercises/tracking';
 import { buildWarmupPlan } from '../../domain/workouts/warmup';
@@ -155,20 +157,34 @@ export function PreviousSessionsSheet({
   );
 }
 
-export function ExerciseInfoContent({ exercise }: { exercise: WorkoutExercise }) {
-  const theme = useForgeTheme();
+export function ExerciseInfoContent({
+  exercise,
+  onPressRest,
+}: {
+  exercise: WorkoutExercise;
+  onPressRest?: () => void;
+}) {
   const styles = useThemedStyles(createStyles);
+  const { preferences } = useSettings();
   const detail = useMemo(() => catalogueDetail(exercise), [exercise]);
   if (!detail) return null;
-  const fields = [
-    ['Exercise', detail.name],
-    ...(detail.variation ? [['Variation', detail.variation]] : []),
-    ['Category', detail.category], ['Equipment', detail.equipment], ['Movement family', detail.group],
-    ['Tracking', trackingFields[detail.trackingType ?? 'weight-reps'].map((kind) => trackingFieldLabel(detail.trackingType ?? 'weight-reps', kind)).join(' & ')],
-    ['Primary muscle', detail.primaryMuscle],
-    ...(detail.secondaryMuscles?.length ? [['Secondary muscles', detail.secondaryMuscles.join(' & ')]] : []),
-  ];
-  return <ScrollView testID="exercise-info-content" contentContainerStyle={styles.infoContent}><ForgeCard testID="exercise-info-card" variant="base" style={styles.infoCard}>{fields.map(([label, value], index) => <View key={label} style={[styles.infoRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}><Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{label}</Text><Text style={styles.infoValue}>{value}</Text></View>)}</ForgeCard></ScrollView>;
+  // Match the read path in ActiveWorkoutScreen.restDurationForExercise.
+  const exerciseId = exercise.exerciseId ?? exercise.exerciseSnapshot?.id ?? detail.id;
+  const restOverride = preferences.exerciseRestSeconds[exerciseId];
+  const restLabel = restOverride === undefined
+    ? 'Default'
+    : `${Math.floor(restOverride / 60)}:${String(restOverride % 60).padStart(2, '0')}`;
+  // Reuse the exact Exercise Library detail card so the two read identically.
+  return (
+    <ScrollView testID="exercise-info-content" contentContainerStyle={styles.infoScroll}>
+      <ExerciseDetailBody
+        detail={detail}
+        workoutTypes={preferences.workoutTypes}
+        restLabel={restLabel}
+        onPressRest={onPressRest}
+      />
+    </ScrollView>
+  );
 }
 
 export function PreviousSessionsContent({
@@ -308,6 +324,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   // Warm-up editing needs room above its final confirmation control; static
   // Exercise info only keeps the normal short-sheet safe trailing clearance.
   infoContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24 },
+  infoScroll: { paddingTop: 4, paddingBottom: 8 },
   // Let the list occupy all remaining sheet height. The former percentage cap
   // left an inert band under the final card and could clip Show more.
   previousSessionsScroll: { flexShrink: 1 },

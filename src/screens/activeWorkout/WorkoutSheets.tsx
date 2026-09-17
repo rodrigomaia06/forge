@@ -16,9 +16,12 @@ import {
   ForgeEditorBackButton,
   ForgeFloatingCta,
   ForgeSheetHeader,
+  ForgeSingleSelectList,
   ForgeText as Text,
   ForgeTextInput as TextInput,
+  HeaderAction,
   Icon,
+  type ForgeSingleSelectOption,
 } from '../../components/ui';
 import { forgeSheetHeader } from '../../components/ui/ForgeBottomSheet';
 import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
@@ -30,6 +33,8 @@ import type { ExerciseCatalogItem } from '../../data/exerciseCatalog';
 import { useExerciseCatalog } from '../../state/ExerciseCatalogContext';
 import { useSettings } from '../../state/SettingsContext';
 import { CompletionCheck } from './CompletionCheck';
+import { formatRest } from './activeWorkoutFormatters';
+import { REST_DURATION_OPTIONS } from '../../domain/rest/restDurationOptions';
 import { animateLayout, animateSheetContent, lightHaptic, mediumHaptic, selectionHaptic } from './activeWorkoutFeedback';
 import type { Workout, WorkoutExercise } from '../../types';
 import { ExerciseInfoContent, PreviousSessionsContent } from './ExerciseOptionSheets';
@@ -721,6 +726,12 @@ function AnimatedCount({ count }: { count: number }) {
   );
 }
 
+const restTimeOptions: readonly ForgeSingleSelectOption<number>[] = REST_DURATION_OPTIONS.map((seconds) => ({
+  value: seconds,
+  label: formatRest(seconds),
+  accessibilityLabel: `Rest duration ${formatRest(seconds)}`,
+}));
+
 export function ExerciseOptionsSheet({
   visible,
   exercise,
@@ -753,17 +764,31 @@ export function ExerciseOptionsSheet({
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const reducedMotion = useForgeReducedMotion();
-  const [view, setView] = useState<'actions' | 'note' | 'history' | 'info'>('actions');
+  const { preferences, updatePreferences } = useSettings();
+  const [view, setView] = useState<'actions' | 'note' | 'history' | 'info' | 'rest'>('actions');
   const [noteDraft, setNoteDraft] = useState(exercise.note ?? '');
   const [noteHeight, setNoteHeight] = useState(156);
   const [historyShowAll, setHistoryShowAll] = useState(false);
   const [historyScrollOffset, setHistoryScrollOffset] = useState(0);
   const pendingWorkoutIdRef = useRef<string | null>(null);
 
+  // Per-exercise rest override, editable from Exercise info. Match the read path
+  // in ActiveWorkoutScreen.restDurationForExercise.
+  const restKey = exercise.exerciseId ?? exercise.exerciseSnapshot?.id ?? exercise.id;
+  const restOverride = preferences.exerciseRestSeconds[restKey];
+  const chooseRest = (seconds: number | undefined): void => {
+    const next = { ...preferences.exerciseRestSeconds };
+    if (seconds === undefined) delete next[restKey];
+    else next[restKey] = seconds;
+    updatePreferences({ exerciseRestSeconds: next });
+    selectionHaptic();
+    openView('info');
+  };
+
   const commitNote = (): void => {
     onEditNote?.(noteDraft.trim());
   };
-  const openView = (nextView: 'note' | 'history' | 'info'): void => {
+  const openView = (nextView: 'note' | 'history' | 'info' | 'rest'): void => {
     // These destinations deliberately replace the action list in one Forge
     // sheet. Give its height/content change the same short native transition
     // used by catalogue expansion instead of snapping the body in place.
@@ -821,10 +846,27 @@ export function ExerciseOptionsSheet({
         <View key={view}>
           <ForgeBottomSheetHandle />
           <ForgeSheetHeader
-            title={view === 'note' ? 'Exercise note' : view === 'history' ? 'Previous sessions' : 'Exercise info'}
+            title={view === 'note' ? 'Exercise note' : view === 'history' ? 'Previous sessions' : view === 'rest' ? 'Rest time' : 'Exercise info'}
             onClose={closeSheet}
-            closeAccessibilityLabel={`Close ${view === 'note' ? 'exercise note' : view === 'history' ? 'previous sessions' : 'exercise info'}`}
-            leading={<ForgeEditorBackButton onPress={backToActions} accessibilityLabel="Back to exercise options" />}
+            closeAccessibilityLabel={`Close ${view === 'note' ? 'exercise note' : view === 'history' ? 'previous sessions' : view === 'rest' ? 'rest time' : 'exercise info'}`}
+            leading={
+              view === 'rest'
+                ? <ForgeEditorBackButton onPress={() => openView('info')} accessibilityLabel="Back to exercise info" />
+                : <ForgeEditorBackButton onPress={backToActions} accessibilityLabel="Back to exercise options" />
+            }
+            trailing={
+              view === 'rest' && !readOnly ? (
+                <HeaderAction
+                  accessibilityLabel="Use default rest time"
+                  label="Default"
+                  icon="time-outline"
+                  variant="secondary"
+                  haptic="none"
+                  onPress={() => chooseRest(undefined)}
+                  style={restOverride === undefined ? styles.restDefaultActionSelected : undefined}
+                />
+              ) : undefined
+            }
           />
           {view === 'history' ? <PreviousSessionsContent
             exercise={exercise}
@@ -839,7 +881,21 @@ export function ExerciseOptionsSheet({
               closeSheet();
             }}
           /> : null}
-          {view === 'info' ? <ExerciseInfoContent exercise={exercise} /> : null}
+          {view === 'info' ? <ExerciseInfoContent exercise={exercise} onPressRest={readOnly ? undefined : () => openView('rest')} /> : null}
+          {view === 'rest' ? (
+            <View style={styles.restPickerContent}>
+              <ForgeCard variant="nested" size="compact" style={styles.restChoiceCard}>
+                <ForgeSingleSelectList<number>
+                  testID="exercise-rest-selection-list"
+                  options={restTimeOptions}
+                  selectedValue={restOverride ?? -1}
+                  selectedTone="success"
+                  maxVisibleRows={6}
+                  onSelect={(value) => chooseRest(value)}
+                />
+              </ForgeCard>
+            </View>
+          ) : null}
           {view === 'note' && readOnly ? <ExerciseNoteView note={exercise.note ?? ''} /> : null}
           {view === 'note' && !readOnly ? <View style={styles.exerciseNoteContent}>
             <ForgeCard variant="nested" style={styles.exerciseNoteCard}>
@@ -1135,6 +1191,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     exerciseOptionCopy: { flex: 1, gap: 2 },
     exerciseOptionName: { color: dashboardTheme.ink, ...typeScale.cardTitle },
     exerciseOptionEquipment: { color: '#4F625A', ...typeScale.label },
+    restPickerContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 20 },
+    restChoiceCard: { overflow: 'hidden', borderRadius: 16 },
+    restDefaultActionSelected: { backgroundColor: theme.successSurface, borderColor: theme.success, borderWidth: 1 },
     exerciseNoteContent: { paddingHorizontal: 20, paddingBottom: 28 },
     exerciseNoteCard: { paddingHorizontal: 14, paddingVertical: 12, minHeight: 156 },
     readOnlyExerciseNote: { color: theme.textPrimary, ...typeScale.body },
