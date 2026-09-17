@@ -730,7 +730,6 @@ export function ExerciseOptionsSheet({
   onOpenWarmupSets,
   onOpenExerciseInfo,
   onOpenWorkout,
-  onToggleExcludeFromTargets,
   excludeWorkoutId,
   readOnly = false,
   completedWorkouts = [],
@@ -745,7 +744,6 @@ export function ExerciseOptionsSheet({
   onOpenWarmupSets?: () => void;
   onOpenExerciseInfo?: () => void;
   onOpenWorkout?: (workoutId: string) => void;
-  onToggleExcludeFromTargets?: () => void;
   excludeWorkoutId?: string;
   readOnly?: boolean;
   completedWorkouts?: readonly Workout[];
@@ -810,14 +808,6 @@ export function ExerciseOptionsSheet({
         ...(onOpenPreviousSessions ? [{ icon: 'history' as const, label: 'Previous sessions', dismiss: false, onPress: () => openView('history') }] : []),
         ...(onOpenWarmupSets ? [{ icon: 'warm-up' as const, label: 'Warm-up sets', onPress: onOpenWarmupSets }] : []),
         ...(onOpenExerciseInfo ? [{ icon: 'info' as const, label: 'Exercise info', dismiss: false, onPress: () => openView('info') }] : []),
-        ...(!readOnly && onToggleExcludeFromTargets ? [{
-          icon: 'goal' as const,
-          label: exercise.excludeFromTargets ? 'Count toward targets' : "Don't count toward targets",
-          accessibilityLabel: exercise.excludeFromTargets
-            ? `Count ${exercise.name} toward targets`
-            : `Stop counting ${exercise.name} toward targets`,
-          onPress: onToggleExcludeFromTargets,
-        }] : []),
         ...(!readOnly && onReplaceExercise ? [{ icon: 'replace' as const, label: 'Replace exercise', onPress: onReplaceExercise }] : []),
         ...(!readOnly && onRemove ? [{
           icon: 'trash' as const,

@@ -34,18 +34,11 @@ export interface WorkoutExercise {
   metric?: ExerciseSetMetric;
   exerciseSnapshot?: ExerciseSnapshot;
   trackingType?: TrackingType;
-  /**
-   * When true this exercise's recorded sets are ignored when deriving the next
-   * session's "previous" values and targets — for a session done off your usual
-   * gear or gym that should not skew future targets.
-   */
-  excludeFromTargets?: boolean;
   sets: WorkoutSet[];
 }
 /** Editable fields that belong to an exercise rather than an individual set. */
 export interface WorkoutExerciseChanges {
   note?: string;
-  excludeFromTargets?: boolean;
 }
 export type TrackingType = 'weight-reps' | 'bodyweight-reps' | 'weighted-bodyweight' | 'assisted-bodyweight' | 'reps-only' | 'duration' | 'duration-weight' | 'distance-duration' | 'weight-distance';
 export interface ExerciseVariationFacets {
@@ -76,6 +69,12 @@ export interface Workout {
    * accounting for a stable average; omitted safely by legacy records. */
   restTimerSamples?: number;
   exercises: WorkoutExercise[];
+  /**
+   * When true this whole session is ignored when deriving the next session's
+   * "previous" values and targets — for a workout done off your usual gym or
+   * gear that should not skew future targets.
+   */
+  excludeFromTargets?: boolean;
   routineId?: string;
   /** Immutable routine structure captured at start so finishing can offer a safe update. */
   routineStructureBaseline?: import('../domain/workouts/routineStructure').RoutineStructureBaseline;

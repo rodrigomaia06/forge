@@ -28,6 +28,7 @@ import {
   ForgeAttributeEditorSheet,
   ForgeBackButton,
   ForgeSwipeableAttributeRow,
+  ForgeSwitch,
   ForgeSheetHeader,
   ForgeText as Text,
   ForgeTextInput as TextInput,
@@ -397,6 +398,23 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         multiline
         onChangeText={(note) => updateDraft((current) => ({ ...current, note }))}
       />
+      <View style={styles.cardDivider} />
+      <Pressable
+        accessibilityRole="switch"
+        accessibilityState={{ checked: Boolean(draft.excludeFromTargets) }}
+        accessibilityLabel="Don't count this workout toward next-session targets"
+        onPress={() => {
+          lightHaptic();
+          updateDraft((current) => ({ ...current, excludeFromTargets: !current.excludeFromTargets }));
+        }}
+        style={({ pressed }) => [styles.targetToggleRow, pressed && pressedFeedbackSubtle]}
+      >
+        <View style={styles.targetToggleCopy}>
+          <Text style={styles.fieldLabel}>Don't count toward targets</Text>
+          <Text style={styles.targetToggleHint}>Skip this session when setting the next workout's previous values and targets.</Text>
+        </View>
+        <ForgeSwitch value={Boolean(draft.excludeFromTargets)} />
+      </Pressable>
       <View style={styles.cardDivider} />
       <View style={styles.attributesSection}>
         <Text style={styles.attributesTitle}>Attributes</Text>
@@ -1028,6 +1046,9 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   formRow: { flexDirection: 'row', gap: 10 },
   field: { gap: 4 },
   halfField: { flex: 1 },
+  targetToggleRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  targetToggleCopy: { flex: 1, gap: 3 },
+  targetToggleHint: { color: theme.slate, ...typeScale.caption },
   fieldLabel: { color: theme.slate, ...typeScale.label },
   input: {
     minHeight: 40,

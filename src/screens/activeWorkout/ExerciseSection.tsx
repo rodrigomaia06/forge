@@ -372,7 +372,6 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                   setOptionsOpen(false);
                 }}
                 onEditNote={updateExercise ? (note) => updateExercise(exercise.id, { note }) : undefined}
-                onToggleExcludeFromTargets={updateExercise ? () => updateExercise(exercise.id, { excludeFromTargets: !exercise.excludeFromTargets }) : undefined}
                 onOpenPreviousSessions={() => undefined}
                 onOpenWarmupSets={canBuildWarmups ? () => afterOptionsClose(() => setOptionView('warmup')) : undefined}
                 onOpenExerciseInfo={hasExerciseInfo ? () => undefined : undefined}

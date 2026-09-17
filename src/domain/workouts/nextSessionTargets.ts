@@ -14,7 +14,7 @@ export function routineExercisesWithNextSessionTargets(
   completedWorkouts: readonly Workout[],
 ): WorkoutExerciseInput[] {
   const source = completedWorkouts
-    .filter((workout) => workout.routineId === routine.id && workout.completedAt !== null)
+    .filter((workout) => workout.routineId === routine.id && workout.completedAt !== null && !workout.excludeFromTargets)
     .sort((left, right) => completedAt(right) - completedAt(left))[0];
   if (!source) return routine.exercises;
 
@@ -28,9 +28,6 @@ export function routineExercisesWithNextSessionTargets(
     if (sourceExerciseIndex < 0) return exercise;
     consumedSourceExercises.add(sourceExerciseIndex);
     const sourceExercise = source.exercises[sourceExerciseIndex];
-    // The user marked that session as not representative (different gym/gear),
-    // so it must not seed the next session's previous values or targets.
-    if (sourceExercise.excludeFromTargets) return exercise;
     return {
       ...exercise,
       sets: (exercise.sets ?? []).map((set, index) =>
