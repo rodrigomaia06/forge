@@ -74,10 +74,8 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       paddingHorizontal: 12,
       flexDirection: 'row',
       alignItems: 'center',
-      borderWidth: 1,
-      borderColor: dashboardTheme.divider,
       borderRadius: 12,
-      // Match the exercise cards' base tone rather than the lighter muted layer.
+      // Match the exercise cards: base surface tone, no outline.
       backgroundColor: dashboardTheme.surface,
     },
     elapsedInfo: {

@@ -856,7 +856,7 @@ export function ExerciseOptionsSheet({
                   variant="secondary"
                   haptic="none"
                   onPress={() => { applyRest(undefined); openView('info'); }}
-                  style={restOverride === undefined ? styles.restDefaultActionSelected : undefined}
+                  style={styles.restDefaultAction}
                 />
               ) : undefined
             }
@@ -1180,7 +1180,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     exerciseOptionEquipment: { color: '#4F625A', ...typeScale.label },
     restPickerContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 20 },
     restChoiceCard: { overflow: 'hidden', borderRadius: 16 },
-    restDefaultActionSelected: { backgroundColor: theme.successSurface, borderColor: theme.success, borderWidth: 1 },
+    restDefaultAction: { paddingHorizontal: 14, backgroundColor: theme.surfaceMuted, borderColor: theme.border, borderWidth: 1 },
     exerciseNoteContent: { paddingHorizontal: 20, paddingBottom: 28 },
     exerciseNoteCard: { paddingHorizontal: 14, paddingVertical: 12, minHeight: 156 },
     readOnlyExerciseNote: { color: theme.textPrimary, ...typeScale.body },
