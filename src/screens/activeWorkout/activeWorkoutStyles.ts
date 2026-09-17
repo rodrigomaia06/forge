@@ -75,8 +75,9 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       flexDirection: 'row',
       alignItems: 'center',
       borderRadius: 12,
-      // Match the exercise cards: base surface tone, no outline.
-      backgroundColor: dashboardTheme.surface,
+      // Raised-card tone (#1F2225 in dark, ~#202225): the color requested for the
+      // header timer panel.
+      backgroundColor: dashboardTheme.surfaceElevated,
     },
     elapsedInfo: {
       flex: 1,
