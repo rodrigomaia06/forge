@@ -646,7 +646,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         ) : null}
       </ForgeBottomSheet>
       <ForgeActionSheet
-        visible={sourceStep === 'source'}
+        visible={sourceStep !== null}
         onClose={() => {
           if (sourceActionTakenRef.current) {
             sourceActionTakenRef.current = false;
@@ -672,19 +672,29 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
             description: 'Copy a routine’s exercises and setup.',
             accessibilityLabel: 'From routine',
             icon: 'layers',
-            onPress: () => { sourceActionTakenRef.current = true; setSourceStep('routine-list'); },
+            // Keep this sheet mounted and swap its content to the routine
+            // chooser, so it continues from this card rather than dismissing
+            // and re-presenting a second sheet.
+            dismiss: false,
+            onPress: () => setSourceStep('routine-list'),
           },
         ]}
         testID="historical-workout-source-chooser"
-      />
-      <HistoryRoutineSourceSheet
-        step={sourceStep === 'routine-list' || typeof sourceStep === 'object' ? sourceStep : null}
-        plans={plans}
-        standaloneRoutines={standaloneRoutines}
-        onClose={() => setSourceStep('source')}
-        onBack={() => setSourceStep('routine-list')}
-        onChoosePlan={(planId) => setSourceStep({ planId })}
-        onSelectRoutine={selectRoutine}
+        replacement={sourceStep !== null && sourceStep !== 'source' ? (closeSheet) => (
+          <HistoryRoutineSourceContent
+            step={sourceStep}
+            plans={plans}
+            standaloneRoutines={standaloneRoutines}
+            closeSheet={closeSheet}
+            onBack={() =>
+              setSourceStep((current) =>
+                current && typeof current === 'object' ? 'routine-list' : 'source',
+              )
+            }
+            onChoosePlan={(planId) => setSourceStep({ planId })}
+            onSelectRoutine={selectRoutine}
+          />
+        ) : null}
       />
       <ForgeConfirmationDialog
         visible={discardConfirmationOpen}
@@ -714,45 +724,36 @@ function HistoryPickerBackButton({ onPress }: { onPress: () => void }) {
   return <ForgeBackButton accessibilityLabel="Back to edit workout" onPress={onPress} />;
 }
 
-function HistoryRoutineSourceSheet({
+function HistoryRoutineSourceContent({
   step,
   plans,
   standaloneRoutines,
-  onClose,
+  closeSheet,
   onBack,
   onChoosePlan,
   onSelectRoutine,
 }: {
-  step: 'routine-list' | { planId: string } | null;
+  step: 'routine-list' | { planId: string };
   plans: import('../types').WorkoutPlan[];
   standaloneRoutines: import('../types').WorkoutRoutine[];
-  onClose: () => void;
+  closeSheet: () => void;
   onBack: () => void;
   onChoosePlan: (planId: string) => void;
   onSelectRoutine: (routine: import('../types').WorkoutRoutine, plan?: import('../types').WorkoutPlan) => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const selectedPlan = step && typeof step === 'object' ? plans.find((plan) => plan.id === step.planId) : undefined;
+  const selectedPlan = typeof step === 'object' ? plans.find((plan) => plan.id === step.planId) : undefined;
   return (
-    <ForgeBottomSheet
-      visible={step !== null}
-      onClose={onClose}
-      accessibilityLabel="Close routine chooser"
-      initialOffset={440}
-      closeDistance={480}
-      dragEnabled={false}
-      style={styles.sourceSheet}
-    >
-      {() => (
-        <>
-          <ForgeBottomSheetHandle />
-          <ForgeSheetHeader
-            title={selectedPlan ? selectedPlan.name : 'Choose routine'}
-            onClose={onClose}
-            leading={selectedPlan ? <HistoryPickerBackButton onPress={onBack} /> : undefined}
-          />
-          <ScrollView contentContainerStyle={styles.sourceContent} showsVerticalScrollIndicator={false}>
+    <View>
+      <ForgeBottomSheetHandle />
+      <ForgeSheetHeader
+        title={selectedPlan ? selectedPlan.name : 'Choose routine'}
+        onClose={closeSheet}
+        closeAccessibilityLabel="Close routine chooser"
+        leading={<HistoryPickerBackButton onPress={onBack} />}
+      />
+      <ScrollView style={styles.sourceScroll} contentContainerStyle={styles.sourceContent} showsVerticalScrollIndicator={false}>
             {selectedPlan ? (
               selectedPlan.routines.length ? (
                 <RoutineChoiceCard routines={selectedPlan.routines} onPress={(routine) => onSelectRoutine(routine, selectedPlan)} />
@@ -791,10 +792,8 @@ function HistoryRoutineSourceSheet({
                 {!standaloneRoutines.length && !plans.length ? <Text style={styles.emptySourceText}>Create a routine first, then use it as an editable historical-workout starting point.</Text> : null}
               </>
             )}
-          </ScrollView>
-        </>
-      )}
-    </ForgeBottomSheet>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -1080,8 +1079,9 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   },
   pickerSheet: { paddingHorizontal: 20, paddingBottom: 32, gap: 12 },
   editorSheet: { maxHeight: '84%', paddingHorizontal: 20, paddingBottom: 12 },
-  sourceSheet: { maxHeight: '84%', paddingHorizontal: 20, paddingBottom: 24 },
-  sourceContent: { paddingTop: 14, paddingBottom: 20, gap: 18 },
+  // Hug the content when short, shrink to scroll within the sheet cap when tall.
+  sourceScroll: { flexShrink: 1 },
+  sourceContent: { paddingTop: 14, paddingBottom: 24, paddingHorizontal: 20, gap: 18 },
   sourceGroup: { gap: 8 },
   sourceLabel: { color: theme.slate, ...typeScale.label },
   sourceRow: { minHeight: 60, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },

@@ -9,7 +9,6 @@ import {
   Button,
   ForgeActionSheet,
   ForgeBackButton,
-  ForgeBottomSheet,
   ForgeBottomSheetHandle,
   ForgeCard,
   ForgeSheetHeader,
@@ -80,6 +79,7 @@ export function DashboardShell({
       exercises: routineExercisesWithNextSessionTargets(routine, completedWorkouts),
     });
     setRoutineSourceStep(null);
+    setWorkoutSourceOpen(false);
     navigation.navigate('ActiveWorkout');
   };
   return (
@@ -118,7 +118,10 @@ export function DashboardShell({
         )}
         <ForgeActionSheet
           visible={workoutSourceOpen}
-          onClose={() => setWorkoutSourceOpen(false)}
+          onClose={() => {
+            setWorkoutSourceOpen(false);
+            setRoutineSourceStep(null);
+          }}
           accessibilityLabel="Dismiss workout source chooser"
           title="Start workout"
           testID="dashboard-workout-source-chooser"
@@ -134,110 +137,112 @@ export function DashboardShell({
               label: 'From routine or plan',
               description: 'Use one of your saved templates',
               icon: 'book',
-              onPress: () => {
-                setWorkoutSourceOpen(false);
-                setRoutineSourceStep('routine-list');
-              },
+              // Keep this sheet mounted and swap its content to the routine
+              // chooser, so it continues from this card rather than dismissing
+              // and re-presenting a second sheet.
+              dismiss: false,
+              onPress: () => setRoutineSourceStep('routine-list'),
             },
           ]}
-        />
-        <DashboardRoutineSourceSheet
-          step={routineSourceStep}
-          plans={plans}
-          standaloneRoutines={standaloneRoutines}
-          onClose={() => {
-            setRoutineSourceStep(null);
-            setWorkoutSourceOpen(true);
-          }}
-          onBack={() => setRoutineSourceStep('routine-list')}
-          onChoosePlan={(planId) => setRoutineSourceStep({ planId })}
-          onSelectRoutine={startRoutineWorkout}
+          replacement={routineSourceStep !== null ? (closeSheet) => (
+            <DashboardRoutineSourceContent
+              step={routineSourceStep}
+              plans={plans}
+              standaloneRoutines={standaloneRoutines}
+              closeSheet={closeSheet}
+              onBack={() =>
+                setRoutineSourceStep((current) =>
+                  current && typeof current === 'object' ? 'routine-list' : null,
+                )
+              }
+              onChoosePlan={(planId) => setRoutineSourceStep({ planId })}
+              onSelectRoutine={startRoutineWorkout}
+            />
+          ) : null}
         />
       </View>
     </AppScreen>
   );
 }
 
-function DashboardRoutineSourceSheet({
+function DashboardRoutineSourceContent({
   step,
   plans,
   standaloneRoutines,
-  onClose,
+  closeSheet,
   onBack,
   onChoosePlan,
   onSelectRoutine,
 }: {
-  step: DashboardRoutineSourceStep;
+  step: Exclude<DashboardRoutineSourceStep, null>;
   plans: import('../../types').WorkoutPlan[];
   standaloneRoutines: import('../../types').WorkoutRoutine[];
-  onClose: () => void;
+  closeSheet: () => void;
   onBack: () => void;
   onChoosePlan: (planId: string) => void;
   onSelectRoutine: (routine: import('../../types').WorkoutRoutine, plan?: import('../../types').WorkoutPlan) => void;
 }) {
   const theme = useForgeTheme();
   const sourceStyles = useThemedStyles(createRoutineSourceStyles);
-  const selectedPlan = step && typeof step === 'object' ? plans.find((plan) => plan.id === step.planId) : undefined;
+  const selectedPlan = typeof step === 'object' ? plans.find((plan) => plan.id === step.planId) : undefined;
   return (
-    <ForgeBottomSheet
-      visible={step !== null}
-      onClose={onClose}
-      accessibilityLabel="Close routine chooser"
-      initialOffset={440}
-      closeDistance={480}
-      dragEnabled={false}
-      style={sourceStyles.sheet}
-    >
-      {() => (
-        <>
-          <ForgeBottomSheetHandle />
-          <ForgeSheetHeader
-            title={selectedPlan ? selectedPlan.name : 'Choose routine'}
-            onClose={onClose}
-            leading={selectedPlan ? <ForgeBackButton accessibilityLabel="Back to routines" onPress={onBack} /> : undefined}
+    <View>
+      <ForgeBottomSheetHandle />
+      <ForgeSheetHeader
+        title={selectedPlan ? selectedPlan.name : 'Choose routine'}
+        onClose={closeSheet}
+        closeAccessibilityLabel="Close routine chooser"
+        leading={
+          <ForgeBackButton
+            accessibilityLabel={selectedPlan ? 'Back to routines' : 'Back to workout source'}
+            onPress={onBack}
           />
-          <ScrollView contentContainerStyle={sourceStyles.content} showsVerticalScrollIndicator={false}>
-            {selectedPlan ? (
-              selectedPlan.routines.length ? (
-                <DashboardRoutineChoiceCard routines={selectedPlan.routines} onPress={(routine) => onSelectRoutine(routine, selectedPlan)} />
-              ) : <Text style={sourceStyles.empty}>This plan has no routines yet.</Text>
-            ) : (
-              <>
-                {standaloneRoutines.length ? <View style={sourceStyles.group}>
-                  <Text style={sourceStyles.label}>Standalone routines</Text>
-                  <DashboardRoutineChoiceCard routines={standaloneRoutines} onPress={(routine) => onSelectRoutine(routine)} />
-                </View> : null}
-                {plans.length ? <View style={sourceStyles.group}>
-                  <Text style={sourceStyles.label}>Plans</Text>
-                  <ForgeCard variant="nested" size="compact">
-                    {plans.map((plan, index) => (
-                      <Pressable
-                        key={plan.id}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Choose routine from ${plan.name}`}
-                        onPress={() => {
-                          lightHaptic();
-                          onChoosePlan(plan.id);
-                        }}
-                        style={({ pressed }) => [sourceStyles.row, index > 0 && sourceStyles.divider, pressed && pressedFeedbackSubtle]}
-                      >
-                        <Icon name="layers" size={21} color={theme.ink} />
-                        <View style={sourceStyles.rowText}>
-                          <Text style={sourceStyles.rowLabel}>{plan.name}</Text>
-                          <Text style={sourceStyles.rowDetail}>{plan.routines.length === 1 ? '1 routine' : `${plan.routines.length} routines`}</Text>
-                        </View>
-                        <Icon name="chevron-forward" size={20} color={theme.slate} />
-                      </Pressable>
-                    ))}
-                  </ForgeCard>
-                </View> : null}
-                {!standaloneRoutines.length && !plans.length ? <Text style={sourceStyles.empty}>Create a routine first, then start it from here.</Text> : null}
-              </>
-            )}
-          </ScrollView>
-        </>
-      )}
-    </ForgeBottomSheet>
+        }
+      />
+      <ScrollView
+        style={sourceStyles.scroll}
+        contentContainerStyle={sourceStyles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {selectedPlan ? (
+          selectedPlan.routines.length ? (
+            <DashboardRoutineChoiceCard routines={selectedPlan.routines} onPress={(routine) => onSelectRoutine(routine, selectedPlan)} />
+          ) : <Text style={sourceStyles.empty}>This plan has no routines yet.</Text>
+        ) : (
+          <>
+            {standaloneRoutines.length ? <View style={sourceStyles.group}>
+              <Text style={sourceStyles.label}>Standalone routines</Text>
+              <DashboardRoutineChoiceCard routines={standaloneRoutines} onPress={(routine) => onSelectRoutine(routine)} />
+            </View> : null}
+            {plans.length ? <View style={sourceStyles.group}>
+              <Text style={sourceStyles.label}>Plans</Text>
+              <ForgeCard variant="nested" size="compact">
+                {plans.map((plan, index) => (
+                  <Pressable
+                    key={plan.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Choose routine from ${plan.name}`}
+                    onPress={() => {
+                      lightHaptic();
+                      onChoosePlan(plan.id);
+                    }}
+                    style={({ pressed }) => [sourceStyles.row, index > 0 && sourceStyles.divider, pressed && pressedFeedbackSubtle]}
+                  >
+                    <Icon name="layers" size={21} color={theme.ink} />
+                    <View style={sourceStyles.rowText}>
+                      <Text style={sourceStyles.rowLabel}>{plan.name}</Text>
+                      <Text style={sourceStyles.rowDetail}>{plan.routines.length === 1 ? '1 routine' : `${plan.routines.length} routines`}</Text>
+                    </View>
+                    <Icon name="chevron-forward" size={20} color={theme.slate} />
+                  </Pressable>
+                ))}
+              </ForgeCard>
+            </View> : null}
+            {!standaloneRoutines.length && !plans.length ? <Text style={sourceStyles.empty}>Create a routine first, then start it from here.</Text> : null}
+          </>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -270,8 +275,9 @@ function DashboardRoutineChoiceCard({
 }
 
 const createRoutineSourceStyles = (theme: ForgeTheme) => StyleSheet.create({
-  sheet: { maxHeight: '84%', paddingHorizontal: 20, paddingBottom: 24 },
-  content: { paddingTop: 14, paddingBottom: 20, gap: 18 },
+  // Hug the content when short, shrink to scroll within the sheet cap when tall.
+  scroll: { flexShrink: 1 },
+  content: { paddingTop: 14, paddingBottom: 24, paddingHorizontal: 20, gap: 18 },
   group: { gap: 8 },
   label: { color: theme.slate, ...typeScale.label },
   row: { minHeight: 60, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
