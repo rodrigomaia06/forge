@@ -288,6 +288,7 @@ export function RestDurationPicker({
         scrollEventThrottle={16}
         contentContainerStyle={styles.durationPickerContent}
         onScroll={handleScroll}
+        onScrollEndDrag={(event) => handleScrollEnd(event.nativeEvent)}
         onMomentumScrollEnd={(event) => handleScrollEnd(event.nativeEvent)}
       >
         {REST_DURATION_OPTIONS.map((duration, index) => {
