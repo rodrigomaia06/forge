@@ -362,7 +362,10 @@ test.describe('History screen', () => {
     await expect(datePicker).toBeVisible();
     await datePicker.getByRole('button', { name: 'Next month' }).click();
     await datePicker.getByRole('button', { name: /^Select / }).first().click();
-    await page.getByRole('button', { name: 'Back to edit workout' }).click();
+    await page
+      .getByTestId('history-date-time-picker-surface')
+      .getByRole('button', { name: 'Close date and time picker' })
+      .click();
     await page.getByRole('button', { name: 'Select Start time' }).click();
     const startTimePicker = page.getByTestId('history-start-picker');
     await expect(startTimePicker).toBeVisible();

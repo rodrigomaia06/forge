@@ -559,7 +559,6 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
               title={picker === 'date' ? 'Date' : picker === 'start' ? 'Start time' : 'End time'}
               onClose={close}
               closeAccessibilityLabel="Close date and time picker"
-              leading={<HistoryPickerBackButton onPress={close} />}
             />
             <ForgeDateTimePicker
               mode={picker === 'date' ? 'date' : 'time'}

@@ -60,7 +60,10 @@ test.describe('Dashboard', () => {
     await page.getByLabel('Workout name').fill('Calendar workout');
     await page.getByRole('button', { name: 'Select Start time' }).click();
     await page.getByTestId('history-start-picker').getByRole('radio', { name: 'Hours 16' }).click();
-    await page.getByRole('button', { name: 'Back to edit workout' }).click();
+    await page
+      .getByTestId('history-date-time-picker-surface')
+      .getByRole('button', { name: 'Close date and time picker' })
+      .click();
     await expect(page.getByRole('button', { name: 'Select Start time' })).toContainText('Choose time');
     await page.getByRole('button', { name: 'Select Start time' }).click();
     await page.getByTestId('history-start-picker').getByRole('radio', { name: 'Hours 17' }).click();
