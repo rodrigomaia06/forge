@@ -82,11 +82,12 @@ export function BottomNavigation({
     // Before native measurement (and on web), use DockSurface's explicit
     // 1pt border + 6pt horizontal padding per side as a stable fallback.
     const navigationWidth = measuredWidth ?? (surfaceWidth ? Math.max(0, surfaceWidth.value - 14) : 0);
-    const slotWidth = Math.max(0, (navigationWidth - 4) / items.length);
-    // The pill is absolutely positioned inside `navigation` (paddingHorizontal 2)
-    // and inset 2pt within its slot. Its left origin is the parent's padding box
-    // (RN 0.86 Yoga matches web here), so a slot-centered pill starts at
-    // slotStart + inset = i*slotWidth + 2 — not + 4, which biased it 2pt right.
+    // `navigation` has no horizontal padding, so the pill's absolute-left origin
+    // and the flex slots share the same origin on every platform (no border-box
+    // vs padding-box ambiguity between native and web). Each slot is an equal
+    // share of the full width; the pill is inset 2pt and centered on its slot:
+    // start = i*slotWidth + inset. This holds for any tab count.
+    const slotWidth = Math.max(0, navigationWidth / items.length);
     return {
       opacity: indicatorOpacity.value,
       width: Math.max(0, slotWidth - 4),
@@ -167,7 +168,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     minHeight: 64,
-    paddingHorizontal: 2,
+    paddingHorizontal: 0,
     paddingBottom: 4,
     paddingTop: 4,
     backgroundColor: 'transparent',
