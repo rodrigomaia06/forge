@@ -3,11 +3,12 @@ import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { AppScreen } from '../../components/ui';
+import { AppScreen, ForgeText as Text } from '../../components/ui';
 import { useExerciseCatalog } from '../../state/ExerciseCatalogContext';
 import { useSettings } from '../../state/SettingsContext';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
+import { typeScale } from '../../theme/tokens';
 import type { IconName, RootStackParamList } from '../../types';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
@@ -106,10 +107,10 @@ function LibraryRow({
   onPress: () => void;
   showDivider?: boolean;
 }) {
+  const theme = useForgeTheme();
   return (
     <SettingsRow
       title={title}
-      subtitle={`${count} ${count === 1 ? 'exercise' : 'exercises'}`}
       icon={icon}
       iconColor={color}
       iconBackgroundColor={`${color}20`}
@@ -119,6 +120,7 @@ function LibraryRow({
       haptic="selection"
       disclosure
       showDivider={showDivider}
+      trailing={<Text style={[typeScale.supporting, { color: theme.textSecondary }]}>{count}</Text>}
     />
   );
 }
