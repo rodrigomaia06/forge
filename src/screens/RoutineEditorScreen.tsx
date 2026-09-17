@@ -262,11 +262,6 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
     setAttributeSheet(null);
     errorHaptic();
   };
-  const beginRoutineExerciseDrag = (drag: () => void): void => {
-    setReorderingExercises(true);
-    setRevealedExerciseId(null);
-    requestAnimationFrame(() => requestAnimationFrame(drag));
-  };
   const renderRoutineExercise = (
     exercise: WorkoutRoutine['exercises'][number],
     index: number,
@@ -309,7 +304,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
         deleteRevealed={revealedExerciseId === exerciseId}
         onDeleteRevealChange={(id, revealed) => setRevealedExerciseId(revealed ? id : null)}
         collapsible
-        forceCollapsed={reorderingExercises}
+        forceCollapsed={false}
         swipeEnabled={!reorderingExercises && !isActive}
         showMoreOptions={!viewing}
         onReplaceExercise={() => setReplacingExerciseIndex(index)}
@@ -320,7 +315,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           drag && !viewing ? (
             <RoutineExerciseDragHandle
               name={exercise.name}
-              onDrag={() => beginRoutineExerciseDrag(drag)}
+              onDrag={drag}
               disabled={isActive}
             />
           ) : undefined
@@ -528,6 +523,12 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           }
           ListFooterComponent={addExercisesButton}
           ListFooterComponentStyle={styles.exerciseFooter}
+          onDragBegin={() => {
+            // Grabbed synchronously from the handle; only flag reorder state and
+            // close any revealed row here — never resize rows mid-drag.
+            setRevealedExerciseId(null);
+            setReorderingExercises(true);
+          }}
           onDragEnd={({ data }) => {
             change((current) => ({ ...current, exercises: data }));
             setReorderingExercises(false);

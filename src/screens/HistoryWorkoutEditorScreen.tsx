@@ -263,11 +263,6 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
     setEndTimeChosen(false);
     setSourceStep(null);
   };
-  const beginExerciseDrag = (drag: () => void): void => {
-    setReorderingExercises(true);
-    setOpenExerciseId(null);
-    requestAnimationFrame(() => requestAnimationFrame(drag));
-  };
   const renderExercise = (
     exercise: WorkoutExercise,
     index: number,
@@ -317,7 +312,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         // completion state and next-session targets until the workout is
         // logged from the actual Live Workout screen.
         collapsible={isActive}
-        forceCollapsed={isActive && reorderingExercises}
+        forceCollapsed={false}
         showMoreOptions={!isActive}
         showSetCompletion={!isActive}
         onSetInputFocus={isActive ? onSetInputFocus : undefined}
@@ -329,7 +324,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
           <WorkoutExerciseDragHandle
             name={exercise.name}
             disabled={isDragging}
-            onDrag={() => beginExerciseDrag(drag)}
+            onDrag={drag}
           />
         ) : undefined}
       />
@@ -505,6 +500,13 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
             }}
             ListHeaderComponent={<View style={styles.listHeader}>{editorForm}<Text style={styles.sectionTitle}>Exercises</Text></View>}
             ListFooterComponent={<View style={styles.exerciseFooter}>{addExerciseButton}</View>}
+            onDragBegin={() => {
+              // Drag is grabbed synchronously from the handle's long-press; only
+              // flag reorder state and close any revealed delete here — never
+              // change row heights mid-drag, which would make the item snap.
+              setOpenExerciseId(null);
+              setReorderingExercises(true);
+            }}
             onDragEnd={({ data }) => {
               updateDraft((current) => ({ ...current, exercises: data }));
               setReorderingExercises(false);
