@@ -83,6 +83,11 @@ export function ForgeActionSheet({
       dismissThreshold={dismissThreshold}
       backdropIntensity={backdropIntensity}
       waitForContentLayoutBeforeEnter={waitForContentLayoutBeforeEnter}
+      // Ease the sheet height when the body swaps between the action list and a
+      // replacement view (note / info / history / rest). Skipped for sheets that
+      // measure before entering, whose post-mount measurement would otherwise
+      // animate on open.
+      animateContentLayout={!waitForContentLayoutBeforeEnter}
     >
       {(close) => (
         <View style={[styles.sheet, emphasis === 'prominent' && styles.prominentSheet]}>

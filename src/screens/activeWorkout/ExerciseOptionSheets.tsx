@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import {
   ForgeBottomSheet,
@@ -212,8 +211,6 @@ export function PreviousSessionsContent({
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const reducedMotion = useForgeReducedMotion();
-  const { height: windowHeight } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
   const [uncontrolledShowAll, setUncontrolledShowAll] = useState(false);
   const [openSet, setOpenSet] = useState<{ set: WorkoutSet; index: number; trackingType: NonNullable<WorkoutExercise['trackingType']> } | null>(null);
@@ -241,10 +238,10 @@ export function PreviousSessionsContent({
 
   return <><ScrollView
     ref={scrollViewRef}
-    // Fill nearly to the top safe area so the history reads as a full-screen
-    // card; the handle + header take the space subtracted here. The view swaps
-    // in via the sheet's shared content transition, like the other option views.
-    style={[styles.previousSessionsScroll, { maxHeight: windowHeight - insets.top - 104 }]}
+    // Hug the content and scroll only once it exceeds the sheet's own max
+    // height. See docs/decisions/0005 — a maxHeight ON the ScrollView parks it
+    // at that height and creates dead space; the sheet surface already caps it.
+    style={styles.previousSessionsScroll}
     contentContainerStyle={styles.previousSessionsContent}
     nestedScrollEnabled
     onScroll={(event) => onScrollOffsetChange?.(event.nativeEvent.contentOffset.y)}

@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
+  LinearTransition,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -65,6 +66,12 @@ interface ForgeBottomSheetProps {
    * is still being laid out.
    */
   waitForContentLayoutBeforeEnter?: boolean;
+  /**
+   * Ease the surface height when its body changes size (e.g. an action sheet
+   * swapping to a taller replacement view). Off by default so ordinary sheets
+   * keep their instant sizing.
+   */
+  animateContentLayout?: boolean;
   testID?: string;
 }
 
@@ -88,6 +95,7 @@ export function ForgeBottomSheet({
   dragArea,
   dragEnabled = true,
   waitForContentLayoutBeforeEnter = false,
+  animateContentLayout = false,
   backdropIntensity = 'default',
   testID,
 }: ForgeBottomSheetProps) {
@@ -333,6 +341,7 @@ export function ForgeBottomSheet({
           <SheetDragContext.Provider value={dragEnabled ? pan : null}>
             <Animated.View
               testID={surfaceTestID}
+              layout={animateContentLayout && !reducedMotion ? LinearTransition.duration(240) : undefined}
               onLayout={(event) => {
                 if (keyboardVisible) return;
                 const height = event.nativeEvent.layout.height;

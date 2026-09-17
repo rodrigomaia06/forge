@@ -789,9 +789,9 @@ export function ExerciseOptionsSheet({
     onEditNote?.(noteDraft.trim());
   };
   const openView = (nextView: 'note' | 'history' | 'info' | 'rest'): void => {
-    // These destinations deliberately replace the action list in one Forge
-    // sheet. Give its height/content change the same short native transition
-    // used by catalogue expansion instead of snapping the body in place.
+    // These destinations replace the action list in one Forge sheet. Note: this
+    // swap does not visibly animate — see docs/decisions/0005 (LayoutAnimation
+    // does not ease the Reanimated Modal surface across a key remount).
     animateSheetContent(reducedMotion);
     setView(nextView);
   };
