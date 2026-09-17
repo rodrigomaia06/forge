@@ -255,6 +255,20 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     {`${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'}`}
                   </Text>
                 </View>
+                {showMoreOptions && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`More options for ${exercise.name}`}
+                    onPress={() => {
+                      selectionHaptic();
+                      setOptionsOpen(true);
+                      setOptionsVisible(true);
+                    }}
+                    style={({ pressed }) => [styles.moreButton, pressed && pressedFeedback]}
+                  >
+                    <Icon name="ellipsis-horizontal" size={20} color={theme.ink} />
+                  </Pressable>
+                )}
                 <View style={[styles.collapsibleChevron, styles.pointerEventsNone]}>
                   <Icon
                     name={expanded ? 'chevron-down' : 'chevron-forward'}

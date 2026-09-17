@@ -293,6 +293,14 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           }))
         }
         updateSet={(_, setId, changes) => updateRoutineSet(index, setId, changes, change)}
+        updateExercise={(_, changes) =>
+          change((current) => ({
+            ...current,
+            exercises: current.exercises.map((item, itemIndex) =>
+              itemIndex === index ? { ...item, ...changes } : item,
+            ),
+          }))
+        }
         toggleSet={(_, setId) =>
           setCompletedRoutineSetIds((current) =>
             current.includes(setId)
