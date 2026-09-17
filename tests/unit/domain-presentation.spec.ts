@@ -380,11 +380,11 @@ test('derives average rest from recorded completion intervals, not timer default
   expect(legacy).toMatchObject({ averageRestSeconds: 105, restTimerSamples: 2 });
 });
 
-test('restarts an expired rest from its original duration when extending it', () => {
+test('restarts an expired rest as a fresh rest of the added amount', () => {
   const now = 1_000_000;
   expect(adjustRestTimer({ duration: 10, endAt: now - 1_000, seconds: 10, now })).toEqual({
-    duration: 20,
-    endAt: now + 20_000,
+    duration: 10,
+    endAt: now + 10_000,
   });
   expect(adjustRestTimer({ duration: 90, endAt: now + 45_000, seconds: -10, now })).toEqual({
     duration: 80,
