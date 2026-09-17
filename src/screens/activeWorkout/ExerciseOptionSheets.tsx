@@ -225,7 +225,8 @@ export function PreviousSessionsContent({
     ref={scrollViewRef}
     // A concrete cap gives the list a bounded viewport so it can scroll inside
     // the sheet; flexShrink alone let it grow to its content height (no scroll).
-    style={[styles.previousSessionsScroll, { maxHeight: Math.round(windowHeight * 0.56) }]}
+    // Keep it tall (close to the prior content-driven height) and scroll past it.
+    style={[styles.previousSessionsScroll, { maxHeight: Math.round(windowHeight * 0.72) }]}
     contentContainerStyle={styles.previousSessionsContent}
     nestedScrollEnabled
     onScroll={(event) => onScrollOffsetChange?.(event.nativeEvent.contentOffset.y)}
