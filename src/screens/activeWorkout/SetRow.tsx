@@ -147,7 +147,12 @@ export function SetRow({
       {trackingFields[trackingType].map((kind) => {
         const planned = plannedIntervalText(set, kind);
         const allowsRange = setTargetMode === 'routine' && (kind === 'reps' || kind === 'duration');
-        const storedValue = allowsRange ? planned : measurementText(set, kind);
+        // Prefer the raw legacy string so a decimal being typed ("9.5", "9,5")
+        // is preserved as-is; formatting through the parsed number would drop a
+        // trailing separator mid-entry. Fall back to the structured value only
+        // when there is no legacy text (e.g. migrated, measurement-only data).
+        const legacyRaw = kind === 'reps' ? set.reps : kind === 'weight' || kind === 'addedWeight' ? set.weight : '';
+        const storedValue = allowsRange ? planned : legacyRaw && legacyRaw.length ? legacyRaw : measurementText(set, kind);
         const draftValue = routineRangeDrafts[kind];
         const value = allowsRange && draftValue !== undefined ? draftValue : storedValue;
         // Every set field keeps its normal neutral box. A live empty field is
@@ -233,7 +238,7 @@ export function SetRow({
                   return next;
                 });
               }}
-              keyboardType={kind === 'reps' || kind === 'duration' ? 'number-pad' : 'decimal-pad'}
+              keyboardType={kind === 'duration' ? 'number-pad' : 'decimal-pad'}
               selectTextOnFocus={false}
               placeholder={planned || '—'}
               placeholderTextColor={theme.textDisabled}
