@@ -162,10 +162,11 @@ export const ExerciseSection = React.memo(function ExerciseSection({
 
   const cardGesture = Gesture.Pan()
     .enabled(swipeEnabled)
-    .activeOffsetX([-8, 8])
-    // Vertical intent must fail this horizontal-delete recognizer promptly;
-    // otherwise a slightly diagonal scroll can leave the card under the finger.
-    .failOffsetY([-6, 6])
+    // Require a clearer horizontal intent and fail fast on any vertical motion so
+    // the list's native scroll always wins a near-vertical drag; a too-eager
+    // horizontal recognizer here could pin the scroll until the list remounts.
+    .activeOffsetX([-16, 16])
+    .failOffsetY([-4, 4])
     .onStart(() => {
       runOnJS(beginCardSwipe)();
     })

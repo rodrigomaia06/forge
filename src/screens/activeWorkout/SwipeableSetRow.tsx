@@ -131,8 +131,10 @@ function SwipeableSetRowComponent({
   };
 
   const deleteGesture = Gesture.Pan()
-    .activeOffsetX([-6, 6])
-    .failOffsetY([-6, 6])
+    // Fail fast on vertical motion so the list scroll wins a near-vertical drag
+    // instead of this row swipe pinning it (the scroll-dies-until-tab bug).
+    .activeOffsetX([-16, 16])
+    .failOffsetY([-4, 4])
     .onUpdate((gesture) => {
       if (!deleteOpen.value && gesture.translationX >= 0) return;
       const base = deleteOpen.value ? -DELETE_ACTION_WIDTH : 0;

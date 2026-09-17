@@ -670,7 +670,10 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
         contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+        // The focused-set keyboard lift already scrolls the field into view;
+        // letting iOS also adjust insets made the two fight and scroll stick
+        // while the keyboard was up.
+        automaticallyAdjustKeyboardInsets={false}
         scrollsChildToFocus
         nestedScrollEnabled
         onScroll={workoutScrollHandler}
