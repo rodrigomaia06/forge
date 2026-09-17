@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
-import Animated, { SlideInRight } from 'react-native-reanimated';
+import Animated, { ZoomIn } from 'react-native-reanimated';
 
 import {
   ForgeBottomSheet,
@@ -238,7 +238,7 @@ export function PreviousSessionsContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showAll]);
 
-  return <><Animated.View entering={reducedMotion ? undefined : SlideInRight.duration(240)}><ScrollView
+  return <><Animated.View entering={reducedMotion ? undefined : ZoomIn.duration(200)}><ScrollView
     ref={scrollViewRef}
     // A concrete cap gives the list a bounded viewport so it can scroll inside
     // the sheet; flexShrink alone let it grow to its content height (no scroll).
