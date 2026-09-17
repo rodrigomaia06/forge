@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import Animated, { SlideInRight } from 'react-native-reanimated';
 
 import {
   ForgeBottomSheet,
@@ -237,7 +238,7 @@ export function PreviousSessionsContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showAll]);
 
-  return <><ScrollView
+  return <><Animated.View entering={reducedMotion ? undefined : SlideInRight.duration(240)}><ScrollView
     ref={scrollViewRef}
     // A concrete cap gives the list a bounded viewport so it can scroll inside
     // the sheet; flexShrink alone let it grow to its content height (no scroll).
@@ -257,7 +258,7 @@ export function PreviousSessionsContent({
       </ForgeCard>
     </View>)}
     {!showAll && sessions.length > 3 ? <Pressable accessibilityRole="button" accessibilityLabel={`Show ${sessions.length - 3} more sessions`} onPress={revealAll} style={({ pressed }) => [styles.showMoreSessions, { backgroundColor: theme.surface }, pressed && pressedFeedbackSubtle]}><Text style={styles.showMoreText}>{`Show ${sessions.length - 3} more`}</Text></Pressable> : null}
-  </> : <View style={[styles.emptyCard, { borderColor: theme.border, backgroundColor: theme.surfaceMuted }]}><Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>No completed sessions for this exercise yet.</Text></View>}</ScrollView>{openSet ? <SetDetailsCard visible set={openSet.set} index={openSet.index} editable={false} onChange={() => undefined} onDelete={() => undefined} onDone={() => setOpenSet(null)} trackingType={openSet.trackingType} /> : null}</>;
+  </> : <View style={[styles.emptyCard, { borderColor: theme.border, backgroundColor: theme.surfaceMuted }]}><Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>No completed sessions for this exercise yet.</Text></View>}</ScrollView></Animated.View>{openSet ? <SetDetailsCard visible set={openSet.set} index={openSet.index} editable={false} onChange={() => undefined} onDelete={() => undefined} onDone={() => setOpenSet(null)} trackingType={openSet.trackingType} /> : null}</>;
 }
 
 function catalogueDetail(exercise: WorkoutExercise): ExerciseCatalogItem | undefined {

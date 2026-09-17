@@ -410,7 +410,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         style={({ pressed }) => [styles.targetToggleRow, pressed && pressedFeedbackSubtle]}
       >
         <View style={styles.targetToggleCopy}>
-          <Text style={styles.fieldLabel}>Skip for targets</Text>
+          <Text style={styles.fieldLabel}>Off-plan session</Text>
           <Text style={styles.targetToggleHint}>Won't affect future targets.</Text>
         </View>
         <ForgeSwitch value={Boolean(draft.excludeFromTargets)} />
@@ -1020,7 +1020,9 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   listViewport: { flex: 1 },
   content: { padding: 16, paddingBottom: 32, gap: 10 },
   listHeader: { gap: 14 },
-  draggableExerciseRow: { marginBottom: 2 },
+  // Card separation comes from the list gap alone; a second row margin stacked
+  // on top of it made the spacing read as too much (or, once tiny, merged).
+  draggableExerciseRow: {},
   exerciseFooter: { paddingTop: 10 },
   formCard: {
     padding: 14,
@@ -1090,7 +1092,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     backgroundColor: theme.surface,
   },
   addExerciseText: { color: theme.ink, ...typeScale.label },
-  exerciseList: { gap: 8 },
+  exerciseList: { gap: 10 },
   dragHandle: {
     width: 32,
     height: 44,
