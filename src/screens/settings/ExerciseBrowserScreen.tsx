@@ -641,7 +641,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                     keyboardDismissMode="on-drag"
                     directionalLockEnabled
                   >
-                    <ForgeCard variant="inset" style={styles.formNameCard}>
+                    <ForgeCard variant="nested" style={styles.formNameCard}>
                       <View style={styles.fieldHeader}>
                         <Text style={styles.fieldLabel}>Name</Text>
                         <Text style={styles.fieldRequired}>Required</Text>
@@ -679,7 +679,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                         />
                       ) : null}
                     </View>
-                    <ForgeCard variant="inset" style={styles.formOptionalCard}>
+                    <ForgeCard variant="nested" style={styles.formOptionalCard}>
                       <Pressable
                         accessibilityRole="button"
                         accessibilityLabel="Optional details"
@@ -828,7 +828,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                     </>
                   ) : null}
                   {formView === 'customEquipment' ? (
-                    <ForgeCard variant="inset" style={styles.customEquipmentCard}>
+                    <ForgeCard variant="nested" style={styles.customEquipmentCard}>
                       <Text style={styles.customEquipmentLabel}>Equipment name</Text>
                       <TextInput
                         autoFocus
@@ -847,7 +847,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   ) : null}
                   {formView === 'workoutTypes' ? (
                     <View accessibilityLabel="Workout type choices">
-                      <ForgeCard variant="inset" size="compact" style={styles.formChoiceList}>
+                      <ForgeCard variant="nested" size="compact" style={styles.formChoiceList}>
                         {visibleTypes.map((type, index) => (
                           <FormChoiceRow
                             key={type.id}
@@ -873,7 +873,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   ) : null}
                   {formView === 'secondaryMuscles' ? (
                     <View accessibilityLabel="Secondary muscle choices">
-                      <ForgeCard variant="inset" size="compact" style={styles.formChoiceList}>
+                      <ForgeCard variant="nested" size="compact" style={styles.formChoiceList}>
                         {muscles.filter((muscle) => muscle !== primaryMuscle).map((muscle, index, choices) => (
                           <FormChoiceRow
                             key={muscle}
@@ -954,7 +954,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   }
                 />
                 <View style={styles.restTimePickerContent}>
-                  <ForgeCard variant="inset" size="compact" style={styles.restTimeChoiceCard}>
+                  <ForgeCard variant="nested" size="compact" style={styles.restTimeChoiceCard}>
                     <ForgeSingleSelectList<number>
                       testID="exercise-rest-selection-list"
                       options={restTimeOptions}
@@ -994,7 +994,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   }
                 />
                 <View style={styles.detailContent}>
-                  <ForgeCard variant="inset" style={styles.restTimeCard}>
+                  <ForgeCard variant="nested" style={styles.restTimeCard}>
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={`Change rest time, currently ${restLabel(detail)}`}
@@ -1017,7 +1017,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   </ForgeCard>
 
                   <Text style={styles.detailSectionLabel}>ESSENTIALS</Text>
-                  <ForgeCard variant="inset" size="compact" style={styles.detailFactGrid}>
+                  <ForgeCard variant="nested" size="compact" style={styles.detailFactGrid}>
                     <ExerciseDetailFact label="Category" value={detail.category} />
                     <ExerciseDetailFact label="Equipment" value={detail.equipment} />
                     <ExerciseDetailFact label="Tracking" value={formatTrackingType(detail.trackingType)} />
@@ -1025,7 +1025,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   </ForgeCard>
 
                   <Text style={styles.detailSectionLabel}>TRAINING PROFILE</Text>
-                  <ForgeCard variant="inset" size="compact" style={styles.detailProfileCard}>
+                  <ForgeCard variant="nested" size="compact" style={styles.detailProfileCard}>
                     {detail.workoutTypeIds.length > 0 ? <View style={styles.detailProfileRow}>
                       <Text style={styles.detailProfileLabel}>Workout types</Text>
                       <View style={styles.sectionTypes}>
@@ -1139,7 +1139,7 @@ function FormLinkCard({
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   return (
-    <ForgeCard variant="inset" style={styles.formLinkCard}>
+    <ForgeCard variant="nested" style={styles.formLinkCard}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
@@ -1179,7 +1179,7 @@ function ExerciseFormOptionList({
   const styles = useThemedStyles(createStyles);
   return (
     <View accessibilityRole={multiple ? undefined : 'radiogroup'}>
-      <ForgeCard variant="inset" size="compact" style={styles.formChoiceList}>
+      <ForgeCard variant="nested" size="compact" style={styles.formChoiceList}>
         {options.map((option, index) => (
           <FormChoiceRow
             key={option.label}

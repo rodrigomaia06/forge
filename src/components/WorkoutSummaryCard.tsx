@@ -117,7 +117,7 @@ export function WorkoutSummaryCard({
               <Icon name={detailsExpanded ? 'chevron-down' : 'chevron-forward'} size={20} color={theme.slate} />
             </Pressable>
             {detailsExpanded ? (
-              <ForgeCard variant="inset" size="compact" style={styles.detailGrid}>
+              <ForgeCard variant="nested" size="compact" style={styles.detailGrid}>
                 {metadata.map((item, index) => (
                   <View key={item.label} style={[styles.detailItem, index > 0 && styles.detailItemDivider]}>
                     <Icon name={item.icon} size={18} color={theme.slate} />

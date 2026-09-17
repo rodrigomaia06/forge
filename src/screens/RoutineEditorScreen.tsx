@@ -876,8 +876,6 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       overflow: 'hidden',
       borderRadius: theme.cardRadius,
       backgroundColor: theme.surface,
-      borderWidth: 1,
-      borderColor: theme.divider,
     },
     nameInput: {
       ...typeScale.body,

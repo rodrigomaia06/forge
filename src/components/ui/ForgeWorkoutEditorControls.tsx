@@ -57,7 +57,7 @@ export function ForgeAttributeEditorSheet({
       />
       <ScrollView style={styles.editorScroll} contentContainerStyle={styles.editorContent} keyboardShouldPersistTaps="handled">
         <View style={styles.attributeEditorLayout}>
-          <ForgeCard variant="inset" style={styles.iconFieldCard}>
+          <ForgeCard variant="nested" style={styles.iconFieldCard}>
             <Pressable accessibilityRole="button" accessibilityLabel="Choose attribute icon" onPress={() => { lightHaptic(); setSelectingIcon((current) => !current); }} style={styles.iconFieldButton}>
               <View testID="attribute-editor-icon-preview" style={styles.iconFieldPreview}>
                 <View testID="attribute-editor-icon-glyph" style={styles.iconFieldGlyph}>
@@ -71,15 +71,15 @@ export function ForgeAttributeEditorSheet({
             </Pressable>
           </ForgeCard>
           <View style={styles.attributeFields}>
-            <ForgeCard variant="inset" style={styles.fieldCard}>
+            <ForgeCard variant="nested" style={styles.fieldCard}>
               <ForgeTextInput accessibilityLabel="Attribute label" value={draft.label} onChangeText={(label) => setDraft((current) => ({ ...current, label }))} placeholder="Attribute name" placeholderTextColor={theme.textDisabled} style={[styles.input, { color: theme.textPrimary }]} />
             </ForgeCard>
-            <ForgeCard variant="inset" style={styles.fieldCard}>
+            <ForgeCard variant="nested" style={styles.fieldCard}>
               <ForgeTextInput accessibilityLabel="Attribute value" value={draft.value} onChangeText={(nextValue) => setDraft((current) => ({ ...current, value: nextValue }))} placeholder="Value (optional)" placeholderTextColor={theme.textDisabled} style={[styles.input, { color: theme.textPrimary }]} />
             </ForgeCard>
           </View>
         </View>
-        {selectingIcon ? <ForgeCard variant="inset">
+        {selectingIcon ? <ForgeCard variant="nested">
           <View style={styles.iconChoices} accessibilityRole="radiogroup">
             {attributeIcons.map((icon) => <Pressable key={icon} testID={icon === draft.icon ? `attribute-icon-choice-${icon}-selected` : `attribute-icon-choice-${icon}`} accessibilityRole="radio" accessibilityLabel={`Use ${icon} icon`} accessibilityState={{ checked: icon === draft.icon }} onPress={() => { selectionHaptic(); setDraft((current) => ({ ...current, icon })); setSelectingIcon(false); }} style={({ pressed }) => [styles.iconChoice, pressed && pressedFeedback]}><Icon name={icon} size={22} color={theme.textPrimary} />{icon === draft.icon ? <Icon name="check" size={16} color={theme.selectionIndicator} weight="bold" /> : null}</Pressable>)}
           </View>
@@ -191,7 +191,7 @@ export function ForgeWorkoutTypePicker({
       <ForgeSheetHeader title="Workout type" onClose={onClose} closeAccessibilityLabel="Close workout type picker" leading={<ForgeEditorBackButton onPress={onBack} />} />
       <ScrollView style={styles.editorScroll} contentContainerStyle={styles.typePickerContent} showsVerticalScrollIndicator={false}>
         <View accessibilityRole="radiogroup">
-          <ForgeCard variant="inset">
+          <ForgeCard variant="nested">
             {workoutTypes.map((type, index) => {
               const selected = type.name === selectedType;
               return <Pressable key={type.id} accessibilityRole="radio" accessibilityLabel={type.name} accessibilityState={{ checked: selected }} onPress={() => { selectionHaptic(); onSelect(type.name); }} style={[styles.typeChoice, selected && { backgroundColor: theme.successSurface }, index > 0 ? { borderTopColor: theme.divider } : { borderTopWidth: 0 }]}>

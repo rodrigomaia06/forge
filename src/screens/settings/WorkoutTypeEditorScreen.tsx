@@ -186,7 +186,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
           onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
           scrollEventThrottle={16}
         >
-          <ForgeCard variant="elevated" style={styles.identityCard}>
+          <ForgeCard variant="base" style={styles.identityCard}>
             {builtIn ? (
               <Text style={styles.input}>{type.name}</Text>
             ) : (

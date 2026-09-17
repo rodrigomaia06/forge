@@ -86,7 +86,7 @@ export function WorkoutDurationSheet({
         <>
           <ForgeBottomSheetHandle />
           <ForgeSheetHeader title="Workout duration" onClose={close} closeAccessibilityLabel="Close workout duration" />
-          <ForgeCard variant="inset" size="compact" style={styles.settingsCard}>
+          <ForgeCard variant="nested" size="compact" style={styles.settingsCard}>
             <View accessibilityLabel={`Workout started ${date} at ${time}`} style={styles.startRow}>
               <Text style={[styles.rowLabel, { color: theme.textPrimary }]}>Start</Text>
               <View style={styles.startValues}>

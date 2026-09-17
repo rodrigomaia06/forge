@@ -377,7 +377,7 @@ function HistoryFilterSheet({
           ) : view === 'types' ? (
             <ScrollView style={styles.historyFilterScroll} contentContainerStyle={styles.historyFilterContent} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
               <ForgeSearchField value={query} onChangeText={setQuery} accessibilityLabel="Search workout type filters" placeholder="Search workout type" autoFocus />
-              <View style={[styles.historyFilterCard, { borderColor: theme.border, backgroundColor: theme.surfaceElevated }]}>
+              <View style={[styles.historyFilterCard, { backgroundColor: theme.surface }]}>
                 {visibleTypes.map((type, index) => {
                   const selected = draft.types.includes(type.value);
                   return <Pressable key={type.value} accessibilityRole="checkbox" accessibilityLabel={`Filter Workout type: ${type.label}`} accessibilityState={{ checked: selected }} unstable_pressDelay={80} onPress={() => {
@@ -425,7 +425,7 @@ function HistoryFilterSummary({ filters, onOpenTypes, onOpenDates }: { filters: 
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   return <ScrollView testID="history-filter-summary" contentContainerStyle={styles.historyFilterSummary} showsVerticalScrollIndicator={false}>
-    <View style={[styles.historyFilterCard, { borderColor: theme.border, backgroundColor: theme.surfaceElevated }]}>
+    <View style={[styles.historyFilterCard, { backgroundColor: theme.surface }]}>
       <HistoryFilterRow icon="layers" title="Workout type" summary={filters.types.length ? (filters.types.length === 1 ? filters.types[0] : `${filters.types.length} selected`) : 'Any'} onPress={onOpenTypes} />
       <View style={[styles.historyFilterDivider, styles.historyFilterSummaryDivider, { backgroundColor: theme.divider }]} />
       <HistoryFilterRow icon="calendar" title="Date range" summary={historyDateSummary(filters)} onPress={onOpenDates} />
@@ -452,7 +452,7 @@ function HistoryDateRangeControls({ filters, onSetMode, onPreviousMonth, onNextM
     { value: 'dates', label: 'Custom dates', description: 'Choose a start and end date' },
   ];
   return <ScrollView contentContainerStyle={styles.historyDateControls} showsVerticalScrollIndicator={false}>
-    <View testID="history-filter-date-mode" style={[styles.historyFilterCard, { borderColor: theme.border, backgroundColor: theme.surfaceElevated }]}>
+    <View testID="history-filter-date-mode" style={[styles.historyFilterCard, { backgroundColor: theme.surface }]}>
       {modes.map((mode, index) => {
         const selected = filters.dateMode === mode.value;
         return <Pressable key={mode.value} accessibilityRole="radio" accessibilityLabel={mode.label} accessibilityState={{ checked: selected }} onPress={() => onSetMode(mode.value)} style={({ pressed }) => [styles.historyDateModeRow, selected && { backgroundColor: theme.successSurface }, pressed && styles.pressed]}>
@@ -462,12 +462,12 @@ function HistoryDateRangeControls({ filters, onSetMode, onPreviousMonth, onNextM
         </Pressable>;
       })}
     </View>
-    {filters.dateMode === 'month' ? <View testID="history-filter-month" style={[styles.historyMonthCard, { borderColor: theme.border, backgroundColor: theme.surfaceElevated }]}>
+    {filters.dateMode === 'month' ? <View testID="history-filter-month" style={[styles.historyMonthCard, { backgroundColor: theme.surface }]}>
       <HeaderAction accessibilityLabel="Previous filter month" icon="chevron-back" iconOnly variant={theme.colorScheme === 'dark' ? 'ghost' : 'outline'} onPress={onPreviousMonth} style={theme.colorScheme === 'dark' ? { backgroundColor: theme.surfaceMuted } : undefined} />
       <View style={styles.historyMonthCopy}><Text style={styles.historyFilterTitle}>{new Date(filters.month).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</Text><Text style={styles.historyFilterSummaryText}>{historyDateSummary(filters)}</Text></View>
       <HeaderAction accessibilityLabel="Next filter month" icon="chevron-forward" iconOnly variant={theme.colorScheme === 'dark' ? 'ghost' : 'outline'} onPress={onNextMonth} style={theme.colorScheme === 'dark' ? { backgroundColor: theme.surfaceMuted } : undefined} />
     </View> : null}
-    {filters.dateMode === 'dates' ? <View style={[styles.historyFilterCard, { borderColor: theme.border, backgroundColor: theme.surfaceElevated }]}>
+    {filters.dateMode === 'dates' ? <View style={[styles.historyFilterCard, { backgroundColor: theme.surface }]}>
       <HistoryFilterRow icon="calendar" title="From" summary={formatHistoryDate(filters.from)} onPress={onOpenFrom} />
       <View style={[styles.historyFilterDivider, styles.historyFilterSummaryDivider, { backgroundColor: theme.divider }]} />
       <HistoryFilterRow icon="calendar" title="To" summary={formatHistoryDate(filters.to)} onPress={onOpenTo} />
@@ -699,7 +699,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   historyDatePickerContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 28 },
   historyFilterSummary: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 96 },
   historyDateControls: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 28, gap: 12 },
-  historyFilterCard: { overflow: 'hidden', borderRadius: 20, borderWidth: 1 },
+  historyFilterCard: { overflow: 'hidden', borderRadius: 20 },
   historyFilterRow: { minHeight: 68, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   historyFilterIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   historyFilterCopy: { flex: 1, minWidth: 0 },
@@ -711,7 +711,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   historyFilterChoiceText: { flex: 1, color: theme.textPrimary, ...typeScale.cardTitle },
   historyFilterEmpty: { padding: 20, color: theme.textSecondary, ...typeScale.supporting },
   historyDateModeRow: { minHeight: 64, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  historyMonthCard: { minHeight: 72, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  historyMonthCard: { minHeight: 72, paddingHorizontal: 12, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 8 },
   historyMonthCopy: { flex: 1, alignItems: 'center' },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 18, gap: 14 },
@@ -798,28 +798,24 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: theme.border,
     borderRadius: historyCardRadius,
     backgroundColor: theme.surface,
     shadowColor: theme.shadow,
-    shadowOpacity: 0.12,
+    shadowOpacity: theme.cardShadowOpacity ?? 0.12,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
   cardCompact: { minHeight: 60, height: 60 },
-  pressed: { shadowOpacity: 0.08 },
+  pressed: { shadowOpacity: (theme.cardShadowOpacity ?? 0.12) * 0.66 },
+  // A base card carries no outline; only its rounded surface is exposed as the
+  // row is swiped, so no leading border is drawn.
   cardLeadingOutline: {
     position: 'absolute',
     top: 0,
     bottom: 0,
     left: 0,
     width: historyCardRadius,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderLeftWidth: 1,
-    borderColor: theme.border,
     borderTopLeftRadius: historyCardRadius,
     borderBottomLeftRadius: historyCardRadius,
   },

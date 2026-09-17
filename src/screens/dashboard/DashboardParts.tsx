@@ -209,7 +209,7 @@ function DashboardRoutineSourceSheet({
                 </View> : null}
                 {plans.length ? <View style={sourceStyles.group}>
                   <Text style={sourceStyles.label}>Plans</Text>
-                  <ForgeCard variant="inset" size="compact">
+                  <ForgeCard variant="nested" size="compact">
                     {plans.map((plan, index) => (
                       <Pressable
                         key={plan.id}
@@ -252,7 +252,7 @@ function DashboardRoutineChoiceCard({
   const sourceStyles = useThemedStyles(createRoutineSourceStyles);
   const { preferences } = useSettings();
   return (
-    <ForgeCard variant="inset" size="compact">
+    <ForgeCard variant="nested" size="compact">
       {routines.map((routine, index) => {
         const type = preferences.workoutTypes.find((item) => item.name === routine.type)
           ?? { id: 'retained-routine-type', name: routine.type, color: theme.ink, source: 'custom' as const, hidden: true };

@@ -173,7 +173,7 @@ function SessionNoteEffortSection({
     <View style={styles.section}>
       <Text style={styles.sectionLabel}>Session note &amp; effort</Text>
       <View testID="set-session-note-effort-card">
-      <ForgeCard variant="outlined" style={styles.sessionCard}>
+      <ForgeCard variant="base" style={styles.sessionCard}>
         <View style={styles.sessionNoteSection}>
           <Text style={styles.subsectionLabel}>Comment</Text>
           {editable ? (
@@ -285,7 +285,7 @@ function SetKindSection({
     <View style={styles.section}>
       <Text style={styles.sectionLabel}>Set kind</Text>
       {editable ? (
-        <ForgeCard variant="outlined" style={styles.setKindCard}>
+        <ForgeCard variant="base" style={styles.setKindCard}>
           <View style={styles.setKindSummary}>
             <View style={[styles.typeDot, { backgroundColor: recordedType?.color ?? theme.slate }]} />
             <Text style={styles.setKindValue}>{value || 'No type'}</Text>
@@ -312,7 +312,7 @@ function SetKindSection({
           </View>
         </ForgeCard>
       ) : (
-        <ForgeCard variant="outlined" style={styles.recordedCard}>
+        <ForgeCard variant="base" style={styles.recordedCard}>
           <View style={styles.recordedTypeRow}>
             <View
               style={[
@@ -357,7 +357,7 @@ function SetKindPicker({
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        <ForgeCard variant="outlined" style={styles.typeCard}>
+        <ForgeCard variant="base" style={styles.typeCard}>
           <View accessibilityRole="radiogroup" accessibilityLabel="Set type">
             {SET_TYPES.map((type, typeIndex) => (
               <SetTypeOption
@@ -464,7 +464,7 @@ function TargetsSection({
   return (
     <View testID="set-next-session-section" style={[styles.section, styles.targetSection]}>
       <Text style={styles.sectionLabel}>{isRoutineInterval ? 'Routine interval' : 'Next session'}</Text>
-      <ForgeCard variant="outlined" style={styles.targetCardGroup}>
+      <ForgeCard variant="base" style={styles.targetCardGroup}>
         {applicableFields.map((kind, index) => (
           <TargetRow
             key={kind}

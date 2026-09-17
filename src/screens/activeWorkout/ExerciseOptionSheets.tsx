@@ -72,7 +72,7 @@ export function WarmupSetsSheet({
       />
       <ScrollView contentContainerStyle={styles.compactContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.sectionLabel}>WORKING SET</Text>
-        <ForgeCard variant="outlined" style={styles.workingCard}>
+        <ForgeCard variant="base" style={styles.workingCard}>
           <View style={styles.workingRow}>
             <Text style={styles.workingLabel}>Weight</Text>
             <TextInput accessibilityLabel="Working weight" value={weight} onChangeText={setWeight} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={theme.textDisabled} style={styles.workingInput} />
@@ -86,7 +86,7 @@ export function WarmupSetsSheet({
           </View>
         </ForgeCard>
         <Text style={styles.sectionLabel}>WARM-UP SETS</Text>
-        <ForgeCard variant="outlined" style={styles.planCard}>
+        <ForgeCard variant="base" style={styles.planCard}>
           {plan.length ? plan.map((set, index) => (
             <View key={`${set.weight}-${set.reps}`} style={[styles.planRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
               <Text style={styles.planIndex}>{index + 1}</Text>
@@ -168,7 +168,7 @@ export function ExerciseInfoContent({ exercise }: { exercise: WorkoutExercise })
     ['Primary muscle', detail.primaryMuscle],
     ...(detail.secondaryMuscles?.length ? [['Secondary muscles', detail.secondaryMuscles.join(' & ')]] : []),
   ];
-  return <ScrollView testID="exercise-info-content" contentContainerStyle={styles.infoContent}><ForgeCard testID="exercise-info-card" variant="outlined" style={styles.infoCard}>{fields.map(([label, value], index) => <View key={label} style={[styles.infoRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}><Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{label}</Text><Text style={styles.infoValue}>{value}</Text></View>)}</ForgeCard></ScrollView>;
+  return <ScrollView testID="exercise-info-content" contentContainerStyle={styles.infoContent}><ForgeCard testID="exercise-info-card" variant="base" style={styles.infoCard}>{fields.map(([label, value], index) => <View key={label} style={[styles.infoRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}><Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{label}</Text><Text style={styles.infoValue}>{value}</Text></View>)}</ForgeCard></ScrollView>;
 }
 
 export function PreviousSessionsContent({
@@ -228,7 +228,7 @@ export function PreviousSessionsContent({
     scrollEventThrottle={16}
   >{sessions.length ? <>
     {visibleSessions.map(({ workout, exercise: sessionExercise }) => <View key={workout.id}>
-      <ForgeCard testID={`previous-session-card-${workout.id}`} variant="outlined" style={styles.previousSessionCard}>
+      <ForgeCard testID={`previous-session-card-${workout.id}`} variant="base" style={styles.previousSessionCard}>
       <Pressable accessibilityRole={onOpenWorkout ? 'button' : undefined} accessibilityLabel={onOpenWorkout ? `Open ${workout.name}` : undefined} onPress={() => onOpenWorkout?.(workout.id)} style={({ pressed }) => [styles.previousSessionHeader, pressed && pressedFeedbackSubtle]}>
         <View style={styles.sessionCopy}><Text style={styles.sessionTitle} numberOfLines={1}>{workout.name}</Text><Text style={[styles.sessionDate, { color: theme.textSecondary }]}>{sessionDateTime(workout)}</Text></View>{onOpenWorkout ? <Icon name="chevron-forward" size={22} color={theme.textSecondary} /> : null}
       </Pressable>

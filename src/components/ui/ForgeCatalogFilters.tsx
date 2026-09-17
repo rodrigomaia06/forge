@@ -385,13 +385,13 @@ const createStyles = (theme: ReturnType<typeof useForgeTheme>) => StyleSheet.cre
   // A root summary is normally compact, but remains a real bounded scroll
   // container when text scaling or future facets exceed that compact sheet.
   rootSummary: { paddingHorizontal: 20, paddingTop: 8 },
-  facetCard: { overflow: 'hidden', borderRadius: 20, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface },
+  facetCard: { overflow: 'hidden', borderRadius: 20, backgroundColor: theme.surface },
   facetRow: { minHeight: 68, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   facetIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   facetCopy: { flex: 1, minWidth: 0 },
   facetTitle: { ...typeScale.cardTitle, color: theme.textPrimary },
   facetSummary: { ...typeScale.supporting, color: theme.textSecondary, marginTop: 1 },
-  choiceCard: { overflow: 'hidden', borderRadius: 20, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface },
+  choiceCard: { overflow: 'hidden', borderRadius: 20, backgroundColor: theme.surface },
   choice: { minHeight: 56, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   choiceText: { flex: 1, ...typeScale.cardTitle, color: theme.textPrimary },
   separator: { position: 'absolute', right: 16, bottom: 0, left: 16, height: StyleSheet.hairlineWidth, pointerEvents: 'none' },

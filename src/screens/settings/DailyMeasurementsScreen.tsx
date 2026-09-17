@@ -292,7 +292,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
             exiting={animateMetricChange && !reducedMotion ? FadeOut.duration(forgeMotion.feedback) : undefined}
             style={styles.selectedMetricContent}
           >
-            <ForgeCard variant="elevated" style={styles.summaryCard}>
+            <ForgeCard variant="base" style={styles.summaryCard}>
               <View style={styles.metricHeading}>
                 <View style={[styles.metricIcon, { backgroundColor: `${selected.color}24` }]}>
                   <Icon name={selected.icon} size={22} color={selected.color} />
@@ -309,7 +309,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
               </View>
             </ForgeCard>
             {latest ? (
-              <ForgeCard variant="elevated" style={styles.chartCard}>
+              <ForgeCard variant="base" style={styles.chartCard}>
                 <View style={styles.chartHeader}>
                   <View>
                     <Text style={styles.chartEyebrow}>TREND</Text>
@@ -376,7 +376,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
             <ForgeBottomSheetHandle />
             <ForgeSheetHeader title={`Record ${selected?.name ?? 'measurement'}`} onClose={close} />
             <Text style={styles.recordDate}>Today · {displayDate(localDateKey())}</Text>
-            <ForgeCard variant="inset" style={styles.valueField}>
+            <ForgeCard variant="nested" style={styles.valueField}>
               <TextInput
                 autoFocus
                 accessibilityLabel={`${selected?.name ?? 'Measurement'} value`}
@@ -417,7 +417,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
               showsVerticalScrollIndicator={false}
             >
               <Text style={styles.fieldLabel}>NAME</Text>
-              <ForgeCard variant="inset" style={styles.fieldCard}>
+              <ForgeCard variant="nested" style={styles.fieldCard}>
                 <TextInput
                   autoFocus
                   accessibilityLabel="Measure name"
@@ -429,7 +429,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                 />
               </ForgeCard>
               <Text style={styles.fieldLabel}>UNIT</Text>
-              <ForgeCard variant="inset" style={styles.fieldCard}>
+              <ForgeCard variant="nested" style={styles.fieldCard}>
                 <TextInput
                   accessibilityLabel="Measure unit"
                   value={metricUnit}
@@ -595,7 +595,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   addMetricInline: { minHeight: 30, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 9 },
   addMetricInlineText: { ...typeScale.label, color: theme.textPrimary },
   metricPickerContent: { gap: 10, paddingRight: settingsLayout.screenPadding },
-  metricPickerCard: { width: 142, minHeight: 82, padding: 11, borderWidth: 1, borderColor: theme.border, borderRadius: 16, backgroundColor: theme.surface, gap: 8 },
+  metricPickerCard: { width: 142, minHeight: 82, padding: 11, borderRadius: 16, backgroundColor: theme.surface, gap: 8 },
   metricPickerIcon: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   metricPickerCopy: { minWidth: 0, gap: 1 },
   metricPickerName: { ...typeScale.label, color: theme.textPrimary },

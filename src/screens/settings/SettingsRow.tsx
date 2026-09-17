@@ -175,7 +175,7 @@ export function SettingsSection({
       {title ? (
         <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{title}</Text>
       ) : null}
-      <ForgeCard variant="elevated" style={cardStyle}>
+      <ForgeCard variant="base" style={cardStyle}>
         {children}
       </ForgeCard>
       {footer ? (

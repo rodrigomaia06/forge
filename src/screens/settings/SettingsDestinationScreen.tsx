@@ -344,7 +344,7 @@ function DataTransferSheet({
                 ? 'Create a portable file with only the data you want to keep or share.'
                 : 'Choose the compatible Forge data to add. Existing records are kept.'}
             </Text>
-            <ForgeCard variant="inset" size="compact">
+            <ForgeCard variant="nested" size="compact">
               {transferCategories.map(({ key, title: categoryTitle, detail, icon }, index) => (
                 <Pressable
                   key={key}
@@ -391,7 +391,7 @@ function ImportReview({ inspection, selection }: { inspection: DataTransferInspe
   ));
   return (
     <View style={styles.reviewStack}>
-      {reviewCategories.length ? <ForgeCard variant="inset" size="compact">
+      {reviewCategories.length ? <ForgeCard variant="nested" size="compact">
         {reviewCategories.map(({ key, title: categoryTitle }, index) => {
           const summary = inspection.categories[key];
           return (

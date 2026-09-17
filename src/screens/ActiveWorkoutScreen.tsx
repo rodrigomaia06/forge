@@ -664,7 +664,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
               {liveAttributeEntries.length ? (
                 <View style={styles.liveAttributesSection}>
                   <Text style={styles.listSectionTitle}>Attributes</Text>
-                  <ForgeCard variant="outlined" size="compact">
+                  <ForgeCard variant="base" size="compact">
                     {liveAttributeEntries.map(([label, value], index) => (
                       <ForgeSwipeableAttributeRow
                         key={label}

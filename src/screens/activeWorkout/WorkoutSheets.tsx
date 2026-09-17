@@ -677,7 +677,7 @@ function FacetPickerRows({ family, familyKey, selected, onToggle }: {
   return <View style={styles.facetPicker}>
     {groups.map(({ axis, inputs }) => <View key={axis} style={styles.facetGroup}>
       <Text style={styles.facetGroupTitle}>{variationAxisLabel(axis)}</Text>
-      <ForgeCard variant="outlined" style={styles.facetGroupCard}>
+      <ForgeCard variant="base" style={styles.facetGroupCard}>
         {inputs.map((input, index) => {
           const checked = selected.has(input.id);
           return <Pressable key={input.id} accessibilityRole="checkbox" accessibilityLabel={`${family.group}, ${input.label}`} accessibilityState={{ checked }} onPress={() => onToggle(familyKey, input.id)} style={({ pressed }) => [styles.facetRow, index > 0 && styles.groupRowDivider, checked && styles.subVariationRowSelected, pressed && styles.exerciseOptionPressed]}>
@@ -842,7 +842,7 @@ export function ExerciseOptionsSheet({
           {view === 'info' ? <ExerciseInfoContent exercise={exercise} /> : null}
           {view === 'note' && readOnly ? <ExerciseNoteView note={exercise.note ?? ''} /> : null}
           {view === 'note' && !readOnly ? <View style={styles.exerciseNoteContent}>
-            <ForgeCard variant="inset" style={styles.exerciseNoteCard}>
+            <ForgeCard variant="nested" style={styles.exerciseNoteCard}>
               <TextInput
                 accessibilityLabel="Exercise note"
                 value={noteDraft}
@@ -869,7 +869,7 @@ export function ExerciseOptionsSheet({
 
 function ExerciseNoteView({ note }: { note: string }) {
   const styles = useThemedStyles(createStyles);
-  return <View style={styles.exerciseNoteContent}><ForgeCard variant="inset" style={styles.exerciseNoteCard}><Text style={styles.readOnlyExerciseNote}>{note}</Text></ForgeCard></View>;
+  return <View style={styles.exerciseNoteContent}><ForgeCard variant="nested" style={styles.exerciseNoteCard}><Text style={styles.readOnlyExerciseNote}>{note}</Text></ForgeCard></View>;
 }
 
 export function WorkoutOptionsSheet({
@@ -1169,7 +1169,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     facetGroupCard: { overflow: 'hidden', borderRadius: 14 },
     facetRow: { minHeight: 58, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center' },
     outputChooserContent: { paddingHorizontal: 20, paddingTop: 8, gap: 10 },
-    outputChoice: { minHeight: 64, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: dashboardTheme.border, borderRadius: 16, backgroundColor: dashboardTheme.surface },
+    outputChoice: { minHeight: 64, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', borderRadius: 16, backgroundColor: dashboardTheme.surface },
     outputChoiceSelected: { backgroundColor: dashboardTheme.successSurface, borderColor: dashboardTheme.success },
   });
 };

@@ -2,22 +2,33 @@ import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 
+/**
+ * The one Forge card surface. Separation is tone-first (see rules/design.md):
+ * - `base` (default): a card on a screen background or a sheet. Its surface tone
+ *   alone separates it — no outline in either theme.
+ * - `nested`: a card placed inside another card. It steps one tone up and adds a
+ *   single hairline border, because tone contrast against a sibling surface is
+ *   too weak on its own.
+ * Screens must not hand-roll a card border/background; use this primitive.
+ */
+export type ForgeCardVariant = 'base' | 'nested';
+
 export function ForgeCard({
   children,
   style,
-  variant = 'outlined',
+  variant = 'base',
   size = 'standard',
   testID,
 }: {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
-  /** An inset card sits one semantic surface below an enclosing sheet or card. */
-  variant?: 'outlined' | 'elevated' | 'inset';
+  variant?: ForgeCardVariant;
   /** Compact grouped rows retain Forge card treatment with a smaller corner radius. */
   size?: 'standard' | 'compact';
   testID?: string;
 }) {
   const theme = useForgeTheme();
+  const nested = variant === 'nested';
   return (
     <View
       testID={testID}
@@ -25,11 +36,14 @@ export function ForgeCard({
         styles.card,
         size === 'compact' && styles.compact,
         {
-          backgroundColor: variant === 'inset' ? theme.surface : theme.surfaceElevated,
+          backgroundColor: nested ? theme.surfaceElevated : theme.surface,
           borderColor: theme.border,
+          borderWidth: nested ? 1 : 0,
+          // The base card floats on its own soft shadow (Light) or pure tone
+          // (Dark, where cardShadowOpacity is 0). A nested card is defined by its
+          // hairline border instead, so it carries no shadow.
           shadowColor: theme.shadow,
-          shadowOpacity: theme.cardShadowOpacity ?? 0.06,
-          borderWidth: variant === 'elevated' ? 0 : 1,
+          shadowOpacity: nested ? 0 : theme.cardShadowOpacity ?? 0.06,
         },
         style,
       ]}
@@ -43,7 +57,6 @@ const styles = StyleSheet.create({
   card: {
     overflow: 'hidden',
     borderRadius: 24,
-    borderWidth: 1,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,

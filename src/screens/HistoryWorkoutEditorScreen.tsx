@@ -405,7 +405,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
       <View style={styles.cardDivider} />
       <View style={styles.attributesSection}>
         <Text style={styles.attributesTitle}>Attributes</Text>
-        <ForgeCard variant="inset" size="compact">
+        <ForgeCard variant="nested" size="compact">
           {Object.entries(draft.attributes ?? {}).map(([label, value], index) => (
             <ForgeSwipeableAttributeRow
               key={label}
@@ -764,7 +764,7 @@ function HistoryRoutineSourceSheet({
                 </View> : null}
                 {plans.length ? <View style={styles.sourceGroup}>
                   <Text style={styles.sourceLabel}>Plans</Text>
-                  <ForgeCard variant="inset" size="compact">
+                  <ForgeCard variant="nested" size="compact">
                     {plans.map((plan, index) => (
                       <Pressable
                         key={plan.id}
@@ -808,7 +808,7 @@ function RoutineChoiceCard({
   const styles = useThemedStyles(createStyles);
   const { preferences } = useSettings();
   return (
-    <ForgeCard variant="inset" size="compact">
+    <ForgeCard variant="nested" size="compact">
       {routines.map((routine, index) => {
         const type = preferences.workoutTypes.find((item) => item.name === routine.type)
           ?? { id: 'retained-routine-type', name: routine.type, color: theme.ink, source: 'custom' as const, hidden: true };

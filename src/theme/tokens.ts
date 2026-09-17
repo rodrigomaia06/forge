@@ -93,7 +93,7 @@ export const darkTheme: ForgeTheme = {
   pressed: 'rgba(247,248,246,0.10)',
   focus: '#F5F7F8',
   shadow: '#000000',
-  calendarSurface: '#181B20',
+  calendarSurface: '#1A1E23',
   calendarDay: 'rgba(255,255,255,0.08)',
   calendarSelectionRing: 'rgba(245,247,248,0.62)',
   selected: '#343A40',

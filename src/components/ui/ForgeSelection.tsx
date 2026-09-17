@@ -261,5 +261,5 @@ const styles = StyleSheet.create({
     left: 20,
   },
   sheet: { flexShrink: 1, paddingHorizontal: 16 },
-  optionCard: { overflow: 'hidden', borderWidth: 1, borderRadius: 16 },
+  optionCard: { overflow: 'hidden', borderRadius: 16 },
 });

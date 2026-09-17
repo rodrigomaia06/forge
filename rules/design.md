@@ -26,6 +26,15 @@ When a text keyboard is visible in a shared sheet, the first tap elsewhere in th
 
 Use the shared grouped-card primitive whenever a feature presents related rows. It owns the common surface, border, radius, and shadow treatment in both themes; screens may not recreate a locally divergent card outline.
 
+### Card separation contract
+
+Card surfaces separate from their container by tone first, not by outline. Every card uses the shared `ForgeCard`; screens never hand-roll a card's background, border, or radius. A card has exactly one of two treatments, chosen by its container, in both themes:
+
+- **Base** (default): a card sitting on a screen background or on a sheet. It uses the base card surface (`theme.surface`) with **no border** — its tone alone separates it (lighter/raised over a dark page, darker/recessed on an elevated sheet), carried by the soft card shadow in Light and pure tone in Dark. Every top-level card — History rows, Dashboard cards, Settings sections, Plans cards, live-workout exercise cards, summary cards — is a base card and looks identical.
+- **Nested**: a card placed *inside* another card, where tone contrast against a sibling surface is too weak. It steps one tone up (`theme.surfaceElevated`) and adds a single hairline `theme.border`; it carries no shadow.
+
+Borders never define a base card. When a border is used (nested cards, and non-card controls), it is `theme.border`; `theme.divider` is reserved for hairline separators *between rows inside* a card, never a card's own outline, and a card border is never a hardcoded colour. This tone-first rule is why Dark cards avoid the noisy white outlines the circular-control rule already calls out.
+
 Controls use a monochrome neutral hierarchy by default. `actionPrimary`/`onActionPrimary` are the only default filled-action treatment, and `selectionIndicator` is the monochrome generic selected/toggle state. Standard secondary, outline, destructive, and success actions retain their semantic outlines in both themes; only circular sheet/header controls use the borderless dark treatment. Do not infer colour emphasis mechanically from labels such as Save, Add, Start, Finish, or Done; these actions remain neutral. An enabled final confirmation action in an add/edit form may use the success outline treatment with a checkmark to make the ready-to-submit state explicit; its disabled state remains neutral. Green is reserved for success states and this explicit form-completion affordance, amber for warnings, and red for destructive actions that directly delete, remove, or confirm discarding data. Back, Close, Cancel, More, Filter, Skip, and reversible Hide remain neutral.
 
 Workout-type colours are data, not chrome. They may appear only in small type markers and badges, calendar markers, charts and legends, and the workout-type editor or colour selector. Do not use them for text, buttons, headers, navigation, checks, switches, metrics, or large decorative backgrounds. Resolve type-marker presentation through the shared workout-type presentation helper so saved custom colours and built-in fallbacks remain consistent.

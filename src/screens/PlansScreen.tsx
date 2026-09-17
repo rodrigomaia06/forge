@@ -140,7 +140,7 @@ export function PlansScreen({ navigation, route }: Props) {
           <View style={styles.listHeader}>
             {standaloneRoutines.length > 0 ? (
               <Section title="Routines">
-                <ForgeCard variant="inset" style={styles.groupedCard}>
+                <ForgeCard variant="base" style={styles.groupedCard}>
                   {standaloneRoutines.map((routine, index) => (
                     <SwipeDelete
                       key={routine.id}
@@ -583,7 +583,7 @@ function SwipeDelete({
       </View>
     </GestureDetector>
   );
-  return rounded ? <ForgeCard variant="inset" style={styles.planCard}>{content}</ForgeCard> : content;
+  return rounded ? <ForgeCard variant="base" style={styles.planCard}>{content}</ForgeCard> : content;
 }
 
 const createStyles = (theme: import('../types').ForgeTheme) =>
