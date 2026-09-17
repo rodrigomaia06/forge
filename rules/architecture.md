@@ -26,6 +26,10 @@ Bundled exercise catalogues are immutable versioned release snapshots. SQLite se
 
 Keep application navigation structure owned by navigation-focused modules. Screens may request navigation but should not independently redefine the application's global navigation model.
 
+## Render and memory responsiveness
+
+High-frequency state (a per-keystroke live workout, a per-second timer) must not share a context value, a mounted tree, or a subscription with low-frequency state, or a small change fans out across unrelated screens. The live workout is delivered through `useActiveWorkout()`; the archive, action creators, and workout identity/start-time scalars through `useWorkouts()` — do not re-bundle the live workout into it. Primary tabs are warmed and kept live, with `freezeOnBlur` reserved for the ticking Active Workout scene; do not re-enable global tab freezing (it trades a thaw spike back). Hot and startup paths look catalogue data up through maps and a cached, startup-warmed search index, never a linear scan. Large or unbounded lists are virtualized and bundled images ship near display resolution. See `docs/decisions/0004-render-and-memory-responsiveness.md` for rationale, trade-offs, and deferred follow-ups; the user-facing form is the responsiveness invariant in `rules/design.md`.
+
 ## Presentation and data
 
 Keep mock/sample data distinguishable from durable domain data. Avoid turning prototype shapes into permanent domain models by accident.

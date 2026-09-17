@@ -22,7 +22,7 @@ import {
 } from '../components/ui';
 import { usePrimaryDock } from '../navigation/PrimaryDockContext';
 import { useForgeDockScrollInset } from '../components/DockChrome';
-import { useWorkouts } from '../state/WorkoutContext';
+import { useActiveWorkout, useWorkouts } from '../state/WorkoutContext';
 import { usePlans } from '../state/PlansContext';
 import { useRestTimer } from '../state/RestTimerContext';
 import { useSettings } from '../state/SettingsContext';
@@ -50,12 +50,13 @@ import { applyWorkoutStructureToRoutine, hasRoutineStructureChanged } from '../d
 import { useSynchronizedNow } from '../domain/rest/synchronizedClock';
 
 type ActiveWorkoutScreenProps = RootTabScreenProps<'ActiveWorkout'>;
+const exerciseKeyExtractor = (exercise: WorkoutExercise): string => exercise.id;
 export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenProps) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createActiveWorkoutStyles);
   const dockScrollInset = useForgeDockScrollInset();
+  const activeWorkout = useActiveWorkout();
   const {
-    activeWorkout,
     ready,
     addExercises,
     addSet,
@@ -646,7 +647,9 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
         testID="active-workout-list"
         data={workout.exercises}
         renderItem={renderExercise}
-        keyExtractor={(exercise) => exercise.id}
+        keyExtractor={exerciseKeyExtractor}
+        initialNumToRender={5}
+        maxToRenderPerBatch={3}
         contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"

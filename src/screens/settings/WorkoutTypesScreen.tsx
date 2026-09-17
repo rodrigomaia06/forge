@@ -23,7 +23,7 @@ import {
 } from '../../components/ui';
 import { usePlans } from '../../state/PlansContext';
 import { useSettings } from '../../state/SettingsContext';
-import { useWorkouts } from '../../state/WorkoutContext';
+import { useActiveWorkout, useWorkouts } from '../../state/WorkoutContext';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
 import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
@@ -39,7 +39,8 @@ export function WorkoutTypesScreen({ navigation }: Props) {
   const { bottom: bottomInset } = useSafeAreaInsets();
   const theme = useForgeTheme();
   const { preferences, updatePreferences } = useSettings();
-  const { activeWorkout, completedWorkouts } = useWorkouts();
+  const activeWorkout = useActiveWorkout();
+  const { completedWorkouts } = useWorkouts();
   const { plans, standaloneRoutines } = usePlans();
   const [revealedId, setRevealedId] = useState<string | null>(null);
   const [headerElevated, setHeaderElevated] = useState(false);

@@ -68,3 +68,14 @@ export async function appendCompletedWorkout(workout: Workout): Promise<void> {
     );
   });
 }
+
+/** Rewrites one completed workout in place, leaving the rest of the archive untouched. */
+export async function updateCompletedWorkoutRecord(workout: Workout): Promise<void> {
+  await appendCompletedWorkout(workout);
+}
+
+/** Removes one completed workout without rewriting the rest of the archive. */
+export async function deleteCompletedWorkoutRecord(workoutId: string): Promise<void> {
+  const db = await database();
+  await db.runAsync('DELETE FROM workouts WHERE id = ? AND is_active = 0', workoutId);
+}

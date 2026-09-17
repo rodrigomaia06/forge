@@ -72,6 +72,10 @@ Accessibility fixes may alter layout or interaction; do not treat them as option
 
 Prefer stable, predictable layouts during active input and repeated interactions. Avoid unnecessary focus stealing, surprise scrolling, or decorative motion that interferes with task completion.
 
+### Responsiveness invariant
+
+User input and navigation must never wait on decorative work, full-list mounting, or background persistence. Navigation controls (back, close, tab switch), the screen header, and search/text input stay usable immediately on entry; a heavy screen or sheet renders its shell first and may show a compact in-body loading state while it prepares expensive projections. Large or unbounded content is virtualized or progressively prepared rather than mounted whole. A dismissal must take effect from the interaction itself, never only when an animation completes, and it must never leave an interactive surface that keeps capturing input. Persistence and other background work is coalesced and moved off the input path so repeated edits and rapid re-entry stay fluid.
+
 Custom interactive controls must provide a visible pressed state. Reuse Forge's shared pressed feedback for ordinary controls and preserve stronger semantic contrast for destructive actions; do not rely on haptics alone.
 
 Each interaction has one haptic owner: the reusable primitive that performs the interaction, or the screen when no reusable owner exists. Do not trigger haptics from both layers. Use haptics sparingly for discrete causal actions, never typing, scrolling, or continuous gestures.

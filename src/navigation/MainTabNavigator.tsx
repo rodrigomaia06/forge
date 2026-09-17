@@ -15,7 +15,7 @@ import type { RootTabParamList } from '../types';
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
 export function MainTabNavigator() {
-  const { activeWorkout } = useWorkouts();
+  const { activeWorkoutId } = useWorkouts();
   const theme = useForgeTheme();
   const [compact, setCompact] = useState(false);
   const setDockCompact = useCallback((nextCompact: boolean) => setCompact(nextCompact), []);
@@ -25,17 +25,21 @@ export function MainTabNavigator() {
   );
 
   useEffect(() => {
-    if (!activeWorkout) setCompact(false);
-  }, [activeWorkout]);
+    if (!activeWorkoutId) setCompact(false);
+  }, [activeWorkoutId]);
 
   return (
     <PrimaryDockProvider value={dockContext}>
       <Tab.Navigator
-        initialRouteName={activeWorkout ? 'ActiveWorkout' : 'Dashboard'}
+        initialRouteName={activeWorkoutId ? 'ActiveWorkout' : 'Dashboard'}
         screenOptions={{
           headerShown: false,
+          // Warm every tab scene up front and keep it live so switching is a
+          // pure cross-fade with no freeze/thaw re-render burst. Only the Active
+          // Workout scene (whose rest-timer ticks once per second) is frozen
+          // off-screen, below, so it does not re-render while another tab is up.
           lazy: false,
-          freezeOnBlur: true,
+          freezeOnBlur: false,
           // The tab scenes remain visible under the fade. Keep that shared
           // surface theme-aware so Dark mode never flashes React Navigation's
           // default white scene between tabs.
@@ -55,7 +59,7 @@ export function MainTabNavigator() {
       >
         <Tab.Screen name="Dashboard" component={DashboardScreen} />
         <Tab.Screen name="History" component={HistoryScreen} />
-        <Tab.Screen name="ActiveWorkout" component={ActiveWorkoutScreen} />
+        <Tab.Screen name="ActiveWorkout" component={ActiveWorkoutScreen} options={{ freezeOnBlur: true }} />
         <Tab.Screen name="Plans" component={PlansScreen} />
         <Tab.Screen name="Settings" component={SettingsScreen} />
       </Tab.Navigator>

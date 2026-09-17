@@ -34,7 +34,7 @@ import type { ExerciseSectionProps } from './activeWorkoutTypes';
 import type { RootNavigationProp, WorkoutExercise, WorkoutSet } from '../../types';
 import { measurementText, trackingFieldLabel, trackingFields } from '../../domain/exercises/tracking';
 import { formatExerciseMetadata } from '../../domain/exercises/exercisePresentation';
-import { exerciseCatalog } from '../../data/exerciseCatalog';
+import { exerciseCatalogById } from '../../data/exerciseCatalog';
 import { useWorkouts } from '../../state/WorkoutContext';
 import { hasNextSessionTarget, setTagPresentation } from '../../domain/workouts/setPresentation';
 import { HistorySetRow } from './HistorySetRow';
@@ -87,7 +87,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   const { completedWorkouts } = useWorkouts();
   const navigation = useNavigation<RootNavigationProp>();
   const screenIsFocused = useIsFocused();
-  const hasExerciseInfo = Boolean(exercise.exerciseSnapshot || exerciseCatalog.some((item) => item.id === exercise.exerciseId));
+  const hasExerciseInfo = Boolean(exercise.exerciseSnapshot) || exerciseCatalogById.has(exercise.exerciseId ?? '');
   const trackingType = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType ?? 'weight-reps';
   // Keep the live grid stable. A missing prior value is meaningful information,
   // not a reason to move all measurement fields into a different column.

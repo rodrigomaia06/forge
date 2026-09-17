@@ -13,6 +13,7 @@ import { WorkoutTypeEditorScreen } from '../screens/settings/WorkoutTypeEditorSc
 import { ExerciseLibraryScreen } from '../screens/settings/ExerciseLibraryScreen';
 import { ExerciseBrowserScreen } from '../screens/settings/ExerciseBrowserScreen';
 import { useWorkouts } from '../state/WorkoutContext';
+import { ForgeLoadingScreen } from '../components/ForgeLoadingScreen';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
 import type { RootStackParamList } from '../types';
@@ -57,7 +58,10 @@ export function AppNavigator() {
     [theme],
   );
 
-  if (!ready) return null;
+  // Keep the Forge splash up through data hydration rather than flashing an
+  // empty root. The app pays the warmup cost once here, up front, so navigation
+  // is fast for the rest of the session.
+  if (!ready) return <ForgeLoadingScreen />;
 
   return (
     <NavigationContainer linking={linking} theme={navigationTheme}>

@@ -103,27 +103,69 @@ export function ForgeBottomSheet({
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [naturalSheetHeight, setNaturalSheetHeight] = useState(0);
   const [entryContentReady, setEntryContentReady] = useState(false);
+  // The Modal stays mounted for a bounded exit even after the parent has been
+  // told to close, so the shared sheet fully owns its own dismissal lifecycle.
+  const [rendered, setRendered] = useState(visible);
+  // While exiting, the still-mounted Modal must stop capturing touches so the
+  // dismissal takes effect from the interaction itself and the screen below is
+  // immediately usable — an interrupted exit can never swallow the next tap.
+  const [exiting, setExiting] = useState(false);
+  const closingRef = useRef(false);
+  const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const entryOffsetRef = useRef(initialOffset);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
-  const finishClose = useCallback(() => onCloseRef.current(), []);
-  const close = useCallback((withHaptic = false) => {
-    if (closing.value) return;
+  const clearExitTimer = useCallback(() => {
+    if (exitTimerRef.current) {
+      clearTimeout(exitTimerRef.current);
+      exitTimerRef.current = null;
+    }
+  }, []);
+
+  const completeExit = useCallback(() => {
+    clearExitTimer();
+    closing.value = false;
+    setExiting(false);
+    setRendered(false);
+  }, [clearExitTimer, closing]);
+
+  // Bounded internal exit. An interrupted or dropped Reanimated completion must
+  // never leave the native Modal mounted and swallowing touches on the screen
+  // below, so a JS fallback always unmounts within a fixed budget.
+  const beginExit = useCallback(() => {
+    if (closingRef.current) return;
+    closingRef.current = true;
     closing.value = true;
-    onCloseStart?.();
-    if (withHaptic) lightHaptic();
-    if (reducedMotion) {
+    setExiting(true);
+    clearExitTimer();
+    // On the web there is no separate native Modal window: the sheet is a DOM
+    // overlay, so any mounted-exit frame keeps its container in the hit-test and
+    // can swallow the next tap. Unmount immediately once the parent has been
+    // notified. Native keeps the animated exit, bounded by the JS fallback.
+    if (reducedMotion || Platform.OS === 'web') {
       translateY.value = closeDistance;
       backdropOpacity.value = 0;
-      finishClose();
+      completeExit();
       return;
     }
     translateY.value = withTiming(closeDistance, { duration: forgeMotion.sheetExit }, (finished) => {
-      if (finished) runOnJS(finishClose)();
+      if (finished) runOnJS(completeExit)();
     });
     backdropOpacity.value = withTiming(0, { duration: forgeMotion.state });
-  }, [backdropOpacity, closeDistance, closing, finishClose, onCloseStart, reducedMotion, translateY]);
+    exitTimerRef.current = setTimeout(completeExit, forgeMotion.sheetExit + 160);
+  }, [backdropOpacity, clearExitTimer, closeDistance, closing, completeExit, reducedMotion, translateY]);
+
+  const close = useCallback((withHaptic = false) => {
+    if (closingRef.current) return;
+    onCloseStart?.();
+    if (withHaptic) lightHaptic();
+    // Notify the parent synchronously on every close intent (close button,
+    // backdrop, drag, Android Back). The exit animation is a local courtesy;
+    // parent close state must never wait on Reanimated completing.
+    onCloseRef.current();
+    beginExit();
+  }, [beginExit, onCloseStart]);
 
   useEffect(() => {
     if (!visible) {
@@ -131,7 +173,11 @@ export function ForgeBottomSheet({
       setEntryContentReady(false);
       return undefined;
     }
+    clearExitTimer();
+    closingRef.current = false;
     closing.value = false;
+    setExiting(false);
+    setRendered(true);
     translateY.value = waitForContentLayoutBeforeEnter && entryContentReady
       ? entryOffsetRef.current
       : initialOffset;
@@ -149,7 +195,16 @@ export function ForgeBottomSheet({
       backdropOpacity.value = withTiming(1, { duration: forgeMotion.transition });
     });
     return () => cancelAnimationFrame(frame);
-  }, [backdropOpacity, closing, entryContentReady, initialOffset, reducedMotion, translateY, visible, waitForContentLayoutBeforeEnter]);
+  }, [backdropOpacity, clearExitTimer, closing, entryContentReady, initialOffset, reducedMotion, translateY, visible, waitForContentLayoutBeforeEnter]);
+
+  // Parent-driven close (visible flipped without a local close intent) runs the
+  // same bounded exit, so a programmatic dismissal never abandons a mounted
+  // Modal either.
+  useEffect(() => {
+    if (!visible && rendered && !closingRef.current) beginExit();
+  }, [beginExit, rendered, visible]);
+
+  useEffect(() => clearExitTimer, [clearExitTimer]);
 
   useEffect(() => {
     if (!visible || !keyboardAvoiding) {
@@ -218,7 +273,7 @@ export function ForgeBottomSheet({
   // create an unreachable lower region.
   const maximumSheetHeight = windowHeight - insets.top;
 
-  if (!visible) return null;
+  if (!visible && !rendered) return null;
   return (
     <Modal
       visible
@@ -233,6 +288,7 @@ export function ForgeBottomSheet({
     >
       <View
         testID={testID}
+        pointerEvents={exiting ? 'none' : 'auto'}
         style={[
           styles.backdrop,
           webViewportFill,

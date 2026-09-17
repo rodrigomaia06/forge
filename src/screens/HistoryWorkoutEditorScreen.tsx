@@ -47,7 +47,7 @@ import { useFocusedSetKeyboardLift } from './activeWorkout/useFocusedSetKeyboard
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
-import { useWorkouts } from '../state/WorkoutContext';
+import { useActiveWorkout, useWorkouts } from '../state/WorkoutContext';
 import { useSettings } from '../state/SettingsContext';
 import { usePlans } from '../state/PlansContext';
 import { calendarDateKey, parseCalendarDate } from '../domain/workouts/calendarDate';
@@ -72,8 +72,8 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
   const { bottom: bottomInset } = useSafeAreaInsets();
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const activeWorkout = useActiveWorkout();
   const {
-    activeWorkout,
     completedWorkouts,
     createCompletedWorkout,
     updateCompletedWorkout,

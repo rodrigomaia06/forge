@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Keyboard, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, Keyboard, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -58,6 +58,8 @@ type CatalogCategoryData = {
 
 type VariationResolution = { direct: ExerciseCatalogItem[]; choices: ResolvedVariation[] };
 
+const EMPTY_CATALOG: ExerciseCatalogItem[] = [];
+
 export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   visible,
   session = 0,
@@ -92,6 +94,22 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   const [expandedEquipment, setExpandedEquipment] = useState<string | null>(null);
   const initializedSession = useRef<number | null>(null);
   const floatingCtaClearance = useForgeFloatingCtaClearance();
+  // The sheet's handle, title, close, and search field are usable the moment it
+  // opens. The full-catalogue index build (search + facets) is deferred until the
+  // sheet entrance has settled, so a compact loading state fills the list body on
+  // first open instead of the entrance waiting on it.
+  const [catalogueReady, setCatalogueReady] = useState(false);
+  useEffect(() => {
+    if (!visible) {
+      setCatalogueReady(false);
+      return undefined;
+    }
+    // Yield one frame so the sheet entrance and its header/search paint before
+    // the full-catalogue index build runs.
+    const frame = requestAnimationFrame(() => setCatalogueReady(true));
+    return () => cancelAnimationFrame(frame);
+  }, [visible]);
+  const projectionCatalog = catalogueReady ? exerciseCatalog : EMPTY_CATALOG;
   const defaultTypeIds = useMemo(() => {
     const name = workoutType?.trim().toLocaleLowerCase();
     if (!name) return [];
@@ -105,7 +123,7 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   const defaultTypeKey = defaultTypeIds.join('\u0001');
   const filterFacets = useMemo<CatalogFilterFacet[]>(() => {
     const optionsFor = (draft: CatalogFilterState, includeEquipment: boolean) => {
-      const scoped = filterCatalog(exerciseCatalog, {
+      const scoped = filterCatalog(projectionCatalog, {
         types: draft.types,
         equipment: includeEquipment ? draft.equipment : [],
         includeGroupInSearch: false,
@@ -119,25 +137,25 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
       },
       {
         key: 'equipment', title: 'Equipment', icon: 'fitness-outline',
-        options: catalogFacets(exerciseCatalog).equipment.map((value) => ({ value, label: value })),
+        options: catalogFacets(projectionCatalog).equipment.map((value) => ({ value, label: value })),
         optionsFor: (draft) => catalogFacets(optionsFor(draft, false)).equipment.map((value) => ({ value, label: value })),
       },
       {
         key: 'exerciseCategories', title: 'Category', icon: 'activity',
-        options: [...new Set(exerciseCatalog.map((exercise) => exercise.category))].sort().map((value) => ({ value, label: value })),
+        options: [...new Set(projectionCatalog.map((exercise) => exercise.category))].sort().map((value) => ({ value, label: value })),
         optionsFor: (draft) => [...new Set(optionsFor(draft, true).map((exercise) => exercise.category))].sort().map((value) => ({ value, label: value })),
       },
     ];
-  }, [exerciseCatalog, preferences.workoutTypes]);
+  }, [projectionCatalog, preferences.workoutTypes]);
   const filteredExercises = useMemo(
-    () => filterCatalog(exerciseCatalog, {
+    () => filterCatalog(projectionCatalog, {
       query,
       types: filters.types,
       equipment: filters.equipment,
       exerciseCategories: filters.exerciseCategories,
       includeGroupInSearch: false,
     }),
-    [exerciseCatalog, filters.equipment, filters.exerciseCategories, filters.types, query],
+    [projectionCatalog, filters.equipment, filters.exerciseCategories, filters.types, query],
   );
   const allVariantsByGroup = useMemo(() => {
     const groups = new Map<string, ExerciseCatalogItem[]>();
@@ -258,10 +276,10 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
     <ForgeBottomSheet
       visible={visible}
       onClose={onClose}
-      // The picker can be dismissed while an automation clock is frozen for a
-      // rest-timer scenario; release its modal ownership at close start rather
-      // than waiting for a motion callback that has no advancing frame clock.
-      onCloseStart={() => { reset(); onClose(); }}
+      // Clear the picker's own selection state as the exit begins. The shared
+      // sheet already notifies the parent synchronously on every close intent,
+      // so this no longer needs to force the close itself.
+      onCloseStart={reset}
       accessibilityLabel="Close add exercises"
       initialOffset={360}
       closeDistance={520}
@@ -385,7 +403,11 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
                 onToggleModifier={toggleModifier}
               />
             )}
-            ListEmptyComponent={!filteredExercises.length ? (
+            ListEmptyComponent={!catalogueReady ? (
+              <View testID="add-exercise-loading" style={styles.emptyState}>
+                <ActivityIndicator size="small" color={dashboardTheme.slate} />
+              </View>
+            ) : !filteredExercises.length ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptySearch}>{query && activeFilterCount ? 'No exercises match this search and filters' : query ? 'No exercises match this search' : 'No exercises match these filters'}</Text>
                 {(query || activeFilterCount > 0) && (

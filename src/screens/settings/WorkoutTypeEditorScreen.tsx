@@ -25,7 +25,7 @@ import {
 } from '../../components/ui';
 import { usePlans } from '../../state/PlansContext';
 import { useSettings } from '../../state/SettingsContext';
-import { useWorkouts } from '../../state/WorkoutContext';
+import { useActiveWorkout, useWorkouts } from '../../state/WorkoutContext';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
@@ -46,7 +46,8 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
   const dashboardTheme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const { preferences, updatePreferences } = useSettings();
-  const { activeWorkout, completedWorkouts } = useWorkouts();
+  const activeWorkout = useActiveWorkout();
+  const { completedWorkouts } = useWorkouts();
   const { plans, standaloneRoutines } = usePlans();
   const creating = 'mode' in route.params && route.params.mode === 'create';
   const initialDraft = creating
