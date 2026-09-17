@@ -443,7 +443,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
               lightHaptic();
               setAttributeDraft({ label: '', value: '', icon: 'note' });
             }}
-            style={({ pressed }) => [styles.addAttribute, Object.keys(draft.attributes ?? {}).length > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }, pressed && pressedFeedbackSubtle]}
+            style={({ pressed }) => [styles.addAttribute, { backgroundColor: theme.surface }, Object.keys(draft.attributes ?? {}).length > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }, pressed && pressedFeedbackSubtle]}
           >
             <Icon name="add" size={20} color={theme.ink} />
             <Text style={styles.addAttributeText}>Add attribute</Text>
