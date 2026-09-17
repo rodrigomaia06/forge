@@ -67,7 +67,7 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    finishAction: { zIndex: 1, width: 56, minWidth: 56, paddingHorizontal: 0, borderRadius: 22 },
+    finishAction: { zIndex: 1, width: 72, minWidth: 72, paddingHorizontal: 0, borderRadius: 22 },
     elapsedPanel: {
       height: 42,
       marginTop: 10,
