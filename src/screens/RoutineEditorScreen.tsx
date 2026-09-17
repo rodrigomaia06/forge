@@ -371,7 +371,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           />
           <View style={[styles.headerTitleWrap, styles.pointerEventsNone]}>
             <Text style={styles.headerTitle} numberOfLines={1}>
-              {creating ? 'New routine' : viewing ? 'Routine' : 'Edit routine'}
+              {creating ? 'New routine' : viewing ? draft.name.trim() || 'Routine' : 'Edit routine'}
             </Text>
           </View>
           <View style={styles.headerActions}>

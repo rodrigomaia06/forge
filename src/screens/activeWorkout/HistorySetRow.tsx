@@ -7,7 +7,7 @@ import { hasNextSessionTarget, setTagPresentation } from '../../domain/workouts/
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import type { TrackingType, WorkoutSet } from '../../types';
+import type { SetMeasurementKind, TrackingType, WorkoutSet } from '../../types';
 import { CompletionCheck } from './CompletionCheck';
 import { selectionHaptic } from './activeWorkoutFeedback';
 
@@ -37,6 +37,20 @@ export function HistorySetRow({
   const target = hasNextSessionTarget(set);
   const values = trackingFields[trackingType].map((kind) => measurementText(set, kind)).filter(Boolean);
   const planned = set.plannedTargets?.map((item) => item.maxValue !== undefined && item.maxValue !== item.minValue ? `${item.minValue}–${item.maxValue}` : String(item.minValue ?? item.maxValue ?? '')).filter(Boolean).join(' · ');
+  const formatTarget = (item: NonNullable<WorkoutSet['plannedTargets']>[number]): string =>
+    item.maxValue !== undefined && item.maxValue !== item.minValue
+      ? `${item.minValue}–${item.maxValue}`
+      : String(item.minValue ?? item.maxValue ?? '');
+  // A recorded value wins; otherwise show the set's planned target (routines
+  // have targets, not recordings) and fall back to a clean dash rather than a
+  // wrapping "Not recorded" inside the narrow value box.
+  const valueFor = (kind: SetMeasurementKind): string => {
+    const recorded = measurementText(set, kind);
+    if (recorded) return recorded;
+    const targetForKind = set.plannedTargets?.find((item) => item.kind === kind)
+      ?? set.targets?.find((item) => item.kind === kind);
+    return targetForKind ? formatTarget(targetForKind) || '—' : '—';
+  };
   if (compact) {
     return <View style={[styles.compactRow, { borderTopColor: theme.divider }]}>
       <View style={styles.compactCopy}>
@@ -52,7 +66,7 @@ export function HistorySetRow({
       </Pressable>
     </View>;
   }
-  return <View testID={`workout-details-set-${set.id}`} style={[styles.fullRow, !isLast && { borderBottomWidth: 1, borderBottomColor: theme.divider }]}><Pressable accessibilityRole="button" accessibilityLabel={`Open details for set ${index + 1}`} onPress={() => { selectionHaptic(); onOpenDetails(); }} style={styles.numberButton}><View testID={`history-set-number-chip-${index + 1}`} style={styles.chipWrap}><Text style={[styles.chip, tag && { color: tag.color, backgroundColor: `${tag.color}20` }]}>{tag?.letter ?? index + 1}</Text>{target ? <View accessibilityLabel={`Set ${index + 1} has a next session target`} style={[styles.targetDot, { backgroundColor: theme.setTargetIndicator }]} /> : null}{rpe ? <Text accessibilityLabel={`Set ${index + 1} RPE ${rpe}`} style={styles.rpe}>{rpe}</Text> : null}{set.comment?.trim() ? <View accessibilityLabel={`Set ${index + 1} has a comment`} style={[styles.commentDot, { backgroundColor: theme.ink }]} /> : null}</View></Pressable>{showPrevious ? <Text style={styles.previous}>{set.previous?.trim() || 'Not recorded'}</Text> : null}{trackingFields[trackingType].map((kind) => <View key={kind} accessibilityLabel={trackingFieldLabel(trackingType, kind)} style={[styles.value, { borderColor: theme.divider, backgroundColor: theme.surfaceMuted }]}><Text style={styles.valueText}>{measurementText(set, kind) || 'Not recorded'}</Text></View>)}<View style={styles.check}><CompletionCheck selected={set.completed} testID={`workout-details-set-completion-${set.id}`} /></View></View>;
+  return <View testID={`workout-details-set-${set.id}`} style={[styles.fullRow, !isLast && { borderBottomWidth: 1, borderBottomColor: theme.divider }]}><Pressable accessibilityRole="button" accessibilityLabel={`Open details for set ${index + 1}`} onPress={() => { selectionHaptic(); onOpenDetails(); }} style={styles.numberButton}><View testID={`history-set-number-chip-${index + 1}`} style={styles.chipWrap}><Text style={[styles.chip, tag && { color: tag.color, backgroundColor: `${tag.color}20` }]}>{tag?.letter ?? index + 1}</Text>{target ? <View accessibilityLabel={`Set ${index + 1} has a next session target`} style={[styles.targetDot, { backgroundColor: theme.setTargetIndicator }]} /> : null}{rpe ? <Text accessibilityLabel={`Set ${index + 1} RPE ${rpe}`} style={styles.rpe}>{rpe}</Text> : null}{set.comment?.trim() ? <View accessibilityLabel={`Set ${index + 1} has a comment`} style={[styles.commentDot, { backgroundColor: theme.ink }]} /> : null}</View></Pressable>{showPrevious ? <Text style={styles.previous}>{set.previous?.trim() || 'Not recorded'}</Text> : null}{trackingFields[trackingType].map((kind) => <View key={kind} accessibilityLabel={trackingFieldLabel(trackingType, kind)} style={[styles.value, { borderColor: theme.divider, backgroundColor: theme.surfaceMuted }]}><Text numberOfLines={1} style={styles.valueText}>{valueFor(kind)}</Text></View>)}<View style={styles.check}><CompletionCheck selected={set.completed} testID={`workout-details-set-completion-${set.id}`} /></View></View>;
 }
 
 const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.create({
