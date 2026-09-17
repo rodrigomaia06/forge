@@ -120,11 +120,12 @@ async function replaceUnfinishedWorkoutReminder(
  */
 export function RestTimerProvider({ children }: { children: React.ReactNode }) {
   const { preferences } = useSettings();
-  const { activeWorkout, ready: workoutsReady } = useWorkouts();
+  // Only the workout's identity/start time matter here, so read those scalars
+  // (stable across set-entry keystrokes) rather than the live workout object.
+  const { activeWorkoutId, activeWorkoutStartedAt, ready: workoutsReady } = useWorkouts();
   const [endAt, setEndAt] = useState<number | null>(null);
   const [duration, setDuration] = useState(0);
   const [hydrated, setHydrated] = useState(false);
-  const activeWorkoutId = activeWorkout?.id ?? null;
   const hydrationGeneration = useRef(0);
   const didNotifyCompletion = useRef(false);
   const notificationQueue = useRef(Promise.resolve());
@@ -210,7 +211,6 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
   // set and value edits (which produce a new workout object every keystroke)
   // must not reschedule it. It is removed as soon as the workout is finished or
   // discarded (identity clears), and rescheduled when the start time is edited.
-  const activeWorkoutStartedAt = activeWorkout?.startedAt ?? null;
   useEffect(() => {
     if (!workoutsReady) return;
     void replaceUnfinishedWorkoutReminder(

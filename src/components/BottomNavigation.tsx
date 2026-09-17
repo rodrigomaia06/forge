@@ -15,7 +15,7 @@ import { getWorkoutTypePresentation } from '../domain/workouts/presentation';
 import { colors } from '../theme/tokens';
 import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
 import { useSettings } from '../state/SettingsContext';
-import { useWorkouts } from '../state/WorkoutContext';
+import { useActiveWorkout } from '../state/WorkoutContext';
 import type { ForgeTheme, IconName, RootTabParamList } from '../types';
 
 interface BottomNavigationProps {
@@ -37,7 +37,7 @@ export function BottomNavigation({
   onNavigate,
 }: BottomNavigationProps) {
   const { navigation, state } = tabBarProps;
-  const activeWorkout = useWorkouts().activeWorkout;
+  const activeWorkout = useActiveWorkout();
   const { preferences } = useSettings();
   const indicatorOpacity = useSharedValue(0);
   const activeIndex = useSharedValue(0);

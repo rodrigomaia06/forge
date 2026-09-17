@@ -29,6 +29,7 @@ import {
 } from './workoutMutations';
 
 const WorkoutContext = createContext<WorkoutContextValue | null>(null);
+const ActiveWorkoutContext = createContext<Workout | null>(null);
 
 export function WorkoutProvider({ children }: ChildrenProps) {
   const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
@@ -39,6 +40,11 @@ export function WorkoutProvider({ children }: ChildrenProps) {
   const activeHydratedRef = React.useRef(false);
   const activeWorkoutRef = React.useRef<Workout | null>(null);
   activeWorkoutRef.current = activeWorkout;
+  // Refs let the action creators stay referentially stable (empty deps) while
+  // still reading the latest state, so a per-keystroke activeWorkout change never
+  // changes the identity of the shared actions/data context value.
+  const completedWorkoutsRef = React.useRef<Workout[]>(completedWorkouts);
+  completedWorkoutsRef.current = completedWorkouts;
   // Coalescing writer. While one full-workout write is in flight, further save
   // requests only replace the pending snapshot, so rapid input persists just the
   // newest state instead of queueing every intermediate full-workout write.
@@ -140,14 +146,14 @@ export function WorkoutProvider({ children }: ChildrenProps) {
 
   const startWorkout = useCallback(
     (options: StartWorkoutOptions = {}): Workout => {
-      if (activeWorkout) return activeWorkout;
+      if (activeWorkoutRef.current) return activeWorkoutRef.current;
       const workout = createWorkout(options);
       // Starting is a durable state transition, not an ordinary debounced edit.
       setActiveWorkout(workout);
       void persistActiveWorkoutNow(workout);
       return workout;
     },
-    [activeWorkout, persistActiveWorkoutNow],
+    [persistActiveWorkoutNow],
   );
 
   const addExercise = useCallback((exercise: WorkoutExerciseInput | string): void => {
@@ -202,21 +208,22 @@ export function WorkoutProvider({ children }: ChildrenProps) {
   }, [persistActiveWorkoutNow]);
 
   const finishWorkout = useCallback((): Workout | null => {
-    if (!activeWorkout) return null;
+    const current = activeWorkoutRef.current;
+    if (!current) return null;
     const finished = {
-      ...activeWorkout,
+      ...current,
       completedAt: Date.now(),
-      durationSeconds: activeWorkout.automaticTimeTracking === false
-        ? Math.max(1, activeWorkout.durationSeconds ?? 0)
-        : Math.max(1, Math.round((Date.now() - activeWorkout.startedAt) / 1000)),
+      durationSeconds: current.automaticTimeTracking === false
+        ? Math.max(1, current.durationSeconds ?? 0)
+        : Math.max(1, Math.round((Date.now() - current.startedAt) / 1000)),
     };
     // Finishing appends one row to the archive rather than rewriting all of it.
     void appendCompletedWorkout(finished);
-    setCompletedWorkouts((current) => [finished, ...current]);
+    setCompletedWorkouts((workouts) => [finished, ...workouts]);
     persistActiveWorkoutNow(null);
     setActiveWorkout(null);
     return finished;
-  }, [activeWorkout, persistActiveWorkoutNow]);
+  }, [persistActiveWorkoutNow]);
 
   const createCompletedWorkout = useCallback(async (workout: Workout): Promise<void> => {
     await appendCompletedWorkout(workout);
@@ -225,7 +232,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
 
   const updateCompletedWorkout = useCallback(
     async (workoutId: string, update: (workout: Workout) => Workout): Promise<void> => {
-      const existing = completedWorkouts.find((workout) => workout.id === workoutId);
+      const existing = completedWorkoutsRef.current.find((workout) => workout.id === workoutId);
       if (!existing) return;
       const updated = update(existing);
       setCompletedWorkouts((current) =>
@@ -236,7 +243,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
       // snapshot — and without rewriting the rest of the archive.
       await updateCompletedWorkoutRecord(updated);
     },
-    [completedWorkouts],
+    [],
   );
 
   const deleteCompletedWorkout = useCallback((workoutId: string): void => {
@@ -244,11 +251,19 @@ export function WorkoutProvider({ children }: ChildrenProps) {
     void deleteCompletedWorkoutRecord(workoutId);
   }, []);
 
+  // The live workout is delivered through its own context so that a per-keystroke
+  // edit only re-renders the screen actually showing it (ActiveWorkoutScreen).
+  // Everything else — the archive, ready flag, stable actions, and the workout's
+  // identity/start-time scalars — lives in a value whose identity does NOT change
+  // on a keystroke, so idle tabs and rows stop re-rendering during set entry.
+  const activeWorkoutId = activeWorkout?.id ?? null;
+  const activeWorkoutStartedAt = activeWorkout?.startedAt ?? null;
   const value = useMemo(
     () => ({
       ready,
       reload,
-      activeWorkout,
+      activeWorkoutId,
+      activeWorkoutStartedAt,
       completedWorkouts,
       startWorkout,
       addExercise,
@@ -270,7 +285,8 @@ export function WorkoutProvider({ children }: ChildrenProps) {
     [
       ready,
       reload,
-      activeWorkout,
+      activeWorkoutId,
+      activeWorkoutStartedAt,
       completedWorkouts,
       startWorkout,
       addExercise,
@@ -290,11 +306,23 @@ export function WorkoutProvider({ children }: ChildrenProps) {
       updateCompletedWorkout,
     ],
   );
-  return <WorkoutContext.Provider value={value}>{children}</WorkoutContext.Provider>;
+  return (
+    <WorkoutContext.Provider value={value}>
+      <ActiveWorkoutContext.Provider value={activeWorkout}>{children}</ActiveWorkoutContext.Provider>
+    </WorkoutContext.Provider>
+  );
 }
 
 export function useWorkouts(): WorkoutContextValue {
   const context = useContext(WorkoutContext);
   if (!context) throw new Error('useWorkouts must be used inside WorkoutProvider');
   return context;
+}
+
+/**
+ * The live active workout. Isolated from useWorkouts so that consumers reading
+ * only the archive/actions never re-render while a set is being typed.
+ */
+export function useActiveWorkout(): Workout | null {
+  return useContext(ActiveWorkoutContext);
 }

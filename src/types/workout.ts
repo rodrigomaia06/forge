@@ -169,8 +169,12 @@ export interface WorkoutSetChanges {
   targets?: SetTarget[];
   plannedTargets?: SetTarget[];
 }
-export interface WorkoutContextValue extends WorkoutState {
+export interface WorkoutContextValue extends Omit<WorkoutState, 'activeWorkout'> {
   ready: boolean;
+  /** Identity/start-time scalars for consumers that only need presence, kept out
+   * of the live activeWorkout object so they do not re-render on every keystroke. */
+  activeWorkoutId: string | null;
+  activeWorkoutStartedAt: number | null;
   reload: () => Promise<void>;
   startWorkout: (options?: StartWorkoutOptions) => Workout;
   addExercise: (exercise: WorkoutExerciseInput | string) => void;

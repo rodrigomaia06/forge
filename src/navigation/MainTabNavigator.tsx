@@ -15,7 +15,7 @@ import type { RootTabParamList } from '../types';
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
 export function MainTabNavigator() {
-  const { activeWorkout } = useWorkouts();
+  const { activeWorkoutId } = useWorkouts();
   const theme = useForgeTheme();
   const [compact, setCompact] = useState(false);
   const setDockCompact = useCallback((nextCompact: boolean) => setCompact(nextCompact), []);
@@ -25,13 +25,13 @@ export function MainTabNavigator() {
   );
 
   useEffect(() => {
-    if (!activeWorkout) setCompact(false);
-  }, [activeWorkout]);
+    if (!activeWorkoutId) setCompact(false);
+  }, [activeWorkoutId]);
 
   return (
     <PrimaryDockProvider value={dockContext}>
       <Tab.Navigator
-        initialRouteName={activeWorkout ? 'ActiveWorkout' : 'Dashboard'}
+        initialRouteName={activeWorkoutId ? 'ActiveWorkout' : 'Dashboard'}
         screenOptions={{
           headerShown: false,
           // Warm every tab scene up front and keep it live so switching is a

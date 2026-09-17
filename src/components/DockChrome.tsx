@@ -78,7 +78,7 @@ export function DockChrome({
   onInteract,
   tabBarProps,
 }: DockChromeProps) {
-  const hasActiveWorkout = Boolean(useWorkouts().activeWorkout);
+  const hasActiveWorkout = Boolean(useWorkouts().activeWorkoutId);
   const bottomOffset = useForgeDockBottomOffset();
   const gradientId = `dockFade${slotTestID || cylinderTestID || 'shared'}`.replace(
     /[^a-zA-Z0-9]/g,
