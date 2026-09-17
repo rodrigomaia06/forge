@@ -13,32 +13,43 @@ export function routineExercisesWithNextSessionTargets(
   routine: WorkoutRoutine,
   completedWorkouts: readonly Workout[],
 ): WorkoutExerciseInput[] {
-  const source = completedWorkouts
-    .filter((workout) => workout.routineId === routine.id && workout.completedAt !== null && !workout.excludeFromTargets)
-    .sort((left, right) => completedAt(right) - completedAt(left))[0];
-  if (!source) return routine.exercises;
+  const history = completedWorkouts
+    .filter((workout) => workout.completedAt !== null && !workout.excludeFromTargets)
+    .sort((left, right) => completedAt(right) - completedAt(left));
+  if (!history.length) return routine.exercises;
 
-  const consumedSourceExercises = new Set<number>();
   return routine.exercises.map((exercise) => {
-    const sourceExerciseIndex = source.exercises.findIndex((candidate, index) =>
-      !consumedSourceExercises.has(index)
-      && ((exercise.exerciseId && candidate.exerciseId === exercise.exerciseId)
-        || sameExerciseName(candidate.name, exercise.name)),
-    );
-    if (sourceExerciseIndex < 0) return exercise;
-    consumedSourceExercises.add(sourceExerciseIndex);
-    const sourceExercise = source.exercises[sourceExerciseIndex];
+    const trackingType = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType;
+    // Match by the movement itself, not by which routine authored the session,
+    // so "previous" reflects the last time this exercise was actually done —
+    // including workouts imported from JSON or logged under another routine.
+    const previousSets = latestSetsForExercise(exercise, history);
+    if (!previousSets) return exercise;
     return {
       ...exercise,
       sets: (exercise.sets ?? []).map((set, index) =>
         withPreviousSessionData(
-          withNextSessionTargets(set, sourceExercise.sets[index], exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType),
-          sourceExercise.sets[index],
-          exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType,
+          withNextSessionTargets(set, previousSets[index], trackingType),
+          previousSets[index],
+          trackingType,
         ),
       ),
     };
   });
+}
+
+function latestSetsForExercise(
+  exercise: WorkoutExerciseInput,
+  workoutsNewestFirst: readonly Workout[],
+): WorkoutSet[] | undefined {
+  for (const workout of workoutsNewestFirst) {
+    const match = workout.exercises.find((candidate) =>
+      (exercise.exerciseId && candidate.exerciseId === exercise.exerciseId)
+      || sameExerciseName(candidate.name, exercise.name),
+    );
+    if (match) return match.sets;
+  }
+  return undefined;
 }
 
 function withPreviousSessionData(

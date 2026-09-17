@@ -1,5 +1,5 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -43,6 +43,8 @@ import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
 import { usePlans } from '../state/PlansContext';
+import { useWorkouts } from '../state/WorkoutContext';
+import { routineExercisesWithNextSessionTargets } from '../domain/workouts/nextSessionTargets';
 import { useSettings } from '../state/SettingsContext';
 import { makeWorkoutId } from '../state/workoutMutations';
 import { createExerciseSnapshot } from '../domain/exercises/exerciseSnapshot';
@@ -70,6 +72,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const { findRoutine, createRoutine, updateRoutine, deleteRoutine, plans, moveRoutine } = usePlans();
+  const { completedWorkouts } = useWorkouts();
   const { preferences } = useSettings();
   const creating = route.params.mode === 'create';
   const viewing = route.params.mode === 'view';
@@ -83,6 +86,12 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
   );
   const [draft, setDraft] = useState<WorkoutRoutine | null>(() =>
     initialDraft ? cloneRoutine(initialDraft) : null,
+  );
+  // In read-only Visualize, enrich each exercise with the previous session it
+  // was last performed so the set table shows history like the live workout.
+  const viewingExercises = useMemo(
+    () => (viewing && draft ? routineExercisesWithNextSessionTargets(draft, completedWorkouts) : null),
+    [viewing, draft, completedWorkouts],
   );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [addingExercises, setAddingExercises] = useState(false);
@@ -273,7 +282,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
       return (
         <View style={styles.exerciseRow}>
           <ReadOnlyExerciseSection
-            exercise={asWorkoutExercise(exercise, completedRoutineSetIds)}
+            exercise={asWorkoutExercise(viewingExercises?.[index] ?? exercise, completedRoutineSetIds)}
             minimal
           />
         </View>
