@@ -508,7 +508,14 @@ function updateTargets(targets: WorkoutSet['targets'] | undefined, setId: string
 }
 
 function targetValues(text: string): number[] {
-  return text.split(/[,-–—]/).map((value) => Number(value.trim())).filter(Number.isFinite);
+  return text
+    .split(/[,\-–—]/)
+    // `Number('')` is 0 and passes `isFinite`, so an empty side (a cleared field
+    // or a half-typed range like "8-") would collapse the target to 0. Drop
+    // empty parts first so clearing the field removes the target instead.
+    .filter((part) => part.trim().length > 0)
+    .map((value) => Number(value.trim()))
+    .filter(Number.isFinite);
 }
 
 function formatTargetValues(minValue: number, maxValue?: number): string {
