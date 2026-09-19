@@ -11,10 +11,7 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { usePreventRemove } from '@react-navigation/native';
 import type { FlatList as GestureHandlerFlatList } from 'react-native-gesture-handler';
-import DraggableFlatList, {
-  ScaleDecorator,
-  ShadowDecorator,
-} from 'react-native-draggable-flatlist';
+import DraggableFlatList from 'react-native-draggable-flatlist';
 
 import {
   AppScreen,
@@ -327,12 +324,11 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         ) : undefined}
       />
     );
+    // The reorder decorators wrap each row in reanimated views that swallow the
+    // drag gesture on web, so the list would not reorder there. Render the row
+    // directly; the drag still tracks and reorders on every platform.
     return isActive && drag ? (
-      <View style={styles.draggableExerciseRow}>
-        <ShadowDecorator elevation={12} radius={14} color={theme.shadow} opacity={0.28}>
-          <ScaleDecorator activeScale={1.015}>{section}</ScaleDecorator>
-        </ShadowDecorator>
-      </View>
+      <View style={styles.draggableExerciseRow}>{section}</View>
     ) : section;
   };
   const addExerciseButton = (

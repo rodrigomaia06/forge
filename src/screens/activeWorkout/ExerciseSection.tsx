@@ -668,7 +668,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       paddingHorizontal: 12,
     },
     collapsibleExerciseCopy: { flex: 1, minWidth: 0, justifyContent: 'center', gap: 0 },
-    collapsibleExerciseName: { flex: 0, flexShrink: 1 },
+    // `flex: 0` resolves to `flex-basis: 0` on react-native-web, collapsing the
+    // name to zero width; keep it shrinkable but content-sized instead.
+    collapsibleExerciseName: { flexShrink: 1 },
     collapsibleExerciseMeta: { marginTop: 0, ...typeScale.supporting, color: dashboardTheme.slate },
     collapsibleChevron: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: -8 },
     pointerEventsNone: { pointerEvents: 'none' },
