@@ -21,7 +21,9 @@ export const DASHBOARD_TILE_ORDER: DashboardTileKind[] = [
 ];
 
 export const DASHBOARD_TILE_DEFAULT_TITLE: Record<DashboardTileKind, string> = {
-  start: 'Start workout',
+  // Not "Start workout": that phrase is the header action's accessible name, and
+  // the tile's reorder/remove labels embed this title.
+  start: 'Suggested workout',
   week: 'This week',
   'training-time': 'Training time',
   'last-workout': 'Last workout',
