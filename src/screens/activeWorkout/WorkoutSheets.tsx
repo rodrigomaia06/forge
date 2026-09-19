@@ -890,6 +890,9 @@ export function ExerciseOptionsSheet({
                 accessibilityLabel="Exercise note"
                 value={noteDraft}
                 onChangeText={setNoteDraft}
+                // Taps inside the field reposition the cursor; keep them from
+                // bubbling to the sheet's tap-to-dismiss-keyboard handler.
+                onTouchStart={(event) => event.stopPropagation()}
                 onContentSizeChange={(event) => {
                   const contentHeight = Math.ceil(event.nativeEvent.contentSize.height);
                   // Web reports the rendered input height here. Grow only when text

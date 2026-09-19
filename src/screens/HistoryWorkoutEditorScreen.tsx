@@ -163,7 +163,14 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
     if (!hasUnsavedChanges()) return leaveEditor(draftRef.current?.completedAt ?? draftRef.current?.startedAt);
     setDiscardConfirmationOpen(true);
   };
-  usePreventRemove(isActive && dirty && !allowNavigationRef.current, ({ data }) => {
+  // Read the allow-navigation ref inside the callback rather than folding it into
+  // the prevent flag: a ref change does not re-render, so a stale `true` flag was
+  // showing the discard prompt on the first Save after an edit (e.g. reordering).
+  usePreventRemove(isActive && dirty, ({ data }) => {
+    if (allowNavigationRef.current) {
+      navigation.dispatch(data.action);
+      return;
+    }
     pendingNavigationActionRef.current = () => navigation.dispatch(data.action);
     setDiscardConfirmationOpen(true);
   });
@@ -1086,10 +1093,13 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   },
   addExerciseText: { color: theme.ink, ...typeScale.label },
   exerciseList: { gap: 10 },
+  // A wide, tall hold zone down the card's left edge so a reorder grab does not
+  // require landing exactly on the grip icon.
   dragHandle: {
-    width: 32,
-    height: 44,
+    width: 56,
+    height: 60,
     marginLeft: -8,
+    marginRight: -6,
     alignItems: 'center',
     justifyContent: 'center',
   },
