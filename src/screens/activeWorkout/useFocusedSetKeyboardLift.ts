@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, Platform, type KeyboardEvent } from 'react-native';
 
 import type { MeasureSetInput } from './activeWorkoutTypes';
@@ -19,6 +19,10 @@ export function useFocusedSetKeyboardLift(
   const preFocusScrollOffsetRef = useRef<number | null>(null);
   const focusedSetMeasureRef = useRef<MeasureSetInput | null>(null);
   const keyboardFrameRef = useRef<KeyboardEvent['endCoordinates'] | null>(null);
+  // Extra scroll room added while the keyboard is up so even the last exercise
+  // can lift its focused field clear of the keyboard (otherwise the list has no
+  // content below it to scroll into view).
+  const [keyboardSpacer, setKeyboardSpacer] = useState(0);
 
   const restoreScrollPosition = useCallback((): void => {
     const offset = restoreScrollOffsetRef.current;
@@ -26,6 +30,7 @@ export function useFocusedSetKeyboardLift(
     preFocusScrollOffsetRef.current = null;
     focusedSetMeasureRef.current = null;
     keyboardFrameRef.current = null;
+    setKeyboardSpacer(0);
     if (offset === null) return;
     scrollRef.current?.scrollToOffset({ offset, animated: true });
   }, [scrollRef]);
@@ -65,6 +70,7 @@ export function useFocusedSetKeyboardLift(
       // The event always includes its final keyboard frame. Unlike
       // Keyboard.metrics(), it is also available during keyboardWillShow.
       keyboardFrameRef.current = event.endCoordinates;
+      setKeyboardSpacer(event.endCoordinates.height);
       requestAnimationFrame(() => requestAnimationFrame(liftFocusedSetInput));
     };
     const show = Keyboard.addListener(
@@ -95,5 +101,5 @@ export function useFocusedSetKeyboardLift(
     scrollOffsetRef.current = offset;
   }, []);
 
-  return { onSetInputFocus, onScrollOffsetChange };
+  return { onSetInputFocus, onScrollOffsetChange, keyboardSpacer };
 }

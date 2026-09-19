@@ -560,7 +560,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
   const dockLastOffsetOnUi = useSharedValue(0);
   const dockDirectionDistanceOnUi = useSharedValue(0);
   const { setCompact: setDockCompact } = usePrimaryDock();
-  const { onSetInputFocus, onScrollOffsetChange: recordScrollOffset } = useFocusedSetKeyboardLift(workoutListRef);
+  const { onSetInputFocus, onScrollOffsetChange: recordScrollOffset, keyboardSpacer } = useFocusedSetKeyboardLift(workoutListRef);
   const handleDockCompactChange = useCallback((nextCompact: boolean): void => setDockCompact(nextCompact), [setDockCompact]);
   const handleWorkoutScrollOffset = useCallback((offset: number): void => {
     recordScrollOffset(offset);
@@ -667,7 +667,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
         keyExtractor={exerciseKeyExtractor}
         initialNumToRender={5}
         maxToRenderPerBatch={3}
-        contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset }]}
+        contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset + keyboardSpacer }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         // The focused-set keyboard lift already scrolls the field into view;
