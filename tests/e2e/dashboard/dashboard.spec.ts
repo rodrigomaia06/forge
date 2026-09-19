@@ -79,11 +79,14 @@ test.describe('Dashboard', () => {
     await expect(page.getByRole('tab', { name: 'Workout' })).toHaveAttribute('aria-selected', 'true');
   });
 
-  test('removes and re-adds a dashboard tile, persisting across reloads', async ({ page }) => {
+  test('removes and re-adds a dashboard tile in edit mode, persisting across reloads', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByTestId('dashboard-week-card')).toBeVisible();
+    // No remove control outside edit mode.
+    await expect(page.getByRole('button', { name: 'Remove This week tile' })).toHaveCount(0);
 
-    // Each tile carries its own in-card remove control (no edit mode).
+    // Enter edit mode from the header, then remove the tile.
+    await page.getByRole('button', { name: 'Edit dashboard' }).click();
     await page.getByRole('button', { name: 'Remove This week tile' }).click();
     await expect(page.getByTestId('dashboard-week-card')).toHaveCount(0);
 
@@ -91,7 +94,8 @@ test.describe('Dashboard', () => {
     await page.goto('/');
     await expect(page.getByTestId('dashboard-week-card')).toHaveCount(0);
 
-    // It can be re-added from the Add tile chooser.
+    // Re-add it from the edit-mode Add tile chooser.
+    await page.getByRole('button', { name: 'Edit dashboard' }).click();
     const addTile = page.getByRole('button', { name: 'Add tile' });
     await addTile.scrollIntoViewIfNeeded();
     await addTile.click();

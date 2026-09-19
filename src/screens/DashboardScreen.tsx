@@ -62,6 +62,7 @@ export function DashboardScreen() {
   const { preferences } = useSettings();
   const starter = useWorkoutStarter();
   const { layout, setLayout } = useDashboardLayout();
+  const [editing, setEditing] = useState(false);
   const [addTileOpen, setAddTileOpen] = useState(false);
 
   const summary = useMemo(() => {
@@ -148,17 +149,26 @@ export function DashboardScreen() {
           testID="dashboard-scroll"
           data={visibleTiles}
           keyExtractor={(tile) => tile.kind}
-          extraData={summary}
-          activationDistance={14}
+          extraData={{ summary, editing }}
+          activationDistance={editing ? 12 : 100000}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
           contentInset={{ bottom: dockScrollInset }}
           ListHeaderComponent={
-            <DashboardHeader theme={theme} variant={theme.headerVariant} onStart={starter.openChooser} />
+            <DashboardHeader
+              theme={theme}
+              variant={theme.headerVariant}
+              onStart={starter.openChooser}
+              editing={editing}
+              onToggleEdit={() => {
+                lightHaptic();
+                setEditing((current) => !current);
+              }}
+            />
           }
           ListFooterComponent={
             <View style={{ paddingBottom: dockScrollInset }}>
-              {hiddenTiles.length ? (
+              {editing && hiddenTiles.length ? (
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Add tile"
@@ -179,6 +189,7 @@ export function DashboardScreen() {
             <DashboardTileFrame
               testID={TILE_TEST_ID[item.kind]}
               name={DASHBOARD_TILE_DEFAULT_TITLE[item.kind]}
+              editing={editing}
               isActive={isActive}
               onDrag={drag}
               onRemove={() => hideTile(item.kind)}
@@ -207,6 +218,7 @@ export function DashboardScreen() {
 function DashboardTileFrame({
   testID,
   name,
+  editing,
   isActive,
   onDrag,
   onRemove,
@@ -214,6 +226,7 @@ function DashboardTileFrame({
 }: {
   testID: string;
   name: string;
+  editing: boolean;
   isActive: boolean;
   onDrag: () => void;
   onRemove: () => void;
@@ -221,6 +234,17 @@ function DashboardTileFrame({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  // Normal view: a clean card with no drag rail or remove control. The reorder
+  // and remove chrome only appears in edit mode (toggled from the header).
+  if (!editing) {
+    return (
+      <View style={styles.tileWrap}>
+        <ForgeCard testID={testID} style={styles.tileCard}>
+          <View style={styles.plainBody}>{children}</View>
+        </ForgeCard>
+      </View>
+    );
+  }
   return (
     <View style={styles.tileWrap}>
       <ForgeCard testID={testID} style={[styles.tileCard, isActive && styles.tileCardActive]}>
@@ -263,6 +287,8 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   tileWrap: { marginBottom: 14, paddingHorizontal: 20 },
   tileCard: { position: 'relative' },
   tileCardActive: { opacity: 0.97 },
+  // Clean card body when not editing (no rail inset / remove control).
+  plainBody: { padding: 16, minHeight: 44 },
   dragRail: {
     position: 'absolute',
     left: 0,
