@@ -51,7 +51,7 @@ import { typeScale } from '../theme/tokens';
 import { useActiveWorkout, useWorkouts } from '../state/WorkoutContext';
 import { useSettings } from '../state/SettingsContext';
 import { usePlans } from '../state/PlansContext';
-import { calendarDateKey, parseCalendarDate } from '../domain/workouts/calendarDate';
+import { parseCalendarDate } from '../domain/workouts/calendarDate';
 import {
   addExerciseToWorkout,
   addSetToWorkout,
@@ -128,10 +128,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
 
   const leaveEditor = (completedAt?: number): void => {
     if (isCreating) {
-      navigation.popTo('MainTabs', {
-        screen: 'Dashboard',
-        params: { selectedDate: calendarDateKey(completedAt ?? selectedCalendarDate) },
-      });
+      navigation.popTo('MainTabs', { screen: 'History' });
       return;
     }
     if (isActive) {

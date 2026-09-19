@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Dashboard', () => {
   test('matches the phone visual baseline', async ({ page }, testInfo) => {
@@ -6,171 +6,104 @@ test.describe('Dashboard', () => {
     await page.goto('/');
 
     await expect(page.getByTestId('dashboard-header-title')).toBeVisible();
+    await expect(page.getByTestId('dashboard-start-card')).toBeVisible();
     await expect(page).toHaveScreenshot('dashboard.png', {
       fullPage: true,
       mask: [page.getByTestId('dashboard-header-title')],
     });
   });
 
-  test('switches calendar scale from the overflow menu and selects a workout day', async ({
-    page,
-  }) => {
-    await page.goto('/');
-
-    await page.getByRole('button', { name: 'Change calendar view' }).click();
-    await expect(page.getByRole('menuitem', { name: 'Week' })).toBeVisible();
-    await page.mouse.click(40, 500);
-    await expect(page.getByRole('menuitem', { name: 'Week' })).toBeHidden();
-    await page.getByRole('button', { name: 'Change calendar view' }).click();
-    await page.getByRole('menuitem', { name: 'Week' }).click();
-    await expect(page.getByText('Week of August 24')).toBeVisible();
-
-    await page.getByRole('button', { name: /24 August 2026/ }).click();
-    await expect(page.getByTestId('calendar-selected-day')).toBeVisible();
-  });
-
-  test('opens a local historical-workout draft for the selected empty calendar date', async ({ page }) => {
-    await page.goto('/');
-
-    const addHistoricalWorkout = page.getByRole('button', { name: 'Add historical workout' });
-    await expect(addHistoricalWorkout).toBeVisible();
-    await addHistoricalWorkout.click();
-    const sourceChooser = page.getByTestId('historical-workout-source-chooser');
-    await expect(sourceChooser).toBeVisible();
-    // Both mandatory choices are composed with the sheet from its entrance,
-    // rather than joining after the sheet is already moving.
-    await expect(sourceChooser.getByRole('button', { name: 'Blank workout' })).toBeVisible();
-    await expect(sourceChooser.getByRole('button', { name: 'From routine' })).toBeVisible();
-    await sourceChooser.getByRole('button', { name: 'Blank workout' }).click();
-    await expect(page.getByLabel('Workout name')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Select Date' })).toContainText('2026-08-24');
-    await expect(page.getByRole('button', { name: 'Select Start time' })).toContainText('Choose time');
-    await expect(page.getByRole('button', { name: 'Select End time' })).toContainText('Choose time');
-    await expect(page.getByRole('button', { name: 'Save workout' })).toBeDisabled();
-
-    await page.getByRole('button', { name: 'Cancel editing workout' }).click();
-    await expect(addHistoricalWorkout).toBeVisible();
-  });
-
-  test('saves a historical workout on its selected calendar date', async ({ page }, testInfo) => {
-    await page.goto('/');
-
-    await page.getByRole('button', { name: 'Add historical workout' }).click();
-    await page.getByRole('button', { name: 'Blank workout' }).click();
-    await page.getByLabel('Workout name').fill('Calendar workout');
-    await page.getByRole('button', { name: 'Select Start time' }).click();
-    await page.getByTestId('history-start-picker').getByRole('radio', { name: 'Hours 16' }).click();
-    await page
-      .getByTestId('history-date-time-picker-surface')
-      .getByRole('button', { name: 'Close date and time picker' })
-      .click();
-    await expect(page.getByRole('button', { name: 'Select Start time' })).toContainText('Choose time');
-    await page.getByRole('button', { name: 'Select Start time' }).click();
-    await page.getByTestId('history-start-picker').getByRole('radio', { name: 'Hours 17' }).click();
-    await page.getByRole('button', { name: 'Save selected date and time' }).click();
-    await page.getByRole('button', { name: 'Select End time' }).click();
-    await page.getByTestId('history-end-picker').getByRole('radio', { name: 'Hours 16' }).click();
-    await page.getByRole('button', { name: 'Save selected date and time' }).click();
-    await expect(page.getByText('End time must be after the start time.')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Save workout' })).toBeDisabled();
-    await page.getByRole('button', { name: 'Select End time' }).click();
-    await page.getByTestId('history-end-picker').getByRole('radio', { name: 'Hours 19' }).click();
-    await page.getByRole('button', { name: 'Save selected date and time' }).click();
-    await expect(page.getByRole('button', { name: 'Save workout' })).toBeEnabled();
-    await page.getByRole('button', { name: 'Save workout' }).click();
-
-    await expect.poll(() => hasVisibleExactText(page, 'August 24, 2026')).toBe(true);
-    await expect.poll(() => hasVisibleExactText(page, 'Calendar workout')).toBe(true);
-    // Mobile Chromium emulation creates a fresh OPFS worker on reload, unlike
-    // the native iOS target this visual profile represents. The desktop web
-    // project exercises durable web-storage reload semantics below.
-    if (testInfo.project.use.isMobile === true) return;
-    await page.reload();
-    await expect.poll(() => hasVisibleExactText(page, 'Calendar workout')).toBe(true);
-  });
-
-  test('opens a recorded workout from its selected calendar day in History detail', async ({ page }) => {
+  test('surfaces the summary cards computed from history', async ({ page }) => {
     await page.addInitScript(() => {
-      const completedAt = Date.UTC(2026, 7, 24, 18);
-      localStorage.setItem('@forge/completed-workouts', JSON.stringify([{
-        id: 'dashboard-day-workout',
-        name: 'Dashboard day workout',
-        type: 'Strength',
-        startedAt: completedAt - 3600_000,
-        completedAt,
-        durationSeconds: 3600,
-        exercises: [],
-      }]));
+      const now = new Date();
+      const noon = (offset: number) => new Date(now.getFullYear(), now.getMonth(), now.getDate() - offset, 12).getTime();
+      localStorage.setItem('@forge/completed-workouts', JSON.stringify([
+        {
+          id: 'seed-a', name: 'Push - Strength', type: 'Strength',
+          startedAt: noon(1) - 3600_000, completedAt: noon(1), durationSeconds: 3600, note: '',
+          exercises: [{ id: 'e1', name: 'Bench', sets: [{ id: 's1', weight: '100', reps: '5', completed: true }] }],
+        },
+      ]));
     });
     await page.goto('/');
 
-    await page.getByRole('button', { name: /Dashboard day workout, Strength/ }).click();
-    await expect(page.getByTestId('workout-details-summary')).toBeVisible();
-    await expect(page.getByText('Dashboard day workout', { exact: true }).last()).toBeVisible();
-    await page.getByRole('button', { name: 'Back to History' }).click();
-    await expect(page.getByTestId('history-header')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Open Dashboard day workout' })).toBeVisible();
+    await expect(page.getByTestId('dashboard-start-card')).toBeVisible();
+    await expect(page.getByTestId('dashboard-week-card')).toContainText('This week');
+    await expect(page.getByTestId('dashboard-training-time')).toContainText('Training time');
+    await expect(page.getByTestId('dashboard-last-workout')).toContainText('Push - Strength');
+    await expect(page.getByTestId('dashboard-volume')).toContainText('500 kg');
   });
 
-  test('seeds a historical draft from an independent routine snapshot', async ({ page }) => {
+  test('opens the workout source chooser from the header action', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('tab', { name: 'Plans' }).click();
-    await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
-    await page.getByTestId('plans-creation-popover').getByRole('button', { name: 'New routine' }).click();
-    await page.getByLabel('Routine name').fill('Template pull');
-    await page.getByRole('button', { name: 'Add attribute' }).click();
-    await page.getByLabel('Attribute label').fill('Readiness');
-    await page.getByRole('button', { name: 'Choose attribute icon' }).click();
-    await page.getByRole('radio', { name: 'Use focus icon' }).click();
-    await page.getByRole('button', { name: 'Save attribute' }).click();
-    // Compact iPhone web can recycle the header input after an attribute sheet closes.
-    await page.getByLabel('Routine name').fill('Template pull');
-    await page.getByRole('button', { name: 'Save routine' }).click();
 
-    await page.getByRole('tab', { name: 'Dashboard' }).click();
-    await page.getByRole('button', { name: 'Add historical workout' }).click();
-    await page.getByRole('button', { name: 'From routine' }).click();
-    await expect(page.getByText('Standalone routines', { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Use Template pull routine' }).click();
-    await expect(page.getByLabel('Workout name')).toHaveValue('Template pull');
-    await expect(page.getByRole('button', { name: 'Edit Readiness attribute' })).toBeVisible();
-    await page.getByRole('button', { name: 'Edit Readiness attribute' }).click();
-    await expect(page.getByLabel('Attribute value')).toHaveValue('');
-    await page.getByRole('button', { name: 'Choose attribute icon' }).click();
-    await expect(page.getByTestId('attribute-icon-choice-focus-selected')).toBeVisible();
-    await page.getByRole('button', { name: 'Choose attribute icon' }).click();
-    await page.getByLabel('Attribute value').fill('Ready');
-    await page.getByRole('button', { name: 'Save attribute' }).click();
-    await expect(page.getByRole('button', { name: 'Edit Readiness attribute' })).toContainText('Ready');
+    await page.getByRole('button', { name: 'Start workout' }).first().click();
+    const chooser = page.getByTestId('dashboard-workout-source-chooser');
+    await expect(chooser).toBeVisible();
+    await expect(chooser.getByRole('button', { name: 'Blank workout' })).toBeVisible();
+    await expect(chooser.getByRole('button', { name: 'From routine or plan' })).toBeVisible();
   });
 
-  test('requires a routine selection after choosing a plan source', async ({ page }) => {
+  test('starts the suggested routine directly from the hero', async ({ page }) => {
+    await page.addInitScript(() => {
+      const now = new Date();
+      const noon = (offset: number) => new Date(now.getFullYear(), now.getMonth(), now.getDate() - offset, 12).getTime();
+      localStorage.setItem('@forge/completed-workouts', JSON.stringify([
+        {
+          id: 'seed-push', name: 'PPL - Push', type: 'Strength', planId: 'p1', routineId: 'r1',
+          startedAt: noon(2) - 3600_000, completedAt: noon(2), durationSeconds: 3600, note: '', exercises: [],
+        },
+      ]));
+      localStorage.setItem('@forge/plans-v1', JSON.stringify({
+        plans: [{
+          id: 'p1', name: 'PPL', createdAt: 0, updatedAt: 0, routines: [
+            { id: 'r1', name: 'Push', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 },
+            { id: 'r2', name: 'Pull', type: 'Strength', exercises: [{ id: 'x', name: 'Row', sets: [{}, {}, {}] }], createdAt: 0, updatedAt: 0 },
+          ],
+        }],
+        standaloneRoutines: [],
+      }));
+    });
     await page.goto('/');
-    await page.getByRole('tab', { name: 'Plans' }).click();
-    await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
-    await page.getByTestId('plans-creation-popover').getByRole('button', { name: 'New workout plan' }).click();
-    await page.getByRole('button', { name: 'Add routine to New plan' }).click();
-    await page.getByLabel('Routine name').fill('Planned pull');
-    await page.getByRole('button', { name: 'Save routine' }).click();
 
-    await page.getByRole('tab', { name: 'Dashboard' }).click();
-    await page.getByRole('button', { name: 'Add historical workout' }).click();
-    await page.getByRole('button', { name: 'From routine' }).click();
-    await page.getByRole('button', { name: 'Choose routine from New plan' }).click();
-    const plannedRoutine = page.getByRole('button', { name: 'Use Planned pull routine' });
-    await expect(plannedRoutine).toBeVisible();
-    await plannedRoutine.click();
-    await expect(page.getByLabel('Workout name')).toHaveValue('New plan - Planned pull');
+    const hero = page.getByTestId('dashboard-start-card');
+    await expect(hero).toContainText('Suggested workout');
+    await expect(hero).toContainText('Pull');
+    await hero.getByRole('button', { name: 'Start Pull' }).click();
+    await expect(page.getByRole('tab', { name: 'Workout' })).toHaveAttribute('aria-selected', 'true');
   });
 
-  test('gives the dock priority while the calendar view menu is open', async ({ page }) => {
+  test('edits the modular dashboard: rename, remove, re-add and persist', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Change calendar view' }).click();
-    await expect(page.getByRole('menuitem', { name: 'Week' })).toBeVisible();
+    await expect(page.getByTestId('dashboard-week-card')).toBeVisible();
 
-    await page.getByRole('tab', { name: 'History' }).click();
+    // Rename the (top, always-visible) This week tile.
+    await page.getByRole('button', { name: 'Edit dashboard' }).click();
+    await page.getByRole('button', { name: 'Rename This week tile' }).click();
+    const input = page.getByLabel('Tile title');
+    await expect(input).toBeVisible();
+    await input.fill('Consistency');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByTestId('dashboard-week-card')).toContainText('Consistency');
 
-    await expect(page.getByText('History', { exact: true })).toBeVisible();
+    // The custom title survives a fresh load.
+    await page.goto('/');
+    await expect(page.getByTestId('dashboard-week-card')).toContainText('Consistency');
+
+    // Remove the renamed tile; the removal persists across a reload.
+    await page.getByRole('button', { name: 'Edit dashboard' }).click();
+    await page.getByRole('button', { name: 'Remove Consistency tile' }).click();
+    await expect(page.getByTestId('dashboard-week-card')).toHaveCount(0);
+    await page.goto('/');
+    await expect(page.getByTestId('dashboard-week-card')).toHaveCount(0);
+
+    // It can be re-added from the Add tile chooser, keeping its custom title.
+    await page.getByRole('button', { name: 'Edit dashboard' }).click();
+    const addTile = page.getByRole('button', { name: 'Add tile' });
+    await addTile.scrollIntoViewIfNeeded();
+    await addTile.click();
+    await page.getByRole('button', { name: 'This week' }).click();
+    await expect(page.getByTestId('dashboard-week-card')).toContainText('Consistency');
   });
 
   test('uses one title baseline and typography across primary tabs', async ({ page }) => {
@@ -274,7 +207,7 @@ test.describe('Dashboard', () => {
 
   test('keeps the five-tab dock selection centred during an active workout', async ({ page }, testInfo) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Start workout' }).click();
+    await page.getByRole('button', { name: 'Start workout' }).first().click();
     await page
       .getByTestId('dashboard-workout-source-chooser')
       .getByRole('button', { name: 'Blank workout' })
@@ -315,13 +248,13 @@ test.describe('Dashboard', () => {
       });
 
     await expect(page.getByTestId('dashboard-header-title')).toBeVisible();
-    const selectedDate = page.getByText(/^August \d{1,2}, 2026$/);
-    await expect(selectedDate).toBeVisible();
+    const sectionTitle = page.getByText('This week', { exact: true });
+    await expect(sectionTitle).toBeVisible();
     expect(await readTextMetrics(page.getByTestId('dashboard-header-title'))).toEqual({
       fontSize: '31px',
       lineHeight: '36px',
     });
-    expect(await readTextMetrics(selectedDate)).toEqual({
+    expect(await readTextMetrics(sectionTitle)).toEqual({
       fontSize: '18px',
       lineHeight: '24px',
     });
@@ -332,12 +265,3 @@ test.describe('Dashboard', () => {
     });
   });
 });
-
-async function hasVisibleExactText(page: Page, text: string): Promise<boolean> {
-  return page.getByText(text, { exact: true }).evaluateAll((elements) =>
-    elements.some((element) => {
-      const style = window.getComputedStyle(element);
-      return style.display !== 'none' && style.visibility !== 'hidden';
-    }),
-  );
-}

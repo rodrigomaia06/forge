@@ -15,28 +15,8 @@ async function captureDiagnostic(
 }
 
 test.describe('Dashboard dock diagnostics', () => {
-  test('captures the Recent context card at readable scale', async ({ page }) => {
-    await page.goto('/');
-    const contextCard = page.getByTestId('dashboard-context-card');
-    await expect(contextCard).toBeVisible();
-    await contextCard.scrollIntoViewIfNeeded();
-    await page.getByTestId('dashboard-dock-slot').evaluate((element) => {
-      element.style.display = 'none';
-    });
-    await contextCard.screenshot({ path: test.info().outputPath('dashboard-context-card.png') });
-  });
-
   test('captures each suspected layer in isolation', async ({ page }) => {
     await captureDiagnostic(page, 'base', async () => {});
-
-    await captureDiagnostic(page, 'without-context-card', async (currentPage) => {
-      const contextCard = currentPage.getByTestId('dashboard-context-card');
-      if (await contextCard.count()) {
-        await contextCard.evaluate((element) => {
-          element.style.display = 'none';
-        });
-      }
-    });
 
     await captureDiagnostic(page, 'without-dock-cylinder', async (currentPage) => {
       await currentPage.getByTestId('dashboard-dock-cylinder').evaluate((element) => {

@@ -20,20 +20,19 @@ test.describe('Interactive control consistency', () => {
   }) => {
     await page.goto('/');
 
+    // The dashboard's start/edit actions sit in a joined ghost pill (the shared
+    // live-workout treatment), so the neutral surface is on the group; the button
+    // itself keeps the shared 44pt circular footprint.
     const start = page.getByRole('button', { name: 'Start workout' });
-    const startMetrics = await dimensions(start);
-    expect(startMetrics).toMatchObject({
-      width: 44,
-      height: 44,
-      background: 'rgb(248, 248, 246)',
-    });
+    expect(await dimensions(start)).toMatchObject({ width: 44, height: 44 });
 
     await page.getByRole('tab', { name: 'Plans' }).click();
     const create = page.getByRole('button', { name: 'Create workout, routine, or plan' });
+    const neutralBackground = 'rgb(248, 248, 246)';
     expect(await dimensions(create)).toMatchObject({
       width: 44,
       height: 44,
-      background: startMetrics.background,
+      background: neutralBackground,
     });
 
     await page.getByRole('tab', { name: 'Settings' }).click();
@@ -42,13 +41,13 @@ test.describe('Interactive control consistency', () => {
     expect(backToSettings).toMatchObject({
       width: 44,
       height: 44,
-      background: startMetrics.background,
+      background: neutralBackground,
     });
     const addWorkoutType = page.getByRole('button', { name: 'Add workout type' });
     expect(await dimensions(addWorkoutType)).toMatchObject({
       width: 44,
       height: 44,
-      background: startMetrics.background,
+      background: neutralBackground,
     });
     await addWorkoutType.click();
 
@@ -58,14 +57,14 @@ test.describe('Interactive control consistency', () => {
     expect((await dimensions(save)).height).toBe(44);
     await page.getByLabel('Workout type name').fill('Recovery');
     await expect(save).toBeEnabled();
-    expect((await dimensions(save)).background).toBe(startMetrics.background);
+    expect((await dimensions(save)).background).toBe(neutralBackground);
 
     await save.click();
     await expect(page.getByRole('button', { name: 'Recovery workout type' })).toBeVisible();
     const workoutTypesScroll = page.getByTestId('workout-types-scroll').last();
     await workoutTypesScroll.getByRole('button', { name: 'Strength workout type' }).click();
     const expandedType = workoutTypesScroll.getByTestId('workout-type-visibility-surface');
-    await expect(expandedType).toHaveCSS('background-color', startMetrics.background);
+    await expect(expandedType).toHaveCSS('background-color', neutralBackground);
     await expect(expandedType).toHaveCSS('border-top-width', '1px');
     const typeSwitch = page.getByTestId('workout-type-list-visibility-switch');
     expect(await dimensions(typeSwitch)).toMatchObject({ width: 48, height: 28 });
@@ -102,8 +101,10 @@ test.describe('Interactive control consistency', () => {
     });
     await page.goto('/');
 
+    // The dashboard start action is a ghost button inside the joined pill; the
+    // Dark neutral surface is verified on the standalone Create action below.
     const start = await dimensions(page.getByRole('button', { name: 'Start workout' }));
-    expect(start.background).toBe('rgb(42, 47, 52)');
+    expect(start).toMatchObject({ width: 44, height: 44 });
 
     await page.getByRole('tab', { name: 'Plans' }).click();
     const create = await dimensions(page.getByRole('button', { name: 'Create workout, routine, or plan' }));

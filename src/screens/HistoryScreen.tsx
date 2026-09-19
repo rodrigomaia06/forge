@@ -17,11 +17,14 @@ import {
   ForgeText as Text,
   HeaderEdge,
   HeaderAction,
+  HeaderActionGroup,
+  joinedHeaderAction,
   Icon,
   lightHaptic,
   ScreenTitle,
   selectionHaptic,
 } from '../components/ui';
+import { calendarDateKey } from '../domain/workouts/calendarDate';
 import { countWorkoutSets, formatCompactDuration, getWorkoutTypePresentation } from '../domain/workouts/presentation';
 import { useWorkouts } from '../state/WorkoutContext';
 import { usePlans } from '../state/PlansContext';
@@ -221,15 +224,26 @@ export function HistoryScreen({
           <ScreenTitle testID="history-title" color={theme.textPrimary}>
             History
           </ScreenTitle>
-          <HeaderAction
-            accessibilityLabel="Filter"
-            icon="filter"
-            iconSize={20}
-            onPress={() => setFiltersOpen(true)}
-            iconOnly
-            variant={theme.colorScheme === 'dark' ? 'ghost' : 'outline'}
-            style={theme.colorScheme === 'dark' ? styles.darkHeaderAction : undefined}
-          />
+          <HeaderActionGroup testID="history-header-actions">
+            <HeaderAction
+              accessibilityLabel="Add past workout"
+              icon="add"
+              iconSize={22}
+              onPress={() => navigation.navigate('HistoryWorkoutEditor', { mode: 'create', selectedDate: calendarDateKey(new Date()) })}
+              iconOnly
+              variant="ghost"
+              style={joinedHeaderAction}
+            />
+            <HeaderAction
+              accessibilityLabel="Filter"
+              icon="filter"
+              iconSize={20}
+              onPress={() => setFiltersOpen(true)}
+              iconOnly
+              variant="ghost"
+              style={joinedHeaderAction}
+            />
+          </HeaderActionGroup>
           {headerElevated ? <HeaderEdge /> : null}
         </View>
         <FlatList

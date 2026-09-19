@@ -5,6 +5,7 @@ export { ForgeText, ForgeTextInput } from './ForgeText';
 export { ForgeNumericRangeInput } from './ForgeNumericRangeInput';
 export { ForgeSearchField } from './ForgeSearchField';
 export { ForgeBackButton, HeaderAction } from './HeaderAction';
+export { HeaderActionGroup, joinedHeaderAction } from './HeaderActionGroup';
 export { ForgeSwitch } from './ForgeSwitch';
 export { AnchoredActionPopover } from './AnchoredActionPopover';
 export { ForgeActionSheet } from './ForgeActionSheet';

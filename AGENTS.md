@@ -111,6 +111,7 @@ src/
 ├── state
 │   ├── RestTimerContext.tsx
 │   ├── WorkoutContext.tsx
+│   ├── dashboardLayout.ts
 │   ├── restTimerLiveActivity.ts
 │   └── workoutMutations.ts
 ├── theme

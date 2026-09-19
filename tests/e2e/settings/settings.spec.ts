@@ -371,9 +371,12 @@ test.describe('Settings', () => {
     await expect(page.getByRole('button', { name: 'General' })).toBeVisible();
 
     await page.getByRole('tab', { name: 'Dashboard' }).click();
-    await expect(page.locator('[data-testid="calendar-selected-day"]').last()).toBeVisible();
-    await expect(page.getByTestId('calendar-weekdays').last()).toHaveText('SMTWTFS');
-    await page.reload();
+    await expect(page.getByTestId('dashboard-week-card')).toBeVisible();
+    await expect(page.getByTestId('dashboard-week-labels')).toHaveText('SMTWTFS');
+    // Reload from root: tab navigation leaves the URL on a sub-path the static
+    // web server has no SPA fallback for, and a fresh load still proves the
+    // setting persisted (it lives in web storage).
+    await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'General' }).click();
     await expect(page.getByRole('radio', { name: 'Sunday' })).toBeVisible();

@@ -225,7 +225,8 @@ test.describe('Forge screen captures', () => {
 
   test('captures the historical workout source chooser', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Add historical workout' }).click();
+    await page.getByRole('tab', { name: 'History' }).click();
+    await page.getByRole('button', { name: 'Add past workout' }).click();
     const sourceChooser = page.getByTestId('historical-workout-source-chooser');
     await expect(sourceChooser).toBeVisible();
     await expect(sourceChooser.getByText('Add historical workout', { exact: true })).toBeVisible();
@@ -235,7 +236,7 @@ test.describe('Forge screen captures', () => {
 
   test('captures Live Workout and set options', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Start workout' }).click();
+    await page.getByRole('button', { name: 'Start workout' }).first().click();
     await capture(page, 'dashboard-workout-source-chooser');
     await page.getByTestId('dashboard-workout-source-chooser').getByRole('button', { name: 'Blank workout' }).click();
     await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
@@ -261,7 +262,8 @@ test.describe('Forge screen captures', () => {
 });
 
 async function openHistoricalEditorCapture(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Add historical workout' }).click();
+  await page.getByRole('tab', { name: 'History' }).click();
+  await page.getByRole('button', { name: 'Add past workout' }).click();
   await page.getByRole('button', { name: 'Blank workout' }).click();
   await page.getByLabel('Workout name').fill('Upper push');
   await page.getByLabel('Notes').fill('Felt strong. Good pump.');

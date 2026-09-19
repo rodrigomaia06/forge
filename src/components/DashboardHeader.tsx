@@ -1,9 +1,9 @@
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { ForgeText as Text, HeaderAction, ScreenTitle } from './ui';
+import { ForgeText as Text, HeaderAction, HeaderActionGroup, joinedHeaderAction, ScreenTitle } from './ui';
 import { spacing, typeScale } from '../theme/tokens';
-import type { ForgeTheme, IconName, IconWeight } from '../types';
+import type { ForgeTheme } from '../types';
 
 export const HEADER_VARIANTS = {
   greeting: 'greeting',
@@ -17,15 +17,18 @@ interface DashboardHeaderProps {
   variant?: HeaderVariant;
   style?: StyleProp<ViewStyle>;
   onStart: () => void;
+  editing?: boolean;
+  onToggleEdit?: () => void;
 }
 export function DashboardHeader({
   theme,
   variant = HEADER_VARIANTS.greeting,
   style,
   onStart,
+  editing = false,
+  onToggleEdit,
 }: DashboardHeaderProps) {
   const content = getHeaderContent(variant);
-  const action = getHeaderAction(theme.startButtonVariant);
 
   return (
     <View
@@ -41,14 +44,37 @@ export function DashboardHeader({
         )}
       </View>
       <View style={styles.actions}>
-        <HeaderAction
-          accessibilityLabel={action.accessibilityLabel}
-          icon={action.icon}
-          iconSize={action.iconSize}
-          iconWeight={action.iconWeight}
-          iconOnly
-          onPress={onStart}
-        />
+        {onToggleEdit ? (
+          <HeaderActionGroup testID="dashboard-header-actions">
+            <HeaderAction
+              accessibilityLabel={editing ? 'Done editing dashboard' : 'Edit dashboard'}
+              icon={editing ? 'check' : 'note'}
+              iconSize={editing ? 22 : 20}
+              iconWeight={editing ? 'bold' : 'regular'}
+              iconOnly
+              variant="ghost"
+              style={joinedHeaderAction}
+              onPress={onToggleEdit}
+            />
+            <HeaderAction
+              accessibilityLabel="Start workout"
+              icon="add"
+              iconSize={22}
+              iconOnly
+              variant="ghost"
+              style={joinedHeaderAction}
+              onPress={onStart}
+            />
+          </HeaderActionGroup>
+        ) : (
+          <HeaderAction
+            accessibilityLabel="Start workout"
+            icon="add"
+            iconSize={22}
+            iconOnly
+            onPress={onStart}
+          />
+        )}
       </View>
     </View>
   );
@@ -64,20 +90,6 @@ function getHeaderContent(variant: HeaderVariant): { title: string; subtitle?: s
   }
 
   return { title: getDashboardGreeting() };
-}
-
-function getHeaderAction(_variant?: string): {
-  accessibilityLabel: string;
-  icon: IconName;
-  iconSize: number;
-  iconWeight: IconWeight;
-} {
-  return {
-    accessibilityLabel: 'Start workout',
-    icon: 'add',
-    iconSize: 22,
-    iconWeight: 'regular',
-  };
 }
 
 function getDashboardGreeting(date = new Date()): string {
@@ -100,9 +112,4 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   copy: { flex: 1, minWidth: 0, justifyContent: 'center', paddingRight: 16 },
   subtitle: { ...typeScale.label, marginTop: 2 },
-  outlinePillButton: { borderRadius: 1000 },
-  outlineRoundedButton: { borderRadius: 15 },
-  outlineCompactButton: { width: 46, height: 46, minWidth: 46, minHeight: 46, borderRadius: 13 },
-  outlineSoftButton: { borderRadius: 19 },
-  outlineWideButton: { width: 58, height: 50, minWidth: 58, borderRadius: 15 },
 });

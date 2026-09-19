@@ -9,13 +9,12 @@ test.describe('Dashboard dock geometry', () => {
   test('keeps the persistent dock floating above the tab scene edge', async ({ page }) => {
     const viewport = page.viewportSize();
     const dock = await page.getByTestId('dashboard-dock-cylinder').boundingBox();
-    const contextLocator = page.getByTestId('dashboard-context-card');
-    const context = (await contextLocator.count()) > 0 ? await contextLocator.boundingBox() : null;
+    const tile = await page.getByTestId('dashboard-week-card').boundingBox();
 
     expect(dock).not.toBeNull();
-    expect(context).not.toBeNull();
+    expect(tile).not.toBeNull();
     expect(viewport).not.toBeNull();
-    if (!dock || !context || !viewport)
+    if (!dock || !tile || !viewport)
       throw new Error('Expected dashboard geometry to be measurable');
 
     expect(dock.x).toBeGreaterThanOrEqual(0);
