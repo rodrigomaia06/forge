@@ -9,7 +9,13 @@ test.describe('Dashboard', () => {
     await expect(page.getByTestId('dashboard-start-card')).toBeVisible();
     await expect(page).toHaveScreenshot('dashboard.png', {
       fullPage: true,
-      mask: [page.getByTestId('dashboard-header-title')],
+      // The title is time-of-day dependent; the week strip and training-time
+      // chart highlight "today", so all three drift with the clock.
+      mask: [
+        page.getByTestId('dashboard-header-title'),
+        page.getByTestId('dashboard-week-card'),
+        page.getByTestId('dashboard-training-time'),
+      ],
     });
   });
 
