@@ -247,7 +247,12 @@ export const SwipeableSetRow = React.memo(
     previous.index === next.index &&
     previous.deleteRevealed === next.deleteRevealed &&
     previous.showCompletion === next.showCompletion &&
-    previous.showPrevious === next.showPrevious,
+    previous.showPrevious === next.showPrevious &&
+    // Replacing an exercise keeps the same set objects but changes the tracking
+    // type (and its columns). Without this the row keeps the old fields, so a
+    // reps-only → weighted swap never shows the Kg input.
+    previous.trackingType === next.trackingType &&
+    previous.setTargetMode === next.setTargetMode,
 );
 
 const createStyles = (theme: import('../../types').ForgeTheme) => {
