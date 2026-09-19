@@ -4,7 +4,7 @@
   "description": "Forge flattened runtime exercise catalog. Compact strength curation from Forge v3 and the Kinetic Exercises Database source snapshot; do not hand-edit.",
   "generatedFrom": "forge_exercise_catalog_v3.json + data/catalog/source/kinetic-exercises-2026-09-15.json",
   "counts": {
-    "exercises": 600
+    "exercises": 608
   },
   "taxonomies": {
     "workoutTypes": [
@@ -21682,6 +21682,278 @@
         "Glutes",
         "Hamstrings",
         "Lower Back"
+      ]
+    },
+    {
+      "id": "pistol-squat",
+      "name": "Pistol Squat",
+      "familyId": "pistol-squat",
+      "group": "Pistol Squat",
+      "variation": "Bodyweight",
+      "category": "quads",
+      "bodyRegion": "lower-body",
+      "primaryMuscle": "quads",
+      "secondaryMuscles": [
+        "glutes",
+        "hamstrings",
+        "abs"
+      ],
+      "equipment": [
+        "none"
+      ],
+      "primaryEquipment": "none",
+      "workoutTypeIds": [
+        "calisthenics",
+        "strength"
+      ],
+      "trackingType": "bodyweight-reps",
+      "movementPattern": "squat",
+      "mechanics": "compound",
+      "laterality": "unilateral",
+      "aliases": [
+        "pistol"
+      ],
+      "searchTerms": [
+        "Pistol Squat",
+        "Squat",
+        "Pistol"
+      ]
+    },
+    {
+      "id": "sissy-squat",
+      "name": "Sissy Squat",
+      "familyId": "sissy-squat",
+      "group": "Sissy Squat",
+      "variation": "Bodyweight",
+      "category": "quads",
+      "bodyRegion": "lower-body",
+      "primaryMuscle": "quads",
+      "secondaryMuscles": [
+        "abs"
+      ],
+      "equipment": [
+        "none"
+      ],
+      "primaryEquipment": "none",
+      "workoutTypeIds": [
+        "calisthenics",
+        "strength"
+      ],
+      "trackingType": "bodyweight-reps",
+      "movementPattern": "squat",
+      "mechanics": "isolation",
+      "laterality": "bilateral",
+      "aliases": [
+        "sissy"
+      ],
+      "searchTerms": [
+        "Sissy Squat",
+        "Squat",
+        "Sissy"
+      ]
+    },
+    {
+      "id": "stiff-legged-deadlift",
+      "name": "Stiff-Legged Deadlift",
+      "familyId": "stiff-legged-deadlift",
+      "group": "Stiff-Legged Deadlift",
+      "variation": "Barbell",
+      "category": "hamstrings",
+      "bodyRegion": "lower-body",
+      "primaryMuscle": "hamstrings",
+      "secondaryMuscles": [
+        "glutes",
+        "lower-back"
+      ],
+      "equipment": [
+        "barbell"
+      ],
+      "primaryEquipment": "barbell",
+      "workoutTypeIds": [
+        "strength"
+      ],
+      "trackingType": "weight-reps",
+      "movementPattern": "hinge",
+      "mechanics": "compound",
+      "laterality": "bilateral",
+      "aliases": [
+        "sldl",
+        "stiff leg deadlift"
+      ],
+      "searchTerms": [
+        "Stiff-Legged Deadlift",
+        "Deadlift",
+        "Stiff Leg"
+      ]
+    },
+    {
+      "id": "upright-row",
+      "name": "Upright Row",
+      "familyId": "upright-row",
+      "group": "Upright Row",
+      "variation": "Barbell",
+      "category": "shoulders",
+      "bodyRegion": "upper-body",
+      "primaryMuscle": "side-delts",
+      "secondaryMuscles": [
+        "traps",
+        "biceps"
+      ],
+      "equipment": [
+        "barbell"
+      ],
+      "primaryEquipment": "barbell",
+      "workoutTypeIds": [
+        "strength"
+      ],
+      "trackingType": "weight-reps",
+      "movementPattern": "vertical-pull",
+      "mechanics": "compound",
+      "laterality": "bilateral",
+      "aliases": [
+        "upright row"
+      ],
+      "searchTerms": [
+        "Upright Row",
+        "Row",
+        "Upright"
+      ]
+    },
+    {
+      "id": "meadows-row",
+      "name": "Meadows Row",
+      "familyId": "row",
+      "group": "Row",
+      "variation": "Meadows",
+      "category": "back",
+      "bodyRegion": "upper-body",
+      "primaryMuscle": "upper-back",
+      "secondaryMuscles": [
+        "lats",
+        "biceps",
+        "rear-delts"
+      ],
+      "equipment": [
+        "landmine"
+      ],
+      "primaryEquipment": "landmine",
+      "workoutTypeIds": [
+        "strength"
+      ],
+      "trackingType": "weight-reps",
+      "movementPattern": "horizontal-pull",
+      "mechanics": "compound",
+      "laterality": "unilateral",
+      "aliases": [
+        "meadows row"
+      ],
+      "searchTerms": [
+        "Meadows Row",
+        "Row",
+        "Meadows"
+      ]
+    },
+    {
+      "id": "thruster",
+      "name": "Thruster",
+      "familyId": "thruster",
+      "group": "Thruster",
+      "variation": "Barbell",
+      "category": "full-body",
+      "bodyRegion": "full-body",
+      "primaryMuscle": "quads",
+      "secondaryMuscles": [
+        "glutes",
+        "front-delts",
+        "triceps"
+      ],
+      "equipment": [
+        "barbell"
+      ],
+      "primaryEquipment": "barbell",
+      "workoutTypeIds": [
+        "functional",
+        "strength"
+      ],
+      "trackingType": "weight-reps",
+      "movementPattern": "squat",
+      "mechanics": "compound",
+      "laterality": "bilateral",
+      "aliases": [
+        "thruster"
+      ],
+      "searchTerms": [
+        "Thruster",
+        "Squat to Press"
+      ]
+    },
+    {
+      "id": "zercher-squat",
+      "name": "Zercher Squat",
+      "familyId": "zercher-squat",
+      "group": "Zercher Squat",
+      "variation": "Barbell",
+      "category": "quads",
+      "bodyRegion": "lower-body",
+      "primaryMuscle": "quads",
+      "secondaryMuscles": [
+        "glutes",
+        "hamstrings",
+        "upper-back",
+        "abs"
+      ],
+      "equipment": [
+        "barbell"
+      ],
+      "primaryEquipment": "barbell",
+      "workoutTypeIds": [
+        "strength"
+      ],
+      "trackingType": "weight-reps",
+      "movementPattern": "squat",
+      "mechanics": "compound",
+      "laterality": "bilateral",
+      "aliases": [
+        "zercher"
+      ],
+      "searchTerms": [
+        "Zercher Squat",
+        "Squat",
+        "Zercher"
+      ]
+    },
+    {
+      "id": "jm-press",
+      "name": "JM Press",
+      "familyId": "jm-press",
+      "group": "JM Press",
+      "variation": "Barbell",
+      "category": "triceps",
+      "bodyRegion": "upper-body",
+      "primaryMuscle": "triceps",
+      "secondaryMuscles": [
+        "chest",
+        "front-delts"
+      ],
+      "equipment": [
+        "barbell",
+        "bench"
+      ],
+      "primaryEquipment": "barbell",
+      "workoutTypeIds": [
+        "strength"
+      ],
+      "trackingType": "weight-reps",
+      "movementPattern": "elbow-extension",
+      "mechanics": "compound",
+      "laterality": "bilateral",
+      "aliases": [
+        "jm press"
+      ],
+      "searchTerms": [
+        "JM Press",
+        "Triceps",
+        "Press"
       ]
     }
   ]

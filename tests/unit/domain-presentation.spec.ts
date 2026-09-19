@@ -542,11 +542,11 @@ test('filters and groups exercise catalog entries without changing feature selec
 
 test('ships the validated v5 compact Strength baseline, unique picker identities, and all built-in workout types', () => {
   expect(bundledCatalogVersion).toBe(5);
-  expect(bundledExercises).toHaveLength(600);
-  expect(new Set(bundledExercises.map((exercise) => exercise.id)).size).toBe(600);
+  expect(bundledExercises).toHaveLength(608);
+  expect(new Set(bundledExercises.map((exercise) => exercise.id)).size).toBe(608);
   expect(taxonomyLabel('equipment', 'none')).toBe('Bodyweight');
   const normalize = (value: string) => value.trim().replace(/\s+/g, ' ').toLowerCase();
-  expect(new Set(bundledExercises.map((exercise) => normalize(exercise.name))).size).toBe(600);
+  expect(new Set(bundledExercises.map((exercise) => normalize(exercise.name))).size).toBe(608);
   expect(
     bundledExercises.some(
       (exercise) =>
@@ -560,7 +560,7 @@ test('ships the validated v5 compact Strength baseline, unique picker identities
       normalize(exercise.variation || exercise.name),
     ].join('::'),
   );
-  expect(new Set(pickerKeys).size).toBe(600);
+  expect(new Set(pickerKeys).size).toBe(608);
   const byId = new Map(bundledExercises.map((exercise) => [exercise.id, exercise]));
   const canonicalName = (value: string) => value
     .toLocaleLowerCase()
@@ -570,7 +570,7 @@ test('ships the validated v5 compact Strength baseline, unique picker identities
     .split(' ')
     .map((word) => word === 'ups' ? 'up' : word.length > 3 && /[^s]s$/.test(word) ? word.slice(0, -1) : word)
     .join(' ');
-  expect(new Set(bundledExercises.map((exercise) => canonicalName(exercise.name))).size).toBe(600);
+  expect(new Set(bundledExercises.map((exercise) => canonicalName(exercise.name))).size).toBe(608);
   expect(byId.get('weighted-wide-pronated-pull-up')).toMatchObject({
     group: 'Pull-Up',
     variation: 'Weighted · Wide · Pronated',
