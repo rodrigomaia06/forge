@@ -73,37 +73,24 @@ test.describe('Dashboard', () => {
     await expect(page.getByRole('tab', { name: 'Workout' })).toHaveAttribute('aria-selected', 'true');
   });
 
-  test('edits the modular dashboard: rename, remove, re-add and persist', async ({ page }) => {
+  test('removes and re-adds a dashboard tile, persisting across reloads', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByTestId('dashboard-week-card')).toBeVisible();
 
-    // Rename the (top, always-visible) This week tile.
-    await page.getByRole('button', { name: 'Edit dashboard' }).click();
-    await page.getByRole('button', { name: 'Rename This week tile' }).click();
-    const input = page.getByLabel('Tile title');
-    await expect(input).toBeVisible();
-    await input.fill('Consistency');
-    await page.getByRole('button', { name: 'Save', exact: true }).click();
-    await expect(page.getByTestId('dashboard-week-card')).toContainText('Consistency');
-
-    // The custom title survives a fresh load.
-    await page.goto('/');
-    await expect(page.getByTestId('dashboard-week-card')).toContainText('Consistency');
-
-    // Remove the renamed tile; the removal persists across a reload.
-    await page.getByRole('button', { name: 'Edit dashboard' }).click();
-    await page.getByRole('button', { name: 'Remove Consistency tile' }).click();
+    // Each tile carries its own in-card remove control (no edit mode).
+    await page.getByRole('button', { name: 'Remove This week tile' }).click();
     await expect(page.getByTestId('dashboard-week-card')).toHaveCount(0);
+
+    // The removal persists across a fresh load.
     await page.goto('/');
     await expect(page.getByTestId('dashboard-week-card')).toHaveCount(0);
 
-    // It can be re-added from the Add tile chooser, keeping its custom title.
-    await page.getByRole('button', { name: 'Edit dashboard' }).click();
+    // It can be re-added from the Add tile chooser.
     const addTile = page.getByRole('button', { name: 'Add tile' });
     await addTile.scrollIntoViewIfNeeded();
     await addTile.click();
     await page.getByRole('button', { name: 'This week' }).click();
-    await expect(page.getByTestId('dashboard-week-card')).toContainText('Consistency');
+    await expect(page.getByTestId('dashboard-week-card')).toBeVisible();
   });
 
   test('uses one title baseline and typography across primary tabs', async ({ page }) => {

@@ -3,7 +3,6 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import {
   Button,
-  ForgeCard,
   ForgeText as Text,
   Icon,
   lightHaptic,
@@ -46,7 +45,7 @@ export function DashboardStartCard({
   const title = routine?.name ?? 'Start a workout';
 
   return (
-    <ForgeCard testID="dashboard-start-card" style={styles.startCard}>
+    <View style={styles.startInner}>
       <View style={styles.startHeader}>
         <View style={[styles.startIcon, { backgroundColor: presentation.background }]}>
           <Icon name={routine ? presentation.icon : 'fitness'} size={26} color={presentation.color} />
@@ -77,25 +76,23 @@ export function DashboardStartCard({
           <Text style={styles.startSecondaryText}>Choose another workout</Text>
         </Pressable>
       ) : null}
-    </ForgeCard>
+    </View>
   );
 }
 
 export function DashboardWeekCard({
   days,
   workoutCount,
-  title,
 }: {
   days: WeekStripDay[];
   workoutCount: number;
-  title?: string;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   return (
-    <ForgeCard testID="dashboard-week-card" style={styles.card}>
+    <View style={styles.blockInner}>
       <View style={styles.cardHeaderRow}>
-        <Text style={styles.cardTitle}>{title ?? DASHBOARD_TILE_DEFAULT_TITLE.week}</Text>
+        <Text style={styles.cardTitle}>{DASHBOARD_TILE_DEFAULT_TITLE.week}</Text>
         <Text style={styles.cardAside}>{workoutCount} {workoutCount === 1 ? 'workout' : 'workouts'}</Text>
       </View>
       <View testID="dashboard-week-labels" style={styles.weekRow}>
@@ -117,7 +114,7 @@ export function DashboardWeekCard({
           </View>
         ))}
       </View>
-    </ForgeCard>
+    </View>
   );
 }
 
@@ -125,21 +122,19 @@ export function DashboardTrainingTimeCard({
   totalSeconds,
   perDaySeconds,
   days,
-  title,
 }: {
   totalSeconds: number;
   perDaySeconds: number[];
   days: WeekStripDay[];
-  title?: string;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const maxSeconds = Math.max(1, ...perDaySeconds);
   return (
-    <ForgeCard testID="dashboard-training-time" style={styles.card}>
+    <View style={styles.blockInner}>
       <View style={styles.trainingHeaderRow}>
         <Icon name="time-outline" size={17} color={theme.slate} />
-        <Text style={styles.cardTitle}>{title ?? DASHBOARD_TILE_DEFAULT_TITLE['training-time']}</Text>
+        <Text style={styles.cardTitle}>{DASHBOARD_TILE_DEFAULT_TITLE['training-time']}</Text>
       </View>
       <View style={styles.trainingBody}>
         <View style={styles.trainingMetricBlock}>
@@ -167,19 +162,17 @@ export function DashboardTrainingTimeCard({
           </View>
         </View>
       </View>
-    </ForgeCard>
+    </View>
   );
 }
 
 export function DashboardLastWorkoutTile({
   lastWorkout,
   workoutTypes,
-  title,
   onOpen,
 }: {
   lastWorkout: Workout | null;
   workoutTypes: WorkoutTypePreference[];
-  title?: string;
   onOpen: (workoutId: string) => void;
 }) {
   const theme = useForgeTheme();
@@ -195,84 +188,79 @@ export function DashboardLastWorkoutTile({
       })
     : null;
   return (
-    <ForgeCard testID="dashboard-last-workout" style={styles.wideTile}>
-      <Pressable
-        accessibilityRole={lastWorkout ? 'button' : undefined}
-        accessibilityLabel={lastWorkout ? `Open ${lastWorkout.name}` : undefined}
-        disabled={!lastWorkout}
-        onPress={lastWorkout ? () => {
-          lightHaptic();
-          onOpen(lastWorkout.id);
-        } : undefined}
-        style={({ pressed }) => [styles.wideTileInner, pressed && lastWorkout ? pressedFeedbackSubtle : null]}
-      >
-        <View style={[styles.tileIcon, { backgroundColor: presentation?.background ?? theme.surfaceMuted }]}>
-          <Icon name={presentation?.icon ?? 'fitness'} size={20} color={presentation?.color ?? theme.muted} />
-        </View>
-        <View style={styles.wideTileCopy}>
-          <Text style={styles.tileLabel}>{title ?? DASHBOARD_TILE_DEFAULT_TITLE['last-workout']}</Text>
-          {lastWorkout ? (
-            <>
-              <Text style={styles.wideTileValue} numberOfLines={1}>{lastWorkout.name}</Text>
-              <Text style={styles.tileDetail} numberOfLines={1}>
-                {lastDate} · {formatCompactDuration(lastWorkout.durationSeconds)}
-              </Text>
-            </>
-          ) : (
-            <Text style={styles.tileEmpty}>No workouts yet</Text>
-          )}
-        </View>
-        {lastWorkout ? <Icon name="chevron-forward" size={18} color={theme.slate} /> : null}
-      </Pressable>
-    </ForgeCard>
+    <Pressable
+      accessibilityRole={lastWorkout ? 'button' : undefined}
+      accessibilityLabel={lastWorkout ? `Open ${lastWorkout.name}` : undefined}
+      disabled={!lastWorkout}
+      onPress={lastWorkout ? () => {
+        lightHaptic();
+        onOpen(lastWorkout.id);
+      } : undefined}
+      style={({ pressed }) => [styles.wideInner, pressed && lastWorkout ? pressedFeedbackSubtle : null]}
+    >
+      <View style={[styles.tileIcon, { backgroundColor: presentation?.background ?? theme.surfaceMuted }]}>
+        <Icon name={presentation?.icon ?? 'fitness'} size={20} color={presentation?.color ?? theme.muted} />
+      </View>
+      <View style={styles.wideCopy}>
+        <Text style={styles.tileLabel}>{DASHBOARD_TILE_DEFAULT_TITLE['last-workout']}</Text>
+        {lastWorkout ? (
+          <>
+            <Text style={styles.wideValue} numberOfLines={1}>{lastWorkout.name}</Text>
+            <Text style={styles.tileDetail} numberOfLines={1}>
+              {lastDate} · {formatCompactDuration(lastWorkout.durationSeconds)}
+            </Text>
+          </>
+        ) : (
+          <Text style={styles.tileEmpty}>No workouts yet</Text>
+        )}
+      </View>
+      {lastWorkout ? <Icon name="chevron-forward" size={18} color={theme.slate} /> : null}
+    </Pressable>
   );
 }
 
 export function DashboardVolumeTile({
   thisWeekKg,
   deltaPct,
-  title,
 }: {
   thisWeekKg: number;
   deltaPct: number | null;
-  title?: string;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const deltaUp = (deltaPct ?? 0) >= 0;
   return (
-    <ForgeCard testID="dashboard-volume" style={styles.wideTile}>
-      <View style={styles.wideTileInner}>
-        <View style={[styles.tileIcon, { backgroundColor: theme.surfaceMuted }]}>
-          <Icon name="activity" size={20} color={theme.ink} />
-        </View>
-        <View style={styles.wideTileCopy}>
-          <Text style={styles.tileLabel}>{title ?? DASHBOARD_TILE_DEFAULT_TITLE.volume}</Text>
-          {thisWeekKg > 0 ? (
-            <Text style={styles.wideTileValue} numberOfLines={1}>{formatVolume(thisWeekKg)}</Text>
-          ) : (
-            <Text style={styles.tileEmpty}>—</Text>
-          )}
-        </View>
-        {thisWeekKg > 0 && deltaPct !== null ? (
-          <View style={styles.deltaRow}>
-            <Icon name={deltaUp ? 'arrow-up' : 'arrow-down'} size={14} color={theme.slate} />
-            <Text style={styles.tileDetail}>{Math.abs(deltaPct)}%</Text>
-          </View>
-        ) : null}
+    <View style={styles.wideInner}>
+      <View style={[styles.tileIcon, { backgroundColor: theme.surfaceMuted }]}>
+        <Icon name="activity" size={20} color={theme.ink} />
       </View>
-    </ForgeCard>
+      <View style={styles.wideCopy}>
+        <Text style={styles.tileLabel}>{DASHBOARD_TILE_DEFAULT_TITLE.volume}</Text>
+        {thisWeekKg > 0 ? (
+          <Text style={styles.wideValue} numberOfLines={1}>{formatVolume(thisWeekKg)}</Text>
+        ) : (
+          <Text style={styles.tileEmpty}>—</Text>
+        )}
+      </View>
+      {thisWeekKg > 0 && deltaPct !== null ? (
+        <View style={styles.deltaRow}>
+          <Icon name={deltaUp ? 'arrow-up' : 'arrow-down'} size={14} color={theme.slate} />
+          <Text style={styles.tileDetail}>{Math.abs(deltaPct)}%</Text>
+        </View>
+      ) : null}
+    </View>
   );
 }
 
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
-  card: { padding: 16 },
-  cardHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  // Right padding keeps the aside ("N workouts") clear of the in-card remove (X).
+  cardHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 26 },
   cardTitle: { color: theme.ink, ...typeScale.sectionTitle },
   cardAside: { color: theme.slate, ...typeScale.supporting },
+  blockInner: { gap: 0 },
 
   // Start / suggestion hero.
-  startCard: { padding: 16, gap: 14 },
+  startInner: { gap: 14 },
   startHeader: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   startIcon: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
   startCopy: { flex: 1, minWidth: 0 },
@@ -287,9 +275,9 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   weekRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 },
   weekCell: { alignItems: 'center', gap: 8, flex: 1 },
   weekDot: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
@@ -305,9 +293,9 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   // Training time.
   trainingHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   trainingBody: { flexDirection: 'row', alignItems: 'flex-end', gap: 16, marginTop: 14 },
-  trainingMetricBlock: { justifyContent: 'flex-end', minWidth: 96 },
+  trainingMetricBlock: { justifyContent: 'flex-end', minWidth: 92 },
   trainingMetric: { color: theme.ink, ...typeScale.metricLarge },
-  trainingCaption: { color: theme.slate, ...typeScale.caption, marginTop: 4, maxWidth: 120 },
+  trainingCaption: { color: theme.slate, ...typeScale.caption, marginTop: 4, maxWidth: 116 },
   chart: { flex: 1, height: 88, justifyContent: 'flex-end' },
   chartBars: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', height: '100%' },
   chartColumn: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', height: '100%', gap: 6 },
@@ -317,11 +305,10 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   chartBarEmpty: { backgroundColor: theme.divider },
   chartLabel: { color: theme.slate, ...typeScale.caption },
 
-  // Wide (full-width) stat tiles.
-  wideTile: { padding: 0 },
-  wideTileInner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
-  wideTileCopy: { flex: 1, minWidth: 0, gap: 2 },
-  wideTileValue: { color: theme.ink, ...typeScale.metricMedium },
+  // Wide stat tiles (last workout / volume).
+  wideInner: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  wideCopy: { flex: 1, minWidth: 0, gap: 2 },
+  wideValue: { color: theme.ink, ...typeScale.metricMedium },
   tileIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   tileLabel: { color: theme.slate, ...typeScale.caption },
   tileDetail: { color: theme.slate, ...typeScale.label },

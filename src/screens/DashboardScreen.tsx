@@ -1,17 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 
 import {
   AppScreen,
-  Button,
   ForgeActionSheet,
-  ForgeBottomSheet,
-  ForgeBottomSheetHandle,
-  ForgeSheetHeader,
+  ForgeCard,
   ForgeText as Text,
-  ForgeTextInput,
   Icon,
   lightHaptic,
   pressedFeedback,
@@ -48,6 +44,14 @@ import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
 import type { ForgeTheme, RootNavigationProp } from '../types';
 
+const TILE_TEST_ID: Record<DashboardTileKind, string> = {
+  start: 'dashboard-start-card',
+  week: 'dashboard-week-card',
+  'training-time': 'dashboard-training-time',
+  'last-workout': 'dashboard-last-workout',
+  volume: 'dashboard-volume',
+};
+
 export function DashboardScreen() {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -58,8 +62,6 @@ export function DashboardScreen() {
   const { preferences } = useSettings();
   const starter = useWorkoutStarter();
   const { layout, setLayout } = useDashboardLayout();
-  const [editing, setEditing] = useState(false);
-  const [renameTarget, setRenameTarget] = useState<DashboardTileConfig | null>(null);
   const [addTileOpen, setAddTileOpen] = useState(false);
 
   const summary = useMemo(() => {
@@ -102,11 +104,9 @@ export function DashboardScreen() {
     ]);
     setAddTileOpen(false);
   };
-  const renameTile = (kind: DashboardTileKind, title: string | undefined) =>
-    setLayout(layout.map((tile) => (tile.kind === kind ? { ...tile, title } : tile)));
 
-  const renderTileContent = (tile: DashboardTileConfig) => {
-    switch (tile.kind) {
+  const renderTileContent = (kind: DashboardTileKind) => {
+    switch (kind) {
       case 'start':
         return (
           <DashboardStartCard
@@ -117,14 +117,13 @@ export function DashboardScreen() {
           />
         );
       case 'week':
-        return <DashboardWeekCard days={summary.days} workoutCount={summary.workoutCount} title={tile.title} />;
+        return <DashboardWeekCard days={summary.days} workoutCount={summary.workoutCount} />;
       case 'training-time':
         return (
           <DashboardTrainingTimeCard
             totalSeconds={summary.totalSeconds}
             perDaySeconds={summary.perDaySeconds}
             days={summary.days}
-            title={tile.title}
           />
         );
       case 'last-workout':
@@ -132,12 +131,11 @@ export function DashboardScreen() {
           <DashboardLastWorkoutTile
             lastWorkout={summary.lastWorkout}
             workoutTypes={preferences.workoutTypes}
-            title={tile.title}
             onOpen={(workoutId) => navigation.navigate('WorkoutDetails', { workoutId })}
           />
         );
       case 'volume':
-        return <DashboardVolumeTile thisWeekKg={summary.thisWeekKg} deltaPct={summary.deltaPct} title={tile.title} />;
+        return <DashboardVolumeTile thisWeekKg={summary.thisWeekKg} deltaPct={summary.deltaPct} />;
       default:
         return null;
     }
@@ -150,65 +148,46 @@ export function DashboardScreen() {
           testID="dashboard-scroll"
           data={visibleTiles}
           keyExtractor={(tile) => tile.kind}
-          extraData={{ editing, summary }}
-          activationDistance={editing ? 8 : 10000}
+          extraData={summary}
+          activationDistance={14}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: dockScrollInset }}
+          contentContainerStyle={styles.listContent}
+          contentInset={{ bottom: dockScrollInset }}
           ListHeaderComponent={
-            <DashboardHeader
-              theme={theme}
-              variant={theme.headerVariant}
-              onStart={starter.openChooser}
-              editing={editing}
-              onToggleEdit={() => {
-                lightHaptic();
-                setEditing((current) => !current);
-              }}
-            />
+            <DashboardHeader theme={theme} variant={theme.headerVariant} onStart={starter.openChooser} />
           }
           ListFooterComponent={
-            editing && hiddenTiles.length ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Add tile"
-                onPress={() => {
-                  lightHaptic();
-                  setAddTileOpen(true);
-                }}
-                style={({ pressed }) => [styles.addTileRow, pressed && pressedFeedback]}
-              >
-                <Icon name="add" size={20} color={theme.ink} />
-                <Text style={styles.addTileLabel}>Add tile</Text>
-              </Pressable>
-            ) : null
+            <View style={{ paddingBottom: dockScrollInset }}>
+              {hiddenTiles.length ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Add tile"
+                  onPress={() => {
+                    lightHaptic();
+                    setAddTileOpen(true);
+                  }}
+                  style={({ pressed }) => [styles.addTileRow, pressed && pressedFeedback]}
+                >
+                  <Icon name="add" size={20} color={theme.ink} />
+                  <Text style={styles.addTileLabel}>Add tile</Text>
+                </Pressable>
+              ) : null}
+            </View>
           }
           onDragEnd={({ data }) => persistOrder(data)}
           renderItem={({ item, drag, isActive }) => (
             <DashboardTileFrame
-              editing={editing}
+              testID={TILE_TEST_ID[item.kind]}
+              name={DASHBOARD_TILE_DEFAULT_TITLE[item.kind]}
               isActive={isActive}
-              name={item.title ?? DASHBOARD_TILE_DEFAULT_TITLE[item.kind]}
-              canRename={item.kind !== 'start'}
               onDrag={drag}
-              onRename={() => {
-                lightHaptic();
-                setRenameTarget(item);
-              }}
               onRemove={() => hideTile(item.kind)}
             >
-              {renderTileContent(item)}
+              {renderTileContent(item.kind)}
             </DashboardTileFrame>
           )}
         />
         {starter.sheet}
-        <RenameTileSheet
-          target={renameTarget}
-          onClose={() => setRenameTarget(null)}
-          onSave={(kind, title) => {
-            renameTile(kind, title);
-            setRenameTarget(null);
-          }}
-        />
         <ForgeActionSheet
           visible={addTileOpen}
           onClose={() => setAddTileOpen(false)}
@@ -226,132 +205,97 @@ export function DashboardScreen() {
 }
 
 function DashboardTileFrame({
-  editing,
-  isActive,
+  testID,
   name,
-  canRename,
+  isActive,
   onDrag,
-  onRename,
   onRemove,
   children,
 }: {
-  editing: boolean;
-  isActive: boolean;
+  testID: string;
   name: string;
-  canRename: boolean;
+  isActive: boolean;
   onDrag: () => void;
-  onRename: () => void;
   onRemove: () => void;
   children: React.ReactNode;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  if (!editing) return <View style={styles.tileWrap}>{children}</View>;
   return (
-    <View style={[styles.tileWrap, isActive && styles.tileWrapActive]}>
-      <View style={styles.editBar}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Reorder ${name} tile`}
-            onLongPress={onDrag}
-            delayLongPress={120}
-            style={({ pressed }) => [styles.editControl, pressed && pressedFeedback]}
-          >
-            <Icon name="drag" size={19} color={theme.slate} />
-          </Pressable>
-          <View style={styles.editBarSpacer} />
-          {canRename ? (
-            <Pressable
-              accessibilityRole="button"
-            accessibilityLabel={`Rename ${name} tile`}
-              onPress={onRename}
-              style={({ pressed }) => [styles.editControl, pressed && pressedFeedback]}
-            >
-              <Icon name="note" size={18} color={theme.slate} />
-            </Pressable>
-          ) : null}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Remove ${name} tile`}
-            onPress={onRemove}
-            style={({ pressed }) => [styles.editControl, pressed && pressedFeedback]}
-          >
-            <Icon name="close" size={18} color={theme.textDestructive} />
-          </Pressable>
-        </View>
-      <View pointerEvents="none">{children}</View>
+    <View style={styles.tileWrap}>
+      <ForgeCard testID={testID} style={[styles.tileCard, isActive && styles.tileCardActive]}>
+        {/* A generous left rail is the drag zone, so a hold anywhere down the left
+            edge of the card starts a reorder — not only on the grip icon. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Reorder ${name} tile`}
+          onLongPress={onDrag}
+          delayLongPress={140}
+          style={styles.dragRail}
+        >
+          <Icon name="drag" size={18} color={theme.muted} />
+        </Pressable>
+        <View style={styles.tileBody}>{children}</View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Remove ${name} tile`}
+          onPress={() => {
+            lightHaptic();
+            onRemove();
+          }}
+          hitSlop={10}
+          style={({ pressed }) => [styles.removeButton, pressed && styles.removeButtonPressed]}
+        >
+          <Icon name="close" size={15} color={theme.textDestructive} />
+        </Pressable>
+      </ForgeCard>
     </View>
   );
 }
 
-function RenameTileSheet({
-  target,
-  onClose,
-  onSave,
-}: {
-  target: DashboardTileConfig | null;
-  onClose: () => void;
-  onSave: (kind: DashboardTileKind, title: string | undefined) => void;
-}) {
-  const theme = useForgeTheme();
-  const styles = useThemedStyles(createStyles);
-  const [text, setText] = useState('');
-  useEffect(() => {
-    if (target) setText(target.title ?? '');
-  }, [target]);
-  const defaultTitle = target ? DASHBOARD_TILE_DEFAULT_TITLE[target.kind] : '';
-  return (
-    <ForgeBottomSheet
-      visible={target !== null}
-      onClose={onClose}
-      accessibilityLabel="Close rename tile"
-      initialOffset={340}
-      closeDistance={340}
-      dismissThreshold={150}
-    >
-      {(close) => (
-        <View style={styles.renameSheet}>
-          <ForgeBottomSheetHandle />
-          <ForgeSheetHeader title="Rename tile" onClose={close} closeAccessibilityLabel="Cancel rename" />
-          <View style={styles.renameBody}>
-            <ForgeTextInput
-              value={text}
-              onChangeText={setText}
-              placeholder={defaultTitle}
-              placeholderTextColor={theme.muted}
-              accessibilityLabel="Tile title"
-              style={styles.renameInput}
-              autoFocus
-            />
-            <View style={styles.renameActions}>
-              <Button
-                label="Reset to default"
-                variant="ghost"
-                onPress={() => target && onSave(target.kind, undefined)}
-              />
-              <Button
-                label="Save"
-                onPress={() => target && onSave(target.kind, text.trim() || undefined)}
-              />
-            </View>
-          </View>
-        </View>
-      )}
-    </ForgeBottomSheet>
-  );
-}
+const DRAG_RAIL_WIDTH = 40;
 
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   appShell: { flex: 1, minHeight: 0 },
-  tileWrap: { paddingHorizontal: 20, marginBottom: 14 },
-  tileWrapActive: { opacity: 0.96 },
-  editBar: { flexDirection: 'row', alignItems: 'center', height: 34, marginBottom: 4 },
-  editBarSpacer: { flex: 1 },
-  editControl: { width: 40, height: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
+  // Horizontal padding lives on the items (and the header owns its own), so the
+  // header title lines up with the other tabs' titles at the screen inset.
+  listContent: { paddingTop: 0 },
+  tileWrap: { marginBottom: 14, paddingHorizontal: 20 },
+  tileCard: { position: 'relative' },
+  tileCardActive: { opacity: 0.97 },
+  dragRail: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: DRAG_RAIL_WIDTH,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  // Content is inset past the rail on the left and clear of the X on the right.
+  tileBody: {
+    paddingLeft: DRAG_RAIL_WIDTH,
+    paddingRight: 16,
+    paddingVertical: 16,
+    minHeight: 44,
+  },
+  removeButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 3,
+  },
+  removeButtonPressed: { backgroundColor: theme.pressed },
   addTileRow: {
-    marginHorizontal: 20,
     marginTop: 2,
     marginBottom: 14,
+    marginHorizontal: 20,
     minHeight: 52,
     flexDirection: 'row',
     alignItems: 'center',
@@ -363,17 +307,4 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
     borderStyle: 'dashed',
   },
   addTileLabel: { color: theme.ink, ...typeScale.controlLabel },
-  renameSheet: { alignSelf: 'stretch' },
-  renameBody: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 24, gap: 16 },
-  renameInput: {
-    minHeight: 52,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    backgroundColor: theme.input,
-    borderWidth: 1,
-    borderColor: theme.border,
-    color: theme.ink,
-    ...typeScale.body,
-  },
-  renameActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 });
