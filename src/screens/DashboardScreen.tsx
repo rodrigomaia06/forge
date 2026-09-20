@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 
@@ -258,8 +258,11 @@ function DashboardTileFrame({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Reorder ${name} tile`}
-          onLongPress={onDrag}
-          delayLongPress={140}
+          // Web mouse users can't long-press to drag, so start the reorder on
+          // press-down there; touch keeps long-press so a scroll is not hijacked.
+          {...(Platform.OS === 'web'
+            ? { onPressIn: onDrag }
+            : { onLongPress: onDrag, delayLongPress: 140 })}
           style={styles.dragRail}
         >
           <Icon name="drag" size={18} color={theme.muted} />
