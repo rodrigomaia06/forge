@@ -289,7 +289,10 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
     position: 'relative',
   },
   weekDotFilled: { borderColor: 'transparent' },
-  weekDotSegments: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, flexDirection: 'row' },
+  // The segments carry their own circular clip: iOS does not reliably clip
+  // absolutely-positioned children to the parent's border radius, which made the
+  // filled dots render as squircles.
+  weekDotSegments: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, flexDirection: 'row', borderRadius: 16, overflow: 'hidden' },
   weekDotCheck: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   weekDotToday: { borderColor: theme.selectionIndicator },
   weekDotFuture: { borderColor: theme.divider, opacity: 0.5 },
@@ -298,8 +301,9 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
 
   // Training time.
   trainingHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  // Extra top gap keeps the tallest bar clearly below the "Training time" title.
-  trainingBody: { flexDirection: 'row', alignItems: 'flex-end', gap: 16, marginTop: 22 },
+  // The chart box top sits this far below the title, so the tallest bar (capped
+  // at the box height) always clears the "Training time" title.
+  trainingBody: { flexDirection: 'row', alignItems: 'flex-end', gap: 16, marginTop: 28 },
   trainingMetricBlock: { justifyContent: 'flex-end', minWidth: 92 },
   trainingMetric: { color: theme.ink, ...typeScale.metricLarge },
   trainingCaption: { color: theme.slate, ...typeScale.caption, marginTop: 4, maxWidth: 116 },
