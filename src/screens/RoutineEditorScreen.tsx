@@ -700,11 +700,11 @@ function RoutineExerciseDragHandle({
       accessibilityLabel={`Drag to reorder ${name}`}
       accessibilityHint="Hold, then drag to change exercise order"
       disabled={disabled}
-      // Web mouse can't long-press to drag, so start the reorder on press-down
-      // there; touch keeps long-press so a list scroll is not hijacked.
-      {...(Platform.OS === 'web'
-        ? { onPressIn: () => { lightHaptic(); onDrag(); } }
-        : { delayLongPress: 180, onLongPress: () => { lightHaptic(); onDrag(); } })}
+      delayLongPress={180}
+      onLongPress={() => {
+        lightHaptic();
+        onDrag();
+      }}
       style={({ pressed }) => [styles.routineDragHandle, pressed && styles.pressed]}
     >
       <Icon name="drag" size={19} color={theme.muted} />
