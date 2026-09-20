@@ -26,12 +26,10 @@ export function DashboardStartCard({
   suggestion,
   workoutTypes,
   onStart,
-  onChooseAnother,
 }: {
   suggestion: WorkoutSuggestion | null;
   workoutTypes: WorkoutTypePreference[];
   onStart: () => void;
-  onChooseAnother: () => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -63,19 +61,6 @@ export function DashboardStartCard({
         onPress={onStart}
         style={styles.startButton}
       />
-      {suggestion ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Choose another workout"
-          onPress={() => {
-            lightHaptic();
-            onChooseAnother();
-          }}
-          style={({ pressed }) => [styles.startSecondary, pressed && pressedFeedbackSubtle]}
-        >
-          <Text style={styles.startSecondaryText}>Choose another workout</Text>
-        </Pressable>
-      ) : null}
     </View>
   );
 }
@@ -83,9 +68,11 @@ export function DashboardStartCard({
 export function DashboardWeekCard({
   days,
   workoutCount,
+  workoutTypes,
 }: {
   days: WeekStripDay[];
   workoutCount: number;
+  workoutTypes: WorkoutTypePreference[];
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -107,7 +94,24 @@ export function DashboardWeekCard({
               ]}
             >
               {day.hasWorkout ? (
-                <Icon name="check" size={16} color={theme.onActionPrimary} weight="bold" />
+                <>
+                  {/* Trained days fill with the workout-type colour; a day with
+                      several workouts splits the circle into one segment each. */}
+                  <View style={styles.weekDotSegments}>
+                    {day.types.map((type, typeIndex) => (
+                      <View
+                        key={typeIndex}
+                        style={{
+                          flex: 1,
+                          backgroundColor: getWorkoutTypePresentation(type, workoutTypes, theme, 1).color,
+                        }}
+                      />
+                    ))}
+                  </View>
+                  <View style={styles.weekDotCheck}>
+                    <Icon name="check" size={16} color="#FFFFFF" weight="bold" />
+                  </View>
+                </>
               ) : null}
             </View>
             <Text style={[styles.weekLabel, day.isToday && styles.weekLabelToday]}>{day.label}</Text>
@@ -268,8 +272,6 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   startTitle: { color: theme.ink, ...typeScale.sectionTitle },
   startMeta: { color: theme.slate, ...typeScale.supporting, marginTop: 2 },
   startButton: { alignSelf: 'stretch' },
-  startSecondary: { minHeight: 32, alignItems: 'center', justifyContent: 'center' },
-  startSecondaryText: { color: theme.slate, ...typeScale.controlLabel },
 
   // This week.
   weekRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 },
@@ -283,8 +285,12 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
     borderWidth: 1.5,
     borderColor: theme.divider,
     backgroundColor: 'transparent',
+    overflow: 'hidden',
+    position: 'relative',
   },
-  weekDotFilled: { backgroundColor: theme.actionPrimary, borderColor: theme.actionPrimary },
+  weekDotFilled: { borderColor: 'transparent' },
+  weekDotSegments: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, flexDirection: 'row' },
+  weekDotCheck: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   weekDotToday: { borderColor: theme.selectionIndicator },
   weekDotFuture: { borderColor: theme.divider, opacity: 0.5 },
   weekLabel: { color: theme.slate, ...typeScale.caption },
@@ -292,11 +298,13 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
 
   // Training time.
   trainingHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  trainingBody: { flexDirection: 'row', alignItems: 'flex-end', gap: 16, marginTop: 14 },
+  // Extra top gap keeps the tallest bar clearly below the "Training time" title.
+  trainingBody: { flexDirection: 'row', alignItems: 'flex-end', gap: 16, marginTop: 22 },
   trainingMetricBlock: { justifyContent: 'flex-end', minWidth: 92 },
   trainingMetric: { color: theme.ink, ...typeScale.metricLarge },
   trainingCaption: { color: theme.slate, ...typeScale.caption, marginTop: 4, maxWidth: 116 },
-  chart: { flex: 1, height: 88, justifyContent: 'flex-end' },
+  // Fixed-height chart box so bars never grow into the title above.
+  chart: { flex: 1, height: 74, justifyContent: 'flex-end' },
   chartBars: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', height: '100%' },
   chartColumn: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', height: '100%', gap: 6 },
   chartBar: { width: 8, borderRadius: 4, minHeight: 4 },

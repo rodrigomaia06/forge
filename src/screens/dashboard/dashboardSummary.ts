@@ -49,6 +49,8 @@ export interface WeekStripDay {
   date: Date;
   label: string;
   hasWorkout: boolean;
+  /** Workout type names logged that day, in order (one entry per workout). */
+  types: string[];
   isToday: boolean;
   isFuture: boolean;
 }
@@ -64,12 +66,15 @@ export function weekStrip(
 ): { days: WeekStripDay[]; workoutCount: number } {
   const weekStart = startOfWeek(now, weekStartsOn);
   const weekEndExclusive = addDays(weekStart, 7).getTime();
-  const trainedKeys = new Set<string>();
+  const typesByDay = new Map<string, string[]>();
   let workoutCount = 0;
   for (const workout of completedWorkouts) {
     const time = completedAt(workout);
     if (time >= weekStart.getTime() && time < weekEndExclusive) {
-      trainedKeys.add(calendarDateKey(time));
+      const key = calendarDateKey(time);
+      const dayTypes = typesByDay.get(key) ?? [];
+      dayTypes.push(workout.type);
+      typesByDay.set(key, dayTypes);
       workoutCount += 1;
     }
   }
@@ -78,10 +83,12 @@ export function weekStrip(
   const days = Array.from({ length: 7 }, (_, index) => {
     const date = addDays(weekStart, index);
     const key = calendarDateKey(date);
+    const types = typesByDay.get(key) ?? [];
     return {
       date,
       label: labels[index],
-      hasWorkout: trainedKeys.has(key),
+      hasWorkout: types.length > 0,
+      types,
       isToday: key === todayKey,
       isFuture: startOfDay(date).getTime() > startOfDay(now).getTime(),
     };

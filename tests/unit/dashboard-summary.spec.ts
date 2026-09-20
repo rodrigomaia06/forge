@@ -43,12 +43,15 @@ test('computeWorkoutVolume sums weight x reps of completed sets only', () => {
 
 test('weekStrip marks trained days and counts this week only', () => {
   const completed = [
-    workout({ completedAt: day(1) }), // Tue, this week
+    workout({ completedAt: day(1), type: 'Strength' }), // Tue, this week
+    workout({ completedAt: day(1, 18), type: 'Cardio' }), // Tue again (second type)
     workout({ completedAt: day(2) }), // Wed, this week
     workout({ completedAt: day(-7) }), // last week
   ];
   const { days, workoutCount } = weekStrip(completed, WED, 1);
-  expect(workoutCount).toBe(2);
+  expect(workoutCount).toBe(3);
+  // A day with two workouts exposes both types in order (for the split dot).
+  expect(days[1].types).toEqual(['Strength', 'Cardio']);
   expect(days[0].hasWorkout).toBe(false); // Mon
   expect(days[1].hasWorkout).toBe(true); // Tue
   expect(days[2].hasWorkout).toBe(true); // Wed

@@ -114,11 +114,16 @@ export function DashboardScreen() {
             suggestion={summary.suggestion}
             workoutTypes={preferences.workoutTypes}
             onStart={startSuggested}
-            onChooseAnother={starter.openChooser}
           />
         );
       case 'week':
-        return <DashboardWeekCard days={summary.days} workoutCount={summary.workoutCount} />;
+        return (
+          <DashboardWeekCard
+            days={summary.days}
+            workoutCount={summary.workoutCount}
+            workoutTypes={preferences.workoutTypes}
+          />
+        );
       case 'training-time':
         return (
           <DashboardTrainingTimeCard
