@@ -79,6 +79,30 @@ test.describe('Dashboard', () => {
     await expect(page.getByRole('tab', { name: 'Workout' })).toHaveAttribute('aria-selected', 'true');
   });
 
+  test('reorders dashboard tiles with the move controls, persisting across reloads', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByTestId('dashboard-week-card')).toBeVisible();
+    const order = async () => {
+      const ids = ['dashboard-start-card', 'dashboard-week-card', 'dashboard-training-time', 'dashboard-last-workout', 'dashboard-volume'];
+      const ys: [string, number][] = [];
+      for (const id of ids) {
+        const box = await page.getByTestId(id).boundingBox().catch(() => null);
+        if (box) ys.push([id, box.y]);
+      }
+      return ys.sort((a, b) => a[1] - b[1]).map((entry) => entry[0]);
+    };
+    expect((await order())[1]).toBe('dashboard-week-card');
+
+    await page.getByRole('button', { name: 'Edit dashboard' }).click();
+    await page.getByRole('button', { name: 'Move This week tile down' }).click();
+    await page.getByRole('button', { name: 'Done editing dashboard' }).click();
+    expect((await order())[1]).toBe('dashboard-training-time');
+
+    // The new order persists across a fresh load.
+    await page.goto('/');
+    expect((await order())[1]).toBe('dashboard-training-time');
+  });
+
   test('removes and re-adds a dashboard tile in edit mode, persisting across reloads', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByTestId('dashboard-week-card')).toBeVisible();

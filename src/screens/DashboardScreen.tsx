@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 
@@ -105,6 +105,16 @@ export function DashboardScreen() {
     ]);
     setAddTileOpen(false);
   };
+  const moveTile = (kind: DashboardTileKind, direction: -1 | 1) => {
+    const visible = layout.filter((tile) => tile.visible);
+    const index = visible.findIndex((tile) => tile.kind === kind);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= visible.length) return;
+    selectionHaptic();
+    const next = [...visible];
+    [next[index], next[target]] = [next[target], next[index]];
+    persistOrder(next);
+  };
 
   const renderTileContent = (kind: DashboardTileKind) => {
     switch (kind) {
@@ -190,18 +200,23 @@ export function DashboardScreen() {
             </View>
           }
           onDragEnd={({ data }) => persistOrder(data)}
-          renderItem={({ item, drag, isActive }) => (
-            <DashboardTileFrame
-              testID={TILE_TEST_ID[item.kind]}
-              name={DASHBOARD_TILE_DEFAULT_TITLE[item.kind]}
-              editing={editing}
-              isActive={isActive}
-              onDrag={drag}
-              onRemove={() => hideTile(item.kind)}
-            >
-              {renderTileContent(item.kind)}
-            </DashboardTileFrame>
-          )}
+          renderItem={({ item }) => {
+            const index = visibleTiles.findIndex((tile) => tile.kind === item.kind);
+            return (
+              <DashboardTileFrame
+                testID={TILE_TEST_ID[item.kind]}
+                name={DASHBOARD_TILE_DEFAULT_TITLE[item.kind]}
+                editing={editing}
+                canMoveUp={index > 0}
+                canMoveDown={index < visibleTiles.length - 1}
+                onMoveUp={() => moveTile(item.kind, -1)}
+                onMoveDown={() => moveTile(item.kind, 1)}
+                onRemove={() => hideTile(item.kind)}
+              >
+                {renderTileContent(item.kind)}
+              </DashboardTileFrame>
+            );
+          }}
         />
         {starter.sheet}
         <ForgeActionSheet
@@ -224,23 +239,27 @@ function DashboardTileFrame({
   testID,
   name,
   editing,
-  isActive,
-  onDrag,
+  canMoveUp,
+  canMoveDown,
+  onMoveUp,
+  onMoveDown,
   onRemove,
   children,
 }: {
   testID: string;
   name: string;
   editing: boolean;
-  isActive: boolean;
-  onDrag: () => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
   onRemove: () => void;
   children: React.ReactNode;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  // Normal view: a clean card with no drag rail or remove control. The reorder
-  // and remove chrome only appears in edit mode (toggled from the header).
+  // Normal view: a clean card with no controls. Reorder (move up/down) and
+  // remove chrome only appear in edit mode (toggled from the header).
   if (!editing) {
     return (
       <View style={styles.tileWrap}>
@@ -252,21 +271,29 @@ function DashboardTileFrame({
   }
   return (
     <View style={styles.tileWrap}>
-      <ForgeCard testID={testID} style={[styles.tileCard, isActive && styles.tileCardActive]}>
-        {/* A generous left rail is the drag zone, so a hold anywhere down the left
-            edge of the card starts a reorder — not only on the grip icon. */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Reorder ${name} tile`}
-          // Web mouse users can't long-press to drag, so start the reorder on
-          // press-down there; touch keeps long-press so a scroll is not hijacked.
-          {...(Platform.OS === 'web'
-            ? { onPressIn: onDrag }
-            : { onLongPress: onDrag, delayLongPress: 140 })}
-          style={styles.dragRail}
-        >
-          <Icon name="drag" size={18} color={theme.muted} />
-        </Pressable>
+      <ForgeCard testID={testID} style={styles.tileCard}>
+        {/* Tap up/down to reorder — reliable on web and native (drag-and-drop
+            libraries do not track a mouse drag reliably on web). */}
+        <View style={styles.moveRail}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Move ${name} tile up`}
+            disabled={!canMoveUp}
+            onPress={onMoveUp}
+            style={({ pressed }) => [styles.moveButton, pressed && styles.removeButtonPressed]}
+          >
+            <Icon name="arrow-up" size={18} color={canMoveUp ? theme.ink : theme.divider} />
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Move ${name} tile down`}
+            disabled={!canMoveDown}
+            onPress={onMoveDown}
+            style={({ pressed }) => [styles.moveButton, pressed && styles.removeButtonPressed]}
+          >
+            <Icon name="arrow-down" size={18} color={canMoveDown ? theme.ink : theme.divider} />
+          </Pressable>
+        </View>
         <View style={styles.tileBody}>{children}</View>
         <Pressable
           accessibilityRole="button"
@@ -297,7 +324,7 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   tileCardActive: { opacity: 0.97 },
   // Clean card body when not editing (no rail inset / remove control).
   plainBody: { padding: 16, minHeight: 44 },
-  dragRail: {
+  moveRail: {
     position: 'absolute',
     left: 0,
     top: 0,
@@ -305,8 +332,10 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
     width: DRAG_RAIL_WIDTH,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 2,
     zIndex: 2,
   },
+  moveButton: { width: DRAG_RAIL_WIDTH, minHeight: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 8 },
   // Content is inset past the rail on the left and clear of the X on the right.
   tileBody: {
     paddingLeft: DRAG_RAIL_WIDTH,
