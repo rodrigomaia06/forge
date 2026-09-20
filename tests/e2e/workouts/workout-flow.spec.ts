@@ -155,13 +155,21 @@ test.describe('Active workout flow', () => {
     await page.getByRole('button', { name: 'Expand Barbell Bench Press' }).click();
     await expect(page.getByRole('checkbox')).toHaveCount(0);
     await page.getByRole('button', { name: 'Collapse Barbell Bench Press' }).click();
-    // Reorder with the tap up/down controls (reliable on web and native).
-    const moveControls = page.getByRole('button', { name: /^Move .+ (up|down)$/ });
-    await expect(moveControls).toHaveCount(4); // up + down for each of the two exercises
-    await page.getByRole('button', { name: 'Move Barbell Bench Press down' }).click();
+    const handles = page.getByRole('button', { name: /Drag to reorder/ });
+    await expect(handles).toHaveCount(2);
+    const [firstHandle, secondHandle] = await Promise.all([
+      handles.nth(0).boundingBox(),
+      handles.nth(1).boundingBox(),
+    ]);
+    if (!firstHandle || !secondHandle) throw new Error('Expected both active-workout drag handles');
+    await page.mouse.move(firstHandle.x + firstHandle.width / 2, firstHandle.y + firstHandle.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(240);
+    await page.mouse.move(secondHandle.x + secondHandle.width / 2, secondHandle.y + secondHandle.height / 2 + 28, { steps: 12 });
     if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('live-workout-editor-reorder-iphone.png') });
     }
+    await page.mouse.up();
     await expect(page.getByRole('button', { name: 'Save workout' })).toBeEnabled();
     await page.getByRole('button', { name: 'Save workout' }).click();
 

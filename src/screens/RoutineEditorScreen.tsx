@@ -38,7 +38,6 @@ import {
 import type { ForgeAttributeDraft } from '../components/ui';
 import { AddExerciseSheet } from './activeWorkout/WorkoutSheets';
 import { ExerciseSection, ReadOnlyExerciseSection } from './activeWorkout/ExerciseSection';
-import { ExerciseMoveControls } from './activeWorkout/ExerciseMoveControls';
 import { useFocusedSetKeyboardLift } from './activeWorkout/useFocusedSetKeyboardLift';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
@@ -272,15 +271,6 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
     setAttributeSheet(null);
     errorHaptic();
   };
-  const moveRoutineExercise = (index: number, direction: -1 | 1): void => {
-    change((current) => {
-      const target = index + direction;
-      if (target < 0 || target >= current.exercises.length) return current;
-      const next = [...current.exercises];
-      [next[index], next[target]] = [next[target], next[index]];
-      return { ...current, exercises: next };
-    });
-  };
   const renderRoutineExercise = (
     exercise: WorkoutRoutine['exercises'][number],
     index: number,
@@ -339,13 +329,11 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
         setTargetMode="routine"
         onSetInputFocus={onSetInputFocus}
         dragHandle={
-          !viewing ? (
-            <ExerciseMoveControls
+          drag && !viewing ? (
+            <RoutineExerciseDragHandle
               name={exercise.name}
-              canMoveUp={index > 0}
-              canMoveDown={index < draft.exercises.length - 1}
-              onMoveUp={() => moveRoutineExercise(index, -1)}
-              onMoveDown={() => moveRoutineExercise(index, 1)}
+              onDrag={drag}
+              disabled={isActive}
             />
           ) : undefined
         }

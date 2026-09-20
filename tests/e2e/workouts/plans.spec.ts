@@ -453,7 +453,7 @@ test.describe('Plans and routines', () => {
     await expect(expandExercise).toBeVisible();
     await expect(expandExercise.locator('svg').last()).toBeVisible();
     await expect(
-      exercise.getByRole('button', { name: 'Move Barbell Bench Press down' }),
+      exercise.getByRole('button', { name: 'Drag to reorder Barbell Bench Press' }),
     ).toBeVisible();
     await expect(
       exercise.getByRole('button', { name: 'More options for Barbell Bench Press' }),
@@ -529,7 +529,7 @@ test.describe('Plans and routines', () => {
     await expect(page.getByLabel('Routine note')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Workout type, Strength' }).locator('svg')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Add exercises to routine' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Move Barbell Bench Press down' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Drag to reorder Barbell Bench Press' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Expand Barbell Bench Press' }).click();
     await expect(page.getByRole('button', { name: 'Add set to Barbell Bench Press' })).toHaveCount(0);
     await expect(page.getByLabel('Weight for set 1')).toHaveCount(0);

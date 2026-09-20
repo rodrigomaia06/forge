@@ -40,7 +40,6 @@ import {
   successHaptic,
 } from '../components/ui';
 import { ExerciseSection } from './activeWorkout/ExerciseSection';
-import { ExerciseMoveControls } from './activeWorkout/ExerciseMoveControls';
 import { AddExerciseSheet } from './activeWorkout/WorkoutSheets';
 import { useFocusedSetKeyboardLift } from './activeWorkout/useFocusedSetKeyboardLift';
 import { useForgeTheme } from '../theme/ThemeProvider';
@@ -266,22 +265,12 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
     setEndTimeChosen(false);
     setSourceStep(null);
   };
-  const moveExerciseInDraft = (index: number, direction: -1 | 1): void => {
-    updateDraft((current) => {
-      const target = index + direction;
-      if (target < 0 || target >= current.exercises.length) return current;
-      const next = [...current.exercises];
-      [next[index], next[target]] = [next[target], next[index]];
-      return { ...current, exercises: next };
-    });
-  };
   const renderExercise = (
     exercise: WorkoutExercise,
     index: number,
     drag?: () => void,
     isDragging = false,
   ) => {
-    const exerciseCount = draft?.exercises.length ?? 0;
     const section = (
       <ExerciseSection
         key={exercise.id}
@@ -333,13 +322,11 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         onDeleteRevealChange={(exerciseId, revealed) =>
           setOpenExerciseId(revealed ? exerciseId : null)
         }
-        dragHandle={isActive ? (
-          <ExerciseMoveControls
+        dragHandle={isActive && drag ? (
+          <WorkoutExerciseDragHandle
             name={exercise.name}
-            canMoveUp={index > 0}
-            canMoveDown={index < exerciseCount - 1}
-            onMoveUp={() => moveExerciseInDraft(index, -1)}
-            onMoveDown={() => moveExerciseInDraft(index, 1)}
+            disabled={isDragging}
+            onDrag={drag}
           />
         ) : undefined}
       />
