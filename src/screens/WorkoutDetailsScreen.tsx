@@ -15,6 +15,7 @@ import { WorkoutSummaryCard } from '../components/WorkoutSummaryCard';
 import { ReadOnlyExerciseSection } from './activeWorkout/ExerciseSection';
 import { WorkoutOptionsSheet } from './activeWorkout/WorkoutSheets';
 import { useWorkouts } from '../state/WorkoutContext';
+import { exercisesWithHistoricalPrevious } from '../domain/workouts/nextSessionTargets';
 import { useSettings } from '../state/SettingsContext';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
@@ -32,6 +33,12 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [headerElevated, setHeaderElevated] = useState(false);
   const workout = completedWorkouts.find((item) => item.id === route.params.workoutId);
+  // "Previous" is derived live from earlier sessions so imported/legacy workouts
+  // (which never stored it) still show the prior set values in History.
+  const exercises = React.useMemo(
+    () => (workout ? exercisesWithHistoricalPrevious(workout, completedWorkouts) : []),
+    [workout, completedWorkouts],
+  );
   const returnDestination = route.params.returnTo ?? 'History';
   const returnToHistory = (): void => {
     if (navigation.canGoBack()) navigation.goBack();
@@ -99,7 +106,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
             workoutTypes={preferences.workoutTypes}
           />
           <View style={styles.exerciseList}>
-            {workout.exercises.map((exercise) => (
+            {exercises.map((exercise) => (
               <ReadOnlyExerciseSection key={exercise.id} exercise={exercise} workoutId={workout.id} />
             ))}
           </View>

@@ -1,5 +1,38 @@
 import { measurementText, trackingFields } from '../exercises/tracking';
-import type { SetMeasurementKind, SetTarget, Workout, WorkoutExerciseInput, WorkoutRoutine, WorkoutSet, WorkoutSetInput } from '../../types';
+import type { SetMeasurementKind, SetTarget, Workout, WorkoutExercise, WorkoutExerciseInput, WorkoutRoutine, WorkoutSet, WorkoutSetInput } from '../../types';
+
+/**
+ * Fills each set's `previous` for a completed workout being viewed in history,
+ * derived live from the most recent earlier session of the same exercise. Live
+ * workouts capture `previous` at start, but imported/legacy sessions never did —
+ * computing it here keeps the History "Previous" column accurate for every
+ * workout without a data backfill, matching by exercise id (name as a fallback).
+ */
+export function exercisesWithHistoricalPrevious(
+  workout: Workout,
+  completedWorkouts: readonly Workout[],
+): WorkoutExercise[] {
+  const priorHistory = completedWorkouts
+    .filter((candidate) => candidate.id !== workout.id && completedAt(candidate) < completedAt(workout))
+    .sort((left, right) => completedAt(right) - completedAt(left));
+  if (!priorHistory.length) return workout.exercises;
+  return workout.exercises.map((exercise) => {
+    const trackingType = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType;
+    const previousSets = latestSetsForExercise(exercise, priorHistory);
+    if (!previousSets) return exercise;
+    return {
+      ...exercise,
+      sets: exercise.sets.map((set, index) => {
+        const previousSet = previousSets[index];
+        if (!previousSet) return set;
+        const values = trackingFields[trackingType ?? 'weight-reps']
+          .map((kind) => measurementText(previousSet, kind))
+          .filter(Boolean);
+        return values.length ? { ...set, previous: values.join(' × ') } : set;
+      }),
+    };
+  });
+}
 
 /**
  * Builds the next live-workout snapshot for a routine.
