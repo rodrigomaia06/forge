@@ -17,7 +17,7 @@ async function applyPhoneInsets(page: Page) {
 
 const settingsRoutes = [
   ['Exercises'],
-  ['Exercises', 'All exercises, 381 exercises'],
+  ['Exercises', 'All exercises, 608 exercises'],
   ['Exercises', 'Custom exercises, 0 exercises'],
   ['Workout types'],
   ['Workout types', 'Strength workout type'],

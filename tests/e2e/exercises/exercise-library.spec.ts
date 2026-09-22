@@ -16,7 +16,7 @@ async function openAllExercises(page: import('@playwright/test').Page) {
   await page.goto('/');
   await page.getByRole('tab', { name: 'Settings' }).click();
   await page.getByRole('button', { name: 'Exercises' }).click();
-  await page.getByRole('button', { name: 'All exercises, 381 exercises' }).click();
+  await page.getByRole('button', { name: 'All exercises, 608 exercises' }).click();
 }
 
 // Playwright's iPhone viewport reports zero CSS safe-area insets. Drive the
@@ -104,7 +104,7 @@ test.describe('Exercise library', () => {
     await about.click();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('button', { name: 'Exercises', exact: true }).click();
-    await page.getByRole('button', { name: 'All exercises, 381 exercises' }).click();
+    await page.getByRole('button', { name: 'All exercises, 608 exercises' }).click();
     const browser = page.getByTestId('exercise-browser-scroll');
     await expect.poll(async () => {
       const box = await browser.boundingBox();
@@ -152,7 +152,7 @@ test.describe('Exercise library', () => {
     await setSafeArea(page, 62, 34);
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Exercises', exact: true }).click();
-    await page.getByRole('button', { name: 'Strength, 255 exercises' }).click();
+    await page.getByRole('button', { name: 'Strength, 265 exercises' }).click();
     await page.getByRole('button', { name: 'Filters' }).click();
     await waitForFilterSheet(page);
     const sheet = page.getByTestId('catalog-filter-content');
@@ -274,7 +274,7 @@ test.describe('Exercise library', () => {
     await page.getByRole('button', { name: 'Back to exercise form' }).click();
     await page.getByRole('button', { name: 'Close custom exercise form' }).last().click();
     await page.getByRole('button', { name: 'Back to Exercises' }).click();
-    await page.getByRole('button', { name: 'All exercises, 381 exercises' }).click();
+    await page.getByRole('button', { name: 'All exercises, 608 exercises' }).click();
     await page.getByRole('button', { name: 'Filters' }).click();
     const apply = page.getByRole('button', { name: 'Apply filters' });
     await expect(apply).toBeDisabled();

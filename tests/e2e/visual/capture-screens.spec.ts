@@ -100,7 +100,7 @@ test.describe('Forge screen captures', () => {
     await expect(page.getByTestId('settings-detail-title')).toHaveText('Exercises');
     await capture(page, 'settings-exercises');
 
-    await page.getByRole('button', { name: 'All exercises, 381 exercises' }).click();
+    await page.getByRole('button', { name: 'All exercises, 608 exercises' }).click();
     await expect(page.getByTestId('settings-detail-title').last()).toHaveText('All exercises');
     await capture(page, 'settings-exercise-browser');
     await page.getByRole('button', { name: 'Filters' }).click();
@@ -134,7 +134,7 @@ test.describe('Forge screen captures', () => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Exercises' }).click();
-    await page.getByRole('button', { name: 'All exercises, 381 exercises' }).click();
+    await page.getByRole('button', { name: 'All exercises, 608 exercises' }).click();
     await page.getByRole('button', { name: 'Create custom exercise' }).click();
     await expect(page.getByTestId('custom-exercise-form-surface')).toBeVisible();
     await capture(page, 'settings-new-exercise-sheet');

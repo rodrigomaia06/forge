@@ -74,12 +74,12 @@ test.describe('Settings', () => {
     const exerciseLibrary = page.getByTestId('exercise-library-screen');
     const exerciseLibraryBox = await exerciseLibrary.boundingBox();
     expect(exerciseLibraryBox?.height ?? 0).toBeCloseTo(page.viewportSize()?.height ?? 0, 0);
-    await expect(page.getByRole('button', { name: 'All exercises, 381 exercises' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Strength, 255 exercises' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Mobility, 37 exercises' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Cardio, 37 exercises' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'All exercises, 608 exercises' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Strength, 265 exercises' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Mobility, 156 exercises' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cardio, 51 exercises' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Court sport, 13 exercises' })).toBeVisible();
-    await page.getByRole('button', { name: 'Strength, 255 exercises' }).click();
+    await page.getByRole('button', { name: 'Strength, 265 exercises' }).click();
     await expect(page.getByTestId('settings-detail-title').last()).toHaveText('Strength');
     await page.getByRole('button', { name: 'Back to Exercises' }).click();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
@@ -166,7 +166,7 @@ test.describe('Settings', () => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Exercises' }).click();
-    await page.getByRole('button', { name: 'Strength, 255 exercises' }).click();
+    await page.getByRole('button', { name: 'Strength, 265 exercises' }).click();
 
     const exerciseBrowser = page.getByTestId('exercise-browser-scroll');
     const exerciseBrowserBefore = await scrollTop(exerciseBrowser);
@@ -186,8 +186,8 @@ test.describe('Settings', () => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Exercises' }).click();
-    await page.getByRole('button', { name: 'Strength, 255 exercises' }).click();
-    await page.getByRole('button', { name: 'Bench Press & 4 variations' }).click();
+    await page.getByRole('button', { name: 'Strength, 265 exercises' }).click();
+    await page.getByRole('button', { name: 'Bench Press & 3 variations' }).click();
 
     const expansion = page.getByTestId('exercise-variations-Bench Press');
     await expect(expansion).toHaveCSS('background-color', 'rgb(248, 248, 246)');
@@ -218,7 +218,7 @@ test.describe('Settings', () => {
     const libraryRow = page.getByTestId('exercise-library-type-strength');
     await expectRowHeight(libraryRow, 68);
     await expectFontSize(page.getByTestId('exercise-library-type-strength-title'), 16);
-    await page.getByRole('button', { name: 'All exercises, 381 exercises' }).click();
+    await page.getByRole('button', { name: 'All exercises, 608 exercises' }).click();
     const movementRow = page.getByRole('button', { name: 'Bench Press & 3 variations' });
     await expectRowHeight(movementRow, 68);
     await expectFontSize(page.getByText('Bench Press', { exact: true }), 16);

@@ -59,7 +59,7 @@ test('captures primary Forge surfaces in Dark appearance', async ({ page }) => {
   await capture(page, 'settings');
   await page.getByRole('button', { name: 'Exercises' }).click();
   await capture(page, 'exercise-library');
-  await page.getByRole('button', { name: 'All exercises, 381 exercises' }).click();
+  await page.getByRole('button', { name: 'All exercises, 608 exercises' }).click();
   await capture(page, 'exercise-browser');
   await page.getByRole('button', { name: 'Filters' }).click();
   await capture(page, 'exercise-filter-sheet');

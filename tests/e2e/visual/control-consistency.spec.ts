@@ -108,7 +108,7 @@ test.describe('Interactive control consistency', () => {
 
     await page.getByRole('tab', { name: 'Plans' }).click();
     const create = await dimensions(page.getByRole('button', { name: 'Create workout, routine, or plan' }));
-    expect(create.background).toBe('rgb(48, 54, 59)');
+    expect(create.background).toBe('rgb(43, 47, 52)');
     expect(create.borderWidth).toBe('0px');
 
     await page.getByRole('tab', { name: 'Dashboard' }).click();
@@ -118,8 +118,8 @@ test.describe('Interactive control consistency', () => {
     await page.getByTestId('forge-sheet-drag-area').getByRole('button', { name: 'Close add exercises' }).click();
     const finishButton = page.getByRole('button', { name: 'Finish workout' });
     const finish = await dimensions(finishButton);
+    // Finish is now an icon-only primary action; its filled surface is the check.
     expect(finish.background).toBe('rgb(245, 247, 248)');
-    expect((await dimensions(finishButton.getByText('Finish'))).color).toBe('rgb(23, 36, 49)');
 
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'General' }).click();
@@ -133,7 +133,7 @@ test.describe('Interactive control consistency', () => {
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('button', { name: 'Workout types' }).click();
     const back = await dimensions(page.getByRole('button', { name: 'Back to Settings' }));
-    expect(back.background).toBe('rgb(48, 54, 59)');
+    expect(back.background).toBe('rgb(43, 47, 52)');
     expect(back.borderWidth).toBe('0px');
     const strengthColors = await page
       .getByRole('button', { name: 'Strength workout type' })
@@ -146,7 +146,7 @@ test.describe('Interactive control consistency', () => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Exercises' }).click();
-    await page.getByRole('button', { name: 'All exercises, 381 exercises' }).click();
+    await page.getByRole('button', { name: 'All exercises, 608 exercises' }).click();
     await page.getByRole('button', { name: 'Filters' }).click();
     await page.getByRole('button', { name: 'Edit Equipment filter, Any' }).click();
 
@@ -162,7 +162,7 @@ test.describe('Interactive control consistency', () => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Exercises' }).click();
-    await page.getByRole('button', { name: 'All exercises, 381 exercises' }).click();
+    await page.getByRole('button', { name: 'All exercises, 608 exercises' }).click();
     await page.getByRole('button', { name: 'Filters' }).click();
     await page.getByRole('button', { name: 'Edit Equipment filter, Any' }).click();
 
