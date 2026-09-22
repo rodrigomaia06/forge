@@ -7,6 +7,7 @@ import {
   type KeyboardTypeOptions,
 } from 'react-native';
 import Animated, {
+  FadeIn,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -66,21 +67,14 @@ export function SetDetailsCard({
   const [dismissTextKeyboardOnTap, setDismissTextKeyboardOnTap] = React.useState(true);
   const [editorView, setEditorView] = useState<'details' | 'set-kind'>('details');
   const reducedMotion = useForgeReducedMotion();
-  const returnTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const setLabel = `Set ${index + 1}`;
-
-  const clearReturnTimer = useCallback(() => {
-    if (returnTimer.current) {
-      clearTimeout(returnTimer.current);
-      returnTimer.current = null;
-    }
-  }, []);
+  // A quick cross-fade between the details and set-kind views reads as one
+  // sheet changing state, rather than an abrupt swap or a laggy delayed return.
+  const viewEntering = reducedMotion ? undefined : FadeIn.duration(forgeMotion.state);
 
   useEffect(() => {
     if (!visible) setEditorView('details');
   }, [visible]);
-
-  useEffect(() => clearReturnTimer, [clearReturnTimer]);
 
   return (
     <ForgeBottomSheet
@@ -95,6 +89,7 @@ export function SetDetailsCard({
         <>
           <ForgeBottomSheetHandle />
           {editorView === 'set-kind' ? (
+            <Animated.View key="set-kind" entering={viewEntering} style={styles.sheetBody}>
             <SetKindPicker
               setLabel={setLabel}
               value={set.tag || ''}
@@ -103,19 +98,14 @@ export function SetDetailsCard({
               onChange={(tag) => {
                 selectionHaptic();
                 onChange({ tag });
-                // Let the option's selection fill animate briefly before the
-                // picker returns to the details view, so the choice is not an
-                // instant, jarring view swap.
-                clearReturnTimer();
-                if (reducedMotion) {
-                  setEditorView('details');
-                } else {
-                  returnTimer.current = setTimeout(() => setEditorView('details'), forgeMotion.state + 60);
-                }
+                // Return immediately; the cross-fade back to details is the
+                // feedback, so there is no laggy per-option delay.
+                setEditorView('details');
               }}
             />
+            </Animated.View>
           ) : (
-            <View accessibilityLabel={`Details for ${setLabel}`} style={styles.sheetBody}>
+            <Animated.View key="details" entering={viewEntering} accessibilityLabel={`Details for ${setLabel}`} style={styles.sheetBody}>
               <ForgeSheetHeader
                 title={setLabel}
                 onClose={closeSheet}
@@ -165,7 +155,7 @@ export function SetDetailsCard({
                   onNumberFocus={() => setDismissTextKeyboardOnTap(false)}
                 />
               </ScrollView>
-            </View>
+            </Animated.View>
           )}
         </>
       )}
