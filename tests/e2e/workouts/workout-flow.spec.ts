@@ -29,26 +29,22 @@ test('completes a unilateral exercise one side at a time', async ({ page }) => {
   await page.getByRole('checkbox', { name: 'Pistol Squat, variation' }).click();
   await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
 
-  // The unilateral exercise is marked, and its check is split into two sides.
+  // The unilateral exercise is marked, and its check completes in two steps.
   await expect(page.getByText('L/R').first()).toBeVisible();
-  const splitCheck = page.getByTestId('set-split-check-1');
-  const leftSide = splitCheck.getByRole('checkbox', { name: /left side/ });
-  const rightSide = splitCheck.getByRole('checkbox', { name: /right side/ });
-  await expect(leftSide).toHaveAccessibleName('Complete left side');
+  const control = page.getByTestId('set-split-check-1');
+  await expect(control).toHaveAccessibleName('Complete first side of set 1');
 
   // A side cannot be completed before the set's inputs are entered.
-  await leftSide.click();
-  await expect(leftSide).toHaveAccessibleName('Complete left side');
+  await control.click();
+  await expect(control).toHaveAccessibleName('Complete first side of set 1');
 
   await page.getByRole('textbox', { name: 'Reps for set 1' }).fill('10');
 
-  // First side completes; the set is not done until the second side lands.
-  await leftSide.click();
-  await expect(leftSide).toHaveAccessibleName('Completed left side');
-  await expect(rightSide).toHaveAccessibleName('Complete right side');
-
-  await rightSide.click();
-  await expect(rightSide).toHaveAccessibleName('Completed right side');
+  // First tap fills the check halfway; the set is done only after the second tap.
+  await control.click();
+  await expect(control).toHaveAccessibleName('Complete second side of set 1');
+  await control.click();
+  await expect(control).toHaveAccessibleName('Set 1 completed');
 });
 
 async function revealCatalogueItem(page: Page, locator: Locator): Promise<void> {

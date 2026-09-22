@@ -1,9 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { Icon, ForgeText as Text } from '../../components/ui';
+import { Icon } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
-import { typeScale } from '../../theme/tokens';
 import { forgeMotion, forgeMotionDuration, useForgeReducedMotion } from '../../theme/motion';
 
 export function CompletionCheck({
@@ -72,47 +71,41 @@ export function CompletionCheck({
 }
 
 /**
- * A full-width Left / Right completion bar for a unilateral set. Both sides share
- * the set's weight/reps; each side is a large, clearly-labelled tap target, and
- * the set is done only once both are filled. It sits under the set's inputs so
- * every side gets a proper touch target without shrinking the input columns.
+ * Two-step completion for a unilateral set, occupying the exact same 44pt column
+ * as every other set's single check. Both sides share the set's inputs, so this
+ * only tracks order: the first tap fills the check halfway (one side done), the
+ * second fills it fully (both done). A further tap clears it. No left/right is
+ * imposed — do whichever side first.
  */
-export function SideCompletionBar({
-  left,
-  right,
-  onToggleLeft,
-  onToggleRight,
+export function SplitCompletionCheck({
+  done,
+  onAdvance,
+  accessibilityLabel,
   testID,
 }: {
-  left: boolean;
-  right: boolean;
-  onToggleLeft: () => void;
-  onToggleRight: () => void;
+  /** Number of sides completed: 0, 1, or 2. */
+  done: number;
+  onAdvance: () => void;
+  accessibilityLabel: string;
   testID?: string;
 }) {
-  const styles = useThemedStyles(createStyles);
-  return (
-    <View testID={testID} style={styles.sideBar}>
-      <SideButton side="left" done={left} onPress={onToggleLeft} />
-      <SideButton side="right" done={right} onPress={onToggleRight} />
-    </View>
-  );
-}
-
-function SideButton({ side, done, onPress }: { side: 'left' | 'right'; done: boolean; onPress: () => void }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const label = side === 'left' ? 'Left' : 'Right';
+  const complete = done >= 2;
+  const half = done === 1;
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="checkbox"
-      accessibilityState={{ checked: done }}
-      accessibilityLabel={`${done ? 'Completed' : 'Complete'} ${side} side`}
-      onPress={onPress}
-      style={[styles.sideButton, done && styles.sideButtonDone]}
+      accessibilityState={{ checked: complete }}
+      accessibilityLabel={accessibilityLabel}
+      onPress={onAdvance}
+      style={styles.checkPressable}
     >
-      {done ? <Icon name="check" size={16} color={theme.surface} /> : null}
-      <Text style={[styles.sideButtonLabel, done && styles.sideButtonLabelDone]}>{label}</Text>
+      <View style={[styles.splitVisual, complete && styles.success, half && styles.sideProgress]}>
+        {complete ? <Icon name="check" size={15} color={theme.surface} /> : null}
+        {half ? <View style={styles.halfFill} /> : null}
+      </View>
     </Pressable>
   );
 }
@@ -132,22 +125,23 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   success: { backgroundColor: dashboardTheme.success, borderColor: dashboardTheme.success },
   interactive: { backgroundColor: dashboardTheme.selectionIndicator, borderColor: dashboardTheme.selectionIndicator },
   selection: { borderColor: dashboardTheme.success, backgroundColor: 'transparent' },
-  // Full-width Left/Right bar beneath the set inputs: two big shared-input side
-  // targets, so every side is comfortable to tap and no input column shrinks.
-  sideBar: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  sideButton: {
-    flex: 1,
-    height: 40,
-    flexDirection: 'row',
+  // The unilateral control reuses the single-check 44pt target, so its column
+  // matches every other set row exactly.
+  checkPressable: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  // Its own 26pt circle that clips the half-fill (the shared `visual` is left
+  // untouched so the ordinary check animation is unaffected).
+  splitVisual: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    borderRadius: 12,
     borderWidth: 1.5,
     borderColor: dashboardTheme.slate,
   },
-  sideButtonDone: { backgroundColor: dashboardTheme.success, borderColor: dashboardTheme.success },
-  sideButtonLabel: { color: dashboardTheme.ink, ...typeScale.controlLabel },
-  sideButtonLabelDone: { color: dashboardTheme.surface },
+  // One side done: green ring with the left half filled, reading as "half done".
+  sideProgress: { borderColor: dashboardTheme.success },
+  halfFill: { position: 'absolute', top: 0, bottom: 0, left: 0, width: '50%', backgroundColor: dashboardTheme.success },
   });
 };

@@ -32,7 +32,7 @@ function SwipeableSetRowComponent({
   onChange,
   onToggle,
   unilateral = false,
-  onToggleSide,
+  onSetSides,
   onDelete,
   deleteRevealed,
   onDeleteRevealChange,
@@ -212,7 +212,7 @@ function SwipeableSetRowComponent({
             onChange={onChange}
             onToggle={onToggle}
             unilateral={unilateral}
-            onToggleSide={onToggleSide}
+            onSetSides={onSetSides}
             onDelete={handleDelete}
             onOpenDetails={() => setDetailsOpen(true)}
             onInputTouchStart={onInputTouchStart}

@@ -6,7 +6,7 @@ import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import { forgeMotion, forgeMotionDuration, useForgeReducedMotion } from '../../theme/motion';
 import { errorHaptic } from './activeWorkoutFeedback';
-import { CompletionCheck, SideCompletionBar } from './CompletionCheck';
+import { CompletionCheck, SplitCompletionCheck } from './CompletionCheck';
 import type { SetRowProps } from './activeWorkoutTypes';
 import { measurementText, measurementUnit, trackingFieldLabel, trackingFields, updateMeasurement } from '../../domain/exercises/tracking';
 import { hasNextSessionTarget, setTagPresentation } from '../../domain/workouts/setPresentation';
@@ -19,7 +19,7 @@ export function SetRow({
   onChange,
   onToggle,
   unilateral = false,
-  onToggleSide,
+  onSetSides,
   onDelete,
   onOpenDetails,
   onInputTouchStart,
@@ -95,12 +95,23 @@ export function SetRow({
     onToggle();
   };
 
-  const handleToggleSide = (side: 'left' | 'right'): void => {
+  // One tap advances the unilateral completion: none -> left -> both -> none.
+  // Validation runs only while adding a side, mirroring the full-set rule.
+  const handleUnilateralAdvance = (): void => {
     const sides = set.sideCompletion ?? { left: false, right: false };
-    // A side is only guarded when it is being checked, mirroring the full-set rule.
-    if (!sides[side] && !validateForCompletion()) return;
-    onToggleSide?.(side);
+    const both = sides.left && sides.right;
+    const next = both ? { left: false, right: false } : { left: true, right: sides.left };
+    const adding = (next.left && !sides.left) || (next.right && !sides.right);
+    if (adding && !validateForCompletion()) return;
+    onSetSides?.(next);
   };
+  const sidesDone = (set.sideCompletion?.left ? 1 : 0) + (set.sideCompletion?.right ? 1 : 0);
+  const unilateralLabel =
+    sidesDone >= 2
+      ? `Set ${index + 1} completed`
+      : sidesDone === 1
+        ? `Complete second side of set ${index + 1}`
+        : `Complete first side of set ${index + 1}`;
 
   const invalidStyle = (progress: Animated.Value) => ({
     borderColor: progress.interpolate({
@@ -117,7 +128,6 @@ export function SetRow({
   };
 
   return (
-    <View style={styles.setRowWrap}>
     <View
       ref={setRowRef}
       style={[
@@ -269,32 +279,29 @@ export function SetRow({
         );
       })}
       <View style={styles.check}>
-        {/* Unilateral completion moves to a full-width bar below; the empty cell
-            keeps this row's columns aligned with every bilateral row. */}
-        {showCompletion && !unilateral ? (
-          <Pressable
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: set.completed }}
-            accessibilityLabel={
-              set.completed ? `Set ${index + 1} completed` : `Complete set ${index + 1}`
-            }
-            onPress={handleToggle}
-            style={styles.checkPressable}
-          >
-            <CompletionCheck selected={set.completed} />
-          </Pressable>
+        {showCompletion ? (
+          unilateral ? (
+            <SplitCompletionCheck
+              testID={`set-split-check-${index + 1}`}
+              done={sidesDone}
+              accessibilityLabel={unilateralLabel}
+              onAdvance={handleUnilateralAdvance}
+            />
+          ) : (
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: set.completed }}
+              accessibilityLabel={
+                set.completed ? `Set ${index + 1} completed` : `Complete set ${index + 1}`
+              }
+              onPress={handleToggle}
+              style={styles.checkPressable}
+            >
+              <CompletionCheck selected={set.completed} />
+            </Pressable>
+          )
         ) : null}
       </View>
-    </View>
-      {showCompletion && unilateral ? (
-        <SideCompletionBar
-          testID={`set-split-check-${index + 1}`}
-          left={set.sideCompletion?.left ?? false}
-          right={set.sideCompletion?.right ?? false}
-          onToggleLeft={() => handleToggleSide('left')}
-          onToggleRight={() => handleToggleSide('right')}
-        />
-      ) : null}
     </View>
   );
 }
@@ -353,7 +360,6 @@ function plannedIntervalText(set: import('../../types').WorkoutSet, kind: import
 const createStyles = (theme: import('../../types').ForgeTheme) => {
   const dashboardTheme = theme;
   return StyleSheet.create({
-  setRowWrap: {},
   setRow: {
     position: 'relative',
     minHeight: 48,

@@ -343,10 +343,8 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                       if (!set.completed) onSetCompleted(exercise);
                     }}
                     unilateral={unilateral}
-                    onToggleSide={(side) => {
+                    onSetSides={(nextSides) => {
                       lightHaptic();
-                      const sides = set.sideCompletion ?? { left: false, right: false };
-                      const nextSides = { ...sides, [side]: !sides[side] };
                       const bothDone = nextSides.left && nextSides.right;
                       updateSet(exercise.id, set.id, {
                         sideCompletion: nextSides,

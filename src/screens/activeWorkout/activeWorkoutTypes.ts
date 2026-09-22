@@ -49,7 +49,7 @@ export interface SwipeableSetRowProps {
   onToggle: () => void;
   /** Unilateral sets complete per side; when set this replaces the single check. */
   unilateral?: boolean;
-  onToggleSide?: (side: 'left' | 'right') => void;
+  onSetSides?: (next: { left: boolean; right: boolean }) => void;
   onDelete: () => void;
   deleteRevealed: boolean;
   onDeleteRevealChange: (revealed: boolean) => void;
