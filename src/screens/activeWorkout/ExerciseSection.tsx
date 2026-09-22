@@ -576,12 +576,12 @@ export function ReadOnlyExerciseSection({
   );
 }
 
-/** A small "L/R" chip marking a unilateral exercise, whose sets complete per side. */
+/** A small "Uni" chip marking a unilateral exercise, whose sets complete a side at a time. */
 function UnilateralBadge() {
   const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.unilateralBadge}>
-      <Text accessibilityLabel="Unilateral, complete each side" style={styles.unilateralBadgeText}>L/R</Text>
+      <Text accessibilityLabel="Unilateral, complete one side at a time" style={styles.unilateralBadgeText}>Uni</Text>
     </View>
   );
 }
