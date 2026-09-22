@@ -83,6 +83,33 @@ for (const exercise of exerciseCatalog) {
   }
 }
 
+/** The same words in any order (e.g. legacy "Lateral Raise: Cable"). */
+function tokenSetKey(value: string): string {
+  return identity(value).split(' ').filter(Boolean).sort().join(' ');
+}
+const uniqueNameTokenSets = new Map<string, ExerciseCatalogItem>();
+const ambiguousNameTokenSets = new Set<string>();
+for (const exercise of exerciseCatalog) {
+  const key = tokenSetKey(exercise.name);
+  if (!key) continue;
+  const existing = uniqueNameTokenSets.get(key);
+  if (existing && existing.id !== exercise.id) {
+    uniqueNameTokenSets.delete(key);
+    ambiguousNameTokenSets.add(key);
+  } else if (!ambiguousNameTokenSets.has(key)) uniqueNameTokenSets.set(key, exercise);
+}
+
+/**
+ * Matches a display name that is exactly one catalogue name's words reordered
+ * (Forge's older imports stored "Base: Equipment (Variation)"). This is exact
+ * set equality, never a similarity search, so a unique reorder resolves while
+ * any extra or missing word — or a genuine custom name — stays user-owned.
+ */
+function resolveByExactNameTokens(value: unknown): ExerciseCatalogItem | undefined {
+  if (typeof value !== 'string' || !value.trim()) return undefined;
+  return uniqueNameTokenSets.get(tokenSetKey(value));
+}
+
 /** Resolves only v3 ids, audited old ids, and unambiguous confirmed aliases. */
 export function resolveCanonicalExercise(value: string | undefined): ExerciseCatalogItem | undefined {
   if (!value?.trim()) return undefined;
@@ -116,10 +143,22 @@ function preferredCanonicalExercise(exercise: ExerciseRecord): ExerciseCatalogIt
   if (instanceIdCandidate && [storedName, snapshotName].some((name) => name && identity(name) === identity(instanceIdCandidate.name))) {
     return instanceIdCandidate;
   }
-  return resolveCanonicalExercise(typeof exercise.exerciseId === 'string' ? exercise.exerciseId : undefined)
+  const byIdOrAlias = resolveCanonicalExercise(typeof exercise.exerciseId === 'string' ? exercise.exerciseId : undefined)
     ?? resolveCanonicalExercise(typeof snapshot?.id === 'string' ? snapshot.id : undefined)
     ?? resolveApprovedLegacyAlias(storedName)
     ?? resolveApprovedLegacyAlias(snapshotName);
+  if (byIdOrAlias) return byIdOrAlias;
+  // Only a record that carries no identifier at all may be matched by name.
+  // A present id — even an unrecognised custom one — is respected, so a custom
+  // exercise named like a catalogue one is never claimed.
+  const hasIdClaim = Boolean(
+    (typeof exercise.exerciseId === 'string' && exercise.exerciseId.trim())
+    || (typeof snapshot?.id === 'string' && snapshot.id.trim()),
+  );
+  if (hasIdClaim) return undefined;
+  // A pure legacy record whose name is exactly a catalogue name reordered
+  // (e.g. imported "Lateral Raise: Cable" -> "Cable Lateral Raise").
+  return resolveByExactNameTokens(storedName) ?? resolveByExactNameTokens(snapshotName);
 }
 
 /** Replaces catalogue-owned identity while preserving all set/order/user fields. */

@@ -142,6 +142,13 @@ test('resolves approved legacy exercise ids to canonical v4 snapshots without ch
   expect(canonicalizeExercise({
     id: 'custom-instance', name: 'Pec Deck', exerciseId: 'custom-pec-deck', sets: [],
   })).toMatchObject({ name: 'Pec Deck', exerciseId: 'custom-pec-deck' });
+
+  // A pure legacy record (no id) whose name is a catalogue name reordered links up.
+  expect(canonicalizeExercise({ id: 'inst-lr', name: 'Lateral Raise: Cable', sets: [] }))
+    .toMatchObject({ exerciseId: 'cable-lateral-raise', name: 'Cable Lateral Raise' });
+  // The same words but with a present (custom) id are never claimed by name.
+  expect(canonicalizeExercise({ id: 'inst-cx', name: 'Raise Lateral Cable', exerciseId: 'custom-x', sets: [] }))
+    .toMatchObject({ exerciseId: 'custom-x' });
 });
 
 test('compares only a routine workout structure and never copies recorded data back', () => {

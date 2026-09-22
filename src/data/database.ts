@@ -95,9 +95,13 @@ function legacyRecords<T extends { id: string }>(value: unknown): T[] {
 }
 
 async function migrateCanonicalExerciseRecords(db: ForgeDatabase): Promise<void> {
+  // v3 re-runs canonicalization with order-independent name resolution, so
+  // legacy records whose name is a catalogue name reordered (e.g. imported
+  // "Lateral Raise: Cable") finally link to the catalogue — restoring their
+  // identity, unilateral treatment and previous-session lookups.
   const completed = await db.getFirstAsync<{ value: string }>(
     'SELECT value FROM forge_meta WHERE key = ?',
-    'canonical-exercise-records-v2',
+    'canonical-exercise-records-v3',
   );
   if (completed) return;
   for (const table of ['plans', 'workouts', 'routines']) {
@@ -109,7 +113,7 @@ async function migrateCanonicalExerciseRecords(db: ForgeDatabase): Promise<void>
       } catch { /* Corrupt user data is handled by each repository's reader. */ }
     }
   }
-  await db.runAsync('INSERT INTO forge_meta (key, value) VALUES (?, ?)', 'canonical-exercise-records-v2', '1');
+  await db.runAsync('INSERT OR REPLACE INTO forge_meta (key, value) VALUES (?, ?)', 'canonical-exercise-records-v3', '1');
 }
 
 async function importLegacyOnce(db: ForgeDatabase): Promise<void> {
