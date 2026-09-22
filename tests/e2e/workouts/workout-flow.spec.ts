@@ -489,7 +489,7 @@ test.describe('Active workout flow', () => {
     await page.getByLabel('Search exercises').fill('bench');
 
     const count = page.getByTestId('exercise-group-count-Bench Press');
-    await expect(count).toHaveCSS('background-color', 'rgb(42, 47, 52)');
+    await expect(count).toHaveCSS('background-color', 'rgb(31, 34, 37)');
     await expect(count).toHaveCSS('border-color', 'rgb(58, 64, 70)');
     await expect(count.getByText('0', { exact: true })).toHaveCSS('color', 'rgb(195, 200, 204)');
   });
