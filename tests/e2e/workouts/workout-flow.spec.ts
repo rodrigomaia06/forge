@@ -182,7 +182,7 @@ test.describe('Active workout flow', () => {
 
     await page.getByRole('button', { name: 'Edit live workout' }).click();
     await expect(page.getByRole('button', { name: 'Expand Barbell Bench Press' })).toBeVisible();
-    await expect(page.getByLabel('Weight for set 1')).toHaveCount(0);
+    await expect(page.getByLabel('Kg for set 1')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'More options for Barbell Bench Press' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Expand Barbell Bench Press' }).click();
     await expect(page.getByRole('checkbox')).toHaveCount(0);
@@ -241,7 +241,8 @@ test.describe('Active workout flow', () => {
     await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
 
     await expect(page.getByText('Barbell Bench Press', { exact: true })).toBeVisible();
-    await expect(page.getByText('Flat · Barbell', { exact: true })).toBeVisible();
+    // Metadata drops equipment already named in the title ("Barbell"), leaving the variation.
+    await expect(page.getByText('Flat', { exact: true })).toBeVisible();
     await expect(page.getByLabel(/^Kg for set/)).toHaveCount(3);
     await page.getByLabel('Kg for set 1').fill('60');
     await page.getByLabel('Reps for set 1').fill('8');
@@ -642,7 +643,7 @@ test.describe('Active workout flow', () => {
     await startEmptyWorkoutWithExercise(page);
 
     await page.getByRole('checkbox', { name: 'Complete set 1' }).click();
-    await expect(page.getByLabel('Weight for set 1')).toHaveCSS(
+    await expect(page.getByLabel('Kg for set 1')).toHaveCSS(
       'border-top-color',
       'rgb(214, 72, 72)',
     );
@@ -651,7 +652,7 @@ test.describe('Active workout flow', () => {
       'rgb(214, 72, 72)',
     );
     await page.waitForTimeout(1300);
-    await expect(page.getByLabel('Weight for set 1')).not.toHaveCSS(
+    await expect(page.getByLabel('Kg for set 1')).not.toHaveCSS(
       'border-top-color',
       'rgb(214, 72, 72)',
     );
@@ -660,8 +661,8 @@ test.describe('Active workout flow', () => {
       'rgb(214, 72, 72)',
     );
 
-    await page.getByLabel('Weight for set 1').fill('60');
-    await expect(page.getByLabel('Weight for set 1')).not.toHaveCSS(
+    await page.getByLabel('Kg for set 1').fill('60');
+    await expect(page.getByLabel('Kg for set 1')).not.toHaveCSS(
       'border-top-color',
       'rgb(214, 72, 72)',
     );
@@ -1149,25 +1150,25 @@ test.describe('Active workout flow', () => {
 
     await expect(page.getByRole('button', { name: 'Delete set 1' })).toBeVisible();
     await page.getByRole('button', { name: 'Delete set 1' }).click();
-    await expect(page.getByLabel(/^Weight for set/)).toHaveCount(2);
+    await expect(page.getByLabel(/^Kg for set/)).toHaveCount(2);
   });
 
   test('removes the exercise card when its last set is deleted', async ({ page }) => {
     await startEmptyWorkoutWithExercise(page);
     for (const remaining of [2, 1, 0]) {
-      await swipeLeftFrom(page, page.getByLabel('Weight for set 1'));
+      await swipeLeftFrom(page, page.getByLabel('Kg for set 1'));
       await page.getByRole('button', { name: 'Delete set 1' }).click();
-      await expect(page.getByLabel(/^Weight for set/)).toHaveCount(remaining);
+      await expect(page.getByLabel(/^Kg for set/)).toHaveCount(remaining);
     }
     await expect(page.getByText('Barbell Bench Press', { exact: true })).toHaveCount(0);
   });
 
   test('reveals delete action when swiping from a weight input', async ({ page }) => {
     await startEmptyWorkoutWithExercise(page);
-    await swipeLeftFrom(page, page.getByLabel('Weight for set 1'));
+    await swipeLeftFrom(page, page.getByLabel('Kg for set 1'));
     await expect(page.getByRole('button', { name: 'Delete set 1' })).toBeVisible();
     await page.getByRole('button', { name: 'Delete set 1' }).click();
-    await expect(page.getByLabel(/^Weight for set/)).toHaveCount(2);
+    await expect(page.getByLabel(/^Kg for set/)).toHaveCount(2);
   });
 
   test('reveals delete action when swiping from a reps input', async ({ page }) => {

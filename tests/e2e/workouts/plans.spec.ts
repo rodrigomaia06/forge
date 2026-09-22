@@ -532,7 +532,7 @@ test.describe('Plans and routines', () => {
     await expect(page.getByRole('button', { name: 'Drag to reorder Barbell Bench Press' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Expand Barbell Bench Press' }).click();
     await expect(page.getByRole('button', { name: 'Add set to Barbell Bench Press' })).toHaveCount(0);
-    await expect(page.getByLabel('Weight for set 1')).toHaveCount(0);
+    await expect(page.getByLabel('Kg for set 1')).toHaveCount(0);
     await expect(page.locator('[data-testid^="workout-details-set-"]').first()).toHaveCSS(
       'border-bottom-width',
       '0px',

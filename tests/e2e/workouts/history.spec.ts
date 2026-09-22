@@ -35,7 +35,7 @@ test.describe('History screen', () => {
     await expect(page.getByText('Last week', { exact: true })).toBeVisible();
     await expect(page.getByText('2 weeks ago', { exact: true })).toBeVisible();
     await expect(page.getByText('Muay Thai', { exact: true }).last()).toBeVisible();
-    await expect(page.getByText('Martial arts', { exact: true })).toBeVisible();
+    // The timeline card shows the session name and its type icon, not the type name text.
     await expect(page.getByText('3 exercises, 8 sets', { exact: true })).toBeVisible();
     await expect(page.getByText('7 exercises, 16 sets', { exact: true })).toBeVisible();
     await expect(page.getByText('1:12h', { exact: true })).toBeVisible();
@@ -126,7 +126,7 @@ test.describe('History screen', () => {
     await expect(page.getByRole('button', { name: 'Open Recovery walk' })).toHaveCount(0);
 
     await headerFilter.click();
-    await filterSheet.getByRole('button', { name: 'Clear filters' }).click();
+    await filterSheet.getByRole('button', { name: 'Clear', exact: true }).click();
     await filterSheet.getByRole('button', { name: 'Apply filters' }).click();
     await expect(page.getByRole('button', { name: 'Open Muay Thai' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Open Recovery walk' })).toBeVisible();
@@ -163,9 +163,13 @@ test.describe('History screen', () => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'History' }).click();
 
+    // The header actions sit in a joined pill: the filled, borderless dark
+    // surface lives on the group, while each action is a borderless ghost button.
+    const group = page.getByTestId('history-header-actions');
+    await expect(group).toHaveCSS('border-width', '0px');
+    await expect(group).toHaveCSS('background-color', 'rgb(43, 47, 52)');
     const filter = page.getByRole('button', { name: 'Filter' });
     await expect(filter).toHaveCSS('border-width', '0px');
-    await expect(filter).toHaveCSS('background-color', 'rgb(48, 54, 59)');
   });
 
   test('omits the exercise summary when a completed workout has no exercises or sets', async ({
@@ -620,7 +624,7 @@ test.describe('History screen', () => {
     await page.addInitScript(() => {
       localStorage.setItem('@forge/completed-workouts', '[]');
     });
-    await page.reload();
+    await page.goto('/');
     await page.getByRole('tab', { name: 'History' }).click();
     await expect(page.getByTestId('history-empty-illustration')).toBeVisible();
     await expect(page.getByText('No completed workouts', { exact: true })).toBeVisible();
