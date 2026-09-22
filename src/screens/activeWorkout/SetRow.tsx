@@ -6,7 +6,7 @@ import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import { forgeMotion, forgeMotionDuration, useForgeReducedMotion } from '../../theme/motion';
 import { errorHaptic } from './activeWorkoutFeedback';
-import { CompletionCheck, SplitCompletionCheck } from './CompletionCheck';
+import { CompletionCheck, SideCompletionBar } from './CompletionCheck';
 import type { SetRowProps } from './activeWorkoutTypes';
 import { measurementText, measurementUnit, trackingFieldLabel, trackingFields, updateMeasurement } from '../../domain/exercises/tracking';
 import { hasNextSessionTarget, setTagPresentation } from '../../domain/workouts/setPresentation';
@@ -117,6 +117,7 @@ export function SetRow({
   };
 
   return (
+    <View style={styles.setRowWrap}>
     <View
       ref={setRowRef}
       style={[
@@ -268,30 +269,32 @@ export function SetRow({
         );
       })}
       <View style={styles.check}>
-        {showCompletion ? (
-          unilateral ? (
-            <SplitCompletionCheck
-              testID={`set-split-check-${index + 1}`}
-              left={set.sideCompletion?.left ?? false}
-              right={set.sideCompletion?.right ?? false}
-              onToggleLeft={() => handleToggleSide('left')}
-              onToggleRight={() => handleToggleSide('right')}
-            />
-          ) : (
-            <Pressable
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: set.completed }}
-              accessibilityLabel={
-                set.completed ? `Set ${index + 1} completed` : `Complete set ${index + 1}`
-              }
-              onPress={handleToggle}
-              style={styles.checkPressable}
-            >
-              <CompletionCheck selected={set.completed} />
-            </Pressable>
-          )
+        {/* Unilateral completion moves to a full-width bar below; the empty cell
+            keeps this row's columns aligned with every bilateral row. */}
+        {showCompletion && !unilateral ? (
+          <Pressable
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: set.completed }}
+            accessibilityLabel={
+              set.completed ? `Set ${index + 1} completed` : `Complete set ${index + 1}`
+            }
+            onPress={handleToggle}
+            style={styles.checkPressable}
+          >
+            <CompletionCheck selected={set.completed} />
+          </Pressable>
         ) : null}
       </View>
+    </View>
+      {showCompletion && unilateral ? (
+        <SideCompletionBar
+          testID={`set-split-check-${index + 1}`}
+          left={set.sideCompletion?.left ?? false}
+          right={set.sideCompletion?.right ?? false}
+          onToggleLeft={() => handleToggleSide('left')}
+          onToggleRight={() => handleToggleSide('right')}
+        />
+      ) : null}
     </View>
   );
 }
@@ -350,6 +353,7 @@ function plannedIntervalText(set: import('../../types').WorkoutSet, kind: import
 const createStyles = (theme: import('../../types').ForgeTheme) => {
   const dashboardTheme = theme;
   return StyleSheet.create({
+  setRowWrap: {},
   setRow: {
     position: 'relative',
     minHeight: 48,

@@ -72,11 +72,12 @@ export function CompletionCheck({
 }
 
 /**
- * A checkmark divided into two tappable halves for a unilateral set: the left
- * and right side are completed independently, and the set is done only when both
- * are filled. It occupies the same 44pt control column as the single check.
+ * A full-width Left / Right completion bar for a unilateral set. Both sides share
+ * the set's weight/reps; each side is a large, clearly-labelled tap target, and
+ * the set is done only once both are filled. It sits under the set's inputs so
+ * every side gets a proper touch target without shrinking the input columns.
  */
-export function SplitCompletionCheck({
+export function SideCompletionBar({
   left,
   right,
   onToggleLeft,
@@ -91,35 +92,27 @@ export function SplitCompletionCheck({
 }) {
   const styles = useThemedStyles(createStyles);
   return (
-    <View testID={testID} style={styles.splitRow}>
-      <SplitHalf side="left" done={left} onPress={onToggleLeft} />
-      <SplitHalf side="right" done={right} onPress={onToggleRight} />
+    <View testID={testID} style={styles.sideBar}>
+      <SideButton side="left" done={left} onPress={onToggleLeft} />
+      <SideButton side="right" done={right} onPress={onToggleRight} />
     </View>
   );
 }
 
-function SplitHalf({ side, done, onPress }: { side: 'left' | 'right'; done: boolean; onPress: () => void }) {
+function SideButton({ side, done, onPress }: { side: 'left' | 'right'; done: boolean; onPress: () => void }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const label = side === 'left' ? 'L' : 'R';
+  const label = side === 'left' ? 'Left' : 'Right';
   return (
     <Pressable
       accessibilityRole="checkbox"
       accessibilityState={{ checked: done }}
       accessibilityLabel={`${done ? 'Completed' : 'Complete'} ${side} side`}
       onPress={onPress}
-      hitSlop={{ left: 6, right: 6, top: side === 'left' ? 8 : 2, bottom: side === 'right' ? 8 : 2 }}
-      style={[
-        styles.splitHalf,
-        side === 'left' ? styles.splitHalfLeft : styles.splitHalfRight,
-        done && styles.splitHalfDone,
-      ]}
+      style={[styles.sideButton, done && styles.sideButtonDone]}
     >
-      {done ? (
-        <Icon name="check" size={14} color={theme.surface} />
-      ) : (
-        <Text style={[styles.splitHalfLabel, done && styles.splitHalfLabelDone]}>{label}</Text>
-      )}
+      {done ? <Icon name="check" size={16} color={theme.surface} /> : null}
+      <Text style={[styles.sideButtonLabel, done && styles.sideButtonLabelDone]}>{label}</Text>
     </Pressable>
   );
 }
@@ -139,22 +132,22 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   success: { backgroundColor: dashboardTheme.success, borderColor: dashboardTheme.success },
   interactive: { backgroundColor: dashboardTheme.selectionIndicator, borderColor: dashboardTheme.selectionIndicator },
   selection: { borderColor: dashboardTheme.success, backgroundColor: 'transparent' },
-  // Stacked vertically inside the standard 44pt completion column so unilateral
-  // rows keep the exact column alignment of every other row. Each side is a
-  // full-width (40pt) target — far easier to hit than the old 19pt halves.
-  splitRow: { flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
-  splitHalf: {
-    width: 40,
-    height: 20,
+  // Full-width Left/Right bar beneath the set inputs: two big shared-input side
+  // targets, so every side is comfortable to tap and no input column shrinks.
+  sideBar: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  sideButton: {
+    flex: 1,
+    height: 40,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
+    borderRadius: 12,
     borderWidth: 1.5,
     borderColor: dashboardTheme.slate,
   },
-  splitHalfLeft: { borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomWidth: 0.75 },
-  splitHalfRight: { borderBottomLeftRadius: 10, borderBottomRightRadius: 10, borderTopWidth: 0.75 },
-  splitHalfDone: { backgroundColor: dashboardTheme.success, borderColor: dashboardTheme.success },
-  splitHalfLabel: { color: dashboardTheme.ink, ...typeScale.label, lineHeight: 14 },
-  splitHalfLabelDone: { color: dashboardTheme.surface },
+  sideButtonDone: { backgroundColor: dashboardTheme.success, borderColor: dashboardTheme.success },
+  sideButtonLabel: { color: dashboardTheme.ink, ...typeScale.controlLabel },
+  sideButtonLabelDone: { color: dashboardTheme.surface },
   });
 };
