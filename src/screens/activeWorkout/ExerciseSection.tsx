@@ -464,6 +464,8 @@ export function ReadOnlyExerciseSection({
   const screenIsFocused = useIsFocused();
   const openSet = openSetIndex === null ? null : exercise.sets[openSetIndex];
   const trackingType = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType ?? 'weight-reps';
+  const unilateral = isUnilateralExercise(exercise)
+    || exerciseCatalogById.get(exercise.exerciseId ?? '')?.laterality === 'unilateral';
 
   useEffect(() => {
     if (!screenIsFocused) {
@@ -501,6 +503,7 @@ export function ReadOnlyExerciseSection({
               <Text numberOfLines={1} style={styles.readOnlyExerciseName}>
                 {exercise.name}
               </Text>
+              {unilateral ? <UnilateralBadge /> : null}
               {exercise.note?.trim() ? (
                 <Icon accessibilityLabel="Exercise has a comment" name="comment" size={15} color={theme.slate} />
               ) : null}
