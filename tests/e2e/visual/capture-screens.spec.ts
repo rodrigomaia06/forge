@@ -122,7 +122,7 @@ test.describe('Forge screen captures', () => {
     await page.getByRole('button', { name: 'Use default rest time' }).click();
     await page.getByTestId('forge-sheet-drag-area').getByRole('button', { name: 'Close exercise details' }).click();
     await page.getByRole('button', { name: 'Back to Exercises' }).click();
-    // Workout types are now managed from within the Exercises screen.
+    await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('button', { name: 'Workout types' }).click();
     await expect(page.getByTestId('settings-detail-title')).toHaveText('Workout types');
     await capture(page, 'settings-workout-types');
