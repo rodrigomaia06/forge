@@ -4,6 +4,7 @@ import {
   ScrollView,
   StyleSheet,
   View,
+  type KeyboardTypeOptions,
 } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -64,11 +65,22 @@ export function SetDetailsCard({
   const styles = useThemedStyles(createStyles);
   const [dismissTextKeyboardOnTap, setDismissTextKeyboardOnTap] = React.useState(true);
   const [editorView, setEditorView] = useState<'details' | 'set-kind'>('details');
+  const reducedMotion = useForgeReducedMotion();
+  const returnTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const setLabel = `Set ${index + 1}`;
+
+  const clearReturnTimer = useCallback(() => {
+    if (returnTimer.current) {
+      clearTimeout(returnTimer.current);
+      returnTimer.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     if (!visible) setEditorView('details');
   }, [visible]);
+
+  useEffect(() => clearReturnTimer, [clearReturnTimer]);
 
   return (
     <ForgeBottomSheet
@@ -91,7 +103,15 @@ export function SetDetailsCard({
               onChange={(tag) => {
                 selectionHaptic();
                 onChange({ tag });
-                setEditorView('details');
+                // Let the option's selection fill animate briefly before the
+                // picker returns to the details view, so the choice is not an
+                // instant, jarring view swap.
+                clearReturnTimer();
+                if (reducedMotion) {
+                  setEditorView('details');
+                } else {
+                  returnTimer.current = setTimeout(() => setEditorView('details'), forgeMotion.state + 60);
+                }
               }}
             />
           ) : (
@@ -461,6 +481,9 @@ function TargetsSection({
     ? trackingFields[trackingType].filter((kind) => kind !== 'weight' && kind !== 'addedWeight')
     : trackingFields[trackingType];
   const targetList = isRoutineInterval ? set.plannedTargets : set.targets;
+  // Next-session targets are single values (allow a decimal via comma/period);
+  // routine intervals are ranges that keep the dash-based keypad.
+  const commaAsDecimal = !isRoutineInterval;
   return (
     <View testID="set-next-session-section" style={[styles.section, styles.targetSection]}>
       <Text style={styles.sectionLabel}>{isRoutineInterval ? 'Routine interval' : 'Next session'}</Text>
@@ -474,13 +497,15 @@ function TargetsSection({
             placeholder={isRoutineInterval ? 'e.g. 8–12' : '—'}
             unit={targetUnitLabel(kind)}
             editable={editable}
+            commaAsDecimal={commaAsDecimal}
+            keyboardType={isRoutineInterval ? 'numbers-and-punctuation' : 'decimal-pad'}
             accessibilityLabel={`${isRoutineInterval ? 'Routine' : 'Next-time'} ${trackingFieldLabel(trackingType, kind).toLowerCase()} ${isRoutineInterval ? 'interval' : 'target'} for ${setLabel.toLowerCase()}`}
             onChangeText={(value) => onChange({
               ...(isRoutineInterval
-                ? { plannedTargets: updateTargets(targetList, set.id, kind, value) }
+                ? { plannedTargets: updateTargets(targetList, set.id, kind, value, commaAsDecimal) }
                 : {
                     ...(kind === 'reps' ? { targetReps: value } : kind === 'weight' || kind === 'addedWeight' ? { targetWeight: value } : {}),
-                    targets: updateTargets(targetList, set.id, kind, value),
+                    targets: updateTargets(targetList, set.id, kind, value, commaAsDecimal),
                   }),
             })}
             onFocus={onNumberFocus}
@@ -500,21 +525,29 @@ function targetText(targets: WorkoutSet['targets'] | undefined, set: WorkoutSet,
 function targetUnitLabel(kind: SetMeasurementKind): string {
   return kind === 'reps' ? 'reps' : measurementUnit[kind];
 }
-function updateTargets(targets: WorkoutSet['targets'] | undefined, setId: string, kind: SetMeasurementKind, text: string): NonNullable<WorkoutSet['targets']> {
-  const values = targetValues(text);
+function updateTargets(targets: WorkoutSet['targets'] | undefined, setId: string, kind: SetMeasurementKind, text: string, commaAsDecimal: boolean): NonNullable<WorkoutSet['targets']> {
+  const values = targetValues(text, commaAsDecimal);
   const retained = (targets ?? []).filter((target) => target.kind !== kind);
   if (!values.length) return retained;
   return [...retained, { id: `${setId}-target-${kind}`, kind, unit: measurementUnit[kind], minValue: values[0], maxValue: values[1] ?? values[0] }];
 }
 
-function targetValues(text: string): number[] {
+/**
+ * Parse a target field into numbers. Ranges split on a dash only. When
+ * `commaAsDecimal` is set (single next-session targets), a comma is a decimal
+ * point (e.g. `82,5` → `82.5`) rather than a range separator, so a decimal
+ * weight is never mangled into a `min–max` range.
+ */
+function targetValues(text: string, commaAsDecimal: boolean): number[] {
+  const separator = commaAsDecimal ? /[-–—]/ : /[,\-–—]/;
   return text
-    .split(/[,\-–—]/)
+    .split(separator)
+    .map((part) => (commaAsDecimal ? part.replace(',', '.') : part).trim())
     // `Number('')` is 0 and passes `isFinite`, so an empty side (a cleared field
     // or a half-typed range like "8-") would collapse the target to 0. Drop
     // empty parts first so clearing the field removes the target instead.
-    .filter((part) => part.trim().length > 0)
-    .map((value) => Number(value.trim()))
+    .filter((part) => part.length > 0)
+    .map((value) => Number(value))
     .filter(Number.isFinite);
 }
 
@@ -522,8 +555,8 @@ function formatTargetValues(minValue: number, maxValue?: number): string {
   return maxValue !== undefined && maxValue !== minValue ? `${minValue}–${maxValue}` : String(minValue);
 }
 
-function normalizedTargetText(text: string): string {
-  const [minValue, maxValue] = targetValues(text);
+function normalizedTargetText(text: string, commaAsDecimal: boolean): string {
+  const [minValue, maxValue] = targetValues(text, commaAsDecimal);
   return minValue === undefined ? '' : formatTargetValues(minValue, maxValue);
 }
 
@@ -533,6 +566,8 @@ function TargetRow({
   placeholder,
   unit,
   editable,
+  commaAsDecimal,
+  keyboardType,
   accessibilityLabel,
   onChangeText,
   onFocus,
@@ -543,6 +578,8 @@ function TargetRow({
   placeholder: string;
   unit: string;
   editable: boolean;
+  commaAsDecimal: boolean;
+  keyboardType: KeyboardTypeOptions;
   accessibilityLabel: string;
   onChangeText: (value: string) => void;
   onFocus: () => void;
@@ -601,7 +638,7 @@ function TargetRow({
               onBlur={() => {
                 editingRef.current = false;
                 const rawValue = draftValueRef.current;
-                const canonicalValue = normalizedTargetText(rawValue);
+                const canonicalValue = normalizedTargetText(rawValue, commaAsDecimal);
                 // Preserve natural entry while focused, then use one canonical
                 // format after leaving the field (for example `8–12`).
                 draftValueRef.current = canonicalValue;
@@ -610,6 +647,7 @@ function TargetRow({
               }}
               onTouchStart={(event) => event.stopPropagation()}
               focusRequest={focusRequest}
+              keyboardType={keyboardType}
               placeholder={placeholder}
               placeholderTextColor={theme.ink}
               textColor={theme.ink}

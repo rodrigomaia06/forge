@@ -83,6 +83,20 @@ export function ExerciseLibraryScreen({ navigation }: Props) {
               onPress={() => navigation.navigate('ExerciseBrowser', { custom: true })}
             />
           </SettingsSection>
+          <SettingsSection>
+            {/* Workout types are managed here, alongside the exercises they
+                group, rather than as a separate Settings destination. */}
+            <SettingsRow
+              icon="task-list"
+              iconColor={theme.slate}
+              iconBackgroundColor={theme.surfaceMuted}
+              title="Workout types"
+              subtitle="Add, edit, reorder, or hide"
+              onPress={() => navigation.navigate('WorkoutTypes')}
+              haptic="selection"
+              disclosure
+            />
+          </SettingsSection>
         </ScrollView>
       </View>
     </AppScreen>

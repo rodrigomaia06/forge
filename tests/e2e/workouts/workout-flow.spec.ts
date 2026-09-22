@@ -735,6 +735,15 @@ test.describe('Active workout flow', () => {
         .screenshot({ path: testInfo.outputPath('set-next-time-target-iphone.png') });
     }
 
+    // A comma/period in a next-session target is a decimal, not a range
+    // separator: it must survive blur as "82.5", never become "82–5".
+    const kgTarget = page.getByRole('textbox', { name: 'Next-time kg target for set 1' });
+    await kgTarget.fill('82,5');
+    await page.getByRole('textbox', { name: 'Next-time reps target for set 1' }).click();
+    await expect(kgTarget).toHaveValue('82.5');
+    await kgTarget.fill('62');
+    await page.getByRole('textbox', { name: 'Next-time reps target for set 1' }).click();
+
     await sheet.getByRole('button', { name: 'Close Set 1' }).click();
     await expect(page.getByText('Set kind', { exact: true })).toHaveCount(0);
     const [targetChipBox, targetDotBox, rpeBox] = await Promise.all([

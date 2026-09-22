@@ -36,8 +36,9 @@ test.describe('Interactive control consistency', () => {
     });
 
     await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Exercises' }).click();
     await page.getByRole('button', { name: 'Workout types' }).click();
-    const backToSettings = await dimensions(page.getByRole('button', { name: 'Back to Settings' }));
+    const backToSettings = await dimensions(page.getByRole('button', { name: 'Back to Exercises' }));
     expect(backToSettings).toMatchObject({
       width: 44,
       height: 44,
@@ -69,6 +70,7 @@ test.describe('Interactive control consistency', () => {
     const typeSwitch = page.getByTestId('workout-type-list-visibility-switch');
     expect(await dimensions(typeSwitch)).toMatchObject({ width: 48, height: 28 });
 
+    await page.getByRole('button', { name: 'Back to Exercises' }).click();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('button', { name: 'General' }).click();
     const generalSwitch = page.getByTestId('general-switch-unfinished-workout-reminder');
@@ -131,8 +133,9 @@ test.describe('Interactive control consistency', () => {
     expect(toggle.background).not.toBe('rgb(124, 140, 248)');
 
     await page.getByRole('button', { name: 'Back to Settings' }).click();
+    await page.getByRole('button', { name: 'Exercises' }).click();
     await page.getByRole('button', { name: 'Workout types' }).click();
-    const back = await dimensions(page.getByRole('button', { name: 'Back to Settings' }));
+    const back = await dimensions(page.getByRole('button', { name: 'Back to Exercises' }));
     expect(back.background).toBe('rgb(48, 54, 59)');
     expect(back.borderWidth).toBe('0px');
     const strengthColors = await page

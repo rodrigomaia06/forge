@@ -69,10 +69,13 @@ export function DashboardWeekCard({
   days,
   workoutCount,
   workoutTypes,
+  onSelectDay,
 }: {
   days: WeekStripDay[];
   workoutCount: number;
   workoutTypes: WorkoutTypePreference[];
+  /** Open a trained day's session; omitted (e.g. while editing) leaves the dots inert. */
+  onSelectDay?: (day: WeekStripDay) => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -83,8 +86,10 @@ export function DashboardWeekCard({
         <Text style={styles.cardAside}>{workoutCount} {workoutCount === 1 ? 'workout' : 'workouts'}</Text>
       </View>
       <View testID="dashboard-week-labels" style={styles.weekRow}>
-        {days.map((day, index) => (
-          <View key={index} style={styles.weekCell}>
+        {days.map((day, index) => {
+          const interactive = day.hasWorkout && !!onSelectDay;
+          const dayName = day.date.toLocaleDateString(undefined, { weekday: 'long' });
+          const dot = (
             <View
               style={[
                 styles.weekDot,
@@ -114,9 +119,29 @@ export function DashboardWeekCard({
                 </>
               ) : null}
             </View>
-            <Text style={[styles.weekLabel, day.isToday && styles.weekLabelToday]}>{day.label}</Text>
-          </View>
-        ))}
+          );
+          return (
+            <View key={index} style={styles.weekCell}>
+              {interactive ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${dayName}'s ${day.types.join(', ')} workout`}
+                  onPress={() => {
+                    lightHaptic();
+                    onSelectDay?.(day);
+                  }}
+                  hitSlop={6}
+                  style={({ pressed }) => pressed && pressedFeedbackSubtle}
+                >
+                  {dot}
+                </Pressable>
+              ) : (
+                dot
+              )}
+              <Text style={[styles.weekLabel, day.isToday && styles.weekLabelToday]}>{day.label}</Text>
+            </View>
+          );
+        })}
       </View>
     </View>
   );

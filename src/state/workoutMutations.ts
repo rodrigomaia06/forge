@@ -61,23 +61,38 @@ export function createWorkout(options: StartWorkoutOptions): Workout {
 }
 
 /**
- * Records only rest intervals that Forge actually started after a completed
- * set. Older workouts did not retain individual rests, so their existing
- * average is treated as one legacy sample rather than being overwritten.
+ * Average rest that reflects the real story of a session. Only the gaps between
+ * consecutive completed sets *within the same exercise* count as rest: the jump
+ * from one exercise to the next is a transition (walking to a machine, setup),
+ * not rest, so folding it in used to inflate the figure. A single long
+ * interruption (a phone call, a chat) is trimmed via a median-relative ceiling
+ * so it cannot distort the average either. Older workouts did not retain
+ * per-set timestamps, so with none their existing average is left untouched.
  */
 export function recordRestTimerSample(workout: Workout, _durationSeconds: number): Workout {
-  const completionTimes = workout.exercises
-    .flatMap((exercise) => exercise.sets)
-    .filter((set) => set.completed && typeof set.completedAt === 'number')
-    .map((set) => set.completedAt as number)
-    .sort((left, right) => left - right);
-  const intervals = completionTimes.slice(1).map((time, index) => Math.max(0, Math.round((time - completionTimes[index]) / 1000)));
+  const intervals: number[] = [];
+  for (const exercise of workout.exercises) {
+    const completionTimes = exercise.sets
+      .filter((set) => set.completed && typeof set.completedAt === 'number')
+      .map((set) => set.completedAt as number)
+      .sort((left, right) => left - right);
+    for (let index = 1; index < completionTimes.length; index += 1) {
+      intervals.push(Math.max(0, Math.round((completionTimes[index] - completionTimes[index - 1]) / 1000)));
+    }
+  }
   if (!intervals.length) return { ...workout, averageRestSeconds: undefined, restTimerSamples: 0 };
-  const total = intervals.reduce((sum, interval) => sum + interval, 0);
+  const sorted = [...intervals].sort((left, right) => left - right);
+  const median = sorted[Math.floor((sorted.length - 1) / 2)];
+  // Keep gaps up to 2.5x the median (with a floor so a set of short, tightly
+  // spaced rests is never entirely trimmed); drop longer ones as interruptions.
+  const ceiling = Math.max(20, median * 2.5);
+  const kept = intervals.filter((interval) => interval <= ceiling);
+  const used = kept.length ? kept : intervals;
+  const total = used.reduce((sum, interval) => sum + interval, 0);
   return {
     ...workout,
-    averageRestSeconds: Math.round(total / intervals.length),
-    restTimerSamples: intervals.length,
+    averageRestSeconds: Math.round(total / used.length),
+    restTimerSamples: used.length,
   };
 }
 

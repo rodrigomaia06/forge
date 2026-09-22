@@ -43,13 +43,6 @@ export function SettingsScreen({ navigation }: Props) {
               testID="settings-main-exercises-row"
             />
             <SettingsRow
-              icon="task-list"
-              iconSize={26}
-              title="Workout types"
-              onPress={() => open('WorkoutTypes')}
-              disclosure
-            />
-            <SettingsRow
               icon="measure"
               iconSize={26}
               title="Measurements"

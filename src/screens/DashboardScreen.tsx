@@ -29,6 +29,8 @@ import {
   weekVolume,
 } from './dashboard/dashboardSummary';
 import { suggestNextWorkout } from '../domain/workouts/suggestNextWorkout';
+import { calendarDateKey } from '../domain/workouts/calendarDate';
+import type { WeekStripDay } from './dashboard/dashboardSummary';
 import {
   DASHBOARD_TILE_DEFAULT_TITLE,
   useDashboardLayout,
@@ -88,6 +90,19 @@ export function DashboardScreen() {
     else starter.openChooser();
   };
 
+  const openDayWorkout = (day: WeekStripDay) => {
+    const key = calendarDateKey(day.date);
+    const dayWorkouts = completedWorkouts.filter(
+      (workout) => calendarDateKey(workout.completedAt ?? workout.startedAt) === key,
+    );
+    if (!dayWorkouts.length) return;
+    // Open the most recent session logged that day.
+    const target = dayWorkouts.reduce((latest, workout) =>
+      (workout.completedAt ?? workout.startedAt) > (latest.completedAt ?? latest.startedAt) ? workout : latest,
+    );
+    navigation.navigate('WorkoutDetails', { workoutId: target.id });
+  };
+
   const visibleTiles = layout.filter((tile) => tile.visible);
   const hiddenTiles = layout.filter((tile) => !tile.visible);
 
@@ -122,6 +137,7 @@ export function DashboardScreen() {
             days={summary.days}
             workoutCount={summary.workoutCount}
             workoutTypes={preferences.workoutTypes}
+            onSelectDay={editing ? undefined : openDayWorkout}
           />
         );
       case 'training-time':

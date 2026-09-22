@@ -23,6 +23,7 @@ test.describe('Settings', () => {
   async function openWorkoutTypes(page: import('@playwright/test').Page): Promise<void> {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Exercises' }).click();
     await page.getByRole('button', { name: 'Workout types' }).click();
   }
 
@@ -59,15 +60,13 @@ test.describe('Settings', () => {
 
     await expect(page.getByTestId('settings-title')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Exercises' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Workout types' })).toBeVisible();
+    // Workout types are managed inside Exercises now, not on the Settings root.
+    await expect(page.getByRole('button', { name: 'Workout types' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Measurements' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'General' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Backup & Export' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Logs' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'About' })).toBeVisible();
-    const workoutTypesBox = await page.getByRole('button', { name: 'Workout types' }).boundingBox();
-    const measurementsBox = await page.getByRole('button', { name: 'Measurements' }).boundingBox();
-    expect(workoutTypesBox?.y ?? Infinity).toBeLessThan(measurementsBox?.y ?? -Infinity);
 
     await page.getByRole('button', { name: 'Exercises' }).click();
     await expect(page.getByTestId('settings-detail-title')).toHaveText('Exercises');
@@ -82,9 +81,8 @@ test.describe('Settings', () => {
     await page.getByRole('button', { name: 'Strength, 255 exercises' }).click();
     await expect(page.getByTestId('settings-detail-title').last()).toHaveText('Strength');
     await page.getByRole('button', { name: 'Back to Exercises' }).click();
-    await page.getByRole('button', { name: 'Back to Settings' }).click();
-    await expect(page.getByTestId('settings-title')).toBeVisible();
 
+    // Workout types are managed from within Exercises now.
     await page.getByRole('button', { name: 'Workout types' }).click();
     await expect(page.getByTestId('settings-detail-title')).toHaveText('Workout types');
     await page.getByRole('button', { name: 'Strength workout type' }).click();
@@ -92,7 +90,9 @@ test.describe('Settings', () => {
       page.getByRole('switch', { name: 'Hide Strength in workout pickers' }),
     ).toBeVisible();
     await expect(page.getByTestId('workout-type-visibility-bottom-divider')).toBeVisible();
+    await page.getByRole('button', { name: 'Back to Exercises' }).click();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
+    await expect(page.getByTestId('settings-title')).toBeVisible();
 
     await page.getByRole('button', { name: 'Backup & Export' }).click();
     await expect(page.getByTestId('settings-detail-title')).toHaveText('Backup & Export');
@@ -224,10 +224,10 @@ test.describe('Settings', () => {
     await expectFontSize(page.getByText('Bench Press', { exact: true }), 16);
 
     await page.getByRole('button', { name: 'Back to Exercises' }).click();
-    await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('button', { name: 'Workout types' }).click();
     await expectRowHeight(page.getByRole('button', { name: 'Strength workout type' }), 56);
 
+    await page.getByRole('button', { name: 'Back to Exercises' }).click();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('button', { name: 'General' }).click();
     await expectRowHeight(page.getByRole('radio', { name: 'Metric (kg)' }), 56);

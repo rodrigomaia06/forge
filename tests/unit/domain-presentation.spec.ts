@@ -380,6 +380,29 @@ test('derives average rest from recorded completion intervals, not timer default
   expect(legacy).toMatchObject({ averageRestSeconds: 105, restTimerSamples: 2 });
 });
 
+test('average rest excludes cross-exercise transitions and trims interruptions', () => {
+  const workout = {
+    id: 'workout', name: 'Push', type: 'Strength', startedAt: 1, completedAt: null, note: '',
+    exercises: [
+      { id: 'bench', name: 'Bench', sets: [
+        { id: 'b1', weight: '', reps: '', completed: true, completedAt: 0 },
+        { id: 'b2', weight: '', reps: '', completed: true, completedAt: 90_000 }, // 90s rest
+        { id: 'b3', weight: '', reps: '', completed: true, completedAt: 190_000 }, // 100s rest
+      ] },
+      // A four-minute gap here is an exercise transition, not rest, and must be ignored.
+      { id: 'row', name: 'Row', sets: [
+        { id: 'r1', weight: '', reps: '', completed: true, completedAt: 430_000 },
+        { id: 'r2', weight: '', reps: '', completed: true, completedAt: 540_000 }, // 110s rest
+        // A 20-minute phone call is an interruption, trimmed from the average.
+        { id: 'r3', weight: '', reps: '', completed: true, completedAt: 1_740_000 },
+      ] },
+    ],
+  };
+  // Kept rests: 90, 100, 110 -> average 100. The 240s transition and 1200s
+  // interruption are excluded; three genuine between-set rests remain.
+  expect(recordRestTimerSample(workout, 30)).toMatchObject({ averageRestSeconds: 100, restTimerSamples: 3 });
+});
+
 test('restarts an expired rest as a fresh rest of the added amount', () => {
   const now = 1_000_000;
   expect(adjustRestTimer({ duration: 10, endAt: now - 1_000, seconds: 10, now })).toEqual({

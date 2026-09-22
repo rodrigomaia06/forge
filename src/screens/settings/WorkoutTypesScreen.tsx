@@ -89,6 +89,7 @@ export function WorkoutTypesScreen({ navigation }: Props) {
         <SettingsDetailHeader
           title="Workout types"
           navigation={navigation}
+          backAccessibilityLabel="Back to Exercises"
           elevated={headerElevated}
           rightAction={
             <HeaderAction

@@ -79,6 +79,25 @@ test.describe('Dashboard', () => {
     await expect(page.getByRole('tab', { name: 'Workout' })).toHaveAttribute('aria-selected', 'true');
   });
 
+  test('opens a trained day from the week strip', async ({ page }) => {
+    await page.addInitScript(() => {
+      const now = new Date();
+      const noon = (offset: number) => new Date(now.getFullYear(), now.getMonth(), now.getDate() - offset, 12).getTime();
+      localStorage.setItem('@forge/completed-workouts', JSON.stringify([
+        {
+          id: 'seed-day', name: 'Leg Day', type: 'Strength',
+          startedAt: noon(0) - 3600_000, completedAt: noon(0), durationSeconds: 3600, note: '',
+          exercises: [{ id: 'e1', name: 'Squat', sets: [{ id: 's1', weight: '120', reps: '5', completed: true }] }],
+        },
+      ]));
+    });
+    await page.goto('/');
+
+    // Today's dot is trained; tapping it jumps straight to that session's detail.
+    await page.getByTestId('dashboard-week-card').getByRole('button', { name: /workout$/ }).first().click();
+    await expect(page.getByTestId('workout-details-summary-title')).toHaveText('Leg Day');
+  });
+
   test('removes and re-adds a dashboard tile in edit mode, persisting across reloads', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByTestId('dashboard-week-card')).toBeVisible();
