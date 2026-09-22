@@ -32,6 +32,13 @@ type CatalogItemIndex = {
   muscles: string[];
   haystack: string;
   groupHaystack: string;
+  // Granular normalized fields used to score how relevant a query is, so the
+  // most on-point exercise (a name match) ranks above one that only matched a
+  // muscle or equipment tag.
+  name: string;
+  nameWords: string[];
+  aliasText: string;
+  tagText: string;
 };
 
 const itemIndexCache = new WeakMap<ExerciseCatalogItem, CatalogItemIndex>();
@@ -45,6 +52,7 @@ function catalogItemIndex(item: ExerciseCatalogItem): CatalogItemIndex {
     ? Object.values(item.variationFacets).flatMap((value) => (Array.isArray(value) ? value : value ? [value] : []))
     : [];
   const searchable = [item.name, ...equipment, item.category, item.primaryMuscle, ...item.secondaryMuscles, ...item.aliases, ...(item.searchTerms ?? []), ...facetTerms];
+  const name = catalogSearchKey(item.name);
   // Store one full haystack plus the small group-token string separately rather
   // than a second near-duplicate haystack that repeats every field. The group is
   // space-joined, so a single-word query term matches the combined text exactly
@@ -54,9 +62,73 @@ function catalogItemIndex(item: ExerciseCatalogItem): CatalogItemIndex {
     muscles,
     haystack: catalogSearchKey(searchable.join(' ')),
     groupHaystack: catalogSearchKey(item.group),
+    name,
+    nameWords: name ? name.split(' ') : [],
+    aliasText: catalogSearchKey([...item.aliases, ...(item.searchTerms ?? [])].join(' ')),
+    tagText: catalogSearchKey([...equipment, item.category, ...muscles, ...facetTerms].join(' ')),
   };
   itemIndexCache.set(item, index);
   return index;
+}
+
+/** True when `a` and `b` differ by at most one insert, delete, or substitution. */
+function withinOneEdit(a: string, b: string): boolean {
+  if (a === b) return true;
+  const la = a.length;
+  const lb = b.length;
+  if (Math.abs(la - lb) > 1) return false;
+  let i = 0;
+  while (i < la && i < lb && a[i] === b[i]) i += 1;
+  if (la === lb) return a.slice(i + 1) === b.slice(i + 1); // substitution
+  return la > lb ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1); // delete / insert
+}
+
+/** True when any whitespace-separated word in `text` is within one edit of `token`. */
+function fuzzyWordMatch(text: string, token: string): boolean {
+  if (!text) return false;
+  for (const word of text.split(' ')) {
+    if (word.length >= 3 && withinOneEdit(word, token)) return true;
+  }
+  return false;
+}
+
+/**
+ * Relevance of one query token against an item, best matching field wins. A name
+ * hit ranks well above an alias, which ranks above a muscle/equipment tag; a
+ * one-typo (fuzzy) hit is accepted but scores below an exact substring. Returns
+ * 0 when the token matches nothing (the item is then excluded).
+ */
+function tokenScore(index: CatalogItemIndex, token: string, includeGroup: boolean): number {
+  if (index.name === token) return 100;
+  if (index.name.startsWith(`${token} `)) return 70;
+  if (index.nameWords.some((word) => word === token)) return 58;
+  if (index.nameWords.some((word) => word.startsWith(token))) return 46;
+  if (index.name.includes(token)) return 30;
+  if (index.aliasText.includes(token)) return 18;
+  if (index.tagText.includes(token)) return 10;
+  if (includeGroup && index.groupHaystack.includes(token)) return 10;
+  // Typo tolerance kicks in only when nothing matched literally, and only for
+  // tokens long enough that a single edit is unlikely to be a different word.
+  if (token.length >= 4) {
+    if (index.nameWords.some((word) => word.length >= 3 && withinOneEdit(word, token))) return 22;
+    if (fuzzyWordMatch(index.aliasText, token)) return 8;
+    if (fuzzyWordMatch(index.tagText, token)) return 5;
+  }
+  return 0;
+}
+
+/** Total relevance of an item for a query, or null when any token fails to match. */
+function itemScore(index: CatalogItemIndex, terms: string[], query: string, includeGroup: boolean): number | null {
+  let total = 0;
+  for (const term of terms) {
+    const score = tokenScore(index, term, includeGroup);
+    if (score === 0) return null;
+    total += score;
+  }
+  // Whole-query exactness and specificity break ties toward the tightest match.
+  if (index.name === query) total += 200;
+  else if (index.name.startsWith(`${query} `)) total += 40;
+  return total;
 }
 
 /**
@@ -79,21 +151,38 @@ export function warmCatalogIndex(items: ExerciseCatalogItem[], chunkSize = 40): 
 export function filterCatalog(items: ExerciseCatalogItem[], filters: CatalogFilters): ExerciseCatalogItem[] {
   const query = catalogSearchKey(filters.query ?? '');
   const terms = query ? query.split(' ') : [];
-  return items.filter((item) => {
+  const includeGroup = Boolean(filters.includeGroupInSearch);
+  const passesFacets = (item: ExerciseCatalogItem, index: CatalogItemIndex): boolean => {
     if (filters.types?.length && !item.workoutTypeIds.some((id) => filters.types?.includes(id))) return false;
-    const index = catalogItemIndex(item);
     if (filters.equipment?.length && !index.equipment.some((value) => filters.equipment?.includes(value))) return false;
     if (filters.categories?.length && !index.muscles.some((muscle) => filters.categories?.includes(muscle))) return false;
     if (filters.exerciseCategories?.length && !filters.exerciseCategories.includes(item.category)) return false;
-    if (!terms.length) return true;
-    // Facets are stored in display order (for example `Weighted · Wide ·
-    // Pronated`), while people naturally search them in any order. Matching
-    // each normalized token keeps compound-variation selection independent of
-    // that presentation order.
-    return filters.includeGroupInSearch
-      ? terms.every((term) => index.haystack.includes(term) || index.groupHaystack.includes(term))
-      : terms.every((term) => index.haystack.includes(term));
+    return true;
+  };
+
+  // No query: keep the catalogue's own order after facet filtering.
+  if (!terms.length) {
+    return items.filter((item) => passesFacets(item, catalogItemIndex(item)));
+  }
+
+  // With a query, rank by relevance so the best match surfaces first. Facets and
+  // token matching (tag-aware, order-independent, one-typo tolerant) narrow the
+  // set; the score then sorts it, with the original order as a stable tiebreak.
+  const ranked: { item: ExerciseCatalogItem; score: number; order: number }[] = [];
+  items.forEach((item, order) => {
+    const index = catalogItemIndex(item);
+    if (!passesFacets(item, index)) return;
+    const score = itemScore(index, terms, query, includeGroup);
+    if (score === null) return;
+    ranked.push({ item, score, order });
   });
+  ranked.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    const nameLength = catalogItemIndex(a.item).name.length - catalogItemIndex(b.item).name.length;
+    if (nameLength !== 0) return nameLength;
+    return a.order - b.order;
+  });
+  return ranked.map((entry) => entry.item);
 }
 
 const facetsCache = new WeakMap<ExerciseCatalogItem[], { equipment: string[]; categories: string[] }>();

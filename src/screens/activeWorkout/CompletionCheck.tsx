@@ -108,7 +108,7 @@ function SplitHalf({ side, done, onPress }: { side: 'left' | 'right'; done: bool
       accessibilityState={{ checked: done }}
       accessibilityLabel={`${done ? 'Completed' : 'Complete'} ${side} side`}
       onPress={onPress}
-      hitSlop={{ top: 10, bottom: 10, left: side === 'left' ? 8 : 3, right: side === 'right' ? 8 : 3 }}
+      hitSlop={{ left: 6, right: 6, top: side === 'left' ? 8 : 2, bottom: side === 'right' ? 8 : 2 }}
       style={[
         styles.splitHalf,
         side === 'left' ? styles.splitHalfLeft : styles.splitHalfRight,
@@ -116,7 +116,7 @@ function SplitHalf({ side, done, onPress }: { side: 'left' | 'right'; done: bool
       ]}
     >
       {done ? (
-        <Icon name="check" size={16} color={theme.surface} />
+        <Icon name="check" size={14} color={theme.surface} />
       ) : (
         <Text style={[styles.splitHalfLabel, done && styles.splitHalfLabelDone]}>{label}</Text>
       )}
@@ -139,21 +139,22 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   success: { backgroundColor: dashboardTheme.success, borderColor: dashboardTheme.success },
   interactive: { backgroundColor: dashboardTheme.selectionIndicator, borderColor: dashboardTheme.selectionIndicator },
   selection: { borderColor: dashboardTheme.success, backgroundColor: 'transparent' },
-  splitRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  // Two comfortably tappable side buttons (was a cramped 19px pair).
+  // Stacked vertically inside the standard 44pt completion column so unilateral
+  // rows keep the exact column alignment of every other row. Each side is a
+  // full-width (40pt) target — far easier to hit than the old 19pt halves.
+  splitRow: { flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
   splitHalf: {
-    width: 30,
-    height: 40,
+    width: 40,
+    height: 20,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: dashboardTheme.slate,
-    borderRadius: 11,
   },
-  splitHalfLeft: {},
-  splitHalfRight: {},
+  splitHalfLeft: { borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomWidth: 0.75 },
+  splitHalfRight: { borderBottomLeftRadius: 10, borderBottomRightRadius: 10, borderTopWidth: 0.75 },
   splitHalfDone: { backgroundColor: dashboardTheme.success, borderColor: dashboardTheme.success },
-  splitHalfLabel: { color: dashboardTheme.ink, ...typeScale.cardTitle },
+  splitHalfLabel: { color: dashboardTheme.ink, ...typeScale.label, lineHeight: 14 },
   splitHalfLabelDone: { color: dashboardTheme.surface },
   });
 };

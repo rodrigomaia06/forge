@@ -563,6 +563,27 @@ test('filters and groups exercise catalog entries without changing feature selec
   expect(filterCatalog(items, { equipment: ['Bench'] })).toEqual([items[0]]);
 });
 
+test('ranks exercise search by relevance and tolerates a single typo', () => {
+  const incline = {
+    id: 'incline', name: 'Incline Bench Press', group: 'Bench Press',
+    equipment: 'Barbell', equipmentIds: ['barbell'], primaryEquipment: 'barbell',
+    category: 'Chest', primaryMuscle: 'Chest', secondaryMuscles: ['Triceps'],
+    aliases: [], workoutTypeIds: ['strength'],
+  };
+  const fly = {
+    id: 'fly', name: 'Cable Fly', group: 'Cable Fly',
+    equipment: 'Cable', equipmentIds: ['cable'], primaryEquipment: 'cable',
+    category: 'Chest', primaryMuscle: 'Chest', secondaryMuscles: [],
+    aliases: ['bench assist'], workoutTypeIds: ['strength'],
+  };
+  // Both contain "bench" (one in the name, one only in an alias); the name match
+  // ranks first regardless of input order.
+  const ranked = filterCatalog([fly, incline], { query: 'bench' });
+  expect(ranked.map((item) => item.id)).toEqual(['incline', 'fly']);
+  // A one-edit typo (not a substring) still finds the exercise by name; unrelated items drop.
+  expect(filterCatalog([incline, fly], { query: 'inclie' }).map((item) => item.id)).toEqual(['incline']);
+});
+
 test('ships the validated v5 compact Strength baseline, unique picker identities, and all built-in workout types', () => {
   expect(bundledCatalogVersion).toBe(5);
   expect(bundledExercises).toHaveLength(608);

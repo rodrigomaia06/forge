@@ -267,7 +267,7 @@ export function SetRow({
           </React.Fragment>
         );
       })}
-      <View style={[styles.check, unilateral && styles.checkWide]}>
+      <View style={styles.check}>
         {showCompletion ? (
           unilateral ? (
             <SplitCompletionCheck
@@ -405,9 +405,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  // Unilateral rows carry the two-sided control, which needs more room than the
-  // single 44pt check so each side stays a comfortable tap target.
-  checkWide: { width: 68 },
   checkPressable: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   commentIndicator: {
     position: 'absolute',
