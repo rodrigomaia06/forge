@@ -1,11 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Keyboard, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
 import {
   Button,
   ForgeActionSheet,
@@ -26,7 +20,7 @@ import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingC
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
+import { useForgeReducedMotion } from '../../theme/motion';
 import type { ExerciseCatalogItem } from '../../data/exerciseCatalog';
 import { useExerciseCatalog } from '../../state/ExerciseCatalogContext';
 import { useSettings } from '../../state/SettingsContext';
@@ -694,24 +688,10 @@ function FacetPickerRows({ family, familyKey, selected, onToggle }: {
 
 function AnimatedChevron({ expanded }: { expanded: boolean }) {
   const theme = useForgeTheme();
-  const dashboardTheme = theme;
-  const styles = useThemedStyles(createStyles);
-  const progress = useSharedValue(expanded ? 1 : 0);
-  const reducedMotion = useForgeReducedMotion();
-
-  useEffect(() => {
-    progress.value = reducedMotion ? (expanded ? 1 : 0) : withTiming(expanded ? 1 : 0, { duration: forgeMotion.feedback });
-  }, [expanded, progress, reducedMotion]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${progress.value * 90}deg` }],
-  }));
-
-  return (
-    <Animated.View style={animatedStyle}>
-      <Icon name="chevron-forward" size={18} color={dashboardTheme.slate} />
-    </Animated.View>
-  );
+  // A plain icon swap, not a Reanimated rotate. The catalogue can show ~150 of
+  // these at once for a large category, and mounting that many worklet-backed
+  // animated views is what made the picker open with a visible lag.
+  return <Icon name={expanded ? 'chevron-down' : 'chevron-forward'} size={18} color={theme.slate} />;
 }
 
 function AnimatedCount({ count }: { count: number }) {
