@@ -465,7 +465,13 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
           remaining={restRemaining}
           duration={restDuration}
           running={restRunning}
-          onClose={() => setRestSheetOpen(false)}
+          onClose={() => {
+            // Closing the rest timer must never hand focus back to a set input
+            // and pop the keyboard — especially when it was opened from the
+            // lock-screen notification with no field previously focused.
+            Keyboard.dismiss();
+            setRestSheetOpen(false);
+          }}
           onSelect={setRestSelection}
           onStart={() => startRestTimer(restSelection)}
           onAdjust={adjustRestTimer}

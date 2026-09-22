@@ -72,6 +72,10 @@ async function replaceRestTimerNotification(
 ): Promise<void> {
   if (Platform.OS === 'web') return;
   await Notifications.cancelScheduledNotificationAsync(restTimerNotificationId).catch(() => undefined);
+  // Also clear any already-delivered "Rest complete" alert. Without this a new
+  // rest schedules a fresh notification while the previous one still sits in the
+  // tray, so the lock screen appears not to update after the first rest sounded.
+  await Notifications.dismissNotificationAsync(restTimerNotificationId).catch(() => undefined);
   if (!endAt || endAt <= Date.now() || !(await canScheduleNotifications())) return;
   await Notifications.scheduleNotificationAsync({
     identifier: restTimerNotificationId,
@@ -235,12 +239,22 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
   // rest alert. This is the only place delivered notifications are dismissed.
   useEffect(() => {
     if (Platform.OS === 'web') return undefined;
+    let restDismissTimer: ReturnType<typeof setTimeout> | null = null;
     const subscription = AppState.addEventListener('change', (state) => {
       if (state !== 'active') return;
-      void Notifications.dismissNotificationAsync(restTimerNotificationId).catch(() => undefined);
       void Notifications.dismissNotificationAsync(unfinishedWorkoutReminderId).catch(() => undefined);
+      // If the user unlocks at the exact moment rest completes, dismissing the
+      // alert in the same instant can cut its sound short. Clear it a beat later
+      // so the completion sound always finishes playing.
+      if (restDismissTimer) clearTimeout(restDismissTimer);
+      restDismissTimer = setTimeout(() => {
+        void Notifications.dismissNotificationAsync(restTimerNotificationId).catch(() => undefined);
+      }, 1200);
     });
-    return () => subscription.remove();
+    return () => {
+      if (restDismissTimer) clearTimeout(restDismissTimer);
+      subscription.remove();
+    };
   }, []);
 
   // ActivityKit is a secondary presentation of the same timestamp state. It
