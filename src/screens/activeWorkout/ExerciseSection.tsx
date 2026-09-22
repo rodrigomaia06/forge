@@ -34,6 +34,7 @@ import type { ExerciseSectionProps } from './activeWorkoutTypes';
 import type { RootNavigationProp, WorkoutExercise, WorkoutSet } from '../../types';
 import { measurementText, trackingFieldLabel, trackingFields } from '../../domain/exercises/tracking';
 import { formatExerciseMetadata } from '../../domain/exercises/exercisePresentation';
+import { isUnilateralExercise } from '../../domain/exercises/laterality';
 import { exerciseCatalogById } from '../../data/exerciseCatalog';
 import { useWorkouts } from '../../state/WorkoutContext';
 import { hasNextSessionTarget, setTagPresentation } from '../../domain/workouts/setPresentation';
@@ -89,6 +90,10 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   const screenIsFocused = useIsFocused();
   const hasExerciseInfo = Boolean(exercise.exerciseSnapshot) || exerciseCatalogById.has(exercise.exerciseId ?? '');
   const trackingType = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType ?? 'weight-reps';
+  // Unilateral exercises complete per side. Prefer the workout-owned snapshot,
+  // falling back to the catalog for exercises added before laterality was captured.
+  const unilateral = isUnilateralExercise(exercise)
+    || exerciseCatalogById.get(exercise.exerciseId ?? '')?.laterality === 'unilateral';
   // Keep the live grid stable. A missing prior value is meaningful information,
   // not a reason to move all measurement fields into a different column.
   const showPrevious = true;
@@ -248,6 +253,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     <Text numberOfLines={1} style={[styles.exerciseName, styles.collapsibleExerciseName]}>
                       {exercise.name}
                     </Text>
+                    {unilateral ? <UnilateralBadge /> : null}
                     {exercise.note?.trim() ? (
                       <Icon accessibilityLabel="Exercise has a comment" name="comment" size={15} color={theme.slate} />
                     ) : null}
@@ -286,6 +292,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     <Text numberOfLines={1} style={[styles.exerciseName, size === 'large' && styles.exerciseNameLarge]}>
                       {exercise.name}
                     </Text>
+                    {unilateral ? <UnilateralBadge /> : null}
                     {exercise.note?.trim() ? (
                       <Icon accessibilityLabel="Exercise has a comment" name="comment" size={16} color={theme.slate} />
                     ) : null}
@@ -334,6 +341,20 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                       // The rest timer must observe the completed transition,
                       // not the pre-toggle state; unchecking never restarts it.
                       if (!set.completed) onSetCompleted(exercise);
+                    }}
+                    unilateral={unilateral}
+                    onToggleSide={(side) => {
+                      lightHaptic();
+                      const sides = set.sideCompletion ?? { left: false, right: false };
+                      const nextSides = { ...sides, [side]: !sides[side] };
+                      const bothDone = nextSides.left && nextSides.right;
+                      updateSet(exercise.id, set.id, {
+                        sideCompletion: nextSides,
+                        completed: bothDone,
+                        completedAt: bothDone ? Date.now() : undefined,
+                      });
+                      // Rest starts only as the second side lands the completion.
+                      if (bothDone && !set.completed) onSetCompleted(exercise);
                     }}
                     onDelete={() => {
                       errorHaptic();
@@ -557,9 +578,28 @@ export function ReadOnlyExerciseSection({
   );
 }
 
+/** A small "L/R" chip marking a unilateral exercise, whose sets complete per side. */
+function UnilateralBadge() {
+  const styles = useThemedStyles(createStyles);
+  return (
+    <View style={styles.unilateralBadge}>
+      <Text accessibilityLabel="Unilateral, complete each side" style={styles.unilateralBadgeText}>L/R</Text>
+    </View>
+  );
+}
+
 const createStyles = (theme: import('../../types').ForgeTheme) => {
   const dashboardTheme = theme;
   return StyleSheet.create({
+    unilateralBadge: {
+      paddingHorizontal: 6,
+      paddingVertical: 1,
+      borderRadius: 6,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: dashboardTheme.border,
+      backgroundColor: dashboardTheme.surfaceMuted,
+    },
+    unilateralBadgeText: { color: dashboardTheme.slate, ...typeScale.caption },
     exerciseSwipe: {
       position: 'relative',
       overflow: 'hidden',

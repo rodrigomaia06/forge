@@ -5,6 +5,7 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
 import { Button } from './Button';
 import { ForgeText as Text } from './ForgeText';
+import { mediumHaptic } from './haptics';
 
 interface ForgeConfirmationDialogProps {
   visible: boolean;
@@ -33,6 +34,13 @@ export function ForgeConfirmationDialog({
   testID,
 }: ForgeConfirmationDialogProps) {
   const theme = useForgeTheme();
+
+  // Pulse a haptic the moment the dialog appears, so the tactile cue lands with
+  // the card rather than trailing the fade-in. The opening button no longer
+  // needs its own cue for this transition.
+  React.useEffect(() => {
+    if (visible) mediumHaptic();
+  }, [visible]);
 
   if (!visible) return null;
   return (

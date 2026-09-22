@@ -89,6 +89,18 @@ test('weekVolume compares this week to last week', () => {
   expect(deltaPct).toBe(25);
 });
 
+test('weekVolume compares last week only up to the same point in the week', () => {
+  const completed = [
+    // Last week: Monday counts (before Wed), Friday does not (after "now" = Wed).
+    workout({ completedAt: day(-7), exercises: [exercise([set('100', '5')])] }), // last Mon: 500
+    workout({ completedAt: day(-3), exercises: [exercise([set('100', '9')])] }), // last Fri: 900, excluded
+  ];
+  const { thisWeekKg, lastWeekKg, deltaPct } = weekVolume(completed, WED, 1);
+  expect(thisWeekKg).toBe(0);
+  expect(lastWeekKg).toBe(500);
+  expect(deltaPct).toBe(-100);
+});
+
 test('weekVolume reports a null delta with no prior week', () => {
   const completed = [workout({ completedAt: day(1), exercises: [exercise([set('50', '10')])] })];
   expect(weekVolume(completed, WED, 1).deltaPct).toBeNull();

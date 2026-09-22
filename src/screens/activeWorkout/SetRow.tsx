@@ -6,7 +6,7 @@ import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import { forgeMotion, forgeMotionDuration, useForgeReducedMotion } from '../../theme/motion';
 import { errorHaptic } from './activeWorkoutFeedback';
-import { CompletionCheck } from './CompletionCheck';
+import { CompletionCheck, SplitCompletionCheck } from './CompletionCheck';
 import type { SetRowProps } from './activeWorkoutTypes';
 import { measurementText, measurementUnit, trackingFieldLabel, trackingFields, updateMeasurement } from '../../domain/exercises/tracking';
 import { hasNextSessionTarget, setTagPresentation } from '../../domain/workouts/setPresentation';
@@ -18,6 +18,8 @@ export function SetRow({
   index,
   onChange,
   onToggle,
+  unilateral = false,
+  onToggleSide,
   onDelete,
   onOpenDetails,
   onInputTouchStart,
@@ -69,25 +71,35 @@ export function SetRow({
     onChange({ [field]: value });
   };
 
-  const handleToggle = (): void => {
-    if (!set.completed) {
-      const required = trackingFields[trackingType];
-      const missingWeight = required.some((kind) => kind !== 'reps' && !measurementText(set, kind).trim());
-      const missingReps = required.includes('reps') && !measurementText(set, 'reps').trim();
-      if (missingWeight || missingReps) {
-        animateInvalidField('weight', missingWeight ? 1 : 0);
-        animateInvalidField('reps', missingReps ? 1 : 0);
-        if (invalidTimerRef.current) clearTimeout(invalidTimerRef.current);
-        invalidTimerRef.current = setTimeout(() => {
-          animateInvalidField('weight', 0, forgeMotion.transition);
-          animateInvalidField('reps', 0, forgeMotion.transition);
-          invalidTimerRef.current = null;
-        }, 1200);
-        errorHaptic();
-        return;
-      }
+  const validateForCompletion = (): boolean => {
+    const required = trackingFields[trackingType];
+    const missingWeight = required.some((kind) => kind !== 'reps' && !measurementText(set, kind).trim());
+    const missingReps = required.includes('reps') && !measurementText(set, 'reps').trim();
+    if (missingWeight || missingReps) {
+      animateInvalidField('weight', missingWeight ? 1 : 0);
+      animateInvalidField('reps', missingReps ? 1 : 0);
+      if (invalidTimerRef.current) clearTimeout(invalidTimerRef.current);
+      invalidTimerRef.current = setTimeout(() => {
+        animateInvalidField('weight', 0, forgeMotion.transition);
+        animateInvalidField('reps', 0, forgeMotion.transition);
+        invalidTimerRef.current = null;
+      }, 1200);
+      errorHaptic();
+      return false;
     }
+    return true;
+  };
+
+  const handleToggle = (): void => {
+    if (!set.completed && !validateForCompletion()) return;
     onToggle();
+  };
+
+  const handleToggleSide = (side: 'left' | 'right'): void => {
+    const sides = set.sideCompletion ?? { left: false, right: false };
+    // A side is only guarded when it is being checked, mirroring the full-set rule.
+    if (!sides[side] && !validateForCompletion()) return;
+    onToggleSide?.(side);
   };
 
   const invalidStyle = (progress: Animated.Value) => ({
@@ -257,17 +269,27 @@ export function SetRow({
       })}
       <View style={styles.check}>
         {showCompletion ? (
-          <Pressable
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: set.completed }}
-            accessibilityLabel={
-              set.completed ? `Set ${index + 1} completed` : `Complete set ${index + 1}`
-            }
-            onPress={handleToggle}
-            style={styles.checkPressable}
-          >
-            <CompletionCheck selected={set.completed} />
-          </Pressable>
+          unilateral ? (
+            <SplitCompletionCheck
+              testID={`set-split-check-${index + 1}`}
+              left={set.sideCompletion?.left ?? false}
+              right={set.sideCompletion?.right ?? false}
+              onToggleLeft={() => handleToggleSide('left')}
+              onToggleRight={() => handleToggleSide('right')}
+            />
+          ) : (
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: set.completed }}
+              accessibilityLabel={
+                set.completed ? `Set ${index + 1} completed` : `Complete set ${index + 1}`
+              }
+              onPress={handleToggle}
+              style={styles.checkPressable}
+            >
+              <CompletionCheck selected={set.completed} />
+            </Pressable>
+          )
         ) : null}
       </View>
     </View>

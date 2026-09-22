@@ -114,19 +114,26 @@ const HistoryGroupBlock = React.memo(function HistoryGroupBlock({
         </View>
       ) : null}
       <Text style={styles.groupTitle}>{group.label}</Text>
-      {group.workouts.map((workout, index) => (
-        <TimelineRow
-          key={workout.id}
-          workout={workout}
-          displayName={historyTitles.get(workout.id) ?? workout.name}
-          workoutTypes={workoutTypes}
-          first={groupIndex === 0 && index === 0}
-          onPress={onRowPress}
-          deleteRevealed={deleteRevealedId === workout.id}
-          onDeleteRevealChange={onRowDeleteRevealChange}
-          onDelete={onRowDelete}
-        />
-      ))}
+      {group.workouts.map((workout, index) => {
+        const previous = index > 0 ? group.workouts[index - 1] : undefined;
+        // Several sessions in one day share a single date label rather than
+        // repeating it; only the first row of each day carries the date.
+        const showDate = !previous || !isSameCalendarDay(workout, previous);
+        return (
+          <TimelineRow
+            key={workout.id}
+            workout={workout}
+            displayName={historyTitles.get(workout.id) ?? workout.name}
+            workoutTypes={workoutTypes}
+            first={groupIndex === 0 && index === 0}
+            showDate={showDate}
+            onPress={onRowPress}
+            deleteRevealed={deleteRevealedId === workout.id}
+            onDeleteRevealChange={onRowDeleteRevealChange}
+            onDelete={onRowDelete}
+          />
+        );
+      })}
     </View>
   );
 });
@@ -494,6 +501,7 @@ const TimelineRow = React.memo(function TimelineRow({
   displayName,
   workoutTypes,
   first,
+  showDate,
   onPress,
   deleteRevealed,
   onDeleteRevealChange,
@@ -503,6 +511,7 @@ const TimelineRow = React.memo(function TimelineRow({
   displayName: string;
   workoutTypes: import('../types').WorkoutTypePreference[];
   first: boolean;
+  showDate: boolean;
   onPress: (workout: Workout) => void;
   deleteRevealed: boolean;
   onDeleteRevealChange: (workoutId: string, revealed: boolean) => void;
@@ -529,9 +538,13 @@ const TimelineRow = React.memo(function TimelineRow({
       style={[styles.timelineRow, !hasExerciseSummary && styles.timelineRowCompact]}
     >
       <View style={styles.dateColumn}>
-        <Text style={styles.weekday}>{date.toLocaleDateString('en-GB', { weekday: 'short' })}</Text>
-        <Text style={styles.day}>{date.getDate()}</Text>
-        <Text style={styles.month}>{date.toLocaleDateString('en-GB', { month: 'short' })}</Text>
+        {showDate ? (
+          <>
+            <Text style={styles.weekday}>{date.toLocaleDateString('en-GB', { weekday: 'short' })}</Text>
+            <Text style={styles.day}>{date.getDate()}</Text>
+            <Text style={styles.month}>{date.toLocaleDateString('en-GB', { month: 'short' })}</Text>
+          </>
+        ) : null}
       </View>
       <View style={styles.timelineRail}>
         <View testID={`history-marker-${workout.id}`} style={[styles.marker, !hasExerciseSummary && styles.markerCompact, first && styles.markerActive]} />
@@ -623,6 +636,10 @@ const historyGroupGap = 14;
 
 function hasWorkoutExerciseSummary(workout: Workout): boolean {
   return workout.exercises.length > 0 && countWorkoutSets(workout) > 0;
+}
+
+function isSameCalendarDay(a: Workout, b: Workout): boolean {
+  return calendarDateKey(a.completedAt ?? a.startedAt) === calendarDateKey(b.completedAt ?? b.startedAt);
 }
 
 function startOfDay(value: Date): Date {

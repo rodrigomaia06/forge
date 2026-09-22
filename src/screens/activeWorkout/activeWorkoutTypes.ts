@@ -47,6 +47,9 @@ export interface SwipeableSetRowProps {
   index: number;
   onChange: (changes: WorkoutSetChanges) => void;
   onToggle: () => void;
+  /** Unilateral sets complete per side; when set this replaces the single check. */
+  unilateral?: boolean;
+  onToggleSide?: (side: 'left' | 'right') => void;
   onDelete: () => void;
   deleteRevealed: boolean;
   onDeleteRevealChange: (revealed: boolean) => void;

@@ -116,7 +116,13 @@ export function trainingTimeThisWeek(
   return { totalSeconds, perDaySeconds };
 }
 
-/** This week's lifted volume against last week's, with a rounded percentage delta. */
+/**
+ * This week's lifted volume against last week's, with a rounded percentage
+ * delta. The comparison is like-for-like: last week only counts up to the same
+ * point in its week that we have reached in this one (e.g. on a Wednesday it is
+ * this-week-through-Wednesday vs last-week-through-Wednesday), so early in the
+ * week the delta is not a misleading collapse against a full prior week.
+ */
 export function weekVolume(
   completedWorkouts: readonly Workout[],
   now: Date,
@@ -124,13 +130,16 @@ export function weekVolume(
 ): { thisWeekKg: number; lastWeekKg: number; deltaPct: number | null } {
   const thisWeekStart = startOfWeek(now, weekStartsOn).getTime();
   const lastWeekStart = addDays(startOfWeek(now, weekStartsOn), -7).getTime();
+  // How far into the week we are; last week is measured only up to the same offset.
+  const elapsed = now.getTime() - thisWeekStart;
+  const lastWeekCutoff = lastWeekStart + elapsed;
   let thisWeekKg = 0;
   let lastWeekKg = 0;
   for (const workout of completedWorkouts) {
     const time = completedAt(workout);
     if (time >= thisWeekStart) {
       thisWeekKg += computeWorkoutVolume(workout);
-    } else if (time >= lastWeekStart) {
+    } else if (time >= lastWeekStart && time < lastWeekCutoff) {
       lastWeekKg += computeWorkoutVolume(workout);
     }
   }

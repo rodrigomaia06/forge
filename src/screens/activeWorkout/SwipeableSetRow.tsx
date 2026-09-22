@@ -31,6 +31,8 @@ function SwipeableSetRowComponent({
   index,
   onChange,
   onToggle,
+  unilateral = false,
+  onToggleSide,
   onDelete,
   deleteRevealed,
   onDeleteRevealChange,
@@ -209,6 +211,8 @@ function SwipeableSetRowComponent({
             index={index}
             onChange={onChange}
             onToggle={onToggle}
+            unilateral={unilateral}
+            onToggleSide={onToggleSide}
             onDelete={handleDelete}
             onOpenDetails={() => setDetailsOpen(true)}
             onInputTouchStart={onInputTouchStart}
@@ -252,7 +256,8 @@ export const SwipeableSetRow = React.memo(
     // type (and its columns). Without this the row keeps the old fields, so a
     // reps-only → weighted swap never shows the Kg input.
     previous.trackingType === next.trackingType &&
-    previous.setTargetMode === next.setTargetMode,
+    previous.setTargetMode === next.setTargetMode &&
+    previous.unilateral === next.unilateral,
 );
 
 const createStyles = (theme: import('../../types').ForgeTheme) => {

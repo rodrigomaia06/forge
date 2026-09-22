@@ -188,7 +188,11 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     // Each presentation gets fresh picker state. This releases any interrupted
     // sheet gesture/focus state before the next Add exercise tap.
     setAddExerciseSession((current) => current + 1);
-    setSheetOpen(true);
+    // Open on the next frame rather than in the same tick as the keyboard
+    // dismissal. Toggling `visible` inside that dismiss layout pass is what made
+    // the picker intermittently fail to appear; a one-frame defer lets the
+    // dismissal flush so the entrance always runs.
+    requestAnimationFrame(() => setSheetOpen(true));
   }, []);
   const handleWorkoutScrollOffset = useCallback((offset: number) => {
     setHeaderElevated(offset > 1);
@@ -442,15 +446,14 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
       <ForgeConfirmationDialog
         visible={emptyFinishConfirmationOpen}
         title="Finish empty workout?"
-        message="No workout will be saved."
+        message="This workout has no exercises. It will still be saved to your history."
         cancelLabel="Keep working out"
-        confirmLabel="Leave workout"
+        confirmLabel="Finish workout"
         onCancel={() => setEmptyFinishConfirmationOpen(false)}
         onConfirm={() => {
           setEmptyFinishConfirmationOpen(false);
-          finishWorkout();
           successHaptic();
-          returnToDashboard(null);
+          returnToDashboard(finishWorkout());
         }}
         testID="finish-empty-workout-confirmation"
       />
