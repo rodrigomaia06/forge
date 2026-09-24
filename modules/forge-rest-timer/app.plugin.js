@@ -78,22 +78,43 @@ private struct ForgeRestTimerGlyph: View {
   }
 }
 
+private struct ForgeRestBar: View {
+  let state: ForgeRestTimerAttributes.ContentState
+  let color: Color
+
+  var body: some View {
+    // A native timer ProgressView renders against the system clock, so the
+    // rail drains toward empty and reaches its end-state exactly at zero while
+    // the phone stays locked — no update, no push. An emptied rail is a
+    // glanceable "rest complete" the frozen 0:00 number never gives on its own.
+    ProgressView(timerInterval: state.startDate...state.endDate, countsDown: true) {
+      EmptyView()
+    } currentValueLabel: {
+      EmptyView()
+    }
+    .tint(color)
+  }
+}
+
 struct ForgeRestTimerLiveActivity: Widget {
   var body: some WidgetConfiguration {
     ActivityConfiguration(for: ForgeRestTimerAttributes.self) { context in
-      HStack(spacing: 12) {
-        HStack(spacing: 7) {
-          ForgeRestTimerGlyph(color: context.forgeTimerTint)
-            .frame(width: 23, height: 23)
-          Text("Rest")
+      VStack(spacing: 11) {
+        HStack(spacing: 12) {
+          HStack(spacing: 7) {
+            ForgeRestTimerGlyph(color: context.forgeTimerTint)
+              .frame(width: 23, height: 23)
+            Text("Rest")
+          }
+            .font(.forgeTimer(20, relativeTo: .title2))
+            .foregroundStyle(context.forgeTimerTint)
+          Spacer()
+          RestCount(state: context.state, isOverrun: context.forgeIsOverrun, color: context.forgeTimerTint)
+            .font(.forgeTimer(42, relativeTo: .largeTitle).monospacedDigit())
+            .frame(maxWidth: 150)
+            .multilineTextAlignment(.trailing)
         }
-          .font(.forgeTimer(20, relativeTo: .title2))
-          .foregroundStyle(context.forgeTimerTint)
-        Spacer()
-        RestCount(state: context.state, isOverrun: context.forgeIsOverrun, color: context.forgeTimerTint)
-          .font(.forgeTimer(42, relativeTo: .largeTitle).monospacedDigit())
-          .frame(maxWidth: 150)
-          .multilineTextAlignment(.trailing)
+        ForgeRestBar(state: context.state, color: context.forgeTimerTint)
       }
       .padding()
       .activityBackgroundTint(Color.black.opacity(0.6))
@@ -111,12 +132,7 @@ struct ForgeRestTimerLiveActivity: Widget {
           }
         }
         DynamicIslandExpandedRegion(.bottom) {
-          ProgressView(timerInterval: context.state.startDate...context.state.endDate, countsDown: true) {
-            EmptyView()
-          } currentValueLabel: {
-            EmptyView()
-          }
-          .tint(context.forgeTimerTint)
+          ForgeRestBar(state: context.state, color: context.forgeTimerTint)
         }
       } compactLeading: {
         ForgeRestTimerGlyph(color: context.forgeTimerTint)
