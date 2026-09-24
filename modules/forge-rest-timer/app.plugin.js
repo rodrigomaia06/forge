@@ -99,7 +99,7 @@ private struct ForgeRestBar: View {
 struct ForgeRestTimerLiveActivity: Widget {
   var body: some WidgetConfiguration {
     ActivityConfiguration(for: ForgeRestTimerAttributes.self) { context in
-      VStack(spacing: 11) {
+      VStack(spacing: 5) {
         HStack(spacing: 12) {
           HStack(spacing: 7) {
             ForgeRestTimerGlyph(color: context.forgeTimerTint)
@@ -116,7 +116,8 @@ struct ForgeRestTimerLiveActivity: Widget {
         }
         ForgeRestBar(state: context.state, color: context.forgeTimerTint)
       }
-      .padding()
+      .padding(.horizontal)
+      .padding(.vertical, 12)
       .activityBackgroundTint(Color.black.opacity(0.6))
       .activitySystemActionForegroundColor(.white)
       .widgetURL(URL(string: "forge://rest-timer/open"))
