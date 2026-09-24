@@ -190,17 +190,19 @@ export function BottomNavigation({
         // matches the pill under the finger; icon size stays keyed to the real
         // active tab so the row never resizes mid-scrub.
         const highlighted = previewIndex != null ? index === previewIndex : active;
+        // The live-workout (emphasis) icon is larger (40) but wears the muted
+        // slate tint, so it stands out by size without the loud accent colour.
         const iconSize = compact
           ? active
             ? emphasis
               ? 34
-              : 26
-            : 22
+              : 27
+            : 23
           : emphasis
             ? 40
             : hasActiveWorkout
-              ? 26
-              : 28;
+              ? 27
+              : 29;
         return (
           <View
             key={label}
