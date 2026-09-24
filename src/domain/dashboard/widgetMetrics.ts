@@ -96,15 +96,35 @@ export interface RestStats {
   sessions: number;
   /** Average rest of the most recent sessions (oldest→newest), for a sparkline. */
   recent: number[];
+  /** Change in weighted-average rest vs the previous equal window; null when either side is empty. */
+  deltaSeconds: number | null;
 }
+
+/** Sample-weighted average rest over workouts whose completion falls in [since, until). */
+function weightedAvgRest(workouts: readonly Workout[], since: number, until: number): number | null {
+  let weighted = 0;
+  let samples = 0;
+  for (const w of workouts) {
+    const at = completedAt(w);
+    if (at < since || at >= until) continue;
+    if (typeof w.averageRestSeconds !== 'number' || (w.restTimerSamples ?? 0) <= 0) continue;
+    const n = w.restTimerSamples ?? 0;
+    weighted += w.averageRestSeconds * n;
+    samples += n;
+  }
+  return samples > 0 ? weighted / samples : null;
+}
+
 export function restStats(
   completedWorkouts: readonly Workout[],
   windowDays: number,
   now: Date,
 ): RestStats {
+  const until = now.getTime();
   const since = addDays(now, -windowDays).getTime();
+  const priorSince = addDays(now, -windowDays * 2).getTime();
   const inWindow = [...completedWorkouts]
-    .filter((w) => completedAt(w) >= since && typeof w.averageRestSeconds === 'number' && (w.restTimerSamples ?? 0) > 0)
+    .filter((w) => completedAt(w) >= since && completedAt(w) < until && typeof w.averageRestSeconds === 'number' && (w.restTimerSamples ?? 0) > 0)
     .sort((a, b) => completedAt(a) - completedAt(b));
   let weighted = 0;
   let samples = 0;
@@ -113,11 +133,14 @@ export function restStats(
     weighted += (w.averageRestSeconds as number) * n;
     samples += n;
   }
+  const current = samples > 0 ? weighted / samples : null;
+  const prior = weightedAvgRest(completedWorkouts, priorSince, since);
   return {
-    avgRestSeconds: samples > 0 ? Math.round(weighted / samples) : null,
+    avgRestSeconds: current !== null ? Math.round(current) : null,
     totalRestSeconds: Math.round(weighted),
     sessions: inWindow.length,
     recent: inWindow.slice(-8).map((w) => w.averageRestSeconds as number),
+    deltaSeconds: current !== null && prior !== null ? Math.round(current - prior) : null,
   };
 }
 

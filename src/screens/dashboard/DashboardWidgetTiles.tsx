@@ -82,6 +82,14 @@ export function DashboardRestStatsTile({ stats, windowDays }: { stats: RestStats
           <View style={styles.bigRow}>
             <Text style={styles.big}>{formatRest(stats.avgRestSeconds)}</Text>
             <Text style={styles.unit}>avg rest</Text>
+            {stats.deltaSeconds !== null && stats.deltaSeconds !== 0 ? (
+              <View style={[styles.trendPill, { backgroundColor: theme.surfaceMuted }]}>
+                <Icon name={stats.deltaSeconds > 0 ? 'arrow-up' : 'arrow-down'} size={13} color={theme.slate} />
+                <Text style={[styles.trendText, { color: theme.slate }]}>
+                  {formatRest(Math.abs(stats.deltaSeconds))}
+                </Text>
+              </View>
+            ) : null}
           </View>
           <Text style={styles.sub}>{formatMinutes(stats.totalRestSeconds)} resting · {stats.sessions} sessions</Text>
           {stats.recent.length >= 2 ? (

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { muscleGroupOf, muscleBalance, measurementSeries, streakStats } from '../../src/domain/dashboard/widgetMetrics';
+import { muscleGroupOf, muscleBalance, measurementSeries, restStats, streakStats } from '../../src/domain/dashboard/widgetMetrics';
 import type { Workout } from '../../src/types';
 
 test('maps muscle labels and slugs to display groups', () => {
@@ -92,4 +92,27 @@ test('measurement series has no delta from a single reading', () => {
   const s = measurementSeries([entry(0, 82)], 'weight', 90, NOW);
   expect(s.latest).toBe(82);
   expect(s.delta).toBeNull();
+});
+
+function restWorkout(o: number, avgRest: number, samples: number): Workout {
+  return { ...workout(o, 'Strength', ['Chest']), averageRestSeconds: avgRest, restTimerSamples: samples } as Workout;
+}
+
+test('rest stats trend compares the window to the previous equal window', () => {
+  const workouts = [
+    restWorkout(2, 90, 10), // this 7-day window
+    restWorkout(4, 110, 10),
+    restWorkout(9, 140, 10), // previous 7-day window
+    restWorkout(11, 160, 10),
+  ];
+  const stats = restStats(workouts, 7, NOW);
+  expect(stats.avgRestSeconds).toBe(100); // (90+110)/2 weighted equally
+  expect(stats.sessions).toBe(2);
+  expect(stats.deltaSeconds).toBe(-50); // 100 now vs 150 before
+});
+
+test('rest stats have no trend without a prior window', () => {
+  const stats = restStats([restWorkout(1, 90, 10)], 7, NOW);
+  expect(stats.avgRestSeconds).toBe(90);
+  expect(stats.deltaSeconds).toBeNull();
 });
