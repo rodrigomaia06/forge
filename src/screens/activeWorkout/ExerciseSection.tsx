@@ -171,11 +171,12 @@ export const ExerciseSection = React.memo(function ExerciseSection({
 
   const cardGesture = Gesture.Pan()
     .enabled(swipeEnabled)
-    // Require a clearer horizontal intent and fail fast on any vertical motion so
-    // the list's native scroll always wins a near-vertical drag; a too-eager
-    // horizontal recognizer here could pin the scroll until the list remounts.
+    // Whichever axis clears 16 pt first wins: a horizontal-dominant drag reveals
+    // delete, a vertical-dominant one falls through to the list scroll. Matching
+    // the thresholds keeps a real left-swipe from being mistaken for a scroll,
+    // while a vertical drag still fails here before this recognizer pins scroll.
     .activeOffsetX([-16, 16])
-    .failOffsetY([-4, 4])
+    .failOffsetY([-16, 16])
     .onStart(() => {
       runOnJS(beginCardSwipe)();
     })

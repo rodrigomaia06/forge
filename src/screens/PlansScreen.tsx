@@ -517,7 +517,7 @@ function SwipeDelete({
   const pan = Gesture.Pan()
     // Preserve vertical scrolling even when the first few pixels drift sideways.
     .activeOffsetX([-16, 16])
-    .failOffsetY([-6, 6])
+    .failOffsetY([-16, 16])
     .onStart(() => {
       runOnJS(beginSwipe)();
     })

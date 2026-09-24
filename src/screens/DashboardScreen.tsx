@@ -292,11 +292,12 @@ function DashboardTileFrame({
       : withSpring(shouldOpen ? -TILE_DELETE_WIDTH : 0, forgeMotion.swipeSpring);
   };
   // Slide the card left to reveal a destructive action, matching the live-workout
-  // set/exercise swipe. A clear horizontal intent is required and vertical motion
-  // fails fast so the list scroll and the drag rail's long-press still win.
+  // set/exercise swipe. Whichever axis clears 16 pt first wins, so a horizontal
+  // slide is not mistaken for a scroll while a vertical drag still falls through
+  // to the list scroll (and the drag rail keeps its long-press to reorder).
   const swipe = Gesture.Pan()
     .activeOffsetX([-16, 16])
-    .failOffsetY([-6, 6])
+    .failOffsetY([-16, 16])
     .onUpdate((gesture) => {
       if (!open.value && gesture.translationX >= 0) return;
       const base = open.value ? -TILE_DELETE_WIDTH : 0;
