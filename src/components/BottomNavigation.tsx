@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { LayoutAnimation, Platform, UIManager, View, StyleSheet } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   measure,
+  runOnJS,
   useAnimatedRef,
   useAnimatedStyle,
   useSharedValue,
@@ -41,6 +43,9 @@ export function BottomNavigation({
   const { preferences } = useSettings();
   const indicatorOpacity = useSharedValue(0);
   const activeIndex = useSharedValue(0);
+  const dragActive = useSharedValue(0);
+  const dragIndex = useSharedValue(0);
+  const lastScrubIndex = useSharedValue(-1);
   const navigationRef = useAnimatedRef<Animated.View>();
   const reducedMotion = useForgeReducedMotion();
   const hasActiveWorkout = Boolean(activeWorkout);
@@ -90,12 +95,15 @@ export function BottomNavigation({
     // share of the full width; the pill is inset 2pt and centered on its slot:
     // start = i*slotWidth + inset. This holds for any tab count.
     const slotWidth = Math.max(0, navigationWidth / items.length);
+    // While scrubbing, the pill follows the finger's slot instantly; otherwise
+    // it rests on (and animates to) the active tab.
+    const index = dragActive.value ? dragIndex.value : activeIndex.value;
     return {
       opacity: indicatorOpacity.value,
       width: Math.max(0, slotWidth - 4),
-      transform: [{ translateX: 2 + activeIndex.value * slotWidth }],
+      transform: [{ translateX: 2 + index * slotWidth }],
     };
-  }, [activeIndex, indicatorOpacity, items.length, navigationRef, surfaceWidth]);
+  }, [activeIndex, dragActive, dragIndex, indicatorOpacity, items.length, navigationRef, surfaceWidth]);
 
   const goTo = (screen: BottomNavigationScreen): void => {
     const target = state.routes.find((route) => route.name === screen);
@@ -111,7 +119,47 @@ export function BottomNavigation({
     navigation.navigate(screen);
   };
 
+  const itemCount = items.length;
+  const screens = items.map(([, , screen]) => screen);
+  const commitScrub = (index: number): void => {
+    const screen = screens[index];
+    if (screen) goTo(screen);
+  };
+  // Tap a tab, or press-and-drag across the dock and the highlight scrubs to the
+  // slot under the finger as a live preview, committing on release (iOS-26 dock
+  // feel). activeOffsetX lets a plain tap flow through to the tab buttons.
+  const scrub = Gesture.Pan()
+    .activeOffsetX([-8, 8])
+    .onBegin(() => {
+      lastScrubIndex.value = -1;
+    })
+    .onUpdate((event) => {
+      if (!surfaceWidth) return;
+      const navigationWidth = Math.max(0, surfaceWidth.value - 14);
+      const slotWidth = itemCount > 0 ? navigationWidth / itemCount : 0;
+      if (slotWidth <= 0) return;
+      const index = Math.min(itemCount - 1, Math.max(0, Math.floor(event.x / slotWidth)));
+      dragIndex.value = index;
+      dragActive.value = 1;
+      if (index !== lastScrubIndex.value) {
+        lastScrubIndex.value = index;
+        runOnJS(selectionHaptic)();
+      }
+    })
+    .onEnd(() => {
+      const index = dragIndex.value;
+      // Hold the highlight on the committed slot so it never flashes back to the
+      // previous tab before the route (and activeIndex) catch up.
+      activeIndex.value = index;
+      dragActive.value = 0;
+      runOnJS(commitScrub)(index);
+    })
+    .onFinalize(() => {
+      dragActive.value = 0;
+    });
+
   return (
+    <GestureDetector gesture={scrub}>
     <Animated.View ref={navigationRef} style={[styles.navigation, compact && styles.navigationCompact]}>
       <Animated.View
         testID="dashboard-nav-selection-pill"
@@ -158,6 +206,7 @@ export function BottomNavigation({
         );
       })}
     </Animated.View>
+    </GestureDetector>
   );
 }
 

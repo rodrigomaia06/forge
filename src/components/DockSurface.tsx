@@ -9,6 +9,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { BlurView } from 'expo-blur';
 import { BottomNavigation } from './BottomNavigation';
 import { dashboardTheme } from '../theme/dashboardTheme';
 import { forgeMotion, forgeMotionDuration, useForgeReducedMotion } from '../theme/motion';
@@ -92,12 +93,26 @@ export function DockSurface({
         styles.dock,
         surfaceAnimatedStyle,
         {
-          backgroundColor: theme.dock ?? theme.dockSurface,
           borderColor: theme.border ?? theme.dockBorder,
           shadowColor: theme.shadow,
         },
       ]}
     >
+      {/* Frosted translucency: the system blur samples the content behind the
+          dock, and a low-opacity dock-coloured film keeps it recognisably Forge
+          rather than plain clear glass. Falls back to the tint film alone where
+          a platform cannot blur. */}
+      <BlurView
+        intensity={36}
+        tint={theme.colorScheme === 'dark' ? 'dark' : 'light'}
+        experimentalBlurMethod="dimezisBlurView"
+        pointerEvents="none"
+        style={StyleSheet.absoluteFill}
+      />
+      <View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, styles.dockTint, { backgroundColor: theme.dock ?? theme.dockSurface }]}
+      />
       {children || (
         <BottomNavigation
           tabBarProps={tabBarProps}
@@ -124,4 +139,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 7 },
     elevation: 6,
   },
+  // A translucent dock-coloured film over the blur so the surface stays on-brand
+  // instead of reading as generic clear glass.
+  dockTint: { opacity: 0.55 },
 });
