@@ -508,9 +508,15 @@ function TargetsSection({
 
 function targetText(targets: WorkoutSet['targets'] | undefined, set: WorkoutSet, kind: SetMeasurementKind, isRoutineInterval: boolean): string {
   const target = targets?.find((item) => item.kind === kind);
-  if (target?.minValue !== undefined) return formatTargetValues(target.minValue, target.maxValue);
+  // The user's decimal separator lives on in the raw legacy string (written
+  // alongside the numeric target). Reuse it so a comma target such as `82,5`
+  // is not silently rewritten to `82.5` when re-rendered from the number.
+  const legacyRaw = kind === 'reps' ? set.targetReps : kind === 'weight' || kind === 'addedWeight' ? set.targetWeight : undefined;
+  if (target?.minValue !== undefined) {
+    return formatTargetValues(target.minValue, target.maxValue, isRoutineInterval ? '.' : decimalSeparatorOf(legacyRaw));
+  }
   if (isRoutineInterval) return '';
-  return kind === 'reps' ? set.targetReps ?? '' : kind === 'weight' || kind === 'addedWeight' ? set.targetWeight ?? '' : '';
+  return legacyRaw ?? '';
 }
 function targetUnitLabel(kind: SetMeasurementKind): string {
   return kind === 'reps' ? 'reps' : measurementUnit[kind];
@@ -541,13 +547,25 @@ function targetValues(text: string, commaAsDecimal: boolean): number[] {
     .filter(Number.isFinite);
 }
 
-function formatTargetValues(minValue: number, maxValue?: number): string {
-  return maxValue !== undefined && maxValue !== minValue ? `${minValue}–${maxValue}` : String(minValue);
+/** Which decimal separator the user typed, so canonical text can preserve it. */
+function decimalSeparatorOf(raw: string | undefined): ',' | '.' {
+  return raw?.includes(',') && !raw.includes('.') ? ',' : '.';
+}
+
+function formatTargetValues(minValue: number, maxValue?: number, decimalSeparator: ',' | '.' = '.'): string {
+  const format = (value: number): string =>
+    decimalSeparator === ',' ? String(value).replace('.', ',') : String(value);
+  return maxValue !== undefined && maxValue !== minValue
+    ? `${format(minValue)}–${format(maxValue)}`
+    : format(minValue);
 }
 
 function normalizedTargetText(text: string, commaAsDecimal: boolean): string {
   const [minValue, maxValue] = targetValues(text, commaAsDecimal);
-  return minValue === undefined ? '' : formatTargetValues(minValue, maxValue);
+  if (minValue === undefined) return '';
+  // Keep the separator the user actually entered (comma stays comma) for single
+  // next-session targets; routine ranges always canonicalise to a period.
+  return formatTargetValues(minValue, maxValue, commaAsDecimal ? decimalSeparatorOf(text) : '.');
 }
 
 function TargetRow({
