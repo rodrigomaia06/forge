@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { muscleGroupOf, muscleBalance, streakStats } from '../../src/domain/dashboard/widgetMetrics';
+import { muscleGroupOf, muscleBalance, measurementSeries, streakStats } from '../../src/domain/dashboard/widgetMetrics';
 import type { Workout } from '../../src/types';
 
 test('maps muscle labels and slugs to display groups', () => {
@@ -66,4 +66,30 @@ test('streak breaks when a prior week misses the goal', () => {
   ];
   const streak = streakStats(workouts, 3, {}, NOW, 1);
   expect(streak.streakWeeks).toBe(1); // only this week counts
+});
+
+function entry(dateOffsetDays: number, value: number, definitionId = 'weight') {
+  const d = new Date(2026, 0, 15 - dateOffsetDays, 12);
+  const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return { id: `e-${dateOffsetDays}`, definitionId, date, value };
+}
+
+test('measurement series windows, sorts, and computes the delta', () => {
+  const entries = [
+    entry(0, 82), // today
+    entry(10, 80),
+    entry(40, 78), // outside a 30-day window
+    entry(5, 81, 'other'), // different metric
+  ];
+  const s = measurementSeries(entries, 'weight', 30, NOW);
+  expect(s.values).toEqual([80, 82]); // oldest → newest, in-window only
+  expect(s.latest).toBe(82);
+  expect(s.delta).toBe(2); // 82 - 80
+  expect(s.count).toBe(2);
+});
+
+test('measurement series has no delta from a single reading', () => {
+  const s = measurementSeries([entry(0, 82)], 'weight', 90, NOW);
+  expect(s.latest).toBe(82);
+  expect(s.delta).toBeNull();
 });

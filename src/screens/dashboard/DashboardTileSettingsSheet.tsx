@@ -80,6 +80,7 @@ function Stepper({ value, min, max, onChange, label }: { value: number; min: num
 const WINDOW_DAYS: Partial<Record<DashboardTileKind, number[]>> = {
   'rest-stats': [7, 30, 90],
   'muscle-heatmap': [7, 14, 30],
+  measurement: [30, 90, 180],
 };
 const WINDOW_WEEKS: Partial<Record<DashboardTileKind, number[]>> = {
   'muscle-balance': [4, 8, 12],

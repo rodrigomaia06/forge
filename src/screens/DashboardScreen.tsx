@@ -27,6 +27,7 @@ import {
 } from './dashboard/DashboardSummaryParts';
 import {
   DashboardConsistencyTile,
+  DashboardMeasurementTile,
   DashboardMuscleBalanceTile,
   DashboardMuscleHeatmapTile,
   DashboardRestStatsTile,
@@ -35,6 +36,7 @@ import {
 import { DashboardTileSettingsSheet } from './dashboard/DashboardTileSettingsSheet';
 import {
   consistency as consistencyMetric,
+  measurementSeries,
   muscleBalance,
   muscleHeat,
   restStats,
@@ -52,6 +54,7 @@ import { calendarDateKey } from '../domain/workouts/calendarDate';
 import type { WeekStripDay } from './dashboard/dashboardSummary';
 import {
   DASHBOARD_TILE_DEFAULT_TITLE,
+  measurementTileId,
   tileHasSettings,
   tileSettings,
   useDashboardLayout,
@@ -79,7 +82,23 @@ const TILE_TEST_ID: Record<DashboardTileKind, string> = {
   consistency: 'dashboard-consistency',
   streak: 'dashboard-streak',
   'muscle-heatmap': 'dashboard-muscle-heatmap',
+  measurement: 'dashboard-measurement',
 };
+
+function tileTestId(config: DashboardTileConfig): string {
+  if (config.kind === 'measurement') return `dashboard-measurement-${config.settings?.measurementId ?? 'x'}`;
+  return TILE_TEST_ID[config.kind];
+}
+function tileName(config: DashboardTileConfig): string {
+  return config.title ?? DASHBOARD_TILE_DEFAULT_TITLE[config.kind];
+}
+
+function localDateKey(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 export function DashboardScreen() {
   const theme = useForgeTheme();
@@ -88,12 +107,28 @@ export function DashboardScreen() {
   const dockScrollInset = useForgeDockScrollInset();
   const { completedWorkouts } = useWorkouts();
   const { plans, standaloneRoutines } = usePlans();
-  const { preferences } = useSettings();
+  const { preferences, updatePreferences } = useSettings();
   const starter = useWorkoutStarter();
   const { layout, setLayout } = useDashboardLayout();
   const [editing, setEditing] = useState(false);
   const [addTileOpen, setAddTileOpen] = useState(false);
-  const [settingsTile, setSettingsTile] = useState<DashboardTileKind | null>(null);
+  const [settingsTileId, setSettingsTileId] = useState<string | null>(null);
+
+  const measurementDefById = useMemo(
+    () => new Map(preferences.dailyMeasurementDefinitions.map((def) => [def.id, def])),
+    [preferences.dailyMeasurementDefinitions],
+  );
+
+  const logMeasurement = (definitionId: string, value: number) => {
+    const date = localDateKey();
+    const entries = preferences.dailyMeasurementEntries;
+    const existing = entries.find((entry) => entry.definitionId === definitionId && entry.date === date);
+    updatePreferences({
+      dailyMeasurementEntries: existing
+        ? entries.map((entry) => (entry.id === existing.id ? { ...entry, value } : entry))
+        : [...entries, { id: `measurement-${Date.now()}`, definitionId, date, value }],
+    });
+  };
 
   const summary = useMemo(() => {
     const now = new Date();
@@ -137,21 +172,49 @@ export function DashboardScreen() {
 
   const persistOrder = (nextVisible: DashboardTileConfig[]) =>
     setLayout([...nextVisible, ...layout.filter((tile) => !tile.visible)]);
-  const hideTile = (kind: DashboardTileKind) => {
+  const hideTile = (id: string) => {
     selectionHaptic();
-    setLayout(layout.map((tile) => (tile.kind === kind ? { ...tile, visible: false } : tile)));
+    setLayout(layout.map((tile) => (tile.id === id ? { ...tile, visible: false } : tile)));
   };
-  const addTile = (kind: DashboardTileKind) => {
+  // Upserts a tile by id: re-shows a hidden one, or appends a brand-new one
+  // (e.g. a measurement tile that has no prior layout entry).
+  const addTile = (config: DashboardTileConfig) => {
     selectionHaptic();
     setLayout([
-      ...layout.filter((tile) => tile.kind !== kind),
-      { ...(layout.find((tile) => tile.kind === kind) ?? { kind, visible: true }), visible: true },
+      ...layout.filter((tile) => tile.id !== config.id),
+      { ...config, visible: true },
     ]);
     setAddTileOpen(false);
   };
 
-  const updateTileSettings = (kind: DashboardTileKind, settings: DashboardTileSettings) =>
-    setLayout(layout.map((tile) => (tile.kind === kind ? { ...tile, settings } : tile)));
+  const updateTileSettings = (id: string, settings: DashboardTileSettings) =>
+    setLayout(layout.map((tile) => (tile.id === id ? { ...tile, settings } : tile)));
+
+  // Tiles you can add: hidden built-ins/measurements, plus any tracked
+  // measurement that has no tile yet.
+  const addableTiles: { key: string; label: string; onPress: () => void }[] = [
+    ...hiddenTiles.map((tile) => ({
+      key: tile.id,
+      label: tile.kind === 'measurement'
+        ? measurementDefById.get(tile.settings?.measurementId ?? '')?.name ?? tileName(tile)
+        : tileName(tile),
+      onPress: () => addTile({ ...tile, visible: true }),
+    })),
+    ...preferences.dailyMeasurementDefinitions
+      .filter((def) => !layout.some((tile) => tile.id === measurementTileId(def.id)))
+      .map((def) => ({
+        key: measurementTileId(def.id),
+        label: def.name,
+        onPress: () =>
+          addTile({
+            id: measurementTileId(def.id),
+            kind: 'measurement',
+            visible: true,
+            title: def.name,
+            settings: { measurementId: def.id, windowDays: 90 },
+          }),
+      })),
+  ];
 
   const renderTileContent = (config: DashboardTileConfig) => {
     const kind = config.kind;
@@ -202,6 +265,19 @@ export function DashboardScreen() {
         return <DashboardStreakTile stats={streakStats(completedWorkouts, s.weeklyTargetDefault ?? 3, s.weeklyTargets ?? {}, new Date(), preferences.weekStartsOn)} />;
       case 'muscle-heatmap':
         return <DashboardMuscleHeatmapTile heat={muscleHeat(completedWorkouts, s.windowDays ?? 14, new Date())} windowDays={s.windowDays ?? 14} />;
+      case 'measurement': {
+        const definition = s.measurementId ? measurementDefById.get(s.measurementId) : undefined;
+        if (!definition) return <Text style={styles.tileMissing}>This measurement was removed</Text>;
+        const windowDays = s.windowDays ?? 90;
+        return (
+          <DashboardMeasurementTile
+            definition={definition}
+            series={measurementSeries(preferences.dailyMeasurementEntries, definition.id, windowDays, new Date())}
+            windowDays={windowDays}
+            onLog={(value) => logMeasurement(definition.id, value)}
+          />
+        );
+      }
       default:
         return null;
     }
@@ -213,7 +289,7 @@ export function DashboardScreen() {
         <DraggableFlatList
           testID="dashboard-scroll"
           data={visibleTiles}
-          keyExtractor={(tile) => tile.kind}
+          keyExtractor={(tile) => tile.id}
           extraData={{ summary, editing }}
           activationDistance={editing ? 12 : 100000}
           showsVerticalScrollIndicator={false}
@@ -233,7 +309,7 @@ export function DashboardScreen() {
           }
           ListFooterComponent={
             <View style={{ paddingBottom: dockScrollInset }}>
-              {editing && hiddenTiles.length ? (
+              {editing && addableTiles.length ? (
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Add tile"
@@ -252,13 +328,13 @@ export function DashboardScreen() {
           onDragEnd={({ data }) => persistOrder(data)}
           renderItem={({ item, drag, isActive }) => (
             <DashboardTileFrame
-              testID={TILE_TEST_ID[item.kind]}
-              name={DASHBOARD_TILE_DEFAULT_TITLE[item.kind]}
+              testID={tileTestId(item)}
+              name={tileName(item)}
               editing={editing}
               isActive={isActive}
               onDrag={drag}
-              onRemove={() => hideTile(item.kind)}
-              onOpenSettings={tileHasSettings(item.kind) ? () => { selectionHaptic(); setSettingsTile(item.kind); } : undefined}
+              onRemove={() => hideTile(item.id)}
+              onOpenSettings={tileHasSettings(item.kind) ? () => { selectionHaptic(); setSettingsTileId(item.id); } : undefined}
             >
               {renderTileContent(item)}
             </DashboardTileFrame>
@@ -270,17 +346,17 @@ export function DashboardScreen() {
           onClose={() => setAddTileOpen(false)}
           accessibilityLabel="Dismiss add tile chooser"
           title="Add tile"
-          actions={hiddenTiles.map((tile) => ({
-            label: DASHBOARD_TILE_DEFAULT_TITLE[tile.kind],
+          actions={addableTiles.map((tile) => ({
+            label: tile.label,
             icon: 'add' as const,
-            onPress: () => addTile(tile.kind),
+            onPress: tile.onPress,
           }))}
         />
         <DashboardTileSettingsSheet
-          config={settingsTile ? (layout.find((tile) => tile.kind === settingsTile) ?? null) : null}
+          config={settingsTileId ? (layout.find((tile) => tile.id === settingsTileId) ?? null) : null}
           workoutTypes={preferences.workoutTypes}
-          onChange={(next) => settingsTile && updateTileSettings(settingsTile, next)}
-          onClose={() => setSettingsTile(null)}
+          onChange={(next) => settingsTileId && updateTileSettings(settingsTileId, next)}
+          onClose={() => setSettingsTileId(null)}
         />
       </View>
     </AppScreen>
@@ -492,4 +568,5 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
     borderStyle: 'dashed',
   },
   addTileLabel: { color: theme.ink, ...typeScale.controlLabel },
+  tileMissing: { color: theme.muted, ...typeScale.body },
 });

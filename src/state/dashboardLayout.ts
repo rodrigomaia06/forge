@@ -11,7 +11,8 @@ export type DashboardTileKind =
   | 'muscle-balance'
   | 'consistency'
   | 'streak'
-  | 'muscle-heatmap';
+  | 'muscle-heatmap'
+  | 'measurement';
 
 /** Per-tile configuration edited from the tile's edit-mode gear. */
 export interface DashboardTileSettings {
@@ -22,15 +23,25 @@ export interface DashboardTileSettings {
   /** Streak: workouts-per-week target per workout-type id (plus a default). */
   weeklyTargetDefault?: number;
   weeklyTargets?: Record<string, number>;
+  /** Measurement tile: which daily measurement definition it shows. */
+  measurementId?: string;
 }
 
 export interface DashboardTileConfig {
+  /** Stable per-instance id. Built-ins use their kind; measurement tiles use
+   * `measurement:<definitionId>` so several can coexist. */
+  id: string;
   kind: DashboardTileKind;
   visible: boolean;
   /** Custom title override; falls back to the tile's default when absent. */
   title?: string;
   /** Card-specific configuration; absent means "use the tile's defaults". */
   settings?: DashboardTileSettings;
+}
+
+export const MEASUREMENT_TILE_PREFIX = 'measurement:';
+export function measurementTileId(definitionId: string): string {
+  return `${MEASUREMENT_TILE_PREFIX}${definitionId}`;
 }
 
 const STORAGE_KEY = '@forge/dashboard-layout-v1';
@@ -61,6 +72,7 @@ export const DASHBOARD_TILE_DEFAULT_TITLE: Record<DashboardTileKind, string> = {
   consistency: 'Consistency',
   streak: 'Streak',
   'muscle-heatmap': 'Muscle heatmap',
+  measurement: 'Measurement',
 };
 
 /** Default settings a tile starts with, and the domain of what its gear edits. */
@@ -70,6 +82,7 @@ export const DASHBOARD_TILE_DEFAULT_SETTINGS: Partial<Record<DashboardTileKind, 
   consistency: { windowWeeks: 16 },
   streak: { weeklyTargetDefault: 3, weeklyTargets: {} },
   'muscle-heatmap': { windowDays: 14 },
+  measurement: { windowDays: 90 },
 };
 
 /** Which tiles expose an edit-mode gear (and therefore a settings sheet). */
@@ -83,7 +96,7 @@ export function tileSettings(config: DashboardTileConfig): DashboardTileSettings
 }
 
 export function defaultDashboardLayout(): DashboardTileConfig[] {
-  return DASHBOARD_TILE_ORDER.map((kind) => ({ kind, visible: true }));
+  return DASHBOARD_TILE_ORDER.map((kind) => ({ id: kind, kind, visible: true }));
 }
 
 /**
@@ -93,26 +106,33 @@ export function defaultDashboardLayout(): DashboardTileConfig[] {
  */
 export function reconcileLayout(saved: unknown): DashboardTileConfig[] {
   const known = new Set(DASHBOARD_TILE_ORDER);
-  const seen = new Set<DashboardTileKind>();
+  const seen = new Set<string>();
   const result: DashboardTileConfig[] = [];
   if (Array.isArray(saved)) {
-    for (const entry of saved) {
-      const kind = (entry as DashboardTileConfig)?.kind;
-      if (!known.has(kind) || seen.has(kind)) continue;
-      seen.add(kind);
-      const settings = (entry as DashboardTileConfig).settings;
+    for (const raw of saved) {
+      const entry = raw as DashboardTileConfig;
+      const kind = entry?.kind;
+      const isMeasurement = kind === 'measurement';
+      // Measurement tiles are keyed per instance; built-ins by their kind.
+      const id = typeof entry?.id === 'string' && entry.id ? entry.id : kind;
+      if (isMeasurement) {
+        if (typeof id !== 'string' || !id.startsWith(MEASUREMENT_TILE_PREFIX) || !entry.settings?.measurementId || seen.has(id)) continue;
+      } else if (!known.has(kind) || seen.has(id)) {
+        continue;
+      }
+      seen.add(id);
+      const settings = entry.settings;
       result.push({
+        id: id as string,
         kind,
-        visible: (entry as DashboardTileConfig).visible !== false,
-        title: typeof (entry as DashboardTileConfig).title === 'string' && (entry as DashboardTileConfig).title!.trim()
-          ? (entry as DashboardTileConfig).title
-          : undefined,
+        visible: entry.visible !== false,
+        title: typeof entry.title === 'string' && entry.title.trim() ? entry.title : undefined,
         settings: settings && typeof settings === 'object' ? settings : undefined,
       });
     }
   }
   for (const kind of DASHBOARD_TILE_ORDER) {
-    if (!seen.has(kind)) result.push({ kind, visible: true });
+    if (!seen.has(kind)) result.push({ id: kind, kind, visible: true });
   }
   return result;
 }

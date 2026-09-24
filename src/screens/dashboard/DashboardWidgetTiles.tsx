@@ -1,13 +1,13 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, Polyline, Rect, Stop } from 'react-native-svg';
 
-import { ForgeText as Text, Icon } from '../../components/ui';
+import { ForgeText as Text, Icon, pressedFeedback, selectionHaptic } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import type { ForgeTheme, IconName } from '../../types';
-import { MUSCLE_GROUPS, type MuscleGroup, type RestStats, type Consistency, type StreakStats } from '../../domain/dashboard/widgetMetrics';
+import type { DailyMeasurementDefinition, ForgeTheme, IconName } from '../../types';
+import { MUSCLE_GROUPS, type MeasurementSeries, type MuscleGroup, type RestStats, type Consistency, type StreakStats } from '../../domain/dashboard/widgetMetrics';
 
 /** #rrggbb (or #rgb) → rgba() so a heat step blends over the card surface. */
 function hexToRgba(hex: string, alpha: number): string {
@@ -252,6 +252,99 @@ export function DashboardMuscleHeatmapTile({ heat, windowDays }: { heat: Record<
   );
 }
 
+function formatMeasure(value: number): string {
+  const rounded = Math.round(value * 10) / 10;
+  return rounded.toLocaleString(undefined, { maximumFractionDigits: 1 });
+}
+
+export function DashboardMeasurementTile({
+  definition,
+  series,
+  windowDays,
+  onLog,
+}: {
+  definition: DailyMeasurementDefinition;
+  series: MeasurementSeries;
+  windowDays: number;
+  onLog: (value: number) => void;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  const [draft, setDraft] = React.useState('');
+  const color = definition.color || (theme.selectionIndicator ?? theme.ink);
+  const unit = definition.unit;
+  const up = series.delta !== null && series.delta > 0;
+
+  const commit = () => {
+    const parsed = Number(draft.trim().replace(',', '.'));
+    if (!draft.trim() || Number.isNaN(parsed)) return;
+    selectionHaptic();
+    onLog(parsed);
+    setDraft('');
+  };
+
+  return (
+    <View style={styles.block}>
+      <TileHead
+        icon={definition.icon}
+        title={definition.name}
+        trailing={<Text style={styles.sub}>{windowDays}d</Text>}
+      />
+      {series.latest !== null ? (
+        <>
+          <View style={styles.bigRow}>
+            <Text style={styles.big}>{formatMeasure(series.latest)}</Text>
+            {unit ? <Text style={styles.unit}>{unit}</Text> : null}
+            {series.delta !== null && series.delta !== 0 ? (
+              <View style={[styles.trendPill, { backgroundColor: hexToRgba(color, 0.14) }]}>
+                <Icon name={up ? 'arrow-up' : 'arrow-down'} size={13} color={color} />
+                <Text style={[styles.trendText, { color }]}>
+                  {up ? '+' : ''}{formatMeasure(series.delta)}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+          {series.values.length >= 2 ? (
+            <View style={styles.sparkWrap}><WidgetSparkline values={series.values} color={color} /></View>
+          ) : (
+            <Text style={styles.sub}>One reading · log more to see a trend</Text>
+          )}
+        </>
+      ) : (
+        <Text style={styles.empty}>No readings yet — log your first below</Text>
+      )}
+      <View style={styles.logRow}>
+        <View style={[styles.logField, { borderColor: theme.border }]}>
+          <TextInput
+            value={draft}
+            onChangeText={setDraft}
+            keyboardType="decimal-pad"
+            placeholder={`Log ${definition.name.toLowerCase()}`}
+            placeholderTextColor={theme.muted}
+            style={styles.logInput}
+            onSubmitEditing={commit}
+            returnKeyType="done"
+          />
+          {unit ? <Text style={styles.logUnit}>{unit}</Text> : null}
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Log ${definition.name}`}
+          onPress={commit}
+          disabled={!draft.trim()}
+          style={({ pressed }) => [
+            styles.logButton,
+            { backgroundColor: draft.trim() ? theme.selectionIndicator : theme.surfaceMuted },
+            pressed && draft.trim() && pressedFeedback,
+          ]}
+        >
+          <Icon name="add" size={18} color={draft.trim() ? (theme.onActionPrimary ?? theme.surface) : theme.muted} />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   block: { gap: 10 },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingRight: 26 },
@@ -279,4 +372,21 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   bodyCol: { flex: 1, alignItems: 'center', gap: 2 },
   legend: { flexDirection: 'row', alignItems: 'center', gap: 5, justifyContent: 'center' },
   legendChip: { width: 13, height: 13, borderRadius: 3 },
+  trendPill: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+  trendText: { fontVariant: ['tabular-nums'], ...typeScale.caption },
+  logRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
+  logField: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: theme.surfaceMuted,
+  },
+  logInput: { flex: 1, color: theme.ink, padding: 0, ...typeScale.body },
+  logUnit: { color: theme.muted, ...typeScale.caption },
+  logButton: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
 });

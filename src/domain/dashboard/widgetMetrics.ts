@@ -233,3 +233,50 @@ export function streakStats(
     metThisWeek,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Measurement tiles — trend of any tracked daily measurement over a window.
+// ---------------------------------------------------------------------------
+export interface MeasurementSeries {
+  /** Chronological values (oldest → newest) inside the window, for the sparkline. */
+  values: number[];
+  latest: number | null;
+  /** Change from the first in-window value to the latest, or null when < 2 points. */
+  delta: number | null;
+  /** Total points recorded inside the window. */
+  count: number;
+}
+
+/** A daily measurement entry: `{ definitionId, date: 'YYYY-MM-DD', value }`. */
+interface MeasurementEntryLike {
+  definitionId: string;
+  date: string;
+  value: number;
+}
+
+function localDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/** Windowed, date-sorted series for one measurement definition. */
+export function measurementSeries(
+  entries: MeasurementEntryLike[],
+  definitionId: string,
+  windowDays: number,
+  now: Date = new Date(),
+): MeasurementSeries {
+  const cutoff = localDateKey(addDays(now, -windowDays));
+  const inWindow = entries
+    .filter((entry) => entry.definitionId === definitionId && entry.date >= cutoff)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const values = inWindow.map((entry) => entry.value);
+  return {
+    values,
+    latest: values.length ? values[values.length - 1] : null,
+    delta: values.length >= 2 ? values[values.length - 1] - values[0] : null,
+    count: values.length,
+  };
+}
