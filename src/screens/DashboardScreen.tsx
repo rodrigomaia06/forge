@@ -75,7 +75,7 @@ export function DashboardScreen() {
     const now = new Date();
     const { days, workoutCount } = weekStrip(completedWorkouts, now, preferences.weekStartsOn);
     const { totalSeconds, perDaySeconds } = trainingTimeThisWeek(completedWorkouts, now, preferences.weekStartsOn);
-    const { thisWeekKg, deltaPct } = weekVolume(completedWorkouts, now, preferences.weekStartsOn);
+    const { thisWeekKg, lastWeekKg, deltaPct } = weekVolume(completedWorkouts, now, preferences.weekStartsOn);
     const suggestion = suggestNextWorkout({ completedWorkouts, plans, standaloneRoutines, now });
     return {
       days,
@@ -83,6 +83,7 @@ export function DashboardScreen() {
       totalSeconds,
       perDaySeconds,
       thisWeekKg,
+      lastWeekKg,
       deltaPct,
       suggestion,
       lastWorkout: lastCompletedWorkout(completedWorkouts),
@@ -161,7 +162,7 @@ export function DashboardScreen() {
           />
         );
       case 'volume':
-        return <DashboardVolumeTile thisWeekKg={summary.thisWeekKg} deltaPct={summary.deltaPct} />;
+        return <DashboardVolumeTile thisWeekKg={summary.thisWeekKg} lastWeekKg={summary.lastWeekKg} deltaPct={summary.deltaPct} />;
       default:
         return null;
     }

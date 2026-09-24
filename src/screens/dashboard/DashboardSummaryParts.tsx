@@ -250,14 +250,20 @@ export function DashboardLastWorkoutTile({
 
 export function DashboardVolumeTile({
   thisWeekKg,
+  lastWeekKg,
   deltaPct,
 }: {
   thisWeekKg: number;
+  lastWeekKg: number;
   deltaPct: number | null;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const deltaUp = (deltaPct ?? 0) >= 0;
+  // An empty week is not zero volume — it means "nothing logged yet". Keep the
+  // tile useful by carrying last week's total forward as context, so the number
+  // still means something on a Monday morning.
+  const started = thisWeekKg > 0;
   return (
     <View style={styles.wideInner}>
       <View style={[styles.tileIcon, { backgroundColor: theme.surfaceMuted }]}>
@@ -265,13 +271,17 @@ export function DashboardVolumeTile({
       </View>
       <View style={styles.wideCopy}>
         <Text style={styles.tileLabel}>{DASHBOARD_TILE_DEFAULT_TITLE.volume}</Text>
-        {thisWeekKg > 0 ? (
+        {started ? (
           <Text style={styles.wideValue} numberOfLines={1}>{formatVolume(thisWeekKg)}</Text>
+        ) : lastWeekKg > 0 ? (
+          <Text style={styles.tileDetail} numberOfLines={1}>
+            Nothing yet · last week {formatVolume(lastWeekKg)}
+          </Text>
         ) : (
-          <Text style={styles.tileEmpty}>—</Text>
+          <Text style={styles.tileEmpty}>No training logged yet</Text>
         )}
       </View>
-      {thisWeekKg > 0 && deltaPct !== null ? (
+      {started && deltaPct !== null ? (
         <View style={styles.deltaRow}>
           <Icon name={deltaUp ? 'arrow-up' : 'arrow-down'} size={14} color={theme.slate} />
           <Text style={styles.tileDetail}>{Math.abs(deltaPct)}%</Text>
