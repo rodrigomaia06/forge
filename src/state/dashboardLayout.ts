@@ -1,13 +1,36 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type DashboardTileKind = 'start' | 'week' | 'training-time' | 'last-workout' | 'volume';
+export type DashboardTileKind =
+  | 'start'
+  | 'week'
+  | 'training-time'
+  | 'last-workout'
+  | 'volume'
+  | 'rest-stats'
+  | 'muscle-balance'
+  | 'consistency'
+  | 'streak'
+  | 'muscle-heatmap';
+
+/** Per-tile configuration edited from the tile's edit-mode gear. */
+export interface DashboardTileSettings {
+  /** Trend/aggregation window in days (rest, heatmap). */
+  windowDays?: number;
+  /** Aggregation window in weeks (muscle balance, consistency, streak). */
+  windowWeeks?: number;
+  /** Streak: workouts-per-week target per workout-type id (plus a default). */
+  weeklyTargetDefault?: number;
+  weeklyTargets?: Record<string, number>;
+}
 
 export interface DashboardTileConfig {
   kind: DashboardTileKind;
   visible: boolean;
   /** Custom title override; falls back to the tile's default when absent. */
   title?: string;
+  /** Card-specific configuration; absent means "use the tile's defaults". */
+  settings?: DashboardTileSettings;
 }
 
 const STORAGE_KEY = '@forge/dashboard-layout-v1';
@@ -18,6 +41,11 @@ export const DASHBOARD_TILE_ORDER: DashboardTileKind[] = [
   'training-time',
   'last-workout',
   'volume',
+  'rest-stats',
+  'muscle-balance',
+  'consistency',
+  'streak',
+  'muscle-heatmap',
 ];
 
 export const DASHBOARD_TILE_DEFAULT_TITLE: Record<DashboardTileKind, string> = {
@@ -28,7 +56,31 @@ export const DASHBOARD_TILE_DEFAULT_TITLE: Record<DashboardTileKind, string> = {
   'training-time': 'Training time',
   'last-workout': 'Last workout',
   volume: 'Training volume',
+  'rest-stats': 'Rest timer',
+  'muscle-balance': 'Muscle balance',
+  consistency: 'Consistency',
+  streak: 'Streak',
+  'muscle-heatmap': 'Muscle heatmap',
 };
+
+/** Default settings a tile starts with, and the domain of what its gear edits. */
+export const DASHBOARD_TILE_DEFAULT_SETTINGS: Partial<Record<DashboardTileKind, DashboardTileSettings>> = {
+  'rest-stats': { windowDays: 30 },
+  'muscle-balance': { windowWeeks: 4 },
+  consistency: { windowWeeks: 16 },
+  streak: { weeklyTargetDefault: 3, weeklyTargets: {} },
+  'muscle-heatmap': { windowDays: 14 },
+};
+
+/** Which tiles expose an edit-mode gear (and therefore a settings sheet). */
+export function tileHasSettings(kind: DashboardTileKind): boolean {
+  return Boolean(DASHBOARD_TILE_DEFAULT_SETTINGS[kind]);
+}
+
+/** Merges a tile's saved settings over its defaults. */
+export function tileSettings(config: DashboardTileConfig): DashboardTileSettings {
+  return { ...(DASHBOARD_TILE_DEFAULT_SETTINGS[config.kind] ?? {}), ...(config.settings ?? {}) };
+}
 
 export function defaultDashboardLayout(): DashboardTileConfig[] {
   return DASHBOARD_TILE_ORDER.map((kind) => ({ kind, visible: true }));
@@ -48,12 +100,14 @@ export function reconcileLayout(saved: unknown): DashboardTileConfig[] {
       const kind = (entry as DashboardTileConfig)?.kind;
       if (!known.has(kind) || seen.has(kind)) continue;
       seen.add(kind);
+      const settings = (entry as DashboardTileConfig).settings;
       result.push({
         kind,
         visible: (entry as DashboardTileConfig).visible !== false,
         title: typeof (entry as DashboardTileConfig).title === 'string' && (entry as DashboardTileConfig).title!.trim()
           ? (entry as DashboardTileConfig).title
           : undefined,
+        settings: settings && typeof settings === 'object' ? settings : undefined,
       });
     }
   }

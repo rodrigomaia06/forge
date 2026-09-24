@@ -25,6 +25,21 @@ import {
   DashboardVolumeTile,
   DashboardWeekCard,
 } from './dashboard/DashboardSummaryParts';
+import {
+  DashboardConsistencyTile,
+  DashboardMuscleBalanceTile,
+  DashboardMuscleHeatmapTile,
+  DashboardRestStatsTile,
+  DashboardStreakTile,
+} from './dashboard/DashboardWidgetTiles';
+import { DashboardTileSettingsSheet } from './dashboard/DashboardTileSettingsSheet';
+import {
+  consistency as consistencyMetric,
+  muscleBalance,
+  muscleHeat,
+  restStats,
+  streakStats,
+} from '../domain/dashboard/widgetMetrics';
 import { useWorkoutStarter } from './dashboard/workoutStarter';
 import {
   lastCompletedWorkout,
@@ -37,9 +52,12 @@ import { calendarDateKey } from '../domain/workouts/calendarDate';
 import type { WeekStripDay } from './dashboard/dashboardSummary';
 import {
   DASHBOARD_TILE_DEFAULT_TITLE,
+  tileHasSettings,
+  tileSettings,
   useDashboardLayout,
   type DashboardTileConfig,
   type DashboardTileKind,
+  type DashboardTileSettings,
 } from '../state/dashboardLayout';
 import { useWorkouts } from '../state/WorkoutContext';
 import { usePlans } from '../state/PlansContext';
@@ -56,6 +74,11 @@ const TILE_TEST_ID: Record<DashboardTileKind, string> = {
   'training-time': 'dashboard-training-time',
   'last-workout': 'dashboard-last-workout',
   volume: 'dashboard-volume',
+  'rest-stats': 'dashboard-rest-stats',
+  'muscle-balance': 'dashboard-muscle-balance',
+  consistency: 'dashboard-consistency',
+  streak: 'dashboard-streak',
+  'muscle-heatmap': 'dashboard-muscle-heatmap',
 };
 
 export function DashboardScreen() {
@@ -70,6 +93,7 @@ export function DashboardScreen() {
   const { layout, setLayout } = useDashboardLayout();
   const [editing, setEditing] = useState(false);
   const [addTileOpen, setAddTileOpen] = useState(false);
+  const [settingsTile, setSettingsTile] = useState<DashboardTileKind | null>(null);
 
   const summary = useMemo(() => {
     const now = new Date();
@@ -126,7 +150,12 @@ export function DashboardScreen() {
     setAddTileOpen(false);
   };
 
-  const renderTileContent = (kind: DashboardTileKind) => {
+  const updateTileSettings = (kind: DashboardTileKind, settings: DashboardTileSettings) =>
+    setLayout(layout.map((tile) => (tile.kind === kind ? { ...tile, settings } : tile)));
+
+  const renderTileContent = (config: DashboardTileConfig) => {
+    const kind = config.kind;
+    const s = tileSettings(config);
     switch (kind) {
       case 'start':
         return (
@@ -163,6 +192,16 @@ export function DashboardScreen() {
         );
       case 'volume':
         return <DashboardVolumeTile thisWeekKg={summary.thisWeekKg} lastWeekKg={summary.lastWeekKg} deltaPct={summary.deltaPct} />;
+      case 'rest-stats':
+        return <DashboardRestStatsTile stats={restStats(completedWorkouts, s.windowDays ?? 30, new Date())} windowDays={s.windowDays ?? 30} />;
+      case 'muscle-balance':
+        return <DashboardMuscleBalanceTile data={muscleBalance(completedWorkouts, s.windowWeeks ?? 4, new Date())} windowWeeks={s.windowWeeks ?? 4} />;
+      case 'consistency':
+        return <DashboardConsistencyTile data={consistencyMetric(completedWorkouts, s.windowWeeks ?? 16, new Date(), preferences.weekStartsOn)} />;
+      case 'streak':
+        return <DashboardStreakTile stats={streakStats(completedWorkouts, s.weeklyTargetDefault ?? 3, s.weeklyTargets ?? {}, new Date(), preferences.weekStartsOn)} />;
+      case 'muscle-heatmap':
+        return <DashboardMuscleHeatmapTile heat={muscleHeat(completedWorkouts, s.windowDays ?? 14, new Date())} windowDays={s.windowDays ?? 14} />;
       default:
         return null;
     }
@@ -219,8 +258,9 @@ export function DashboardScreen() {
               isActive={isActive}
               onDrag={drag}
               onRemove={() => hideTile(item.kind)}
+              onOpenSettings={tileHasSettings(item.kind) ? () => { selectionHaptic(); setSettingsTile(item.kind); } : undefined}
             >
-              {renderTileContent(item.kind)}
+              {renderTileContent(item)}
             </DashboardTileFrame>
           )}
         />
@@ -236,6 +276,12 @@ export function DashboardScreen() {
             onPress: () => addTile(tile.kind),
           }))}
         />
+        <DashboardTileSettingsSheet
+          config={settingsTile ? (layout.find((tile) => tile.kind === settingsTile) ?? null) : null}
+          workoutTypes={preferences.workoutTypes}
+          onChange={(next) => settingsTile && updateTileSettings(settingsTile, next)}
+          onClose={() => setSettingsTile(null)}
+        />
       </View>
     </AppScreen>
   );
@@ -248,6 +294,7 @@ function DashboardTileFrame({
   isActive,
   onDrag,
   onRemove,
+  onOpenSettings,
   children,
 }: {
   testID: string;
@@ -256,6 +303,7 @@ function DashboardTileFrame({
   isActive: boolean;
   onDrag: () => void;
   onRemove: () => void;
+  onOpenSettings?: () => void;
   children: React.ReactNode;
 }) {
   const theme = useForgeTheme();
@@ -347,6 +395,17 @@ function DashboardTileFrame({
                 <Icon name="drag" size={18} color={theme.muted} />
               </Pressable>
               <View style={styles.tileBody}>{children}</View>
+              {onOpenSettings ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${name} tile settings`}
+                  onPress={onOpenSettings}
+                  hitSlop={8}
+                  style={({ pressed }) => [styles.settingsButton, pressed && styles.settingsButtonPressed]}
+                >
+                  <Icon name="settings" size={16} color={theme.slate} />
+                </Pressable>
+              ) : null}
             </ForgeCard>
           </Animated.View>
         </View>
@@ -405,6 +464,19 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   tileDeleteAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
   tileDeleteActionPressed: { backgroundColor: theme.destructiveSurfacePressed },
   tileDeleteText: { color: theme.textDestructive, ...typeScale.caption },
+  settingsButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 3,
+    backgroundColor: theme.surfaceMuted,
+  },
+  settingsButtonPressed: { backgroundColor: theme.pressed },
   addTileRow: {
     marginTop: 2,
     marginBottom: 14,
