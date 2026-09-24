@@ -122,6 +122,26 @@ test.describe('Dashboard', () => {
     await expect(page.getByTestId('dashboard-week-card')).toBeVisible();
   });
 
+  test('collapses the header to a single Done control while editing', async ({ page }, testInfo) => {
+    await page.goto('/');
+    const header = page.getByTestId('dashboard-header');
+    await expect(header.getByRole('button', { name: 'Edit dashboard' })).toBeVisible();
+    await expect(header.getByRole('button', { name: 'Start workout' })).toBeVisible();
+
+    await header.getByRole('button', { name: 'Edit dashboard' }).click();
+    // While editing there is only a Done control — no Start-workout to mis-tap.
+    await expect(header.getByRole('button', { name: 'Done editing dashboard' })).toBeVisible();
+    if (testInfo.project.use.isMobile === true) {
+      await header.screenshot({ path: testInfo.outputPath('editing-header-done.png') });
+    }
+    await expect(header.getByRole('button', { name: 'Start workout' })).toHaveCount(0);
+    await expect(header.getByRole('button', { name: 'Edit dashboard' })).toHaveCount(0);
+
+    await header.getByRole('button', { name: 'Done editing dashboard' }).click();
+    await expect(header.getByRole('button', { name: 'Start workout' })).toBeVisible();
+    await expect(header.getByRole('button', { name: 'Done editing dashboard' })).toHaveCount(0);
+  });
+
   test('uses one title baseline and typography across primary tabs', async ({ page }) => {
     await page.goto('/');
     const readTitle = async (locator: ReturnType<typeof page.locator>) =>
