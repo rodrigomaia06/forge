@@ -1,4 +1,16 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+
+/** Slides a card to the left to reveal its swipe-to-delete action. */
+async function swipeCardLeft(page: Page, card: Locator): Promise<void> {
+  const box = await card.boundingBox();
+  if (!box) throw new Error('Expected a measurable card to swipe');
+  const y = box.y + box.height / 2;
+  const startX = box.x + box.width - 24;
+  await page.mouse.move(startX, y);
+  await page.mouse.down();
+  await page.mouse.move(startX - 100, y, { steps: 12 });
+  await page.mouse.up();
+}
 
 test.describe('Dashboard', () => {
   test('matches the phone visual baseline', async ({ page }, testInfo) => {
@@ -98,15 +110,19 @@ test.describe('Dashboard', () => {
     await expect(page.getByTestId('workout-details-summary-title')).toHaveText('Leg Day');
   });
 
-  test('removes and re-adds a dashboard tile in edit mode, persisting across reloads', async ({ page }) => {
+  test('removes and re-adds a dashboard tile in edit mode, persisting across reloads', async ({ page }, testInfo) => {
     await page.goto('/');
     await expect(page.getByTestId('dashboard-week-card')).toBeVisible();
-    // No remove control outside edit mode.
-    await expect(page.getByRole('button', { name: 'Remove This week tile' })).toHaveCount(0);
+    // No delete control outside edit mode.
+    await expect(page.getByRole('button', { name: 'Delete This week tile' })).toHaveCount(0);
 
-    // Enter edit mode from the header, then remove the tile.
+    // Enter edit mode from the header, then swipe the tile left and delete it.
     await page.getByRole('button', { name: 'Edit dashboard' }).click();
-    await page.getByRole('button', { name: 'Remove This week tile' }).click();
+    await swipeCardLeft(page, page.getByTestId('dashboard-week-card'));
+    if (testInfo.project.use.isMobile === true) {
+      await page.screenshot({ path: testInfo.outputPath('tile-swipe-revealed.png') });
+    }
+    await page.getByRole('button', { name: 'Delete This week tile' }).click();
     await expect(page.getByTestId('dashboard-week-card')).toHaveCount(0);
 
     // The removal persists across a fresh load.

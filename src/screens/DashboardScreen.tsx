@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import {
   AppScreen,
@@ -10,9 +12,11 @@ import {
   ForgeText as Text,
   Icon,
   lightHaptic,
+  mediumHaptic,
   pressedFeedback,
   selectionHaptic,
 } from '../components/ui';
+import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
 import { DashboardHeader } from '../components/DashboardHeader';
 import {
   DashboardLastWorkoutTile,
@@ -255,8 +259,17 @@ function DashboardTileFrame({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const reducedMotion = useForgeReducedMotion();
+  const translateX = useSharedValue(0);
+  const open = useSharedValue(false);
+  const [revealed, setRevealed] = useState(false);
+  const cardStyle = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value }] }));
+  const deleteLayerStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(1, Math.max(0, -translateX.value / TILE_DELETE_WIDTH)),
+  }));
+
   // Normal view: a clean card with no drag rail or remove control. The reorder
-  // and remove chrome only appears in edit mode (toggled from the header).
+  // and swipe-to-delete chrome only appears in edit mode (toggled from the header).
   if (!editing) {
     return (
       <View style={styles.tileWrap}>
@@ -266,39 +279,82 @@ function DashboardTileFrame({
       </View>
     );
   }
+
+  const remove = (): void => {
+    mediumHaptic();
+    onRemove();
+  };
+  const settle = (shouldOpen: boolean): void => {
+    setRevealed(shouldOpen);
+    open.value = shouldOpen;
+    translateX.value = reducedMotion
+      ? (shouldOpen ? -TILE_DELETE_WIDTH : 0)
+      : withSpring(shouldOpen ? -TILE_DELETE_WIDTH : 0, forgeMotion.swipeSpring);
+  };
+  // Slide the card left to reveal a destructive action, matching the live-workout
+  // set/exercise swipe. A clear horizontal intent is required and vertical motion
+  // fails fast so the list scroll and the drag rail's long-press still win.
+  const swipe = Gesture.Pan()
+    .activeOffsetX([-16, 16])
+    .failOffsetY([-6, 6])
+    .onUpdate((gesture) => {
+      if (!open.value && gesture.translationX >= 0) return;
+      const base = open.value ? -TILE_DELETE_WIDTH : 0;
+      translateX.value = Math.max(-TILE_DELETE_WIDTH, Math.min(0, base + gesture.translationX));
+    })
+    .onEnd((gesture) => {
+      const offset = (open.value ? -TILE_DELETE_WIDTH : 0) + gesture.translationX;
+      const shouldOpen = Math.max(-TILE_DELETE_WIDTH, Math.min(0, offset)) < -TILE_DELETE_WIDTH * 0.5;
+      runOnJS(settle)(shouldOpen);
+    });
+
   return (
     <View style={styles.tileWrap}>
-      <ForgeCard testID={testID} style={[styles.tileCard, isActive && styles.tileCardActive]}>
-        {/* A generous left rail is the drag zone, so a hold anywhere down the left
-            edge of the card starts a reorder — not only on the grip icon. */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Reorder ${name} tile`}
-          onLongPress={onDrag}
-          delayLongPress={140}
-          style={styles.dragRail}
-        >
-          <Icon name="drag" size={18} color={theme.muted} />
-        </Pressable>
-        <View style={styles.tileBody}>{children}</View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Remove ${name} tile`}
-          onPress={() => {
-            lightHaptic();
-            onRemove();
-          }}
-          hitSlop={10}
-          style={({ pressed }) => [styles.removeButton, pressed && styles.removeButtonPressed]}
-        >
-          <Icon name="close" size={15} color={theme.textDestructive} />
-        </Pressable>
-      </ForgeCard>
+      <GestureDetector gesture={swipe}>
+        <View style={styles.tileSwipeRow}>
+          <Animated.View
+            style={[styles.tileDeleteLayer, deleteLayerStyle, { pointerEvents: revealed ? 'auto' : 'none' }]}
+          >
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Delete ${name} tile`}
+              onPress={remove}
+              style={({ pressed }) => [styles.tileDeleteAction, pressed && styles.tileDeleteActionPressed]}
+            >
+              <Icon name="trash" size={20} color={theme.textDestructive} />
+              <Text style={styles.tileDeleteText}>Delete</Text>
+            </Pressable>
+          </Animated.View>
+          <Animated.View
+            style={[styles.tileSwipeContent, cardStyle]}
+            accessibilityActions={[{ name: 'delete', label: `Delete ${name} tile` }]}
+            onAccessibilityAction={(event) => {
+              if (event.nativeEvent.actionName === 'delete') remove();
+            }}
+          >
+            <ForgeCard testID={testID} style={[styles.tileCard, isActive && styles.tileCardActive]}>
+              {/* A generous left rail is the drag zone, so a hold anywhere down the
+                  left edge of the card starts a reorder — not only on the grip. */}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Reorder ${name} tile`}
+                onLongPress={onDrag}
+                delayLongPress={140}
+                style={styles.dragRail}
+              >
+                <Icon name="drag" size={18} color={theme.muted} />
+              </Pressable>
+              <View style={styles.tileBody}>{children}</View>
+            </ForgeCard>
+          </Animated.View>
+        </View>
+      </GestureDetector>
     </View>
   );
 }
 
 const DRAG_RAIL_WIDTH = 40;
+const TILE_DELETE_WIDTH = 64;
 
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   appShell: { flex: 1, minHeight: 0 },
@@ -327,18 +383,26 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
     paddingVertical: 16,
     minHeight: 44,
   },
-  removeButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 3,
+  // Swipe-to-delete, matching the live-workout set/exercise cards: the rounded
+  // row is destructive-red, and the card slides left to reveal the trash action.
+  tileSwipeRow: {
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: 24,
+    backgroundColor: theme.destructiveSurface,
   },
-  removeButtonPressed: { backgroundColor: theme.pressed },
+  tileSwipeContent: { zIndex: 1 },
+  tileDeleteLayer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: TILE_DELETE_WIDTH,
+    backgroundColor: theme.destructiveSurface,
+  },
+  tileDeleteAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  tileDeleteActionPressed: { backgroundColor: theme.destructiveSurfacePressed },
+  tileDeleteText: { color: theme.textDestructive, ...typeScale.caption },
   addTileRow: {
     marginTop: 2,
     marginBottom: 14,
