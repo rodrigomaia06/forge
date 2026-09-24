@@ -84,6 +84,12 @@ async function replaceRestTimerNotification(
       body: `${restDurationLabel(duration)} complete. Back to work.`,
       sound: soundEnabled ? restTimerSound : false,
       data: { forgeTimer: 'rest' },
+      // Time Sensitive lets the end-of-rest alert break through Focus/Do Not
+      // Disturb (not the ringer switch). It only takes effect with the
+      // com.apple.developer.usernotifications.time-sensitive entitlement, which
+      // a paid Apple signing carries; without it iOS delivers this as an
+      // ordinary alert, so it is safe on the free-team sideload build.
+      interruptionLevel: 'timeSensitive',
       // Android permits a semantic notification accent. iOS owns notification
       // chrome and consistently presents the Forge app icon instead.
       color: Platform.OS === 'android' ? '#C85C5C' : undefined,
