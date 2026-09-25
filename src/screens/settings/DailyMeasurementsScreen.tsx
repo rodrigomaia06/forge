@@ -96,6 +96,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
   // inside Measurements should replace this content with a lateral motion.
   const [animateMetricChange, setAnimateMetricChange] = useState(false);
   const [recordOpen, setRecordOpen] = useState(false);
+  const [historyExpanded, setHistoryExpanded] = useState(false);
   const [recordDateKey, setRecordDateKey] = useState<string>(() => localDateKey());
   const [metricOpen, setMetricOpen] = useState(false);
   const [recordValue, setRecordValue] = useState('');
@@ -132,14 +133,16 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
         value: entry.value,
       }));
   }, [preferences.dailyMeasurementEntries, selected]);
+  const HISTORY_PREVIEW = 5;
+  const shownHistory = historyExpanded ? historyEntries : historyEntries.slice(0, HISTORY_PREVIEW);
   const historyGroups = useMemo(() => {
-    const groups = new Map<string, typeof historyEntries>();
-    historyEntries.forEach((entry) => {
+    const groups = new Map<string, typeof shownHistory>();
+    shownHistory.forEach((entry) => {
       const key = entry.date.slice(0, 7);
       groups.set(key, [...(groups.get(key) ?? []), entry]);
     });
     return [...groups.entries()].map(([key, values]) => ({ key, label: historyMonthLabel(key), values }));
-  }, [historyEntries]);
+  }, [shownHistory]);
   const trendDelta = latest && periodStart && periodStart !== latest
     ? `${latest.value >= periodStart.value ? '+' : ''}${formatValue(latest.value - periodStart.value, displayUnit)}`
     : '—';
@@ -303,80 +306,79 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
             exiting={animateMetricChange && !reducedMotion ? FadeOut.duration(forgeMotion.feedback) : undefined}
             style={styles.selectedMetricContent}
           >
-            <ForgeCard variant="base" style={styles.summaryCard}>
-              <View style={styles.metricHeading}>
-                <View style={[styles.metricIcon, { backgroundColor: `${selected.color}24` }]}>
-                  <Icon name={selected.icon} size={22} color={selected.color} />
-                </View>
-                <View style={styles.metricHeadingCopy}>
-                  <Text style={styles.metricTitle}>{selected.name}</Text>
-                  <Text style={styles.metricSubtitle}>{latest ? `Last recorded ${displayDate(latest.date)}` : 'No measurements yet'}</Text>
-                </View>
-              </View>
-              <View style={styles.summaryStats}>
-                <MeasurementSummaryStat label="Latest" value={latest ? formatValue(latest.value, displayUnit) : '—'} />
-                <View style={styles.summaryDivider} />
-                <MeasurementSummaryStat label={`${range} DAY CHANGE`} value={trendDelta} />
-              </View>
-            </ForgeCard>
             {latest ? (
-              <ForgeCard variant="base" style={styles.chartCard}>
-                <View style={styles.chartHeader}>
-                  <View>
+              <View style={styles.summaryRow}>
+                <ForgeCard variant="base" style={styles.metricCard}>
+                  <View style={[styles.metricIcon, { backgroundColor: `${selected.color}24` }]}>
+                    <Icon name={selected.icon} size={22} color={selected.color} />
+                  </View>
+                  <Text style={styles.metricCardName} numberOfLines={2}>{selected.name}</Text>
+                  <View style={styles.metricCardStat}>
+                    <Text style={styles.metricCardStatLabel}>Latest</Text>
+                    <Text style={styles.metricCardStatValue} numberOfLines={1}>{formatValue(latest.value, displayUnit)}</Text>
+                  </View>
+                  <View style={styles.metricCardStat}>
+                    <Text style={styles.metricCardStatLabel}>{range}d change</Text>
+                    <Text style={styles.metricCardStatSub} numberOfLines={1}>{trendDelta}</Text>
+                  </View>
+                </ForgeCard>
+                <ForgeCard variant="base" style={styles.trendCard}>
+                  <View style={styles.trendHeader}>
                     <Text style={styles.chartEyebrow}>TREND</Text>
-                    {periodStart && periodStart !== latest ? (
-                      <Text style={styles.chartDelta}>
-                        {`${latest.value >= periodStart.value ? '+' : ''}${formatValue(latest.value - periodStart.value, displayUnit)}`}
-                      </Text>
+                    <View style={styles.rangeControls} accessibilityRole="tablist" accessibilityLabel="Chart range">
+                      {([7, 30, 90] as const).map((value) => (
+                        <Pressable
+                          key={value}
+                          accessibilityRole="tab"
+                          accessibilityLabel={`Show ${value} day chart`}
+                          accessibilityState={{ selected: range === value }}
+                          onPress={() => { selectionHaptic(); setRange(value); }}
+                          style={({ pressed }) => [
+                            styles.rangeControl,
+                            range === value && { backgroundColor: theme.selected },
+                            pressed && pressedFeedback,
+                          ]}
+                        >
+                          <Text style={[styles.rangeText, range === value && { color: theme.selectedText }]}>{value}D</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                  <ForgeLineChart
+                    data={displayEntries.map((entry) => ({ value: entry.value }))}
+                    height={116}
+                    color={selected.color}
+                    showMarkers={displayEntries.length <= 12}
+                  />
+                  <View style={[styles.chartFooter, displayEntries.length === 1 && styles.chartFooterCentered]}>
+                    {displayEntries.length > 1 ? (
+                      <Text style={styles.chartAxis}>{formatValue(Math.max(...displayEntries.map((e) => e.value)), displayUnit)}</Text>
+                    ) : null}
+                    {displayEntries.length > 1 ? (
+                      <Text style={styles.chartAxis}>{formatValue(Math.min(...displayEntries.map((e) => e.value)), displayUnit)}</Text>
                     ) : null}
                   </View>
-                  <View style={styles.rangeControls} accessibilityRole="tablist" accessibilityLabel="Chart range">
-                    {([7, 30, 90] as const).map((value) => (
-                      <Pressable
-                        key={value}
-                        accessibilityRole="tab"
-                        accessibilityLabel={`Show ${value} day chart`}
-                        accessibilityState={{ selected: range === value }}
-                        onPress={() => { selectionHaptic(); setRange(value); }}
-                        style={({ pressed }) => [
-                          styles.rangeControl,
-                          range === value && { backgroundColor: theme.selected },
-                          pressed && pressedFeedback,
-                        ]}
-                      >
-                        <Text style={[styles.rangeText, range === value && { color: theme.selectedText }]}>{value}D</Text>
-                      </Pressable>
-                    ))}
+                </ForgeCard>
+              </View>
+            ) : (
+              <ForgeCard variant="base" style={styles.summaryCard}>
+                <View style={styles.metricHeading}>
+                  <View style={[styles.metricIcon, { backgroundColor: `${selected.color}24` }]}>
+                    <Icon name={selected.icon} size={22} color={selected.color} />
+                  </View>
+                  <View style={styles.metricHeadingCopy}>
+                    <Text style={styles.metricTitle}>{selected.name}</Text>
+                    <Text style={styles.metricSubtitle}>No measurements yet</Text>
                   </View>
                 </View>
-                <ForgeLineChart
-                  data={displayEntries.map((entry) => ({ value: entry.value }))}
-                  height={168}
-                  color={selected.color}
-                  showMarkers={displayEntries.length <= 16}
+                <Button
+                  label={`Record ${selected.name.toLocaleLowerCase()}`}
+                  icon="add"
+                  variant="outline"
+                  onPress={openRecord}
+                  style={styles.recordEmpty}
                 />
-                <View style={[styles.chartFooter, displayEntries.length === 1 && styles.chartFooterCentered]}>
-                  {displayEntries.length > 1 ? (
-                    <Text style={styles.chartAxis}>{formatValue(Math.max(...displayEntries.map((e) => e.value)), displayUnit)}</Text>
-                  ) : null}
-                  <Text style={styles.chartAxis}>
-                    {displayEntries.length === 1
-                      ? displayDate(displayEntries[0].date)
-                      : `${displayDate(displayEntries[0].date)} — ${displayDate(displayEntries.at(-1)?.date ?? displayEntries[0].date)}`}
-                  </Text>
-                  {displayEntries.length > 1 ? (
-                    <Text style={styles.chartAxis}>{formatValue(Math.min(...displayEntries.map((e) => e.value)), displayUnit)}</Text>
-                  ) : null}
-                </View>
               </ForgeCard>
-            ) : (
-              <Button
-                label={`Record ${selected.name.toLocaleLowerCase()}`}
-                icon="add"
-                variant="outline"
-                onPress={openRecord}
-                style={styles.recordEmpty}
-              />
             )}
           </Animated.View>
         ) : null}
@@ -411,6 +413,21 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
             </View>
           </View>
         ))}
+        {historyEntries.length > HISTORY_PREVIEW ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={historyExpanded ? 'Show fewer records' : `Show all ${historyEntries.length} records`}
+            onPress={() => { selectionHaptic(); setHistoryExpanded((current) => !current); }}
+            style={({ pressed }) => [styles.showMore, pressed && pressedFeedback]}
+          >
+            <Text style={styles.showMoreText}>
+              {historyExpanded ? 'Show less' : `Show ${historyEntries.length - HISTORY_PREVIEW} more`}
+            </Text>
+            <View style={{ transform: [{ rotate: historyExpanded ? '180deg' : '0deg' }] }}>
+              <Icon name="chevron-down" size={16} color={theme.textSecondary} />
+            </View>
+          </Pressable>
+        ) : null}
       </ScrollView>
       <ForgeBottomSheet
         visible={recordOpen}
@@ -540,16 +557,6 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
   );
 }
 
-function MeasurementSummaryStat({ label, value }: { label: string; value: string }) {
-  const styles = useThemedStyles(createStyles);
-  return (
-    <View style={styles.summaryStat}>
-      <Text style={styles.summaryLabel}>{label}</Text>
-      <Text numberOfLines={1} style={styles.summaryValue}>{value}</Text>
-    </View>
-  );
-}
-
 const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.create({
   screen: { flex: 1 },
   scroll: { flex: 1 },
@@ -559,27 +566,30 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
     paddingBottom: settingsLayout.contentBottom,
     gap: 20,
   },
+  summaryCard: { padding: 16, gap: 16 },
   metricHeading: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 12 },
   metricIcon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   metricHeadingCopy: { flex: 1, minWidth: 0 },
   metricTitle: { ...typeScale.headerTitle, color: theme.textPrimary },
   metricSubtitle: { ...typeScale.supporting, color: theme.textSecondary, marginTop: 1 },
-  summaryCard: { padding: 16, gap: 16 },
-  summaryStats: { flexDirection: 'row', alignItems: 'stretch', minHeight: 48 },
-  summaryStat: { flex: 1, minWidth: 0, gap: 4 },
-  summaryLabel: { ...typeScale.caption, color: theme.textSecondary, letterSpacing: 0.7 },
-  summaryValue: { ...typeScale.cardTitle, color: theme.textPrimary },
-  summaryDivider: { width: StyleSheet.hairlineWidth, marginHorizontal: 14, backgroundColor: theme.divider },
-  chartCard: { padding: 16, gap: 14 },
-  chartHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
   chartEyebrow: { ...typeScale.caption, color: theme.textSecondary, letterSpacing: 0.8 },
-  chartDelta: { ...typeScale.supporting, color: theme.textPrimary, marginTop: 2 },
   rangeControls: { flexDirection: 'row', padding: 3, gap: 2, borderRadius: 12, backgroundColor: theme.surfaceMuted },
   rangeControl: { minWidth: 34, minHeight: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   rangeText: { ...typeScale.caption, color: theme.textSecondary },
   chartFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 6 },
   chartFooterCentered: { justifyContent: 'center' },
   chartAxis: { ...typeScale.caption, color: theme.textSecondary },
+  summaryRow: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
+  metricCard: { width: 130, padding: 14, gap: 10 },
+  metricCardName: { ...typeScale.controlLabel, color: theme.textPrimary },
+  metricCardStat: { gap: 1 },
+  metricCardStatLabel: { ...typeScale.caption, color: theme.textSecondary },
+  metricCardStatValue: { fontSize: 22, fontWeight: '800', letterSpacing: -0.4, color: theme.textPrimary, fontVariant: ['tabular-nums'] },
+  metricCardStatSub: { ...typeScale.label, color: theme.textPrimary, fontVariant: ['tabular-nums'] },
+  trendCard: { flex: 1, padding: 14, gap: 8 },
+  trendHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  showMore: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 44, marginTop: 2 },
+  showMoreText: { ...typeScale.controlLabel, color: theme.textSecondary },
   historyHeaderRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginTop: 4 },
   historyTitle: { ...typeScale.sectionTitle, color: theme.textPrimary },
   historyHint: { ...typeScale.caption, color: theme.textSecondary },
