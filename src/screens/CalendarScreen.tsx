@@ -235,7 +235,7 @@ export function CalendarScreen({ navigation }: Props) {
                 <Text style={styles.yearTitle}>{year}</Text>
                 <View style={styles.miniGridWrap}>
                   {MONTHS_SHORT.map((label, m) => (
-                    <MiniMonth key={m} label={label} year={year} month={m} weekStart={weekStart} colorFor={colorForDay} onPress={goToMonth} theme={theme} styles={styles} cell={12} />
+                    <MiniMonth key={m} label={label} year={year} month={m} weekStart={weekStart} colorFor={colorForDay} onPress={goToMonth} theme={theme} styles={styles} cell={13} />
                   ))}
                 </View>
               </View>
@@ -267,10 +267,10 @@ export function CalendarScreen({ navigation }: Props) {
                       setView(v);
                       setViewMenuOpen(false);
                     }}
-                    style={({ pressed }) => [styles.dropdownItem, active && { backgroundColor: theme.surfaceMuted, borderColor: theme.border }, pressed && !active && { backgroundColor: theme.pressed }]}
+                    style={({ pressed }) => [styles.dropdownItem, pressed && { backgroundColor: theme.pressed }]}
                   >
                     <Text style={[styles.dropdownText, active && { fontWeight: '700' }]}>{VIEW_LABEL[v]}</Text>
-                    {active ? <Icon name="check" size={16} color={theme.selectionIndicator} weight="bold" /> : null}
+                    {active ? <Icon name="check" size={18} color={theme.textPrimary} weight="bold" /> : null}
                   </Pressable>
                 );
               })}
@@ -342,7 +342,7 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   viewSelect: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 14, height: 40, borderRadius: 20, backgroundColor: theme.surfaceMuted },
   viewSelectText: { ...typeScale.controlLabel, color: theme.textPrimary },
   dropdown: { position: 'absolute', top: 64, right: 16, minWidth: 168, borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', padding: 6, shadowOpacity: 0.22, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 14, zIndex: 20 },
-  dropdownItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 12, height: 44, borderRadius: 12, borderWidth: 1, borderColor: 'transparent' },
+  dropdownItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 12, height: 44, borderRadius: 12 },
   dropdownText: { ...typeScale.controlLabel, color: theme.textPrimary },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 4 },
@@ -359,8 +359,8 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   dayMulti: { position: 'absolute', bottom: 2, width: 3.5, height: 3.5, borderRadius: 2, backgroundColor: '#FFFFFF' },
   yearSection: { paddingTop: 14, alignItems: 'center' },
   yearTitle: { ...typeScale.sectionTitle, color: theme.textPrimary, marginBottom: 12, alignSelf: 'flex-start' },
-  miniGridWrap: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12, width: '100%' },
-  miniMonth: { width: '32%', gap: 6, paddingVertical: 10, paddingHorizontal: 7, borderRadius: 12, backgroundColor: theme.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border },
-  miniMonthLabel: { ...typeScale.caption, color: theme.textSecondary, alignSelf: 'flex-start' },
-  miniGrid: { flexDirection: 'row', alignSelf: 'center' },
+  miniGridWrap: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 20, width: '100%' },
+  miniMonth: { width: '30%', gap: 8, alignItems: 'center', borderRadius: 12, paddingVertical: 4 },
+  miniMonthLabel: { ...typeScale.controlLabel, color: theme.textPrimary, alignSelf: 'flex-start' },
+  miniGrid: { flexDirection: 'row' },
 });

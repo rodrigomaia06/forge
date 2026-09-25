@@ -153,11 +153,10 @@ function ForgeSelectionRow<T extends SelectionValue>({
       style={({ pressed }) => [
         styles.selectionRow,
         rounded && styles.selectionRowRounded,
-        selected && (selectedTone === 'success'
-          ? { backgroundColor: theme.successSurface }
-          : rounded
-            ? { backgroundColor: theme.surfaceMuted, borderColor: theme.border }
-            : null),
+        // Selection is shown by the checkmark (and bold label), not a persistent
+        // fill — matching platform select menus. Success tone keeps its tint for
+        // the non-dropdown contexts that opt into it.
+        selected && selectedTone === 'success' && { backgroundColor: theme.successSurface },
         pressed && pressedFeedback,
       ]}
     >
@@ -166,6 +165,7 @@ function ForgeSelectionRow<T extends SelectionValue>({
           style={[
             styles.selectionLabel,
             option.emphasized && styles.selectionLabelEmphasized,
+            selected && { fontWeight: '700' },
             { color: theme.textPrimary },
           ]}
         >
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  selectionRowRounded: { height: 46, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: 'transparent' },
+  selectionRowRounded: { height: 46, paddingHorizontal: 12, borderRadius: 12 },
   selectionCopy: { flex: 1, minWidth: 0, gap: 2 },
   selectionLabel: { ...typeScale.body },
   selectionLabelEmphasized: { fontFamily: typeScale.display.fontFamily, fontWeight: '700' },
