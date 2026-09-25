@@ -12,7 +12,8 @@ export type DashboardTileKind =
   | 'consistency'
   | 'streak'
   | 'muscle-heatmap'
-  | 'measurement';
+  | 'measurement'
+  | 'measurements';
 
 /** Per-tile configuration edited from the tile's edit-mode gear. */
 export interface DashboardTileSettings {
@@ -25,7 +26,12 @@ export interface DashboardTileSettings {
   weeklyTargets?: Record<string, number>;
   /** Measurement tile: which daily measurement definition it shows. */
   measurementId?: string;
+  /** Combined measurements tile: which definitions it charts together. */
+  measurementIds?: string[];
 }
+
+/** Singleton cards that are addable from the chooser but hidden until added. */
+export const OPTIONAL_SINGLETON_KINDS: DashboardTileKind[] = ['measurements'];
 
 export interface DashboardTileConfig {
   /** Stable per-instance id. Built-ins use their kind; measurement tiles use
@@ -73,6 +79,7 @@ export const DASHBOARD_TILE_DEFAULT_TITLE: Record<DashboardTileKind, string> = {
   streak: 'Streak',
   'muscle-heatmap': 'Muscle heatmap',
   measurement: 'Measurement',
+  measurements: 'Measurements',
 };
 
 /** Default settings a tile starts with, and the domain of what its gear edits. */
@@ -84,6 +91,7 @@ export const DASHBOARD_TILE_DEFAULT_SETTINGS: Partial<Record<DashboardTileKind, 
   streak: { weeklyTargetDefault: 3, weeklyTargets: {} },
   'muscle-heatmap': { windowDays: 14 },
   measurement: { windowDays: 90 },
+  measurements: { windowDays: 90, measurementIds: [] },
 };
 
 /** Which tiles expose an edit-mode gear (and therefore a settings sheet). */
@@ -114,10 +122,14 @@ export function reconcileLayout(saved: unknown): DashboardTileConfig[] {
       const entry = raw as DashboardTileConfig;
       const kind = entry?.kind;
       const isMeasurement = kind === 'measurement';
-      // Measurement tiles are keyed per instance; built-ins by their kind.
+      const isOptionalSingleton = OPTIONAL_SINGLETON_KINDS.includes(kind);
+      // Measurement tiles are keyed per instance; built-ins/singletons by kind.
       const id = typeof entry?.id === 'string' && entry.id ? entry.id : kind;
       if (isMeasurement) {
         if (typeof id !== 'string' || !id.startsWith(MEASUREMENT_TILE_PREFIX) || !entry.settings?.measurementId || seen.has(id)) continue;
+      } else if (isOptionalSingleton) {
+        // Kept only if present in the saved layout; never auto-appended.
+        if (seen.has(id)) continue;
       } else if (!known.has(kind) || seen.has(id)) {
         continue;
       }

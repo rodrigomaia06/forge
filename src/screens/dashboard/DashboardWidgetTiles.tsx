@@ -11,7 +11,7 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import type { DailyMeasurementDefinition, ForgeTheme, IconName } from '../../types';
-import { MUSCLE_GROUPS, type MeasurementSeries, type MuscleGroup, type RestStats, type Consistency, type StreakStats, type VolumeSeries } from '../../domain/dashboard/widgetMetrics';
+import { MUSCLE_GROUPS, measurementSeries, type MeasurementSeries, type MuscleGroup, type RestStats, type Consistency, type StreakStats, type VolumeSeries } from '../../domain/dashboard/widgetMetrics';
 
 /** #rrggbb (or #rgb) → rgba() so a heat step blends over the card surface. */
 function hexToRgba(hex: string, alpha: number): string {
@@ -427,6 +427,55 @@ export function DashboardMeasurementTile({
   );
 }
 
+/** Combined tile: a compact trend row per chosen measurement. */
+export function DashboardMeasurementsTile({
+  definitions,
+  entries,
+  windowDays,
+}: {
+  definitions: DailyMeasurementDefinition[];
+  entries: { definitionId: string; date: string; value: number }[];
+  windowDays: number;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  return (
+    <View style={styles.block}>
+      <TileHead icon="measure" title="Measurements" trailing={<Text style={styles.sub}>{windowDays}d</Text>} />
+      {definitions.length ? (
+        <View style={styles.mList}>
+          {definitions.map((def) => {
+            const s = measurementSeries(entries, def.id, windowDays);
+            const color = def.color || (theme.selectionIndicator ?? theme.ink);
+            const up = s.delta !== null && s.delta > 0;
+            return (
+              <View key={def.id} style={styles.mRow}>
+                <View style={styles.mLeft}>
+                  <View style={[styles.mDot, { backgroundColor: color }]} />
+                  <Text style={styles.mName} numberOfLines={1}>{def.name}</Text>
+                </View>
+                <View style={styles.mSpark}>
+                  {s.values.length >= 2 ? <WidgetSparkline values={s.values} color={color} height={24} /> : null}
+                </View>
+                <View style={styles.mRight}>
+                  <Text style={styles.mValue} numberOfLines={1}>
+                    {s.latest !== null ? formatMeasure(s.latest) : '—'}{def.unit ? ` ${def.unit}` : ''}
+                  </Text>
+                  {s.delta !== null && s.delta !== 0 ? (
+                    <Icon name={up ? 'arrow-up' : 'arrow-down'} size={12} color={color} />
+                  ) : null}
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      ) : (
+        <Text style={styles.empty}>Choose measurements in this card's settings</Text>
+      )}
+    </View>
+  );
+}
+
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   block: { gap: 10 },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingRight: 26 },
@@ -458,6 +507,14 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   legend: { flexDirection: 'row', alignItems: 'center', gap: 5, justifyContent: 'center' },
   legendChip: { width: 13, height: 13, borderRadius: 3 },
   volumeIdle: { color: theme.slate, ...typeScale.label },
+  mList: { gap: 12 },
+  mRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  mLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, width: 104, flexShrink: 0 },
+  mDot: { width: 8, height: 8, borderRadius: 4 },
+  mName: { color: theme.ink, flexShrink: 1, ...typeScale.caption },
+  mSpark: { flex: 1, minWidth: 0 },
+  mRight: { flexDirection: 'row', alignItems: 'center', gap: 3, width: 84, justifyContent: 'flex-end', flexShrink: 0 },
+  mValue: { color: theme.ink, fontVariant: ['tabular-nums'], ...typeScale.caption },
   trendPill: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   trendText: { fontVariant: ['tabular-nums'], ...typeScale.caption },
   logRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },

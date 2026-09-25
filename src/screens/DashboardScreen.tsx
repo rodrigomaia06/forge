@@ -27,6 +27,7 @@ import {
 import {
   DashboardConsistencyTile,
   DashboardMeasurementTile,
+  DashboardMeasurementsTile,
   DashboardMuscleBalanceTile,
   DashboardMuscleHeatmapTile,
   DashboardRestStatsTile,
@@ -56,6 +57,7 @@ import type { WeekStripDay } from './dashboard/dashboardSummary';
 import {
   DASHBOARD_TILE_DEFAULT_TITLE,
   measurementTileId,
+  OPTIONAL_SINGLETON_KINDS,
   tileHasSettings,
   tileSettings,
   useDashboardLayout,
@@ -84,6 +86,7 @@ const TILE_TEST_ID: Record<DashboardTileKind, string> = {
   streak: 'dashboard-streak',
   'muscle-heatmap': 'dashboard-muscle-heatmap',
   measurement: 'dashboard-measurement',
+  measurements: 'dashboard-measurements',
 };
 
 function tileTestId(config: DashboardTileConfig): string {
@@ -186,6 +189,11 @@ export function DashboardScreen() {
       { ...config, visible: true },
     ]);
     setAddTileOpen(false);
+    // A fresh measurement card opens its settings so you can pick the metric(s)
+    // and window straight away, rather than staring at an empty tile.
+    if (config.kind === 'measurement' || config.kind === 'measurements') {
+      setSettingsTileId(config.id);
+    }
   };
 
   const updateTileSettings = (id: string, settings: DashboardTileSettings) =>
@@ -201,11 +209,18 @@ export function DashboardScreen() {
         : tileName(tile),
       onPress: () => addTile({ ...tile, visible: true }),
     })),
+    // The combined "Measurements" card (a singleton), if not already placed.
+    ...OPTIONAL_SINGLETON_KINDS.filter((kind) => !layout.some((tile) => tile.id === kind)).map((kind) => ({
+      key: kind,
+      label: DASHBOARD_TILE_DEFAULT_TITLE[kind],
+      onPress: () => addTile({ id: kind, kind, visible: true, settings: { windowDays: 90, measurementIds: [] } }),
+    })),
+    // Each tracked measurement as its own single-trend card, if not placed.
     ...preferences.dailyMeasurementDefinitions
       .filter((def) => !layout.some((tile) => tile.id === measurementTileId(def.id)))
       .map((def) => ({
         key: measurementTileId(def.id),
-        label: def.name,
+        label: `${def.name} trend`,
         onPress: () =>
           addTile({
             id: measurementTileId(def.id),
@@ -278,6 +293,19 @@ export function DashboardScreen() {
             series={measurementSeries(preferences.dailyMeasurementEntries, definition.id, windowDays, new Date())}
             windowDays={windowDays}
             onLog={(value) => logMeasurement(definition.id, value)}
+          />
+        );
+      }
+      case 'measurements': {
+        const windowDays = s.windowDays ?? 90;
+        const chosen = (s.measurementIds ?? [])
+          .map((id) => measurementDefById.get(id))
+          .filter((def): def is NonNullable<typeof def> => Boolean(def));
+        return (
+          <DashboardMeasurementsTile
+            definitions={chosen}
+            entries={preferences.dailyMeasurementEntries}
+            windowDays={windowDays}
           />
         );
       }
@@ -358,6 +386,7 @@ export function DashboardScreen() {
         <DashboardTileSettingsSheet
           config={settingsTileId ? (layout.find((tile) => tile.id === settingsTileId) ?? null) : null}
           workoutTypes={preferences.workoutTypes}
+          measurements={preferences.dailyMeasurementDefinitions}
           onChange={(next) => settingsTileId && updateTileSettings(settingsTileId, next)}
           onClose={() => setSettingsTileId(null)}
         />

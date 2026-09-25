@@ -12,7 +12,8 @@ import {
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import type { ForgeTheme, WorkoutTypePreference } from '../../types';
+import { Icon } from '../../components/ui';
+import type { DailyMeasurementDefinition, ForgeTheme, WorkoutTypePreference } from '../../types';
 import {
   DASHBOARD_TILE_DEFAULT_TITLE,
   tileSettings,
@@ -81,7 +82,31 @@ const WINDOW_DAYS: Partial<Record<DashboardTileKind, number[]>> = {
   'rest-stats': [7, 30, 90],
   'muscle-heatmap': [7, 14, 30],
   measurement: [30, 90, 180],
+  measurements: [30, 90, 180],
 };
+
+/** A tappable metric row with a check (multi) or radio (single) indicator. */
+function MetricToggle({
+  definition, selected, onToggle,
+}: { definition: DailyMeasurementDefinition; selected: boolean; onToggle: () => void }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: selected }}
+      accessibilityLabel={definition.name}
+      onPress={() => { selectionHaptic(); onToggle(); }}
+      style={({ pressed }) => [styles.metricRow, pressed && pressedFeedback]}
+    >
+      <View style={[styles.metricDot, { backgroundColor: definition.color || theme.slate }]} />
+      <Text style={styles.metricName} numberOfLines={1}>{definition.name}</Text>
+      <View style={[styles.metricCheck, { borderColor: selected ? theme.selectionIndicator : theme.border, backgroundColor: selected ? theme.selectionIndicator : 'transparent' }]}>
+        {selected ? <Icon name="check" size={13} color={theme.onActionPrimary ?? theme.surface} weight="bold" /> : null}
+      </View>
+    </Pressable>
+  );
+}
 const WINDOW_WEEKS: Partial<Record<DashboardTileKind, number[]>> = {
   volume: [8, 12, 26],
   'muscle-balance': [4, 8, 12],
@@ -91,11 +116,13 @@ const WINDOW_WEEKS: Partial<Record<DashboardTileKind, number[]>> = {
 export function DashboardTileSettingsSheet({
   config,
   workoutTypes,
+  measurements,
   onChange,
   onClose,
 }: {
   config: DashboardTileConfig | null;
   workoutTypes: WorkoutTypePreference[];
+  measurements: DailyMeasurementDefinition[];
   onChange: (settings: DashboardTileSettings) => void;
   onClose: () => void;
 }) {
@@ -106,6 +133,7 @@ export function DashboardTileSettingsSheet({
 
   const dayOptions = kind ? WINDOW_DAYS[kind] : undefined;
   const weekOptions = kind ? WINDOW_WEEKS[kind] : undefined;
+  const selectedIds = settings.measurementIds ?? [];
 
   return (
     <ForgeBottomSheet
@@ -133,6 +161,45 @@ export function DashboardTileSettingsSheet({
               <View style={styles.group}>
                 <Text style={styles.groupLabel}>Window</Text>
                 <Segmented options={weekOptions} value={settings.windowWeeks ?? weekOptions[0]} format={(v) => `${v} weeks`} onSelect={(v) => patch({ windowWeeks: v })} />
+              </View>
+            ) : null}
+            {kind === 'measurement' ? (
+              <View style={styles.group}>
+                <Text style={styles.groupLabel}>Metric</Text>
+                {measurements.length ? (
+                  measurements.map((def) => (
+                    <MetricToggle
+                      key={def.id}
+                      definition={def}
+                      selected={settings.measurementId === def.id}
+                      onToggle={() => patch({ measurementId: def.id })}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.groupHint}>Add measurements in the More tab first.</Text>
+                )}
+              </View>
+            ) : null}
+            {kind === 'measurements' ? (
+              <View style={styles.group}>
+                <Text style={styles.groupLabel}>Metrics to show</Text>
+                {measurements.length ? (
+                  measurements.map((def) => (
+                    <MetricToggle
+                      key={def.id}
+                      definition={def}
+                      selected={selectedIds.includes(def.id)}
+                      onToggle={() => {
+                        const next = selectedIds.includes(def.id)
+                          ? selectedIds.filter((id) => id !== def.id)
+                          : [...selectedIds, def.id];
+                        patch({ measurementIds: next });
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.groupHint}>Add measurements in the More tab first.</Text>
+                )}
               </View>
             ) : null}
             {kind === 'streak' ? (
@@ -186,4 +253,8 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   stepBtn: { width: 40, height: 38, alignItems: 'center', justifyContent: 'center' },
   stepGlyph: { fontSize: 20, fontWeight: '700', lineHeight: 22 },
   stepValue: { minWidth: 26, textAlign: 'center', color: theme.ink, fontVariant: ['tabular-nums'], ...typeScale.controlLabel },
+  metricRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
+  metricDot: { width: 10, height: 10, borderRadius: 5 },
+  metricName: { flex: 1, color: theme.ink, ...typeScale.label },
+  metricCheck: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
 });

@@ -53,6 +53,20 @@ test('reconcile keeps valid measurement tiles and drops malformed ones', () => {
   expect(new Set(layout.filter((t) => t.kind !== 'measurement').map((t) => t.kind))).toEqual(new Set(DASHBOARD_TILE_ORDER));
 });
 
+test('reconcile keeps the combined measurements singleton but never auto-appends it', () => {
+  // Not present in a saved layout → not added.
+  const withoutIt = reconcileLayout([{ id: 'week', kind: 'week', visible: true }]);
+  expect(withoutIt.some((t) => t.kind === 'measurements')).toBe(false);
+  // Present → kept, keyed by its kind.
+  const withIt = reconcileLayout([
+    { id: 'measurements', kind: 'measurements', visible: true, settings: { windowDays: 90, measurementIds: ['bw'] } },
+  ]);
+  const combined = withIt.filter((t) => t.kind === 'measurements');
+  expect(combined).toHaveLength(1);
+  expect(combined[0].id).toBe('measurements');
+  expect(combined[0].settings?.measurementIds).toEqual(['bw']);
+});
+
 test('reconcile falls back to defaults for non-array input', () => {
   expect(reconcileLayout(null).map((tile) => tile.kind)).toEqual(DASHBOARD_TILE_ORDER);
   expect(reconcileLayout(undefined).every((tile) => tile.visible)).toBe(true);
