@@ -13,6 +13,7 @@ import { WorkoutTypeEditorScreen } from '../screens/settings/WorkoutTypeEditorSc
 import { ExerciseLibraryScreen } from '../screens/settings/ExerciseLibraryScreen';
 import { ExerciseBrowserScreen } from '../screens/settings/ExerciseBrowserScreen';
 import { MuscleHeatmapDetailScreen } from '../screens/MuscleHeatmapDetailScreen';
+import { CalendarScreen } from '../screens/CalendarScreen';
 import { useWorkouts } from '../state/WorkoutContext';
 import { ForgeLoadingScreen } from '../components/ForgeLoadingScreen';
 import { useForgeTheme } from '../theme/ThemeProvider';
@@ -136,6 +137,11 @@ export function AppNavigator() {
         <Stack.Screen
           name="MuscleHeatmapDetail"
           component={MuscleHeatmapDetailScreen}
+          options={{ gestureEnabled: true }}
+        />
+        <Stack.Screen
+          name="Calendar"
+          component={CalendarScreen}
           options={{ gestureEnabled: true }}
         />
       </Stack.Navigator>

@@ -35,6 +35,14 @@ export function SettingsScreen({ navigation }: Props) {
         >
           <SettingsSection>
             <SettingsRow
+              icon="calendar"
+              iconSize={26}
+              title="Calendar"
+              onPress={() => open('Calendar')}
+              disclosure
+              testID="settings-calendar-row"
+            />
+            <SettingsRow
               icon="fitness-outline"
               iconSize={26}
               title="Muscle heatmap"
