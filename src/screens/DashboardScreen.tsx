@@ -467,20 +467,6 @@ function DashboardTileFrame({
 
   const chrome = { editing, hasSettings: Boolean(onOpenSettings) };
 
-  // Normal view: a clean card with no drag rail or remove control. The reorder
-  // and swipe-to-delete chrome only appears in edit mode (toggled from the header).
-  if (!editing) {
-    return (
-      <View style={styles.tileWrap}>
-        <ForgeCard testID={testID} style={styles.tileCard}>
-          <View style={styles.plainBody}>
-            <TileChromeContext.Provider value={chrome}>{children}</TileChromeContext.Provider>
-          </View>
-        </ForgeCard>
-      </View>
-    );
-  }
-
   const remove = (): void => {
     mediumHaptic();
     onRemove();
@@ -492,11 +478,12 @@ function DashboardTileFrame({
       ? (shouldOpen ? -TILE_DELETE_WIDTH : 0)
       : withSpring(shouldOpen ? -TILE_DELETE_WIDTH : 0, forgeMotion.swipeSpring);
   };
-  // Slide the card left to reveal a destructive action, matching the live-workout
-  // set/exercise swipe. Whichever axis clears 16 pt first wins, so a horizontal
-  // slide is not mistaken for a scroll while a vertical drag still falls through
-  // to the list scroll (and the drag rail keeps its long-press to reorder).
+  // A single structure across both modes so the tile body (and its charts) stays
+  // mounted when edit mode toggles — the reorder/swipe chrome only enables and
+  // fades in, it never re-creates the content. Whichever axis clears 16 pt first
+  // wins, so a horizontal slide is not mistaken for a scroll.
   const swipe = Gesture.Pan()
+    .enabled(editing)
     .activeOffsetX([-16, 16])
     .failOffsetY([-16, 16])
     .onUpdate((gesture) => {
@@ -513,58 +500,61 @@ function DashboardTileFrame({
   return (
     <View style={styles.tileWrap}>
       <GestureDetector gesture={swipe}>
-        <View style={[styles.tileSwipeRow, deletePressed && { backgroundColor: theme.destructiveSurfacePressed }]}>
-          {/* Drive the whole layer's colour from press state (onPressIn/Out) so
-              the entire red surface darkens on tap — not just an inner element —
-              and reliably, even while the swipe Pan gesture is on the parent. */}
+        <View style={[styles.tileSwipeRow, editing && deletePressed && { backgroundColor: theme.destructiveSurfacePressed }]}>
           <Animated.View
             style={[
               styles.tileDeleteLayer,
               deleteLayerStyle,
-              { backgroundColor: deletePressed ? theme.destructiveSurfacePressed : theme.destructiveSurface, pointerEvents: revealed ? 'auto' : 'none' },
+              { backgroundColor: deletePressed ? theme.destructiveSurfacePressed : theme.destructiveSurface, pointerEvents: revealed && editing ? 'auto' : 'none' },
             ]}
           >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Delete ${name} tile`}
-              onPress={remove}
-              onPressIn={() => setDeletePressed(true)}
-              onPressOut={() => setDeletePressed(false)}
-              style={styles.tileDeleteAction}
-            >
-              <Icon name="trash" size={20} color={theme.textDestructive} />
-              <Text style={styles.tileDeleteText}>Delete</Text>
-            </Pressable>
+            {editing ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Delete ${name} tile`}
+                onPress={remove}
+                onPressIn={() => setDeletePressed(true)}
+                onPressOut={() => setDeletePressed(false)}
+                style={styles.tileDeleteAction}
+              >
+                <Icon name="trash" size={20} color={theme.textDestructive} />
+                <Text style={styles.tileDeleteText}>Delete</Text>
+              </Pressable>
+            ) : null}
           </Animated.View>
           <Animated.View
             style={[styles.tileSwipeContent, cardStyle]}
-            accessibilityActions={[{ name: 'delete', label: `Delete ${name} tile` }]}
+            accessibilityActions={editing ? [{ name: 'delete', label: `Delete ${name} tile` }] : []}
             onAccessibilityAction={(event) => {
               if (event.nativeEvent.actionName === 'delete') remove();
             }}
           >
             <ForgeCard testID={testID} style={[styles.tileCard, isActive && styles.tileCardActive]}>
-              {/* A generous left rail is the drag zone, so a hold anywhere down the
-                  left edge of the card starts a reorder — not only on the grip. */}
+              {/* A generous left rail is the drag zone — hidden and inert until edit
+                  mode, so its show/hide never remounts the body beside it. */}
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Reorder ${name} tile`}
-                onLongPress={onDrag}
+                accessibilityElementsHidden={!editing}
+                importantForAccessibility={editing ? 'auto' : 'no-hide-descendants'}
+                onLongPress={editing ? onDrag : undefined}
                 delayLongPress={140}
-                style={styles.dragRail}
+                style={[styles.dragRail, { opacity: editing ? 1 : 0, pointerEvents: editing ? 'auto' : 'none' }]}
               >
                 <Icon name="drag" size={18} color={theme.muted} />
               </Pressable>
-              <View style={styles.tileBody}>
+              <View style={[styles.tileBody, { paddingLeft: editing ? DRAG_RAIL_WIDTH : 16 }]}>
                 <TileChromeContext.Provider value={chrome}>{children}</TileChromeContext.Provider>
               </View>
               {onOpenSettings ? (
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`${name} tile settings`}
+                  accessibilityElementsHidden={!editing}
+                  importantForAccessibility={editing ? 'auto' : 'no-hide-descendants'}
                   onPress={onOpenSettings}
                   hitSlop={8}
-                  style={({ pressed }) => [styles.settingsButton, pressed && styles.settingsButtonPressed]}
+                  style={({ pressed }) => [styles.settingsButton, { opacity: editing ? 1 : 0, pointerEvents: editing ? 'auto' : 'none' }, pressed && styles.settingsButtonPressed]}
                 >
                   <Icon name="settings" size={16} color={theme.slate} />
                 </Pressable>
@@ -588,8 +578,6 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   tileWrap: { marginBottom: 14, paddingHorizontal: 20 },
   tileCard: { position: 'relative' },
   tileCardActive: { opacity: 0.97 },
-  // Clean card body when not editing (no rail inset / remove control).
-  plainBody: { padding: 16, minHeight: 44 },
   dragRail: {
     position: 'absolute',
     left: 0,
