@@ -137,8 +137,8 @@ test.describe('Settings', () => {
     await page.getByLabel('Body weight value').fill('81.4');
     await page.getByRole('button', { name: 'Save measurement' }).click();
     await expect(page.getByText('81.4 kg').first()).toBeVisible();
-    await expect(page.getByLabel('1 measurements chart')).toBeVisible();
-    await expect(page.getByText(/^History · /).last()).toBeVisible();
+    await expect(page.getByText('TREND')).toBeVisible();
+    await expect(page.getByText('Tap to edit · swipe to delete')).toBeVisible();
 
     await page.reload();
     await page.getByRole('tab', { name: 'Settings' }).click();
@@ -146,7 +146,7 @@ test.describe('Settings', () => {
     // Entering the destination never fades or translates its initial metric.
     await expect(page.getByTestId('measurements-active-metric')).toHaveCSS('opacity', '1');
     await expect(page.getByText('81.4 kg').first()).toBeVisible();
-    await expect(page.getByText(/^History · /).last()).toBeVisible();
+    await expect(page.getByText('Tap to edit · swipe to delete')).toBeVisible();
   });
 
   test('keeps measures user-defined and lets the user choose their chart colour', async ({ page }) => {

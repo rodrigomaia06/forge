@@ -42,6 +42,7 @@ export {
 export type { CatalogFilterFacet, CatalogFilterKey, CatalogFilterOption, CatalogFilterState } from './ForgeCatalogFilters';
 export { pressedFeedback, pressedFeedbackSubtle } from './pressFeedback';
 export { Icon } from './Icon';
+export { SwipeToDeleteRow } from './SwipeToDeleteRow';
 export { NavigationItem } from './NavigationItem';
 export { ScreenTitle } from './ScreenTitle';
 export { SectionHeader } from './SectionHeader';

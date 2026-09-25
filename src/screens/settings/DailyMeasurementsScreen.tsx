@@ -7,13 +7,11 @@ import {
   View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import Svg, { Circle, Line, Path } from 'react-native-svg';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import {
   Button,
   AppScreen,
-  ForgeActionSheet,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
   ForgeCard,
@@ -23,9 +21,11 @@ import {
   ForgeTextInput as TextInput,
   HeaderAction,
   Icon,
+  SwipeToDeleteRow,
   pressedFeedback,
   selectionHaptic,
 } from '../../components/ui';
+import { ForgeLineChart } from '../../components/charts/ForgeLineChart';
 import { useSettings } from '../../state/SettingsContext';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
@@ -33,7 +33,7 @@ import { typeScale } from '../../theme/tokens';
 import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import type { DailyMeasurementDefinition, DailyMeasurementEntry, IconName, RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
-import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
+import { settingsLayout } from './SettingsRow';
 import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DailyMeasurements'>;
@@ -96,7 +96,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
   // inside Measurements should replace this content with a lateral motion.
   const [animateMetricChange, setAnimateMetricChange] = useState(false);
   const [recordOpen, setRecordOpen] = useState(false);
-  const [entryMenu, setEntryMenu] = useState<DailyMeasurementEntry | null>(null);
+  const [recordDateKey, setRecordDateKey] = useState<string>(() => localDateKey());
   const [metricOpen, setMetricOpen] = useState(false);
   const [recordValue, setRecordValue] = useState('');
   const [metricName, setMetricName] = useState('');
@@ -144,15 +144,24 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
     ? `${latest.value >= periodStart.value ? '+' : ''}${formatValue(latest.value - periodStart.value, displayUnit)}`
     : '—';
 
-  const openRecord = () => {
+  const openRecordFor = (dateKey: string) => {
     if (!selected) return;
     const existing = preferences.dailyMeasurementEntries.find(
-      (entry) => entry.definitionId === selected.id && entry.date === localDateKey(),
+      (entry) => entry.definitionId === selected.id && entry.date === dateKey,
     );
     const value = existing?.value;
     const shown = value === undefined || value === 0 ? '' : String(value);
+    setRecordDateKey(dateKey);
     setRecordValue(shown);
     setRecordOpen(true);
+  };
+  const openRecord = () => openRecordFor(localDateKey());
+  const editRecord = (entry: DailyMeasurementEntry) => openRecordFor(entry.date);
+
+  const deleteEntry = (id: string) => {
+    updatePreferences({
+      dailyMeasurementEntries: preferences.dailyMeasurementEntries.filter((entry) => entry.id !== id),
+    });
   };
 
   const saveRecord = () => {
@@ -160,7 +169,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
     const parsed = Number(recordValue.replace(',', '.'));
     if (!Number.isFinite(parsed)) return;
     const value = parsed;
-    const date = localDateKey();
+    const date = recordDateKey;
     const old = preferences.dailyMeasurementEntries.find(
       (entry) => entry.definitionId === selected.id && entry.date === date,
     );
@@ -340,7 +349,25 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                     ))}
                   </View>
                 </View>
-                <MeasurementChart points={displayEntries} color={selected.color} unit={displayUnit} range={range} />
+                <ForgeLineChart
+                  data={displayEntries.map((entry) => ({ value: entry.value }))}
+                  height={168}
+                  color={selected.color}
+                  showMarkers={displayEntries.length <= 16}
+                />
+                <View style={[styles.chartFooter, displayEntries.length === 1 && styles.chartFooterCentered]}>
+                  {displayEntries.length > 1 ? (
+                    <Text style={styles.chartAxis}>{formatValue(Math.max(...displayEntries.map((e) => e.value)), displayUnit)}</Text>
+                  ) : null}
+                  <Text style={styles.chartAxis}>
+                    {displayEntries.length === 1
+                      ? displayDate(displayEntries[0].date)
+                      : `${displayDate(displayEntries[0].date)} — ${displayDate(displayEntries.at(-1)?.date ?? displayEntries[0].date)}`}
+                  </Text>
+                  {displayEntries.length > 1 ? (
+                    <Text style={styles.chartAxis}>{formatValue(Math.min(...displayEntries.map((e) => e.value)), displayUnit)}</Text>
+                  ) : null}
+                </View>
               </ForgeCard>
             ) : (
               <Button
@@ -353,39 +380,38 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
             )}
           </Animated.View>
         ) : null}
+        {historyGroups.length ? (
+          <View style={styles.historyHeaderRow}>
+            <Text style={styles.historyTitle}>History</Text>
+            <Text style={styles.historyHint}>Tap to edit · swipe to delete</Text>
+          </View>
+        ) : null}
         {historyGroups.map((group) => (
-          <SettingsSection key={group.key} title={`History · ${group.label}`}>
-            {group.values.map((entry, index) => (
-              <SettingsRow
-                key={entry.id}
-                title={displayHistoryDate(entry.date)}
-                trailing={<Text style={styles.historyValue}>{formatValue(entry.value, displayUnit)}</Text>}
-                showDivider={index < group.values.length - 1}
-                onPress={() => { selectionHaptic(); setEntryMenu(entry); }}
-                accessibilityLabel={`${displayHistoryDate(entry.date)}, ${formatValue(entry.value, displayUnit)}`}
-              />
-            ))}
-          </SettingsSection>
+          <View key={group.key} style={styles.historyGroup}>
+            <Text style={styles.historyGroupLabel}>{group.label}</Text>
+            <View style={styles.historyCard}>
+              {group.values.map((entry, index) => (
+                <SwipeToDeleteRow
+                  key={entry.id}
+                  deleteAccessibilityLabel={`Delete ${displayHistoryDate(entry.date)} record`}
+                  onDelete={() => deleteEntry(entry.id)}
+                  showDivider={index < group.values.length - 1}
+                >
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Edit ${displayHistoryDate(entry.date)}, ${formatValue(entry.value, displayUnit)}`}
+                    onPress={() => { selectionHaptic(); editRecord(entry); }}
+                    style={({ pressed }) => [styles.historyRow, pressed && pressedFeedback]}
+                  >
+                    <Text style={styles.historyDate}>{displayHistoryDate(entry.date)}</Text>
+                    <Text style={styles.historyValue}>{formatValue(entry.value, displayUnit)}</Text>
+                  </Pressable>
+                </SwipeToDeleteRow>
+              ))}
+            </View>
+          </View>
         ))}
       </ScrollView>
-      <ForgeActionSheet
-        visible={entryMenu !== null}
-        onClose={() => setEntryMenu(null)}
-        accessibilityLabel="Close record options"
-        title={entryMenu ? `${displayHistoryDate(entryMenu.date)} · ${formatValue(entryMenu.value, displayUnit)}` : 'Record'}
-        actions={entryMenu ? [
-          {
-            label: 'Delete record',
-            icon: 'trash' as const,
-            tone: 'destructive' as const,
-            onPress: () => {
-              const id = entryMenu.id;
-              updatePreferences({ dailyMeasurementEntries: preferences.dailyMeasurementEntries.filter((item) => item.id !== id) });
-              setEntryMenu(null);
-            },
-          },
-        ] : []}
-      />
       <ForgeBottomSheet
         visible={recordOpen}
         onClose={() => setRecordOpen(false)}
@@ -396,7 +422,9 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
           <View style={[styles.recordSheet, { paddingBottom: floatingCtaClearance }]}>
             <ForgeBottomSheetHandle />
             <ForgeSheetHeader title={`Record ${selected?.name ?? 'measurement'}`} onClose={close} />
-            <Text style={styles.recordDate}>Today · {displayDate(localDateKey())}</Text>
+            <Text style={styles.recordDate}>
+              {recordDateKey === localDateKey() ? 'Today · ' : ''}{displayDate(recordDateKey)}
+            </Text>
             <ForgeCard variant="nested" style={styles.valueField}>
               <TextInput
                 autoFocus
@@ -522,63 +550,6 @@ function MeasurementSummaryStat({ label, value }: { label: string; value: string
   );
 }
 
-function MeasurementChart({
-  points,
-  color,
-  unit,
-  range,
-}: {
-  points: { date: string; value: number }[];
-  color: string;
-  unit: string;
-  range: Range;
-}) {
-  const theme = useForgeTheme();
-  const styles = useThemedStyles(createStyles);
-  const values = points.map((point) => point.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = Math.max(max - min, Math.max(Math.abs(max) * 0.08, 1));
-  const low = min - span * 0.16;
-  const high = max + span * 0.16;
-  const width = 300;
-  const height = 132;
-  const left = 10;
-  const right = 10;
-  const top = 12;
-  const bottom = 24;
-  const rangeEnd = new Date();
-  rangeEnd.setHours(0, 0, 0, 0);
-  const rangeStart = new Date(rangeEnd);
-  rangeStart.setDate(rangeStart.getDate() - (range - 1));
-  const rangeDuration = Math.max(rangeEnd.getTime() - rangeStart.getTime(), 1);
-  const dateToTime = (date: string) => {
-    const [year, month, day] = date.split('-').map(Number);
-    return new Date(year, month - 1, day).getTime();
-  };
-  const x = (point: { date: string }) => points.length === 1
-    ? width / 2
-    : left + Math.max(0, Math.min(1, (dateToTime(point.date) - rangeStart.getTime()) / rangeDuration)) * (width - left - right);
-  const y = (value: number) => top + ((high - value) / (high - low)) * (height - top - bottom);
-  const path = points.map((point, index) => `${index ? 'L' : 'M'} ${x(point)} ${y(point.value)}`).join(' ');
-  return (
-    <View>
-      <Svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} accessibilityLabel={`${points.length} measurements chart`}>
-        {[0.25, 0.5, 0.75].map((fraction) => (
-          <Line key={fraction} x1={left} x2={width - right} y1={top + (height - top - bottom) * fraction} y2={top + (height - top - bottom) * fraction} stroke={theme.divider} strokeWidth={1} />
-        ))}
-        <Path d={path} fill="none" stroke={color} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
-        {points.map((point) => <Circle key={point.date} cx={x(point)} cy={y(point.value)} r={4} fill={theme.surfaceElevated} stroke={color} strokeWidth={2.5} />)}
-      </Svg>
-      <View style={[styles.chartFooter, points.length === 1 && styles.chartFooterCentered]}>
-        {points.length > 1 ? <Text style={styles.chartAxis}>{formatValue(max, unit)}</Text> : null}
-        <Text style={styles.chartAxis}>{points.length === 1 ? displayDate(points[0].date) : `${displayDate(points[0].date)} — ${displayDate(points.at(-1)?.date ?? points[0].date)}`}</Text>
-        {points.length > 1 ? <Text style={styles.chartAxis}>{formatValue(min, unit)}</Text> : null}
-      </View>
-    </View>
-  );
-}
-
 const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.create({
   screen: { flex: 1 },
   scroll: { flex: 1 },
@@ -606,9 +577,17 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   rangeControls: { flexDirection: 'row', padding: 3, gap: 2, borderRadius: 12, backgroundColor: theme.surfaceMuted },
   rangeControl: { minWidth: 34, minHeight: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   rangeText: { ...typeScale.caption, color: theme.textSecondary },
-  chartFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  chartFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 6 },
   chartFooterCentered: { justifyContent: 'center' },
   chartAxis: { ...typeScale.caption, color: theme.textSecondary },
+  historyHeaderRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginTop: 4 },
+  historyTitle: { ...typeScale.sectionTitle, color: theme.textPrimary },
+  historyHint: { ...typeScale.caption, color: theme.textSecondary },
+  historyGroup: { gap: 8 },
+  historyGroupLabel: { ...typeScale.caption, color: theme.textSecondary, letterSpacing: 0.5, marginLeft: 4 },
+  historyCard: { backgroundColor: theme.surface, borderRadius: theme.cardRadius, overflow: 'hidden' },
+  historyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 56, paddingHorizontal: 16 },
+  historyDate: { ...typeScale.label, color: theme.textPrimary },
   historyValue: { ...typeScale.cardTitle, color: theme.textPrimary },
   metricPickerSection: { gap: 9 },
   metricPickerHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
