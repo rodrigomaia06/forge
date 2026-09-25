@@ -1,5 +1,5 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -118,6 +118,18 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
 
   const selected = preferences.dailyMeasurementDefinitions.find((item) => item.id === selectedId)
     ?? preferences.dailyMeasurementDefinitions[0];
+
+  // Centre the active metric in the horizontal picker so it never sits half-off
+  // an edge — especially when arriving from a dashboard tap on a specific one.
+  const pickerRef = useRef<ScrollView>(null);
+  const [pickerWidth, setPickerWidth] = useState(0);
+  useEffect(() => {
+    const index = preferences.dailyMeasurementDefinitions.findIndex((def) => def.id === selected?.id);
+    if (index < 0 || pickerWidth === 0) return;
+    const STEP = 168; // tile width 158 + gap 10
+    const x = Math.max(0, index * STEP + 158 / 2 - pickerWidth / 2);
+    pickerRef.current?.scrollTo({ x, animated: false });
+  }, [selected?.id, pickerWidth, preferences.dailyMeasurementDefinitions]);
   const displayUnit = selected?.unit ?? '';
   const entries = useMemo(() => {
     if (!selected) return [];
@@ -352,9 +364,11 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
               </Pressable>
             </View>
             <ScrollView
+              ref={pickerRef}
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.metricPickerContent}
+              onLayout={(e) => setPickerWidth(e.nativeEvent.layout.width)}
               accessibilityRole="radiogroup"
               accessibilityLabel="Measurement metric"
             >

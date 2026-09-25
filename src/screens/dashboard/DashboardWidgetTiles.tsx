@@ -483,7 +483,12 @@ export function DashboardMeasurementsTile({
       <TileHead
         icon="measure"
         title="Measurements"
-        trailing={<Text style={styles.sub}>{trendDayLabel(windowDays)}</Text>}
+        trailing={
+          <View style={styles.headTrailingRow}>
+            <Text style={styles.sub}>{trendDayLabel(windowDays)}</Text>
+            {onOpen ? <Icon name="chevron-forward" size={16} color={theme.slate} /> : null}
+          </View>
+        }
       />
       {definitions.length ? (
         <View style={styles.mList}>
@@ -666,6 +671,7 @@ export function DashboardCalendarTile({
         <View style={styles.calStat}><Text style={styles.calStatValue}>{formatCalDuration(seconds)}</Text><Text style={styles.calStatLabel}>Duration</Text></View>
         <View style={styles.calStat}><Text style={styles.calStatValue}>{formatVolume(volume)}</Text><Text style={styles.calStatLabel}>Volume</Text></View>
       </View>
+      {onOpen ? <Icon name="chevron-forward" size={16} color={theme.muted} /> : null}
     </Pressable>
   );
 }
