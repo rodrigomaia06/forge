@@ -100,6 +100,19 @@ export function ForgeLineChart({
     <View onLayout={onLayout} style={{ width: '100%' }}>
       {width > 0 ? (
         <View style={{ position: 'relative' }}>
+        {trend ? (
+          <Svg style={StyleSheet.absoluteFill} width={width} height={height} pointerEvents="none">
+            <Line
+              x1={trend.x1}
+              y1={trend.y1}
+              x2={trend.x2}
+              y2={trend.y2}
+              stroke={theme.slate}
+              strokeWidth={2}
+              strokeLinecap="round"
+            />
+          </Svg>
+        ) : null}
         <LineChart
           data={chartData}
           width={plotWidth}
@@ -166,21 +179,6 @@ export function ForgeLineChart({
               : undefined
           }
         />
-        {trend ? (
-          <Svg style={StyleSheet.absoluteFill} width={width} height={height} pointerEvents="none">
-            <Line
-              x1={trend.x1}
-              y1={trend.y1}
-              x2={trend.x2}
-              y2={trend.y2}
-              stroke={theme.slate}
-              strokeOpacity={0.4}
-              strokeWidth={2}
-              strokeDasharray="6 5"
-              strokeLinecap="round"
-            />
-          </Svg>
-        ) : null}
         </View>
       ) : null}
     </View>

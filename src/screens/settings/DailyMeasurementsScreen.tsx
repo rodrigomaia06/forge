@@ -236,12 +236,14 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
         elevated={headerElevated}
         rightAction={
           editing ? (
-            <HeaderAction
+            <Pressable
+              accessibilityRole="button"
               accessibilityLabel="Done editing measurements"
-              icon="check"
-              iconOnly
               onPress={() => { lightHaptic(); setEditing(false); }}
-            />
+              style={({ pressed }) => [styles.donePill, pressed && { opacity: 0.7 }]}
+            >
+              <Icon name="check" size={22} color={theme.textPrimary} weight="bold" />
+            </Pressable>
           ) : (
             <HeaderActionGroup>
               {preferences.dailyMeasurementDefinitions.length ? (
@@ -371,11 +373,11 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                   <View style={styles.metricCardStats}>
                     <View style={styles.metricCardStat}>
                       <Text style={styles.metricCardStatLabel}>Latest</Text>
-                      <Text style={styles.metricCardStatValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{formatValue(latest.value, displayUnit)}</Text>
+                      <Text style={styles.metricCardStatValue} numberOfLines={1}>{formatValue(latest.value, displayUnit)}</Text>
                     </View>
                     <View style={styles.metricCardStat}>
                       <Text style={styles.metricCardStatLabel}>{range}d change</Text>
-                      <Text style={styles.metricCardStatSub} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{trendDelta}</Text>
+                      <Text style={styles.metricCardStatSub} numberOfLines={1}>{trendDelta}</Text>
                     </View>
                   </View>
                 </ForgeCard>
@@ -443,7 +445,6 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
         {historyGroups.length ? (
           <View style={styles.historyHeaderRow}>
             <Text style={styles.historyTitle}>History</Text>
-            <Text style={styles.historyHint}>{editing ? 'Tap to edit · swipe to delete' : 'Tap to edit'}</Text>
           </View>
         ) : null}
         {historyGroups.map((group) => (
@@ -465,7 +466,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                     style={({ pressed }) => [styles.historyRow, pressed && pressedFeedback]}
                   >
                     <Text style={styles.historyDate} numberOfLines={1}>{displayHistoryDate(entry.date)}</Text>
-                    <Text style={styles.historyValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{formatValue(entry.value, displayUnit)}</Text>
+                    <Text style={styles.historyValue} numberOfLines={1}>{formatValue(entry.value, displayUnit)}</Text>
                   </Pressable>
                 </SwipeToDeleteRow>
               ))}
@@ -633,7 +634,9 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
   );
 }
 
-const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.create({
+const createStyles = (theme: import('../../types').ForgeTheme) => {
+  const isDark = theme.colorScheme === 'dark';
+  return StyleSheet.create({
   screen: { flex: 1 },
   scroll: { flex: 1 },
   content: {
@@ -672,7 +675,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   showMoreText: { ...typeScale.controlLabel, color: theme.textSecondary },
   historyHeaderRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginTop: 4 },
   historyTitle: { ...typeScale.sectionTitle, color: theme.textPrimary },
-  historyHint: { ...typeScale.caption, color: theme.textSecondary },
   historyGroup: { gap: 8 },
   historyGroupLabel: { ...typeScale.caption, color: theme.textSecondary, letterSpacing: 0.5, marginLeft: 4 },
   historyCard: { backgroundColor: theme.surface, borderRadius: theme.cardRadius, overflow: 'hidden' },
@@ -710,4 +712,15 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   colorChoices: { flexDirection: 'row', gap: 10 },
   colorChoice: { width: 44, height: 44, borderRadius: 13, borderWidth: 1, borderColor: theme.border, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surface },
   colorSwatch: { width: 20, height: 20, borderRadius: 10 },
+  donePill: {
+    height: 40,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: isDark ? theme.surfaceMuted : theme.surfaceElevated,
+    borderColor: theme.border,
+    borderWidth: isDark ? 0 : 1,
+  },
 });
+};
