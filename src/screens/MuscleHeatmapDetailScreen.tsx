@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { AppScreen, ForgeCard, ForgeText as Text, HeaderAction, pressedFeedback, selectionHaptic } from '../components/ui';
+import { AppScreen, ForgeCard, ForgeText as Text, HeaderAction, HeaderActionGroup, Icon, joinedHeaderAction, pressedFeedback, selectionHaptic } from '../components/ui';
 import { SettingsDetailHeader } from './settings/SettingsScreenChrome';
 import { MuscleMap } from '../components/anatomy/MuscleMap';
 import { HEATMAP_ACCENT, MUSCLE_GROUP_COLORS } from './dashboard/DashboardWidgetTiles';
@@ -89,14 +89,28 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
           navigation={navigation}
           elevated={elevated}
           rightAction={
-            <HeaderAction
-              accessibilityLabel={editing ? 'Done editing' : 'Edit view'}
-              icon={editing ? 'check' : 'note'}
-              iconSize={editing ? 22 : 20}
-              iconOnly
-              variant="ghost"
-              onPress={() => { selectionHaptic(); setEditing((e) => !e); }}
-            />
+            editing ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Done editing"
+                onPress={() => { selectionHaptic(); setEditing(false); }}
+                style={({ pressed }) => [styles.donePill, pressed && { opacity: 0.7 }]}
+              >
+                <Icon name="check" size={22} color={theme.textPrimary} weight="bold" />
+              </Pressable>
+            ) : (
+              <HeaderActionGroup>
+                <HeaderAction
+                  accessibilityLabel="Edit view"
+                  icon="note"
+                  iconSize={20}
+                  iconOnly
+                  variant="ghost"
+                  style={joinedHeaderAction}
+                  onPress={() => { selectionHaptic(); setEditing(true); }}
+                />
+              </HeaderActionGroup>
+            )
           }
         />
         <ScrollView
@@ -107,17 +121,13 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
           scrollEventThrottle={16}
         >
           {editing ? (
-            <ForgeCard style={styles.controlsCard}>
-              <Text style={styles.controlLabel}>Window</Text>
-              <Segmented options={WINDOWS} value={windowDays} onChange={(v) => setView({ windowDays: v })} format={(v) => trendDayLabel(v)} />
-              <Text style={styles.controlLabel}>Body model</Text>
-              <Segmented options={['male', 'female'] as const} value={gender} onChange={(v) => setView({ gender: v })} format={(v) => (v === 'male' ? 'Male' : 'Female')} />
-              <Text style={styles.controlLabel}>Working sets</Text>
-              <Segmented options={['group', 'muscle'] as const} value={breakdown} onChange={(v) => setView({ breakdown: v })} format={(v) => (v === 'group' ? 'Groups' : 'Muscles')} />
-            </ForgeCard>
+            <Segmented options={WINDOWS} value={windowDays} onChange={(v) => setView({ windowDays: v })} format={(v) => trendDayLabel(v)} />
           ) : null}
 
           <ForgeCard style={styles.figuresCard}>
+            {editing ? (
+              <Segmented options={['male', 'female'] as const} value={gender} onChange={(v) => setView({ gender: v })} format={(v) => (v === 'male' ? 'Male' : 'Female')} />
+            ) : null}
             {anyData ? (
               <>
                 <View style={styles.figures}>
@@ -144,7 +154,28 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
           </ForgeCard>
 
           <ForgeCard style={styles.rankCard}>
-            <Text style={styles.rankTitle}>Working sets by {breakdown === 'muscle' ? 'muscle' : 'group'}</Text>
+            <View style={styles.rankHeader}>
+              <Text style={styles.rankTitle}>Working sets by {breakdown === 'muscle' ? 'muscle' : 'group'}</Text>
+              {editing ? (
+                <View style={styles.breakdownToggle}>
+                  {(['group', 'muscle'] as const).map((b) => {
+                    const active = b === breakdown;
+                    return (
+                      <Pressable
+                        key={b}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: active }}
+                        accessibilityLabel={b === 'group' ? 'By group' : 'By muscle'}
+                        onPress={() => setView({ breakdown: b })}
+                        style={({ pressed }) => [styles.breakdownSeg, active && { backgroundColor: theme.selectionIndicator }, pressed && !active && pressedFeedback]}
+                      >
+                        <Text style={[styles.breakdownText, { color: active ? (theme.onActionPrimary ?? theme.surface) : theme.slate }]}>{b === 'group' ? 'Groups' : 'Muscles'}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ) : null}
+            </View>
             {ranking.length ? ranking.map((r, i) => (
               <View key={`${r.label}-${i}`} style={styles.rankRow}>
                 <View style={[styles.rankDot, { backgroundColor: MUSCLE_GROUP_COLORS[r.group] }]} />
@@ -164,15 +195,25 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
   );
 }
 
-const createStyles = (theme: ForgeTheme) => StyleSheet.create({
+const createStyles = (theme: ForgeTheme) => {
+  const isDark = theme.colorScheme === 'dark';
+  return StyleSheet.create({
   screen: { flex: 1 },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 20, paddingTop: 8, gap: 16 },
+  donePill: {
+    height: 40,
+    paddingHorizontal: 22,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: isDark ? theme.surfaceMuted : theme.surfaceElevated,
+    borderColor: theme.border,
+    borderWidth: isDark ? 0 : 1,
+  },
   segmented: { flexDirection: 'row', gap: 8 },
   segment: { flex: 1, minHeight: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   segmentText: { ...typeScale.controlLabel },
-  controlsCard: { padding: 16, gap: 8 },
-  controlLabel: { ...typeScale.caption, color: theme.textSecondary, letterSpacing: 0.6, marginTop: 4 },
   figuresCard: { padding: 16, gap: 12 },
   figures: { flexDirection: 'row', gap: 8 },
   figureCol: { flex: 1, alignItems: 'center', gap: 4 },
@@ -193,4 +234,5 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   rankTrack: { flex: 1, height: 10, borderRadius: 999, overflow: 'hidden' },
   rankFill: { height: '100%', borderRadius: 999 },
   rankValue: { width: 26, textAlign: 'right', color: theme.ink, fontVariant: ['tabular-nums'], ...typeScale.caption },
-});
+  });
+};
