@@ -57,12 +57,14 @@ export function MuscleMap({
   side,
   color,
   height = 300,
+  gender = 'male',
 }: {
   /** Per-muscle intensity 0..1 keyed by Forge muscle slug (e.g. `frontdelts`). */
   heat: Record<string, number>;
   side: 'front' | 'back';
   color: string;
   height?: number;
+  gender?: 'male' | 'female';
 }) {
   const theme = useForgeTheme();
   const colors = heatRamp(color);
@@ -82,7 +84,7 @@ export function MuscleMap({
     <Body
       data={data}
       side={side}
-      gender="male"
+      gender={gender}
       scale={height / 400}
       colors={colors}
       border={theme.colorScheme === 'dark' ? theme.surfaceInset : theme.border}
