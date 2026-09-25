@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Image, LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, UIManager, View, useWindowDimensions } from 'react-native';
+import { Image, LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, UIManager, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -9,9 +9,10 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import {
-  AnchoredActionPopover,
+  AnchoredMenuActions,
   AppScreen,
   ForgeActionSheet,
+  ForgeAnchoredMenu,
   ForgeCard,
   ForgeText as Text,
   HeaderAction,
@@ -22,6 +23,7 @@ import {
   ScreenTitle,
   pressedFeedbackSubtle,
   selectionHaptic,
+  useAnchoredMenu,
 } from '../components/ui';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
@@ -47,14 +49,13 @@ type PlanActionTarget =
 const swipeSpring = forgeMotion.swipeSpring;
 
 export function PlansScreen({ navigation, route }: Props) {
-  const { width } = useWindowDimensions();
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const dockScrollInset = useForgeDockScrollInset();
   const { preferences } = useSettings();
   const { plans, standaloneRoutines, createPlan, deletePlan, deleteRoutine } = usePlans();
   const { startWorkout, completedWorkouts } = useWorkouts();
-  const [creationOpen, setCreationOpen] = useState(false);
+  const createMenu = useAnchoredMenu();
   const [actionTarget, setActionTarget] = useState<PlanActionTarget | null>(null);
   const [headerElevated, setHeaderElevated] = useState(false);
   const reducedMotion = useForgeReducedMotion();
@@ -67,14 +68,13 @@ export function PlansScreen({ navigation, route }: Props) {
       LayoutAnimation.create(forgeMotion.transition, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity),
     );
   };
-  const usesCompactCreationSheet = width < 768;
   const handlePlansScrollOffset = useCallback((offset: number): void => {
     setHeaderElevated(offset > 1);
   }, []);
 
   useEffect(() => {
     if (!route.params?.openCreation) return;
-    setCreationOpen(true);
+    createMenu.open();
     navigation.setParams({ openCreation: undefined });
   }, [navigation, route.params?.openCreation]);
 
@@ -128,7 +128,7 @@ export function PlansScreen({ navigation, route }: Props) {
     navigation.navigate('ActiveWorkout');
   };
   const addRoutine = (planId?: string): void => {
-    setCreationOpen(false);
+    createMenu.close();
     navigation.navigate('RoutineEditor', { mode: 'create', planId });
   };
 
@@ -137,14 +137,16 @@ export function PlansScreen({ navigation, route }: Props) {
       <View style={styles.screen}>
         <View style={styles.header}>
           <ScreenTitle color={theme.textPrimary}>Plans</ScreenTitle>
-          <HeaderAction
-            accessibilityLabel="Create workout, routine, or plan"
-            icon="add"
-            iconOnly
-            onPress={() => setCreationOpen(true)}
-            variant={theme.colorScheme === 'dark' ? 'ghost' : 'secondary'}
-            style={theme.colorScheme === 'dark' ? styles.darkHeaderAction : undefined}
-          />
+          <View ref={createMenu.ref} collapsable={false}>
+            <HeaderAction
+              accessibilityLabel="Create workout, routine, or plan"
+              icon="add"
+              iconOnly
+              onPress={createMenu.open}
+              variant={theme.colorScheme === 'dark' ? 'ghost' : 'secondary'}
+              style={theme.colorScheme === 'dark' ? styles.darkHeaderAction : undefined}
+            />
+          </View>
           {headerElevated ? <HeaderEdge /> : null}
         </View>
         <ScrollView
@@ -203,28 +205,21 @@ export function PlansScreen({ navigation, route }: Props) {
           ))}
           {!standaloneRoutines.length && !plans.length ? <EmptyPlans /> : null}
         </ScrollView>
-        <AnchoredActionPopover
-          visible={creationOpen && !usesCompactCreationSheet}
-          onClose={() => setCreationOpen(false)}
+        <ForgeAnchoredMenu
+          visible={createMenu.visible}
+          anchor={createMenu.anchor}
+          onClose={createMenu.close}
           testID="plans-creation-popover"
-          actions={[
-            { label: 'New workout', icon: 'fitness', onPress: startBlankWorkout },
-            { label: 'New routine', icon: 'book', onPress: () => addRoutine() },
-            { label: 'New workout plan', icon: 'layers', onPress: addPlan },
-          ]}
-        />
-        <ForgeActionSheet
-          visible={creationOpen && usesCompactCreationSheet}
-          onClose={() => setCreationOpen(false)}
-          accessibilityLabel="Dismiss creation options"
-          title="Create"
-          testID="plans-creation-popover"
-          actions={[
-            { label: 'New workout', icon: 'fitness', onPress: startBlankWorkout },
-            { label: 'New routine', icon: 'book', onPress: () => addRoutine() },
-            { label: 'New workout plan', icon: 'layers', onPress: addPlan },
-          ]}
-        />
+        >
+          <AnchoredMenuActions
+            onClose={createMenu.close}
+            actions={[
+              { label: 'New workout', icon: 'fitness', onPress: startBlankWorkout },
+              { label: 'New routine', icon: 'book', onPress: () => addRoutine() },
+              { label: 'New workout plan', icon: 'layers', onPress: addPlan },
+            ]}
+          />
+        </ForgeAnchoredMenu>
         <ForgeActionSheet
           visible={actionTarget !== null}
           onClose={() => setActionTarget(null)}

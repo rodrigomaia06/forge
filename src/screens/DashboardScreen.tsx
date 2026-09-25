@@ -6,8 +6,9 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import {
+  AnchoredMenuActions,
   AppScreen,
-  ForgeActionSheet,
+  ForgeAnchoredMenu,
   ForgeCard,
   ForgeText as Text,
   Icon,
@@ -15,6 +16,7 @@ import {
   mediumHaptic,
   pressedFeedback,
   selectionHaptic,
+  useAnchoredMenu,
 } from '../components/ui';
 import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
 import { DashboardHeader } from '../components/DashboardHeader';
@@ -123,7 +125,7 @@ export function DashboardScreen() {
   const starter = useWorkoutStarter();
   const { layout, setLayout } = useDashboardLayout();
   const [editing, setEditing] = useState(false);
-  const [addTileOpen, setAddTileOpen] = useState(false);
+  const addTileMenu = useAnchoredMenu();
   const [settingsTileId, setSettingsTileId] = useState<string | null>(null);
   const reducedMotion = useForgeReducedMotion();
   // Smoothly reflow the tile list when a tile is added/removed or edit mode
@@ -247,7 +249,7 @@ export function DashboardScreen() {
       ...layout.filter((tile) => tile.id !== config.id),
       { ...config, visible: true },
     ]);
-    setAddTileOpen(false);
+    addTileMenu.close();
     // A fresh measurement card opens its settings so you can pick the metric(s)
     // and window straight away, rather than staring at an empty tile. Wait for
     // the add-tile sheet to finish closing first — opening a second bottom sheet
@@ -424,18 +426,20 @@ export function DashboardScreen() {
           ListFooterComponent={
             <View style={{ paddingBottom: dockScrollInset }}>
               {editing && addableTiles.length ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Add tile"
-                  onPress={() => {
-                    lightHaptic();
-                    setAddTileOpen(true);
-                  }}
-                  style={({ pressed }) => [styles.addTileRow, pressed && pressedFeedback]}
-                >
-                  <Icon name="add" size={20} color={theme.ink} />
-                  <Text style={styles.addTileLabel}>Add tile</Text>
-                </Pressable>
+                <View ref={addTileMenu.ref} collapsable={false}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Add tile"
+                    onPress={() => {
+                      lightHaptic();
+                      addTileMenu.open();
+                    }}
+                    style={({ pressed }) => [styles.addTileRow, pressed && pressedFeedback]}
+                  >
+                    <Icon name="add" size={20} color={theme.ink} />
+                    <Text style={styles.addTileLabel}>Add tile</Text>
+                  </Pressable>
+                </View>
               ) : null}
             </View>
           }
@@ -455,17 +459,22 @@ export function DashboardScreen() {
           )}
         />
         {starter.sheet}
-        <ForgeActionSheet
-          visible={addTileOpen}
-          onClose={() => setAddTileOpen(false)}
-          accessibilityLabel="Dismiss add tile chooser"
-          title="Add tile"
-          actions={addableTiles.map((tile) => ({
-            label: tile.label,
-            icon: 'add' as const,
-            onPress: tile.onPress,
-          }))}
-        />
+        <ForgeAnchoredMenu
+          visible={addTileMenu.visible}
+          anchor={addTileMenu.anchor}
+          onClose={addTileMenu.close}
+          align="stretch"
+          testID="add-tile-menu"
+        >
+          <AnchoredMenuActions
+            onClose={addTileMenu.close}
+            actions={addableTiles.map((tile) => ({
+              label: tile.label,
+              icon: 'add' as const,
+              onPress: tile.onPress,
+            }))}
+          />
+        </ForgeAnchoredMenu>
         <DashboardTileSettingsSheet
           config={settingsTileId ? (layout.find((tile) => tile.id === settingsTileId) ?? null) : null}
           workoutTypes={preferences.workoutTypes}
