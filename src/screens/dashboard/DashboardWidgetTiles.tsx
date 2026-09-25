@@ -1,18 +1,19 @@
 import React from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import Svg, { Circle, Defs, LinearGradient, Path, Polyline, Stop } from 'react-native-svg';
+import Svg, { Circle } from 'react-native-svg';
 
 import { ForgeText as Text, Icon, pressedFeedback, selectionHaptic } from '../../components/ui';
 import { ForgeLineChart } from '../../components/charts/ForgeLineChart';
 import { MuscleMap } from '../../components/anatomy/MuscleMap';
 import { formatVolume } from './dashboardSummary';
 import { useForgeReducedMotion } from '../../theme/motion';
+import { useTileChrome, tileHeaderRightInset } from './tileChrome';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import type { DailyMeasurementDefinition, ForgeTheme, IconName } from '../../types';
-import { MUSCLE_GROUPS, measurementSeries, type MeasurementSeries, type MuscleBalanceEntry, type MuscleGroup, type RestStats, type Consistency, type StreakStats, type VolumeSeries } from '../../domain/dashboard/widgetMetrics';
+import { measurementSeries, type MeasurementSeries, type MuscleBalanceEntry, type MuscleGroup, type RestStats, type Consistency, type StreakStats, type VolumeSeries } from '../../domain/dashboard/widgetMetrics';
 
 /** #rrggbb (or #rgb) → rgba() so a heat step blends over the card surface. */
 function hexToRgba(hex: string, alpha: number): string {
@@ -24,45 +25,21 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-/** Shared tile header: leading icon + title, with a trailing slot. */
+/** Shared tile header: leading icon + title, with a trailing slot. The trailing
+ * slot only reserves room for the edit-mode gear when that gear is actually
+ * shown, so labels like "14d" sit at the card edge when not editing. */
 function TileHead({ icon, title, trailing }: { icon: IconName; title: string; trailing?: React.ReactNode }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const inset = tileHeaderRightInset(useTileChrome());
   return (
-    <View style={styles.head}>
+    <View style={[styles.head, { paddingRight: inset }]}>
       <View style={styles.headTitle}>
         <Icon name={icon} size={19} color={theme.slate} />
         <Text style={styles.title}>{title}</Text>
       </View>
       {trailing ? <View style={styles.headTrailing}>{trailing}</View> : null}
     </View>
-  );
-}
-
-/** A compact area sparkline (oldest → newest) with an emphasised endpoint. */
-export function WidgetSparkline({ values, height = 42, color }: { values: number[]; height?: number; color?: string }) {
-  const theme = useForgeTheme();
-  const stroke = color ?? theme.selectionIndicator ?? theme.ink;
-  const width = 260;
-  const gid = React.useId().replace(/[^a-zA-Z0-9]/g, '');
-  if (values.length < 2) return <View style={{ height }} />;
-  const min = Math.min(...values), max = Math.max(...values), pad = 4;
-  const xs = values.map((_, i) => pad + (i * (width - 2 * pad)) / (values.length - 1));
-  const ys = values.map((v) => height - pad - (max === min ? 0.5 : (v - min) / (max - min)) * (height - 2 * pad));
-  const line = xs.map((x, i) => `${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' ');
-  const area = `M${xs[0].toFixed(1)},${height} L${xs.map((x, i) => `${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' L')} L${xs[xs.length - 1].toFixed(1)},${height} Z`;
-  return (
-    <Svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height}>
-      <Defs>
-        <LinearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={stroke} stopOpacity={0.2} />
-          <Stop offset="1" stopColor={stroke} stopOpacity={0} />
-        </LinearGradient>
-      </Defs>
-      <Path d={area} fill={`url(#${gid})`} />
-      <Polyline points={line} fill="none" stroke={stroke} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-      <Circle cx={xs[xs.length - 1]} cy={ys[ys.length - 1]} r={3.2} fill={stroke} />
-    </Svg>
   );
 }
 
@@ -98,7 +75,7 @@ export function DashboardRestStatsTile({ stats, windowDays }: { stats: RestStats
           </View>
           <Text style={styles.sub}>{formatMinutes(stats.totalRestSeconds)} resting · {stats.sessions} sessions</Text>
           {stats.recent.length >= 2 ? (
-            <View style={styles.sparkWrap}><WidgetSparkline values={stats.recent} color={theme.slate} /></View>
+            <View style={styles.sparkWrap}><ForgeLineChart data={stats.recent.map((v) => ({ value: v }))} height={46} color={theme.slate} showMarkers={stats.recent.length <= 10} /></View>
           ) : null}
         </>
       ) : (
@@ -211,10 +188,39 @@ export function DashboardConsistencyTile({ data }: { data: Consistency }) {
 /** Warm amber for the streak — reads as momentum/"on a roll". */
 const STREAK_ACCENT = '#F4A261';
 
+/** A ring showing this week's progress toward the goal, with the count inside. */
+function StreakRing({ count, goal }: { count: number; goal: number }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  const size = 66, stroke = 6, r = (size - stroke) / 2, circ = 2 * Math.PI * r;
+  const pct = goal > 0 ? Math.min(1, count / goal) : 0;
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size}>
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke={theme.surfaceMuted} strokeWidth={stroke} fill="none" />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={STREAK_ACCENT}
+          strokeWidth={stroke}
+          fill="none"
+          strokeDasharray={circ}
+          strokeDashoffset={circ * (1 - pct)}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+      <View style={styles.ringLabel}>
+        <Text style={styles.ringValue}>{count}/{goal}</Text>
+        <Text style={styles.ringUnit}>this wk</Text>
+      </View>
+    </View>
+  );
+}
+
 export function DashboardStreakTile({ stats }: { stats: StreakStats }) {
   const styles = useThemedStyles(createStyles);
-  const theme = useForgeTheme();
-  const dots = Math.max(stats.thisWeekGoal, stats.thisWeekCount, 1);
   return (
     <View style={styles.block}>
       <TileHead
@@ -228,42 +234,26 @@ export function DashboardStreakTile({ stats }: { stats: StreakStats }) {
           ) : null
         }
       />
-      <View style={styles.streakStats}>
-        <View style={styles.streakStat}>
-          <Text style={[styles.big, { color: STREAK_ACCENT }]}>{stats.streakWeeks}</Text>
-          <Text style={styles.unit}>{stats.streakWeeks === 1 ? 'week' : 'weeks'} on goal</Text>
+      <View style={styles.streakRow}>
+        <View style={styles.streakLeft}>
+          <View style={styles.bigRow}>
+            <Text style={[styles.big, { color: STREAK_ACCENT }]}>{stats.streakWeeks}</Text>
+            <Text style={styles.unit}>{stats.streakWeeks === 1 ? 'week' : 'weeks'} on goal</Text>
+          </View>
+          <Text style={styles.sub}>{stats.restDays} rest {stats.restDays === 1 ? 'day' : 'days'} this week</Text>
         </View>
-        <View style={styles.streakDivider} />
-        <View style={styles.streakStat}>
-          <Text style={styles.bigSm}>{stats.thisWeekCount}/{stats.thisWeekGoal}</Text>
-          <Text style={styles.unit}>this week</Text>
-        </View>
-      </View>
-      <View style={styles.goalRow}>
-        <View style={styles.goalDots}>
-          {Array.from({ length: dots }).map((_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.goalDot,
-                { borderColor: theme.border },
-                i < stats.thisWeekCount && { backgroundColor: STREAK_ACCENT, borderColor: STREAK_ACCENT },
-              ]}
-            />
-          ))}
-        </View>
-        <Text style={styles.sub}>{stats.restDays} rest {stats.restDays === 1 ? 'day' : 'days'}</Text>
+        <StreakRing count={stats.thisWeekCount} goal={stats.thisWeekGoal} />
       </View>
     </View>
   );
 }
 
 
-export function DashboardMuscleHeatmapTile({ heat, windowDays, onOpen }: { heat: Record<MuscleGroup, number>; windowDays: number; onOpen?: () => void }) {
+export function DashboardMuscleHeatmapTile({ heat, windowDays, onOpen }: { heat: Record<string, number>; windowDays: number; onOpen?: () => void }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const color = HEATMAP_ACCENT;
-  const any = MUSCLE_GROUPS.some((g) => heat[g] > 0);
+  const any = Object.values(heat).some((v) => v > 0);
   const body = (
     <View style={styles.block}>
       <TileHead
@@ -279,8 +269,8 @@ export function DashboardMuscleHeatmapTile({ heat, windowDays, onOpen }: { heat:
       {any ? (
         <>
           <View style={styles.bodies}>
-            <View style={styles.bodyCol}><MuscleMap heat={heat} side="front" color={color} height={150} /></View>
-            <View style={styles.bodyCol}><MuscleMap heat={heat} side="back" color={color} height={150} /></View>
+            <View style={styles.bodyCol}><MuscleMap heat={heat} side="front" color={color} height={180} /></View>
+            <View style={styles.bodyCol}><MuscleMap heat={heat} side="back" color={color} height={180} /></View>
           </View>
           <View style={styles.legend}>
             <Text style={styles.sub}>Low</Text>
@@ -401,7 +391,7 @@ export function DashboardMeasurementTile({
             ) : null}
           </View>
           {series.values.length >= 2 ? (
-            <View style={styles.sparkWrap}><WidgetSparkline values={series.values} color={color} /></View>
+            <View style={styles.sparkWrap}><ForgeLineChart data={series.values.map((v) => ({ value: v }))} height={64} color={color} showMarkers={series.values.length <= 12} /></View>
           ) : (
             <Text style={styles.sub}>One reading · log more to see a trend</Text>
           )}
@@ -469,7 +459,7 @@ export function DashboardMeasurementsTile({
                   <Text style={styles.mName} numberOfLines={1}>{def.name}</Text>
                 </View>
                 <View style={styles.mSpark}>
-                  {s.values.length >= 2 ? <WidgetSparkline values={s.values} color={color} height={24} /> : null}
+                  {s.values.length >= 2 ? <ForgeLineChart data={s.values.map((v) => ({ value: v }))} height={26} color={color} showMarkers={false} /> : null}
                 </View>
                 <View style={styles.mRight}>
                   <Text style={styles.mValue} numberOfLines={1}>
@@ -492,7 +482,7 @@ export function DashboardMeasurementsTile({
 
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   block: { gap: 10 },
-  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingRight: 26 },
+  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   headTitle: { flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0, flexShrink: 1 },
   headTrailing: { flexShrink: 0 },
   headTrailingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -501,12 +491,12 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   empty: { color: theme.muted, ...typeScale.body },
   bigRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   big: { color: theme.ink, fontVariant: ['tabular-nums'], fontSize: 32, fontWeight: '800', letterSpacing: -0.5, lineHeight: 34 },
-  bigSm: { color: theme.ink, fontVariant: ['tabular-nums'], fontSize: 26, fontWeight: '800', letterSpacing: -0.5, lineHeight: 30 },
   unit: { color: theme.muted, ...typeScale.label },
-  streakStats: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  streakStat: { flex: 1, gap: 2 },
-  streakDivider: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', backgroundColor: theme.border, marginVertical: 4 },
-  goalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  streakRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  streakLeft: { flex: 1, gap: 4 },
+  ringLabel: { position: 'absolute', alignItems: 'center' },
+  ringValue: { color: theme.ink, fontVariant: ['tabular-nums'], ...typeScale.controlLabel },
+  ringUnit: { color: theme.muted, fontSize: 10, lineHeight: 12 },
   sparkWrap: { marginTop: 2 },
   bars: { gap: 8 },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -520,8 +510,6 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   cal: { flexDirection: 'row', gap: 4, justifyContent: 'center' },
   calCol: { flex: 1, maxWidth: 14, gap: 4 },
   calCell: { width: '100%', aspectRatio: 1, borderRadius: 3 },
-  goalDots: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  goalDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 1.5 },
   bodies: { flexDirection: 'row', gap: 8 },
   bodyCol: { flex: 1, alignItems: 'center', gap: 2 },
   legend: { flexDirection: 'row', alignItems: 'center', gap: 5, justifyContent: 'center' },

@@ -59,13 +59,20 @@ export function ForgeLineChart({
   const values = data.map((d) => d.value);
   const min = Math.min(...values);
   const max = Math.max(...values);
-  const pad = (max - min) * 0.15 || 1;
+  const span = (max - min) || Math.max(1, Math.abs(max) * 0.1);
+  // A sparkline (no axes) drops its baseline near the data so the line fills the
+  // height even when values sit far from zero (e.g. bodyweight ~82kg); an axis
+  // chart keeps real values so its y-labels stay meaningful.
+  const floor = showAxes ? 0 : min - span * 0.2;
+  const chartData = data.map((d) => ({ value: d.value - floor, label: d.label }));
+  const chartMax = showAxes ? max + span * 0.15 : (max - floor) + span * 0.12;
+  const chartOffset = showAxes ? Math.max(0, min - span * 0.15) : 0;
 
   return (
     <View onLayout={onLayout} style={{ width: '100%' }}>
       {width > 0 ? (
         <LineChart
-          data={data.map((d) => ({ value: d.value, label: d.label }))}
+          data={chartData}
           width={plotWidth}
           height={height}
           spacing={spacing}
@@ -98,8 +105,8 @@ export function ForgeLineChart({
           yAxisLabelWidth={yAxisWidth}
           yAxisLabelSuffix={yAxisUnit}
           noOfSections={showAxes ? 3 : 2}
-          maxValue={max + pad}
-          yAxisOffset={Math.max(0, min - pad)}
+          maxValue={chartMax}
+          yAxisOffset={chartOffset}
           pointerConfig={
             showTooltip
               ? {

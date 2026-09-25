@@ -122,6 +122,45 @@ export function muscleBalanceByMuscle(
   }));
 }
 
+function exerciseSecondarySlugs(exercise: WorkoutExercise): string[] {
+  const list = exercise.exerciseSnapshot?.secondaryMuscles
+    ?? (exercise.exerciseId ? exerciseCatalogById.get(exercise.exerciseId)?.secondaryMuscles : undefined)
+    ?? [];
+  return list.map(normaliseMuscle).filter(Boolean);
+}
+
+/**
+ * Per-individual-muscle intensity 0..1 (relative to the busiest muscle) over
+ * `windowDays`, keyed by normalised muscle slug (e.g. `frontdelts`, `quads`).
+ * The primary muscle takes a full working set; each secondary muscle takes half
+ * — so a bench press lights up chest fully and triceps / front delts partially.
+ */
+export function muscleHeatBySlug(
+  completedWorkouts: readonly Workout[],
+  windowDays: number,
+  now: Date,
+): Record<string, number> {
+  const since = addDays(now, -windowDays).getTime();
+  const counts = new Map<string, number>();
+  for (const workout of completedWorkouts) {
+    if (completedAt(workout) < since) continue;
+    for (const exercise of workout.exercises) {
+      const working = exercise.sets.filter(isWorkingSet).length;
+      if (working <= 0) continue;
+      const primary = exercisePrimarySlug(exercise);
+      if (primary) counts.set(primary, (counts.get(primary) ?? 0) + working);
+      for (const secondary of exerciseSecondarySlugs(exercise)) {
+        if (secondary === primary) continue;
+        counts.set(secondary, (counts.get(secondary) ?? 0) + working * 0.5);
+      }
+    }
+  }
+  const max = Math.max(1, ...counts.values());
+  const out: Record<string, number> = {};
+  for (const [slug, c] of counts) out[slug] = c / max;
+  return out;
+}
+
 /** Per-group intensity 0..1 (relative to the busiest group) over `windowDays`. */
 export function muscleHeat(
   completedWorkouts: readonly Workout[],

@@ -40,12 +40,13 @@ import {
   measurementSeries,
   muscleBalance,
   muscleBalanceByMuscle,
-  muscleHeat,
+  muscleHeatBySlug,
   restStats,
   streakStats,
   volumeSeries,
 } from '../domain/dashboard/widgetMetrics';
 import { useWorkoutStarter } from './dashboard/workoutStarter';
+import { TileChromeContext } from './dashboard/tileChrome';
 import {
   lastCompletedWorkout,
   trainingTimeThisWeek,
@@ -295,7 +296,7 @@ export function DashboardScreen() {
       case 'muscle-heatmap':
         return (
           <DashboardMuscleHeatmapTile
-            heat={muscleHeat(completedWorkouts, s.windowDays ?? 14, new Date())}
+            heat={muscleHeatBySlug(completedWorkouts, s.windowDays ?? 14, new Date())}
             windowDays={s.windowDays ?? 14}
             onOpen={editing ? undefined : () => navigation.navigate('MuscleHeatmapDetail')}
           />
@@ -442,13 +443,17 @@ function DashboardTileFrame({
     opacity: Math.min(1, Math.max(0, -translateX.value / TILE_DELETE_WIDTH)),
   }));
 
+  const chrome = { editing, hasSettings: Boolean(onOpenSettings) };
+
   // Normal view: a clean card with no drag rail or remove control. The reorder
   // and swipe-to-delete chrome only appears in edit mode (toggled from the header).
   if (!editing) {
     return (
       <View style={styles.tileWrap}>
         <ForgeCard testID={testID} style={styles.tileCard}>
-          <View style={styles.plainBody}>{children}</View>
+          <View style={styles.plainBody}>
+            <TileChromeContext.Provider value={chrome}>{children}</TileChromeContext.Provider>
+          </View>
         </ForgeCard>
       </View>
     );
@@ -519,7 +524,9 @@ function DashboardTileFrame({
               >
                 <Icon name="drag" size={18} color={theme.muted} />
               </Pressable>
-              <View style={styles.tileBody}>{children}</View>
+              <View style={styles.tileBody}>
+                <TileChromeContext.Provider value={chrome}>{children}</TileChromeContext.Provider>
+              </View>
               {onOpenSettings ? (
                 <Pressable
                   accessibilityRole="button"

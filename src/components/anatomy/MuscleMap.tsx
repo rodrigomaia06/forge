@@ -2,18 +2,18 @@ import React from 'react';
 import Body, { type ExtendedBodyPart, type Slug } from 'react-native-body-highlighter';
 
 import { useForgeTheme } from '../../theme/ThemeProvider';
-import { MUSCLE_GROUPS, type MuscleGroup } from '../../domain/dashboard/widgetMetrics';
 
-// Forge's six display groups → the highlighter's individual muscle slugs. A
-// group's heat colours every muscle beneath it; slugs that only exist on one
-// side are simply ignored by the other side's figure.
-const GROUP_TO_SLUGS: Record<MuscleGroup, Slug[]> = {
-  Chest: ['chest'],
-  Back: ['trapezius', 'upper-back', 'lower-back'],
-  Legs: ['quadriceps', 'hamstring', 'gluteal', 'calves', 'adductors', 'tibialis'],
-  Shoulders: ['deltoids'],
-  Arms: ['biceps', 'triceps', 'forearm'],
-  Core: ['abs', 'obliques'],
+// Forge muscle slugs (normalised catalogue muscles) → the highlighter's own
+// slugs, so the figure lights the *specific* muscle worked (abductors ≠ quads,
+// front/side/rear delts all read as the deltoid, etc.).
+const FORGE_TO_HL: Record<string, Slug> = {
+  chest: 'chest',
+  lats: 'upper-back', upperback: 'upper-back', traps: 'trapezius', lowerback: 'lower-back',
+  quads: 'quadriceps', hamstrings: 'hamstring', glutes: 'gluteal', calves: 'calves',
+  adductors: 'adductors', abductors: 'gluteal', hipflexors: 'quadriceps', tibialis: 'tibialis',
+  frontdelts: 'deltoids', sidedelts: 'deltoids', reardelts: 'deltoids', neck: 'neck',
+  biceps: 'biceps', triceps: 'triceps', forearms: 'forearm',
+  abs: 'abs', obliques: 'obliques',
 };
 
 const RAMP_STEPS = 5;
@@ -58,19 +58,25 @@ export function MuscleMap({
   color,
   height = 300,
 }: {
-  heat: Record<MuscleGroup, number>;
+  /** Per-muscle intensity 0..1 keyed by Forge muscle slug (e.g. `frontdelts`). */
+  heat: Record<string, number>;
   side: 'front' | 'back';
   color: string;
   height?: number;
 }) {
   const theme = useForgeTheme();
   const colors = heatRamp(color);
-  const data: ExtendedBodyPart[] = [];
-  for (const group of MUSCLE_GROUPS) {
-    const h = heat[group] ?? 0;
+  // Collapse Forge slugs onto highlighter slugs, keeping the hottest contributor.
+  const hlHeat = new Map<Slug, number>();
+  for (const [forgeSlug, h] of Object.entries(heat)) {
     if (h <= 0) continue;
-    const intensity = Math.min(RAMP_STEPS, Math.max(1, Math.ceil(h * RAMP_STEPS)));
-    for (const slug of GROUP_TO_SLUGS[group]) data.push({ slug, intensity });
+    const hl = FORGE_TO_HL[forgeSlug];
+    if (!hl) continue;
+    hlHeat.set(hl, Math.max(hlHeat.get(hl) ?? 0, h));
+  }
+  const data: ExtendedBodyPart[] = [];
+  for (const [slug, h] of hlHeat) {
+    data.push({ slug, intensity: Math.min(RAMP_STEPS, Math.max(1, Math.ceil(h * RAMP_STEPS))) });
   }
   return (
     <Body

@@ -13,6 +13,7 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import { formatTrainingTime, formatVolume } from './dashboardSummary';
+import { useTileChrome, tileHeaderRightInset } from './tileChrome';
 import { DASHBOARD_TILE_DEFAULT_TITLE } from '../../state/dashboardLayout';
 import type { ForgeTheme, Workout, WorkoutTypePreference } from '../../types';
 import type { WorkoutSuggestion } from '../../domain/workouts/suggestNextWorkout';
@@ -79,9 +80,10 @@ export function DashboardWeekCard({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const inset = tileHeaderRightInset(useTileChrome());
   return (
     <View style={styles.blockInner}>
-      <View style={styles.cardHeaderRow}>
+      <View style={[styles.cardHeaderRow, { paddingRight: inset }]}>
         <Text style={styles.cardTitle}>{DASHBOARD_TILE_DEFAULT_TITLE.week}</Text>
         <Text style={styles.cardAside}>{workoutCount} {workoutCount === 1 ? 'workout' : 'workouts'}</Text>
       </View>
@@ -293,7 +295,7 @@ export function DashboardVolumeTile({
 
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   // Right padding keeps the aside ("N workouts") clear of the in-card remove (X).
-  cardHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 26 },
+  cardHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   cardTitle: { color: theme.ink, ...typeScale.sectionTitle },
   cardAside: { color: theme.slate, ...typeScale.supporting },
   blockInner: { gap: 0 },

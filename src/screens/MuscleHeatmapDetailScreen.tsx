@@ -7,7 +7,7 @@ import { AppScreen, ForgeCard, ForgeText as Text, pressedFeedback, selectionHapt
 import { SettingsDetailHeader } from './settings/SettingsScreenChrome';
 import { MuscleMap } from '../components/anatomy/MuscleMap';
 import { HEATMAP_ACCENT, MUSCLE_GROUP_COLORS } from './dashboard/DashboardWidgetTiles';
-import { muscleBalance, muscleHeat, MUSCLE_GROUPS } from '../domain/dashboard/widgetMetrics';
+import { muscleBalance, muscleHeatBySlug } from '../domain/dashboard/widgetMetrics';
 import { useWorkouts } from '../state/WorkoutContext';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
@@ -39,13 +39,13 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
     const now = new Date();
     const balance = muscleBalance(completedWorkouts, Math.ceil(windowDays / 7), now);
     return {
-      heat: muscleHeat(completedWorkouts, windowDays, now),
+      heat: muscleHeatBySlug(completedWorkouts, windowDays, now),
       ranking: [...balance].sort((a, b) => b.sets - a.sets),
     };
   }, [completedWorkouts, windowDays]);
 
   const maxSets = Math.max(1, ...ranking.map((r) => r.sets));
-  const anyData = MUSCLE_GROUPS.some((g) => heat[g] > 0);
+  const anyData = Object.values(heat).some((v) => v > 0);
 
   return (
     <AppScreen edges={['top']} backgroundColor={theme.background}>

@@ -33,7 +33,7 @@ export function SettingsScreen({ navigation }: Props) {
           contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset }]}
           showsVerticalScrollIndicator={false}
         >
-          <SettingsSection title="Insights">
+          <SettingsSection>
             <SettingsRow
               icon="fitness-outline"
               iconSize={26}
