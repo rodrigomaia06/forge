@@ -157,11 +157,12 @@ export function CalendarScreen({ navigation }: Props) {
         <View style={styles.chips}>
           <View style={styles.chip}>
             <Icon name="warm-up" size={16} color="#F4823B" />
-            <Text style={styles.chipText}>{weekStreak} week streak</Text>
+            <Text style={styles.chipText}><Text style={styles.chipValue}>{weekStreak}</Text> week streak</Text>
           </View>
+          <View style={styles.chipDivider} />
           <View style={styles.chip}>
             <Icon name="theme-dark" size={15} color={theme.slate} />
-            <Text style={styles.chipText}>{restDays} rest day{restDays === 1 ? '' : 's'}</Text>
+            <Text style={styles.chipText}><Text style={styles.chipValue}>{restDays}</Text> rest day{restDays === 1 ? '' : 's'}</Text>
           </View>
         </View>
 
@@ -210,10 +211,8 @@ export function CalendarScreen({ navigation }: Props) {
                             >
                               <View style={[styles.dayCircle, has && color ? { backgroundColor: color } : null, isToday && !has ? { borderWidth: 1.5, borderColor: theme.border } : null]}>
                                 <Text style={[styles.dayNum, has ? styles.dayNumOn : null, isToday && !has ? { color: theme.textPrimary, fontWeight: '800' } : null]}>{date.getDate()}</Text>
+                                {dayWorkouts.length > 1 ? <View style={[styles.dayMulti, { borderColor: theme.surface }]} /> : null}
                               </View>
-                              <Text style={styles.dayLabel} numberOfLines={1}>
-                                {has ? (dayWorkouts.length > 1 ? `${dayWorkouts.length} workouts` : dayWorkouts[0].name) : ''}
-                              </Text>
                             </Pressable>
                           );
                         })}
@@ -303,9 +302,11 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   headerButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   viewSelect: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
   viewSelectText: { ...typeScale.cardTitle, color: theme.textPrimary },
-  chips: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingBottom: 12 },
-  chip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 40, borderRadius: 14, backgroundColor: theme.surface },
-  chipText: { ...typeScale.label, color: theme.textPrimary },
+  chips: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 18, paddingTop: 2, paddingBottom: 14 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  chipDivider: { width: StyleSheet.hairlineWidth, height: 18, backgroundColor: theme.divider },
+  chipText: { ...typeScale.label, color: theme.textSecondary },
+  chipValue: { color: theme.textPrimary, fontWeight: '800', fontVariant: ['tabular-nums'] },
   weekHeader: { flexDirection: 'row', paddingHorizontal: 18, paddingBottom: 4 },
   weekday: { flex: 1, textAlign: 'center', ...typeScale.caption, color: theme.muted },
   scroll: { flex: 1 },
@@ -314,11 +315,11 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   monthCard: { paddingHorizontal: 6, paddingVertical: 8 },
   monthTitle: { ...typeScale.sectionTitle, color: theme.textPrimary, marginTop: 12, marginBottom: 8 },
   weekRow: { flexDirection: 'row' },
-  dayCell: { flex: 1, aspectRatio: 0.82, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 3, gap: 2 },
-  dayCircle: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  dayCell: { flex: 1, height: 50, alignItems: 'center', justifyContent: 'center' },
+  dayCircle: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   dayNum: { ...typeScale.label, color: theme.textPrimary, fontVariant: ['tabular-nums'] },
   dayNumOn: { color: '#FFFFFF', fontWeight: '700' },
-  dayLabel: { fontSize: 9, lineHeight: 11, color: theme.muted, textAlign: 'center', width: '100%', paddingHorizontal: 1 },
+  dayMulti: { position: 'absolute', bottom: 4, width: 4, height: 4, borderRadius: 2, backgroundColor: '#FFFFFF' },
   yearSection: { paddingTop: 12 },
   yearTitle: { ...typeScale.sectionTitle, color: theme.textPrimary, marginBottom: 8 },
   miniGridWrap: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 16, columnGap: 8 },
