@@ -43,7 +43,7 @@ function Segmented<T extends number>({
             onPress={() => { selectionHaptic(); onSelect(option); }}
             style={({ pressed }) => [
               styles.segment,
-              { backgroundColor: active ? theme.selectionIndicator : theme.surfaceMuted },
+              { backgroundColor: active ? theme.selectionIndicator : theme.surface },
               pressed && !active && pressedFeedback,
             ]}
           >
@@ -87,33 +87,49 @@ const WINDOW_DAYS: Partial<Record<DashboardTileKind, number[]>> = {
   measurements: [30, 90, 180],
 };
 
-/** A tappable metric row with a check (multi) or radio (single) indicator. */
-function MetricToggle({
-  definition, selected, onToggle,
-}: { definition: DailyMeasurementDefinition; selected: boolean; onToggle: () => void }) {
+const WINDOW_WEEKS: Partial<Record<DashboardTileKind, number[]>> = {
+  volume: [8, 12, 26],
+  'muscle-balance': [4, 8, 12],
+  consistency: [8, 16, 26],
+};
+
+/** A titled card that groups one setting, giving the sheet clear structure. */
+function GroupCard({ title, hint, accent, children }: { title: string; hint?: string; accent?: string; children: React.ReactNode }) {
+  const styles = useThemedStyles(createStyles);
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardHead}>
+        {accent ? <View style={[styles.cardDot, { backgroundColor: accent }]} /> : null}
+        <Text style={styles.cardTitle}>{title}</Text>
+      </View>
+      {hint ? <Text style={styles.cardHint}>{hint}</Text> : null}
+      {children}
+    </View>
+  );
+}
+
+/** A tappable toggle row (check for multi, dot for single) used inside a card. */
+function ToggleRow({
+  label, color, selected, onToggle, showDivider,
+}: { label: string; color: string; selected: boolean; onToggle: () => void; showDivider?: boolean }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   return (
     <Pressable
       accessibilityRole="checkbox"
       accessibilityState={{ checked: selected }}
-      accessibilityLabel={definition.name}
+      accessibilityLabel={label}
       onPress={() => { selectionHaptic(); onToggle(); }}
-      style={({ pressed }) => [styles.metricRow, pressed && pressedFeedback]}
+      style={({ pressed }) => [styles.toggleRow, showDivider && styles.rowDivider, pressed && pressedFeedback]}
     >
-      <View style={[styles.metricDot, { backgroundColor: definition.color || theme.slate }]} />
-      <Text style={styles.metricName} numberOfLines={1}>{definition.name}</Text>
+      <View style={[styles.metricDot, { backgroundColor: color }]} />
+      <Text style={styles.metricName} numberOfLines={1}>{label}</Text>
       <View style={[styles.metricCheck, { borderColor: selected ? theme.selectionIndicator : theme.border, backgroundColor: selected ? theme.selectionIndicator : 'transparent' }]}>
         {selected ? <Icon name="check" size={13} color={theme.onActionPrimary ?? theme.surface} weight="bold" /> : null}
       </View>
     </Pressable>
   );
 }
-const WINDOW_WEEKS: Partial<Record<DashboardTileKind, number[]>> = {
-  volume: [8, 12, 26],
-  'muscle-balance': [4, 8, 12],
-  consistency: [8, 16, 26],
-};
 
 export function DashboardTileSettingsSheet({
   config,
@@ -155,116 +171,97 @@ export function DashboardTileSettingsSheet({
           />
           <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
             {dayOptions ? (
-              <View style={styles.group}>
-                <Text style={styles.groupLabel}>Trend window</Text>
+              <GroupCard title="Trend window">
                 <Segmented options={dayOptions} value={settings.windowDays ?? dayOptions[0]} format={(v) => `${v} days`} onSelect={(v) => patch({ windowDays: v })} />
-              </View>
+              </GroupCard>
             ) : null}
             {weekOptions ? (
-              <View style={styles.group}>
-                <Text style={styles.groupLabel}>Window</Text>
+              <GroupCard title="Window">
                 <Segmented options={weekOptions} value={settings.windowWeeks ?? weekOptions[0]} format={(v) => `${v} weeks`} onSelect={(v) => patch({ windowWeeks: v })} />
-              </View>
+              </GroupCard>
             ) : null}
             {kind === 'measurement' ? (
-              <View style={styles.group}>
-                <Text style={styles.groupLabel}>Metric</Text>
-                {measurements.length ? (
-                  measurements.map((def) => (
-                    <MetricToggle
-                      key={def.id}
-                      definition={def}
-                      selected={settings.measurementId === def.id}
-                      onToggle={() => patch({ measurementId: def.id })}
-                    />
-                  ))
-                ) : (
-                  <Text style={styles.groupHint}>Add measurements in the More tab first.</Text>
-                )}
-              </View>
+              <GroupCard title="Metric" hint={measurements.length ? undefined : 'Add measurements in the More tab first.'}>
+                {measurements.map((def, i) => (
+                  <ToggleRow
+                    key={def.id}
+                    label={def.name}
+                    color={def.color || theme.slate}
+                    selected={settings.measurementId === def.id}
+                    onToggle={() => patch({ measurementId: def.id })}
+                    showDivider={i > 0}
+                  />
+                ))}
+              </GroupCard>
             ) : null}
             {kind === 'measurements' ? (
-              <View style={styles.group}>
-                <Text style={styles.groupLabel}>Metrics to show</Text>
-                {measurements.length ? (
-                  measurements.map((def) => (
-                    <MetricToggle
-                      key={def.id}
-                      definition={def}
-                      selected={selectedIds.includes(def.id)}
-                      onToggle={() => {
-                        const next = selectedIds.includes(def.id)
-                          ? selectedIds.filter((id) => id !== def.id)
-                          : [...selectedIds, def.id];
-                        patch({ measurementIds: next });
-                      }}
-                    />
-                  ))
-                ) : (
-                  <Text style={styles.groupHint}>Add measurements in the More tab first.</Text>
-                )}
-              </View>
+              <GroupCard title="Metrics to show" hint={measurements.length ? 'Pick the metrics this card charts together.' : 'Add measurements in the More tab first.'}>
+                {measurements.map((def, i) => (
+                  <ToggleRow
+                    key={def.id}
+                    label={def.name}
+                    color={def.color || theme.slate}
+                    selected={selectedIds.includes(def.id)}
+                    onToggle={() => {
+                      const next = selectedIds.includes(def.id)
+                        ? selectedIds.filter((id) => id !== def.id)
+                        : [...selectedIds, def.id];
+                      patch({ measurementIds: next });
+                    }}
+                    showDivider={i > 0}
+                  />
+                ))}
+              </GroupCard>
             ) : null}
             {kind === 'muscle-balance' ? (
-              <View style={styles.group}>
-                <Text style={styles.groupLabel}>Muscles</Text>
-                <Text style={styles.groupHint}>Pick specific muscles to break them out. With none selected the card shows the six groups.</Text>
+              <>
+                <Text style={styles.sectionIntro}>Pick specific muscles to break them out. With none selected the card shows the six groups.</Text>
                 {MUSCLES_BY_GROUP.map((section) => (
-                  <View key={section.group} style={styles.muscleSection}>
-                    <Text style={styles.muscleGroupLabel}>{section.group}</Text>
-                    {section.slugs.map((slug) => {
+                  <GroupCard key={section.group} title={section.group} accent={MUSCLE_GROUP_COLORS[section.group]}>
+                    {section.slugs.map((slug, i) => {
                       const selected = (settings.muscleFilter ?? []).includes(slug);
                       return (
-                        <Pressable
+                        <ToggleRow
                           key={slug}
-                          accessibilityRole="checkbox"
-                          accessibilityState={{ checked: selected }}
-                          accessibilityLabel={MUSCLE_LABELS[slug] ?? slug}
-                          onPress={() => {
-                            selectionHaptic();
+                          label={MUSCLE_LABELS[slug] ?? slug}
+                          color={MUSCLE_GROUP_COLORS[section.group]}
+                          selected={selected}
+                          onToggle={() => {
                             const current = settings.muscleFilter ?? [];
                             patch({ muscleFilter: selected ? current.filter((s) => s !== slug) : [...current, slug] });
                           }}
-                          style={({ pressed }) => [styles.metricRow, pressed && pressedFeedback]}
-                        >
-                          <View style={[styles.metricDot, { backgroundColor: MUSCLE_GROUP_COLORS[section.group] }]} />
-                          <Text style={styles.metricName} numberOfLines={1}>{MUSCLE_LABELS[slug] ?? slug}</Text>
-                          <View style={[styles.metricCheck, { borderColor: selected ? theme.selectionIndicator : theme.border, backgroundColor: selected ? theme.selectionIndicator : 'transparent' }]}>
-                            {selected ? <Icon name="check" size={13} color={theme.onActionPrimary ?? theme.surface} weight="bold" /> : null}
-                          </View>
-                        </Pressable>
+                          showDivider={i > 0}
+                        />
                       );
                     })}
-                  </View>
+                  </GroupCard>
                 ))}
-              </View>
+              </>
             ) : null}
             {kind === 'streak' ? (
               <>
-                <View style={styles.group}>
-                  <Text style={styles.groupLabel}>Weekly goal</Text>
+                <GroupCard title="Weekly goal" hint="Or set targets per workout type below — those override this goal.">
                   <Stepper label="Workouts / week" value={settings.weeklyTargetDefault ?? 3} min={1} max={7} onChange={(v) => patch({ weeklyTargetDefault: v })} />
-                  <Text style={styles.groupHint}>Or set targets per workout type below — those override the goal above.</Text>
-                </View>
+                </GroupCard>
                 {workoutTypes.length ? (
-                  <View style={styles.group}>
-                    <Text style={styles.groupLabel}>Per workout type</Text>
-                    {workoutTypes.map((type) => (
-                      <Stepper
-                        key={type.id}
-                        label={type.name}
-                        value={settings.weeklyTargets?.[type.name] ?? 0}
-                        min={0}
-                        max={7}
-                        onChange={(v) => {
-                          const nextTargets = { ...(settings.weeklyTargets ?? {}) };
-                          if (v <= 0) delete nextTargets[type.name];
-                          else nextTargets[type.name] = v;
-                          patch({ weeklyTargets: nextTargets });
-                        }}
-                      />
+                  <GroupCard title="Per workout type">
+                    {workoutTypes.map((type, i) => (
+                      <View key={type.id} style={i > 0 ? styles.rowDivider : undefined}>
+                        <Stepper
+                          label={type.name}
+                          value={settings.weeklyTargets?.[type.name] ?? 0}
+                          min={0}
+                          max={7}
+                          onChange={(v) => {
+                            const nextTargets = { ...(settings.weeklyTargets ?? {}) };
+                            if (v <= 0) delete nextTargets[type.name];
+                            else nextTargets[type.name] = v;
+                            patch({ weeklyTargets: nextTargets });
+                          }}
+                        />
+                      </View>
                     ))}
-                  </View>
+                  </GroupCard>
                 ) : null}
               </>
             ) : null}
@@ -277,23 +274,25 @@ export function DashboardTileSettingsSheet({
 
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   sheet: { paddingBottom: 24 },
-  body: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 12, gap: 22 },
-  group: { gap: 10 },
-  groupLabel: { color: theme.slate, ...typeScale.caption },
-  groupHint: { color: theme.muted, ...typeScale.caption },
+  body: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 12, gap: 12 },
+  card: { backgroundColor: theme.surfaceMuted, borderRadius: 16, padding: 14, gap: 10 },
+  cardHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  cardDot: { width: 10, height: 10, borderRadius: 5 },
+  cardTitle: { color: theme.ink, ...typeScale.controlLabel },
+  cardHint: { color: theme.muted, ...typeScale.caption },
+  sectionIntro: { color: theme.muted, paddingHorizontal: 2, ...typeScale.caption },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
+  rowDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border },
   segmented: { flexDirection: 'row', gap: 8 },
   segment: { flex: 1, minHeight: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   segmentText: { ...typeScale.controlLabel },
   stepperRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 },
   stepperLabel: { flex: 1, color: theme.ink, ...typeScale.label },
-  stepper: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surfaceMuted, borderRadius: 999 },
+  stepper: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surface, borderRadius: 999 },
   stepBtn: { width: 40, height: 38, alignItems: 'center', justifyContent: 'center' },
   stepGlyph: { fontSize: 20, fontWeight: '700', lineHeight: 22 },
   stepValue: { minWidth: 26, textAlign: 'center', color: theme.ink, fontVariant: ['tabular-nums'], ...typeScale.controlLabel },
-  metricRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   metricDot: { width: 10, height: 10, borderRadius: 5 },
   metricName: { flex: 1, color: theme.ink, ...typeScale.label },
   metricCheck: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  muscleSection: { gap: 2, marginTop: 4 },
-  muscleGroupLabel: { color: theme.muted, marginTop: 6, ...typeScale.caption },
 });
