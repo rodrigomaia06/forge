@@ -332,7 +332,7 @@ export function DashboardScreen() {
             definitions={chosen}
             entries={preferences.dailyMeasurementEntries}
             windowDays={windowDays}
-            onOpen={editing ? undefined : () => navigation.navigate('DailyMeasurements')}
+            onOpen={editing ? undefined : (metricId) => navigation.navigate('DailyMeasurements', metricId ? { metricId } : undefined)}
           />
         );
       }

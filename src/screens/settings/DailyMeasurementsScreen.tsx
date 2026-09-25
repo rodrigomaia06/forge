@@ -85,7 +85,7 @@ function formatValue(value: number, unit: string): string {
   return `${rounded.toLocaleString(undefined, { maximumFractionDigits: 1 })}${unit ? ` ${unit}` : ''}`;
 }
 
-export function DailyMeasurementsScreen({ navigation }: Props) {
+export function DailyMeasurementsScreen({ navigation, route }: Props) {
   const { bottom: bottomInset } = useSafeAreaInsets();
   const theme = useForgeTheme();
   const reducedMotion = useForgeReducedMotion();
@@ -96,9 +96,11 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
   const { preferences, updatePreferences } = useSettings();
   const [range, setRange] = useState<Range>(30);
   const [headerElevated, setHeaderElevated] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | undefined>(
-    preferences.dailyMeasurementDefinitions[0]?.id,
-  );
+  const [selectedId, setSelectedId] = useState<string | undefined>(() => {
+    const requested = route.params?.metricId;
+    if (requested && preferences.dailyMeasurementDefinitions.some((def) => def.id === requested)) return requested;
+    return preferences.dailyMeasurementDefinitions[0]?.id;
+  });
   // The page itself must arrive settled. Only a deliberate metric change
   // inside Measurements should replace this content with a lateral motion.
   const [animateMetricChange, setAnimateMetricChange] = useState(false);

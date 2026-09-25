@@ -172,7 +172,7 @@ export function DashboardTileSettingsSheet({
             compactTitle
             onClose={onClose}
           />
-          <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+          <ScrollView style={styles.bodyScroll} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             {dayOptions ? (
               <GroupCard title="Trend window">
                 <Segmented options={dayOptions} value={settings.windowDays ?? dayOptions[0]} format={trendDayLabel} onSelect={(v) => patch({ windowDays: v })} />
@@ -222,6 +222,32 @@ export function DashboardTileSettingsSheet({
                 {MUSCLES_BY_GROUP.map((section) => {
                   const filter = settings.muscleFilter ?? [];
                   const groupColor = MUSCLE_GROUP_COLORS[section.group];
+                  const toggle = (slug: string) => {
+                    selectionHaptic();
+                    patch({ muscleFilter: filter.includes(slug) ? filter.filter((s) => s !== slug) : [...filter, slug] });
+                  };
+                  // A group that is a single muscle (e.g. Chest) toggles as one
+                  // card — no chip that just repeats the group name.
+                  if (section.slugs.length === 1) {
+                    const slug = section.slugs[0];
+                    const selected = filter.includes(slug);
+                    return (
+                      <Pressable
+                        key={section.group}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: selected }}
+                        accessibilityLabel={section.group}
+                        onPress={() => toggle(slug)}
+                        style={({ pressed }) => [styles.card, styles.soloCard, pressed && pressedFeedback]}
+                      >
+                        <View style={[styles.cardDot, { backgroundColor: groupColor }]} />
+                        <Text style={[styles.cardTitle, { flex: 1 }]}>{section.group}</Text>
+                        <View style={[styles.soloCheck, selected ? { backgroundColor: groupColor, borderColor: groupColor } : { borderColor: theme.border }]}>
+                          {selected ? <Icon name="check" size={13} color="#FFFFFF" weight="bold" /> : null}
+                        </View>
+                      </Pressable>
+                    );
+                  }
                   const count = section.slugs.filter((slug) => filter.includes(slug)).length;
                   return (
                     <GroupCard
@@ -239,10 +265,7 @@ export function DashboardTileSettingsSheet({
                               accessibilityRole="checkbox"
                               accessibilityState={{ checked: selected }}
                               accessibilityLabel={MUSCLE_LABELS[slug] ?? slug}
-                              onPress={() => {
-                                selectionHaptic();
-                                patch({ muscleFilter: selected ? filter.filter((s) => s !== slug) : [...filter, slug] });
-                              }}
+                              onPress={() => toggle(slug)}
                               style={({ pressed }) => [
                                 styles.chip,
                                 selected ? { backgroundColor: groupColor, borderColor: groupColor } : { borderColor: theme.border },
@@ -294,8 +317,11 @@ export function DashboardTileSettingsSheet({
 }
 
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
-  sheet: { paddingBottom: 24 },
+  sheet: { paddingBottom: 24, flexShrink: 1 },
+  bodyScroll: { flexShrink: 1 },
   body: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 40, gap: 12 },
+  soloCard: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  soloCheck: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingHorizontal: 12, height: 34, borderRadius: 999, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   chipText: { ...typeScale.caption, fontWeight: '600' },

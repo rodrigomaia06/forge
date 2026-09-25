@@ -26,7 +26,7 @@ export type RootStackParamList = {
     | { mode: 'edit'; routineId: string }
     | { mode: 'view'; routineId: string };
   GeneralSettings: undefined;
-  DailyMeasurements: undefined;
+  DailyMeasurements: { metricId?: string } | undefined;
   ExerciseLibrary: undefined;
   ExerciseBrowser: { workoutTypeId?: string; custom?: boolean } | undefined;
   WorkoutTypes: undefined;

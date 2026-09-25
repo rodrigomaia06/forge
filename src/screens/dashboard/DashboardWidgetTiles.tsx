@@ -458,7 +458,7 @@ export function DashboardMeasurementsTile({
   definitions: DailyMeasurementDefinition[];
   entries: { definitionId: string; date: string; value: number }[];
   windowDays: number;
-  onOpen?: () => void;
+  onOpen?: (metricId?: string) => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -481,7 +481,7 @@ export function DashboardMeasurementsTile({
                 accessibilityRole={onOpen ? 'button' : undefined}
                 accessibilityLabel={onOpen ? `Open ${def.name}` : undefined}
                 disabled={!onOpen}
-                onPress={onOpen}
+                onPress={onOpen ? () => onOpen(def.id) : undefined}
                 style={({ pressed }) => [styles.mCard, pressed && onOpen ? pressedFeedback : null]}
               >
                 <View style={styles.mCardTop}>
@@ -516,7 +516,7 @@ export function DashboardMeasurementsTile({
           accessibilityRole={onOpen ? 'button' : undefined}
           accessibilityLabel={onOpen ? 'Open measurements' : undefined}
           disabled={!onOpen}
-          onPress={onOpen}
+          onPress={onOpen ? () => onOpen() : undefined}
           style={({ pressed }) => [styles.mEmpty, pressed && onOpen ? pressedFeedback : null]}
         >
           <View style={styles.mEmptyIcon}><Icon name="measure" size={22} color={theme.slate} /></View>
