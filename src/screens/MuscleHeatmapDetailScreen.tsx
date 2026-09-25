@@ -7,7 +7,7 @@ import { AppScreen, ForgeCard, ForgeText as Text, pressedFeedback, selectionHapt
 import { SettingsDetailHeader } from './settings/SettingsScreenChrome';
 import { MuscleMap } from '../components/anatomy/MuscleMap';
 import { HEATMAP_ACCENT, MUSCLE_GROUP_COLORS } from './dashboard/DashboardWidgetTiles';
-import { muscleBalance, muscleHeatBySlug } from '../domain/dashboard/widgetMetrics';
+import { muscleBalance, muscleBalanceByMuscle, muscleHeatBySlug, MUSCLES_BY_GROUP } from '../domain/dashboard/widgetMetrics';
 import { useWorkouts } from '../state/WorkoutContext';
 import { TREND_DAY_OPTIONS, trendDayLabel } from '../domain/trends';
 import { useForgeTheme } from '../theme/ThemeProvider';
@@ -34,17 +34,21 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
   const { completedWorkouts } = useWorkouts();
   const [windowDays, setWindowDays] = useState<number>(30);
   const [gender, setGender] = useState<'male' | 'female'>('male');
+  const [breakdown, setBreakdown] = useState<'group' | 'muscle'>('group');
   const [elevated, setElevated] = useState(false);
   const accent = HEATMAP_ACCENT;
 
   const { heat, ranking } = useMemo(() => {
     const now = new Date();
-    const balance = muscleBalance(completedWorkouts, Math.ceil(windowDays / 7), now);
+    const weeks = Math.ceil(windowDays / 7);
+    const balance = breakdown === 'muscle'
+      ? muscleBalanceByMuscle(completedWorkouts, weeks, now, MUSCLES_BY_GROUP.flatMap((s) => s.slugs)).filter((r) => r.sets > 0)
+      : muscleBalance(completedWorkouts, weeks, now);
     return {
       heat: muscleHeatBySlug(completedWorkouts, windowDays, now),
       ranking: [...balance].sort((a, b) => b.sets - a.sets),
     };
-  }, [completedWorkouts, windowDays]);
+  }, [completedWorkouts, windowDays, breakdown]);
 
   const maxSets = Math.max(1, ...ranking.map((r) => r.sets));
   const anyData = Object.values(heat).some((v) => v > 0);
@@ -128,17 +132,38 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
           </ForgeCard>
 
           <ForgeCard style={styles.rankCard}>
-            <Text style={styles.rankTitle}>Working sets by group</Text>
-            {ranking.map((r) => (
-              <View key={r.group} style={styles.rankRow}>
+            <View style={styles.rankHeader}>
+              <Text style={styles.rankTitle}>Working sets</Text>
+              <View style={styles.breakdownToggle}>
+                {(['group', 'muscle'] as const).map((b) => {
+                  const active = b === breakdown;
+                  return (
+                    <Pressable
+                      key={b}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      accessibilityLabel={b === 'group' ? 'By group' : 'By muscle'}
+                      onPress={() => { selectionHaptic(); setBreakdown(b); }}
+                      style={({ pressed }) => [styles.breakdownSeg, active && { backgroundColor: theme.selectionIndicator }, pressed && !active && pressedFeedback]}
+                    >
+                      <Text style={[styles.breakdownText, { color: active ? (theme.onActionPrimary ?? theme.surface) : theme.slate }]}>{b === 'group' ? 'Groups' : 'Muscles'}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+            {ranking.length ? ranking.map((r, i) => (
+              <View key={`${r.label}-${i}`} style={styles.rankRow}>
                 <View style={[styles.rankDot, { backgroundColor: MUSCLE_GROUP_COLORS[r.group] }]} />
-                <Text style={styles.rankLabel}>{r.group}</Text>
+                <Text style={styles.rankLabel} numberOfLines={1}>{breakdown === 'muscle' ? r.label : r.group}</Text>
                 <View style={[styles.rankTrack, { backgroundColor: theme.surfaceMuted }]}>
                   <View style={[styles.rankFill, { width: `${Math.round((r.sets / maxSets) * 100)}%`, backgroundColor: MUSCLE_GROUP_COLORS[r.group] }]} />
                 </View>
                 <Text style={styles.rankValue}>{r.sets}</Text>
               </View>
-            ))}
+            )) : (
+              <Text style={styles.sub}>No sets logged in this window.</Text>
+            )}
           </ForgeCard>
         </ScrollView>
       </View>
@@ -165,7 +190,11 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   sub: { color: theme.muted, ...typeScale.caption },
   empty: { color: theme.muted, textAlign: 'center', paddingVertical: 40, ...typeScale.body },
   rankCard: { padding: 16, gap: 12 },
+  rankHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   rankTitle: { color: theme.ink, ...typeScale.controlLabel },
+  breakdownToggle: { flexDirection: 'row', gap: 2, padding: 3, borderRadius: 11, backgroundColor: theme.surfaceMuted },
+  breakdownSeg: { paddingHorizontal: 12, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  breakdownText: { ...typeScale.caption, fontWeight: '700' },
   rankRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   rankDot: { width: 10, height: 10, borderRadius: 5 },
   rankLabel: { width: 74, color: theme.slate, ...typeScale.caption },
