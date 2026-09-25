@@ -12,6 +12,7 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import {
   Button,
   AppScreen,
+  ForgeActionSheet,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
   ForgeCard,
@@ -20,8 +21,11 @@ import {
   ForgeText as Text,
   ForgeTextInput as TextInput,
   HeaderAction,
+  HeaderActionGroup,
   Icon,
   SwipeToDeleteRow,
+  joinedHeaderAction,
+  lightHaptic,
   pressedFeedback,
   selectionHaptic,
 } from '../../components/ui';
@@ -96,6 +100,8 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
   // inside Measurements should replace this content with a lateral motion.
   const [animateMetricChange, setAnimateMetricChange] = useState(false);
   const [recordOpen, setRecordOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [metricMenu, setMetricMenu] = useState<DailyMeasurementDefinition | null>(null);
   const [historyExpanded, setHistoryExpanded] = useState(false);
   const [recordDateKey, setRecordDateKey] = useState<string>(() => localDateKey());
   const [metricOpen, setMetricOpen] = useState(false);
@@ -167,6 +173,16 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
     });
   };
 
+  const deleteMetric = (id: string) => {
+    const remaining = preferences.dailyMeasurementDefinitions.filter((def) => def.id !== id);
+    updatePreferences({
+      dailyMeasurementDefinitions: remaining,
+      dailyMeasurementEntries: preferences.dailyMeasurementEntries.filter((entry) => entry.definitionId !== id),
+    });
+    setMetricMenu(null);
+    if (selectedId === id) setSelectedId(remaining[0]?.id);
+  };
+
   const saveRecord = () => {
     if (!selected) return;
     const parsed = Number(recordValue.replace(',', '.'));
@@ -219,12 +235,37 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
         navigation={navigation}
         elevated={headerElevated}
         rightAction={
-          <HeaderAction
-            accessibilityLabel={selected ? 'Record measurement' : 'Add measure'}
-            icon="add"
-            iconOnly
-            onPress={selected ? openRecord : () => setMetricOpen(true)}
-          />
+          editing ? (
+            <HeaderAction
+              accessibilityLabel="Done editing measurements"
+              icon="check"
+              iconOnly
+              onPress={() => { lightHaptic(); setEditing(false); }}
+            />
+          ) : (
+            <HeaderActionGroup>
+              {preferences.dailyMeasurementDefinitions.length ? (
+                <HeaderAction
+                  accessibilityLabel="Edit measurements"
+                  icon="note"
+                  iconSize={20}
+                  iconOnly
+                  variant="ghost"
+                  style={joinedHeaderAction}
+                  onPress={() => { lightHaptic(); setEditing(true); }}
+                />
+              ) : null}
+              <HeaderAction
+                accessibilityLabel={selected ? 'Record measurement' : 'Add measure'}
+                icon="add"
+                iconSize={22}
+                iconOnly
+                variant="ghost"
+                style={joinedHeaderAction}
+                onPress={selected ? openRecord : () => setMetricOpen(true)}
+              />
+            </HeaderActionGroup>
+          )
         }
       />
       <ScrollView
@@ -309,8 +350,21 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
             {latest ? (
               <View style={styles.summaryRow}>
                 <ForgeCard variant="base" style={styles.metricCard}>
-                  <View style={[styles.metricIcon, { backgroundColor: `${selected.color}24` }]}>
-                    <Icon name={selected.icon} size={22} color={selected.color} />
+                  <View style={styles.metricCardTop}>
+                    <View style={[styles.metricIcon, { backgroundColor: `${selected.color}24` }]}>
+                      <Icon name={selected.icon} size={22} color={selected.color} />
+                    </View>
+                    {editing ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`${selected.name} options`}
+                        hitSlop={8}
+                        onPress={() => { selectionHaptic(); setMetricMenu(selected); }}
+                        style={({ pressed }) => [styles.metricOptions, pressed && pressedFeedback]}
+                      >
+                        <Icon name="ellipsis-horizontal" size={18} color={theme.textSecondary} />
+                      </Pressable>
+                    ) : null}
                   </View>
                   <Text style={styles.metricCardName} numberOfLines={2}>{selected.name}</Text>
                   <View style={styles.metricCardStat}>
@@ -385,7 +439,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
         {historyGroups.length ? (
           <View style={styles.historyHeaderRow}>
             <Text style={styles.historyTitle}>History</Text>
-            <Text style={styles.historyHint}>Tap to edit · swipe to delete</Text>
+            <Text style={styles.historyHint}>{editing ? 'Tap to edit · swipe to delete' : 'Tap to edit'}</Text>
           </View>
         ) : null}
         {historyGroups.map((group) => (
@@ -395,6 +449,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
               {group.values.map((entry, index) => (
                 <SwipeToDeleteRow
                   key={entry.id}
+                  enabled={editing}
                   deleteAccessibilityLabel={`Delete ${displayHistoryDate(entry.date)} record`}
                   onDelete={() => deleteEntry(entry.id)}
                   showDivider={index < group.values.length - 1}
@@ -429,6 +484,21 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
           </Pressable>
         ) : null}
       </ScrollView>
+      <ForgeActionSheet
+        visible={metricMenu !== null}
+        onClose={() => setMetricMenu(null)}
+        accessibilityLabel="Close measurement options"
+        title={metricMenu?.name ?? 'Measurement'}
+        actions={metricMenu ? [
+          {
+            label: 'Delete measurement',
+            description: `Removes this metric and all ${preferences.dailyMeasurementEntries.filter((e) => e.definitionId === metricMenu.id).length} records`,
+            icon: 'trash' as const,
+            tone: 'destructive' as const,
+            onPress: () => deleteMetric(metricMenu.id),
+          },
+        ] : []}
+      />
       <ForgeBottomSheet
         visible={recordOpen}
         onClose={() => setRecordOpen(false)}
@@ -583,6 +653,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   chartAxis: { ...typeScale.caption, color: theme.textSecondary },
   summaryRow: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
   metricCard: { width: 130, padding: 14, gap: 10 },
+  metricCardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  metricOptions: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: -2, marginRight: -4 },
   metricCardName: { ...typeScale.controlLabel, color: theme.textPrimary },
   metricCardStat: { gap: 1 },
   metricCardStatLabel: { ...typeScale.caption, color: theme.textSecondary },
@@ -600,7 +672,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   historyCard: { backgroundColor: theme.surface, borderRadius: theme.cardRadius, overflow: 'hidden' },
   historyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 56, paddingHorizontal: 16 },
   historyDate: { flexShrink: 0, ...typeScale.label, color: theme.textPrimary },
-  historyValue: { flexShrink: 1, textAlign: 'right', ...typeScale.cardTitle, color: theme.textPrimary },
+  historyValue: { flex: 1, textAlign: 'right', ...typeScale.cardTitle, color: theme.textPrimary },
   metricPickerSection: { gap: 9 },
   metricPickerHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   metricPickerLabel: { ...typeScale.caption, color: theme.textSecondary, letterSpacing: 0.9 },

@@ -25,12 +25,15 @@ export function SwipeToDeleteRow({
   deleteAccessibilityLabel,
   showDivider = false,
   contentBackgroundColor,
+  enabled = true,
 }: {
   children: React.ReactNode;
   onDelete: () => void;
   deleteAccessibilityLabel: string;
   showDivider?: boolean;
   contentBackgroundColor?: string;
+  /** When false, the row renders its content without the swipe/delete affordance. */
+  enabled?: boolean;
 }) {
   const theme = useForgeTheme();
   const reducedMotion = useForgeReducedMotion();
@@ -42,6 +45,15 @@ export function SwipeToDeleteRow({
   const layerStyle = useAnimatedStyle(() => ({
     opacity: Math.min(1, Math.max(0, -translateX.value / DELETE_WIDTH)),
   }));
+
+  if (!enabled) {
+    return (
+      <View style={[styles.row, { backgroundColor: contentBackgroundColor ?? theme.surface }]}>
+        {children}
+        {showDivider ? <View style={[styles.divider, { backgroundColor: theme.border }]} /> : null}
+      </View>
+    );
+  }
 
   const settle = (shouldOpen: boolean): void => {
     setRevealed(shouldOpen);
