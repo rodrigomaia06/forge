@@ -40,6 +40,8 @@ import {
   IconBed,
   IconBattery,
   IconSun,
+  IconMoon,
+  IconDeviceDesktop,
   IconThermometer,
   IconDroplet,
   IconSalad,
@@ -130,6 +132,9 @@ const iconMap: Record<IconName, React.ComponentType<SvgProps>> = {
   music: IconMusic,
   shoe: IconShoe,
   goal: IconTargetArrow,
+  'theme-system': IconDeviceDesktop,
+  'theme-light': IconSun,
+  'theme-dark': IconMoon,
 };
 
 export function Icon({

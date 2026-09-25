@@ -430,22 +430,14 @@ test.describe('Settings', () => {
     await expect(page.getByTestId('reminder-selection-sheet')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Remind after' })).toContainText('1 hour');
 
-    await page.getByRole('button', { name: 'Appearance' }).click();
-    const viewport = page.viewportSize();
-    if ((viewport?.width ?? 0) >= 768) {
-      await expect(page.getByTestId('appearance-selection-sheet')).toHaveCount(0);
-    } else {
-      const appearanceSheet = page.getByTestId('appearance-selection-sheet');
-      await expect(appearanceSheet).toBeVisible();
-      const appearanceBox = await page.getByTestId('appearance-selection-list').boundingBox();
-      expect(appearanceBox?.height).toBeCloseTo(52 * 3, 0);
-      if (testInfo.project.use.isMobile === true) {
-        await page.waitForTimeout(250);
-        await page.screenshot({ path: testInfo.outputPath('appearance-picker-iphone.png') });
-      }
-    }
+    // Appearance is an inline segmented switcher (System / Light / Dark).
+    const readAppearance = () =>
+      page.evaluate(() => JSON.parse(localStorage.getItem('@forge/settings-preferences') ?? '{}').appearance);
+    await expect(page.getByRole('radiogroup', { name: 'Appearance' })).toBeVisible();
+    await page.getByRole('radio', { name: 'Light' }).click();
+    await expect.poll(readAppearance).toBe('light');
     await page.getByRole('radio', { name: 'Dark' }).click();
-    await expect(page.getByRole('button', { name: 'Appearance', exact: true })).toContainText('Dark');
+    await expect.poll(readAppearance).toBe('dark');
   });
 
   test('keeps a new workout type as a draft until Save', async ({ page }) => {

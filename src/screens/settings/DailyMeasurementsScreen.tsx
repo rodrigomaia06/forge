@@ -12,7 +12,7 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import {
   Button,
   AppScreen,
-  ForgeActionSheet,
+  ForgeConfirmationDialog,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
   ForgeCard,
@@ -88,6 +88,8 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
   const { bottom: bottomInset } = useSafeAreaInsets();
   const theme = useForgeTheme();
   const reducedMotion = useForgeReducedMotion();
+  const enter = reducedMotion ? undefined : FadeIn.duration(180);
+  const exit = reducedMotion ? undefined : FadeOut.duration(140);
   const styles = useThemedStyles(createStyles);
   const floatingCtaClearance = useForgeFloatingCtaClearance();
   const { preferences, updatePreferences } = useSettings();
@@ -269,38 +271,56 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
         navigation={navigation}
         elevated={headerElevated}
         rightAction={
-          editing ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Done editing measurements"
-              onPress={() => { lightHaptic(); setEditing(false); }}
-              style={({ pressed }) => [styles.donePill, pressed && { opacity: 0.7 }]}
-            >
-              <Icon name="check" size={22} color={theme.textPrimary} weight="bold" />
-            </Pressable>
+          preferences.dailyMeasurementDefinitions.length ? (
+            // Both states share one fixed pill slot and are absolutely stacked, so
+            // toggling edit crossfades in place instead of resizing — matching the
+            // dashboard's Done pill footprint.
+            <View style={styles.morphSlot}>
+              {editing ? (
+                <Animated.View key="done" entering={enter} exiting={exit} style={StyleSheet.absoluteFill}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Done editing measurements"
+                    onPress={() => { lightHaptic(); setEditing(false); }}
+                    style={({ pressed }) => [styles.donePill, pressed && { opacity: 0.7 }]}
+                  >
+                    <Icon name="check" size={22} color={theme.textPrimary} weight="bold" />
+                  </Pressable>
+                </Animated.View>
+              ) : (
+                <Animated.View key="group" entering={enter} exiting={exit} style={StyleSheet.absoluteFill}>
+                  <HeaderActionGroup>
+                    <HeaderAction
+                      accessibilityLabel="Edit measurements"
+                      icon="note"
+                      iconSize={20}
+                      iconOnly
+                      variant="ghost"
+                      style={joinedHeaderAction}
+                      onPress={() => { lightHaptic(); setEditing(true); }}
+                    />
+                    <HeaderAction
+                      accessibilityLabel={selected ? 'Record measurement' : 'Add measure'}
+                      icon="add"
+                      iconSize={22}
+                      iconOnly
+                      variant="ghost"
+                      style={joinedHeaderAction}
+                      onPress={selected ? openRecord : () => setMetricOpen(true)}
+                    />
+                  </HeaderActionGroup>
+                </Animated.View>
+              )}
+            </View>
           ) : (
-            <HeaderActionGroup>
-              {preferences.dailyMeasurementDefinitions.length ? (
-                <HeaderAction
-                  accessibilityLabel="Edit measurements"
-                  icon="note"
-                  iconSize={20}
-                  iconOnly
-                  variant="ghost"
-                  style={joinedHeaderAction}
-                  onPress={() => { lightHaptic(); setEditing(true); }}
-                />
-              ) : null}
-              <HeaderAction
-                accessibilityLabel={selected ? 'Record measurement' : 'Add measure'}
-                icon="add"
-                iconSize={22}
-                iconOnly
-                variant="ghost"
-                style={joinedHeaderAction}
-                onPress={selected ? openRecord : () => setMetricOpen(true)}
-              />
-            </HeaderActionGroup>
+            <HeaderAction
+              accessibilityLabel="Add measure"
+              icon="add"
+              iconSize={22}
+              iconOnly
+              variant="ghost"
+              onPress={() => setMetricOpen(true)}
+            />
           )
         }
       />
@@ -547,20 +567,15 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
           </Pressable>
         ) : null}
       </ScrollView>
-      <ForgeActionSheet
+      <ForgeConfirmationDialog
         visible={metricMenu !== null}
-        onClose={() => setMetricMenu(null)}
-        accessibilityLabel="Close measurement options"
-        title={metricMenu?.name ?? 'Measurement'}
-        actions={metricMenu ? [
-          {
-            label: 'Delete measurement',
-            description: `Removes this metric and all ${preferences.dailyMeasurementEntries.filter((e) => e.definitionId === metricMenu.id).length} records`,
-            icon: 'trash' as const,
-            tone: 'destructive' as const,
-            onPress: () => deleteMetric(metricMenu.id),
-          },
-        ] : []}
+        title={`Delete ${metricMenu?.name ?? 'metric'}?`}
+        message={`This removes the metric and all ${metricMenu ? preferences.dailyMeasurementEntries.filter((e) => e.definitionId === metricMenu.id).length : 0} records. This can't be undone.`}
+        cancelLabel="Cancel"
+        confirmLabel="Delete"
+        confirmTone="destructive"
+        onCancel={() => setMetricMenu(null)}
+        onConfirm={() => { if (metricMenu) deleteMetric(metricMenu.id); }}
       />
       <ForgeBottomSheet
         visible={recordOpen}
@@ -792,12 +807,14 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   colorChoices: { flexDirection: 'row', gap: 10 },
   colorChoice: { width: 44, height: 44, borderRadius: 13, borderWidth: 1, borderColor: theme.border, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surface },
   colorSwatch: { width: 20, height: 20, borderRadius: 10 },
+  morphSlot: { width: 90, height: 44 },
   donePill: {
-    height: 40,
-    paddingHorizontal: 24,
-    borderRadius: 20,
+    width: '100%',
+    height: '100%',
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
     backgroundColor: isDark ? theme.surfaceMuted : theme.surfaceElevated,
     borderColor: theme.border,
     borderWidth: isDark ? 0 : 1,
