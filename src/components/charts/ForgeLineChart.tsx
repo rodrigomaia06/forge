@@ -109,6 +109,7 @@ export function ForgeLineChart({
               y2={trend.y2}
               stroke={theme.slate}
               strokeWidth={2}
+              strokeDasharray="6 5"
               strokeLinecap="round"
             />
           </Svg>

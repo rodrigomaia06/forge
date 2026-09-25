@@ -327,7 +327,17 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                     <Text numberOfLines={1} style={styles.metricPickerName}>{definition.name}</Text>
                     {definition.unit ? <Text numberOfLines={1} style={styles.metricPickerUnit}>{definition.unit}</Text> : null}
                   </View>
-                  {definition.id === selected?.id ? <View style={[styles.metricPickerSelected, { backgroundColor: definition.color }]} /> : null}
+                  {editing ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Delete ${definition.name}`}
+                      hitSlop={8}
+                      onPress={() => { selectionHaptic(); setMetricMenu(definition); }}
+                      style={({ pressed }) => [styles.metricPickerDelete, pressed && pressedFeedback]}
+                    >
+                      <Icon name="trash" size={15} color={theme.textDestructive} />
+                    </Pressable>
+                  ) : null}
                 </Pressable>
               ))}
             </ScrollView>
@@ -356,17 +366,6 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                     <View style={[styles.metricIcon, { backgroundColor: `${selected.color}24` }]}>
                       <Icon name={selected.icon} size={22} color={selected.color} />
                     </View>
-                    {editing ? (
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={`${selected.name} options`}
-                        hitSlop={8}
-                        onPress={() => { selectionHaptic(); setMetricMenu(selected); }}
-                        style={({ pressed }) => [styles.metricOptions, pressed && pressedFeedback]}
-                      >
-                        <Icon name="ellipsis-horizontal" size={18} color={theme.textSecondary} />
-                      </Pressable>
-                    ) : null}
                   </View>
                   <Text style={styles.metricCardName} numberOfLines={2}>{selected.name}</Text>
                   <View style={styles.metricCardSpacer} />
@@ -445,6 +444,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
         {historyGroups.length ? (
           <View style={styles.historyHeaderRow}>
             <Text style={styles.historyTitle}>History</Text>
+            {editing ? <Text style={styles.historyHint}>Tap to edit · swipe to delete</Text> : null}
           </View>
         ) : null}
         {historyGroups.map((group) => (
@@ -663,7 +663,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   metricCardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   metricCardSpacer: { flex: 1, minHeight: 8 },
   metricCardStats: { gap: 10 },
-  metricOptions: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: -2, marginRight: -4 },
   metricCardName: { ...typeScale.controlLabel, color: theme.textPrimary },
   metricCardStat: { gap: 1 },
   metricCardStatLabel: { ...typeScale.caption, color: theme.textSecondary },
@@ -675,6 +674,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   showMoreText: { ...typeScale.controlLabel, color: theme.textSecondary },
   historyHeaderRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginTop: 4 },
   historyTitle: { ...typeScale.sectionTitle, color: theme.textPrimary },
+  historyHint: { ...typeScale.caption, color: theme.textSecondary },
   historyGroup: { gap: 8 },
   historyGroupLabel: { ...typeScale.caption, color: theme.textSecondary, letterSpacing: 0.5, marginLeft: 4 },
   historyCard: { backgroundColor: theme.surface, borderRadius: theme.cardRadius, overflow: 'hidden' },
@@ -692,7 +692,17 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   metricPickerCopy: { minWidth: 0, gap: 1 },
   metricPickerName: { ...typeScale.label, color: theme.textPrimary },
   metricPickerUnit: { ...typeScale.caption, color: theme.textSecondary },
-  metricPickerSelected: { position: 'absolute', right: 10, bottom: 10, width: 7, height: 7, borderRadius: 3.5 },
+  metricPickerDelete: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.destructiveSurface,
+  },
   selectedMetricContent: { gap: 14 },
   recordEmpty: { minHeight: 50, borderRadius: 16 },
   addMetric: { minHeight: 48, borderStyle: 'dashed', borderColor: theme.border },
