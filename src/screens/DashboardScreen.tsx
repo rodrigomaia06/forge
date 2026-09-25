@@ -208,37 +208,23 @@ export function DashboardScreen() {
   const updateTileSettings = (id: string, settings: DashboardTileSettings) =>
     setLayout(layout.map((tile) => (tile.id === id ? { ...tile, settings } : tile)));
 
-  // Tiles you can add: hidden built-ins/measurements, plus any tracked
-  // measurement that has no tile yet.
+  // Tiles you can add: any hidden built-in, plus the singleton cards
+  // (Measurements, Note). Individual metrics aren't listed here — you add the
+  // Measurements card and choose which metrics it shows in its settings.
   const addableTiles: { key: string; label: string; onPress: () => void }[] = [
-    ...hiddenTiles.map((tile) => ({
-      key: tile.id,
-      label: tile.kind === 'measurement'
-        ? measurementDefById.get(tile.settings?.measurementId ?? '')?.name ?? tileName(tile)
-        : tileName(tile),
-      onPress: () => addTile({ ...tile, visible: true }),
-    })),
-    // The combined "Measurements" card (a singleton), if not already placed.
+    ...hiddenTiles
+      .filter((tile) => tile.kind !== 'measurement')
+      .map((tile) => ({
+        key: tile.id,
+        label: tileName(tile),
+        onPress: () => addTile({ ...tile, visible: true }),
+      })),
+    // Singleton cards (Measurements, Note), each if not already placed.
     ...OPTIONAL_SINGLETON_KINDS.filter((kind) => !layout.some((tile) => tile.id === kind)).map((kind) => ({
       key: kind,
       label: DASHBOARD_TILE_DEFAULT_TITLE[kind],
       onPress: () => addTile({ id: kind, kind, visible: true, settings: { ...DASHBOARD_TILE_DEFAULT_SETTINGS[kind] } }),
     })),
-    // Each tracked measurement as its own single-trend card, if not placed.
-    ...preferences.dailyMeasurementDefinitions
-      .filter((def) => !layout.some((tile) => tile.id === measurementTileId(def.id)))
-      .map((def) => ({
-        key: measurementTileId(def.id),
-        label: `${def.name} trend`,
-        onPress: () =>
-          addTile({
-            id: measurementTileId(def.id),
-            kind: 'measurement',
-            visible: true,
-            title: def.name,
-            settings: { measurementId: def.id, windowDays: 90 },
-          }),
-      })),
   ];
 
   const renderTileContent = (config: DashboardTileConfig) => {
@@ -299,8 +285,8 @@ export function DashboardScreen() {
       case 'muscle-heatmap':
         return (
           <DashboardMuscleHeatmapTile
-            heat={muscleHeatBySlug(completedWorkouts, s.windowDays ?? 14, new Date())}
-            windowDays={s.windowDays ?? 14}
+            heat={muscleHeatBySlug(completedWorkouts, s.windowDays ?? 30, new Date())}
+            windowDays={s.windowDays ?? 30}
             onOpen={editing ? undefined : () => navigation.navigate('MuscleHeatmapDetail')}
           />
         );

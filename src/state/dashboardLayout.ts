@@ -95,7 +95,7 @@ export const DASHBOARD_TILE_DEFAULT_SETTINGS: Partial<Record<DashboardTileKind, 
   'muscle-balance': { windowWeeks: 4 },
   consistency: { windowWeeks: 16 },
   streak: { weeklyTargetDefault: 3, weeklyTargets: {} },
-  'muscle-heatmap': { windowDays: 14 },
+  'muscle-heatmap': { windowDays: 30 },
   measurement: { windowDays: 90 },
   measurements: { windowDays: 90, measurementIds: [] },
 };

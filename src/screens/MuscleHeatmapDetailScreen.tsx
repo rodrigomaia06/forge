@@ -9,6 +9,7 @@ import { MuscleMap } from '../components/anatomy/MuscleMap';
 import { HEATMAP_ACCENT, MUSCLE_GROUP_COLORS } from './dashboard/DashboardWidgetTiles';
 import { muscleBalance, muscleHeatBySlug } from '../domain/dashboard/widgetMetrics';
 import { useWorkouts } from '../state/WorkoutContext';
+import { TREND_DAY_OPTIONS, trendDayLabel } from '../domain/trends';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
@@ -16,7 +17,7 @@ import type { ForgeTheme, RootStackParamList } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MuscleHeatmapDetail'>;
 
-const WINDOWS = [7, 14, 30, 90] as const;
+const WINDOWS = TREND_DAY_OPTIONS;
 
 function hexToRgba(hex: string, alpha: number): string {
   let h = hex.replace('#', '');
@@ -75,7 +76,7 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
                   ]}
                 >
                   <Text style={[styles.segmentText, { color: active ? (theme.onActionPrimary ?? theme.surface) : theme.slate }]}>
-                    {days}d
+                    {trendDayLabel(days)}
                   </Text>
                 </Pressable>
               );

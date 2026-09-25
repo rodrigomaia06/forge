@@ -14,6 +14,7 @@ import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import { Icon } from '../../components/ui';
 import { MUSCLES_BY_GROUP, MUSCLE_LABELS } from '../../domain/dashboard/widgetMetrics';
+import { TREND_DAY_OPTIONS, trendDayLabel } from '../../domain/trends';
 import { MUSCLE_GROUP_COLORS } from './DashboardWidgetTiles';
 import type { DailyMeasurementDefinition, ForgeTheme, WorkoutTypePreference } from '../../types';
 import {
@@ -81,10 +82,10 @@ function Stepper({ value, min, max, onChange, label }: { value: number; min: num
 }
 
 const WINDOW_DAYS: Partial<Record<DashboardTileKind, number[]>> = {
-  'rest-stats': [7, 30, 90],
-  'muscle-heatmap': [7, 14, 30],
-  measurement: [30, 90, 180],
-  measurements: [30, 90, 180],
+  'rest-stats': [...TREND_DAY_OPTIONS],
+  'muscle-heatmap': [...TREND_DAY_OPTIONS],
+  measurement: [...TREND_DAY_OPTIONS],
+  measurements: [...TREND_DAY_OPTIONS],
 };
 
 const WINDOW_WEEKS: Partial<Record<DashboardTileKind, number[]>> = {
@@ -173,7 +174,7 @@ export function DashboardTileSettingsSheet({
           <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
             {dayOptions ? (
               <GroupCard title="Trend window">
-                <Segmented options={dayOptions} value={settings.windowDays ?? dayOptions[0]} format={(v) => `${v} days`} onSelect={(v) => patch({ windowDays: v })} />
+                <Segmented options={dayOptions} value={settings.windowDays ?? dayOptions[0]} format={trendDayLabel} onSelect={(v) => patch({ windowDays: v })} />
               </GroupCard>
             ) : null}
             {weekOptions ? (

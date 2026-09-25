@@ -7,6 +7,7 @@ import { ForgeText as Text, Icon, pressedFeedback, selectionHaptic } from '../..
 import { ForgeLineChart } from '../../components/charts/ForgeLineChart';
 import { MuscleMap } from '../../components/anatomy/MuscleMap';
 import { formatVolume } from './dashboardSummary';
+import { trendDayLabel } from '../../domain/trends';
 import { useForgeReducedMotion } from '../../theme/motion';
 import { useTileChrome, tileHeaderRightInset } from './tileChrome';
 import { useForgeTheme } from '../../theme/ThemeProvider';
@@ -58,7 +59,7 @@ export function DashboardRestStatsTile({ stats, windowDays }: { stats: RestStats
   const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.block}>
-      <TileHead icon="stopwatch-outline" title="Rest timer" trailing={<Text style={styles.sub}>{windowDays}d</Text>} />
+      <TileHead icon="stopwatch-outline" title="Rest timer" trailing={<Text style={styles.sub}>{trendDayLabel(windowDays)}</Text>} />
       {stats.avgRestSeconds !== null ? (
         <>
           <View style={styles.bigRow}>
@@ -261,7 +262,7 @@ export function DashboardMuscleHeatmapTile({ heat, windowDays, onOpen }: { heat:
         title="Muscle heatmap"
         trailing={
           <View style={styles.headTrailingRow}>
-            <Text style={styles.sub}>volume · {windowDays}d</Text>
+            <Text style={styles.sub}>volume · {trendDayLabel(windowDays)}</Text>
             {onOpen ? <Icon name="chevron-forward" size={16} color={theme.slate} /> : null}
           </View>
         }
@@ -374,7 +375,7 @@ export function DashboardMeasurementTile({
       <TileHead
         icon={definition.icon}
         title={definition.name}
-        trailing={<Text style={styles.sub}>{windowDays}d</Text>}
+        trailing={<Text style={styles.sub}>{trendDayLabel(windowDays)}</Text>}
       />
       {series.latest !== null ? (
         <>
@@ -445,7 +446,7 @@ export function DashboardMeasurementsTile({
   const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.block}>
-      <TileHead icon="measure" title="Measurements" trailing={<Text style={styles.sub}>{windowDays}d</Text>} />
+      <TileHead icon="measure" title="Measurements" trailing={<Text style={styles.sub}>{trendDayLabel(windowDays)}</Text>} />
       {definitions.length ? (
         <View style={styles.mList}>
           {definitions.map((def) => {
@@ -453,21 +454,27 @@ export function DashboardMeasurementsTile({
             const color = def.color || (theme.selectionIndicator ?? theme.ink);
             const up = s.delta !== null && s.delta > 0;
             return (
-              <View key={def.id} style={styles.mRow}>
-                <View style={styles.mLeft}>
-                  <View style={[styles.mDot, { backgroundColor: color }]} />
-                  <Text style={styles.mName} numberOfLines={1}>{def.name}</Text>
-                </View>
-                <View style={styles.mSpark}>
-                  {s.values.length >= 2 ? <ForgeLineChart data={s.values.map((v) => ({ value: v }))} height={26} color={color} showMarkers={false} /> : null}
-                </View>
-                <View style={styles.mRight}>
-                  <Text style={styles.mValue} numberOfLines={1}>
-                    {s.latest !== null ? formatMeasure(s.latest) : '—'}{def.unit ? ` ${def.unit}` : ''}
-                  </Text>
+              <View key={def.id} style={styles.mCard}>
+                <View style={styles.mCardTop}>
+                  <View style={styles.mCardName}>
+                    <View style={[styles.mDot, { backgroundColor: color }]} />
+                    <Text style={styles.mName} numberOfLines={1}>{def.name}</Text>
+                  </View>
                   {s.delta !== null && s.delta !== 0 ? (
-                    <Icon name={up ? 'arrow-up' : 'arrow-down'} size={12} color={color} />
+                    <View style={[styles.trendPill, { backgroundColor: hexToRgba(color, 0.14) }]}>
+                      <Icon name={up ? 'arrow-up' : 'arrow-down'} size={12} color={color} />
+                      <Text style={[styles.trendText, { color }]}>{up ? '+' : ''}{formatMeasure(s.delta)}</Text>
+                    </View>
                   ) : null}
+                </View>
+                <View style={styles.mCardBody}>
+                  <View style={styles.mCardValueWrap}>
+                    <Text style={styles.mCardValue} numberOfLines={1}>{s.latest !== null ? formatMeasure(s.latest) : '—'}</Text>
+                    {def.unit ? <Text style={styles.mCardUnit}>{def.unit}</Text> : null}
+                  </View>
+                  <View style={styles.mCardSpark}>
+                    {s.values.length >= 2 ? <ForgeLineChart data={s.values.map((v) => ({ value: v }))} height={38} color={color} showMarkers={false} /> : null}
+                  </View>
                 </View>
               </View>
             );
@@ -509,7 +516,7 @@ export function DashboardNoteTile({ text, onChange }: { text: string; onChange: 
 
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   block: { gap: 10 },
-  noteInput: { minHeight: 92, color: theme.ink, ...typeScale.body, lineHeight: 22, padding: 0, margin: 0 },
+  noteInput: { minHeight: 24, color: theme.ink, ...typeScale.body, lineHeight: 22, padding: 0, margin: 0 },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   headTitle: { flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0, flexShrink: 1 },
   headTrailing: { flexShrink: 0 },
@@ -543,14 +550,17 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   legend: { flexDirection: 'row', alignItems: 'center', gap: 5, justifyContent: 'center' },
   legendChip: { width: 13, height: 13, borderRadius: 3 },
   volumeIdle: { color: theme.slate, ...typeScale.label },
-  mList: { gap: 12 },
-  mRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  mLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, width: 104, flexShrink: 0 },
+  mList: { gap: 10 },
   mDot: { width: 8, height: 8, borderRadius: 4 },
-  mName: { color: theme.ink, flexShrink: 1, ...typeScale.caption },
-  mSpark: { flex: 1, minWidth: 0 },
-  mRight: { flexDirection: 'row', alignItems: 'center', gap: 3, width: 84, justifyContent: 'flex-end', flexShrink: 0 },
-  mValue: { color: theme.ink, fontVariant: ['tabular-nums'], ...typeScale.caption },
+  mName: { color: theme.ink, flexShrink: 1, ...typeScale.label },
+  mCard: { backgroundColor: theme.surfaceMuted, borderRadius: 14, padding: 12, gap: 8 },
+  mCardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  mCardName: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1, minWidth: 0 },
+  mCardBody: { flexDirection: 'row', alignItems: 'flex-end', gap: 12 },
+  mCardValueWrap: { flexDirection: 'row', alignItems: 'baseline', gap: 4, flexShrink: 0 },
+  mCardValue: { color: theme.ink, fontVariant: ['tabular-nums'], fontSize: 22, fontWeight: '800', letterSpacing: -0.4, lineHeight: 24 },
+  mCardUnit: { color: theme.muted, ...typeScale.caption },
+  mCardSpark: { flex: 1, minWidth: 0 },
   trendPill: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   trendText: { fontVariant: ['tabular-nums'], ...typeScale.caption },
   logRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },

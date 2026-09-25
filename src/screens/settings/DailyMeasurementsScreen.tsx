@@ -35,13 +35,14 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
+import { TREND_DAY_OPTIONS, trendDayLabel, type TrendDays } from '../../domain/trends';
 import type { DailyMeasurementDefinition, DailyMeasurementEntry, IconName, RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { settingsLayout } from './SettingsRow';
 import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DailyMeasurements'>;
-type Range = 7 | 30 | 90;
+type Range = TrendDays;
 
 const metricColorChoices = [
   { name: 'Green', value: '#4D7B67' },
@@ -450,7 +451,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                   <View style={styles.trendHeader}>
                     <Text style={styles.chartEyebrow}>TREND</Text>
                     <View style={styles.rangeControls} accessibilityRole="tablist" accessibilityLabel="Chart range">
-                      {([7, 30, 90] as const).map((value) => (
+                      {TREND_DAY_OPTIONS.map((value) => (
                         <Pressable
                           key={value}
                           accessibilityRole="tab"
@@ -463,7 +464,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                             pressed && pressedFeedback,
                           ]}
                         >
-                          <Text style={[styles.rangeText, range === value && styles.rangeTextActive]}>{value}D</Text>
+                          <Text style={[styles.rangeText, range === value && styles.rangeTextActive]}>{trendDayLabel(value)}</Text>
                         </Pressable>
                       ))}
                     </View>
