@@ -13,6 +13,7 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import {
   Button,
   AppScreen,
+  ForgeActionSheet,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
   ForgeCard,
@@ -30,7 +31,7 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
-import type { DailyMeasurementDefinition, IconName, RootStackParamList } from '../../types';
+import type { DailyMeasurementDefinition, DailyMeasurementEntry, IconName, RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
@@ -95,6 +96,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
   // inside Measurements should replace this content with a lateral motion.
   const [animateMetricChange, setAnimateMetricChange] = useState(false);
   const [recordOpen, setRecordOpen] = useState(false);
+  const [entryMenu, setEntryMenu] = useState<DailyMeasurementEntry | null>(null);
   const [metricOpen, setMetricOpen] = useState(false);
   const [recordValue, setRecordValue] = useState('');
   const [metricName, setMetricName] = useState('');
@@ -359,12 +361,31 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                 title={displayHistoryDate(entry.date)}
                 trailing={<Text style={styles.historyValue}>{formatValue(entry.value, displayUnit)}</Text>}
                 showDivider={index < group.values.length - 1}
+                onPress={() => { selectionHaptic(); setEntryMenu(entry); }}
                 accessibilityLabel={`${displayHistoryDate(entry.date)}, ${formatValue(entry.value, displayUnit)}`}
               />
             ))}
           </SettingsSection>
         ))}
       </ScrollView>
+      <ForgeActionSheet
+        visible={entryMenu !== null}
+        onClose={() => setEntryMenu(null)}
+        accessibilityLabel="Close record options"
+        title={entryMenu ? `${displayHistoryDate(entryMenu.date)} · ${formatValue(entryMenu.value, displayUnit)}` : 'Record'}
+        actions={entryMenu ? [
+          {
+            label: 'Delete record',
+            icon: 'trash' as const,
+            tone: 'destructive' as const,
+            onPress: () => {
+              const id = entryMenu.id;
+              updatePreferences({ dailyMeasurementEntries: preferences.dailyMeasurementEntries.filter((item) => item.id !== id) });
+              setEntryMenu(null);
+            },
+          },
+        ] : []}
+      />
       <ForgeBottomSheet
         visible={recordOpen}
         onClose={() => setRecordOpen(false)}
