@@ -204,32 +204,51 @@ export function DashboardConsistencyTile({ data }: { data: Consistency }) {
   );
 }
 
+/** Warm amber for the streak — reads as momentum/"on a roll". */
+const STREAK_ACCENT = '#F4A261';
+
 export function DashboardStreakTile({ stats }: { stats: StreakStats }) {
   const styles = useThemedStyles(createStyles);
   const theme = useForgeTheme();
+  const dots = Math.max(stats.thisWeekGoal, stats.thisWeekCount, 1);
   return (
     <View style={styles.block}>
       <TileHead
         icon="energy"
         title="Streak"
-        trailing={<Text style={styles.sub}>{stats.thisWeekCount}/{stats.thisWeekGoal} this wk</Text>}
+        trailing={
+          stats.metThisWeek ? (
+            <View style={[styles.trendPill, { backgroundColor: hexToRgba(STREAK_ACCENT, 0.16) }]}>
+              <Text style={[styles.trendText, { color: STREAK_ACCENT }]}>On track</Text>
+            </View>
+          ) : null
+        }
       />
-      <View style={styles.bigRow}>
-        <Text style={styles.big}>{stats.streakWeeks}</Text>
-        <Text style={styles.unit}>{stats.streakWeeks === 1 ? 'week' : 'weeks'} on goal</Text>
+      <View style={styles.streakStats}>
+        <View style={styles.streakStat}>
+          <Text style={[styles.big, { color: STREAK_ACCENT }]}>{stats.streakWeeks}</Text>
+          <Text style={styles.unit}>{stats.streakWeeks === 1 ? 'week' : 'weeks'} on goal</Text>
+        </View>
+        <View style={styles.streakDivider} />
+        <View style={styles.streakStat}>
+          <Text style={styles.bigSm}>{stats.thisWeekCount}/{stats.thisWeekGoal}</Text>
+          <Text style={styles.unit}>this week</Text>
+        </View>
       </View>
-      <View style={styles.goalDots}>
-        {Array.from({ length: Math.max(stats.thisWeekGoal, stats.thisWeekCount, 1) }).map((_, i) => (
-          <View
-            key={i}
-            style={[
-              styles.goalDot,
-              { borderColor: theme.border },
-              i < stats.thisWeekCount && { backgroundColor: theme.selectionIndicator, borderColor: theme.selectionIndicator },
-            ]}
-          />
-        ))}
-        <Text style={[styles.sub, { marginLeft: 6 }]}>{stats.restDays} rest {stats.restDays === 1 ? 'day' : 'days'}</Text>
+      <View style={styles.goalRow}>
+        <View style={styles.goalDots}>
+          {Array.from({ length: dots }).map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.goalDot,
+                { borderColor: theme.border },
+                i < stats.thisWeekCount && { backgroundColor: STREAK_ACCENT, borderColor: STREAK_ACCENT },
+              ]}
+            />
+          ))}
+        </View>
+        <Text style={styles.sub}>{stats.restDays} rest {stats.restDays === 1 ? 'day' : 'days'}</Text>
       </View>
     </View>
   );
@@ -496,7 +515,12 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   empty: { color: theme.muted, ...typeScale.body },
   bigRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   big: { color: theme.ink, fontVariant: ['tabular-nums'], fontSize: 32, fontWeight: '800', letterSpacing: -0.5, lineHeight: 34 },
+  bigSm: { color: theme.ink, fontVariant: ['tabular-nums'], fontSize: 26, fontWeight: '800', letterSpacing: -0.5, lineHeight: 30 },
   unit: { color: theme.muted, ...typeScale.label },
+  streakStats: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  streakStat: { gap: 2 },
+  streakDivider: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', backgroundColor: theme.border, marginVertical: 4 },
+  goalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   sparkWrap: { marginTop: 2 },
   bars: { gap: 8 },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 10 },
