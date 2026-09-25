@@ -464,12 +464,7 @@ export function DashboardMeasurementsTile({
       <TileHead
         icon="measure"
         title="Measurements"
-        trailing={
-          <View style={styles.headTrailingRow}>
-            <Text style={styles.sub}>{trendDayLabel(windowDays)}</Text>
-            {onOpen ? <Icon name="chevron-forward" size={15} color={theme.muted} /> : null}
-          </View>
-        }
+        trailing={<Text style={styles.sub}>{trendDayLabel(windowDays)}</Text>}
       />
       {definitions.length ? (
         <View style={styles.mList}>
