@@ -371,9 +371,12 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   barTrack: { flex: 1, height: 8, borderRadius: 999, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 999 },
   barValue: { width: 26, textAlign: 'right', color: theme.ink, fontVariant: ['tabular-nums'], ...typeScale.caption },
-  cal: { flexDirection: 'row', gap: 3, justifyContent: 'space-between' },
-  calCol: { flex: 1, gap: 3 },
-  calCell: { width: '100%', aspectRatio: 1, borderRadius: 2.5 },
+  // Columns flex to fill the width but a maxWidth caps each cell, so a short
+  // window (8 weeks) keeps small, tidy squares instead of stretching them large,
+  // while a long window (26 weeks) shrinks to fit. The row centres either way.
+  cal: { flexDirection: 'row', gap: 4, justifyContent: 'center' },
+  calCol: { flex: 1, maxWidth: 14, gap: 4 },
+  calCell: { width: '100%', aspectRatio: 1, borderRadius: 3 },
   goalDots: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   goalDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 1.5 },
   bodies: { flexDirection: 'row', gap: 8 },

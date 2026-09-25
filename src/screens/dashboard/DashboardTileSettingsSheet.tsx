@@ -116,7 +116,11 @@ export function DashboardTileSettingsSheet({
       {() => (
         <View style={styles.sheet}>
           <ForgeBottomSheetHandle />
-          <ForgeSheetHeader title={kind ? `${DASHBOARD_TILE_DEFAULT_TITLE[kind]} settings` : 'Settings'} onClose={onClose} />
+          <ForgeSheetHeader
+            title={config?.title ?? (kind ? DASHBOARD_TILE_DEFAULT_TITLE[kind] : 'Settings')}
+            compactTitle
+            onClose={onClose}
+          />
           <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
             {dayOptions ? (
               <View style={styles.group}>

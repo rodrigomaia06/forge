@@ -105,7 +105,7 @@ export function DockSurface({
       <BlurView
         intensity={36}
         tint={theme.colorScheme === 'dark' ? 'dark' : 'light'}
-        experimentalBlurMethod="dimezisBlurView"
+        blurMethod="dimezisBlurView"
         pointerEvents="none"
         style={StyleSheet.absoluteFill}
       />
