@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { InteractionManager, Pressable, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -191,9 +191,13 @@ export function DashboardScreen() {
     ]);
     setAddTileOpen(false);
     // A fresh measurement card opens its settings so you can pick the metric(s)
-    // and window straight away, rather than staring at an empty tile.
+    // and window straight away, rather than staring at an empty tile. Wait for
+    // the add-tile sheet to finish closing first — opening a second bottom sheet
+    // in the same frame deadlocks the overlay/gesture layer on native.
     if (config.kind === 'measurement' || config.kind === 'measurements') {
-      setSettingsTileId(config.id);
+      InteractionManager.runAfterInteractions(() => {
+        setTimeout(() => setSettingsTileId(config.id), 320);
+      });
     }
   };
 

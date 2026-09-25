@@ -504,7 +504,7 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   bigSm: { color: theme.ink, fontVariant: ['tabular-nums'], fontSize: 26, fontWeight: '800', letterSpacing: -0.5, lineHeight: 30 },
   unit: { color: theme.muted, ...typeScale.label },
   streakStats: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  streakStat: { gap: 2 },
+  streakStat: { flex: 1, gap: 2 },
   streakDivider: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', backgroundColor: theme.border, marginVertical: 4 },
   goalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   sparkWrap: { marginTop: 2 },

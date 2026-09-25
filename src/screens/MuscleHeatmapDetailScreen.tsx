@@ -87,11 +87,11 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
               <>
                 <View style={styles.figures}>
                   <View style={styles.figureCol}>
-                    <MuscleMap heat={heat} side="front" color={accent} height={320} />
+                    <MuscleMap heat={heat} side="front" color={accent} height={300} />
                     <Text style={styles.figureLabel}>Front</Text>
                   </View>
                   <View style={styles.figureCol}>
-                    <MuscleMap heat={heat} side="back" color={accent} height={320} />
+                    <MuscleMap heat={heat} side="back" color={accent} height={300} />
                     <Text style={styles.figureLabel}>Back</Text>
                   </View>
                 </View>
