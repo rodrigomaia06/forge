@@ -174,6 +174,7 @@ export function ForgeLineChart({
               x2={trend.x2}
               y2={trend.y2}
               stroke={theme.slate}
+              strokeOpacity={0.4}
               strokeWidth={2}
               strokeDasharray="6 5"
               strokeLinecap="round"

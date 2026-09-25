@@ -367,13 +367,16 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                     ) : null}
                   </View>
                   <Text style={styles.metricCardName} numberOfLines={2}>{selected.name}</Text>
-                  <View style={styles.metricCardStat}>
-                    <Text style={styles.metricCardStatLabel}>Latest</Text>
-                    <Text style={styles.metricCardStatValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{formatValue(latest.value, displayUnit)}</Text>
-                  </View>
-                  <View style={styles.metricCardStat}>
-                    <Text style={styles.metricCardStatLabel}>{range}d change</Text>
-                    <Text style={styles.metricCardStatSub} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{trendDelta}</Text>
+                  <View style={styles.metricCardSpacer} />
+                  <View style={styles.metricCardStats}>
+                    <View style={styles.metricCardStat}>
+                      <Text style={styles.metricCardStatLabel}>Latest</Text>
+                      <Text style={styles.metricCardStatValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{formatValue(latest.value, displayUnit)}</Text>
+                    </View>
+                    <View style={styles.metricCardStat}>
+                      <Text style={styles.metricCardStatLabel}>{range}d change</Text>
+                      <Text style={styles.metricCardStatSub} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{trendDelta}</Text>
+                    </View>
                   </View>
                 </ForgeCard>
                 <ForgeCard variant="base" style={styles.trendCard}>
@@ -655,6 +658,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   summaryRow: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
   metricCard: { width: 130, padding: 14, gap: 10 },
   metricCardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  metricCardSpacer: { flex: 1, minHeight: 8 },
+  metricCardStats: { gap: 10 },
   metricOptions: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: -2, marginRight: -4 },
   metricCardName: { ...typeScale.controlLabel, color: theme.textPrimary },
   metricCardStat: { gap: 1 },
