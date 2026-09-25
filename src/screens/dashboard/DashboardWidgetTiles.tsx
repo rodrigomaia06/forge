@@ -162,6 +162,15 @@ export function DashboardConsistencyTile({ data }: { data: Consistency }) {
     if (level === 0) return theme.surfaceMuted;
     return hexToRgba(activity, CONSISTENCY_RAMP[level - 1]);
   };
+  const monthMarkers: { col: number; label: string }[] = [];
+  let prevMonth = -1;
+  for (let w = 0; w < data.weeks; w += 1) {
+    const month = new Date(data.startTs + w * 7 * 86_400_000).getMonth();
+    if (month !== prevMonth) {
+      monthMarkers.push({ col: w, label: CAL_MONTHS[month].slice(0, 3) });
+      prevMonth = month;
+    }
+  }
   return (
     <View style={styles.block}>
       <TileHead
@@ -169,6 +178,11 @@ export function DashboardConsistencyTile({ data }: { data: Consistency }) {
         title="Consistency"
         trailing={<Text style={styles.sub}>{data.weeks}w · {data.sessions}</Text>}
       />
+      <View style={styles.calMonths}>
+        {monthMarkers.map((m) => (
+          <Text key={m.col} style={[styles.calMonthLabel, { left: `${(m.col / data.weeks) * 100}%` }]}>{m.label}</Text>
+        ))}
+      </View>
       <View style={styles.cal}>
         {Array.from({ length: data.weeks }).map((_, week) => (
           <View key={week} style={styles.calCol}>
@@ -702,6 +716,8 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   // Columns flex to fill the width but a maxWidth caps each cell, so a short
   // window (8 weeks) keeps small, tidy squares instead of stretching them large,
   // while a long window (26 weeks) shrinks to fit. The row centres either way.
+  calMonths: { height: 13, position: 'relative', marginBottom: 2 },
+  calMonthLabel: { position: 'absolute', top: 0, fontSize: 9, lineHeight: 12, color: theme.muted },
   cal: { flexDirection: 'row', gap: 4, justifyContent: 'center' },
   calCol: { flex: 1, maxWidth: 14, gap: 4 },
   calCell: { width: '100%', aspectRatio: 1, borderRadius: 3 },

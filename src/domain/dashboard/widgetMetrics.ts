@@ -256,6 +256,8 @@ export interface Consistency {
   activeDays: number;
   /** Busiest day's load in the window, for relative colour scaling. */
   maxDayLoad: number;
+  /** Timestamp of the grid's first day (the oldest column, top row). */
+  startTs: number;
 }
 function completedSetCount(workout: Workout): number {
   let n = 0;
@@ -297,7 +299,7 @@ export function consistency(
       cells.push(load);
     }
   }
-  return { cells, weeks: windowWeeks, sessions, activeDays, maxDayLoad };
+  return { cells, weeks: windowWeeks, sessions, activeDays, maxDayLoad, startTs: gridStart.getTime() };
 }
 
 // ---------------------------------------------------------------------------
