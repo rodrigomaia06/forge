@@ -131,6 +131,44 @@ export function DashboardScreen() {
     [preferences.dailyMeasurementDefinitions],
   );
 
+  // The workout-derived metric each tile needs, computed once per data change
+  // (not on every render). Toggling edit mode no longer recomputes them, so the
+  // charts they feed neither stutter nor rebuild.
+  const dashboardNow = useMemo(() => new Date(), []);
+  const tileData = useMemo(() => {
+    const map: Record<string, unknown> = {};
+    for (const tile of layout) {
+      if (!tile.visible) continue;
+      const s = tileSettings(tile);
+      switch (tile.kind) {
+        case 'volume':
+          map[tile.id] = volumeSeries(completedWorkouts, s.windowWeeks ?? 12, dashboardNow, preferences.weekStartsOn);
+          break;
+        case 'rest-stats':
+          map[tile.id] = restStats(completedWorkouts, s.windowDays ?? 30, dashboardNow);
+          break;
+        case 'muscle-balance': {
+          const weeks = s.windowWeeks ?? 4;
+          const filter = s.muscleFilter ?? [];
+          map[tile.id] = filter.length
+            ? muscleBalanceByMuscle(completedWorkouts, weeks, dashboardNow, filter)
+            : muscleBalance(completedWorkouts, weeks, dashboardNow);
+          break;
+        }
+        case 'consistency':
+          map[tile.id] = consistencyMetric(completedWorkouts, s.windowWeeks ?? 16, dashboardNow, preferences.weekStartsOn);
+          break;
+        case 'streak':
+          map[tile.id] = streakStats(completedWorkouts, s.weeklyTargetDefault ?? 3, s.weeklyTargets ?? {}, dashboardNow, preferences.weekStartsOn);
+          break;
+        case 'muscle-heatmap':
+          map[tile.id] = muscleHeatBySlug(completedWorkouts, s.windowDays ?? 30, dashboardNow);
+          break;
+      }
+    }
+    return map;
+  }, [layout, completedWorkouts, preferences, dashboardNow]);
+
   const logMeasurement = (definitionId: string, value: number) => {
     const date = localDateKey();
     const entries = preferences.dailyMeasurementEntries;
@@ -278,28 +316,20 @@ export function DashboardScreen() {
             onOpen={(workoutId) => navigation.navigate('WorkoutDetails', { workoutId })}
           />
         );
-      case 'volume': {
-        const weeks = s.windowWeeks ?? 12;
-        return <DashboardVolumeChartTile series={volumeSeries(completedWorkouts, weeks, new Date(), preferences.weekStartsOn)} windowWeeks={weeks} />;
-      }
+      case 'volume':
+        return <DashboardVolumeChartTile series={tileData[config.id] as ReturnType<typeof volumeSeries>} windowWeeks={s.windowWeeks ?? 12} />;
       case 'rest-stats':
-        return <DashboardRestStatsTile stats={restStats(completedWorkouts, s.windowDays ?? 30, new Date())} windowDays={s.windowDays ?? 30} />;
-      case 'muscle-balance': {
-        const weeks = s.windowWeeks ?? 4;
-        const filter = s.muscleFilter ?? [];
-        const data = filter.length
-          ? muscleBalanceByMuscle(completedWorkouts, weeks, new Date(), filter)
-          : muscleBalance(completedWorkouts, weeks, new Date());
-        return <DashboardMuscleBalanceTile data={data} windowWeeks={weeks} />;
-      }
+        return <DashboardRestStatsTile stats={tileData[config.id] as ReturnType<typeof restStats>} windowDays={s.windowDays ?? 30} />;
+      case 'muscle-balance':
+        return <DashboardMuscleBalanceTile data={tileData[config.id] as ReturnType<typeof muscleBalance>} windowWeeks={s.windowWeeks ?? 4} />;
       case 'consistency':
-        return <DashboardConsistencyTile data={consistencyMetric(completedWorkouts, s.windowWeeks ?? 16, new Date(), preferences.weekStartsOn)} />;
+        return <DashboardConsistencyTile data={tileData[config.id] as ReturnType<typeof consistencyMetric>} />;
       case 'streak':
-        return <DashboardStreakTile stats={streakStats(completedWorkouts, s.weeklyTargetDefault ?? 3, s.weeklyTargets ?? {}, new Date(), preferences.weekStartsOn)} />;
+        return <DashboardStreakTile stats={tileData[config.id] as ReturnType<typeof streakStats>} />;
       case 'muscle-heatmap':
         return (
           <DashboardMuscleHeatmapTile
-            heat={muscleHeatBySlug(completedWorkouts, s.windowDays ?? 30, new Date())}
+            heat={tileData[config.id] as ReturnType<typeof muscleHeatBySlug>}
             windowDays={s.windowDays ?? 30}
             gender={s.gender ?? 'male'}
             onOpen={editing ? undefined : () => navigation.navigate('MuscleHeatmapDetail')}
