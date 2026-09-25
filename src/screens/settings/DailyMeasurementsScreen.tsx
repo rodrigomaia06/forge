@@ -152,6 +152,40 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
   const trendDelta = latest && periodStart && periodStart !== latest
     ? `${latest.value >= periodStart.value ? '+' : ''}${formatValue(latest.value - periodStart.value, displayUnit)}`
     : '—';
+  const summaryStats = useMemo(() => {
+    // Weekly rate: least-squares slope over the selected window, scaled to /week.
+    const pts = displayEntries.map((entry) => ({
+      x: Math.round(new Date(`${entry.date}T00:00:00`).getTime() / 86_400_000),
+      y: entry.value,
+    }));
+    let weeklyRate: string | null = null;
+    if (pts.length >= 2) {
+      const n = pts.length;
+      const sx = pts.reduce((sum, p) => sum + p.x, 0);
+      const sy = pts.reduce((sum, p) => sum + p.y, 0);
+      const sxy = pts.reduce((sum, p) => sum + p.x * p.y, 0);
+      const sxx = pts.reduce((sum, p) => sum + p.x * p.x, 0);
+      const denom = n * sxx - sx * sx;
+      if (denom !== 0) {
+        const perWeek = ((n * sxy - sx * sy) / denom) * 7;
+        weeklyRate = `${perWeek >= 0 ? '+' : ''}${formatValue(perWeek, displayUnit)}/wk`;
+      }
+    }
+    // 7-day average across the metric's entries logged in the last 7 days.
+    let weekAverage: string | null = null;
+    if (selected) {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 6);
+      const cutoffKey = localDateKey(cutoff);
+      const recent = preferences.dailyMeasurementEntries.filter(
+        (entry) => entry.definitionId === selected.id && entry.date >= cutoffKey,
+      );
+      if (recent.length) {
+        weekAverage = formatValue(recent.reduce((sum, entry) => sum + entry.value, 0) / recent.length, displayUnit);
+      }
+    }
+    return { weeklyRate, weekAverage };
+  }, [displayEntries, preferences.dailyMeasurementEntries, selected, displayUnit]);
 
   const openRecordFor = (dateKey: string) => {
     if (!selected) return;
@@ -370,15 +404,26 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                   </View>
                   <Text style={styles.metricCardName} numberOfLines={2}>{selected.name}</Text>
                   <View style={styles.metricCardSpacer} />
-                  <View style={styles.metricCardStats}>
-                    <View style={styles.metricCardStat}>
-                      <Text style={styles.metricCardStatLabel}>Latest</Text>
-                      <Text style={styles.metricCardStatValue} numberOfLines={1}>{formatValue(latest.value, displayUnit)}</Text>
+                  <Text style={styles.metricCardStatLabel}>Latest</Text>
+                  <Text style={styles.metricCardValue} numberOfLines={1}>{formatValue(latest.value, displayUnit)}</Text>
+                  <View style={styles.metricCardDivider} />
+                  <View style={styles.metricStatList}>
+                    <View style={styles.metricStatRow}>
+                      <Text style={styles.metricStatKey}>{range}d change</Text>
+                      <Text style={styles.metricStatVal} numberOfLines={1}>{trendDelta}</Text>
                     </View>
-                    <View style={styles.metricCardStat}>
-                      <Text style={styles.metricCardStatLabel}>{range}d change</Text>
-                      <Text style={styles.metricCardStatSub} numberOfLines={1}>{trendDelta}</Text>
-                    </View>
+                    {summaryStats.weeklyRate ? (
+                      <View style={styles.metricStatRow}>
+                        <Text style={styles.metricStatKey}>Rate</Text>
+                        <Text style={styles.metricStatVal} numberOfLines={1}>{summaryStats.weeklyRate}</Text>
+                      </View>
+                    ) : null}
+                    {summaryStats.weekAverage ? (
+                      <View style={styles.metricStatRow}>
+                        <Text style={styles.metricStatKey}>7-day avg</Text>
+                        <Text style={styles.metricStatVal} numberOfLines={1}>{summaryStats.weekAverage}</Text>
+                      </View>
+                    ) : null}
                   </View>
                 </ForgeCard>
                 <ForgeCard variant="base" style={styles.trendCard}>
@@ -660,15 +705,17 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   chartFooterCentered: { justifyContent: 'center' },
   chartAxis: { ...typeScale.caption, color: theme.textSecondary },
   summaryRow: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
-  metricCard: { width: 130, padding: 14, gap: 10 },
+  metricCard: { width: 150, padding: 14, gap: 8 },
   metricCardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   metricCardSpacer: { flex: 1, minHeight: 8 },
-  metricCardStats: { gap: 10 },
   metricCardName: { ...typeScale.controlLabel, color: theme.textPrimary },
-  metricCardStat: { gap: 1 },
+  metricCardValue: { fontSize: 23, fontWeight: '800', letterSpacing: -0.4, color: theme.textPrimary, fontVariant: ['tabular-nums'] },
+  metricCardDivider: { height: 1, backgroundColor: theme.border, marginTop: 4, marginBottom: 2 },
+  metricStatList: { gap: 7 },
+  metricStatRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
+  metricStatKey: { ...typeScale.caption, color: theme.textSecondary, flexShrink: 0 },
+  metricStatVal: { fontSize: 14, fontWeight: '700', color: theme.textPrimary, fontVariant: ['tabular-nums'], flexShrink: 1, textAlign: 'right' },
   metricCardStatLabel: { ...typeScale.caption, color: theme.textSecondary },
-  metricCardStatValue: { fontSize: 22, fontWeight: '800', letterSpacing: -0.4, color: theme.textPrimary, fontVariant: ['tabular-nums'] },
-  metricCardStatSub: { ...typeScale.label, color: theme.textPrimary, fontVariant: ['tabular-nums'] },
   trendCard: { flex: 1, padding: 14, gap: 8 },
   trendHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   showMore: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 44, marginTop: 2 },
