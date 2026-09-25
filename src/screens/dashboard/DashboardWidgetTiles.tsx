@@ -1,8 +1,10 @@
 import React from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, Polyline, Rect, Stop } from 'react-native-svg';
 
 import { ForgeText as Text, Icon, pressedFeedback, selectionHaptic } from '../../components/ui';
+import { useForgeReducedMotion } from '../../theme/motion';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
@@ -130,36 +132,60 @@ export function DashboardMuscleBalanceTile({ data, windowWeeks }: { data: { grou
   );
 }
 
+/** Activity levels for the contribution grid, GitHub-style but Forge green. */
+const CONSISTENCY_RAMP = [0.32, 0.55, 0.78, 1] as const;
+function consistencyLevel(count: number): number {
+  if (count <= 0) return 0;
+  if (count === 1) return 1;
+  if (count === 2) return 2;
+  return count === 3 ? 3 : 4;
+}
+
 export function DashboardConsistencyTile({ data }: { data: Consistency }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const accent = theme.selectionIndicator ?? theme.ink;
-  const heatColor = (count: number): string => {
+  const reducedMotion = useForgeReducedMotion();
+  const activity = theme.success;
+  const cellColor = (count: number): string => {
     if (count < 0) return 'transparent'; // future day
-    if (count === 0) return theme.surfaceMuted;
-    return hexToRgba(accent, count >= 2 ? 1 : 0.55);
+    const level = consistencyLevel(count);
+    if (level === 0) return theme.surfaceMuted;
+    return hexToRgba(activity, CONSISTENCY_RAMP[level - 1]);
   };
   return (
     <View style={styles.block}>
-      <TileHead icon="time-outline" title="Consistency" trailing={<Text style={styles.sub}>{data.weeks}w · {data.sessions}</Text>} />
+      <TileHead
+        icon="calendar-outline"
+        title="Consistency"
+        trailing={<Text style={styles.sub}>{data.weeks}w · {data.sessions}</Text>}
+      />
       <View style={styles.cal}>
         {Array.from({ length: data.weeks }).map((_, week) => (
           <View key={week} style={styles.calCol}>
             {Array.from({ length: 7 }).map((__, d) => {
               const count = data.cells[week * 7 + d] ?? 0;
-              return (
-                <View
-                  key={d}
-                  style={[
-                    styles.calCell,
-                    { backgroundColor: heatColor(count) },
-                    count < 0 && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border, backgroundColor: 'transparent' },
-                  ]}
-                />
+              const cellStyle = [
+                styles.calCell,
+                { backgroundColor: cellColor(count) },
+                count < 0 && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border, backgroundColor: 'transparent' },
+              ];
+              // A soft left-to-right wave as the grid fills in on mount.
+              return reducedMotion ? (
+                <View key={d} style={cellStyle} />
+              ) : (
+                <Animated.View key={d} entering={FadeIn.duration(320).delay(week * 16)} style={cellStyle} />
               );
             })}
           </View>
         ))}
+      </View>
+      <View style={styles.legend}>
+        <Text style={styles.sub}>Less</Text>
+        <View style={[styles.legendChip, { backgroundColor: theme.surfaceMuted }]} />
+        {CONSISTENCY_RAMP.map((a) => (
+          <View key={a} style={[styles.legendChip, { backgroundColor: hexToRgba(activity, a) }]} />
+        ))}
+        <Text style={styles.sub}>More</Text>
       </View>
     </View>
   );
