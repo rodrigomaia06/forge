@@ -438,6 +438,7 @@ function DashboardTileFrame({
   const translateX = useSharedValue(0);
   const open = useSharedValue(false);
   const [revealed, setRevealed] = useState(false);
+  const [deletePressed, setDeletePressed] = useState(false);
   const cardStyle = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value }] }));
   const deleteLayerStyle = useAnimatedStyle(() => ({
     opacity: Math.min(1, Math.max(0, -translateX.value / TILE_DELETE_WIDTH)),
@@ -491,15 +492,24 @@ function DashboardTileFrame({
   return (
     <View style={styles.tileWrap}>
       <GestureDetector gesture={swipe}>
-        <View style={styles.tileSwipeRow}>
+        <View style={[styles.tileSwipeRow, deletePressed && { backgroundColor: theme.destructiveSurfacePressed }]}>
+          {/* Drive the whole layer's colour from press state (onPressIn/Out) so
+              the entire red surface darkens on tap — not just an inner element —
+              and reliably, even while the swipe Pan gesture is on the parent. */}
           <Animated.View
-            style={[styles.tileDeleteLayer, deleteLayerStyle, { pointerEvents: revealed ? 'auto' : 'none' }]}
+            style={[
+              styles.tileDeleteLayer,
+              deleteLayerStyle,
+              { backgroundColor: deletePressed ? theme.destructiveSurfacePressed : theme.destructiveSurface, pointerEvents: revealed ? 'auto' : 'none' },
+            ]}
           >
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Delete ${name} tile`}
               onPress={remove}
-              style={({ pressed }) => [styles.tileDeleteAction, pressed && styles.tileDeleteActionPressed]}
+              onPressIn={() => setDeletePressed(true)}
+              onPressOut={() => setDeletePressed(false)}
+              style={styles.tileDeleteAction}
             >
               <Icon name="trash" size={20} color={theme.textDestructive} />
               <Text style={styles.tileDeleteText}>Delete</Text>
@@ -594,7 +604,6 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
     backgroundColor: theme.destructiveSurface,
   },
   tileDeleteAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
-  tileDeleteActionPressed: { backgroundColor: theme.destructiveSurfacePressed },
   tileDeleteText: { color: theme.textDestructive, ...typeScale.caption },
   settingsButton: {
     position: 'absolute',
