@@ -153,7 +153,11 @@ function ForgeSelectionRow<T extends SelectionValue>({
       style={({ pressed }) => [
         styles.selectionRow,
         rounded && styles.selectionRowRounded,
-        selected && selectedTone === 'success' && { backgroundColor: theme.successSurface },
+        selected && (selectedTone === 'success'
+          ? { backgroundColor: theme.successSurface }
+          : rounded
+            ? { backgroundColor: theme.surfaceMuted }
+            : null),
         pressed && pressedFeedback,
       ]}
     >

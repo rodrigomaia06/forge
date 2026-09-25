@@ -666,8 +666,8 @@ function RoutineTypePicker({
               ]}
             >
               <View style={[styles.choiceDot, { backgroundColor: type.color }]} />
-              <Text style={[styles.typeChoiceText, selected && { color: theme.success, fontWeight: '700' }]}>{type.name}</Text>
-              {selected && <Icon name="check" size={17} color={theme.success} weight="bold" />}
+              <Text style={[styles.typeChoiceText, selected && { fontWeight: '700' }]}>{type.name}</Text>
+              {selected && <Icon name="check" size={17} color={theme.selectionIndicator} weight="bold" />}
             </Pressable>
           );
         })}
@@ -949,7 +949,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       gap: 10,
     },
     typeChoiceDivider: {},
-    typeChoiceSelected: { backgroundColor: theme.successSurface },
+    typeChoiceSelected: { backgroundColor: theme.surfaceMuted },
     choiceDot: { width: 11, height: 11, borderRadius: 6 },
     typeChoiceText: { ...typeScale.controlLabel, color: theme.ink, flex: 1 },
     attributeRow: {

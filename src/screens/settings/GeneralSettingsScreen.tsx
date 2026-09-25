@@ -252,7 +252,6 @@ export function GeneralSettingsScreen({ navigation }: Props) {
             testID="default-rest-selection-list"
             options={restOptions}
             selectedValue={preferences.defaultRestSeconds}
-            selectedTone="success"
             rounded
             disableVirtualization
             onSelect={(value) => {
@@ -273,7 +272,6 @@ export function GeneralSettingsScreen({ navigation }: Props) {
             testID="reminder-selection-list"
             options={reminderOptions}
             selectedValue={preferences.unfinishedWorkoutReminderDelay}
-            selectedTone="success"
             rounded
             disableVirtualization
             onSelect={(value) => {

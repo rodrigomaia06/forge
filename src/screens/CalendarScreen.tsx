@@ -235,7 +235,7 @@ export function CalendarScreen({ navigation }: Props) {
                 <Text style={styles.yearTitle}>{year}</Text>
                 <View style={styles.miniGridWrap}>
                   {MONTHS_SHORT.map((label, m) => (
-                    <MiniMonth key={m} label={label} year={year} month={m} weekStart={weekStart} colorFor={colorForDay} onPress={goToMonth} theme={theme} styles={styles} cell={11} />
+                    <MiniMonth key={m} label={label} year={year} month={m} weekStart={weekStart} colorFor={colorForDay} onPress={goToMonth} theme={theme} styles={styles} cell={12} />
                   ))}
                 </View>
               </View>
@@ -267,10 +267,10 @@ export function CalendarScreen({ navigation }: Props) {
                       setView(v);
                       setViewMenuOpen(false);
                     }}
-                    style={({ pressed }) => [styles.dropdownItem, active && { backgroundColor: theme.successSurface }, pressed && !active && { backgroundColor: theme.pressed }]}
+                    style={({ pressed }) => [styles.dropdownItem, active && { backgroundColor: theme.surfaceMuted }, pressed && !active && { backgroundColor: theme.pressed }]}
                   >
-                    <Text style={[styles.dropdownText, active && { color: theme.success, fontWeight: '700' }]}>{VIEW_LABEL[v]}</Text>
-                    {active ? <Icon name="check" size={16} color={theme.success} weight="bold" /> : null}
+                    <Text style={[styles.dropdownText, active && { fontWeight: '700' }]}>{VIEW_LABEL[v]}</Text>
+                    {active ? <Icon name="check" size={16} color={theme.selectionIndicator} weight="bold" /> : null}
                   </Pressable>
                 );
               })}
@@ -283,12 +283,19 @@ export function CalendarScreen({ navigation }: Props) {
 }
 
 function MonthFlash({ color }: { color: string }) {
-  const opacity = useSharedValue(0.9);
+  const opacity = useSharedValue(0.85);
   useEffect(() => {
     opacity.value = withTiming(0, { duration: 950 });
   }, [opacity]);
   const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
-  return <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: color, borderRadius: 12 }, style]} />;
+  // Sit just inside the section with breathing room top and bottom, not a tight
+  // full-bleed rectangle hugging the title and grid.
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[{ position: 'absolute', top: -6, left: -4, right: -4, bottom: 2, backgroundColor: color, borderRadius: 14 }, style]}
+    />
+  );
 }
 
 function MiniMonth({ label, year, month, weekStart, colorFor, onPress, theme, styles, cell }: {
@@ -353,7 +360,7 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   yearSection: { paddingTop: 14, alignItems: 'center' },
   yearTitle: { ...typeScale.sectionTitle, color: theme.textPrimary, marginBottom: 12, alignSelf: 'flex-start' },
   miniGridWrap: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12, width: '100%' },
-  miniMonth: { width: '31.5%', gap: 6, padding: 8, borderRadius: 12, backgroundColor: theme.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border },
+  miniMonth: { width: '32%', gap: 6, paddingVertical: 10, paddingHorizontal: 7, borderRadius: 12, backgroundColor: theme.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border },
   miniMonthLabel: { ...typeScale.caption, color: theme.textSecondary, alignSelf: 'flex-start' },
   miniGrid: { flexDirection: 'row', alignSelf: 'center' },
 });

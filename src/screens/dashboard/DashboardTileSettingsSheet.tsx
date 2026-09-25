@@ -164,15 +164,16 @@ export function DashboardTileSettingsSheet({
       initialOffset={360}
       waitForContentLayoutBeforeEnter
     >
-      {() => (
-        <View style={styles.sheet}>
-          <ForgeBottomSheetHandle />
-          <ForgeSheetHeader
-            title={config?.title ?? (kind ? DASHBOARD_TILE_DEFAULT_TITLE[kind] : 'Settings')}
-            compactTitle
-            onClose={onClose}
-          />
-          <ScrollView style={styles.bodyScroll} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ForgeBottomSheetHandle />
+      <ForgeSheetHeader
+        title={config?.title ?? (kind ? DASHBOARD_TILE_DEFAULT_TITLE[kind] : 'Settings')}
+        compactTitle
+        onClose={onClose}
+      />
+      {/* Direct child ScrollView (not wrapped in an extra flex View) so the sheet
+          surface caps it and it hugs-then-scrolls without dead space. See ADR 0005
+          and PreviousSessionsContent. */}
+      <ScrollView style={styles.bodyScroll} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             {kind === 'muscle-heatmap' && dayOptions ? (
               <GroupCard title="Display">
                 <Text style={styles.subLabel}>Trend window</Text>
@@ -332,15 +333,12 @@ export function DashboardTileSettingsSheet({
                 ) : null}
               </>
             ) : null}
-          </ScrollView>
-        </View>
-      )}
+      </ScrollView>
     </ForgeBottomSheet>
   );
 }
 
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
-  sheet: { paddingBottom: 24, flexShrink: 1 },
   bodyScroll: { flexShrink: 1 },
   body: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 40, gap: 12 },
   soloCard: { flexDirection: 'row', alignItems: 'center', gap: 8 },
