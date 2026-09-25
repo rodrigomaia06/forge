@@ -34,6 +34,8 @@ export interface DashboardTileSettings {
   muscleFilter?: string[];
   /** Note tile: the free-text body the user types. */
   noteText?: string;
+  /** Muscle heatmap: which body model to draw. */
+  gender?: 'male' | 'female';
 }
 
 /** Singleton cards that are addable from the chooser but hidden until added. */

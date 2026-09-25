@@ -216,6 +216,31 @@ export function DashboardTileSettingsSheet({
                 ))}
               </GroupCard>
             ) : null}
+            {kind === 'muscle-heatmap' ? (
+              <GroupCard title="Body model">
+                <View style={styles.chipWrap}>
+                  {(['male', 'female'] as const).map((g) => {
+                    const active = (settings.gender ?? 'male') === g;
+                    return (
+                      <Pressable
+                        key={g}
+                        accessibilityRole="radio"
+                        accessibilityState={{ checked: active }}
+                        accessibilityLabel={g === 'male' ? 'Male' : 'Female'}
+                        onPress={() => { selectionHaptic(); patch({ gender: g }); }}
+                        style={({ pressed }) => [
+                          styles.chip,
+                          active ? { backgroundColor: theme.selectionIndicator, borderColor: theme.selectionIndicator } : { borderColor: theme.border },
+                          pressed && pressedFeedback,
+                        ]}
+                      >
+                        <Text style={[styles.chipText, { color: active ? (theme.onActionPrimary ?? theme.surface) : theme.slate }]}>{g === 'male' ? 'Male' : 'Female'}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </GroupCard>
+            ) : null}
             {kind === 'muscle-balance' ? (
               <>
                 <Text style={styles.sectionIntro}>Tap muscles to chart them on their own. With none picked, the card shows the six groups.</Text>

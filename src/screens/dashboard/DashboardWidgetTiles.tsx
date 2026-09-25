@@ -265,7 +265,7 @@ export function DashboardStreakTile({ stats }: { stats: StreakStats }) {
 }
 
 
-export function DashboardMuscleHeatmapTile({ heat, windowDays, onOpen }: { heat: Record<string, number>; windowDays: number; onOpen?: () => void }) {
+export function DashboardMuscleHeatmapTile({ heat, windowDays, gender = 'male', onOpen }: { heat: Record<string, number>; windowDays: number; gender?: 'male' | 'female'; onOpen?: () => void }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const color = HEATMAP_ACCENT;
@@ -285,8 +285,8 @@ export function DashboardMuscleHeatmapTile({ heat, windowDays, onOpen }: { heat:
       {any ? (
         <>
           <View style={styles.bodies}>
-            <View style={styles.bodyCol}><MuscleMap heat={heat} side="front" color={color} height={180} /></View>
-            <View style={styles.bodyCol}><MuscleMap heat={heat} side="back" color={color} height={180} /></View>
+            <View style={styles.bodyCol}><MuscleMap heat={heat} side="front" color={color} height={180} gender={gender} /></View>
+            <View style={styles.bodyCol}><MuscleMap heat={heat} side="back" color={color} height={180} gender={gender} /></View>
           </View>
           <View style={styles.legend}>
             <Text style={styles.sub}>Low</Text>

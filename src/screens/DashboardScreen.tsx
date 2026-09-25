@@ -301,6 +301,7 @@ export function DashboardScreen() {
           <DashboardMuscleHeatmapTile
             heat={muscleHeatBySlug(completedWorkouts, s.windowDays ?? 30, new Date())}
             windowDays={s.windowDays ?? 30}
+            gender={s.gender ?? 'male'}
             onOpen={editing ? undefined : () => navigation.navigate('MuscleHeatmapDetail')}
           />
         );
