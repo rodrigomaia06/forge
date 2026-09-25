@@ -218,31 +218,42 @@ export function DashboardTileSettingsSheet({
             ) : null}
             {kind === 'muscle-balance' ? (
               <>
-                <Text style={styles.sectionIntro}>Selected muscles are charted on their own. With none selected, the card shows the six groups.</Text>
+                <Text style={styles.sectionIntro}>Tap muscles to chart them on their own. With none picked, the card shows the six groups.</Text>
                 {MUSCLES_BY_GROUP.map((section) => {
                   const filter = settings.muscleFilter ?? [];
+                  const groupColor = MUSCLE_GROUP_COLORS[section.group];
                   const count = section.slugs.filter((slug) => filter.includes(slug)).length;
                   return (
                     <GroupCard
                       key={section.group}
                       title={section.group}
-                      accent={MUSCLE_GROUP_COLORS[section.group]}
-                      trailing={count ? <Text style={[styles.groupCount, { color: MUSCLE_GROUP_COLORS[section.group] }]}>{count}</Text> : null}
+                      accent={groupColor}
+                      trailing={count ? <Text style={[styles.groupCount, { color: groupColor }]}>{count}</Text> : null}
                     >
-                      {section.slugs.map((slug, i) => {
-                        const selected = filter.includes(slug);
-                        return (
-                          <ToggleRow
-                            key={slug}
-                            label={MUSCLE_LABELS[slug] ?? slug}
-                            selected={selected}
-                            onToggle={() => {
-                              patch({ muscleFilter: selected ? filter.filter((s) => s !== slug) : [...filter, slug] });
-                            }}
-                            showDivider={i > 0}
-                          />
-                        );
-                      })}
+                      <View style={styles.chipWrap}>
+                        {section.slugs.map((slug) => {
+                          const selected = filter.includes(slug);
+                          return (
+                            <Pressable
+                              key={slug}
+                              accessibilityRole="checkbox"
+                              accessibilityState={{ checked: selected }}
+                              accessibilityLabel={MUSCLE_LABELS[slug] ?? slug}
+                              onPress={() => {
+                                selectionHaptic();
+                                patch({ muscleFilter: selected ? filter.filter((s) => s !== slug) : [...filter, slug] });
+                              }}
+                              style={({ pressed }) => [
+                                styles.chip,
+                                selected ? { backgroundColor: groupColor, borderColor: groupColor } : { borderColor: theme.border },
+                                pressed && pressedFeedback,
+                              ]}
+                            >
+                              <Text style={[styles.chipText, { color: selected ? '#FFFFFF' : theme.slate }]}>{MUSCLE_LABELS[slug] ?? slug}</Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
                     </GroupCard>
                   );
                 })}
@@ -284,7 +295,10 @@ export function DashboardTileSettingsSheet({
 
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   sheet: { paddingBottom: 24 },
-  body: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 12, gap: 12 },
+  body: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 40, gap: 12 },
+  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { paddingHorizontal: 12, height: 34, borderRadius: 999, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  chipText: { ...typeScale.caption, fontWeight: '600' },
   card: { backgroundColor: theme.surfaceMuted, borderRadius: 16, padding: 14, gap: 10 },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   cardDot: { width: 10, height: 10, borderRadius: 5 },
