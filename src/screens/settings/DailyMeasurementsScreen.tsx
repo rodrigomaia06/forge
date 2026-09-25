@@ -315,11 +315,11 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                   <Text style={styles.metricCardName} numberOfLines={2}>{selected.name}</Text>
                   <View style={styles.metricCardStat}>
                     <Text style={styles.metricCardStatLabel}>Latest</Text>
-                    <Text style={styles.metricCardStatValue} numberOfLines={1}>{formatValue(latest.value, displayUnit)}</Text>
+                    <Text style={styles.metricCardStatValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{formatValue(latest.value, displayUnit)}</Text>
                   </View>
                   <View style={styles.metricCardStat}>
                     <Text style={styles.metricCardStatLabel}>{range}d change</Text>
-                    <Text style={styles.metricCardStatSub} numberOfLines={1}>{trendDelta}</Text>
+                    <Text style={styles.metricCardStatSub} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{trendDelta}</Text>
                   </View>
                 </ForgeCard>
                 <ForgeCard variant="base" style={styles.trendCard}>
@@ -405,8 +405,8 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                     onPress={() => { selectionHaptic(); editRecord(entry); }}
                     style={({ pressed }) => [styles.historyRow, pressed && pressedFeedback]}
                   >
-                    <Text style={styles.historyDate}>{displayHistoryDate(entry.date)}</Text>
-                    <Text style={styles.historyValue}>{formatValue(entry.value, displayUnit)}</Text>
+                    <Text style={styles.historyDate} numberOfLines={1}>{displayHistoryDate(entry.date)}</Text>
+                    <Text style={styles.historyValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{formatValue(entry.value, displayUnit)}</Text>
                   </Pressable>
                 </SwipeToDeleteRow>
               ))}
@@ -599,8 +599,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   historyGroupLabel: { ...typeScale.caption, color: theme.textSecondary, letterSpacing: 0.5, marginLeft: 4 },
   historyCard: { backgroundColor: theme.surface, borderRadius: theme.cardRadius, overflow: 'hidden' },
   historyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 56, paddingHorizontal: 16 },
-  historyDate: { ...typeScale.label, color: theme.textPrimary },
-  historyValue: { ...typeScale.cardTitle, color: theme.textPrimary },
+  historyDate: { flexShrink: 0, ...typeScale.label, color: theme.textPrimary },
+  historyValue: { flexShrink: 1, textAlign: 'right', ...typeScale.cardTitle, color: theme.textPrimary },
   metricPickerSection: { gap: 9 },
   metricPickerHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   metricPickerLabel: { ...typeScale.caption, color: theme.textSecondary, letterSpacing: 0.9 },
