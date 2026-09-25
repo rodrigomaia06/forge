@@ -3,7 +3,9 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
-  workers: '100%',
+  // Cap parallelism at two-thirds of the cores so the dev machine keeps headroom
+  // and heavy specs don't flake on timeouts/rendering under full CPU contention.
+  workers: '66%',
   outputDir: 'tests/results/artifacts',
   reporter: [['list'], ['html', { outputFolder: 'tests/results/report', open: 'never' }]],
   projects: [

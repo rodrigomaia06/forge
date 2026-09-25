@@ -194,7 +194,7 @@ test.describe('Plans and routines', () => {
       .getByRole('button', { name: 'New routine' })
       .click();
     await page.getByRole('button', { name: 'Workout type, Strength' }).click();
-    await expect(page.getByTestId('routine-type-selection-sheet')).toBeVisible();
+    await expect(page.getByTestId('routine-type-selection-menu')).toBeVisible();
     await expect(page.getByRole('radio', { name: 'Use Recovery workout type' })).toBeVisible();
     await page.getByRole('radio', { name: 'Use Recovery workout type' }).click();
     await expect(page.getByRole('button', { name: 'Workout type, Recovery' })).toBeVisible();

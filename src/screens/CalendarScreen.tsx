@@ -1,6 +1,6 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, InteractionManager, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -61,6 +61,20 @@ export function CalendarScreen({ navigation }: Props) {
   const [view, setView] = useState<CalendarView>('month');
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const [elevated, setElevated] = useState(false);
+  // Defer the (heavy) month/year grid mount until the navigation transition has
+  // settled, so opening the Calendar from a tile feels instant.
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => setReady(true));
+    return () => task.cancel();
+  }, []);
+  // Briefly highlights the month you jumped to from the year view.
+  const [flashKey, setFlashKey] = useState<string | null>(null);
+  useEffect(() => {
+    if (!flashKey) return;
+    const timer = setTimeout(() => setFlashKey(null), 1100);
+    return () => clearTimeout(timer);
+  }, [flashKey]);
   const scrollRef = useRef<ScrollView>(null);
   const scrolledRef = useRef(false);
   // The month the month-view should scroll to on its next layout (defaults to
@@ -71,6 +85,7 @@ export function CalendarScreen({ navigation }: Props) {
     selectionHaptic();
     scrollTarget.current = { year, month };
     scrolledRef.current = false;
+    setFlashKey(`${year}-${month}`);
     setView('month');
     setViewMenuOpen(false);
   };
@@ -141,7 +156,7 @@ export function CalendarScreen({ navigation }: Props) {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Calendar view: ${VIEW_LABEL[view]}. Change`}
-              onPress={() => setViewMenuOpen(true)}
+              onPress={() => setViewMenuOpen((open) => !open)}
               style={({ pressed }) => [styles.viewSelect, pressed && pressedFeedback]}
             >
               <Text style={styles.viewSelectText}>{VIEW_LABEL[view]}</Text>
@@ -158,6 +173,12 @@ export function CalendarScreen({ navigation }: Props) {
           onScroll={(e) => setElevated(e.nativeEvent.contentOffset.y > 1)}
           scrollEventThrottle={16}
         >
+          {!ready ? (
+            <View style={styles.loading}>
+              <ActivityIndicator color={theme.muted} />
+            </View>
+          ) : (
+            <Animated.View key={view} entering={reducedMotion ? undefined : FadeIn.duration(200)}>
           {view === 'month' ? (
             months.map(({ year, month }) => {
               const isTarget = year === scrollTarget.current.year && month === scrollTarget.current.month;
@@ -173,6 +194,7 @@ export function CalendarScreen({ navigation }: Props) {
                     }
                   }}
                 >
+                  {flashKey === `${year}-${month}` ? <MonthFlash color={theme.selected ?? theme.successSurface} /> : null}
                   <Text style={styles.monthTitle}>{MONTHS[month]} {year}</Text>
                   <View style={styles.monthWeekHead}>
                     {Array.from({ length: 7 }, (_, i) => <Text key={i} style={styles.monthWeekHeadText}>{WEEKDAY_LETTERS[(weekStart + i) % 7]}</Text>)}
@@ -213,11 +235,13 @@ export function CalendarScreen({ navigation }: Props) {
                 <Text style={styles.yearTitle}>{year}</Text>
                 <View style={styles.miniGridWrap}>
                   {MONTHS_SHORT.map((label, m) => (
-                    <MiniMonth key={m} label={label} year={year} month={m} weekStart={weekStart} colorFor={colorForDay} onPress={goToMonth} theme={theme} styles={styles} cell={13} />
+                    <MiniMonth key={m} label={label} year={year} month={m} weekStart={weekStart} colorFor={colorForDay} onPress={goToMonth} theme={theme} styles={styles} cell={11} />
                   ))}
                 </View>
               </View>
             ))
+          )}
+            </Animated.View>
           )}
         </ScrollView>
 
@@ -258,6 +282,15 @@ export function CalendarScreen({ navigation }: Props) {
   );
 }
 
+function MonthFlash({ color }: { color: string }) {
+  const opacity = useSharedValue(0.9);
+  useEffect(() => {
+    opacity.value = withTiming(0, { duration: 950 });
+  }, [opacity]);
+  const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: color, borderRadius: 12 }, style]} />;
+}
+
 function MiniMonth({ label, year, month, weekStart, colorFor, onPress, theme, styles, cell }: {
   label: string; year: number; month: number; weekStart: number;
   colorFor: (key: string) => string | undefined; onPress: (year: number, month: number) => void;
@@ -266,7 +299,12 @@ function MiniMonth({ label, year, month, weekStart, colorFor, onPress, theme, st
   const weeks = monthWeeks(year, month, weekStart);
   const gap = 2;
   return (
-    <Pressable style={styles.miniMonth} accessibilityRole="button" accessibilityLabel={`${label} ${year}`} onPress={() => onPress(year, month)}>
+    <Pressable
+      style={({ pressed }) => [styles.miniMonth, pressed && pressedFeedback]}
+      accessibilityRole="button"
+      accessibilityLabel={`${label} ${year}`}
+      onPress={() => onPress(year, month)}
+    >
       <Text style={styles.miniMonthLabel}>{label}</Text>
       <View style={[styles.miniGrid, { gap }]}>
         {weeks.map((week, wi) => (
@@ -301,6 +339,7 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   dropdownText: { ...typeScale.controlLabel, color: theme.textPrimary },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 4 },
+  loading: { paddingVertical: 80, alignItems: 'center', justifyContent: 'center' },
   monthSection: { paddingBottom: 14 },
   monthTitle: { ...typeScale.sectionTitle, color: theme.textPrimary, marginTop: 12, marginBottom: 6 },
   monthWeekHead: { flexDirection: 'row', marginBottom: 4 },
@@ -313,8 +352,8 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   dayMulti: { position: 'absolute', bottom: 2, width: 3.5, height: 3.5, borderRadius: 2, backgroundColor: '#FFFFFF' },
   yearSection: { paddingTop: 14, alignItems: 'center' },
   yearTitle: { ...typeScale.sectionTitle, color: theme.textPrimary, marginBottom: 12, alignSelf: 'flex-start' },
-  miniGridWrap: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 18, width: '100%' },
-  miniMonth: { width: '30%', gap: 6, alignItems: 'center' },
+  miniGridWrap: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12, width: '100%' },
+  miniMonth: { width: '31.5%', gap: 6, padding: 8, borderRadius: 12, backgroundColor: theme.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border },
   miniMonthLabel: { ...typeScale.caption, color: theme.textSecondary, alignSelf: 'flex-start' },
-  miniGrid: { flexDirection: 'row' },
+  miniGrid: { flexDirection: 'row', alignSelf: 'center' },
 });
