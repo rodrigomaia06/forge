@@ -30,6 +30,7 @@ import {
   DashboardMeasurementsTile,
   DashboardMuscleBalanceTile,
   DashboardMuscleHeatmapTile,
+  DashboardNoteTile,
   DashboardRestStatsTile,
   DashboardStreakTile,
   DashboardVolumeChartTile,
@@ -57,6 +58,7 @@ import { suggestNextWorkout } from '../domain/workouts/suggestNextWorkout';
 import { calendarDateKey } from '../domain/workouts/calendarDate';
 import type { WeekStripDay } from './dashboard/dashboardSummary';
 import {
+  DASHBOARD_TILE_DEFAULT_SETTINGS,
   DASHBOARD_TILE_DEFAULT_TITLE,
   measurementTileId,
   OPTIONAL_SINGLETON_KINDS,
@@ -89,6 +91,7 @@ const TILE_TEST_ID: Record<DashboardTileKind, string> = {
   'muscle-heatmap': 'dashboard-muscle-heatmap',
   measurement: 'dashboard-measurement',
   measurements: 'dashboard-measurements',
+  note: 'dashboard-note',
 };
 
 function tileTestId(config: DashboardTileConfig): string {
@@ -219,7 +222,7 @@ export function DashboardScreen() {
     ...OPTIONAL_SINGLETON_KINDS.filter((kind) => !layout.some((tile) => tile.id === kind)).map((kind) => ({
       key: kind,
       label: DASHBOARD_TILE_DEFAULT_TITLE[kind],
-      onPress: () => addTile({ id: kind, kind, visible: true, settings: { windowDays: 90, measurementIds: [] } }),
+      onPress: () => addTile({ id: kind, kind, visible: true, settings: { ...DASHBOARD_TILE_DEFAULT_SETTINGS[kind] } }),
     })),
     // Each tracked measurement as its own single-trend card, if not placed.
     ...preferences.dailyMeasurementDefinitions
@@ -314,6 +317,13 @@ export function DashboardScreen() {
           />
         );
       }
+      case 'note':
+        return (
+          <DashboardNoteTile
+            text={s.noteText ?? ''}
+            onChange={(next) => updateTileSettings(config.id, { ...(config.settings ?? {}), noteText: next })}
+          />
+        );
       case 'measurements': {
         const windowDays = s.windowDays ?? 90;
         const chosen = (s.measurementIds ?? [])

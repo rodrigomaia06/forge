@@ -13,7 +13,8 @@ export type DashboardTileKind =
   | 'streak'
   | 'muscle-heatmap'
   | 'measurement'
-  | 'measurements';
+  | 'measurements'
+  | 'note';
 
 /** Per-tile configuration edited from the tile's edit-mode gear. */
 export interface DashboardTileSettings {
@@ -30,10 +31,12 @@ export interface DashboardTileSettings {
   measurementIds?: string[];
   /** Muscle balance: individual-muscle slugs to show; empty = the six groups. */
   muscleFilter?: string[];
+  /** Note tile: the free-text body the user types. */
+  noteText?: string;
 }
 
 /** Singleton cards that are addable from the chooser but hidden until added. */
-export const OPTIONAL_SINGLETON_KINDS: DashboardTileKind[] = ['measurements'];
+export const OPTIONAL_SINGLETON_KINDS: DashboardTileKind[] = ['measurements', 'note'];
 
 export interface DashboardTileConfig {
   /** Stable per-instance id. Built-ins use their kind; measurement tiles use
@@ -82,6 +85,7 @@ export const DASHBOARD_TILE_DEFAULT_TITLE: Record<DashboardTileKind, string> = {
   'muscle-heatmap': 'Muscle heatmap',
   measurement: 'Measurement',
   measurements: 'Measurements',
+  note: 'Note',
 };
 
 /** Default settings a tile starts with, and the domain of what its gear edits. */

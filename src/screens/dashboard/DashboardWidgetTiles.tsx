@@ -480,8 +480,36 @@ export function DashboardMeasurementsTile({
   );
 }
 
+/** A free-text sticky note. Editable inline when the dashboard isn't in edit
+ * (reorder) mode; read-only while editing so a drag never starts a keyboard. */
+export function DashboardNoteTile({ text, onChange }: { text: string; onChange: (text: string) => void }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  const { editing } = useTileChrome();
+  const [draft, setDraft] = React.useState(text);
+  // Adopt an external change (e.g. a fresh tile) only while not actively typing.
+  React.useEffect(() => { setDraft(text); }, [text]);
+  return (
+    <View style={styles.block}>
+      <TileHead icon="note" title="Note" />
+      <TextInput
+        style={styles.noteInput}
+        value={draft}
+        onChangeText={(next) => { setDraft(next); onChange(next); }}
+        editable={!editing}
+        multiline
+        scrollEnabled={false}
+        textAlignVertical="top"
+        placeholder="Jot a goal, a cue, a reminder…"
+        placeholderTextColor={theme.muted}
+      />
+    </View>
+  );
+}
+
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   block: { gap: 10 },
+  noteInput: { minHeight: 92, color: theme.ink, ...typeScale.body, lineHeight: 22, padding: 0, margin: 0 },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   headTitle: { flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0, flexShrink: 1 },
   headTrailing: { flexShrink: 0 },
