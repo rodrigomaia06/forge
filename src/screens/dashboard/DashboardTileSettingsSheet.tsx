@@ -173,7 +173,30 @@ export function DashboardTileSettingsSheet({
             onClose={onClose}
           />
           <ScrollView style={styles.bodyScroll} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            {dayOptions ? (
+            {kind === 'muscle-heatmap' && dayOptions ? (
+              <GroupCard title="Display">
+                <Text style={styles.subLabel}>Trend window</Text>
+                <Segmented options={dayOptions} value={settings.windowDays ?? dayOptions[0]} format={trendDayLabel} onSelect={(v) => patch({ windowDays: v })} />
+                <Text style={styles.subLabel}>Body model</Text>
+                <View style={styles.chipWrap}>
+                  {(['male', 'female'] as const).map((g) => {
+                    const active = (settings.gender ?? 'male') === g;
+                    return (
+                      <Pressable
+                        key={g}
+                        accessibilityRole="radio"
+                        accessibilityState={{ checked: active }}
+                        accessibilityLabel={g === 'male' ? 'Male' : 'Female'}
+                        onPress={() => { selectionHaptic(); patch({ gender: g }); }}
+                        style={({ pressed }) => [styles.chip, active ? { backgroundColor: theme.selectionIndicator, borderColor: theme.selectionIndicator } : { borderColor: theme.border }, pressed && pressedFeedback]}
+                      >
+                        <Text style={[styles.chipText, { color: active ? (theme.onActionPrimary ?? theme.surface) : theme.slate }]}>{g === 'male' ? 'Male' : 'Female'}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </GroupCard>
+            ) : dayOptions ? (
               <GroupCard title="Trend window">
                 <Segmented options={dayOptions} value={settings.windowDays ?? dayOptions[0]} format={trendDayLabel} onSelect={(v) => patch({ windowDays: v })} />
               </GroupCard>
@@ -214,31 +237,6 @@ export function DashboardTileSettingsSheet({
                     showDivider={i > 0}
                   />
                 ))}
-              </GroupCard>
-            ) : null}
-            {kind === 'muscle-heatmap' ? (
-              <GroupCard title="Body model">
-                <View style={styles.chipWrap}>
-                  {(['male', 'female'] as const).map((g) => {
-                    const active = (settings.gender ?? 'male') === g;
-                    return (
-                      <Pressable
-                        key={g}
-                        accessibilityRole="radio"
-                        accessibilityState={{ checked: active }}
-                        accessibilityLabel={g === 'male' ? 'Male' : 'Female'}
-                        onPress={() => { selectionHaptic(); patch({ gender: g }); }}
-                        style={({ pressed }) => [
-                          styles.chip,
-                          active ? { backgroundColor: theme.selectionIndicator, borderColor: theme.selectionIndicator } : { borderColor: theme.border },
-                          pressed && pressedFeedback,
-                        ]}
-                      >
-                        <Text style={[styles.chipText, { color: active ? (theme.onActionPrimary ?? theme.surface) : theme.slate }]}>{g === 'male' ? 'Male' : 'Female'}</Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
               </GroupCard>
             ) : null}
             {kind === 'muscle-balance' ? (
@@ -351,6 +349,7 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   chip: { paddingHorizontal: 12, height: 34, borderRadius: 999, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   chipText: { ...typeScale.caption, fontWeight: '600' },
   card: { backgroundColor: theme.surfaceMuted, borderRadius: 16, padding: 14, gap: 10 },
+  subLabel: { ...typeScale.caption, color: theme.textSecondary },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   cardDot: { width: 10, height: 10, borderRadius: 5 },
   cardTitle: { color: theme.ink, ...typeScale.controlLabel, flex: 1 },
@@ -360,9 +359,9 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   sectionIntro: { color: theme.muted, paddingHorizontal: 2, ...typeScale.caption },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   rowDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border },
-  segmented: { flexDirection: 'row', gap: 8 },
-  segment: { flex: 1, minHeight: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  segmentText: { ...typeScale.controlLabel },
+  segmented: { flexDirection: 'row', gap: 6 },
+  segment: { flex: 1, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  segmentText: { ...typeScale.label, fontWeight: '600' },
   stepperRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 },
   stepperLabel: { flex: 1, color: theme.ink, ...typeScale.label },
   stepper: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surface, borderRadius: 999 },
