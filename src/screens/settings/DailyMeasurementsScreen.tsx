@@ -403,6 +403,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                     height={116}
                     color={selected.color}
                     showMarkers={displayEntries.length <= 12}
+                    showTrendLine={displayEntries.length >= 3}
                   />
                   <View style={[styles.chartFooter, displayEntries.length === 1 && styles.chartFooterCentered]}>
                     {displayEntries.length > 1 ? (

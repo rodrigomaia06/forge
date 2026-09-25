@@ -391,7 +391,7 @@ export function DashboardMeasurementTile({
             ) : null}
           </View>
           {series.values.length >= 2 ? (
-            <View style={styles.sparkWrap}><ForgeLineChart data={series.values.map((v) => ({ value: v }))} height={64} color={color} showMarkers={series.values.length <= 12} /></View>
+            <View style={styles.sparkWrap}><ForgeLineChart data={series.values.map((v) => ({ value: v }))} height={64} color={color} showMarkers={series.values.length <= 12} showTrendLine={series.values.length >= 3} /></View>
           ) : (
             <Text style={styles.sub}>One reading · log more to see a trend</Text>
           )}
