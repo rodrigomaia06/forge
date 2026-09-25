@@ -6,14 +6,16 @@ import Svg, { Circle } from 'react-native-svg';
 import { ForgeText as Text, Icon, pressedFeedback, selectionHaptic } from '../../components/ui';
 import { ForgeLineChart } from '../../components/charts/ForgeLineChart';
 import { MuscleMap } from '../../components/anatomy/MuscleMap';
-import { formatVolume } from './dashboardSummary';
+import { computeWorkoutVolume, formatVolume } from './dashboardSummary';
+import { getWorkoutTypePresentation } from '../../domain/workouts/presentation';
+import { calendarDateKey } from '../../domain/workouts/calendarDate';
 import { trendDayLabel } from '../../domain/trends';
 import { useForgeReducedMotion } from '../../theme/motion';
 import { useTileChrome, tileHeaderRightInset } from './tileChrome';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import type { DailyMeasurementDefinition, ForgeTheme, IconName } from '../../types';
+import type { DailyMeasurementDefinition, ForgeTheme, IconName, Workout, WorkoutTypePreference } from '../../types';
 import { measurementSeries, type MeasurementSeries, type MuscleBalanceEntry, type MuscleGroup, type RestStats, type Consistency, type StreakStats, type VolumeSeries } from '../../domain/dashboard/widgetMetrics';
 
 /** #rrggbb (or #rgb) → rgba() so a heat step blends over the card surface. */
@@ -555,8 +557,121 @@ export function DashboardNoteTile({ text, onChange }: { text: string; onChange: 
   );
 }
 
+const CAL_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const CAL_WEEK = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+function calMonthWeeks(year: number, month: number, weekStart: number): (number | null)[][] {
+  const firstWeekday = (new Date(year, month, 1).getDay() - weekStart + 7) % 7;
+  const days = new Date(year, month + 1, 0).getDate();
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstWeekday; i++) cells.push(null);
+  for (let d = 1; d <= days; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+  const weeks: (number | null)[][] = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+  return weeks;
+}
+function formatCalDuration(seconds: number): string {
+  const m = Math.round(seconds / 60);
+  if (m < 60) return `${m}mins`;
+  return `${Math.floor(m / 60)}h ${m % 60}mins`;
+}
+
+/** A month-at-a-glance tile: a mini calendar of trained days plus month totals.
+ * Tapping it opens the full Calendar page. */
+export function DashboardCalendarTile({
+  workouts,
+  workoutTypes,
+  weekStart = 1,
+  onOpen,
+}: {
+  workouts: Workout[];
+  workoutTypes: WorkoutTypePreference[];
+  weekStart?: number;
+  onOpen?: () => void;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const todayDate = now.getDate();
+
+  const { colorByDay, count, seconds, volume } = React.useMemo(() => {
+    const colorByDay = new Map<number, string>();
+    let count = 0, seconds = 0, volume = 0;
+    for (const w of workouts) {
+      const d = new Date(w.completedAt ?? w.startedAt);
+      if (d.getFullYear() !== year || d.getMonth() !== month) continue;
+      count += 1;
+      seconds += w.durationSeconds ?? 0;
+      volume += computeWorkoutVolume(w);
+      if (!colorByDay.has(d.getDate())) {
+        colorByDay.set(d.getDate(), getWorkoutTypePresentation(w.type, workoutTypes, theme, 0.16).color);
+      }
+    }
+    return { colorByDay, count, seconds, volume };
+  }, [workouts, workoutTypes, year, month, theme]);
+
+  const weeks = calMonthWeeks(year, month, weekStart);
+  const letters = Array.from({ length: 7 }, (_, i) => CAL_WEEK[(weekStart + i) % 7]);
+
+  return (
+    <Pressable
+      accessibilityRole={onOpen ? 'button' : undefined}
+      accessibilityLabel={onOpen ? 'Open calendar' : undefined}
+      disabled={!onOpen}
+      onPress={onOpen}
+      style={({ pressed }) => [styles.calRow, pressed && onOpen ? pressedFeedback : null]}
+    >
+      <View style={styles.calLeft}>
+        <Text style={styles.calMonth}>{CAL_MONTHS[month]}</Text>
+        <View style={styles.calGridHead}>
+          {letters.map((l, i) => <Text key={i} style={styles.calGridHeadText}>{l}</Text>)}
+        </View>
+        {weeks.map((week, wi) => (
+          <View key={wi} style={styles.calGridRow}>
+            {week.map((day, di) => {
+              const color = day ? colorByDay.get(day) : undefined;
+              const isToday = day === todayDate;
+              return (
+                <View key={di} style={styles.calGridCell}>
+                  {day ? (
+                    <View style={[styles.calDot, color ? { backgroundColor: color } : null, isToday && !color ? { borderWidth: 1, borderColor: theme.border } : null]}>
+                      <Text style={[styles.calDayNum, color ? styles.calDayNumOn : null]}>{day}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })}
+          </View>
+        ))}
+      </View>
+      <View style={styles.calRight}>
+        <View style={styles.calStat}><Text style={styles.calStatValue}>{count}</Text><Text style={styles.calStatLabel}>Workouts</Text></View>
+        <View style={styles.calStat}><Text style={styles.calStatValue}>{formatCalDuration(seconds)}</Text><Text style={styles.calStatLabel}>Duration</Text></View>
+        <View style={styles.calStat}><Text style={styles.calStatValue}>{formatVolume(volume)}</Text><Text style={styles.calStatLabel}>Volume</Text></View>
+      </View>
+    </Pressable>
+  );
+}
+
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   block: { gap: 10 },
+  calRow: { flexDirection: 'row', gap: 16, alignItems: 'center' },
+  calLeft: { flex: 1.1, minWidth: 0 },
+  calMonth: { color: theme.ink, ...typeScale.controlLabel, marginBottom: 6 },
+  calGridHead: { flexDirection: 'row' },
+  calGridHeadText: { flex: 1, textAlign: 'center', color: theme.muted, fontSize: 10, lineHeight: 14 },
+  calGridRow: { flexDirection: 'row' },
+  calGridCell: { flex: 1, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', padding: 1 },
+  calDot: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  calDayNum: { color: theme.slate, fontSize: 11, lineHeight: 13, fontVariant: ['tabular-nums'] },
+  calDayNumOn: { color: '#FFFFFF', fontWeight: '700' },
+  calRight: { flex: 1, gap: 12, paddingLeft: 4 },
+  calStat: { gap: 1 },
+  calStatValue: { color: theme.ink, ...typeScale.cardTitle, fontVariant: ['tabular-nums'] },
+  calStatLabel: { color: theme.muted, ...typeScale.caption },
   noteInput: { minHeight: 24, color: theme.ink, ...typeScale.body, lineHeight: 22, padding: 0, margin: 0 },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   headTitle: { flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0, flexShrink: 1 },

@@ -14,7 +14,8 @@ export type DashboardTileKind =
   | 'muscle-heatmap'
   | 'measurement'
   | 'measurements'
-  | 'note';
+  | 'note'
+  | 'calendar';
 
 /** Per-tile configuration edited from the tile's edit-mode gear. */
 export interface DashboardTileSettings {
@@ -36,7 +37,7 @@ export interface DashboardTileSettings {
 }
 
 /** Singleton cards that are addable from the chooser but hidden until added. */
-export const OPTIONAL_SINGLETON_KINDS: DashboardTileKind[] = ['note'];
+export const OPTIONAL_SINGLETON_KINDS: DashboardTileKind[] = ['note', 'calendar'];
 
 export interface DashboardTileConfig {
   /** Stable per-instance id. Built-ins use their kind; measurement tiles use
@@ -91,6 +92,7 @@ export const DASHBOARD_TILE_DEFAULT_TITLE: Record<DashboardTileKind, string> = {
   measurement: 'Measurement',
   measurements: 'Measurements',
   note: 'Note',
+  calendar: 'Calendar',
 };
 
 /** Default settings a tile starts with, and the domain of what its gear edits. */

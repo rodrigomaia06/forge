@@ -25,6 +25,7 @@ import {
   DashboardWeekCard,
 } from './dashboard/DashboardSummaryParts';
 import {
+  DashboardCalendarTile,
   DashboardConsistencyTile,
   DashboardMeasurementTile,
   DashboardMeasurementsTile,
@@ -92,6 +93,7 @@ const TILE_TEST_ID: Record<DashboardTileKind, string> = {
   measurement: 'dashboard-measurement',
   measurements: 'dashboard-measurements',
   note: 'dashboard-note',
+  calendar: 'dashboard-calendar',
 };
 
 function tileTestId(config: DashboardTileConfig): string {
@@ -199,7 +201,7 @@ export function DashboardScreen() {
     // and window straight away, rather than staring at an empty tile. Wait for
     // the add-tile sheet to finish closing first — opening a second bottom sheet
     // in the same frame deadlocks the overlay/gesture layer on native.
-    if (config.kind === 'measurement' || config.kind === 'measurements') {
+    if (tileHasSettings(config.kind)) {
       InteractionManager.runAfterInteractions(() => {
         setTimeout(() => setSettingsTileId(config.id), 320);
       });
@@ -315,6 +317,15 @@ export function DashboardScreen() {
           />
         );
       }
+      case 'calendar':
+        return (
+          <DashboardCalendarTile
+            workouts={completedWorkouts}
+            workoutTypes={preferences.workoutTypes}
+            weekStart={preferences.weekStartsOn}
+            onOpen={editing ? undefined : () => navigation.navigate('Calendar')}
+          />
+        );
       case 'note':
         return (
           <DashboardNoteTile
