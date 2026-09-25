@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -132,14 +132,14 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
           scrollEventThrottle={16}
         >
           {editing ? (
-            <Animated.View entering={reducedMotion ? undefined : FadeIn.duration(200)} exiting={reducedMotion ? undefined : FadeOut.duration(150)}>
+            <Animated.View entering={reducedMotion ? undefined : FadeIn.duration(200)}>
               <Segmented options={WINDOWS} value={windowDays} onChange={(v) => setView({ windowDays: v })} format={(v) => trendDayLabel(v)} />
             </Animated.View>
           ) : null}
 
           <ForgeCard style={styles.figuresCard}>
             {editing ? (
-              <Animated.View entering={reducedMotion ? undefined : FadeIn.duration(200)} exiting={reducedMotion ? undefined : FadeOut.duration(150)}>
+              <Animated.View entering={reducedMotion ? undefined : FadeIn.duration(200)}>
                 <Segmented options={['male', 'female'] as const} value={gender} onChange={(v) => setView({ gender: v })} format={(v) => (v === 'male' ? 'Male' : 'Female')} />
               </Animated.View>
             ) : null}
@@ -174,7 +174,6 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
               {editing ? (
                 <Animated.View
                   entering={reducedMotion ? undefined : FadeIn.duration(200)}
-                  exiting={reducedMotion ? undefined : FadeOut.duration(150)}
                   style={styles.breakdownToggle}
                 >
                   {(['group', 'muscle'] as const).map((b) => {
