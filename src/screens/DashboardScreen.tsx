@@ -39,6 +39,7 @@ import {
   consistency as consistencyMetric,
   measurementSeries,
   muscleBalance,
+  muscleBalanceByMuscle,
   muscleHeat,
   restStats,
   streakStats,
@@ -275,8 +276,14 @@ export function DashboardScreen() {
       }
       case 'rest-stats':
         return <DashboardRestStatsTile stats={restStats(completedWorkouts, s.windowDays ?? 30, new Date())} windowDays={s.windowDays ?? 30} />;
-      case 'muscle-balance':
-        return <DashboardMuscleBalanceTile data={muscleBalance(completedWorkouts, s.windowWeeks ?? 4, new Date())} windowWeeks={s.windowWeeks ?? 4} />;
+      case 'muscle-balance': {
+        const weeks = s.windowWeeks ?? 4;
+        const filter = s.muscleFilter ?? [];
+        const data = filter.length
+          ? muscleBalanceByMuscle(completedWorkouts, weeks, new Date(), filter)
+          : muscleBalance(completedWorkouts, weeks, new Date());
+        return <DashboardMuscleBalanceTile data={data} windowWeeks={weeks} />;
+      }
       case 'consistency':
         return <DashboardConsistencyTile data={consistencyMetric(completedWorkouts, s.windowWeeks ?? 16, new Date(), preferences.weekStartsOn)} />;
       case 'streak':

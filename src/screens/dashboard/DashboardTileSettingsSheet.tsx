@@ -13,6 +13,8 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import { Icon } from '../../components/ui';
+import { MUSCLES_BY_GROUP, MUSCLE_LABELS } from '../../domain/dashboard/widgetMetrics';
+import { MUSCLE_GROUP_COLORS } from './DashboardWidgetTiles';
 import type { DailyMeasurementDefinition, ForgeTheme, WorkoutTypePreference } from '../../types';
 import {
   DASHBOARD_TILE_DEFAULT_TITLE,
@@ -126,6 +128,7 @@ export function DashboardTileSettingsSheet({
   onChange: (settings: DashboardTileSettings) => void;
   onClose: () => void;
 }) {
+  const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const kind = config?.kind;
   const settings = config ? tileSettings(config) : {};
@@ -202,6 +205,40 @@ export function DashboardTileSettingsSheet({
                 )}
               </View>
             ) : null}
+            {kind === 'muscle-balance' ? (
+              <View style={styles.group}>
+                <Text style={styles.groupLabel}>Muscles</Text>
+                <Text style={styles.groupHint}>Pick specific muscles to break them out. With none selected the card shows the six groups.</Text>
+                {MUSCLES_BY_GROUP.map((section) => (
+                  <View key={section.group} style={styles.muscleSection}>
+                    <Text style={styles.muscleGroupLabel}>{section.group}</Text>
+                    {section.slugs.map((slug) => {
+                      const selected = (settings.muscleFilter ?? []).includes(slug);
+                      return (
+                        <Pressable
+                          key={slug}
+                          accessibilityRole="checkbox"
+                          accessibilityState={{ checked: selected }}
+                          accessibilityLabel={MUSCLE_LABELS[slug] ?? slug}
+                          onPress={() => {
+                            selectionHaptic();
+                            const current = settings.muscleFilter ?? [];
+                            patch({ muscleFilter: selected ? current.filter((s) => s !== slug) : [...current, slug] });
+                          }}
+                          style={({ pressed }) => [styles.metricRow, pressed && pressedFeedback]}
+                        >
+                          <View style={[styles.metricDot, { backgroundColor: MUSCLE_GROUP_COLORS[section.group] }]} />
+                          <Text style={styles.metricName} numberOfLines={1}>{MUSCLE_LABELS[slug] ?? slug}</Text>
+                          <View style={[styles.metricCheck, { borderColor: selected ? theme.selectionIndicator : theme.border, backgroundColor: selected ? theme.selectionIndicator : 'transparent' }]}>
+                            {selected ? <Icon name="check" size={13} color={theme.onActionPrimary ?? theme.surface} weight="bold" /> : null}
+                          </View>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                ))}
+              </View>
+            ) : null}
             {kind === 'streak' ? (
               <>
                 <View style={styles.group}>
@@ -257,4 +294,6 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   metricDot: { width: 10, height: 10, borderRadius: 5 },
   metricName: { flex: 1, color: theme.ink, ...typeScale.label },
   metricCheck: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  muscleSection: { gap: 2, marginTop: 4 },
+  muscleGroupLabel: { color: theme.muted, marginTop: 6, ...typeScale.caption },
 });

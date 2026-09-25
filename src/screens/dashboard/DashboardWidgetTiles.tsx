@@ -11,7 +11,7 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import type { DailyMeasurementDefinition, ForgeTheme, IconName } from '../../types';
-import { MUSCLE_GROUPS, measurementSeries, type MeasurementSeries, type MuscleGroup, type RestStats, type Consistency, type StreakStats, type VolumeSeries } from '../../domain/dashboard/widgetMetrics';
+import { MUSCLE_GROUPS, measurementSeries, type MeasurementSeries, type MuscleBalanceEntry, type MuscleGroup, type RestStats, type Consistency, type StreakStats, type VolumeSeries } from '../../domain/dashboard/widgetMetrics';
 
 /** #rrggbb (or #rgb) → rgba() so a heat step blends over the card surface. */
 function hexToRgba(hex: string, alpha: number): string {
@@ -107,7 +107,17 @@ export function DashboardRestStatsTile({ stats, windowDays }: { stats: RestStats
   );
 }
 
-export function DashboardMuscleBalanceTile({ data, windowWeeks }: { data: { group: MuscleGroup; sets: number }[]; windowWeeks: number }) {
+/** A distinct, on-brand hue per muscle group (from the workout-type palette). */
+export const MUSCLE_GROUP_COLORS: Record<MuscleGroup, string> = {
+  Chest: '#7C8CF8',
+  Back: '#6BD48F',
+  Legs: '#F4A261',
+  Shoulders: '#B78AF0',
+  Arms: '#F27D7D',
+  Core: '#4CC3C0',
+};
+
+export function DashboardMuscleBalanceTile({ data, windowWeeks }: { data: MuscleBalanceEntry[]; windowWeeks: number }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const max = Math.max(1, ...data.map((d) => d.sets));
@@ -118,10 +128,10 @@ export function DashboardMuscleBalanceTile({ data, windowWeeks }: { data: { grou
       {total > 0 ? (
         <View style={styles.bars}>
           {data.map((d) => (
-            <View key={d.group} style={styles.bar}>
-              <Text style={styles.barLabel} numberOfLines={1}>{d.group}</Text>
+            <View key={d.label} style={styles.bar}>
+              <Text style={styles.barLabel} numberOfLines={1}>{d.label}</Text>
               <View style={[styles.barTrack, { backgroundColor: theme.surfaceMuted }]}>
-                <View style={[styles.barFill, { width: `${Math.round((d.sets / max) * 100)}%`, backgroundColor: theme.selectionIndicator }]} />
+                <View style={[styles.barFill, { width: `${Math.round((d.sets / max) * 100)}%`, backgroundColor: MUSCLE_GROUP_COLORS[d.group] }]} />
               </View>
               <Text style={styles.barValue}>{d.sets}</Text>
             </View>
@@ -490,7 +500,7 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   sparkWrap: { marginTop: 2 },
   bars: { gap: 8 },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  barLabel: { width: 66, color: theme.slate, ...typeScale.caption },
+  barLabel: { width: 80, color: theme.slate, ...typeScale.caption },
   barTrack: { flex: 1, height: 8, borderRadius: 999, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 999 },
   barValue: { width: 26, textAlign: 'right', color: theme.ink, fontVariant: ['tabular-nums'], ...typeScale.caption },

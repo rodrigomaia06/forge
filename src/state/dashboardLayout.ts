@@ -28,6 +28,8 @@ export interface DashboardTileSettings {
   measurementId?: string;
   /** Combined measurements tile: which definitions it charts together. */
   measurementIds?: string[];
+  /** Muscle balance: individual-muscle slugs to show; empty = the six groups. */
+  muscleFilter?: string[];
 }
 
 /** Singleton cards that are addable from the chooser but hidden until added. */

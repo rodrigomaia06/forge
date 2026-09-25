@@ -45,12 +45,44 @@ function isWorkingSet(set: WorkoutSet): boolean {
   return (set.tag ?? '').trim().toLowerCase() !== 'warm up';
 }
 
+/** Display names for individual muscles (keyed by normalised slug). */
+export const MUSCLE_LABELS: Record<string, string> = {
+  chest: 'Chest',
+  lats: 'Lats', upperback: 'Upper back', lowerback: 'Lower back', traps: 'Traps',
+  quads: 'Quads', hamstrings: 'Hamstrings', glutes: 'Glutes', calves: 'Calves',
+  adductors: 'Adductors', abductors: 'Abductors', hipflexors: 'Hip flexors', tibialis: 'Tibialis',
+  frontdelts: 'Front delts', sidedelts: 'Side delts', reardelts: 'Rear delts', neck: 'Neck',
+  biceps: 'Biceps', triceps: 'Triceps', forearms: 'Forearms',
+  abs: 'Abs', obliques: 'Obliques',
+};
+
+/** Individual muscles grouped, for the muscle-balance detail picker (in order). */
+export const MUSCLES_BY_GROUP: { group: MuscleGroup; slugs: string[] }[] = [
+  { group: 'Chest', slugs: ['chest'] },
+  { group: 'Back', slugs: ['lats', 'upperback', 'lowerback', 'traps'] },
+  { group: 'Legs', slugs: ['quads', 'hamstrings', 'glutes', 'calves', 'adductors', 'abductors', 'hipflexors', 'tibialis'] },
+  { group: 'Shoulders', slugs: ['frontdelts', 'sidedelts', 'reardelts', 'neck'] },
+  { group: 'Arms', slugs: ['biceps', 'triceps', 'forearms'] },
+  { group: 'Core', slugs: ['abs', 'obliques'] },
+];
+
+export interface MuscleBalanceEntry {
+  label: string;
+  sets: number;
+  group: MuscleGroup;
+}
+function exercisePrimarySlug(exercise: WorkoutExercise): string | null {
+  const label = exercise.exerciseSnapshot?.primaryMuscle
+    ?? (exercise.exerciseId ? exerciseCatalogById.get(exercise.exerciseId)?.primaryMuscle : undefined);
+  return label ? normaliseMuscle(label) : null;
+}
+
 /** Working sets per muscle group over the trailing `windowWeeks` weeks. */
 export function muscleBalance(
   completedWorkouts: readonly Workout[],
   windowWeeks: number,
   now: Date,
-): { group: MuscleGroup; sets: number }[] {
+): MuscleBalanceEntry[] {
   const since = addDays(now, -windowWeeks * 7).getTime();
   const counts = new Map<MuscleGroup, number>(MUSCLE_GROUPS.map((g) => [g, 0]));
   for (const workout of completedWorkouts) {
@@ -62,7 +94,32 @@ export function muscleBalance(
       counts.set(group, (counts.get(group) ?? 0) + working);
     }
   }
-  return MUSCLE_GROUPS.map((group) => ({ group, sets: counts.get(group) ?? 0 }));
+  return MUSCLE_GROUPS.map((group) => ({ label: group, group, sets: counts.get(group) ?? 0 }));
+}
+
+/** Working sets for the chosen individual muscles over `windowWeeks` weeks. */
+export function muscleBalanceByMuscle(
+  completedWorkouts: readonly Workout[],
+  windowWeeks: number,
+  now: Date,
+  slugs: string[],
+): MuscleBalanceEntry[] {
+  const since = addDays(now, -windowWeeks * 7).getTime();
+  const wanted = new Set(slugs);
+  const counts = new Map<string, number>(slugs.map((s) => [s, 0]));
+  for (const workout of completedWorkouts) {
+    if (completedAt(workout) < since) continue;
+    for (const exercise of workout.exercises) {
+      const slug = exercisePrimarySlug(exercise);
+      if (!slug || !wanted.has(slug)) continue;
+      counts.set(slug, (counts.get(slug) ?? 0) + exercise.sets.filter(isWorkingSet).length);
+    }
+  }
+  return slugs.map((slug) => ({
+    label: MUSCLE_LABELS[slug] ?? slug,
+    group: MUSCLE_TO_GROUP[slug] ?? 'Core',
+    sets: counts.get(slug) ?? 0,
+  }));
 }
 
 /** Per-group intensity 0..1 (relative to the busiest group) over `windowDays`. */
