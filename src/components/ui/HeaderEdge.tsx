@@ -8,7 +8,7 @@ export function HeaderEdge() {
   const theme = useForgeTheme();
   return (
     <View testID="header-edge" style={[styles.edge, styles.pointerEventsNone]}>
-      <View style={[styles.line, { backgroundColor: theme.border }]} />
+      <View style={[styles.line, { backgroundColor: theme.divider }]} />
       <View style={[styles.shadow, { shadowColor: theme.shadow }]} />
     </View>
   );
@@ -24,13 +24,13 @@ const styles = StyleSheet.create({
     height: 9,
     zIndex: 2,
   },
-  line: { height: 1 },
+  line: { height: StyleSheet.hairlineWidth },
   shadow: {
     height: 7,
     backgroundColor: 'transparent',
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.04,
     shadowRadius: 7,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    elevation: 1,
   },
 });
