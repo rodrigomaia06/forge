@@ -35,6 +35,9 @@ interface ForgeSingleSelectListProps<T extends SelectionValue> {
   /** A contextual selection can use Forge's success treatment without
    * changing the neutral treatment used by ordinary settings. */
   selectedTone?: 'neutral' | 'success';
+  /** Rounds and insets the selected-row highlight into a pill and drops the row
+   * separators — the treatment for anchored dropdown menus. */
+  rounded?: boolean;
   testID?: string;
 }
 
@@ -47,6 +50,7 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
   maxVisibleRows = DEFAULT_MAX_VISIBLE_ROWS,
   disableVirtualization = false,
   selectedTone = 'neutral',
+  rounded = false,
   testID,
 }: ForgeSingleSelectListProps<T>) {
   const hasDescriptions = options.some((option) => option.description);
@@ -69,9 +73,10 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
       option={option}
       selected={option.value === selectedValue}
       selectedTone={selectedTone}
+      rounded={rounded}
       onSelect={onSelect}
       onSelectedPress={onSelectedPress}
-      showSeparator={index < options.length - 1}
+      showSeparator={!rounded && index < options.length - 1}
     />
   );
 
@@ -115,6 +120,7 @@ interface ForgeSelectionRowProps<T extends SelectionValue> {
   option: ForgeSingleSelectOption<T>;
   selected: boolean;
   selectedTone: 'neutral' | 'success';
+  rounded?: boolean;
   onSelect: (value: T) => void;
   onSelectedPress?: (value: T) => void;
   showSeparator: boolean;
@@ -124,6 +130,7 @@ function ForgeSelectionRow<T extends SelectionValue>({
   option,
   selected,
   selectedTone,
+  rounded = false,
   onSelect,
   onSelectedPress,
   showSeparator,
@@ -145,6 +152,7 @@ function ForgeSelectionRow<T extends SelectionValue>({
       }}
       style={({ pressed }) => [
         styles.selectionRow,
+        rounded && styles.selectionRowRounded,
         selected && selectedTone === 'success' && { backgroundColor: theme.successSurface },
         pressed && pressedFeedback,
       ]}
@@ -252,6 +260,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  selectionRowRounded: { height: 46, paddingHorizontal: 12, borderRadius: 12 },
   selectionCopy: { flex: 1, minWidth: 0, gap: 2 },
   selectionLabel: { ...typeScale.body },
   selectionLabelEmphasized: { fontFamily: typeScale.display.fontFamily, fontWeight: '700' },

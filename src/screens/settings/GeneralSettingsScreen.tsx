@@ -253,6 +253,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
             options={restOptions}
             selectedValue={preferences.defaultRestSeconds}
             selectedTone="success"
+            rounded
             disableVirtualization
             onSelect={(value) => {
               updatePreferences({ defaultRestSeconds: value });
@@ -273,6 +274,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
             options={reminderOptions}
             selectedValue={preferences.unfinishedWorkoutReminderDelay}
             selectedTone="success"
+            rounded
             disableVirtualization
             onSelect={(value) => {
               updatePreferences({ unfinishedWorkoutReminderDelay: value });

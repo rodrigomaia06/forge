@@ -21,11 +21,10 @@ import {
   AppScreen,
   errorHaptic,
   ForgeActionSheet,
+  ForgeAnchoredMenu,
   ForgeAttributeEditorSheet,
   ForgeBottomSheet,
-  ForgeBottomSheetHandle,
   ForgeConfirmationDialog,
-  ForgeSheetHeader,
   ForgeText as Text,
   ForgeTextInput as TextInput,
   HeaderAction,
@@ -34,8 +33,9 @@ import {
   lightHaptic,
   selectionHaptic,
   successHaptic,
+  useAnchoredMenu,
 } from '../components/ui';
-import type { ForgeAttributeDraft } from '../components/ui';
+import type { AnchorRect, ForgeAttributeDraft } from '../components/ui';
 import { AddExerciseSheet } from './activeWorkout/WorkoutSheets';
 import { ExerciseSection, ReadOnlyExerciseSection } from './activeWorkout/ExerciseSection';
 import { useFocusedSetKeyboardLift } from './activeWorkout/useFocusedSetKeyboardLift';
@@ -93,7 +93,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
     () => (viewing && draft ? routineExercisesWithNextSessionTargets(draft, completedWorkouts) : null),
     [viewing, draft, completedWorkouts],
   );
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const typeMenu = useAnchoredMenu();
   const [addingExercises, setAddingExercises] = useState(false);
   const [replacingExerciseIndex, setReplacingExerciseIndex] = useState<number | null>(null);
   const [optionsOpen, setOptionsOpen] = useState(false);
@@ -448,12 +448,13 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                 />
                 <View style={styles.divider} />
                 <Pressable
+                  ref={typeMenu.ref}
                   accessibilityRole="button"
                   accessibilityLabel={`Workout type, ${draft.type}`}
                   disabled={viewing}
                   onPress={() => {
                     selectionHaptic();
-                    setPickerOpen(true);
+                    typeMenu.open();
                   }}
                   style={({ pressed }) => [
                     styles.typeRow,
@@ -582,13 +583,14 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           <AddExerciseSheet visible workoutType={draft.type} selectionLimit={1} onClose={() => setReplacingExerciseIndex(null)} onSubmit={replaceExercise} />
         )}
         <RoutineTypePicker
-          visible={pickerOpen}
+          visible={typeMenu.visible}
+          anchor={typeMenu.anchor}
           types={preferences.workoutTypes.filter((type) => !type.hidden || type.name === draft.type)}
           selectedType={draft.type}
-          onClose={() => setPickerOpen(false)}
+          onClose={typeMenu.close}
           onSelect={(type) => {
             change((current) => ({ ...current, type }));
-            setPickerOpen(false);
+            typeMenu.close();
           }}
         />
         {attributeSheet ? (
@@ -619,12 +621,14 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
 
 function RoutineTypePicker({
   visible,
+  anchor,
   types,
   selectedType,
   onClose,
   onSelect,
 }: {
   visible: boolean;
+  anchor: AnchorRect | null;
   types: WorkoutTypePreference[];
   selectedType: string;
   onClose: () => void;
@@ -633,53 +637,42 @@ function RoutineTypePicker({
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   return (
-    <ForgeBottomSheet
+    <ForgeAnchoredMenu
       visible={visible}
+      anchor={anchor}
       onClose={onClose}
-      accessibilityLabel="Close workout type selection"
-      surfaceTestID="routine-type-selection-sheet"
+      align="stretch"
+      testID="routine-type-selection-menu"
+      scrollTestID="routine-type-selection-scroll"
     >
-      {(close) => (
-        <View style={styles.typePicker}>
-          <ForgeBottomSheetHandle />
-          <ForgeSheetHeader title="Workout type" onClose={close} />
-          <ScrollView
-            testID="routine-type-selection-scroll"
-            style={styles.typePickerScroll}
-            contentContainerStyle={styles.typePickerContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <View accessibilityRole="radiogroup" style={styles.typePickerList}>
-              {types.map((type, index) => {
-                const selected = type.name === selectedType;
-                return (
-                  <Pressable
-                    key={type.id}
-                    accessibilityRole="radio"
-                    accessibilityLabel={`Use ${type.name} workout type`}
-                    accessibilityState={{ selected, checked: selected }}
-                    onPress={() => {
-                      selectionHaptic();
-                      onSelect(type.name);
-                    }}
-                    style={({ pressed }) => [
-                      styles.typeChoice,
-                      index > 0 && styles.typeChoiceDivider,
-                      selected && styles.typeChoiceSelected,
-                      pressed && styles.pressed,
-                    ]}
-                  >
-                    <View style={[styles.choiceDot, { backgroundColor: type.color }]} />
-                    <Text style={styles.typeChoiceText}>{type.name}</Text>
-                    {selected && <Icon name="check" size={17} color={theme.success} weight="bold" />}
-                  </Pressable>
-                );
-              })}
-            </View>
-          </ScrollView>
-        </View>
-      )}
-    </ForgeBottomSheet>
+      <View accessibilityRole="radiogroup" style={styles.typePickerList}>
+        {types.map((type, index) => {
+          const selected = type.name === selectedType;
+          return (
+            <Pressable
+              key={type.id}
+              accessibilityRole="radio"
+              accessibilityLabel={`Use ${type.name} workout type`}
+              accessibilityState={{ selected, checked: selected }}
+              onPress={() => {
+                selectionHaptic();
+                onSelect(type.name);
+              }}
+              style={({ pressed }) => [
+                styles.typeChoice,
+                index > 0 && styles.typeChoiceDivider,
+                selected && styles.typeChoiceSelected,
+                pressed && styles.pressed,
+              ]}
+            >
+              <View style={[styles.choiceDot, { backgroundColor: type.color }]} />
+              <Text style={[styles.typeChoiceText, selected && { color: theme.success, fontWeight: '700' }]}>{type.name}</Text>
+              {selected && <Icon name="check" size={17} color={theme.success} weight="bold" />}
+            </Pressable>
+          );
+        })}
+      </View>
+    </ForgeAnchoredMenu>
   );
 }
 
@@ -946,22 +939,17 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     typePicker: { maxHeight: '84%', paddingBottom: 24 },
     typePickerScroll: { flexShrink: 1, minHeight: 0 },
     typePickerContent: { paddingBottom: 4 },
-    typePickerList: {
-      marginHorizontal: 20,
-      overflow: 'hidden',
-      borderWidth: 1,
-      borderRadius: 16,
-      borderColor: theme.border,
-    },
+    typePickerList: {},
     typeChoice: {
-      minHeight: 56,
-      paddingHorizontal: 16,
+      minHeight: 46,
+      paddingHorizontal: 12,
+      borderRadius: 12,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
     },
-    typeChoiceDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
-    typeChoiceSelected: { backgroundColor: theme.surfaceElevated },
+    typeChoiceDivider: {},
+    typeChoiceSelected: { backgroundColor: theme.successSurface },
     choiceDot: { width: 11, height: 11, borderRadius: 6 },
     typeChoiceText: { ...typeScale.controlLabel, color: theme.ink, flex: 1 },
     attributeRow: {

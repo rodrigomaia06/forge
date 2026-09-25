@@ -1,6 +1,12 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, {
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
@@ -37,7 +43,7 @@ export function useAnchoredMenu() {
   return { ref, anchor, visible: anchor !== null, open, close };
 }
 
-const GAP = 8;
+const GAP = 12;
 const MARGIN = 12;
 const MIN_SPACE_BELOW = 220;
 // A dropdown shows a handful of rows then scrolls, rather than filling the screen.
@@ -58,6 +64,7 @@ export function ForgeAnchoredMenu({
   align = 'end',
   initialScrollOffset,
   testID,
+  scrollTestID,
 }: {
   visible: boolean;
   anchor: AnchorRect | null;
@@ -70,29 +77,66 @@ export function ForgeAnchoredMenu({
   /** Opens the menu scrolled to this y offset, e.g. to reveal the current choice. */
   initialScrollOffset?: number;
   testID?: string;
+  scrollTestID?: string;
 }) {
   const theme = useForgeTheme();
   const reducedMotion = useForgeReducedMotion();
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
 
-  if (!visible || !anchor) return null;
+  // Keep the menu mounted through its close animation: `rendered` stays true
+  // until the exit finishes, and the last anchor is retained for positioning.
+  const [rendered, setRendered] = useState(false);
+  const anchorRef = useRef<AnchorRect | null>(null);
+  if (anchor) anchorRef.current = anchor;
+  const activeAnchor = anchorRef.current;
 
-  const anchorBottom = anchor.y + anchor.height;
+  const progress = useSharedValue(0);
+  const dropUpSV = useSharedValue(0);
+
+  useEffect(() => {
+    if (visible && anchor) {
+      setRendered(true);
+      progress.value = withTiming(1, { duration: reducedMotion ? 0 : forgeMotion.state, easing: forgeMotion.easing });
+    } else if (rendered) {
+      progress.value = withTiming(
+        0,
+        { duration: reducedMotion ? 0 : forgeMotion.feedback, easing: forgeMotion.easing },
+        (finished) => {
+          if (finished) runOnJS(setRendered)(false);
+        },
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, anchor]);
+
+  const cardStyle = useAnimatedStyle(() => ({
+    opacity: progress.value,
+    transform: [
+      // Slide in from the trigger edge — down for a dropdown, up for a drop-up.
+      { translateY: interpolate(progress.value, [0, 1], [dropUpSV.value ? 6 : -6, 0]) },
+      { scale: interpolate(progress.value, [0, 1], [0.97, 1]) },
+    ],
+  }));
+
+  if (!rendered || !activeAnchor) return null;
+
+  const anchorBottom = activeAnchor.y + activeAnchor.height;
   const spaceBelow = screenH - anchorBottom - insets.bottom - MARGIN;
-  const spaceAbove = anchor.y - insets.top - MARGIN;
+  const spaceAbove = activeAnchor.y - insets.top - MARGIN;
   const dropUp = spaceBelow < MIN_SPACE_BELOW && spaceAbove > spaceBelow;
+  dropUpSV.value = dropUp ? 1 : 0;
   const available = (dropUp ? spaceAbove : spaceBelow) - GAP;
   const maxHeight = Math.max(120, Math.min(PREFERRED_MAX_HEIGHT, available));
-  const vertical = dropUp ? { bottom: screenH - anchor.y + GAP } : { top: anchorBottom + GAP };
+  const vertical = dropUp ? { bottom: screenH - activeAnchor.y + GAP } : { top: anchorBottom + GAP };
   // 'stretch' matches the trigger width (settings rows); 'end' aligns the menu's
   // right edge to the trigger's right edge (compact header/action menus).
   const horizontal = align === 'stretch'
     ? {
-        left: Math.max(MARGIN, Math.min(anchor.x, screenW - anchor.width - MARGIN)),
-        width: Math.min(anchor.width, screenW - MARGIN * 2),
+        left: Math.max(MARGIN, Math.min(activeAnchor.x, screenW - activeAnchor.width - MARGIN)),
+        width: Math.min(activeAnchor.width, screenW - MARGIN * 2),
       }
-    : { right: Math.max(MARGIN, screenW - (anchor.x + anchor.width)) };
+    : { right: Math.max(MARGIN, screenW - (activeAnchor.x + activeAnchor.width)) };
   const position = { ...vertical, ...horizontal };
 
   return (
@@ -105,11 +149,10 @@ export function ForgeAnchoredMenu({
       />
       <Animated.View
         testID={testID}
-        entering={reducedMotion ? undefined : FadeIn.duration(forgeMotion.state)}
-        exiting={reducedMotion ? undefined : FadeOut.duration(forgeMotion.feedback)}
         style={[
           styles.menu,
           position,
+          cardStyle,
           {
             minWidth,
             maxWidth: screenW - MARGIN * 2,
@@ -121,8 +164,10 @@ export function ForgeAnchoredMenu({
         ]}
       >
         <ScrollView
+          testID={scrollTestID}
           bounces={false}
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.content}
           contentOffset={initialScrollOffset ? { x: 0, y: initialScrollOffset } : undefined}
         >
           {children}
@@ -195,8 +240,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 12,
   },
-  action: { minHeight: 48, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  content: { padding: 6 },
+  action: { minHeight: 46, paddingHorizontal: 12, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 11 },
   actionLabel: { ...typeScale.controlLabel },
   pressed: {},
-  divider: { height: StyleSheet.hairlineWidth, marginLeft: 46 },
+  divider: { height: StyleSheet.hairlineWidth, marginHorizontal: 12 },
 });

@@ -243,7 +243,7 @@ export function CalendarScreen({ navigation }: Props) {
                       setView(v);
                       setViewMenuOpen(false);
                     }}
-                    style={({ pressed }) => [styles.dropdownItem, pressed && { backgroundColor: theme.pressed }]}
+                    style={({ pressed }) => [styles.dropdownItem, active && { backgroundColor: theme.successSurface }, pressed && !active && { backgroundColor: theme.pressed }]}
                   >
                     <Text style={[styles.dropdownText, active && { color: theme.success, fontWeight: '700' }]}>{VIEW_LABEL[v]}</Text>
                     {active ? <Icon name="check" size={16} color={theme.success} weight="bold" /> : null}
@@ -296,8 +296,8 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   screen: { flex: 1 },
   viewSelect: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 14, height: 40, borderRadius: 20, backgroundColor: theme.surfaceMuted },
   viewSelectText: { ...typeScale.controlLabel, color: theme.textPrimary },
-  dropdown: { position: 'absolute', top: 56, right: 16, minWidth: 150, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', paddingVertical: 4, shadowOpacity: 0.22, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 14, zIndex: 20 },
-  dropdownItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 14, height: 44 },
+  dropdown: { position: 'absolute', top: 64, right: 16, minWidth: 168, borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', padding: 6, shadowOpacity: 0.22, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 14, zIndex: 20 },
+  dropdownItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 12, height: 44, borderRadius: 12 },
   dropdownText: { ...typeScale.controlLabel, color: theme.textPrimary },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 4 },
