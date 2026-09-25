@@ -363,11 +363,14 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
               <View style={styles.summaryRow}>
                 <ForgeCard variant="base" style={styles.metricCard}>
                   <View style={styles.metricCardTop}>
-                    <View style={[styles.metricIcon, { backgroundColor: `${selected.color}24` }]}>
-                      <Icon name={selected.icon} size={22} color={selected.color} />
+                    <View style={styles.metricCardHeadCopy}>
+                      <Text style={styles.metricCardName} numberOfLines={2}>{selected.name}</Text>
+                      {selected.unit ? <Text style={styles.metricCardUnit} numberOfLines={1}>{selected.unit}</Text> : null}
+                    </View>
+                    <View style={[styles.metricCardIcon, { backgroundColor: `${selected.color}24` }]}>
+                      <Icon name={selected.icon} size={20} color={selected.color} />
                     </View>
                   </View>
-                  <Text style={styles.metricCardName} numberOfLines={2}>{selected.name}</Text>
                   <View style={styles.metricCardSpacer} />
                   <View style={styles.metricCardStats}>
                     <View style={styles.metricCardStat}>
@@ -659,11 +662,14 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   chartFooterCentered: { justifyContent: 'center' },
   chartAxis: { ...typeScale.caption, color: theme.textSecondary },
   summaryRow: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
-  metricCard: { width: 130, padding: 14, gap: 10 },
-  metricCardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  metricCardSpacer: { flex: 1, minHeight: 8 },
+  metricCard: { width: 162, padding: 14, gap: 10 },
+  metricCardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
+  metricCardHeadCopy: { flex: 1, minWidth: 0, gap: 1 },
+  metricCardIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  metricCardSpacer: { flex: 1, minHeight: 12 },
   metricCardStats: { gap: 10 },
   metricCardName: { ...typeScale.controlLabel, color: theme.textPrimary },
+  metricCardUnit: { ...typeScale.caption, color: theme.textSecondary },
   metricCardStat: { gap: 1 },
   metricCardStatLabel: { ...typeScale.caption, color: theme.textSecondary },
   metricCardStatValue: { fontSize: 22, fontWeight: '800', letterSpacing: -0.4, color: theme.textPrimary, fontVariant: ['tabular-nums'] },
