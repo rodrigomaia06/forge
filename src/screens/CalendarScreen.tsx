@@ -3,19 +3,22 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { AppScreen, ForgeActionSheet, ForgeText as Text, Icon, pressedFeedback, selectionHaptic } from '../components/ui';
+import { AppScreen, ForgeActionSheet, ForgeCard, ForgeText as Text, Icon, pressedFeedback, selectionHaptic } from '../components/ui';
 import { useWorkouts } from '../state/WorkoutContext';
 import { useSettings } from '../state/SettingsContext';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
 import { calendarDateKey } from '../domain/workouts/calendarDate';
+import { getWorkoutTypePresentation } from '../domain/workouts/presentation';
 import type { ForgeTheme, RootStackParamList, Workout } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Calendar'>;
 type CalendarView = 'month' | 'year' | 'multi';
 
-const CALENDAR_ACCENT = '#3E7DF7';
+// A day's density colour for the year/multi heat grids — Forge's consistency
+// green, the same language the dashboard's commit grid speaks.
+const HEAT_ACCENT = '#5C8B74';
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -157,7 +160,7 @@ export function CalendarScreen({ navigation }: Props) {
             <Text style={styles.chipText}>{weekStreak} week streak</Text>
           </View>
           <View style={styles.chip}>
-            <Icon name="theme-dark" size={15} color={CALENDAR_ACCENT} />
+            <Icon name="theme-dark" size={15} color={theme.slate} />
             <Text style={styles.chipText}>{restDays} rest day{restDays === 1 ? '' : 's'}</Text>
           </View>
         </View>
@@ -186,34 +189,37 @@ export function CalendarScreen({ navigation }: Props) {
                   }}
                 >
                   <Text style={styles.monthTitle}>{MONTHS[month]} {year}</Text>
-                  {monthWeeks(year, month, weekStart).map((week, wi) => (
-                    <View key={wi} style={styles.weekRow}>
-                      {week.map((date, di) => {
-                        if (!date) return <View key={di} style={styles.dayCell} />;
-                        const key = calendarDateKey(date);
-                        const dayWorkouts = byDay.get(key) ?? [];
-                        const has = dayWorkouts.length > 0;
-                        const isToday = key === todayKey;
-                        return (
-                          <Pressable
-                            key={di}
-                            accessibilityRole="button"
-                            accessibilityLabel={`${date.getDate()} ${MONTHS[month]}${has ? `, ${dayWorkouts[0].name}` : ''}`}
-                            disabled={!has}
-                            onPress={() => openWorkout(dayWorkouts)}
-                            style={styles.dayCell}
-                          >
-                            <View style={[styles.dayCircle, has ? { backgroundColor: CALENDAR_ACCENT } : null, isToday && !has ? { borderWidth: 1.5, borderColor: theme.border } : null]}>
-                              <Text style={[styles.dayNum, has ? styles.dayNumOn : null, isToday && !has ? { color: theme.textPrimary, fontWeight: '800' } : null]}>{date.getDate()}</Text>
-                            </View>
-                            <Text style={styles.dayLabel} numberOfLines={1}>
-                              {has ? (dayWorkouts.length > 1 ? `${dayWorkouts.length} workouts` : dayWorkouts[0].name) : ''}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-                  ))}
+                  <ForgeCard variant="base" style={styles.monthCard}>
+                    {monthWeeks(year, month, weekStart).map((week, wi) => (
+                      <View key={wi} style={styles.weekRow}>
+                        {week.map((date, di) => {
+                          if (!date) return <View key={di} style={styles.dayCell} />;
+                          const key = calendarDateKey(date);
+                          const dayWorkouts = byDay.get(key) ?? [];
+                          const has = dayWorkouts.length > 0;
+                          const isToday = key === todayKey;
+                          const color = has ? getWorkoutTypePresentation(dayWorkouts[0].type, preferences.workoutTypes, theme, 0.16).color : undefined;
+                          return (
+                            <Pressable
+                              key={di}
+                              accessibilityRole="button"
+                              accessibilityLabel={`${date.getDate()} ${MONTHS[month]}${has ? `, ${dayWorkouts[0].name}` : ''}`}
+                              disabled={!has}
+                              onPress={() => openWorkout(dayWorkouts)}
+                              style={styles.dayCell}
+                            >
+                              <View style={[styles.dayCircle, has && color ? { backgroundColor: color } : null, isToday && !has ? { borderWidth: 1.5, borderColor: theme.border } : null]}>
+                                <Text style={[styles.dayNum, has ? styles.dayNumOn : null, isToday && !has ? { color: theme.textPrimary, fontWeight: '800' } : null]}>{date.getDate()}</Text>
+                              </View>
+                              <Text style={styles.dayLabel} numberOfLines={1}>
+                                {has ? (dayWorkouts.length > 1 ? `${dayWorkouts.length} workouts` : dayWorkouts[0].name) : ''}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    ))}
+                  </ForgeCard>
                 </View>
               );
             })
@@ -279,7 +285,7 @@ function MiniMonth({ label, year, month, weekStart, byDay, theme, styles, cell, 
                     width: cell,
                     height: cell,
                     borderRadius: compact ? 1.5 : 3,
-                    backgroundColor: active ? CALENDAR_ACCENT : date ? theme.surfaceMuted : 'transparent',
+                    backgroundColor: active ? HEAT_ACCENT : date ? theme.surfaceMuted : 'transparent',
                   }}
                 />
               );
@@ -300,12 +306,13 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   chips: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingBottom: 12 },
   chip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 40, borderRadius: 14, backgroundColor: theme.surface },
   chipText: { ...typeScale.label, color: theme.textPrimary },
-  weekHeader: { flexDirection: 'row', paddingHorizontal: 12, paddingBottom: 4 },
+  weekHeader: { flexDirection: 'row', paddingHorizontal: 18, paddingBottom: 4 },
   weekday: { flex: 1, textAlign: 'center', ...typeScale.caption, color: theme.muted },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 12, paddingTop: 4 },
-  monthSection: { paddingBottom: 8 },
-  monthTitle: { ...typeScale.sectionTitle, color: theme.textPrimary, marginTop: 12, marginBottom: 6 },
+  monthSection: { paddingBottom: 10 },
+  monthCard: { paddingHorizontal: 6, paddingVertical: 8 },
+  monthTitle: { ...typeScale.sectionTitle, color: theme.textPrimary, marginTop: 12, marginBottom: 8 },
   weekRow: { flexDirection: 'row' },
   dayCell: { flex: 1, aspectRatio: 0.82, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 3, gap: 2 },
   dayCircle: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
