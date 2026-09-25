@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, UIManager, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -12,7 +12,7 @@ import { muscleBalance, muscleBalanceByMuscle, muscleHeatBySlug, MUSCLES_BY_GROU
 import { useWorkouts } from '../state/WorkoutContext';
 import { useSettings } from '../state/SettingsContext';
 import { TREND_DAY_OPTIONS, trendDayLabel } from '../domain/trends';
-import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
+import { useForgeReducedMotion } from '../theme/motion';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
@@ -44,14 +44,10 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
   const accent = HEATMAP_ACCENT;
   const toggleEditing = (next: boolean) => {
     selectionHaptic();
-    // Reveal/hide the edit controls and reflow the cards in one smooth pass.
-    if (!reducedMotion && Platform.OS !== 'web') {
-      if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental)
-        UIManager.setLayoutAnimationEnabledExperimental(true);
-      LayoutAnimation.configureNext(
-        LayoutAnimation.create(forgeMotion.transition, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity),
-      );
-    }
+    // The edit controls fade in/out on their own (reanimated). We deliberately do
+    // NOT run a LayoutAnimation here: sliding the figures down while the controls
+    // are already in place made them briefly overlap the drawing. Let the layout
+    // settle instantly and let the fade carry the motion.
     setEditing(next);
   };
   const setView = (patch: Partial<MuscleHeatmapView>) => {

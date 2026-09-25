@@ -24,13 +24,13 @@ const styles = StyleSheet.create({
     height: 9,
     zIndex: 2,
   },
-  line: { height: StyleSheet.hairlineWidth },
+  line: { height: 1 },
   shadow: {
     height: 7,
     backgroundColor: 'transparent',
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.07,
     shadowRadius: 7,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 1,
+    elevation: 2,
   },
 });
