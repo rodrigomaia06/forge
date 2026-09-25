@@ -9,12 +9,14 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   AppScreen,
+  ForgeAnchoredMenu,
   ForgeSegmentedSwitch,
-  ForgeSelectionSheet,
+  ForgeSingleSelectList,
   ForgeSwitch,
   ForgeText as Text,
   Icon,
   selectionHaptic,
+  useAnchoredMenu,
 } from '../../components/ui';
 import type { ForgeSegmentedOption, ForgeSingleSelectOption } from '../../components/ui';
 import { useSettings } from '../../state/SettingsContext';
@@ -55,8 +57,8 @@ export function GeneralSettingsScreen({ navigation }: Props) {
   const { bottom: bottomInset } = useSafeAreaInsets();
   const { preferences, updatePreferences } = useSettings();
   const theme = useForgeTheme();
-  const [defaultRestOpen, setDefaultRestOpen] = React.useState(false);
-  const [reminderOpen, setReminderOpen] = React.useState(false);
+  const restMenu = useAnchoredMenu();
+  const reminderMenu = useAnchoredMenu();
   const [headerElevated, setHeaderElevated] = React.useState(false);
   const displayedWeight = useMemo(
     () =>
@@ -172,17 +174,19 @@ export function GeneralSettingsScreen({ navigation }: Props) {
             />
             {preferences.showRestTimer && (
               <>
-                <SettingsRow
-                  title="Default rest time"
-                  trailing={
-                    <Text style={[styles.value, { color: theme.textSecondary }]}>
-                      {formatRestDuration(preferences.defaultRestSeconds)}
-                    </Text>
-                  }
-                  disclosure
-                  onPress={() => setDefaultRestOpen(true)}
-                  showDivider
-                />
+                <View ref={restMenu.ref} collapsable={false}>
+                  <SettingsRow
+                    title="Default rest time"
+                    trailing={
+                      <Text style={[styles.value, { color: theme.textSecondary }]}>
+                        {formatRestDuration(preferences.defaultRestSeconds)}
+                      </Text>
+                    }
+                    disclosure
+                    onPress={restMenu.open}
+                    showDivider
+                  />
+                </View>
                 <Toggle
                   title="Keep rest timer running"
                   value={preferences.keepRestTimerRunning}
@@ -221,41 +225,62 @@ export function GeneralSettingsScreen({ navigation }: Props) {
               divider={preferences.unfinishedWorkoutReminderEnabled}
             />
             {preferences.unfinishedWorkoutReminderEnabled && (
-              <SettingsRow
-                title="Remind after"
-                trailing={
-                  <Text style={[styles.value, { color: theme.textSecondary }]}>
-                    {formatSeconds(preferences.unfinishedWorkoutReminderDelay)}
-                  </Text>
-                }
-                disclosure
-                onPress={() => setReminderOpen(true)}
-              />
+              <View ref={reminderMenu.ref} collapsable={false}>
+                <SettingsRow
+                  title="Remind after"
+                  trailing={
+                    <Text style={[styles.value, { color: theme.textSecondary }]}>
+                      {formatSeconds(preferences.unfinishedWorkoutReminderDelay)}
+                    </Text>
+                  }
+                  disclosure
+                  onPress={reminderMenu.open}
+                />
+              </View>
             )}
           </SettingsSection>
         </ScrollView>
-        <ForgeSelectionSheet
-          visible={defaultRestOpen}
-          onClose={() => setDefaultRestOpen(false)}
-          accessibilityLabel="Close default rest time options"
-          title="Default rest time"
-          options={restOptions}
-          selectedValue={preferences.defaultRestSeconds}
-          onSelect={(value) => updatePreferences({ defaultRestSeconds: value })}
-          testID="default-rest-selection-sheet"
-          listTestID="default-rest-selection-list"
-        />
-        <ForgeSelectionSheet
-          visible={reminderOpen}
-          onClose={() => setReminderOpen(false)}
-          accessibilityLabel="Close reminder delay options"
-          title="Remind after"
-          options={reminderOptions}
-          selectedValue={preferences.unfinishedWorkoutReminderDelay}
-          onSelect={(value) => updatePreferences({ unfinishedWorkoutReminderDelay: value })}
-          testID="reminder-selection-sheet"
-          listTestID="reminder-selection-list"
-        />
+        <ForgeAnchoredMenu
+          visible={restMenu.visible}
+          anchor={restMenu.anchor}
+          onClose={restMenu.close}
+          align="stretch"
+          initialScrollOffset={Math.max(0, (restOptions.findIndex((option) => option.value === preferences.defaultRestSeconds) - 2) * 52)}
+          testID="default-rest-selection-menu"
+        >
+          <ForgeSingleSelectList
+            testID="default-rest-selection-list"
+            options={restOptions}
+            selectedValue={preferences.defaultRestSeconds}
+            selectedTone="success"
+            disableVirtualization
+            onSelect={(value) => {
+              updatePreferences({ defaultRestSeconds: value });
+              restMenu.close();
+            }}
+            onSelectedPress={() => restMenu.close()}
+          />
+        </ForgeAnchoredMenu>
+        <ForgeAnchoredMenu
+          visible={reminderMenu.visible}
+          anchor={reminderMenu.anchor}
+          onClose={reminderMenu.close}
+          align="stretch"
+          testID="reminder-selection-menu"
+        >
+          <ForgeSingleSelectList
+            testID="reminder-selection-list"
+            options={reminderOptions}
+            selectedValue={preferences.unfinishedWorkoutReminderDelay}
+            selectedTone="success"
+            disableVirtualization
+            onSelect={(value) => {
+              updatePreferences({ unfinishedWorkoutReminderDelay: value });
+              reminderMenu.close();
+            }}
+            onSelectedPress={() => reminderMenu.close()}
+          />
+        </ForgeAnchoredMenu>
       </View>
     </AppScreen>
   );

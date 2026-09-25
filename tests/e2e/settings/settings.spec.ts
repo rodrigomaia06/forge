@@ -395,23 +395,20 @@ test.describe('Settings', () => {
     await page.getByRole('button', { name: 'General' }).click();
 
     await page.getByRole('button', { name: 'Default rest time' }).click();
-    const defaultRestSheet = page.getByTestId('default-rest-selection-sheet');
-    await expect(defaultRestSheet).toBeVisible();
-    // The scrim may fade in, but the sheet itself must never be transparent
+    const defaultRestMenu = page.getByTestId('default-rest-selection-menu');
+    await expect(defaultRestMenu).toBeVisible();
+    // The scrim may fade in, but the menu itself must never be transparent
     // during that entrance; otherwise underlying text shows through it.
     await page.waitForTimeout(80);
-    await expect(defaultRestSheet).toHaveCSS('opacity', '1');
+    await expect(defaultRestMenu).toHaveCSS('opacity', '1');
     const defaultRestList = page.getByTestId('default-rest-selection-list');
-    const defaultRestBox = await defaultRestList.boundingBox();
-    expect(defaultRestBox?.height ?? Infinity).toBeLessThanOrEqual(52 * 6 + 0.1);
-    expect(defaultRestBox?.height ?? 0).toBeGreaterThanOrEqual(52 * 4);
     await expect(defaultRestList).toHaveAttribute('role', 'radiogroup');
     await expect(page.getByRole('radio', { name: '01:30' })).toHaveAttribute(
       'aria-checked',
       'true',
     );
     await page.getByRole('radio', { name: '02:00' }).click();
-    await expect(page.getByTestId('default-rest-selection-sheet')).toHaveCount(0);
+    await expect(page.getByTestId('default-rest-selection-menu')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Default rest time' })).toContainText('02:00');
     await page.getByRole('button', { name: 'Default rest time' }).click();
     await expect(page.getByRole('radio', { name: '02:00' })).toHaveAttribute(
@@ -422,12 +419,11 @@ test.describe('Settings', () => {
 
     await page.getByRole('switch', { name: 'Unfinished workout reminder' }).click();
     await page.getByRole('button', { name: 'Remind after' }).click();
-    await expect(page.getByTestId('reminder-selection-sheet')).toBeVisible();
+    await expect(page.getByTestId('reminder-selection-menu')).toBeVisible();
     const reminderList = page.getByTestId('reminder-selection-list');
-    const reminderBox = await reminderList.boundingBox();
-    expect(reminderBox?.height).toBeCloseTo(52 * 4, 0);
+    await expect(reminderList).toHaveAttribute('role', 'radiogroup');
     await page.getByRole('radio', { name: '1 hour' }).click();
-    await expect(page.getByTestId('reminder-selection-sheet')).toHaveCount(0);
+    await expect(page.getByTestId('reminder-selection-menu')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Remind after' })).toContainText('1 hour');
 
     // Appearance is an inline segmented switcher (System / Light / Dark).

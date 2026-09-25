@@ -10,6 +10,8 @@ export { ForgeSwitch } from './ForgeSwitch';
 export { ForgeSegmentedSwitch } from './ForgeSegmentedSwitch';
 export type { ForgeSegmentedOption } from './ForgeSegmentedSwitch';
 export { AnchoredActionPopover } from './AnchoredActionPopover';
+export { ForgeAnchoredMenu, AnchoredMenuActions, useAnchoredMenu } from './ForgeAnchoredMenu';
+export type { AnchorRect, AnchoredMenuActionItem } from './ForgeAnchoredMenu';
 export { ForgeActionSheet } from './ForgeActionSheet';
 export type { ForgeActionSheetAction } from './ForgeActionSheet';
 export { ForgeConfirmationDialog } from './ForgeConfirmationDialog';
