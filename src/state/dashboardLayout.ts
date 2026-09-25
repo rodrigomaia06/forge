@@ -77,6 +77,7 @@ export const DASHBOARD_TILE_DEFAULT_TITLE: Record<DashboardTileKind, string> = {
 
 /** Default settings a tile starts with, and the domain of what its gear edits. */
 export const DASHBOARD_TILE_DEFAULT_SETTINGS: Partial<Record<DashboardTileKind, DashboardTileSettings>> = {
+  volume: { windowWeeks: 12 },
   'rest-stats': { windowDays: 30 },
   'muscle-balance': { windowWeeks: 4 },
   consistency: { windowWeeks: 16 },

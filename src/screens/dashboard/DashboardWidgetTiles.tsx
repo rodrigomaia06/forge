@@ -4,12 +4,14 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, Polyline, Rect, Stop } from 'react-native-svg';
 
 import { ForgeText as Text, Icon, pressedFeedback, selectionHaptic } from '../../components/ui';
+import { ForgeLineChart } from '../../components/charts/ForgeLineChart';
+import { formatVolume } from './dashboardSummary';
 import { useForgeReducedMotion } from '../../theme/motion';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import type { DailyMeasurementDefinition, ForgeTheme, IconName } from '../../types';
-import { MUSCLE_GROUPS, type MeasurementSeries, type MuscleGroup, type RestStats, type Consistency, type StreakStats } from '../../domain/dashboard/widgetMetrics';
+import { MUSCLE_GROUPS, type MeasurementSeries, type MuscleGroup, type RestStats, type Consistency, type StreakStats, type VolumeSeries } from '../../domain/dashboard/widgetMetrics';
 
 /** #rrggbb (or #rgb) → rgba() so a heat step blends over the card surface. */
 function hexToRgba(hex: string, alpha: number): string {
@@ -291,6 +293,51 @@ function formatMeasure(value: number): string {
   return rounded.toLocaleString(undefined, { maximumFractionDigits: 1 });
 }
 
+/** Brand periwinkle (the app's strength accent) for the volume trend. */
+const VOLUME_ACCENT = '#7C8CF8';
+
+export function DashboardVolumeChartTile({ series, windowWeeks }: { series: VolumeSeries; windowWeeks: number }) {
+  const styles = useThemedStyles(createStyles);
+  const up = series.deltaPct !== null && series.deltaPct >= 0;
+  const hasData = series.totalKg > 0;
+  return (
+    <View style={styles.block}>
+      <TileHead icon="activity" title="Training volume" trailing={<Text style={styles.sub}>{windowWeeks}w</Text>} />
+      {hasData ? (
+        <>
+          {series.currentKg > 0 ? (
+            <View style={styles.bigRow}>
+              <Text style={styles.big}>{formatVolume(series.currentKg)}</Text>
+              <Text style={styles.unit}>this week</Text>
+              {series.deltaPct !== null && series.deltaPct !== 0 ? (
+                <View style={[styles.trendPill, { backgroundColor: hexToRgba(VOLUME_ACCENT, 0.16) }]}>
+                  <Icon name={up ? 'arrow-up' : 'arrow-down'} size={13} color={VOLUME_ACCENT} />
+                  <Text style={[styles.trendText, { color: VOLUME_ACCENT }]}>{Math.abs(series.deltaPct)}%</Text>
+                </View>
+              ) : null}
+            </View>
+          ) : (
+            // An empty week isn't zero volume — carry last week forward as context.
+            <Text style={styles.volumeIdle}>
+              Nothing yet this week{series.previousKg > 0 ? ` · last week ${formatVolume(series.previousKg)}` : ''}
+            </Text>
+          )}
+          <View style={styles.sparkWrap}>
+            <ForgeLineChart
+              data={series.weeks.map((w) => ({ value: w.volume }))}
+              height={78}
+              color={VOLUME_ACCENT}
+              showMarkers={series.weeks.length <= 14}
+            />
+          </View>
+        </>
+      ) : (
+        <Text style={styles.empty}>No training logged yet</Text>
+      )}
+    </View>
+  );
+}
+
 export function DashboardMeasurementTile({
   definition,
   series,
@@ -409,6 +456,7 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   bodyCol: { flex: 1, alignItems: 'center', gap: 2 },
   legend: { flexDirection: 'row', alignItems: 'center', gap: 5, justifyContent: 'center' },
   legendChip: { width: 13, height: 13, borderRadius: 3 },
+  volumeIdle: { color: theme.slate, ...typeScale.label },
   trendPill: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   trendText: { fontVariant: ['tabular-nums'], ...typeScale.caption },
   logRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },

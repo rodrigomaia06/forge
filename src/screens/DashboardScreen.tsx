@@ -22,7 +22,6 @@ import {
   DashboardLastWorkoutTile,
   DashboardStartCard,
   DashboardTrainingTimeCard,
-  DashboardVolumeTile,
   DashboardWeekCard,
 } from './dashboard/DashboardSummaryParts';
 import {
@@ -32,6 +31,7 @@ import {
   DashboardMuscleHeatmapTile,
   DashboardRestStatsTile,
   DashboardStreakTile,
+  DashboardVolumeChartTile,
 } from './dashboard/DashboardWidgetTiles';
 import { DashboardTileSettingsSheet } from './dashboard/DashboardTileSettingsSheet';
 import {
@@ -41,6 +41,7 @@ import {
   muscleHeat,
   restStats,
   streakStats,
+  volumeSeries,
 } from '../domain/dashboard/widgetMetrics';
 import { useWorkoutStarter } from './dashboard/workoutStarter';
 import {
@@ -253,8 +254,10 @@ export function DashboardScreen() {
             onOpen={(workoutId) => navigation.navigate('WorkoutDetails', { workoutId })}
           />
         );
-      case 'volume':
-        return <DashboardVolumeTile thisWeekKg={summary.thisWeekKg} lastWeekKg={summary.lastWeekKg} deltaPct={summary.deltaPct} />;
+      case 'volume': {
+        const weeks = s.windowWeeks ?? 12;
+        return <DashboardVolumeChartTile series={volumeSeries(completedWorkouts, weeks, new Date(), preferences.weekStartsOn)} windowWeeks={weeks} />;
+      }
       case 'rest-stats':
         return <DashboardRestStatsTile stats={restStats(completedWorkouts, s.windowDays ?? 30, new Date())} windowDays={s.windowDays ?? 30} />;
       case 'muscle-balance':

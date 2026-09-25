@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { muscleGroupOf, muscleBalance, measurementSeries, restStats, streakStats } from '../../src/domain/dashboard/widgetMetrics';
+import { muscleGroupOf, muscleBalance, measurementSeries, restStats, streakStats, volumeSeries } from '../../src/domain/dashboard/widgetMetrics';
 import type { Workout } from '../../src/types';
 
 test('maps muscle labels and slugs to display groups', () => {
@@ -115,4 +115,27 @@ test('rest stats have no trend without a prior window', () => {
   const stats = restStats([restWorkout(1, 90, 10)], 7, NOW);
   expect(stats.avgRestSeconds).toBe(90);
   expect(stats.deltaSeconds).toBeNull();
+});
+
+test('volume series buckets lifted volume by week with a current-vs-previous delta', () => {
+  // NOW is Thu 15 Jan 2026; week starts Monday. This week = Mon 12 Jan onward.
+  const workouts = [
+    workout(1, 'Strength', ['Chest']), // this week (Wed 14) → 60*8 = 480 per exercise set (working set only)
+    workout(9, 'Strength', ['Chest']), // last week (Tue 6)
+  ];
+  const series = volumeSeries(workouts, 4, NOW, 1);
+  expect(series.weeks).toHaveLength(4);
+  // Each workout() has one working set 60x8=480 (+ a warm-up set that still counts for volume).
+  expect(series.currentKg).toBeGreaterThan(0);
+  expect(series.previousKg).toBeGreaterThan(0);
+  // Equal single-workout weeks → 0% change.
+  expect(series.deltaPct).toBe(0);
+  expect(series.totalKg).toBe(series.weeks.reduce((s, w) => s + w.volume, 0));
+});
+
+test('volume series is empty when nothing falls in the window', () => {
+  const series = volumeSeries([workout(120, 'Strength', ['Chest'])], 4, NOW, 1);
+  expect(series.totalKg).toBe(0);
+  expect(series.currentKg).toBe(0);
+  expect(series.deltaPct).toBeNull();
 });

@@ -1,7 +1,7 @@
 import type { Workout, WorkoutExercise, WorkoutSet } from '../../types';
 import type { WeekStartsOn } from '../../types';
 import { exerciseCatalogById } from '../../data/exerciseCatalog';
-import { startOfWeek } from '../../screens/dashboard/dashboardSummary';
+import { startOfWeek, computeWorkoutVolume } from '../../screens/dashboard/dashboardSummary';
 
 function completedAt(workout: Workout): number {
   return workout.completedAt ?? workout.startedAt;
@@ -255,6 +255,54 @@ export function streakStats(
     restDays: Math.max(0, 7 - trainingDays),
     metThisWeek,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Training volume — lifted volume per week over a trailing window.
+// ---------------------------------------------------------------------------
+export interface VolumeWeek {
+  weekStart: number;
+  volume: number;
+  /** Short label for the week (month/day of the week's start). */
+  label: string;
+}
+export interface VolumeSeries {
+  weeks: VolumeWeek[]; // oldest → newest, exactly windowWeeks entries
+  currentKg: number; // most recent (current) week
+  previousKg: number; // week before the current one
+  deltaPct: number | null; // current vs previous week
+  totalKg: number; // summed across the window
+}
+
+export function volumeSeries(
+  completedWorkouts: readonly Workout[],
+  windowWeeks: number,
+  now: Date,
+  weekStartsOn: WeekStartsOn = 1,
+): VolumeSeries {
+  const currentWeekStart = startOfWeek(now, weekStartsOn);
+  const weeks: VolumeWeek[] = [];
+  for (let i = windowWeeks - 1; i >= 0; i -= 1) {
+    const start = addDays(currentWeekStart, -7 * i);
+    weeks.push({ weekStart: start.getTime(), volume: 0, label: shortDate(start) });
+  }
+  const firstStart = weeks[0]?.weekStart ?? currentWeekStart.getTime();
+  for (const workout of completedWorkouts) {
+    const at = completedAt(workout);
+    if (at < firstStart) continue;
+    const idx = Math.floor((at - firstStart) / (7 * 24 * 3600_000));
+    if (idx < 0 || idx >= weeks.length) continue;
+    weeks[idx].volume += computeWorkoutVolume(workout);
+  }
+  const currentKg = weeks[weeks.length - 1]?.volume ?? 0;
+  const previousKg = weeks[weeks.length - 2]?.volume ?? 0;
+  const deltaPct = previousKg > 0 ? Math.round(((currentKg - previousKg) / previousKg) * 100) : null;
+  const totalKg = weeks.reduce((sum, w) => sum + w.volume, 0);
+  return { weeks, currentKg, previousKg, deltaPct, totalKg };
+}
+
+function shortDate(date: Date): string {
+  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(date);
 }
 
 // ---------------------------------------------------------------------------

@@ -83,6 +83,7 @@ const WINDOW_DAYS: Partial<Record<DashboardTileKind, number[]>> = {
   measurement: [30, 90, 180],
 };
 const WINDOW_WEEKS: Partial<Record<DashboardTileKind, number[]>> = {
+  volume: [8, 12, 26],
   'muscle-balance': [4, 8, 12],
   consistency: [8, 16, 26],
 };
