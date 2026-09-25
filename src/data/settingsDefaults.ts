@@ -17,6 +17,7 @@ export const defaultSettingsPreferences: SettingsPreferences = {
   exerciseRestSeconds: {},
   dailyMeasurementDefinitions: [],
   dailyMeasurementEntries: [],
+  muscleHeatmap: { windowDays: 30, gender: 'male', breakdown: 'group' },
   workoutTypes: [
     { id: 'strength', name: 'Strength', color: builtInWorkoutTypeColors.strength, source: 'builtIn' },
     { id: 'calisthenics', name: 'Calisthenics', color: builtInWorkoutTypeColors.calisthenics, source: 'builtIn' },

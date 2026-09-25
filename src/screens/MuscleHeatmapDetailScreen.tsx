@@ -3,17 +3,18 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { AppScreen, ForgeCard, ForgeText as Text, pressedFeedback, selectionHaptic } from '../components/ui';
+import { AppScreen, ForgeCard, ForgeText as Text, HeaderAction, pressedFeedback, selectionHaptic } from '../components/ui';
 import { SettingsDetailHeader } from './settings/SettingsScreenChrome';
 import { MuscleMap } from '../components/anatomy/MuscleMap';
 import { HEATMAP_ACCENT, MUSCLE_GROUP_COLORS } from './dashboard/DashboardWidgetTiles';
 import { muscleBalance, muscleBalanceByMuscle, muscleHeatBySlug, MUSCLES_BY_GROUP } from '../domain/dashboard/widgetMetrics';
 import { useWorkouts } from '../state/WorkoutContext';
+import { useSettings } from '../state/SettingsContext';
 import { TREND_DAY_OPTIONS, trendDayLabel } from '../domain/trends';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
-import type { ForgeTheme, RootStackParamList } from '../types';
+import type { ForgeTheme, MuscleHeatmapView, RootStackParamList } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MuscleHeatmapDetail'>;
 
@@ -32,11 +33,16 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
   const styles = useThemedStyles(createStyles);
   const { bottom: bottomInset } = useSafeAreaInsets();
   const { completedWorkouts } = useWorkouts();
-  const [windowDays, setWindowDays] = useState<number>(30);
-  const [gender, setGender] = useState<'male' | 'female'>('male');
-  const [breakdown, setBreakdown] = useState<'group' | 'muscle'>('group');
+  const { preferences, updatePreferences } = useSettings();
+  const view = preferences.muscleHeatmap;
+  const { windowDays, gender, breakdown } = view;
+  const [editing, setEditing] = useState(false);
   const [elevated, setElevated] = useState(false);
   const accent = HEATMAP_ACCENT;
+  const setView = (patch: Partial<MuscleHeatmapView>) => {
+    selectionHaptic();
+    updatePreferences({ muscleHeatmap: { ...view, ...patch } });
+  };
 
   const { heat, ranking } = useMemo(() => {
     const now = new Date();
@@ -53,10 +59,46 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
   const maxSets = Math.max(1, ...ranking.map((r) => r.sets));
   const anyData = Object.values(heat).some((v) => v > 0);
 
+  function Segmented<T>({ options, value, onChange, format }: { options: readonly T[]; value: T; onChange: (v: T) => void; format: (v: T) => string }) {
+    return (
+      <View style={styles.segmented}>
+        {options.map((opt) => {
+          const active = opt === value;
+          return (
+            <Pressable
+              key={String(opt)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={format(opt)}
+              onPress={() => onChange(opt)}
+              style={({ pressed }) => [styles.segment, { backgroundColor: active ? theme.selectionIndicator : theme.surfaceMuted }, pressed && !active && pressedFeedback]}
+            >
+              <Text style={[styles.segmentText, { color: active ? (theme.onActionPrimary ?? theme.surface) : theme.slate }]}>{format(opt)}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    );
+  }
+
   return (
     <AppScreen edges={['top']} backgroundColor={theme.background}>
       <View style={styles.screen}>
-        <SettingsDetailHeader title="Muscle heatmap" navigation={navigation} elevated={elevated} />
+        <SettingsDetailHeader
+          title="Muscle heatmap"
+          navigation={navigation}
+          elevated={elevated}
+          rightAction={
+            <HeaderAction
+              accessibilityLabel={editing ? 'Done editing' : 'Edit view'}
+              icon={editing ? 'check' : 'note'}
+              iconSize={editing ? 22 : 20}
+              iconOnly
+              variant="ghost"
+              onPress={() => { selectionHaptic(); setEditing((e) => !e); }}
+            />
+          }
+        />
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={[styles.content, { paddingBottom: 24 + bottomInset }]}
@@ -64,48 +106,18 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
           onScroll={(e) => setElevated(e.nativeEvent.contentOffset.y > 1)}
           scrollEventThrottle={16}
         >
-          <View style={styles.segmented}>
-            {WINDOWS.map((days) => {
-              const active = days === windowDays;
-              return (
-                <Pressable
-                  key={days}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  accessibilityLabel={`Last ${days} days`}
-                  onPress={() => { selectionHaptic(); setWindowDays(days); }}
-                  style={({ pressed }) => [
-                    styles.segment,
-                    { backgroundColor: active ? theme.selectionIndicator : theme.surfaceMuted },
-                    pressed && !active && pressedFeedback,
-                  ]}
-                >
-                  <Text style={[styles.segmentText, { color: active ? (theme.onActionPrimary ?? theme.surface) : theme.slate }]}>
-                    {trendDayLabel(days)}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          {editing ? (
+            <ForgeCard style={styles.controlsCard}>
+              <Text style={styles.controlLabel}>Window</Text>
+              <Segmented options={WINDOWS} value={windowDays} onChange={(v) => setView({ windowDays: v })} format={(v) => trendDayLabel(v)} />
+              <Text style={styles.controlLabel}>Body model</Text>
+              <Segmented options={['male', 'female'] as const} value={gender} onChange={(v) => setView({ gender: v })} format={(v) => (v === 'male' ? 'Male' : 'Female')} />
+              <Text style={styles.controlLabel}>Working sets</Text>
+              <Segmented options={['group', 'muscle'] as const} value={breakdown} onChange={(v) => setView({ breakdown: v })} format={(v) => (v === 'group' ? 'Groups' : 'Muscles')} />
+            </ForgeCard>
+          ) : null}
 
           <ForgeCard style={styles.figuresCard}>
-            <View style={styles.genderToggle}>
-              {(['male', 'female'] as const).map((g) => {
-                const active = g === gender;
-                return (
-                  <Pressable
-                    key={g}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: active }}
-                    accessibilityLabel={`${g === 'male' ? 'Male' : 'Female'} model`}
-                    onPress={() => { selectionHaptic(); setGender(g); }}
-                    style={({ pressed }) => [styles.genderSeg, active && { backgroundColor: theme.selectionIndicator }, pressed && !active && pressedFeedback]}
-                  >
-                    <Text style={[styles.genderText, { color: active ? (theme.onActionPrimary ?? theme.surface) : theme.slate }]}>{g === 'male' ? 'Male' : 'Female'}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
             {anyData ? (
               <>
                 <View style={styles.figures}>
@@ -132,26 +144,7 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
           </ForgeCard>
 
           <ForgeCard style={styles.rankCard}>
-            <View style={styles.rankHeader}>
-              <Text style={styles.rankTitle}>Working sets</Text>
-              <View style={styles.breakdownToggle}>
-                {(['group', 'muscle'] as const).map((b) => {
-                  const active = b === breakdown;
-                  return (
-                    <Pressable
-                      key={b}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: active }}
-                      accessibilityLabel={b === 'group' ? 'By group' : 'By muscle'}
-                      onPress={() => { selectionHaptic(); setBreakdown(b); }}
-                      style={({ pressed }) => [styles.breakdownSeg, active && { backgroundColor: theme.selectionIndicator }, pressed && !active && pressedFeedback]}
-                    >
-                      <Text style={[styles.breakdownText, { color: active ? (theme.onActionPrimary ?? theme.surface) : theme.slate }]}>{b === 'group' ? 'Groups' : 'Muscles'}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
+            <Text style={styles.rankTitle}>Working sets by {breakdown === 'muscle' ? 'muscle' : 'group'}</Text>
             {ranking.length ? ranking.map((r, i) => (
               <View key={`${r.label}-${i}`} style={styles.rankRow}>
                 <View style={[styles.rankDot, { backgroundColor: MUSCLE_GROUP_COLORS[r.group] }]} />
@@ -178,10 +171,9 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   segmented: { flexDirection: 'row', gap: 8 },
   segment: { flex: 1, minHeight: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   segmentText: { ...typeScale.controlLabel },
+  controlsCard: { padding: 16, gap: 8 },
+  controlLabel: { ...typeScale.caption, color: theme.textSecondary, letterSpacing: 0.6, marginTop: 4 },
   figuresCard: { padding: 16, gap: 12 },
-  genderToggle: { flexDirection: 'row', alignSelf: 'center', gap: 2, padding: 3, borderRadius: 12, backgroundColor: theme.surfaceMuted },
-  genderSeg: { paddingHorizontal: 20, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  genderText: { ...typeScale.caption, fontWeight: '700' },
   figures: { flexDirection: 'row', gap: 8 },
   figureCol: { flex: 1, alignItems: 'center', gap: 4 },
   figureLabel: { color: theme.slate, ...typeScale.caption },

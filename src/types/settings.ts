@@ -46,6 +46,14 @@ export interface SettingsPreferences {
   workoutTypes: WorkoutTypePreference[];
   dailyMeasurementDefinitions: DailyMeasurementDefinition[];
   dailyMeasurementEntries: DailyMeasurementEntry[];
+  /** Saved view for the muscle-heatmap page. */
+  muscleHeatmap: MuscleHeatmapView;
+}
+
+export interface MuscleHeatmapView {
+  windowDays: number;
+  gender: 'male' | 'female';
+  breakdown: 'group' | 'muscle';
 }
 
 export interface SettingsContextValue {
