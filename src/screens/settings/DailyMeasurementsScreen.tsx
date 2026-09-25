@@ -320,9 +320,6 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                     pressed && pressedFeedback,
                   ]}
                 >
-                  <View style={[styles.metricPickerIcon, { backgroundColor: `${definition.color}24` }]}>
-                    <Icon name={definition.icon} size={20} color={definition.color} />
-                  </View>
                   <View style={styles.metricPickerCopy}>
                     <Text numberOfLines={1} style={styles.metricPickerName}>{definition.name}</Text>
                     {definition.unit ? <Text numberOfLines={1} style={styles.metricPickerUnit}>{definition.unit}</Text> : null}
@@ -335,9 +332,13 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                       onPress={() => { selectionHaptic(); setMetricMenu(definition); }}
                       style={({ pressed }) => [styles.metricPickerDelete, pressed && pressedFeedback]}
                     >
-                      <Icon name="trash" size={15} color={theme.textDestructive} />
+                      <Icon name="trash" size={16} color={theme.textDestructive} />
                     </Pressable>
-                  ) : null}
+                  ) : (
+                    <View style={[styles.metricPickerIcon, { backgroundColor: `${definition.color}24` }]}>
+                      <Icon name={definition.icon} size={20} color={definition.color} />
+                    </View>
+                  )}
                 </Pressable>
               ))}
             </ScrollView>
@@ -363,14 +364,11 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
               <View style={styles.summaryRow}>
                 <ForgeCard variant="base" style={styles.metricCard}>
                   <View style={styles.metricCardTop}>
-                    <View style={styles.metricCardHeadCopy}>
-                      <Text style={styles.metricCardName} numberOfLines={2}>{selected.name}</Text>
-                      {selected.unit ? <Text style={styles.metricCardUnit} numberOfLines={1}>{selected.unit}</Text> : null}
-                    </View>
-                    <View style={[styles.metricCardIcon, { backgroundColor: `${selected.color}24` }]}>
-                      <Icon name={selected.icon} size={20} color={selected.color} />
+                    <View style={[styles.metricIcon, { backgroundColor: `${selected.color}24` }]}>
+                      <Icon name={selected.icon} size={22} color={selected.color} />
                     </View>
                   </View>
+                  <Text style={styles.metricCardName} numberOfLines={2}>{selected.name}</Text>
                   <View style={styles.metricCardSpacer} />
                   <View style={styles.metricCardStats}>
                     <View style={styles.metricCardStat}>
@@ -662,14 +660,11 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   chartFooterCentered: { justifyContent: 'center' },
   chartAxis: { ...typeScale.caption, color: theme.textSecondary },
   summaryRow: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
-  metricCard: { width: 162, padding: 14, gap: 10 },
-  metricCardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
-  metricCardHeadCopy: { flex: 1, minWidth: 0, gap: 1 },
-  metricCardIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  metricCardSpacer: { flex: 1, minHeight: 12 },
+  metricCard: { width: 130, padding: 14, gap: 10 },
+  metricCardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  metricCardSpacer: { flex: 1, minHeight: 8 },
   metricCardStats: { gap: 10 },
   metricCardName: { ...typeScale.controlLabel, color: theme.textPrimary },
-  metricCardUnit: { ...typeScale.caption, color: theme.textSecondary },
   metricCardStat: { gap: 1 },
   metricCardStatLabel: { ...typeScale.caption, color: theme.textSecondary },
   metricCardStatValue: { fontSize: 22, fontWeight: '800', letterSpacing: -0.4, color: theme.textPrimary, fontVariant: ['tabular-nums'] },
@@ -693,18 +688,15 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   addMetricInline: { minHeight: 30, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 9 },
   addMetricInlineText: { ...typeScale.label, color: theme.textPrimary },
   metricPickerContent: { gap: 10, paddingRight: settingsLayout.screenPadding },
-  metricPickerCard: { width: 142, minHeight: 82, padding: 11, borderRadius: 16, backgroundColor: theme.surface, gap: 8 },
-  metricPickerIcon: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  metricPickerCopy: { minWidth: 0, gap: 1 },
+  metricPickerCard: { width: 158, flexDirection: 'row', alignItems: 'center', padding: 11, borderRadius: 16, backgroundColor: theme.surface, gap: 10 },
+  metricPickerIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  metricPickerCopy: { flex: 1, minWidth: 0, gap: 1 },
   metricPickerName: { ...typeScale.label, color: theme.textPrimary },
   metricPickerUnit: { ...typeScale.caption, color: theme.textSecondary },
   metricPickerDelete: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 34,
+    height: 34,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: theme.destructiveSurface,
