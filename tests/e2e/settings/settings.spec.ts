@@ -58,6 +58,7 @@ test.describe('Settings', () => {
     await page.getByRole('tab', { name: 'Settings' }).click();
 
     await expect(page.getByTestId('settings-title')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Muscle heatmap' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Exercises' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Workout types' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Measurements' })).toBeVisible();
@@ -65,9 +66,12 @@ test.describe('Settings', () => {
     await expect(page.getByRole('button', { name: 'Backup & Export' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Logs' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'About' })).toBeVisible();
-    const workoutTypesBox = await page.getByRole('button', { name: 'Workout types' }).boundingBox();
+    // Insights (Muscle heatmap, Measurements) sits above the Exercises group.
+    const heatmapBox = await page.getByRole('button', { name: 'Muscle heatmap' }).boundingBox();
     const measurementsBox = await page.getByRole('button', { name: 'Measurements' }).boundingBox();
-    expect(workoutTypesBox?.y ?? Infinity).toBeLessThan(measurementsBox?.y ?? -Infinity);
+    const exercisesBox = await page.getByRole('button', { name: 'Exercises' }).boundingBox();
+    expect(heatmapBox?.y ?? Infinity).toBeLessThan(measurementsBox?.y ?? -Infinity);
+    expect(measurementsBox?.y ?? Infinity).toBeLessThan(exercisesBox?.y ?? -Infinity);
 
     await page.getByRole('button', { name: 'Exercises' }).click();
     await expect(page.getByTestId('settings-detail-title')).toHaveText('Exercises');

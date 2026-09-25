@@ -36,6 +36,8 @@ export type RootStackParamList = {
   BackupExport: undefined;
   Logs: undefined;
   About: undefined;
+  MuscleHeatmapDetail: undefined;
+  Calendar: undefined;
 };
 
 export type RootNavigationProp = CompositeNavigationProp<

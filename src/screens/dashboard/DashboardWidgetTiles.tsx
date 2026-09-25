@@ -1,10 +1,11 @@
 import React from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, Polyline, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Path, Polyline, Stop } from 'react-native-svg';
 
 import { ForgeText as Text, Icon, pressedFeedback, selectionHaptic } from '../../components/ui';
 import { ForgeLineChart } from '../../components/charts/ForgeLineChart';
+import { MuscleMap } from '../../components/anatomy/MuscleMap';
 import { formatVolume } from './dashboardSummary';
 import { useForgeReducedMotion } from '../../theme/motion';
 import { useForgeTheme } from '../../theme/ThemeProvider';
@@ -106,6 +107,9 @@ export function DashboardRestStatsTile({ stats, windowDays }: { stats: RestStats
     </View>
   );
 }
+
+/** Warm "heat" hue for the muscle heatmap intensity ramp. */
+export const HEATMAP_ACCENT = '#E85C42';
 
 /** A distinct, on-brand hue per muscle group (from the workout-type palette). */
 export const MUSCLE_GROUP_COLORS: Record<MuscleGroup, string> = {
@@ -254,54 +258,29 @@ export function DashboardStreakTile({ stats }: { stats: StreakStats }) {
   );
 }
 
-/** A stylised front/back figure heat-coloured by recent volume per group. */
-function MuscleBody({ heat, side, color }: { heat: Record<MuscleGroup, number>; side: 'front' | 'back'; color: string }) {
-  const theme = useForgeTheme();
-  const fill = (group: MuscleGroup) => hexToRgba(color, 0.12 + heat[group] * 0.88);
-  const base = theme.surfaceMuted;
-  // region: [x, y, w, h, rx, group?]  (rects); group undefined = neutral base fill
-  const rects: [number, number, number, number, number, MuscleGroup?][] = side === 'front'
-    ? [
-        [24, 22, 22, 3, 2, 'Back'], // upper traps hint
-        [20, 26, 12, 12, 4, 'Chest'], [38, 26, 12, 12, 4, 'Chest'],
-        [15, 27, 6, 16, 3, 'Shoulders'], [49, 27, 6, 16, 3, 'Shoulders'],
-        [16, 33, 5, 12, 2, 'Arms'], [49, 33, 5, 12, 2, 'Arms'],
-        [24, 40, 22, 16, 4, 'Core'],
-        [24, 62, 9, 34, 5, 'Legs'], [37, 62, 9, 34, 5, 'Legs'],
-        [25, 108, 7, 26, 4], [38, 108, 7, 26, 4],
-      ]
-    : [
-        [22, 22, 26, 6, 3, 'Back'],
-        [21, 29, 28, 16, 5, 'Back'],
-        [15, 27, 6, 16, 3, 'Arms'], [49, 27, 6, 16, 3, 'Arms'],
-        [24, 47, 22, 11, 4, 'Back'],
-        [24, 60, 22, 12, 6, 'Legs'],
-        [24, 74, 9, 26, 5, 'Legs'], [37, 74, 9, 26, 5, 'Legs'],
-        [25, 104, 7, 28, 4, 'Legs'], [38, 104, 7, 28, 4, 'Legs'],
-      ];
-  return (
-    <Svg viewBox="0 0 70 140" width="100%" height={132}>
-      <Circle cx={35} cy={11} r={6.5} fill={base} />
-      {rects.map((r, i) => (
-        <Rect key={i} x={r[0]} y={r[1]} width={r[2]} height={r[3]} rx={r[4]} fill={r[5] ? fill(r[5]) : base} />
-      ))}
-    </Svg>
-  );
-}
 
-export function DashboardMuscleHeatmapTile({ heat, windowDays }: { heat: Record<MuscleGroup, number>; windowDays: number }) {
+export function DashboardMuscleHeatmapTile({ heat, windowDays, onOpen }: { heat: Record<MuscleGroup, number>; windowDays: number; onOpen?: () => void }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const color = theme.selectionIndicator ?? theme.ink;
+  const color = HEATMAP_ACCENT;
   const any = MUSCLE_GROUPS.some((g) => heat[g] > 0);
-  return (
+  const body = (
     <View style={styles.block}>
-      <TileHead icon="fitness-outline" title="Muscle heatmap" trailing={<Text style={styles.sub}>volume · {windowDays}d</Text>} />
+      <TileHead
+        icon="fitness-outline"
+        title="Muscle heatmap"
+        trailing={
+          <View style={styles.headTrailingRow}>
+            <Text style={styles.sub}>volume · {windowDays}d</Text>
+            {onOpen ? <Icon name="chevron-forward" size={16} color={theme.slate} /> : null}
+          </View>
+        }
+      />
       {any ? (
         <>
           <View style={styles.bodies}>
-            <View style={styles.bodyCol}><MuscleBody heat={heat} side="front" color={color} /><Text style={styles.sub}>Front</Text></View>
-            <View style={styles.bodyCol}><MuscleBody heat={heat} side="back" color={color} /><Text style={styles.sub}>Back</Text></View>
+            <View style={styles.bodyCol}><MuscleMap heat={heat} side="front" color={color} height={150} /></View>
+            <View style={styles.bodyCol}><MuscleMap heat={heat} side="back" color={color} height={150} /></View>
           </View>
           <View style={styles.legend}>
             <Text style={styles.sub}>Low</Text>
@@ -315,6 +294,12 @@ export function DashboardMuscleHeatmapTile({ heat, windowDays }: { heat: Record<
         <Text style={styles.empty}>Train to light up your muscle map</Text>
       )}
     </View>
+  );
+  if (!onOpen) return body;
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel="Open muscle heatmap" onPress={onOpen} style={({ pressed }) => pressed && pressedFeedback}>
+      {body}
+    </Pressable>
   );
 }
 
@@ -510,6 +495,7 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingRight: 26 },
   headTitle: { flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0, flexShrink: 1 },
   headTrailing: { flexShrink: 0 },
+  headTrailingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   title: { color: theme.ink, ...typeScale.controlLabel },
   sub: { color: theme.muted, ...typeScale.caption },
   empty: { color: theme.muted, ...typeScale.body },

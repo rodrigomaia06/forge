@@ -33,6 +33,23 @@ export function SettingsScreen({ navigation }: Props) {
           contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset }]}
           showsVerticalScrollIndicator={false}
         >
+          <SettingsSection title="Insights">
+            <SettingsRow
+              icon="fitness-outline"
+              iconSize={26}
+              title="Muscle heatmap"
+              onPress={() => open('MuscleHeatmapDetail')}
+              disclosure
+              testID="settings-muscle-heatmap-row"
+            />
+            <SettingsRow
+              icon="measure"
+              iconSize={26}
+              title="Measurements"
+              onPress={() => open('DailyMeasurements')}
+              disclosure
+            />
+          </SettingsSection>
           <SettingsSection>
             <SettingsRow
               icon="weight"
@@ -47,13 +64,6 @@ export function SettingsScreen({ navigation }: Props) {
               iconSize={26}
               title="Workout types"
               onPress={() => open('WorkoutTypes')}
-              disclosure
-            />
-            <SettingsRow
-              icon="measure"
-              iconSize={26}
-              title="Measurements"
-              onPress={() => open('DailyMeasurements')}
               disclosure
             />
           </SettingsSection>

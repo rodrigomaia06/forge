@@ -289,7 +289,13 @@ export function DashboardScreen() {
       case 'streak':
         return <DashboardStreakTile stats={streakStats(completedWorkouts, s.weeklyTargetDefault ?? 3, s.weeklyTargets ?? {}, new Date(), preferences.weekStartsOn)} />;
       case 'muscle-heatmap':
-        return <DashboardMuscleHeatmapTile heat={muscleHeat(completedWorkouts, s.windowDays ?? 14, new Date())} windowDays={s.windowDays ?? 14} />;
+        return (
+          <DashboardMuscleHeatmapTile
+            heat={muscleHeat(completedWorkouts, s.windowDays ?? 14, new Date())}
+            windowDays={s.windowDays ?? 14}
+            onOpen={editing ? undefined : () => navigation.navigate('MuscleHeatmapDetail')}
+          />
+        );
       case 'measurement': {
         const definition = s.measurementId ? measurementDefById.get(s.measurementId) : undefined;
         if (!definition) return <Text style={styles.tileMissing}>This measurement was removed</Text>;
