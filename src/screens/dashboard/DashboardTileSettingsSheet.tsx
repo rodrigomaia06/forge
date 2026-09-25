@@ -95,13 +95,14 @@ const WINDOW_WEEKS: Partial<Record<DashboardTileKind, number[]>> = {
 };
 
 /** A titled card that groups one setting, giving the sheet clear structure. */
-function GroupCard({ title, hint, accent, children }: { title: string; hint?: string; accent?: string; children: React.ReactNode }) {
+function GroupCard({ title, hint, accent, trailing, children }: { title: string; hint?: string; accent?: string; trailing?: React.ReactNode; children: React.ReactNode }) {
   const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.card}>
       <View style={styles.cardHead}>
         {accent ? <View style={[styles.cardDot, { backgroundColor: accent }]} /> : null}
         <Text style={styles.cardTitle}>{title}</Text>
+        {trailing ? <View style={styles.cardHeadTrailing}>{trailing}</View> : null}
       </View>
       {hint ? <Text style={styles.cardHint}>{hint}</Text> : null}
       {children}
@@ -112,7 +113,7 @@ function GroupCard({ title, hint, accent, children }: { title: string; hint?: st
 /** A tappable toggle row (check for multi, dot for single) used inside a card. */
 function ToggleRow({
   label, color, selected, onToggle, showDivider,
-}: { label: string; color: string; selected: boolean; onToggle: () => void; showDivider?: boolean }) {
+}: { label: string; color?: string; selected: boolean; onToggle: () => void; showDivider?: boolean }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   return (
@@ -123,7 +124,7 @@ function ToggleRow({
       onPress={() => { selectionHaptic(); onToggle(); }}
       style={({ pressed }) => [styles.toggleRow, showDivider && styles.rowDivider, pressed && pressedFeedback]}
     >
-      <View style={[styles.metricDot, { backgroundColor: color }]} />
+      {color ? <View style={[styles.metricDot, { backgroundColor: color }]} /> : null}
       <Text style={styles.metricName} numberOfLines={1}>{label}</Text>
       <View style={[styles.metricCheck, { borderColor: selected ? theme.selectionIndicator : theme.border, backgroundColor: selected ? theme.selectionIndicator : 'transparent' }]}>
         {selected ? <Icon name="check" size={13} color={theme.onActionPrimary ?? theme.surface} weight="bold" /> : null}
@@ -217,27 +218,34 @@ export function DashboardTileSettingsSheet({
             ) : null}
             {kind === 'muscle-balance' ? (
               <>
-                <Text style={styles.sectionIntro}>Pick specific muscles to break them out. With none selected the card shows the six groups.</Text>
-                {MUSCLES_BY_GROUP.map((section) => (
-                  <GroupCard key={section.group} title={section.group} accent={MUSCLE_GROUP_COLORS[section.group]}>
-                    {section.slugs.map((slug, i) => {
-                      const selected = (settings.muscleFilter ?? []).includes(slug);
-                      return (
-                        <ToggleRow
-                          key={slug}
-                          label={MUSCLE_LABELS[slug] ?? slug}
-                          color={MUSCLE_GROUP_COLORS[section.group]}
-                          selected={selected}
-                          onToggle={() => {
-                            const current = settings.muscleFilter ?? [];
-                            patch({ muscleFilter: selected ? current.filter((s) => s !== slug) : [...current, slug] });
-                          }}
-                          showDivider={i > 0}
-                        />
-                      );
-                    })}
-                  </GroupCard>
-                ))}
+                <Text style={styles.sectionIntro}>Selected muscles are charted on their own. With none selected, the card shows the six groups.</Text>
+                {MUSCLES_BY_GROUP.map((section) => {
+                  const filter = settings.muscleFilter ?? [];
+                  const count = section.slugs.filter((slug) => filter.includes(slug)).length;
+                  return (
+                    <GroupCard
+                      key={section.group}
+                      title={section.group}
+                      accent={MUSCLE_GROUP_COLORS[section.group]}
+                      trailing={count ? <Text style={[styles.groupCount, { color: MUSCLE_GROUP_COLORS[section.group] }]}>{count}</Text> : null}
+                    >
+                      {section.slugs.map((slug, i) => {
+                        const selected = filter.includes(slug);
+                        return (
+                          <ToggleRow
+                            key={slug}
+                            label={MUSCLE_LABELS[slug] ?? slug}
+                            selected={selected}
+                            onToggle={() => {
+                              patch({ muscleFilter: selected ? filter.filter((s) => s !== slug) : [...filter, slug] });
+                            }}
+                            showDivider={i > 0}
+                          />
+                        );
+                      })}
+                    </GroupCard>
+                  );
+                })}
               </>
             ) : null}
             {kind === 'streak' ? (
@@ -280,7 +288,9 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   card: { backgroundColor: theme.surfaceMuted, borderRadius: 16, padding: 14, gap: 10 },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   cardDot: { width: 10, height: 10, borderRadius: 5 },
-  cardTitle: { color: theme.ink, ...typeScale.controlLabel },
+  cardTitle: { color: theme.ink, ...typeScale.controlLabel, flex: 1 },
+  cardHeadTrailing: { flexShrink: 0 },
+  groupCount: { ...typeScale.caption, fontWeight: '800', fontVariant: ['tabular-nums'] },
   cardHint: { color: theme.muted, ...typeScale.caption },
   sectionIntro: { color: theme.muted, paddingHorizontal: 2, ...typeScale.caption },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },

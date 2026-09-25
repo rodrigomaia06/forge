@@ -60,7 +60,7 @@ import type { WeekStripDay } from './dashboard/dashboardSummary';
 import {
   DASHBOARD_TILE_DEFAULT_SETTINGS,
   DASHBOARD_TILE_DEFAULT_TITLE,
-  measurementTileId,
+  newMeasurementsTileId,
   OPTIONAL_SINGLETON_KINDS,
   tileHasSettings,
   tileSettings,
@@ -96,6 +96,7 @@ const TILE_TEST_ID: Record<DashboardTileKind, string> = {
 
 function tileTestId(config: DashboardTileConfig): string {
   if (config.kind === 'measurement') return `dashboard-measurement-${config.settings?.measurementId ?? 'x'}`;
+  if (config.kind === 'measurements') return `dashboard-measurements-${config.id}`;
   return TILE_TEST_ID[config.kind];
 }
 function tileName(config: DashboardTileConfig): string {
@@ -211,15 +212,26 @@ export function DashboardScreen() {
   // Tiles you can add: any hidden built-in, plus the singleton cards
   // (Measurements, Note). Individual metrics aren't listed here — you add the
   // Measurements card and choose which metrics it shows in its settings.
+  const measurementsCardCount = layout.filter((tile) => tile.kind === 'measurements' && tile.visible).length;
+  const canAddMeasurements = preferences.dailyMeasurementDefinitions.length > measurementsCardCount;
   const addableTiles: { key: string; label: string; onPress: () => void }[] = [
     ...hiddenTiles
-      .filter((tile) => tile.kind !== 'measurement')
+      .filter((tile) => tile.kind !== 'measurement' && tile.kind !== 'measurements')
       .map((tile) => ({
         key: tile.id,
         label: tileName(tile),
         onPress: () => addTile({ ...tile, visible: true }),
       })),
-    // Singleton cards (Measurements, Note), each if not already placed.
+    // A Measurements card — addable more than once, capped at how many metrics
+    // exist so you never stack more empty cards than you have data for.
+    ...(canAddMeasurements
+      ? [{
+          key: 'add-measurements',
+          label: DASHBOARD_TILE_DEFAULT_TITLE.measurements,
+          onPress: () => addTile({ id: newMeasurementsTileId(), kind: 'measurements' as const, visible: true, settings: { ...DASHBOARD_TILE_DEFAULT_SETTINGS.measurements } }),
+        }]
+      : []),
+    // Singleton cards (Note), each if not already placed.
     ...OPTIONAL_SINGLETON_KINDS.filter((kind) => !layout.some((tile) => tile.id === kind)).map((kind) => ({
       key: kind,
       label: DASHBOARD_TILE_DEFAULT_TITLE[kind],
@@ -320,6 +332,7 @@ export function DashboardScreen() {
             definitions={chosen}
             entries={preferences.dailyMeasurementEntries}
             windowDays={windowDays}
+            onOpen={editing ? undefined : () => navigation.navigate('DailyMeasurements')}
           />
         );
       }

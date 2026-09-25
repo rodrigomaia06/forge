@@ -36,7 +36,7 @@ export interface DashboardTileSettings {
 }
 
 /** Singleton cards that are addable from the chooser but hidden until added. */
-export const OPTIONAL_SINGLETON_KINDS: DashboardTileKind[] = ['measurements', 'note'];
+export const OPTIONAL_SINGLETON_KINDS: DashboardTileKind[] = ['note'];
 
 export interface DashboardTileConfig {
   /** Stable per-instance id. Built-ins use their kind; measurement tiles use
@@ -51,6 +51,11 @@ export interface DashboardTileConfig {
 }
 
 export const MEASUREMENT_TILE_PREFIX = 'measurement:';
+/** Combined measurements cards are per-instance so several can coexist. */
+export const MEASUREMENTS_TILE_PREFIX = 'measurements:';
+export function newMeasurementsTileId(): string {
+  return `${MEASUREMENTS_TILE_PREFIX}${Date.now().toString(36)}`;
+}
 export function measurementTileId(definitionId: string): string {
   return `${MEASUREMENT_TILE_PREFIX}${definitionId}`;
 }
@@ -128,11 +133,16 @@ export function reconcileLayout(saved: unknown): DashboardTileConfig[] {
       const entry = raw as DashboardTileConfig;
       const kind = entry?.kind;
       const isMeasurement = kind === 'measurement';
+      const isMeasurements = kind === 'measurements';
       const isOptionalSingleton = OPTIONAL_SINGLETON_KINDS.includes(kind);
-      // Measurement tiles are keyed per instance; built-ins/singletons by kind.
+      // Measurement(s) tiles are keyed per instance; built-ins/singletons by kind.
       const id = typeof entry?.id === 'string' && entry.id ? entry.id : kind;
       if (isMeasurement) {
         if (typeof id !== 'string' || !id.startsWith(MEASUREMENT_TILE_PREFIX) || !entry.settings?.measurementId || seen.has(id)) continue;
+      } else if (isMeasurements) {
+        // Any combined-measurements instance (legacy `measurements` id or
+        // `measurements:<n>`), kept if present; never auto-appended.
+        if (typeof id !== 'string' || !id || seen.has(id)) continue;
       } else if (isOptionalSingleton) {
         // Kept only if present in the saved layout; never auto-appended.
         if (seen.has(id)) continue;

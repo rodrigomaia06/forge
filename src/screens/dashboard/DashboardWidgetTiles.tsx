@@ -44,6 +44,19 @@ function TileHead({ icon, title, trailing }: { icon: IconName; title: string; tr
   );
 }
 
+/** A consistent, centered empty state for tiles with no data yet. */
+function TileEmpty({ icon, title, hint }: { icon: IconName; title: string; hint?: string }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  return (
+    <View style={styles.tileEmpty}>
+      <View style={styles.tileEmptyIcon}><Icon name={icon} size={22} color={theme.slate} /></View>
+      <Text style={styles.tileEmptyTitle}>{title}</Text>
+      {hint ? <Text style={styles.tileEmptyHint}>{hint}</Text> : null}
+    </View>
+  );
+}
+
 function formatRest(seconds: number): string {
   const m = Math.floor(seconds / 60), s = seconds % 60;
   return `${m}:${String(s).padStart(2, '0')}`;
@@ -80,7 +93,7 @@ export function DashboardRestStatsTile({ stats, windowDays }: { stats: RestStats
           ) : null}
         </>
       ) : (
-        <Text style={styles.empty}>No rest recorded yet</Text>
+        <TileEmpty icon="stopwatch-outline" title="No rest recorded yet" hint="Rest timers you use during workouts show up here." />
       )}
     </View>
   );
@@ -120,7 +133,7 @@ export function DashboardMuscleBalanceTile({ data, windowWeeks }: { data: Muscle
           ))}
         </View>
       ) : (
-        <Text style={styles.empty}>Log some sets to see your balance</Text>
+        <TileEmpty icon="activity" title="No sets logged" hint="Log a few working sets to see your muscle balance." />
       )}
     </View>
   );
@@ -282,7 +295,7 @@ export function DashboardMuscleHeatmapTile({ heat, windowDays, onOpen }: { heat:
           </View>
         </>
       ) : (
-        <Text style={styles.empty}>Train to light up your muscle map</Text>
+        <TileEmpty icon="fitness-outline" title="Nothing trained yet" hint="Finish a workout to light up your muscle map." />
       )}
     </View>
   );
@@ -338,7 +351,7 @@ export function DashboardVolumeChartTile({ series, windowWeeks }: { series: Volu
           </View>
         </>
       ) : (
-        <Text style={styles.empty}>No training logged yet</Text>
+        <TileEmpty icon="activity" title="No training logged" hint="Complete a workout to chart your training volume." />
       )}
     </View>
   );
@@ -437,16 +450,27 @@ export function DashboardMeasurementsTile({
   definitions,
   entries,
   windowDays,
+  onOpen,
 }: {
   definitions: DailyMeasurementDefinition[];
   entries: { definitionId: string; date: string; value: number }[];
   windowDays: number;
+  onOpen?: () => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.block}>
-      <TileHead icon="measure" title="Measurements" trailing={<Text style={styles.sub}>{trendDayLabel(windowDays)}</Text>} />
+      <TileHead
+        icon="measure"
+        title="Measurements"
+        trailing={
+          <View style={styles.headTrailingRow}>
+            <Text style={styles.sub}>{trendDayLabel(windowDays)}</Text>
+            {onOpen ? <Icon name="chevron-forward" size={15} color={theme.muted} /> : null}
+          </View>
+        }
+      />
       {definitions.length ? (
         <View style={styles.mList}>
           {definitions.map((def) => {
@@ -454,7 +478,14 @@ export function DashboardMeasurementsTile({
             const color = def.color || (theme.selectionIndicator ?? theme.ink);
             const up = s.delta !== null && s.delta > 0;
             return (
-              <View key={def.id} style={styles.mCard}>
+              <Pressable
+                key={def.id}
+                accessibilityRole={onOpen ? 'button' : undefined}
+                accessibilityLabel={onOpen ? `Open ${def.name}` : undefined}
+                disabled={!onOpen}
+                onPress={onOpen}
+                style={({ pressed }) => [styles.mCard, pressed && onOpen ? pressedFeedback : null]}
+              >
                 <View style={styles.mCardTop}>
                   <View style={styles.mCardName}>
                     <View style={[styles.mDot, { backgroundColor: color }]} />
@@ -473,15 +504,29 @@ export function DashboardMeasurementsTile({
                     {def.unit ? <Text style={styles.mCardUnit}>{def.unit}</Text> : null}
                   </View>
                   <View style={styles.mCardSpark}>
-                    {s.values.length >= 2 ? <ForgeLineChart data={s.values.map((v) => ({ value: v }))} height={38} color={color} showMarkers={false} /> : null}
+                    {s.values.length >= 2 ? (
+                      <ForgeLineChart data={s.values.map((v) => ({ value: v }))} height={38} color={color} showMarkers={false} />
+                    ) : (
+                      <Text style={styles.mCardHint}>{s.latest !== null ? 'Log more for a trend' : 'No readings yet'}</Text>
+                    )}
                   </View>
                 </View>
-              </View>
+              </Pressable>
             );
           })}
         </View>
       ) : (
-        <Text style={styles.empty}>Choose measurements in this card's settings</Text>
+        <Pressable
+          accessibilityRole={onOpen ? 'button' : undefined}
+          accessibilityLabel={onOpen ? 'Open measurements' : undefined}
+          disabled={!onOpen}
+          onPress={onOpen}
+          style={({ pressed }) => [styles.mEmpty, pressed && onOpen ? pressedFeedback : null]}
+        >
+          <View style={styles.mEmptyIcon}><Icon name="measure" size={22} color={theme.slate} /></View>
+          <Text style={styles.mEmptyTitle}>No metrics chosen</Text>
+          <Text style={styles.mEmptyBody}>Open the card settings to pick which measurements it shows.</Text>
+        </Pressable>
       )}
     </View>
   );
@@ -524,6 +569,10 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   title: { color: theme.ink, ...typeScale.controlLabel },
   sub: { color: theme.muted, ...typeScale.caption },
   empty: { color: theme.muted, ...typeScale.body },
+  tileEmpty: { alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 20 },
+  tileEmptyIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
+  tileEmptyTitle: { color: theme.ink, ...typeScale.controlLabel },
+  tileEmptyHint: { color: theme.muted, ...typeScale.caption, textAlign: 'center', maxWidth: 240 },
   bigRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   big: { color: theme.ink, fontVariant: ['tabular-nums'], fontSize: 32, fontWeight: '800', letterSpacing: -0.5, lineHeight: 34 },
   unit: { color: theme.muted, ...typeScale.label },
@@ -560,7 +609,12 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   mCardValueWrap: { flexDirection: 'row', alignItems: 'baseline', gap: 4, flexShrink: 0 },
   mCardValue: { color: theme.ink, fontVariant: ['tabular-nums'], fontSize: 22, fontWeight: '800', letterSpacing: -0.4, lineHeight: 24 },
   mCardUnit: { color: theme.muted, ...typeScale.caption },
-  mCardSpark: { flex: 1, minWidth: 0 },
+  mCardSpark: { flex: 1, minWidth: 0, alignItems: 'flex-end', justifyContent: 'center' },
+  mCardHint: { color: theme.muted, ...typeScale.caption },
+  mEmpty: { alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 20 },
+  mEmptyIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
+  mEmptyTitle: { color: theme.ink, ...typeScale.controlLabel },
+  mEmptyBody: { color: theme.muted, ...typeScale.caption, textAlign: 'center', maxWidth: 240 },
   trendPill: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   trendText: { fontVariant: ['tabular-nums'], ...typeScale.caption },
   logRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },

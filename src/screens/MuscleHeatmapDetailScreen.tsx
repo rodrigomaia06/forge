@@ -33,6 +33,7 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
   const { bottom: bottomInset } = useSafeAreaInsets();
   const { completedWorkouts } = useWorkouts();
   const [windowDays, setWindowDays] = useState<number>(30);
+  const [gender, setGender] = useState<'male' | 'female'>('male');
   const [elevated, setElevated] = useState(false);
   const accent = HEATMAP_ACCENT;
 
@@ -84,15 +85,32 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
           </View>
 
           <ForgeCard style={styles.figuresCard}>
+            <View style={styles.genderToggle}>
+              {(['male', 'female'] as const).map((g) => {
+                const active = g === gender;
+                return (
+                  <Pressable
+                    key={g}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={`${g === 'male' ? 'Male' : 'Female'} model`}
+                    onPress={() => { selectionHaptic(); setGender(g); }}
+                    style={({ pressed }) => [styles.genderSeg, active && { backgroundColor: theme.selectionIndicator }, pressed && !active && pressedFeedback]}
+                  >
+                    <Text style={[styles.genderText, { color: active ? (theme.onActionPrimary ?? theme.surface) : theme.slate }]}>{g === 'male' ? 'Male' : 'Female'}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
             {anyData ? (
               <>
                 <View style={styles.figures}>
                   <View style={styles.figureCol}>
-                    <MuscleMap heat={heat} side="front" color={accent} height={300} />
+                    <MuscleMap heat={heat} side="front" color={accent} height={300} gender={gender} />
                     <Text style={styles.figureLabel}>Front</Text>
                   </View>
                   <View style={styles.figureCol}>
-                    <MuscleMap heat={heat} side="back" color={accent} height={300} />
+                    <MuscleMap heat={heat} side="back" color={accent} height={300} gender={gender} />
                     <Text style={styles.figureLabel}>Back</Text>
                   </View>
                 </View>
@@ -136,6 +154,9 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   segment: { flex: 1, minHeight: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   segmentText: { ...typeScale.controlLabel },
   figuresCard: { padding: 16, gap: 12 },
+  genderToggle: { flexDirection: 'row', alignSelf: 'center', gap: 2, padding: 3, borderRadius: 12, backgroundColor: theme.surfaceMuted },
+  genderSeg: { paddingHorizontal: 20, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  genderText: { ...typeScale.caption, fontWeight: '700' },
   figures: { flexDirection: 'row', gap: 8 },
   figureCol: { flex: 1, alignItems: 'center', gap: 4 },
   figureLabel: { color: theme.slate, ...typeScale.caption },
