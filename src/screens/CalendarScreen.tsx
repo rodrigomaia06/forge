@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { AppScreen, ForgeActionSheet, ForgeCard, ForgeText as Text, Icon, pressedFeedback, selectionHaptic } from '../components/ui';
+import { AppScreen, ForgeActionSheet, ForgeText as Text, Icon, pressedFeedback, selectionHaptic } from '../components/ui';
 import { useWorkouts } from '../state/WorkoutContext';
 import { useSettings } from '../state/SettingsContext';
 import { useForgeTheme } from '../theme/ThemeProvider';
@@ -130,13 +130,6 @@ export function CalendarScreen({ navigation }: Props) {
     navigation.navigate('WorkoutDetails', { workoutId: dayWorkouts[0].id });
   };
 
-  const weekdayHeader = (
-    <View style={styles.weekHeader}>
-      {Array.from({ length: 7 }, (_, i) => (
-        <Text key={i} style={styles.weekday}>{WEEKDAY_LETTERS[(weekStart + i) % 7]}</Text>
-      ))}
-    </View>
-  );
 
   return (
     <AppScreen edges={['top']} backgroundColor={theme.background}>
@@ -159,14 +152,11 @@ export function CalendarScreen({ navigation }: Props) {
             <Icon name="warm-up" size={16} color="#F4823B" />
             <Text style={styles.chipText}><Text style={styles.chipValue}>{weekStreak}</Text> week streak</Text>
           </View>
-          <View style={styles.chipDivider} />
           <View style={styles.chip}>
             <Icon name="theme-dark" size={15} color={theme.slate} />
             <Text style={styles.chipText}><Text style={styles.chipValue}>{restDays}</Text> rest day{restDays === 1 ? '' : 's'}</Text>
           </View>
         </View>
-
-        {view === 'month' ? weekdayHeader : null}
 
         <ScrollView
           ref={scrollRef}
@@ -190,35 +180,36 @@ export function CalendarScreen({ navigation }: Props) {
                   }}
                 >
                   <Text style={styles.monthTitle}>{MONTHS[month]} {year}</Text>
-                  <ForgeCard variant="base" style={styles.monthCard}>
-                    {monthWeeks(year, month, weekStart).map((week, wi) => (
-                      <View key={wi} style={styles.weekRow}>
-                        {week.map((date, di) => {
-                          if (!date) return <View key={di} style={styles.dayCell} />;
-                          const key = calendarDateKey(date);
-                          const dayWorkouts = byDay.get(key) ?? [];
-                          const has = dayWorkouts.length > 0;
-                          const isToday = key === todayKey;
-                          const color = has ? getWorkoutTypePresentation(dayWorkouts[0].type, preferences.workoutTypes, theme, 0.16).color : undefined;
-                          return (
-                            <Pressable
-                              key={di}
-                              accessibilityRole="button"
-                              accessibilityLabel={`${date.getDate()} ${MONTHS[month]}${has ? `, ${dayWorkouts[0].name}` : ''}`}
-                              disabled={!has}
-                              onPress={() => openWorkout(dayWorkouts)}
-                              style={styles.dayCell}
-                            >
-                              <View style={[styles.dayCircle, has && color ? { backgroundColor: color } : null, isToday && !has ? { borderWidth: 1.5, borderColor: theme.border } : null]}>
-                                <Text style={[styles.dayNum, has ? styles.dayNumOn : null, isToday && !has ? { color: theme.textPrimary, fontWeight: '800' } : null]}>{date.getDate()}</Text>
-                                {dayWorkouts.length > 1 ? <View style={[styles.dayMulti, { borderColor: theme.surface }]} /> : null}
-                              </View>
-                            </Pressable>
-                          );
-                        })}
-                      </View>
-                    ))}
-                  </ForgeCard>
+                  <View style={styles.monthWeekHead}>
+                    {Array.from({ length: 7 }, (_, i) => <Text key={i} style={styles.monthWeekHeadText}>{WEEKDAY_LETTERS[(weekStart + i) % 7]}</Text>)}
+                  </View>
+                  {monthWeeks(year, month, weekStart).map((week, wi) => (
+                    <View key={wi} style={styles.weekRow}>
+                      {week.map((date, di) => {
+                        if (!date) return <View key={di} style={styles.dayCell} />;
+                        const key = calendarDateKey(date);
+                        const dayWorkouts = byDay.get(key) ?? [];
+                        const has = dayWorkouts.length > 0;
+                        const isToday = key === todayKey;
+                        const color = has ? getWorkoutTypePresentation(dayWorkouts[0].type, preferences.workoutTypes, theme, 0.16).color : undefined;
+                        return (
+                          <Pressable
+                            key={di}
+                            accessibilityRole="button"
+                            accessibilityLabel={`${date.getDate()} ${MONTHS[month]}${has ? `, ${dayWorkouts[0].name}` : ''}`}
+                            disabled={!has}
+                            onPress={() => openWorkout(dayWorkouts)}
+                            style={styles.dayCell}
+                          >
+                            <View style={[styles.dayCircle, has && color ? { backgroundColor: color } : null, isToday && !has ? { borderWidth: 1.5, borderColor: theme.border } : null]}>
+                              <Text style={[styles.dayNum, has ? styles.dayNumOn : null, isToday && !has ? { color: theme.textPrimary, fontWeight: '800' } : null]}>{date.getDate()}</Text>
+                              {dayWorkouts.length > 1 ? <View style={styles.dayMulti} /> : null}
+                            </View>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  ))}
                 </View>
               );
             })
@@ -302,24 +293,22 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   headerButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   viewSelect: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
   viewSelectText: { ...typeScale.cardTitle, color: theme.textPrimary },
-  chips: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 18, paddingTop: 2, paddingBottom: 14 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  chipDivider: { width: StyleSheet.hairlineWidth, height: 18, backgroundColor: theme.divider },
-  chipText: { ...typeScale.label, color: theme.textSecondary },
+  chips: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingTop: 2, paddingBottom: 12 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 11, height: 30, borderRadius: 15, backgroundColor: theme.surface },
+  chipText: { ...typeScale.caption, color: theme.textSecondary },
   chipValue: { color: theme.textPrimary, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  weekHeader: { flexDirection: 'row', paddingHorizontal: 18, paddingBottom: 4 },
-  weekday: { flex: 1, textAlign: 'center', ...typeScale.caption, color: theme.muted },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 12, paddingTop: 4 },
-  monthSection: { paddingBottom: 10 },
-  monthCard: { paddingHorizontal: 6, paddingVertical: 8 },
-  monthTitle: { ...typeScale.sectionTitle, color: theme.textPrimary, marginTop: 12, marginBottom: 8 },
+  content: { paddingHorizontal: 16, paddingTop: 4 },
+  monthSection: { paddingBottom: 14 },
+  monthTitle: { ...typeScale.sectionTitle, color: theme.textPrimary, marginTop: 12, marginBottom: 6 },
+  monthWeekHead: { flexDirection: 'row', marginBottom: 4 },
+  monthWeekHeadText: { flex: 1, textAlign: 'center', color: theme.muted, fontSize: 11, lineHeight: 14 },
   weekRow: { flexDirection: 'row' },
-  dayCell: { flex: 1, height: 50, alignItems: 'center', justifyContent: 'center' },
-  dayCircle: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  dayNum: { ...typeScale.label, color: theme.textPrimary, fontVariant: ['tabular-nums'] },
+  dayCell: { flex: 1, height: 42, alignItems: 'center', justifyContent: 'center' },
+  dayCircle: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  dayNum: { fontSize: 15, lineHeight: 18, color: theme.textPrimary, fontVariant: ['tabular-nums'] },
   dayNumOn: { color: '#FFFFFF', fontWeight: '700' },
-  dayMulti: { position: 'absolute', bottom: 4, width: 4, height: 4, borderRadius: 2, backgroundColor: '#FFFFFF' },
+  dayMulti: { position: 'absolute', bottom: 2, width: 3.5, height: 3.5, borderRadius: 2, backgroundColor: '#FFFFFF' },
   yearSection: { paddingTop: 12 },
   yearTitle: { ...typeScale.sectionTitle, color: theme.textPrimary, marginBottom: 8 },
   miniGridWrap: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 16, columnGap: 8 },
