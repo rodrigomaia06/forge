@@ -20,8 +20,12 @@ export function parseSettingsPreferences(value: string | null): SettingsPreferen
   } catch {
     return defaultSettingsPreferences;
   }
+  // Must stay in sync with the metric-icon picker in DailyMeasurementsScreen —
+  // an icon the picker offers but this list omits would silently drop the whole
+  // measurement definition on the next load.
   const validIcons: readonly IconName[] = [
     'weight', 'measure', 'heart', 'hydration', 'energy', 'sleep', 'recovery', 'activity',
+    'goal', 'running', 'fitness', 'time', 'temperature', 'nutrition', 'mood', 'focus',
   ];
   const definitions: DailyMeasurementDefinition[] = Array.isArray(parsed.dailyMeasurementDefinitions)
     ? parsed.dailyMeasurementDefinitions.flatMap((item) =>
