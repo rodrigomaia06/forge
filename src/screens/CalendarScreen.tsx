@@ -3,7 +3,8 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { AppScreen, ForgeActionSheet, ForgeText as Text, Icon, pressedFeedback, selectionHaptic } from '../components/ui';
+import { AppScreen, ForgeSelectionSheet, ForgeText as Text, Icon, pressedFeedback, selectionHaptic } from '../components/ui';
+import { SettingsDetailHeader } from './settings/SettingsScreenChrome';
 import { useWorkouts } from '../state/WorkoutContext';
 import { useSettings } from '../state/SettingsContext';
 import { useForgeTheme } from '../theme/ThemeProvider';
@@ -57,6 +58,7 @@ export function CalendarScreen({ navigation }: Props) {
   const todayKey = calendarDateKey(today);
   const [view, setView] = useState<CalendarView>('month');
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
+  const [elevated, setElevated] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const scrolledRef = useRef(false);
 
@@ -77,26 +79,6 @@ export function CalendarScreen({ navigation }: Props) {
     for (const w of completedWorkouts) min = Math.min(min, w.completedAt ?? w.startedAt);
     return Number.isFinite(min) ? new Date(min) : null;
   }, [completedWorkouts]);
-
-  const { weekStreak, restDays } = useMemo(() => {
-    if (!byDay.size) return { weekStreak: 0, restDays: 0 };
-    const activeWeeks = new Set<string>();
-    let lastTs = 0;
-    for (const [key, list] of byDay) {
-      activeWeeks.add(calendarDateKey(weekStartDate(new Date(`${key}T00:00:00`), weekStart)));
-      lastTs = Math.max(lastTs, list[0].completedAt ?? list[0].startedAt);
-    }
-    let cursor = weekStartDate(today, weekStart);
-    if (!activeWeeks.has(calendarDateKey(cursor))) cursor.setDate(cursor.getDate() - 7);
-    let streak = 0;
-    while (activeWeeks.has(calendarDateKey(cursor))) {
-      streak += 1;
-      cursor.setDate(cursor.getDate() - 7);
-    }
-    const lastDay = new Date(new Date(lastTs).getFullYear(), new Date(lastTs).getMonth(), new Date(lastTs).getDate());
-    const rest = Math.max(0, Math.round((new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime() - lastDay.getTime()) / 86_400_000));
-    return { weekStreak: streak, restDays: rest };
-  }, [byDay, weekStart, today]);
 
   // Chronological month list from the first workout (capped) through next month.
   const months = useMemo(() => {
@@ -134,35 +116,30 @@ export function CalendarScreen({ navigation }: Props) {
   return (
     <AppScreen edges={['top']} backgroundColor={theme.background}>
       <View style={styles.screen}>
-        {/* Header: back + view dropdown */}
-        <View style={styles.header}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => navigation.goBack()} hitSlop={8} style={({ pressed }) => [styles.headerButton, pressed && pressedFeedback]}>
-            <Icon name="chevron-back" size={24} color={theme.textPrimary} />
-          </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel={`Calendar view: ${VIEW_LABEL[view]}. Change`} onPress={() => setViewMenuOpen(true)} style={({ pressed }) => [styles.viewSelect, pressed && pressedFeedback]}>
-            <Text style={styles.viewSelectText}>{VIEW_LABEL[view]}</Text>
-            <Icon name="chevron-down" size={18} color={theme.textPrimary} />
-          </Pressable>
-          <View style={styles.headerButton} />
-        </View>
-
-        {/* Streak chips */}
-        <View style={styles.chips}>
-          <View style={styles.chip}>
-            <Icon name="warm-up" size={16} color="#F4823B" />
-            <Text style={styles.chipText}><Text style={styles.chipValue}>{weekStreak}</Text> week streak</Text>
-          </View>
-          <View style={styles.chip}>
-            <Icon name="theme-dark" size={15} color={theme.slate} />
-            <Text style={styles.chipText}><Text style={styles.chipValue}>{restDays}</Text> rest day{restDays === 1 ? '' : 's'}</Text>
-          </View>
-        </View>
+        <SettingsDetailHeader
+          title="Calendar"
+          navigation={navigation}
+          elevated={elevated}
+          rightAction={
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Calendar view: ${VIEW_LABEL[view]}. Change`}
+              onPress={() => setViewMenuOpen(true)}
+              style={({ pressed }) => [styles.viewSelect, pressed && pressedFeedback]}
+            >
+              <Text style={styles.viewSelectText}>{VIEW_LABEL[view]}</Text>
+              <Icon name="chevron-down" size={16} color={theme.textPrimary} />
+            </Pressable>
+          }
+        />
 
         <ScrollView
           ref={scrollRef}
           style={styles.scroll}
           contentContainerStyle={[styles.content, { paddingBottom: 24 + bottomInset }]}
           showsVerticalScrollIndicator={false}
+          onScroll={(e) => setElevated(e.nativeEvent.contentOffset.y > 1)}
+          scrollEventThrottle={16}
         >
           {view === 'month' ? (
             months.map(({ year, month }) => {
@@ -239,16 +216,15 @@ export function CalendarScreen({ navigation }: Props) {
         </ScrollView>
       </View>
 
-      <ForgeActionSheet
+      <ForgeSelectionSheet
         visible={viewMenuOpen}
         onClose={() => setViewMenuOpen(false)}
         accessibilityLabel="Close view options"
         title="Calendar view"
-        actions={(['month', 'year', 'multi'] as CalendarView[]).map((v) => ({
-          label: VIEW_LABEL[v],
-          icon: v === view ? ('check' as const) : ('calendar' as const),
-          onPress: () => { setView(v); scrolledRef.current = false; },
-        }))}
+        selectedTone="success"
+        options={(['month', 'year', 'multi'] as CalendarView[]).map((v) => ({ value: v, label: VIEW_LABEL[v] }))}
+        selectedValue={view}
+        onSelect={(v) => { setView(v); scrolledRef.current = false; }}
       />
     </AppScreen>
   );
@@ -289,14 +265,8 @@ function MiniMonth({ label, year, month, weekStart, byDay, theme, styles, cell, 
 
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   screen: { flex: 1 },
-  header: { height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12 },
-  headerButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  viewSelect: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-  viewSelectText: { ...typeScale.cardTitle, color: theme.textPrimary },
-  chips: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingTop: 2, paddingBottom: 12 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 11, height: 30, borderRadius: 15, backgroundColor: theme.surface },
-  chipText: { ...typeScale.caption, color: theme.textSecondary },
-  chipValue: { color: theme.textPrimary, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  viewSelect: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 12, height: 34, borderRadius: 17, backgroundColor: theme.surfaceMuted },
+  viewSelectText: { ...typeScale.label, color: theme.textPrimary, fontWeight: '600' },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 4 },
   monthSection: { paddingBottom: 14 },
@@ -304,8 +274,8 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   monthWeekHead: { flexDirection: 'row', marginBottom: 4 },
   monthWeekHeadText: { flex: 1, textAlign: 'center', color: theme.muted, fontSize: 11, lineHeight: 14 },
   weekRow: { flexDirection: 'row' },
-  dayCell: { flex: 1, height: 42, alignItems: 'center', justifyContent: 'center' },
-  dayCircle: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  dayCell: { flex: 1, height: 46, alignItems: 'center', justifyContent: 'center' },
+  dayCircle: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   dayNum: { fontSize: 15, lineHeight: 18, color: theme.textPrimary, fontVariant: ['tabular-nums'] },
   dayNumOn: { color: '#FFFFFF', fontWeight: '700' },
   dayMulti: { position: 'absolute', bottom: 2, width: 3.5, height: 3.5, borderRadius: 2, backgroundColor: '#FFFFFF' },

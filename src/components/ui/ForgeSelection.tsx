@@ -187,6 +187,7 @@ interface ForgeSelectionSheetProps<T extends SelectionValue> {
   selectedValue: T;
   onSelect: (value: T) => void;
   maxVisibleRows?: number;
+  selectedTone?: 'neutral' | 'success';
   testID?: string;
   listTestID?: string;
 }
@@ -201,6 +202,7 @@ export function ForgeSelectionSheet<T extends SelectionValue>({
   selectedValue,
   onSelect,
   maxVisibleRows = DEFAULT_MAX_VISIBLE_ROWS,
+  selectedTone = 'neutral',
   testID,
   listTestID,
 }: ForgeSelectionSheetProps<T>) {
@@ -225,6 +227,7 @@ export function ForgeSelectionSheet<T extends SelectionValue>({
               testID={listTestID}
               options={options}
               selectedValue={selectedValue}
+              selectedTone={selectedTone}
               maxVisibleRows={maxVisibleRows}
               onSelect={(value) => {
                 onSelect(value);
