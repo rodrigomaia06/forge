@@ -148,11 +148,25 @@ export function restStats(
 // Consistency — session count per day for the trailing weeks (column-major).
 // ---------------------------------------------------------------------------
 export interface Consistency {
-  /** windowWeeks*7 values, column by column (each column a week, top→bottom = weekdays). */
+  /**
+   * windowWeeks*7 values, column by column (each column a week, top→bottom =
+   * weekdays). A cell is that day's training load (completed sets); 0 = rest,
+   * -1 = a future day. The grid colours load *relative* to `maxDayLoad`, so the
+   * gradient spreads to a typical trainer instead of everyone sitting on level 1.
+   */
   cells: number[];
   weeks: number;
   sessions: number;
   activeDays: number;
+  /** Busiest day's load in the window, for relative colour scaling. */
+  maxDayLoad: number;
+}
+function completedSetCount(workout: Workout): number {
+  let n = 0;
+  for (const exercise of workout.exercises) {
+    for (const set of exercise.sets) if (set.completed) n += 1;
+  }
+  return n;
 }
 export function consistency(
   completedWorkouts: readonly Workout[],
@@ -161,27 +175,33 @@ export function consistency(
   weekStartsOn: WeekStartsOn = 1,
 ): Consistency {
   const gridStart = startOfWeek(addDays(startOfWeek(now, weekStartsOn), -(windowWeeks - 1) * 7), weekStartsOn);
-  const perDay = new Map<number, number>();
+  const loadPerDay = new Map<number, number>();
   let sessions = 0;
   for (const workout of completedWorkouts) {
     const day = new Date(completedAt(workout));
     const key = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime();
     if (key < gridStart.getTime()) continue;
-    perDay.set(key, (perDay.get(key) ?? 0) + 1);
+    // A day with a logged workout counts as active even with zero completed
+    // sets (e.g. a cardio session), so floor its load at 1.
+    loadPerDay.set(key, (loadPerDay.get(key) ?? 0) + Math.max(1, completedSetCount(workout)));
     sessions += 1;
   }
   const cells: number[] = [];
   let activeDays = 0;
+  let maxDayLoad = 0;
   for (let week = 0; week < windowWeeks; week += 1) {
     for (let d = 0; d < 7; d += 1) {
       const date = addDays(gridStart, week * 7 + d);
       const key = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-      const count = date.getTime() > now.getTime() ? -1 : (perDay.get(key) ?? 0); // -1 = future
-      if (count > 0) activeDays += 1;
-      cells.push(count);
+      const load = date.getTime() > now.getTime() ? -1 : (loadPerDay.get(key) ?? 0); // -1 = future
+      if (load > 0) {
+        activeDays += 1;
+        maxDayLoad = Math.max(maxDayLoad, load);
+      }
+      cells.push(load);
     }
   }
-  return { cells, weeks: windowWeeks, sessions, activeDays };
+  return { cells, weeks: windowWeeks, sessions, activeDays, maxDayLoad };
 }
 
 // ---------------------------------------------------------------------------

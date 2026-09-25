@@ -136,11 +136,12 @@ export function DashboardMuscleBalanceTile({ data, windowWeeks }: { data: { grou
 
 /** Activity levels for the contribution grid, GitHub-style but Forge green. */
 const CONSISTENCY_RAMP = [0.32, 0.55, 0.78, 1] as const;
-function consistencyLevel(count: number): number {
-  if (count <= 0) return 0;
-  if (count === 1) return 1;
-  if (count === 2) return 2;
-  return count === 3 ? 3 : 4;
+/** Bucket a day's load into 1..4 relative to the window's busiest day. */
+function consistencyLevel(load: number, maxLoad: number): number {
+  if (load <= 0) return 0;
+  if (maxLoad <= 1) return 4; // a single active day (or all equal) reads as "full"
+  const frac = load / maxLoad;
+  return Math.min(4, Math.max(1, Math.ceil(frac * 4)));
 }
 
 export function DashboardConsistencyTile({ data }: { data: Consistency }) {
@@ -148,9 +149,9 @@ export function DashboardConsistencyTile({ data }: { data: Consistency }) {
   const styles = useThemedStyles(createStyles);
   const reducedMotion = useForgeReducedMotion();
   const activity = theme.success;
-  const cellColor = (count: number): string => {
-    if (count < 0) return 'transparent'; // future day
-    const level = consistencyLevel(count);
+  const cellColor = (load: number): string => {
+    if (load < 0) return 'transparent'; // future day
+    const level = consistencyLevel(load, data.maxDayLoad);
     if (level === 0) return theme.surfaceMuted;
     return hexToRgba(activity, CONSISTENCY_RAMP[level - 1]);
   };
