@@ -666,7 +666,7 @@ function RoutineTypePicker({
               ]}
             >
               <View style={[styles.choiceDot, { backgroundColor: type.color }]} />
-              <Text style={[styles.typeChoiceText, selected && { fontWeight: '700' }]}>{type.name}</Text>
+              <Text style={styles.typeChoiceText}>{type.name}</Text>
               {selected && <Icon name="check" size={17} color={theme.selectionIndicator} weight="bold" />}
             </Pressable>
           );

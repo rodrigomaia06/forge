@@ -194,8 +194,10 @@ export function CalendarScreen({ navigation }: Props) {
                     }
                   }}
                 >
-                  {flashKey === `${year}-${month}` ? <MonthFlash color={theme.selected ?? theme.successSurface} /> : null}
-                  <Text style={styles.monthTitle}>{MONTHS[month]} {year}</Text>
+                  <View style={styles.monthTitleWrap}>
+                    {flashKey === `${year}-${month}` ? <MonthFlash color={theme.selected ?? theme.successSurface} /> : null}
+                    <Text style={styles.monthTitle}>{MONTHS[month]} {year}</Text>
+                  </View>
                   <View style={styles.monthWeekHead}>
                     {Array.from({ length: 7 }, (_, i) => <Text key={i} style={styles.monthWeekHeadText}>{WEEKDAY_LETTERS[(weekStart + i) % 7]}</Text>)}
                   </View>
@@ -269,7 +271,7 @@ export function CalendarScreen({ navigation }: Props) {
                     }}
                     style={({ pressed }) => [styles.dropdownItem, pressed && { backgroundColor: theme.pressed }]}
                   >
-                    <Text style={[styles.dropdownText, active && { fontWeight: '700' }]}>{VIEW_LABEL[v]}</Text>
+                    <Text style={styles.dropdownText}>{VIEW_LABEL[v]}</Text>
                     {active ? <Icon name="check" size={18} color={theme.textPrimary} weight="bold" /> : null}
                   </Pressable>
                 );
@@ -293,7 +295,7 @@ function MonthFlash({ color }: { color: string }) {
   return (
     <Animated.View
       pointerEvents="none"
-      style={[{ position: 'absolute', top: -6, left: -4, right: -4, bottom: 2, backgroundColor: color, borderRadius: 14 }, style]}
+      style={[{ position: 'absolute', top: -5, left: -12, right: -12, bottom: -5, backgroundColor: color, borderRadius: 12 }, style]}
     />
   );
 }
@@ -312,7 +314,10 @@ function MiniMonth({ label, year, month, weekStart, colorFor, onPress, theme, st
       accessibilityLabel={`${label} ${year}`}
       onPress={() => onPress(year, month)}
     >
-      <Text style={styles.miniMonthLabel}>{label}</Text>
+      <View style={styles.miniMonthHead}>
+        <Text style={styles.miniMonthLabel}>{label}</Text>
+        <Icon name="chevron-forward" size={13} color={theme.slate} />
+      </View>
       <View style={[styles.miniGrid, { gap }]}>
         {weeks.map((week, wi) => (
           <View key={wi} style={{ gap }}>
@@ -341,14 +346,15 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   screen: { flex: 1 },
   viewSelect: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 14, height: 40, borderRadius: 20, backgroundColor: theme.surfaceMuted },
   viewSelectText: { ...typeScale.controlLabel, color: theme.textPrimary },
-  dropdown: { position: 'absolute', top: 64, right: 16, minWidth: 168, borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', padding: 6, shadowOpacity: 0.22, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 14, zIndex: 20 },
+  dropdown: { position: 'absolute', top: 64, right: 16, minWidth: 150, borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', padding: 6, shadowOpacity: 0.22, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 14, zIndex: 20 },
   dropdownItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 12, height: 44, borderRadius: 12 },
   dropdownText: { ...typeScale.controlLabel, color: theme.textPrimary },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 4 },
   loading: { paddingVertical: 80, alignItems: 'center', justifyContent: 'center' },
   monthSection: { paddingBottom: 14 },
-  monthTitle: { ...typeScale.sectionTitle, color: theme.textPrimary, marginTop: 12, marginBottom: 6 },
+  monthTitleWrap: { alignSelf: 'flex-start', position: 'relative', marginTop: 12, marginBottom: 24 },
+  monthTitle: { ...typeScale.sectionTitle, color: theme.textPrimary },
   monthWeekHead: { flexDirection: 'row', marginBottom: 4 },
   monthWeekHeadText: { flex: 1, textAlign: 'center', color: theme.muted, fontSize: 11, lineHeight: 14 },
   weekRow: { flexDirection: 'row' },
@@ -361,6 +367,7 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   yearTitle: { ...typeScale.sectionTitle, color: theme.textPrimary, marginBottom: 12, alignSelf: 'flex-start' },
   miniGridWrap: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 20, width: '100%' },
   miniMonth: { width: '30%', gap: 8, alignItems: 'center', borderRadius: 12, paddingVertical: 4 },
-  miniMonthLabel: { ...typeScale.controlLabel, color: theme.textPrimary, alignSelf: 'flex-start' },
+  miniMonthHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' },
+  miniMonthLabel: { ...typeScale.controlLabel, color: theme.textPrimary },
   miniGrid: { flexDirection: 'row' },
 });

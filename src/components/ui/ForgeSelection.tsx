@@ -165,7 +165,6 @@ function ForgeSelectionRow<T extends SelectionValue>({
           style={[
             styles.selectionLabel,
             option.emphasized && styles.selectionLabelEmphasized,
-            selected && { fontWeight: '700' },
             { color: theme.textPrimary },
           ]}
         >

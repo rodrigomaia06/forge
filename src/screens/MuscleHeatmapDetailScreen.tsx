@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, UIManager, View } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -135,12 +136,16 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
           scrollEventThrottle={16}
         >
           {editing ? (
-            <Segmented options={WINDOWS} value={windowDays} onChange={(v) => setView({ windowDays: v })} format={(v) => trendDayLabel(v)} />
+            <Animated.View entering={reducedMotion ? undefined : FadeIn.duration(200)} exiting={reducedMotion ? undefined : FadeOut.duration(150)}>
+              <Segmented options={WINDOWS} value={windowDays} onChange={(v) => setView({ windowDays: v })} format={(v) => trendDayLabel(v)} />
+            </Animated.View>
           ) : null}
 
           <ForgeCard style={styles.figuresCard}>
             {editing ? (
-              <Segmented options={['male', 'female'] as const} value={gender} onChange={(v) => setView({ gender: v })} format={(v) => (v === 'male' ? 'Male' : 'Female')} />
+              <Animated.View entering={reducedMotion ? undefined : FadeIn.duration(200)} exiting={reducedMotion ? undefined : FadeOut.duration(150)}>
+                <Segmented options={['male', 'female'] as const} value={gender} onChange={(v) => setView({ gender: v })} format={(v) => (v === 'male' ? 'Male' : 'Female')} />
+              </Animated.View>
             ) : null}
             {anyData ? (
               <>
@@ -171,7 +176,11 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
             <View style={styles.rankHeader}>
               <Text style={styles.rankTitle}>Working sets by {breakdown === 'muscle' ? 'muscle' : 'group'}</Text>
               {editing ? (
-                <View style={styles.breakdownToggle}>
+                <Animated.View
+                  entering={reducedMotion ? undefined : FadeIn.duration(200)}
+                  exiting={reducedMotion ? undefined : FadeOut.duration(150)}
+                  style={styles.breakdownToggle}
+                >
                   {(['group', 'muscle'] as const).map((b) => {
                     const active = b === breakdown;
                     return (
@@ -187,7 +196,7 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
                       </Pressable>
                     );
                   })}
-                </View>
+                </Animated.View>
               ) : null}
             </View>
             {ranking.length ? ranking.map((r, i) => (

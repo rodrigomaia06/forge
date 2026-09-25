@@ -505,12 +505,15 @@ export function DashboardMeasurementsTile({
                     <View style={[styles.mDot, { backgroundColor: color }]} />
                     <Text style={styles.mName} numberOfLines={1}>{def.name}</Text>
                   </View>
-                  {s.delta !== null && s.delta !== 0 ? (
-                    <View style={[styles.trendPill, { backgroundColor: hexToRgba(color, 0.14) }]}>
-                      <Icon name={up ? 'arrow-up' : 'arrow-down'} size={12} color={color} />
-                      <Text style={[styles.trendText, { color }]}>{up ? '+' : ''}{formatMeasure(s.delta)}</Text>
-                    </View>
-                  ) : null}
+                  <View style={styles.mCardTopRight}>
+                    {s.delta !== null && s.delta !== 0 ? (
+                      <View style={[styles.trendPill, { backgroundColor: hexToRgba(color, 0.14) }]}>
+                        <Icon name={up ? 'arrow-up' : 'arrow-down'} size={12} color={color} />
+                        <Text style={[styles.trendText, { color }]}>{up ? '+' : ''}{formatMeasure(s.delta)}</Text>
+                      </View>
+                    ) : null}
+                    {onOpen ? <Icon name="chevron-forward" size={15} color={theme.muted} /> : null}
+                  </View>
                 </View>
                 <View style={styles.mCardValueWrap}>
                   <Text style={styles.mCardValue} numberOfLines={1}>{s.latest !== null ? formatMeasure(s.latest) : '—'}</Text>
@@ -733,6 +736,7 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   mCard: { backgroundColor: theme.surfaceMuted, borderRadius: 14, padding: 12, gap: 8 },
   mCardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   mCardName: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1, minWidth: 0 },
+  mCardTopRight: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 },
   mCardValueWrap: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
   mCardValue: { color: theme.ink, fontVariant: ['tabular-nums'], fontSize: 24, fontWeight: '800', letterSpacing: -0.4, lineHeight: 26 },
   mCardUnit: { color: theme.muted, ...typeScale.caption },
