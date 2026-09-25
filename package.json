@@ -29,7 +29,7 @@
     "@react-navigation/bottom-tabs": "^7.18.18",
     "@react-navigation/native": "^7.3.16",
     "@react-navigation/native-stack": "^7.18.8",
-    "@tabler/icons-react-native": "^3.46.0",
+    "@tabler/icons-react-native": "^3.48.0",
     "expo": "~57.0.22",
     "expo-asset": "~57.0.17",
     "expo-blur": "~57.0.3",
