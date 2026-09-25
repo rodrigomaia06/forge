@@ -156,7 +156,7 @@ function ForgeSelectionRow<T extends SelectionValue>({
         selected && (selectedTone === 'success'
           ? { backgroundColor: theme.successSurface }
           : rounded
-            ? { backgroundColor: theme.surfaceMuted }
+            ? { backgroundColor: theme.surfaceMuted, borderColor: theme.border }
             : null),
         pressed && pressedFeedback,
       ]}
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  selectionRowRounded: { height: 46, paddingHorizontal: 12, borderRadius: 12 },
+  selectionRowRounded: { height: 46, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: 'transparent' },
   selectionCopy: { flex: 1, minWidth: 0, gap: 2 },
   selectionLabel: { ...typeScale.body },
   selectionLabelEmphasized: { fontFamily: typeScale.display.fontFamily, fontWeight: '700' },

@@ -680,7 +680,7 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   block: { gap: 10 },
   calRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   calLeft: { flex: 1.4, minWidth: 0 },
-  calMonth: { color: theme.ink, ...typeScale.controlLabel, fontSize: 16, fontWeight: '700', marginBottom: 8 },
+  calMonth: { color: theme.ink, ...typeScale.controlLabel, fontSize: 18, fontWeight: '800', marginBottom: 8 },
   calGridHead: { flexDirection: 'row' },
   calGridHeadText: { flex: 1, textAlign: 'center', color: theme.muted, fontSize: 10, lineHeight: 14 },
   calGridRow: { flexDirection: 'row' },

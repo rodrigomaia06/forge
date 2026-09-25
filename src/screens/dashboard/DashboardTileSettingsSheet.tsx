@@ -170,6 +170,7 @@ export function DashboardTileSettingsSheet({
         compactTitle
         onClose={onClose}
       />
+      <View style={styles.headerDivider} />
       {/* Direct child ScrollView (not wrapped in an extra flex View) so the sheet
           surface caps it and it hugs-then-scrolls without dead space. See ADR 0005
           and PreviousSessionsContent. */}
@@ -339,6 +340,7 @@ export function DashboardTileSettingsSheet({
 }
 
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
+  headerDivider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.divider, marginBottom: 4 },
   bodyScroll: { flexShrink: 1 },
   body: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 40, gap: 12 },
   soloCard: { flexDirection: 'row', alignItems: 'center', gap: 8 },
