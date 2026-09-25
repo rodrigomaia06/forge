@@ -160,6 +160,7 @@ export function DashboardTileSettingsSheet({
       onClose={onClose}
       accessibilityLabel="Close card settings"
       initialOffset={360}
+      waitForContentLayoutBeforeEnter
     >
       {() => (
         <View style={styles.sheet}>
