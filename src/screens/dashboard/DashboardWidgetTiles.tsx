@@ -370,6 +370,7 @@ export function DashboardMeasurementTile({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const { editing } = useTileChrome();
   const [draft, setDraft] = React.useState('');
   const color = definition.color || (theme.selectionIndicator ?? theme.ink);
   const unit = definition.unit;
@@ -413,6 +414,7 @@ export function DashboardMeasurementTile({
       ) : (
         <Text style={styles.empty}>No readings yet — log your first below</Text>
       )}
+      {editing ? null : (
       <View style={styles.logRow}>
         <View style={[styles.logField, { borderColor: theme.border }]}>
           <TextInput
@@ -441,6 +443,7 @@ export function DashboardMeasurementTile({
           <Icon name="add" size={18} color={draft.trim() ? (theme.onActionPrimary ?? theme.surface) : theme.muted} />
         </Pressable>
       </View>
+      )}
     </View>
   );
 }
@@ -493,19 +496,17 @@ export function DashboardMeasurementsTile({
                     </View>
                   ) : null}
                 </View>
-                <View style={styles.mCardBody}>
-                  <View style={styles.mCardValueWrap}>
-                    <Text style={styles.mCardValue} numberOfLines={1}>{s.latest !== null ? formatMeasure(s.latest) : '—'}</Text>
-                    {def.unit ? <Text style={styles.mCardUnit}>{def.unit}</Text> : null}
-                  </View>
-                  <View style={styles.mCardSpark}>
-                    {s.values.length >= 2 ? (
-                      <ForgeLineChart data={s.values.map((v) => ({ value: v }))} height={38} color={color} showMarkers={false} />
-                    ) : (
-                      <Text style={styles.mCardHint}>{s.latest !== null ? 'Log more for a trend' : 'No readings yet'}</Text>
-                    )}
-                  </View>
+                <View style={styles.mCardValueWrap}>
+                  <Text style={styles.mCardValue} numberOfLines={1}>{s.latest !== null ? formatMeasure(s.latest) : '—'}</Text>
+                  {def.unit ? <Text style={styles.mCardUnit}>{def.unit}</Text> : null}
                 </View>
+                {s.values.length >= 2 ? (
+                  <View style={styles.mCardSpark}>
+                    <ForgeLineChart data={s.values.map((v) => ({ value: v }))} height={40} color={color} showMarkers={false} />
+                  </View>
+                ) : (
+                  <Text style={styles.mCardHint}>{s.latest !== null ? 'Log more for a trend' : 'No readings yet'}</Text>
+                )}
               </Pressable>
             );
           })}
@@ -600,11 +601,10 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   mCard: { backgroundColor: theme.surfaceMuted, borderRadius: 14, padding: 12, gap: 8 },
   mCardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   mCardName: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1, minWidth: 0 },
-  mCardBody: { flexDirection: 'row', alignItems: 'flex-end', gap: 12 },
-  mCardValueWrap: { flexDirection: 'row', alignItems: 'baseline', gap: 4, flexShrink: 0 },
-  mCardValue: { color: theme.ink, fontVariant: ['tabular-nums'], fontSize: 22, fontWeight: '800', letterSpacing: -0.4, lineHeight: 24 },
+  mCardValueWrap: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
+  mCardValue: { color: theme.ink, fontVariant: ['tabular-nums'], fontSize: 24, fontWeight: '800', letterSpacing: -0.4, lineHeight: 26 },
   mCardUnit: { color: theme.muted, ...typeScale.caption },
-  mCardSpark: { flex: 1, minWidth: 0, alignItems: 'flex-end', justifyContent: 'center' },
+  mCardSpark: { marginTop: 2 },
   mCardHint: { color: theme.muted, ...typeScale.caption },
   mEmpty: { alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 20 },
   mEmptyIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
