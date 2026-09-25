@@ -137,7 +137,9 @@ test.describe('Settings', () => {
     await page.getByLabel('Body weight value').fill('81.4');
     await page.getByRole('button', { name: 'Save measurement' }).click();
     await expect(page.getByText('81.4 kg').first()).toBeVisible();
-    await expect(page.getByText('TREND')).toBeVisible();
+    await expect(page.getByText('TREND', { exact: true })).toBeVisible();
+    // The swipe-to-delete hint only appears once editing is enabled.
+    await page.getByRole('button', { name: 'Edit measurements' }).click();
     await expect(page.getByText('Tap to edit · swipe to delete')).toBeVisible();
 
     await page.reload();
@@ -146,6 +148,7 @@ test.describe('Settings', () => {
     // Entering the destination never fades or translates its initial metric.
     await expect(page.getByTestId('measurements-active-metric')).toHaveCSS('opacity', '1');
     await expect(page.getByText('81.4 kg').first()).toBeVisible();
+    await page.getByRole('button', { name: 'Edit measurements' }).click();
     await expect(page.getByText('Tap to edit · swipe to delete')).toBeVisible();
   });
 

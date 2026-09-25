@@ -317,7 +317,7 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
         {preferences.dailyMeasurementDefinitions.length ? (
           <View style={styles.metricPickerSection}>
             <View style={styles.metricPickerHeading}>
-              <Text style={styles.metricPickerLabel}>METRICS</Text>
+              <Text style={styles.historyTitle}>Metrics</Text>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Add measure"
@@ -408,6 +408,12 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                   <Text style={styles.metricCardValue} numberOfLines={1}>{formatValue(latest.value, displayUnit)}</Text>
                   <View style={styles.metricCardDivider} />
                   <View style={styles.metricStatList}>
+                    {summaryStats.weekAverage ? (
+                      <View style={styles.metricStatRow}>
+                        <Text style={styles.metricStatKey}>7-day avg</Text>
+                        <Text style={styles.metricStatVal} numberOfLines={1}>{summaryStats.weekAverage}</Text>
+                      </View>
+                    ) : null}
                     <View style={styles.metricStatRow}>
                       <Text style={styles.metricStatKey}>{range}d change</Text>
                       <Text style={styles.metricStatVal} numberOfLines={1}>{trendDelta}</Text>
@@ -416,12 +422,6 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                       <View style={styles.metricStatRow}>
                         <Text style={styles.metricStatKey}>Rate</Text>
                         <Text style={styles.metricStatVal} numberOfLines={1}>{summaryStats.weeklyRate}</Text>
-                      </View>
-                    ) : null}
-                    {summaryStats.weekAverage ? (
-                      <View style={styles.metricStatRow}>
-                        <Text style={styles.metricStatKey}>7-day avg</Text>
-                        <Text style={styles.metricStatVal} numberOfLines={1}>{summaryStats.weekAverage}</Text>
                       </View>
                     ) : null}
                   </View>
@@ -439,30 +439,42 @@ export function DailyMeasurementsScreen({ navigation }: Props) {
                           onPress={() => { selectionHaptic(); setRange(value); }}
                           style={({ pressed }) => [
                             styles.rangeControl,
-                            range === value && { backgroundColor: theme.selected },
+                            range === value && styles.rangeControlActive,
                             pressed && pressedFeedback,
                           ]}
                         >
-                          <Text style={[styles.rangeText, range === value && { color: theme.selectedText }]}>{value}D</Text>
+                          <Text style={[styles.rangeText, range === value && styles.rangeTextActive]}>{value}D</Text>
                         </Pressable>
                       ))}
                     </View>
                   </View>
-                  <ForgeLineChart
-                    data={displayEntries.map((entry) => ({ value: entry.value }))}
-                    height={116}
-                    color={selected.color}
-                    showMarkers={displayEntries.length <= 12}
-                    showTrendLine={displayEntries.length >= 3}
-                  />
-                  <View style={[styles.chartFooter, displayEntries.length === 1 && styles.chartFooterCentered]}>
-                    {displayEntries.length > 1 ? (
-                      <Text style={styles.chartAxis}>{formatValue(Math.max(...displayEntries.map((e) => e.value)), displayUnit)}</Text>
-                    ) : null}
-                    {displayEntries.length > 1 ? (
-                      <Text style={styles.chartAxis}>{formatValue(Math.min(...displayEntries.map((e) => e.value)), displayUnit)}</Text>
-                    ) : null}
-                  </View>
+                  {displayEntries.length >= 2 ? (
+                    <>
+                      <ForgeLineChart
+                        data={displayEntries.map((entry) => ({ value: entry.value }))}
+                        height={116}
+                        color={selected.color}
+                        showMarkers={displayEntries.length <= 12}
+                        showTrendLine={displayEntries.length >= 3}
+                      />
+                      <View style={styles.chartFooter}>
+                        <Text style={styles.chartAxis}>{formatValue(Math.max(...displayEntries.map((e) => e.value)), displayUnit)}</Text>
+                        <Text style={styles.chartAxis}>{formatValue(Math.min(...displayEntries.map((e) => e.value)), displayUnit)}</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <View style={styles.trendEmpty}>
+                      <View style={[styles.trendEmptyGlyph, { backgroundColor: `${selected.color}1F` }]}>
+                        <Icon name="hourglass" size={22} color={selected.color} />
+                      </View>
+                      <Text style={styles.trendEmptyTitle}>No trend yet</Text>
+                      <Text style={styles.trendEmptyBody}>
+                        {historyEntries.length <= 1
+                          ? 'One entry logged. Add another to plot your trend.'
+                          : `Log a measurement in the last ${range} days to see the trend.`}
+                      </Text>
+                    </View>
+                  )}
                 </ForgeCard>
               </View>
             ) : (
@@ -698,12 +710,26 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   metricTitle: { ...typeScale.headerTitle, color: theme.textPrimary },
   metricSubtitle: { ...typeScale.supporting, color: theme.textSecondary, marginTop: 1 },
   chartEyebrow: { ...typeScale.caption, color: theme.textSecondary, letterSpacing: 0.8 },
-  rangeControls: { flexDirection: 'row', padding: 3, gap: 2, borderRadius: 12, backgroundColor: theme.surfaceMuted },
-  rangeControl: { minWidth: 34, minHeight: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  rangeControls: { flexDirection: 'row', padding: 3, gap: 2, borderRadius: 12, backgroundColor: isDark ? theme.surface : theme.surfaceMuted },
+  rangeControl: { minWidth: 34, minHeight: 30, borderRadius: 9, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
+  rangeControlActive: {
+    backgroundColor: isDark ? theme.divider : theme.surfaceElevated,
+    borderWidth: isDark ? 0 : StyleSheet.hairlineWidth,
+    borderColor: theme.border,
+    shadowColor: '#000',
+    shadowOpacity: isDark ? 0.3 : 0.12,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
+  },
   rangeText: { ...typeScale.caption, color: theme.textSecondary },
+  rangeTextActive: { color: theme.textPrimary, fontWeight: '700' },
   chartFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 6 },
-  chartFooterCentered: { justifyContent: 'center' },
   chartAxis: { ...typeScale.caption, color: theme.textSecondary },
+  trendEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 9, paddingVertical: 24 },
+  trendEmptyGlyph: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  trendEmptyTitle: { ...typeScale.controlLabel, color: theme.textPrimary },
+  trendEmptyBody: { ...typeScale.caption, color: theme.textSecondary, textAlign: 'center', maxWidth: 210, lineHeight: 17 },
   summaryRow: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
   metricCard: { width: 150, padding: 14, gap: 8 },
   metricCardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
@@ -714,7 +740,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   metricStatList: { gap: 7 },
   metricStatRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
   metricStatKey: { ...typeScale.caption, color: theme.textSecondary, flexShrink: 0 },
-  metricStatVal: { fontSize: 14, fontWeight: '700', color: theme.textPrimary, fontVariant: ['tabular-nums'], flexShrink: 1, textAlign: 'right' },
+  metricStatVal: { fontSize: 13, fontWeight: '700', color: theme.textPrimary, fontVariant: ['tabular-nums'], flexShrink: 1, textAlign: 'right' },
   metricCardStatLabel: { ...typeScale.caption, color: theme.textSecondary },
   trendCard: { flex: 1, padding: 14, gap: 8 },
   trendHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
@@ -731,7 +757,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   historyValue: { flex: 1, textAlign: 'right', ...typeScale.cardTitle, color: theme.textPrimary },
   metricPickerSection: { gap: 9 },
   metricPickerHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  metricPickerLabel: { ...typeScale.caption, color: theme.textSecondary, letterSpacing: 0.9 },
   addMetricInline: { minHeight: 30, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 9 },
   addMetricInlineText: { ...typeScale.label, color: theme.textPrimary },
   metricPickerContent: { gap: 10, paddingRight: settingsLayout.screenPadding },
