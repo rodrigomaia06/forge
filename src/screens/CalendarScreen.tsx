@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -8,6 +8,7 @@ import { AppScreen, ForgeText as Text, Icon, pressedFeedback, selectionHaptic } 
 import { SettingsDetailHeader } from './settings/SettingsScreenChrome';
 import { useWorkouts } from '../state/WorkoutContext';
 import { useSettings } from '../state/SettingsContext';
+import { useForgeReducedMotion } from '../theme/motion';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
@@ -49,6 +50,7 @@ function weekStartDate(date: Date, weekStart: number): Date {
 export function CalendarScreen({ navigation }: Props) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const reducedMotion = useForgeReducedMotion();
   const { bottom: bottomInset } = useSafeAreaInsets();
   const { completedWorkouts } = useWorkouts();
   const { preferences } = useSettings();
@@ -222,7 +224,11 @@ export function CalendarScreen({ navigation }: Props) {
         {viewMenuOpen ? (
           <>
             <Pressable accessibilityRole="button" accessibilityLabel="Dismiss view options" onPress={() => setViewMenuOpen(false)} style={StyleSheet.absoluteFill} />
-            <Animated.View entering={FadeIn.duration(140)} style={[styles.dropdown, { backgroundColor: theme.surfaceElevated, borderColor: theme.border, shadowColor: theme.shadow }]}>
+            <Animated.View
+              entering={reducedMotion ? undefined : FadeIn.duration(140)}
+              exiting={reducedMotion ? undefined : FadeOut.duration(120)}
+              style={[styles.dropdown, { backgroundColor: theme.surfaceElevated, borderColor: theme.border, shadowColor: theme.shadow }]}
+            >
               {(['month', 'year'] as CalendarView[]).map((v) => {
                 const active = v === view;
                 return (

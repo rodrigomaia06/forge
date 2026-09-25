@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { LayoutAnimation, Platform, Pressable, StyleSheet, UIManager, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
@@ -67,6 +67,14 @@ export function SwipeToDeleteRow({
     setRevealed(false);
     open.value = false;
     translateX.value = 0;
+    // Collapse the row's height and fade siblings up rather than letting them jump.
+    if (!reducedMotion && Platform.OS !== 'web') {
+      if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental)
+        UIManager.setLayoutAnimationEnabledExperimental(true);
+      LayoutAnimation.configureNext(
+        LayoutAnimation.create(forgeMotion.feedback, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity),
+      );
+    }
     onDelete();
   };
 

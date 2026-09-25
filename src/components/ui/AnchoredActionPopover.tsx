@@ -1,7 +1,9 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { dashboardTheme } from '../../theme/dashboardTheme';
+import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
 import type { IconName } from '../../types';
@@ -27,11 +29,20 @@ export function AnchoredActionPopover({
   testID?: string;
 }) {
   const theme = useForgeTheme();
-  if (!visible) return null;
+  const reducedMotion = useForgeReducedMotion();
+  // The overlay stays mounted so the popover's exit animation can play; only its
+  // contents toggle. `box-none` lets touches pass through when nothing is shown.
   return (
     <View style={[StyleSheet.absoluteFill, styles.pointerEventsBoxNone]}>
+      {visible ? (
+        <>
       <Pressable accessibilityRole="button" accessibilityLabel="Dismiss actions" onPress={onClose} style={StyleSheet.absoluteFill} />
-      <View testID={testID} style={[styles.popover, { backgroundColor: theme.surfaceElevated, borderColor: theme.border, shadowColor: theme.shadow }]}>
+      <Animated.View
+        testID={testID}
+        entering={reducedMotion ? undefined : FadeIn.duration(forgeMotion.state)}
+        exiting={reducedMotion ? undefined : FadeOut.duration(forgeMotion.feedback)}
+        style={[styles.popover, { backgroundColor: theme.surfaceElevated, borderColor: theme.border, shadowColor: theme.shadow }]}
+      >
         {actions.map((action, index) => (
           <React.Fragment key={action.label}>
             <Pressable
@@ -50,7 +61,9 @@ export function AnchoredActionPopover({
             {index < actions.length - 1 && <View style={[styles.divider, { backgroundColor: theme.divider }]} />}
           </React.Fragment>
         ))}
-      </View>
+      </Animated.View>
+        </>
+      ) : null}
     </View>
   );
 }

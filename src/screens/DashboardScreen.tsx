@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { InteractionManager, Pressable, StyleSheet, View } from 'react-native';
+import { InteractionManager, LayoutAnimation, Platform, Pressable, StyleSheet, UIManager, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -125,6 +125,17 @@ export function DashboardScreen() {
   const [editing, setEditing] = useState(false);
   const [addTileOpen, setAddTileOpen] = useState(false);
   const [settingsTileId, setSettingsTileId] = useState<string | null>(null);
+  const reducedMotion = useForgeReducedMotion();
+  // Smoothly reflow the tile list when a tile is added/removed or edit mode
+  // reveals its affordances, instead of letting the remaining tiles jump.
+  const reflowTiles = () => {
+    if (reducedMotion || Platform.OS === 'web') return;
+    if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental)
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    LayoutAnimation.configureNext(
+      LayoutAnimation.create(forgeMotion.transition, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity),
+    );
+  };
 
   const measurementDefById = useMemo(
     () => new Map(preferences.dailyMeasurementDefinitions.map((def) => [def.id, def])),
@@ -224,12 +235,14 @@ export function DashboardScreen() {
     setLayout([...nextVisible, ...layout.filter((tile) => !tile.visible)]);
   const hideTile = (id: string) => {
     selectionHaptic();
+    reflowTiles();
     setLayout(layout.map((tile) => (tile.id === id ? { ...tile, visible: false } : tile)));
   };
   // Upserts a tile by id: re-shows a hidden one, or appends a brand-new one
   // (e.g. a measurement tile that has no prior layout entry).
   const addTile = (config: DashboardTileConfig) => {
     selectionHaptic();
+    reflowTiles();
     setLayout([
       ...layout.filter((tile) => tile.id !== config.id),
       { ...config, visible: true },
@@ -403,6 +416,7 @@ export function DashboardScreen() {
               editing={editing}
               onToggleEdit={() => {
                 lightHaptic();
+                reflowTiles();
                 setEditing((current) => !current);
               }}
             />

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, UIManager, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -11,6 +11,7 @@ import { muscleBalance, muscleBalanceByMuscle, muscleHeatBySlug, MUSCLES_BY_GROU
 import { useWorkouts } from '../state/WorkoutContext';
 import { useSettings } from '../state/SettingsContext';
 import { TREND_DAY_OPTIONS, trendDayLabel } from '../domain/trends';
+import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
@@ -38,7 +39,20 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
   const { windowDays, gender, breakdown } = view;
   const [editing, setEditing] = useState(false);
   const [elevated, setElevated] = useState(false);
+  const reducedMotion = useForgeReducedMotion();
   const accent = HEATMAP_ACCENT;
+  const toggleEditing = (next: boolean) => {
+    selectionHaptic();
+    // Reveal/hide the edit controls and reflow the cards in one smooth pass.
+    if (!reducedMotion && Platform.OS !== 'web') {
+      if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental)
+        UIManager.setLayoutAnimationEnabledExperimental(true);
+      LayoutAnimation.configureNext(
+        LayoutAnimation.create(forgeMotion.transition, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity),
+      );
+    }
+    setEditing(next);
+  };
   const setView = (patch: Partial<MuscleHeatmapView>) => {
     selectionHaptic();
     updatePreferences({ muscleHeatmap: { ...view, ...patch } });
@@ -93,7 +107,7 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Done editing"
-                onPress={() => { selectionHaptic(); setEditing(false); }}
+                onPress={() => toggleEditing(false)}
                 style={({ pressed }) => [styles.donePill, pressed && { opacity: 0.7 }]}
               >
                 <Icon name="check" size={22} color={theme.textPrimary} weight="bold" />
@@ -107,7 +121,7 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
                   iconOnly
                   variant="ghost"
                   style={joinedHeaderAction}
-                  onPress={() => { selectionHaptic(); setEditing(true); }}
+                  onPress={() => toggleEditing(true)}
                 />
               </HeaderActionGroup>
             )

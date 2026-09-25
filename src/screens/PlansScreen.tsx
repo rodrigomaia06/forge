@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Image, LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, UIManager, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -57,6 +57,16 @@ export function PlansScreen({ navigation, route }: Props) {
   const [creationOpen, setCreationOpen] = useState(false);
   const [actionTarget, setActionTarget] = useState<PlanActionTarget | null>(null);
   const [headerElevated, setHeaderElevated] = useState(false);
+  const reducedMotion = useForgeReducedMotion();
+  // Animate the list reflow when a plan/routine row is created or deleted.
+  const reflowRows = (): void => {
+    if (reducedMotion || Platform.OS === 'web') return;
+    if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental)
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    LayoutAnimation.configureNext(
+      LayoutAnimation.create(forgeMotion.transition, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity),
+    );
+  };
   const usesCompactCreationSheet = width < 768;
   const handlePlansScrollOffset = useCallback((offset: number): void => {
     setHeaderElevated(offset > 1);
@@ -101,7 +111,16 @@ export function PlansScreen({ navigation, route }: Props) {
     setActionTarget({ kind: 'routine', item: routine });
   };
   const addPlan = (): void => {
+    reflowRows();
     createPlan();
+  };
+  const removePlan = (id: string): void => {
+    reflowRows();
+    deletePlan(id);
+  };
+  const removeRoutine = (id: string): void => {
+    reflowRows();
+    deleteRoutine(id);
   };
   const startBlankWorkout = (): void => {
     selectionHaptic();
@@ -147,7 +166,7 @@ export function PlansScreen({ navigation, route }: Props) {
                       accessibilityLabel={`Delete ${routine.name}`}
                       testID={`routine-swipe-${routine.id}`}
                       onOpen={() => routineActions(routine)}
-                      onDelete={() => deleteRoutine(routine.id)}
+                      onDelete={() => removeRoutine(routine.id)}
                     >
                       {(handleOpen) => (
                         <RoutineRow
@@ -173,12 +192,12 @@ export function PlansScreen({ navigation, route }: Props) {
                 onAddRoutine={() => addRoutine(plan.id)}
                 onOpenRoutine={routineActions}
                 onStartRoutine={startRoutine}
-                onDeleteRoutine={(routine) => deleteRoutine(routine.id)}
+                onDeleteRoutine={(routine) => removeRoutine(routine.id)}
                 onOptions={(item) => {
                   lightHaptic();
                   setActionTarget({ kind: 'plan', item });
                 }}
-                onDelete={() => deletePlan(plan.id)}
+                onDelete={() => removePlan(plan.id)}
               />
             </View>
           ))}
@@ -244,7 +263,7 @@ export function PlansScreen({ navigation, route }: Props) {
                       label: 'Delete plan',
                       icon: 'trash',
                       tone: 'destructive' as const,
-                      onPress: () => deletePlan(actionTarget.item.id),
+                      onPress: () => removePlan(actionTarget.item.id),
                     },
                   ]
                 : []
