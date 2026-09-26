@@ -79,7 +79,7 @@ export function ForgeConfirmationDialog({
             <Button
               accessibilityLabel={confirmLabel}
               label={confirmLabel}
-              variant="outline"
+              variant="primary"
               tone={confirmTone}
               onPress={onConfirm}
               haptic="medium"

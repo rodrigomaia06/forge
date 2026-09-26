@@ -118,6 +118,9 @@ const styles = StyleSheet.create({
 function foregroundFor(tone: NonNullable<ButtonProps['tone']>, primary: boolean, theme: ForgeTheme): string {
   if (primary && tone === 'neutral') return theme.onActionPrimary;
   if (primary && tone === 'success') return theme.onSuccess;
+  // A solid destructive (primary) button takes contrasting text; the tinted
+  // variants keep the bright-red label on their soft fill.
+  if (primary && tone === 'destructive') return theme.onActionPrimary;
   if (tone === 'destructive') return theme.textDestructive;
   if (tone === 'success') return theme.success;
   return theme.textPrimary;
@@ -132,7 +135,7 @@ function buttonSurface(
   if (variant === 'primary') {
     if (tone === 'neutral') return { backgroundColor: theme.actionPrimary, borderColor: theme.actionPrimary };
     if (tone === 'success') return { backgroundColor: theme.success, borderColor: theme.success };
-    if (tone === 'destructive') return { backgroundColor: theme.destructiveSurface, borderColor: theme.textDestructive };
+    if (tone === 'destructive') return { backgroundColor: theme.textDestructive, borderColor: theme.textDestructive };
     return { backgroundColor: theme.surfaceElevated, borderColor: theme.border };
   }
   if (variant === 'outline') {
@@ -156,6 +159,8 @@ function pressedSurface(
   tone: NonNullable<ButtonProps['tone']>,
   theme: ForgeTheme,
 ): ViewStyle {
+  // The solid destructive button darkens by dimming; the tinted ones deepen.
+  if (variant === 'primary' && tone === 'destructive') return { opacity: 0.82 };
   if (tone === 'destructive') return { backgroundColor: theme.destructiveSurfacePressed };
   if (tone === 'success' && variant === 'outline') return { backgroundColor: theme.successSurfacePressed };
   if (variant === 'ghost') return { backgroundColor: theme.pressed };
