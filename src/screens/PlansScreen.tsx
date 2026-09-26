@@ -159,12 +159,13 @@ export function PlansScreen({ navigation, route }: Props) {
     reflowRows();
     createPlan();
   };
+  // No reflowRows here: deletion happens in edit mode over the DraggableFlatList
+  // (whose reanimated cells conflict with LayoutAnimation), and SwipeToDeleteRow
+  // already animates the row collapse itself.
   const removePlan = (id: string): void => {
-    reflowRows();
     deletePlan(id);
   };
   const removeRoutine = (id: string): void => {
-    reflowRows();
     deleteRoutine(id);
   };
   const startBlankWorkout = (): void => {
@@ -204,7 +205,6 @@ export function PlansScreen({ navigation, route }: Props) {
   const applyReorder = useCallback(
     (data: PlanFlatItem[], to: number): void => {
       if (!data[to]) return;
-      reflowRows();
       const flat: FlatReorderItem[] = data.map((item) => {
         switch (item.kind) {
           case 'routine':
@@ -220,7 +220,7 @@ export function PlansScreen({ navigation, route }: Props) {
       const { plans: planEntries, standaloneIds } = reconstructOrder(flat, to);
       reorderAll(planEntries, standaloneIds);
     },
-    [reorderAll, reflowRows],
+    [reorderAll],
   );
 
   const renderFlatItem = useCallback(
@@ -293,7 +293,7 @@ export function PlansScreen({ navigation, route }: Props) {
             {hasContent ? (
               <HeaderEditActions
                 editing={editing}
-                onToggleEdit={() => { lightHaptic(); reflowRows(); setEditing((value) => !value); }}
+                onToggleEdit={() => { lightHaptic(); setEditing((value) => !value); }}
                 onAdd={createMenu.open}
                 addRef={createMenu.ref}
                 editLabel="Edit plans"
