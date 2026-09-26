@@ -64,7 +64,7 @@ import {
 import type { IconName, IconWeight } from '../../types';
 
 /** The barbell reads best at a lighter weight than the rest of the set. */
-const BarbellThin = (props: SvgProps) => <IconBarbell {...props} strokeWidth={1} />;
+const BarbellThin = (props: SvgProps) => <IconBarbell {...props} strokeWidth={1.25} />;
 
 const iconMap: Record<IconName, React.ComponentType<SvgProps>> = {
   add: IconPlus,

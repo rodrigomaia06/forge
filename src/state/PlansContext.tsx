@@ -249,7 +249,7 @@ export function PlansProvider({ children }: ChildrenProps) {
       const copy = createRoutine({
         ...source,
         id: undefined,
-        name: `${source.name} copy`,
+        name: `${source.name} - copy`,
         planId: source.planId,
         exercises: source.exercises.map((exercise) => ({
           ...exercise,

@@ -113,7 +113,7 @@ test.describe('Plans and routines', () => {
     await expect(
       page.getByRole('button', { name: 'Routine actions for Options routine' }),
     ).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Open options for New plan' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Rename New plan' })).toBeVisible();
   });
 
   test('creates a routine only after Save, edits it, and starts it as a workout', async ({
@@ -145,29 +145,10 @@ test.describe('Plans and routines', () => {
     await expect(page.getByText('Upper body')).toBeVisible();
     await page.getByRole('button', { name: 'Routine actions for Upper body' }).click();
     const routineActions = page.getByTestId('plans-options-sheet');
-    await expect(routineActions.getByText('Routine options', { exact: true })).toBeVisible();
-    await expect
-      .poll(() =>
-        routineActions
-          .locator('[role="button"]')
-          .evaluateAll((buttons) =>
-            buttons
-              .map((button) => button.getAttribute('aria-label'))
-              .filter((label): label is string =>
-                ['Start', 'Edit', 'Visualize'].includes(label ?? ''),
-              ),
-          ),
-      )
-      .toEqual(['Start', 'Edit', 'Visualize']);
-    await expect(
-      routineActions.getByRole('button', { name: 'Visualize' }).locator('svg').first(),
-    ).toBeVisible();
-    await expect(
-      routineActions.getByRole('button', { name: 'Edit' }).locator('svg').first(),
-    ).toBeVisible();
-    await expect(
-      routineActions.getByRole('button', { name: 'Start' }).locator('svg').first(),
-    ).toBeVisible();
+    await expect(routineActions.getByText('Upper body', { exact: true })).toBeVisible();
+    for (const label of ['Start', 'Edit', 'Duplicate', 'Visualize']) {
+      await expect(routineActions.getByRole('button', { name: label, exact: true })).toBeVisible();
+    }
     await routineActions.getByRole('button', { name: 'Edit' }).click();
     await expect(routineActions).toHaveCount(0);
     await page.getByLabel('Routine name').fill('Upper body updated');
@@ -298,17 +279,10 @@ test.describe('Plans and routines', () => {
       .getByTestId('plans-creation-popover')
       .getByRole('button', { name: 'New workout plan' })
       .click();
-    await page.getByRole('button', { name: 'Open options for New plan' }).click();
-    const planOptions = page.getByTestId('plans-options-sheet');
-    await expect(planOptions.getByText('Plan options', { exact: true })).toBeVisible();
-    await expect(
-      planOptions.getByRole('button', { name: 'Add routine' }).locator('svg'),
-    ).toHaveCount(2);
-    await expect(
-      planOptions.getByRole('button', { name: 'Delete plan' }).locator('svg'),
-    ).toHaveCount(1);
-    await page.getByRole('button', { name: 'Dismiss plan options' }).click();
-    await expect(planOptions).toHaveCount(0);
+    // The plan card adds routines inline and renames the plan from its header;
+    // there is no options popup for so few actions.
+    await expect(page.getByRole('button', { name: 'Add routine to New plan' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Rename New plan' })).toBeVisible();
     const plan = page.locator('[data-testid^="plan-swipe-"]').first();
     await swipeLeftFrom(page, plan);
     const deletePlan = page.getByRole('button', { name: 'Delete New plan' });

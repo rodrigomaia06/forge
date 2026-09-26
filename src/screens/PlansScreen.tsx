@@ -8,13 +8,18 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 
+import type { ForgeActionSheetAction } from '../components/ui';
 import {
   AnchoredMenuActions,
   AppScreen,
   ForgeActionSheet,
   ForgeAnchoredMenu,
+  ForgeBackButton,
+  ForgeBottomSheetHandle,
   ForgeCard,
+  ForgeSheetHeader,
   ForgeText as Text,
+  ForgeTextInput,
   HeaderAction,
   HeaderEdge,
   Icon,
@@ -33,6 +38,7 @@ import { usePlans } from '../state/PlansContext';
 import { useSettings } from '../state/SettingsContext';
 import { useWorkouts } from '../state/WorkoutContext';
 import { routineExercisesWithNextSessionTargets } from '../domain/workouts/nextSessionTargets';
+import { getWorkoutTypePresentation } from '../domain/workouts/presentation';
 import type {
   IconName,
   RootTabScreenProps,
@@ -44,8 +50,6 @@ import { workoutTypeIcon } from './settings/workoutTypeIcon';
 import { useForgeDockScrollInset } from '../components/DockChrome';
 
 type Props = RootTabScreenProps<'Plans'>;
-type PlanActionTarget =
-  { kind: 'routine'; item: WorkoutRoutine } | { kind: 'plan'; item: WorkoutPlan };
 const swipeSpring = forgeMotion.swipeSpring;
 
 export function PlansScreen({ navigation, route }: Props) {
@@ -53,10 +57,11 @@ export function PlansScreen({ navigation, route }: Props) {
   const styles = useThemedStyles(createStyles);
   const dockScrollInset = useForgeDockScrollInset();
   const { preferences } = useSettings();
-  const { plans, standaloneRoutines, createPlan, deletePlan, deleteRoutine } = usePlans();
+  const { plans, standaloneRoutines, createPlan, deletePlan, deleteRoutine, duplicateRoutine, moveRoutine, updatePlan } = usePlans();
   const { startWorkout, completedWorkouts } = useWorkouts();
   const createMenu = useAnchoredMenu();
-  const [actionTarget, setActionTarget] = useState<PlanActionTarget | null>(null);
+  const [routineTarget, setRoutineTarget] = useState<WorkoutRoutine | null>(null);
+  const [moveMode, setMoveMode] = useState(false);
   const [headerElevated, setHeaderElevated] = useState(false);
   const reducedMotion = useForgeReducedMotion();
   // Animate the list reflow when a plan/routine row is created or deleted.
@@ -108,7 +113,42 @@ export function PlansScreen({ navigation, route }: Props) {
   };
   const routineActions = (routine: WorkoutRoutine): void => {
     lightHaptic();
-    setActionTarget({ kind: 'routine', item: routine });
+    setRoutineTarget(routine);
+  };
+  const renamePlan = (planId: string, name: string): void => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    updatePlan(planId, (plan) => ({ ...plan, name: trimmed }));
+  };
+  const duplicate = (routine: WorkoutRoutine): void => {
+    reflowRows();
+    duplicateRoutine(routine.id);
+  };
+  const move = (routine: WorkoutRoutine, planId?: string): void => {
+    reflowRows();
+    moveRoutine(routine.id, planId);
+  };
+  // Destinations a routine can move to: out to standalone (when it's in a plan)
+  // plus every other plan. Kept behind a single "Move to…" step so the option
+  // list stays short no matter how many plans exist.
+  const moveDestinations = (routine: WorkoutRoutine): { key: string; label: string; icon: IconName; planId?: string }[] => [
+    ...(routine.planId ? [{ key: 'standalone', label: 'Routines', icon: 'book' as IconName, planId: undefined }] : []),
+    ...plans
+      .filter((plan) => plan.id !== routine.planId)
+      .map((plan) => ({ key: plan.id, label: plan.name, icon: 'layers' as IconName, planId: plan.id })),
+  ];
+  const routineOptionActions = (routine: WorkoutRoutine): ForgeActionSheetAction[] => {
+    const canMove = moveDestinations(routine).length > 0;
+    return [
+      { label: 'Start', icon: 'play', onPress: () => startRoutine(routine, false) },
+      { label: 'Edit', icon: 'note', onPress: () => openRoutine(routine, false) },
+      { label: 'Duplicate', icon: 'duplicate', onPress: () => duplicate(routine) },
+      { label: 'Visualize', icon: 'info', onPress: () => viewRoutine(routine, false) },
+      ...(canMove
+        ? [{ label: 'Move to…', icon: 'arrow-forward' as IconName, dismiss: false, onPress: () => setMoveMode(true) }]
+        : []),
+      { label: 'Delete', icon: 'trash', tone: 'destructive' as const, onPress: () => removeRoutine(routine.id) },
+    ];
   };
   const addPlan = (): void => {
     reflowRows();
@@ -195,10 +235,7 @@ export function PlansScreen({ navigation, route }: Props) {
                 onOpenRoutine={routineActions}
                 onStartRoutine={startRoutine}
                 onDeleteRoutine={(routine) => removeRoutine(routine.id)}
-                onOptions={(item) => {
-                  lightHaptic();
-                  setActionTarget({ kind: 'plan', item });
-                }}
+                onRename={(name) => renamePlan(plan.id, name)}
                 onDelete={() => removePlan(plan.id)}
               />
             </View>
@@ -221,47 +258,25 @@ export function PlansScreen({ navigation, route }: Props) {
           />
         </ForgeAnchoredMenu>
         <ForgeActionSheet
-          visible={actionTarget !== null}
-          onClose={() => setActionTarget(null)}
-          accessibilityLabel={
-            actionTarget?.kind === 'routine' ? 'Dismiss routine options' : 'Dismiss plan options'
-          }
-          title={actionTarget?.kind === 'routine' ? 'Routine options' : 'Plan options'}
+          visible={routineTarget !== null}
+          onClose={() => { setRoutineTarget(null); setMoveMode(false); }}
+          accessibilityLabel="Dismiss routine options"
+          title={routineTarget?.name ?? 'Routine options'}
+          titleNumberOfLines={1}
           testID="plans-options-sheet"
-          actions={
-            actionTarget?.kind === 'routine'
-              ? [
-                  {
-                    label: 'Start',
-                    icon: 'play',
-                    onPress: () => startRoutine(actionTarget.item, false),
-                  },
-                  {
-                    label: 'Edit',
-                    icon: 'note',
-                    onPress: () => openRoutine(actionTarget.item, false),
-                  },
-                  {
-                    label: 'Visualize',
-                    icon: 'info',
-                    onPress: () => viewRoutine(actionTarget.item, false),
-                  },
-                ]
-              : actionTarget
-                ? [
-                    {
-                      label: 'Add routine',
-                      icon: 'add',
-                      onPress: () => addRoutine(actionTarget.item.id),
-                    },
-                    {
-                      label: 'Delete plan',
-                      icon: 'trash',
-                      tone: 'destructive' as const,
-                      onPress: () => removePlan(actionTarget.item.id),
-                    },
-                  ]
-                : []
+          actions={routineTarget ? routineOptionActions(routineTarget) : []}
+          replacement={
+            routineTarget && moveMode
+              ? (close) => (
+                  <MoveDestinations
+                    routine={routineTarget}
+                    destinations={moveDestinations(routineTarget)}
+                    onBack={() => setMoveMode(false)}
+                    onClose={close}
+                    onMove={(planId) => { move(routineTarget, planId); close(); }}
+                  />
+                )
+              : null
           }
         />
       </View>
@@ -279,6 +294,48 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+function MoveDestinations({
+  routine,
+  destinations,
+  onBack,
+  onClose,
+  onMove,
+}: {
+  routine: WorkoutRoutine;
+  destinations: { key: string; label: string; icon: IconName; planId?: string }[];
+  onBack: () => void;
+  onClose: () => void;
+  onMove: (planId?: string) => void;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  return (
+    <>
+      <ForgeBottomSheetHandle />
+      <ForgeSheetHeader
+        title="Move to"
+        onClose={onClose}
+        leading={<ForgeBackButton accessibilityLabel="Back to routine options" onPress={onBack} />}
+      />
+      <View style={styles.moveList}>
+        {destinations.map((destination, index) => (
+          <Pressable
+            key={destination.key}
+            accessibilityRole="button"
+            accessibilityLabel={`Move ${routine.name} to ${destination.label}`}
+            onPress={() => onMove(destination.planId)}
+            style={({ pressed }) => [styles.moveRow, index > 0 && styles.divider, pressed && pressedFeedbackSubtle]}
+          >
+            <View style={styles.moveIcon}><Icon name={destination.icon} size={20} color={theme.slate} /></View>
+            <Text style={styles.moveLabel} numberOfLines={1}>{destination.label}</Text>
+            <Icon name="chevron-forward" size={18} color={theme.slate} />
+          </Pressable>
+        ))}
+      </View>
+    </>
+  );
+}
+
 function PlanCard({
   plan,
   workoutTypes,
@@ -286,7 +343,7 @@ function PlanCard({
   onOpenRoutine,
   onStartRoutine,
   onDeleteRoutine,
-  onOptions,
+  onRename,
   onDelete,
 }: {
   plan: WorkoutPlan;
@@ -295,11 +352,20 @@ function PlanCard({
   onOpenRoutine: (routine: WorkoutRoutine) => void;
   onStartRoutine: (routine: WorkoutRoutine) => void;
   onDeleteRoutine: (routine: WorkoutRoutine) => void;
-  onOptions: (plan: WorkoutPlan) => void;
+  onRename: (name: string) => void;
   onDelete: () => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const [renaming, setRenaming] = useState(false);
+  const [draftName, setDraftName] = useState(plan.name);
+  const commitRename = (): void => {
+    setRenaming(false);
+    const trimmed = draftName.trim();
+    if (trimmed && trimmed !== plan.name) onRename(trimmed);
+    else setDraftName(plan.name);
+  };
+  const count = `${plan.routines.length} ${plan.routines.length === 1 ? 'routine' : 'routines'}`;
   return (
     <SwipeDelete
       accessibilityLabel={`Delete ${plan.name}`}
@@ -309,21 +375,40 @@ function PlanCard({
     >
       {() => (
         <View style={styles.planCardSurface}>
-          <Pressable
-            testID={`plan-header-${plan.id}`}
-            accessibilityRole="button"
-            accessibilityLabel={`Open options for ${plan.name}`}
-            unstable_pressDelay={80}
-            onPress={() => onOptions(plan)}
-            style={({ pressed }) => [
-              styles.planHeader,
-              styles.planOptions,
-              pressed && pressedFeedbackSubtle,
-            ]}
-          >
-            <Text style={styles.planName}>{plan.name}</Text>
-            <Icon name="chevron-forward" size={20} color={theme.slate} />
-          </Pressable>
+          {renaming ? (
+            <View style={[styles.planHeader, styles.planOptions]}>
+              <ForgeTextInput
+                autoFocus
+                value={draftName}
+                onChangeText={setDraftName}
+                onSubmitEditing={commitRename}
+                onBlur={commitRename}
+                returnKeyType="done"
+                selectTextOnFocus
+                accessibilityLabel={`Rename ${plan.name}`}
+                style={styles.planNameInput}
+              />
+            </View>
+          ) : (
+            <Pressable
+              testID={`plan-header-${plan.id}`}
+              accessibilityRole="button"
+              accessibilityLabel={`Rename ${plan.name}`}
+              unstable_pressDelay={80}
+              onPress={() => { selectionHaptic(); setDraftName(plan.name); setRenaming(true); }}
+              style={({ pressed }) => [
+                styles.planHeader,
+                styles.planOptions,
+                pressed && pressedFeedbackSubtle,
+              ]}
+            >
+              <View style={styles.planHeadText}>
+                <Text style={styles.planName}>{plan.name}</Text>
+                <Text style={styles.planCount}>{count}</Text>
+              </View>
+              <Icon name="note" size={18} color={theme.slate} />
+            </Pressable>
+          )}
           {plan.routines.map((routine, index) => (
             <SwipeDelete
               key={routine.id}
@@ -398,8 +483,14 @@ function RoutineCardBody({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const presentation = getWorkoutTypePresentation(
+    routine.type,
+    workoutTypes,
+    theme,
+    theme.colorScheme === 'dark' ? 0.24 : 0.14,
+  );
   const typeIcon = (
-    <Icon name={getRoutineTypeIcon(routine.type, workoutTypes)} size={21} color={theme.ink} />
+    <Icon name={getRoutineTypeIcon(routine.type, workoutTypes)} size={24} color={presentation.color} />
   );
   const copy = (
     <>
@@ -425,12 +516,12 @@ function RoutineCardBody({
           accessibilityLabel={`Start ${routine.name}`}
           unstable_pressDelay={80}
           onPress={onStart}
-          style={({ pressed }) => [styles.typeMarker, pressed && pressedFeedbackSubtle]}
+          style={({ pressed }) => [styles.typeMarker, { backgroundColor: presentation.background }, pressed && pressedFeedbackSubtle]}
         >
           {typeIcon}
         </Pressable>
       ) : (
-        <View style={styles.typeMarker}>{typeIcon}</View>
+        <View style={[styles.typeMarker, { backgroundColor: presentation.background }]}>{typeIcon}</View>
       )}
       {onPress ? (
         <Pressable
@@ -643,7 +734,14 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       alignItems: 'center',
       justifyContent: 'space-between',
     },
-    planName: { ...typeScale.cardTitle, color: theme.ink },
+    planHeadText: { flex: 1, minWidth: 0, gap: 1 },
+    planName: { ...typeScale.sectionTitle, color: theme.ink },
+    planNameInput: { flex: 1, ...typeScale.sectionTitle, color: theme.ink, paddingVertical: 0, margin: 0 },
+    planCount: { ...typeScale.caption, color: theme.muted },
+    moveList: { marginHorizontal: 20, marginTop: 4, overflow: 'hidden', borderWidth: 1, borderColor: theme.border, borderRadius: 16, backgroundColor: theme.surface },
+    moveRow: { minHeight: 56, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    moveIcon: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
+    moveLabel: { flex: 1, minWidth: 0, ...typeScale.controlLabel, color: theme.ink },
     routineRow: {
       minHeight: 76,
       paddingHorizontal: 16,
