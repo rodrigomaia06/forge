@@ -145,6 +145,13 @@ export interface PlansContextValue extends PlansState {
   createPlan: (name?: string) => WorkoutPlan;
   updatePlan: (planId: string, update: (plan: WorkoutPlan) => WorkoutPlan) => void;
   reorderPlans: (plans: WorkoutPlan[]) => void;
+  /**
+   * Applies a full reordering/regrouping of plans and standalone routines at
+   * once — plans in the given order (each carrying the routine ids listed for
+   * it), and standalone routines in the given order. Routine objects are kept
+   * by id; only order and plan membership change. A no-op if the id set differs.
+   */
+  reorderAll: (plans: { id: string; routineIds: string[] }[], standaloneRoutineIds: string[]) => void;
   deletePlan: (planId: string) => void;
   createRoutine: (options?: Partial<WorkoutRoutine>) => WorkoutRoutine;
   updateRoutine: (routineId: string, update: (routine: WorkoutRoutine) => WorkoutRoutine) => void;

@@ -26,6 +26,7 @@ export function SwipeToDeleteRow({
   showDivider = false,
   contentBackgroundColor,
   enabled = true,
+  borderRadius,
 }: {
   children: React.ReactNode;
   onDelete: () => void;
@@ -34,6 +35,8 @@ export function SwipeToDeleteRow({
   contentBackgroundColor?: string;
   /** When false, the row renders its content without the swipe/delete affordance. */
   enabled?: boolean;
+  /** Rounds the swipe surface (and its red reveal) to match a rounded card. */
+  borderRadius?: number;
 }) {
   const theme = useForgeTheme();
   const reducedMotion = useForgeReducedMotion();
@@ -48,7 +51,7 @@ export function SwipeToDeleteRow({
 
   if (!enabled) {
     return (
-      <View style={[styles.row, { backgroundColor: contentBackgroundColor ?? theme.surface }]}>
+      <View style={[styles.row, borderRadius != null && { borderRadius }, { backgroundColor: contentBackgroundColor ?? theme.surface }]}>
         {children}
         {showDivider ? <View style={[styles.divider, { backgroundColor: theme.border }]} /> : null}
       </View>
@@ -94,7 +97,7 @@ export function SwipeToDeleteRow({
 
   return (
     <GestureDetector gesture={swipe}>
-      <View style={[styles.row, { backgroundColor: theme.destructiveSurface }]}>
+      <View style={[styles.row, borderRadius != null && { borderRadius }, { backgroundColor: theme.destructiveSurface }]}>
         <Animated.View
           style={[
             styles.deleteLayer,

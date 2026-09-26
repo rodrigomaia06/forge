@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Image, LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, UIManager, View } from 'react-native';
-import { NestableDraggableFlatList, NestableScrollContainer, ScaleDecorator } from 'react-native-draggable-flatlist';
+import DraggableFlatList, { ScaleDecorator, type RenderItemParams } from 'react-native-draggable-flatlist';
 
 import type { ForgeActionSheetAction } from '../components/ui';
 import {
@@ -34,6 +34,7 @@ import { useSettings } from '../state/SettingsContext';
 import { useWorkouts } from '../state/WorkoutContext';
 import { routineExercisesWithNextSessionTargets } from '../domain/workouts/nextSessionTargets';
 import { getWorkoutTypePresentation } from '../domain/workouts/presentation';
+import { reconstructOrder, type FlatReorderItem } from '../domain/plans/flattenReorder';
 import type {
   IconName,
   RootTabScreenProps,
@@ -46,12 +47,20 @@ import { useForgeDockScrollInset } from '../components/DockChrome';
 
 type Props = RootTabScreenProps<'Plans'>;
 
+// One row of the flattened edit-mode list. Only 'routine' and 'plan-header' are
+// draggable; 'section' and 'plan-add' render without a drag handle.
+type PlanFlatItem =
+  | { key: string; kind: 'section'; title: string; spaced?: boolean }
+  | { key: string; kind: 'routine'; routine: WorkoutRoutine; planId?: string }
+  | { key: string; kind: 'plan-header'; plan: WorkoutPlan }
+  | { key: string; kind: 'plan-add'; planId: string; planName: string };
+
 export function PlansScreen({ navigation, route }: Props) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const dockScrollInset = useForgeDockScrollInset();
   const { preferences } = useSettings();
-  const { plans, standaloneRoutines, createPlan, deletePlan, deleteRoutine, duplicateRoutine, moveRoutine, updatePlan, reorderPlans, reorderRoutines } = usePlans();
+  const { plans, standaloneRoutines, createPlan, deletePlan, deleteRoutine, duplicateRoutine, moveRoutine, updatePlan, reorderAll } = usePlans();
   const { startWorkout, completedWorkouts } = useWorkouts();
   const createMenu = useAnchoredMenu();
   const [routineTarget, setRoutineTarget] = useState<WorkoutRoutine | null>(null);
@@ -168,6 +177,113 @@ export function PlansScreen({ navigation, route }: Props) {
     navigation.navigate('RoutineEditor', { mode: 'create', planId });
   };
 
+  // Edit mode flattens the whole screen into a single (non-nested) draggable
+  // list — the reliable pattern for react-native-draggable-flatlist. Section
+  // labels and Add-routine rows are non-draggable (no drag handle wired).
+  const flatItems = useMemo<PlanFlatItem[]>(() => {
+    const items: PlanFlatItem[] = [];
+    if (standaloneRoutines.length > 0) {
+      items.push({ key: 'section:routines', kind: 'section', title: 'Routines' });
+      standaloneRoutines.forEach((routine) =>
+        items.push({ key: `routine:${routine.id}`, kind: 'routine', routine }),
+      );
+    }
+    if (plans.length > 0) {
+      items.push({ key: 'section:plans', kind: 'section', title: 'Plans', spaced: standaloneRoutines.length > 0 });
+      plans.forEach((plan) => {
+        items.push({ key: `plan:${plan.id}`, kind: 'plan-header', plan });
+        plan.routines.forEach((routine) =>
+          items.push({ key: `routine:${routine.id}`, kind: 'routine', routine, planId: plan.id }),
+        );
+        items.push({ key: `add:${plan.id}`, kind: 'plan-add', planId: plan.id, planName: plan.name });
+      });
+    }
+    return items;
+  }, [standaloneRoutines, plans]);
+
+  const applyReorder = useCallback(
+    (data: PlanFlatItem[], to: number): void => {
+      if (!data[to]) return;
+      reflowRows();
+      const flat: FlatReorderItem[] = data.map((item) => {
+        switch (item.kind) {
+          case 'routine':
+            return { kind: 'routine', id: item.routine.id };
+          case 'plan-header':
+            return { kind: 'plan-header', id: item.plan.id, routineIds: item.plan.routines.map((routine) => routine.id) };
+          case 'plan-add':
+            return { kind: 'plan-add' };
+          default:
+            return { kind: 'section' };
+        }
+      });
+      const { plans: planEntries, standaloneIds } = reconstructOrder(flat, to);
+      reorderAll(planEntries, standaloneIds);
+    },
+    [reorderAll, reflowRows],
+  );
+
+  const renderFlatItem = useCallback(
+    ({ item, drag, isActive }: RenderItemParams<PlanFlatItem>) => {
+      if (item.kind === 'section') {
+        return (
+          <Text style={[styles.sectionTitle, styles.editSectionTitle, item.spaced && styles.plansTitleEdit]}>
+            {item.title}
+          </Text>
+        );
+      }
+      if (item.kind === 'plan-add') {
+        return (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Add routine to ${item.planName}`}
+            onPress={() => addRoutine(item.planId)}
+            style={({ pressed }) => [styles.editAddRoutine, pressed && pressedFeedbackSubtle]}
+          >
+            <Icon name="add" size={16} color={theme.textPrimary} />
+            <Text style={styles.addToPlanText}>Add routine</Text>
+          </Pressable>
+        );
+      }
+      if (item.kind === 'plan-header') {
+        return (
+          <ScaleDecorator activeScale={1.02}>
+            <View style={styles.editItemWrap}>
+              <PlanHeaderRow
+                plan={item.plan}
+                isActive={isActive}
+                drag={drag}
+                onRename={(name) => renamePlan(item.plan.id, name)}
+                onDelete={() => removePlan(item.plan.id)}
+              />
+            </View>
+          </ScaleDecorator>
+        );
+      }
+      return (
+        <ScaleDecorator activeScale={1.02}>
+          <View style={[styles.editItemWrap, item.planId != null && styles.editItemIndent]}>
+            <RoutineRow
+              routine={item.routine}
+              workoutTypes={preferences.workoutTypes}
+              last
+              editing
+              swipeBorderRadius={18}
+              drag={drag}
+              isActive={isActive}
+              onStart={() => startRoutine(item.routine)}
+              onOpenOptions={() => routineActions(item.routine)}
+              onOpenEditor={() => openRoutine(item.routine)}
+              onDelete={() => removeRoutine(item.routine.id)}
+            />
+          </View>
+        </ScaleDecorator>
+      );
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [preferences.workoutTypes, styles, theme],
+  );
+
   return (
     <AppScreen backgroundColor={theme.background} edges={['top']}>
       <View style={styles.screen}>
@@ -177,7 +293,7 @@ export function PlansScreen({ navigation, route }: Props) {
             {hasContent ? (
               <HeaderEditActions
                 editing={editing}
-                onToggleEdit={() => { lightHaptic(); setEditing((value) => !value); }}
+                onToggleEdit={() => { lightHaptic(); reflowRows(); setEditing((value) => !value); }}
                 onAdd={createMenu.open}
                 addRef={createMenu.ref}
                 editLabel="Edit plans"
@@ -200,72 +316,18 @@ export function PlansScreen({ navigation, route }: Props) {
           </View>
           {headerElevated ? <HeaderEdge /> : null}
         </View>
-        {editing && Platform.OS !== 'web' ? (
-          <NestableScrollContainer
+        {editing ? (
+          <DraggableFlatList
             style={styles.scrollView}
-            contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset }]}
+            data={flatItems}
+            keyExtractor={(item) => item.key}
+            activationDistance={12}
+            contentContainerStyle={[styles.content, styles.editContent, { paddingBottom: dockScrollInset }]}
             showsVerticalScrollIndicator={false}
-            onScroll={(event) => handlePlansScrollOffset(event.nativeEvent.contentOffset.y)}
-            scrollEventThrottle={16}
-          >
-            {standaloneRoutines.length > 0 ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Routines</Text>
-                <ForgeCard variant="base" style={styles.groupedCard}>
-                  <NestableDraggableFlatList
-                    data={standaloneRoutines}
-                    keyExtractor={(routine) => routine.id}
-                    activationDistance={12}
-                    onDragEnd={({ data }) => reorderRoutines(data, undefined)}
-                    renderItem={({ item, drag, isActive, getIndex }) => (
-                      <ScaleDecorator activeScale={1.02}>
-                        <RoutineRow
-                          routine={item}
-                          workoutTypes={preferences.workoutTypes}
-                          last={(getIndex() ?? 0) === standaloneRoutines.length - 1}
-                          editing
-                          drag={drag}
-                          isActive={isActive}
-                          onStart={() => startRoutine(item)}
-                          onOpenOptions={() => routineActions(item)}
-                          onOpenEditor={() => openRoutine(item)}
-                          onDelete={() => removeRoutine(item.id)}
-                        />
-                      </ScaleDecorator>
-                    )}
-                  />
-                </ForgeCard>
-              </View>
-            ) : null}
-            {plans.length > 0 ? <Text style={[styles.sectionTitle, styles.plansTitleEdit]}>Plans</Text> : null}
-            <NestableDraggableFlatList
-              data={plans}
-              keyExtractor={(plan) => plan.id}
-              activationDistance={8}
-              onDragEnd={({ data }) => reorderPlans(data)}
-              renderItem={({ item: plan, drag, isActive }) => (
-                <ScaleDecorator activeScale={1.02}>
-                  <View style={styles.planRow}>
-                    <PlanCard
-                      plan={plan}
-                      workoutTypes={preferences.workoutTypes}
-                      editing
-                      drag={drag}
-                      isActive={isActive}
-                      onReorderRoutines={(routines) => reorderRoutines(routines, plan.id)}
-                      onAddRoutine={() => addRoutine(plan.id)}
-                      onOpenRoutineOptions={routineActions}
-                      onOpenRoutineEditor={openRoutine}
-                      onStartRoutine={startRoutine}
-                      onDeleteRoutine={(routine) => removeRoutine(routine.id)}
-                      onRename={(name) => renamePlan(plan.id, name)}
-                      onDelete={() => removePlan(plan.id)}
-                    />
-                  </View>
-                </ScaleDecorator>
-              )}
-            />
-          </NestableScrollContainer>
+            onScrollOffsetChange={(offset) => handlePlansScrollOffset(offset)}
+            onDragEnd={({ data, to }) => applyReorder(data, to)}
+            renderItem={renderFlatItem}
+          />
         ) : (
           <ScrollView
             style={styles.scrollView}
@@ -303,14 +365,9 @@ export function PlansScreen({ navigation, route }: Props) {
                 <PlanCard
                   plan={plan}
                   workoutTypes={preferences.workoutTypes}
-                  editing={editing}
-                  onAddRoutine={() => addRoutine(plan.id)}
                   onOpenRoutineOptions={routineActions}
-                  onOpenRoutineEditor={openRoutine}
                   onStartRoutine={startRoutine}
                   onDeleteRoutine={(routine) => removeRoutine(routine.id)}
-                  onRename={(name) => renamePlan(plan.id, name)}
-                  onDelete={() => removePlan(plan.id)}
                 />
               </View>
             ))}
@@ -412,152 +469,47 @@ function MoveDestinations({
 }
 
 
+// The resting (non-editing) plan card: a clean label header and its routine
+// rows. Reordering, rename, add-routine and swipe-delete all live in edit mode,
+// which renders the flattened draggable list instead of this card.
 function PlanCard({
   plan,
   workoutTypes,
-  editing,
-  drag,
-  isActive,
-  onReorderRoutines,
-  onAddRoutine,
   onOpenRoutineOptions,
-  onOpenRoutineEditor,
   onStartRoutine,
   onDeleteRoutine,
-  onRename,
-  onDelete,
 }: {
   plan: WorkoutPlan;
   workoutTypes: WorkoutTypePreference[];
-  editing: boolean;
-  drag?: () => void;
-  isActive?: boolean;
-  onReorderRoutines?: (routines: WorkoutRoutine[]) => void;
-  onAddRoutine: () => void;
   onOpenRoutineOptions: (routine: WorkoutRoutine) => void;
-  onOpenRoutineEditor: (routine: WorkoutRoutine) => void;
   onStartRoutine: (routine: WorkoutRoutine) => void;
   onDeleteRoutine: (routine: WorkoutRoutine) => void;
-  onRename: (name: string) => void;
-  onDelete: () => void;
 }) {
-  const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const [renaming, setRenaming] = useState(false);
-  const [draftName, setDraftName] = useState(plan.name);
-  const commitRename = (): void => {
-    setRenaming(false);
-    const trimmed = draftName.trim();
-    if (trimmed && trimmed !== plan.name) onRename(trimmed);
-    else setDraftName(plan.name);
-  };
   const count = `${plan.routines.length} ${plan.routines.length === 1 ? 'routine' : 'routines'}`;
-  const header = renaming ? (
-    <View style={[styles.planHeader, styles.planOptions]}>
-      <ForgeTextInput
-        autoFocus
-        value={draftName}
-        onChangeText={setDraftName}
-        onSubmitEditing={commitRename}
-        onBlur={commitRename}
-        returnKeyType="done"
-        selectTextOnFocus
-        accessibilityLabel={`Rename ${plan.name}`}
-        style={styles.planNameInput}
-      />
-    </View>
-  ) : editing ? (
-    <View style={[styles.planHeader, styles.planOptions]}>
-      {drag ? <DragRail label={`Reorder ${plan.name}`} onDrag={drag} disabled={isActive} /> : null}
-      <View style={styles.planHeadText}>
-        <Text style={styles.planName}>{plan.name}</Text>
-        <Text style={styles.planCount}>{count}</Text>
-      </View>
-      {/* Rename lives only in edit mode; the normal card header is a clean label. */}
-      <Pressable
-        testID={`plan-header-${plan.id}`}
-        accessibilityRole="button"
-        accessibilityLabel={`Rename ${plan.name}`}
-        hitSlop={8}
-        onPress={() => { selectionHaptic(); setDraftName(plan.name); setRenaming(true); }}
-        style={({ pressed }) => [styles.planEditTitle, pressed && pressedFeedbackSubtle]}
-      >
-        <Icon name="note" size={18} color={theme.slate} />
-      </Pressable>
-    </View>
-  ) : (
-    <View style={[styles.planHeader, styles.planOptions]}>
-      <View style={styles.planHeadText}>
-        <Text style={styles.planName}>{plan.name}</Text>
-        <Text style={styles.planCount}>{count}</Text>
-      </View>
-    </View>
-  );
   return (
-    <ForgeCard variant="base" style={[styles.planCard, isActive && styles.rowActive]}>
-      {/* The whole plan card is one swipe target, so the delete reveal spans the
-          entire card rather than just the header strip. Routine rows nest their
-          own swipe inside; the inner gesture wins when a row is swiped. */}
-      <SwipeToDeleteRow
-        enabled={editing}
-        onDelete={onDelete}
-        deleteAccessibilityLabel={`Delete ${plan.name}`}
-        contentBackgroundColor={theme.surface}
-      >
-        <View style={styles.planCardSurface}>
-          {header}
-          {editing && onReorderRoutines ? (
-          <NestableDraggableFlatList
-            data={plan.routines}
-            keyExtractor={(routine) => routine.id}
-            activationDistance={12}
-            onDragEnd={({ data }) => onReorderRoutines(data)}
-            renderItem={({ item, drag: routineDrag, isActive: routineActive, getIndex }) => (
-              <ScaleDecorator activeScale={1.02}>
-                <RoutineRow
-                  routine={item}
-                  workoutTypes={workoutTypes}
-                  last={(getIndex() ?? 0) === plan.routines.length - 1}
-                  editing
-                  drag={routineDrag}
-                  isActive={routineActive}
-                  onStart={() => onStartRoutine(item)}
-                  onOpenOptions={() => onOpenRoutineOptions(item)}
-                  onOpenEditor={() => onOpenRoutineEditor(item)}
-                  onDelete={() => onDeleteRoutine(item)}
-                />
-              </ScaleDecorator>
-            )}
-          />
-        ) : (
-          plan.routines.map((routine, index) => (
-            <RoutineRow
-              key={routine.id}
-              routine={routine}
-              workoutTypes={workoutTypes}
-              last={index === plan.routines.length - 1}
-              editing={editing}
-              onStart={() => onStartRoutine(routine)}
-              onOpenOptions={() => onOpenRoutineOptions(routine)}
-              onOpenEditor={() => onOpenRoutineEditor(routine)}
-              onDelete={() => onDeleteRoutine(routine)}
-            />
-          ))
-        )}
-          {editing ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Add routine to ${plan.name}`}
-              unstable_pressDelay={80}
-              onPress={onAddRoutine}
-              style={({ pressed }) => [styles.addToPlan, pressed && pressedFeedbackSubtle]}
-            >
-              <Icon name="add" size={16} color={theme.textPrimary} />
-              <Text style={styles.addToPlanText}>Add routine</Text>
-            </Pressable>
-          ) : null}
+    <ForgeCard variant="base" style={styles.planCard}>
+      <View style={styles.planCardSurface}>
+        <View style={[styles.planHeader, styles.planOptions]}>
+          <View style={styles.planHeadText}>
+            <Text style={styles.planName}>{plan.name}</Text>
+            <Text style={styles.planCount}>{count}</Text>
+          </View>
         </View>
-      </SwipeToDeleteRow>
+        {plan.routines.map((routine, index) => (
+          <RoutineRow
+            key={routine.id}
+            routine={routine}
+            workoutTypes={workoutTypes}
+            last={index === plan.routines.length - 1}
+            editing={false}
+            onStart={() => onStartRoutine(routine)}
+            onOpenOptions={() => onOpenRoutineOptions(routine)}
+            onOpenEditor={() => onOpenRoutineOptions(routine)}
+            onDelete={() => onDeleteRoutine(routine)}
+          />
+        ))}
+      </View>
     </ForgeCard>
   );
 }
@@ -595,6 +547,7 @@ function RoutineRow({
   editing,
   drag,
   isActive,
+  swipeBorderRadius,
   onStart,
   onOpenOptions,
   onOpenEditor,
@@ -606,6 +559,8 @@ function RoutineRow({
   editing: boolean;
   drag?: () => void;
   isActive?: boolean;
+  /** Rounds the swipe surface when the row stands alone as a card (edit mode). */
+  swipeBorderRadius?: number;
   onStart: () => void;
   onOpenOptions: () => void;
   onOpenEditor: () => void;
@@ -628,6 +583,7 @@ function RoutineRow({
       onDelete={onDelete}
       deleteAccessibilityLabel={`Delete ${routine.name}`}
       contentBackgroundColor={theme.surface}
+      borderRadius={swipeBorderRadius}
     >
       <View style={[styles.routineRow, isActive && styles.rowActive]}>
         {!last ? <View pointerEvents="none" style={styles.rowSeparator} /> : null}
@@ -660,6 +616,77 @@ function RoutineRow({
           </View>
           <Icon name="chevron-forward" size={19} color={theme.slate} />
         </Pressable>
+      </View>
+    </SwipeToDeleteRow>
+  );
+}
+
+// A plan's header as a standalone draggable card in edit mode: grab-rail, name,
+// count, an inline-rename pencil, and a rounded swipe-to-delete for the plan.
+function PlanHeaderRow({
+  plan,
+  isActive,
+  drag,
+  onRename,
+  onDelete,
+}: {
+  plan: WorkoutPlan;
+  isActive?: boolean;
+  drag: () => void;
+  onRename: (name: string) => void;
+  onDelete: () => void;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  const [renaming, setRenaming] = useState(false);
+  const [draftName, setDraftName] = useState(plan.name);
+  const commitRename = (): void => {
+    setRenaming(false);
+    const trimmed = draftName.trim();
+    if (trimmed && trimmed !== plan.name) onRename(trimmed);
+    else setDraftName(plan.name);
+  };
+  const count = `${plan.routines.length} ${plan.routines.length === 1 ? 'routine' : 'routines'}`;
+  return (
+    <SwipeToDeleteRow
+      enabled
+      onDelete={onDelete}
+      deleteAccessibilityLabel={`Delete ${plan.name}`}
+      contentBackgroundColor={theme.surface}
+      borderRadius={18}
+    >
+      <View style={[styles.planHeaderCard, isActive && styles.rowActive]}>
+        {renaming ? (
+          <ForgeTextInput
+            autoFocus
+            value={draftName}
+            onChangeText={setDraftName}
+            onSubmitEditing={commitRename}
+            onBlur={commitRename}
+            returnKeyType="done"
+            selectTextOnFocus
+            accessibilityLabel={`Rename ${plan.name}`}
+            style={styles.planNameInput}
+          />
+        ) : (
+          <>
+            <DragRail label={`Reorder ${plan.name}`} onDrag={drag} disabled={isActive} />
+            <View style={styles.planHeadText}>
+              <Text style={styles.planName}>{plan.name}</Text>
+              <Text style={styles.planCount}>{count}</Text>
+            </View>
+            <Pressable
+              testID={`plan-header-${plan.id}`}
+              accessibilityRole="button"
+              accessibilityLabel={`Rename ${plan.name}`}
+              hitSlop={8}
+              onPress={() => { selectionHaptic(); setDraftName(plan.name); setRenaming(true); }}
+              style={({ pressed }) => [styles.planEditTitle, pressed && pressedFeedbackSubtle]}
+            >
+              <Icon name="note" size={18} color={theme.slate} />
+            </Pressable>
+          </>
+        )}
       </View>
     </SwipeToDeleteRow>
   );
@@ -730,6 +757,28 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     // elevation renders square corners mid-drag.
     rowActive: { shadowColor: theme.shadow, shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 8 } },
     plansTitleEdit: { marginTop: 22, marginBottom: 12 },
+    // Flattened edit-mode list: each draggable row is its own rounded card.
+    editContent: { paddingTop: 12 },
+    editSectionTitle: { marginBottom: 10 },
+    editItemWrap: { marginBottom: 8 },
+    editItemIndent: { marginLeft: 16 },
+    editAddRoutine: {
+      minHeight: 44,
+      marginLeft: 16,
+      marginBottom: 10,
+      paddingHorizontal: 4,
+      gap: 7,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    planHeaderCard: {
+      minHeight: 64,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
     content: {
       paddingHorizontal: spacing.screen,
       paddingTop: 16,

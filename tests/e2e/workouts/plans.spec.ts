@@ -298,6 +298,56 @@ test.describe('Plans and routines', () => {
     await expect(page.getByRole('button', { name: 'Delete New plan' })).toHaveCount(1);
   });
 
+  test('reorders routines within a plan by dragging in edit mode', async ({ page }) => {
+    await page.addInitScript(() => {
+      const now = Date.now();
+      localStorage.setItem('@forge/plans-v1', JSON.stringify({
+        plans: [{
+          id: 'push',
+          name: 'Push',
+          createdAt: now,
+          updatedAt: now,
+          routines: [
+            { id: 'r1', name: 'Shoulder', type: 'Strength', exercises: [{ id: 'e1', name: 'X', sets: [] }], createdAt: now, updatedAt: now },
+            { id: 'r2', name: 'Chest', type: 'Strength', exercises: [{ id: 'e2', name: 'X', sets: [] }], createdAt: now, updatedAt: now },
+          ],
+        }],
+        standaloneRoutines: [],
+      }));
+    });
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await page.getByRole('button', { name: 'Edit plans' }).click();
+    await page.waitForTimeout(300);
+
+    // The flattened edit list exposes a per-row grab-rail.
+    const handle = page.getByRole('button', { name: 'Reorder Shoulder' });
+    const target = page.getByRole('button', { name: 'Edit Chest' });
+    const hb = await handle.boundingBox();
+    const tb = await target.boundingBox();
+    if (!hb || !tb) throw new Error('Expected measurable drag handles');
+    const sx = hb.x + hb.width / 2;
+    const sy = hb.y + hb.height / 2;
+    const ty = tb.y + tb.height + 30;
+    await page.mouse.move(sx, sy);
+    await page.mouse.down();
+    await page.waitForTimeout(60);
+    for (let i = 1; i <= 20; i++) {
+      await page.mouse.move(sx, sy + ((ty - sy) * i) / 20);
+      await page.waitForTimeout(16);
+    }
+    await page.waitForTimeout(120);
+    await page.mouse.up();
+    await page.waitForTimeout(600);
+
+    const order = await page.evaluate(() => {
+      const raw = localStorage.getItem('@forge/plans-v1');
+      const state = raw ? JSON.parse(raw) : null;
+      return state?.plans?.[0]?.routines?.map((routine: { name: string }) => routine.name) ?? null;
+    });
+    expect(order).toEqual(['Chest', 'Shoulder']);
+  });
+
   test('uses the shared action sheet for persisted routine-editor overflow actions', async ({
     page,
   }) => {
