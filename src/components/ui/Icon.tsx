@@ -3,6 +3,7 @@ import type { SvgProps } from 'react-native-svg';
 import {
   IconArrowRight,
   IconBallTennis,
+  IconBarbell,
   IconBrandGithub,
   IconCheck,
   IconChevronDown,
@@ -60,8 +61,10 @@ import {
   IconApple,
   IconLicense,
 } from '@tabler/icons-react-native';
-import { DumbbellGlyph } from './DumbbellGlyph';
 import type { IconName, IconWeight } from '../../types';
+
+/** The barbell reads best at a lighter weight than the rest of the set. */
+const BarbellThin = (props: SvgProps) => <IconBarbell {...props} strokeWidth={1} />;
 
 const iconMap: Record<IconName, React.ComponentType<SvgProps>> = {
   add: IconPlus,
@@ -81,8 +84,8 @@ const iconMap: Record<IconName, React.ComponentType<SvgProps>> = {
   'time-outline': IconHistory,
   'ellipsis-horizontal': IconDots,
   menu: IconMenu2,
-  fitness: DumbbellGlyph,
-  'fitness-outline': DumbbellGlyph,
+  fitness: BarbellThin,
+  'fitness-outline': BarbellThin,
   weight: IconDumbbell,
   'task-list': IconListCheck,
   basketball: IconBallFootball,
