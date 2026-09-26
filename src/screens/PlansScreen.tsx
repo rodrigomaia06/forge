@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Image, LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, UIManager, View } from 'react-native';
 import { NestableDraggableFlatList, NestableScrollContainer, ScaleDecorator } from 'react-native-draggable-flatlist';
-import Animated, { FadeIn } from 'react-native-reanimated';
 
 import type { ForgeActionSheetAction } from '../components/ui';
 import {
@@ -179,6 +178,19 @@ export function PlansScreen({ navigation, route }: Props) {
     createMenu.close();
     navigation.navigate('RoutineEditor', { mode: 'create', planId });
   };
+  // Like the dashboard: one always-mounted list (native uses the nestable
+  // scroll container so its draggable lists work; web falls back to a plain
+  // ScrollView). Toggling edit only changes chrome, so it never remounts and a
+  // LayoutAnimation on the toggle can settle the rows smoothly.
+  const isNativeList = Platform.OS !== 'web';
+  const ListContainer = (isNativeList ? NestableScrollContainer : ScrollView) as React.ComponentType<
+    React.ComponentProps<typeof ScrollView>
+  >;
+  const toggleEditing = (): void => {
+    lightHaptic();
+    reflowRows();
+    setEditing((value) => !value);
+  };
 
   return (
     <AppScreen backgroundColor={theme.background} edges={['top']}>
@@ -189,7 +201,7 @@ export function PlansScreen({ navigation, route }: Props) {
             {hasContent ? (
               <HeaderEditActions
                 editing={editing}
-                onToggleEdit={() => { lightHaptic(); setEditing((value) => !value); }}
+                onToggleEdit={toggleEditing}
                 onAdd={createMenu.open}
                 addRef={createMenu.ref}
                 editLabel="Edit plans"
@@ -212,91 +224,44 @@ export function PlansScreen({ navigation, route }: Props) {
           </View>
           {headerElevated ? <HeaderEdge /> : null}
         </View>
-        <Animated.View
-          key={editing ? 'edit' : 'view'}
-          entering={reducedMotion ? undefined : FadeIn.duration(200)}
-          style={styles.listArea}
+        <ListContainer
+          style={styles.scrollView}
+          contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset }]}
+          showsVerticalScrollIndicator={false}
+          directionalLockEnabled
+          keyboardShouldPersistTaps="handled"
+          onScroll={(event) => handlePlansScrollOffset(event.nativeEvent.contentOffset.y)}
+          scrollEventThrottle={16}
         >
-        {editing && Platform.OS !== 'web' ? (
-          <NestableScrollContainer
-            style={styles.scrollView}
-            contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset }]}
-            showsVerticalScrollIndicator={false}
-            onScroll={(event) => handlePlansScrollOffset(event.nativeEvent.contentOffset.y)}
-            scrollEventThrottle={16}
-          >
+          <View style={styles.listHeader}>
             {standaloneRoutines.length > 0 ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Routines</Text>
+              <Section title="Routines">
                 <ForgeCard variant="base" style={styles.groupedCard}>
-                  <NestableDraggableFlatList
-                    data={standaloneRoutines}
-                    keyExtractor={(routine) => routine.id}
-                    activationDistance={12}
-                    onDragEnd={({ data }) => reorderRoutines(data, undefined)}
-                    renderItem={({ item, drag, isActive, getIndex }) => (
-                      <ScaleDecorator activeScale={1.02}>
-                        <RoutineRow
-                          routine={item}
-                          workoutTypes={preferences.workoutTypes}
-                          last={(getIndex() ?? 0) === standaloneRoutines.length - 1}
-                          editing
-                          drag={drag}
-                          isActive={isActive}
-                          onStart={() => startRoutine(item)}
-                          onOpenOptions={() => routineActions(item)}
-                          onOpenEditor={() => openRoutine(item)}
-                          onDelete={() => removeRoutine(item.id)}
-                        />
-                      </ScaleDecorator>
-                    )}
-                  />
-                </ForgeCard>
-              </View>
-            ) : null}
-            {plans.length > 0 ? <Text style={[styles.sectionTitle, styles.plansTitleEdit]}>Plans</Text> : null}
-            {/* Plans render as a plain list (not draggable), so each plan's own
-                routine list is only singly-nested under the scroll container —
-                the pattern the standalone list uses and the one that measures
-                correctly. Nesting a draggable list inside a draggable plan cell
-                is what broke routine reordering (the measureLayout warnings). */}
-            {plans.map((plan, index) => (
-              <View key={plan.id} style={styles.planRow}>
-                <PlanCard
-                  plan={plan}
-                  workoutTypes={preferences.workoutTypes}
-                  editing
-                  canMoveUp={index > 0}
-                  canMoveDown={index < plans.length - 1}
-                  onMoveUp={() => movePlan(index, -1)}
-                  onMoveDown={() => movePlan(index, 1)}
-                  onReorderRoutines={(routines) => reorderRoutines(routines, plan.id)}
-                  onAddRoutine={() => addRoutine(plan.id)}
-                  onOpenRoutineOptions={routineActions}
-                  onOpenRoutineEditor={openRoutine}
-                  onStartRoutine={startRoutine}
-                  onDeleteRoutine={(routine) => removeRoutine(routine.id)}
-                  onRename={(name) => renamePlan(plan.id, name)}
-                  onDelete={() => removePlan(plan.id)}
-                />
-              </View>
-            ))}
-          </NestableScrollContainer>
-        ) : (
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset }]}
-            showsVerticalScrollIndicator={false}
-            directionalLockEnabled
-            keyboardShouldPersistTaps="handled"
-            onScroll={(event) => handlePlansScrollOffset(event.nativeEvent.contentOffset.y)}
-            scrollEventThrottle={16}
-          >
-            <View style={styles.listHeader}>
-              {standaloneRoutines.length > 0 ? (
-                <Section title="Routines">
-                  <ForgeCard variant="base" style={styles.groupedCard}>
-                    {standaloneRoutines.map((routine, index) => (
+                  {isNativeList ? (
+                    <NestableDraggableFlatList
+                      data={standaloneRoutines}
+                      keyExtractor={(routine) => routine.id}
+                      activationDistance={editing ? 12 : 100000}
+                      onDragEnd={({ data }) => reorderRoutines(data, undefined)}
+                      renderItem={({ item, drag, isActive, getIndex }) => (
+                        <ScaleDecorator activeScale={1.02}>
+                          <RoutineRow
+                            routine={item}
+                            workoutTypes={preferences.workoutTypes}
+                            last={(getIndex() ?? 0) === standaloneRoutines.length - 1}
+                            editing={editing}
+                            drag={drag}
+                            isActive={isActive}
+                            onStart={() => startRoutine(item)}
+                            onOpenOptions={() => routineActions(item)}
+                            onOpenEditor={() => openRoutine(item)}
+                            onDelete={() => removeRoutine(item.id)}
+                          />
+                        </ScaleDecorator>
+                      )}
+                    />
+                  ) : (
+                    standaloneRoutines.map((routine, index) => (
                       <RoutineRow
                         key={routine.id}
                         routine={routine}
@@ -308,36 +273,37 @@ export function PlansScreen({ navigation, route }: Props) {
                         onOpenEditor={() => openRoutine(routine)}
                         onDelete={() => removeRoutine(routine.id)}
                       />
-                    ))}
-                  </ForgeCard>
-                </Section>
-              ) : null}
-              {plans.length > 0 ? <Text style={styles.sectionTitle}>Plans</Text> : null}
+                    ))
+                  )}
+                </ForgeCard>
+              </Section>
+            ) : null}
+            {plans.length > 0 ? <Text style={styles.sectionTitle}>Plans</Text> : null}
+          </View>
+          {plans.map((plan, index) => (
+            <View key={plan.id} style={styles.planRow}>
+              <PlanCard
+                plan={plan}
+                workoutTypes={preferences.workoutTypes}
+                editing={editing}
+                nativeDrag={isNativeList}
+                canMoveUp={index > 0}
+                canMoveDown={index < plans.length - 1}
+                onMoveUp={() => movePlan(index, -1)}
+                onMoveDown={() => movePlan(index, 1)}
+                onReorderRoutines={(routines) => reorderRoutines(routines, plan.id)}
+                onAddRoutine={() => addRoutine(plan.id)}
+                onOpenRoutineOptions={routineActions}
+                onOpenRoutineEditor={openRoutine}
+                onStartRoutine={startRoutine}
+                onDeleteRoutine={(routine) => removeRoutine(routine.id)}
+                onRename={(name) => renamePlan(plan.id, name)}
+                onDelete={() => removePlan(plan.id)}
+              />
             </View>
-            {plans.map((plan, index) => (
-              <View key={plan.id} style={styles.planRow}>
-                <PlanCard
-                  plan={plan}
-                  workoutTypes={preferences.workoutTypes}
-                  editing={editing}
-                  canMoveUp={index > 0}
-                  canMoveDown={index < plans.length - 1}
-                  onMoveUp={() => movePlan(index, -1)}
-                  onMoveDown={() => movePlan(index, 1)}
-                  onAddRoutine={() => addRoutine(plan.id)}
-                  onOpenRoutineOptions={routineActions}
-                  onOpenRoutineEditor={openRoutine}
-                  onStartRoutine={startRoutine}
-                  onDeleteRoutine={(routine) => removeRoutine(routine.id)}
-                  onRename={(name) => renamePlan(plan.id, name)}
-                  onDelete={() => removePlan(plan.id)}
-                />
-              </View>
-            ))}
-            {!standaloneRoutines.length && !plans.length ? <EmptyPlans /> : null}
-          </ScrollView>
-        )}
-        </Animated.View>
+          ))}
+          {!standaloneRoutines.length && !plans.length ? <EmptyPlans /> : null}
+        </ListContainer>
         <ForgeAnchoredMenu
           visible={createMenu.visible}
           anchor={createMenu.anchor}
@@ -439,6 +405,7 @@ function PlanCard({
   editing,
   drag,
   isActive,
+  nativeDrag,
   onReorderRoutines,
   canMoveUp,
   canMoveDown,
@@ -457,6 +424,7 @@ function PlanCard({
   editing: boolean;
   drag?: () => void;
   isActive?: boolean;
+  nativeDrag?: boolean;
   canMoveUp?: boolean;
   canMoveDown?: boolean;
   onMoveUp?: () => void;
@@ -563,11 +531,11 @@ function PlanCard({
       >
         <View style={styles.planCardSurface}>
           {header}
-          {editing && onReorderRoutines ? (
+          {nativeDrag && onReorderRoutines ? (
           <NestableDraggableFlatList
             data={plan.routines}
             keyExtractor={(routine) => routine.id}
-            activationDistance={12}
+            activationDistance={editing ? 12 : 100000}
             onDragEnd={({ data }) => onReorderRoutines(data)}
             renderItem={({ item, drag: routineDrag, isActive: routineActive, getIndex }) => (
               <ScaleDecorator activeScale={1.02}>
@@ -575,7 +543,7 @@ function PlanCard({
                   routine={item}
                   workoutTypes={workoutTypes}
                   last={(getIndex() ?? 0) === plan.routines.length - 1}
-                  editing
+                  editing={editing}
                   drag={routineDrag}
                   isActive={routineActive}
                   onStart={() => onStartRoutine(item)}
@@ -769,7 +737,6 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     planCard: { overflow: 'hidden', borderWidth: 0 },
     planCardSurface: { overflow: 'hidden' },
     screen: { flex: 1 },
-    listArea: { flex: 1 },
     scrollView: { flex: 1 },
     header: {
       position: 'relative',

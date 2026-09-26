@@ -159,8 +159,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   deleteAction: { flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', gap: 3 },
-  // A floating rounded red button (matching the set-row delete) for inset rows.
-  insetDeleteAction: { flex: 1, marginVertical: 6, marginRight: 10, marginLeft: 2, borderRadius: 14, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  // A fixed rounded-square red button (centered by the delete layer), so tall
+  // rows don't stretch it into a long pill.
+  insetDeleteAction: { width: 46, height: 46, borderRadius: 14, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   deleteActionPressed: { opacity: 0.8 },
   deleteText: { ...typeScale.caption },
   divider: { position: 'absolute', left: 16, right: 0, bottom: 0, height: StyleSheet.hairlineWidth },
