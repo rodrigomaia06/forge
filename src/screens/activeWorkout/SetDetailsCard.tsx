@@ -735,7 +735,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       height: StyleSheet.hairlineWidth,
       backgroundColor: theme.divider,
     },
-    typeDot: { width: 14, height: 14, borderRadius: 7 },
+    // A rounded square echoing the live set-number chip, rather than a circle.
+    typeDot: { width: 16, height: 16, borderRadius: 5 },
     typeText: { flex: 1, color: theme.ink, ...typeScale.body },
     radio: {
       width: 28,

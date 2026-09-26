@@ -30,7 +30,7 @@ test('completes a unilateral exercise one side at a time', async ({ page }) => {
   await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
 
   // The unilateral exercise is marked, and its check completes in two steps.
-  await expect(page.getByText('Uni').first()).toBeVisible();
+  await expect(page.getByLabel('Unilateral, complete one side at a time').first()).toBeVisible();
   const control = page.getByTestId('set-split-check-1');
   await expect(control).toHaveAccessibleName('Complete first side of set 1');
 

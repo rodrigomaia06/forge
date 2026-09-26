@@ -806,7 +806,7 @@ export function ExerciseOptionsSheet({
           onPress: () => openView('note'),
         }] : []),
         ...(onOpenPreviousSessions ? [{ icon: 'history' as const, label: 'Previous sessions', dismiss: false, onPress: () => openView('history') }] : []),
-        ...(onOpenWarmupSets ? [{ icon: 'warm-up' as const, label: 'Warm-up sets', onPress: onOpenWarmupSets }] : []),
+        ...(onOpenWarmupSets ? [{ icon: 'temperature-sun' as const, label: 'Warm-up sets', onPress: onOpenWarmupSets }] : []),
         ...(onOpenExerciseInfo ? [{ icon: 'info' as const, label: 'Exercise info', dismiss: false, onPress: () => openView('info') }] : []),
         ...(!readOnly && onReplaceExercise ? [{ icon: 'replace' as const, label: 'Replace exercise', onPress: onReplaceExercise }] : []),
         ...(!readOnly && onRemove ? [{
@@ -1132,6 +1132,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       paddingVertical: 8,
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'space-between',
       borderTopWidth: 1,
       borderTopColor: dashboardTheme.divider,
       backgroundColor: dashboardTheme.surfaceElevated,
@@ -1141,7 +1142,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       borderColor: dashboardTheme.selectionIndicator,
     },
     variationName: {
-      flex: 1,
       color: dashboardTheme.ink,
       ...typeScale.body,
     },
@@ -1162,7 +1162,11 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       backgroundColor: dashboardTheme.surfaceMuted,
     },
     exerciseOptionPressed: { opacity: 0.72 },
-    exerciseOptionCopy: { flex: 1, gap: 2 },
+    // Center the name/subtitle block within the row. alignSelf 'center' keeps the
+    // copy hugging its own content (so a single-line name is centred, not pinned
+    // to the top of the taller two-line rows); justifyContent centers it if a
+    // platform stretches the flex child to the full row height.
+    exerciseOptionCopy: { flex: 1, gap: 2, alignSelf: 'center', justifyContent: 'center' },
     exerciseOptionName: { color: dashboardTheme.ink, ...typeScale.cardTitle },
     exerciseOptionEquipment: { color: '#4F625A', ...typeScale.label },
     restPickerContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 20 },
@@ -1202,7 +1206,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     facetGroup: { gap: 6 },
     facetGroupTitle: { ...typeScale.label, color: dashboardTheme.slate, paddingHorizontal: 2 },
     facetGroupCard: { overflow: 'hidden', borderRadius: 14 },
-    facetRow: { minHeight: 58, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center' },
+    facetRow: { minHeight: 58, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     outputChooserContent: { paddingHorizontal: 20, paddingTop: 8, gap: 10 },
     outputChoice: { minHeight: 64, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', borderRadius: 16, backgroundColor: dashboardTheme.surface },
     outputChoiceSelected: { backgroundColor: dashboardTheme.successSurface, borderColor: dashboardTheme.success },

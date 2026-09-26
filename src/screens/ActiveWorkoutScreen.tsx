@@ -337,7 +337,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
           }}
           style={({ pressed }) => [styles.elapsedInfo, pressed && pressedFeedback]}
         >
-            <Icon name="time-outline" size={22} color={theme.slate} />
+            <Icon name="clock" size={22} color={theme.slate} />
             <ElapsedTimer workout={activeWorkout} style={styles.elapsedValue} />
             <Text style={styles.timerLabel}>Elapsed</Text>
           </Pressable>

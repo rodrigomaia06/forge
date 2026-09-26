@@ -85,6 +85,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   const cardTranslateX = useSharedValue(deleteRevealed ? -deleteActionWidth : 0);
   const cardOpen = useSharedValue(deleteRevealed);
   const suppressDeletePress = useRef(false);
+  const [deletePressed, setDeletePressed] = useState(false);
   const catalogMetadata = showCatalogMetadata
     ? formatExerciseMetadata(exercise.exerciseSnapshot)
     : null;
@@ -169,6 +170,16 @@ export const ExerciseSection = React.memo(function ExerciseSection({
     suppressDeletePress.current = true;
   };
 
+  // Always clear the press guard when the gesture ends OR is cancelled (e.g. the
+  // routine editor's draggable list takes over the touch, so onEnd never fires).
+  // Without this the guard stays latched true and the revealed Delete press is
+  // silently swallowed — the exercise never deletes.
+  const clearDeletePressGuard = (): void => {
+    requestAnimationFrame(() => {
+      suppressDeletePress.current = false;
+    });
+  };
+
   const cardGesture = Gesture.Pan()
     .enabled(swipeEnabled)
     // Whichever axis clears 16 pt first wins: a horizontal-dominant drag reveals
@@ -189,6 +200,9 @@ export const ExerciseSection = React.memo(function ExerciseSection({
     .onEnd((gesture) => {
       const offset = (cardOpen.value ? -deleteActionWidth : 0) + gesture.translationX;
       runOnJS(settleCard)(Math.max(-deleteActionWidth, Math.min(0, offset)) < -42);
+    })
+    .onFinalize(() => {
+      runOnJS(clearDeletePressGuard)();
     });
   const swipeContentStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: cardTranslateX.value }],
@@ -196,7 +210,13 @@ export const ExerciseSection = React.memo(function ExerciseSection({
 
   return (
     <GestureDetector gesture={cardGesture}>
-      <View testID={testID} style={styles.exerciseSwipe}>
+      {/* The whole revealed surface (rounded corners included) tints on press,
+          matching the dashboard tile / live-workout delete, rather than only the
+          fixed-width button filling part of the red. */}
+      <View
+        testID={testID}
+        style={[styles.exerciseSwipe, deletePressed && { backgroundColor: theme.destructiveSurfacePressed }]}
+      >
         <View
           style={[
             styles.deleteExerciseActionLayer,
@@ -206,6 +226,8 @@ export const ExerciseSection = React.memo(function ExerciseSection({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Delete ${exercise.name}`}
+            onPressIn={() => setDeletePressed(true)}
+            onPressOut={() => setDeletePressed(false)}
             onPress={() => {
               if (suppressDeletePress.current) return;
               errorHaptic();
@@ -213,10 +235,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
               removeExercise(exercise.id);
               onDeleteRevealChange(exercise.id, false);
             }}
-            style={({ pressed }) => [
-              styles.deleteExerciseAction,
-              pressed && styles.deleteExerciseActionPressed,
-            ]}
+            style={styles.deleteExerciseAction}
           >
             <Icon name="trash" size={20} color={theme.textDestructive} />
             <Text style={styles.deleteExerciseText}>Delete</Text>
@@ -593,10 +612,11 @@ export function ReadOnlyExerciseSection({
 
 /** A small "Uni" chip marking a unilateral exercise, whose sets complete a side at a time. */
 function UnilateralBadge() {
-  const styles = useThemedStyles(createStyles);
+  const theme = useForgeTheme();
   return (
-    <View style={styles.unilateralBadge}>
-      <Text accessibilityLabel="Unilateral, complete one side at a time" style={styles.unilateralBadgeText}>Uni</Text>
+    <View accessible accessibilityLabel="Unilateral, complete one side at a time">
+      {/* A boxed "U" reads as unilateral without relying on a language label. */}
+      <Icon name="square-letter-u" size={19} color={theme.slate} />
     </View>
   );
 }
@@ -604,15 +624,6 @@ function UnilateralBadge() {
 const createStyles = (theme: import('../../types').ForgeTheme) => {
   const dashboardTheme = theme;
   return StyleSheet.create({
-    unilateralBadge: {
-      paddingHorizontal: 6,
-      paddingVertical: 1,
-      borderRadius: 6,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: dashboardTheme.border,
-      backgroundColor: dashboardTheme.surfaceMuted,
-    },
-    unilateralBadgeText: { color: dashboardTheme.slate, ...typeScale.caption },
     exerciseSwipe: {
       position: 'relative',
       overflow: 'hidden',
@@ -628,7 +639,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       right: 0,
       bottom: 0,
       width: 64,
-      backgroundColor: dashboardTheme.destructiveSurface,
+      // Transparent so the container's red (which tints on press) reads as one
+      // uniform surface across the whole reveal, corners included.
+      backgroundColor: 'transparent',
     },
     deleteExerciseAction: {
       flex: 1,
@@ -636,7 +649,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       justifyContent: 'center',
       gap: 4,
     },
-    deleteExerciseActionPressed: { backgroundColor: dashboardTheme.destructiveSurfacePressed },
     deleteExerciseText: { color: dashboardTheme.textDestructive, ...typeScale.caption },
     exerciseCard: {
       backgroundColor: dashboardTheme.surface,
