@@ -498,11 +498,11 @@ function PlanCard({
           accessibilityLabel={`Move ${plan.name} up`}
           disabled={!canMoveUp}
           onPress={onMoveUp}
-          hitSlop={6}
+          hitSlop={{ top: 8, bottom: 4, left: 12, right: 12 }}
           style={({ pressed }) => [styles.planMoveButton, pressed && pressedFeedbackSubtle]}
         >
           <View style={styles.flipUp}>
-            <Icon name="chevron-down" size={20} color={canMoveUp ? theme.slate : theme.textDisabled} />
+            <Icon name="chevron-down" size={24} color={canMoveUp ? theme.slate : theme.textDisabled} />
           </View>
         </Pressable>
         <Pressable
@@ -510,10 +510,10 @@ function PlanCard({
           accessibilityLabel={`Move ${plan.name} down`}
           disabled={!canMoveDown}
           onPress={onMoveDown}
-          hitSlop={6}
+          hitSlop={{ top: 4, bottom: 8, left: 12, right: 12 }}
           style={({ pressed }) => [styles.planMoveButton, pressed && pressedFeedbackSubtle]}
         >
-          <Icon name="chevron-down" size={20} color={canMoveDown ? theme.slate : theme.textDisabled} />
+          <Icon name="chevron-down" size={24} color={canMoveDown ? theme.slate : theme.textDisabled} />
         </Pressable>
       </View>
       <View style={styles.planHeadText}>
@@ -775,8 +775,8 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     // Grab-rail for reordering — a generous, edit-only left zone like the dashboard tile handle.
     dragRail: { width: 34, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', marginLeft: -6 },
     planEditTitle: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-    planMove: { width: 30, marginLeft: -2, marginRight: 6, alignItems: 'center', justifyContent: 'center' },
-    planMoveButton: { height: 18, alignItems: 'center', justifyContent: 'center' },
+    planMove: { width: 36, marginLeft: -2, marginRight: 6, alignItems: 'center', justifyContent: 'center' },
+    planMoveButton: { height: 24, alignItems: 'center', justifyContent: 'center' },
     flipUp: { transform: [{ rotate: '180deg' }] },
     // A dragged card lifts via ScaleDecorator + a soft iOS shadow. No Android
     // `elevation` bump: with the card's overflow-hidden rounding, a raised
