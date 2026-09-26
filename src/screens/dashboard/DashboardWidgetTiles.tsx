@@ -317,7 +317,7 @@ export function DashboardMuscleHeatmapTile({ heat, windowDays, gender = 'male', 
   );
   if (!onOpen) return body;
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel="Open muscle heatmap" onPress={onOpen} style={({ pressed }) => pressed && pressedFeedback}>
+    <Pressable accessibilityRole="button" accessibilityLabel="Open muscle heatmap" unstable_pressDelay={80} onPress={onOpen} style={({ pressed }) => pressed && pressedFeedback}>
       {body}
     </Pressable>
   );
@@ -448,6 +448,7 @@ export function DashboardMeasurementTile({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Log ${definition.name}`}
+          unstable_pressDelay={80}
           onPress={commit}
           disabled={!draft.trim()}
           style={({ pressed }) => [
@@ -497,6 +498,7 @@ export function DashboardMeasurementsTile({
                 accessibilityRole={onOpen ? 'button' : undefined}
                 accessibilityLabel={onOpen ? `Open ${def.name}` : undefined}
                 disabled={!onOpen}
+                unstable_pressDelay={80}
                 onPress={onOpen ? () => onOpen(def.id) : undefined}
                 style={({ pressed }) => [styles.mCard, pressed && onOpen ? pressedFeedback : null]}
               >
@@ -535,6 +537,7 @@ export function DashboardMeasurementsTile({
           accessibilityRole={onOpen ? 'button' : undefined}
           accessibilityLabel={onOpen ? 'Open measurements' : undefined}
           disabled={!onOpen}
+          unstable_pressDelay={80}
           onPress={onOpen ? () => onOpen() : undefined}
           style={({ pressed }) => [styles.mEmpty, pressed && onOpen ? pressedFeedback : null]}
         >
@@ -638,6 +641,7 @@ export function DashboardCalendarTile({
       accessibilityRole={onOpen ? 'button' : undefined}
       accessibilityLabel={onOpen ? 'Open calendar' : undefined}
       disabled={!onOpen}
+      unstable_pressDelay={80}
       onPress={onOpen}
       style={({ pressed }) => [styles.calRow, pressed && onOpen ? pressedFeedback : null]}
     >

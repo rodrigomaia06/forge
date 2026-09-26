@@ -31,6 +31,9 @@ interface ButtonProps {
   tone?: 'neutral' | 'success' | 'destructive';
   haptic?: 'none' | 'light' | 'medium';
   hitSlop?: number | Insets;
+  /** Delay before the press engages, so a scroll starting on the button from
+   * standstill is handed to an enclosing list instead of being swallowed. */
+  pressDelay?: number;
 }
 
 export function Button({
@@ -49,6 +52,7 @@ export function Button({
   tone,
   haptic,
   hitSlop,
+  pressDelay,
 }: ButtonProps) {
   const contextTheme = useForgeTheme();
   const resolvedTheme = theme ?? contextTheme ?? colors;
@@ -67,6 +71,7 @@ export function Button({
       accessibilityState={{ disabled, busy: loading }}
       disabled={disabled || loading}
       hitSlop={hitSlop}
+      unstable_pressDelay={pressDelay}
       onPress={() => {
         const feedback = haptic ?? (isPrimary ? 'medium' : 'light');
         if (feedback === 'light') lightHaptic();

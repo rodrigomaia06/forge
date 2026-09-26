@@ -60,6 +60,7 @@ export function DashboardStartCard({
         icon="play"
         accessibilityLabel={routine ? `Start ${routine.name}` : 'Start a workout'}
         onPress={onStart}
+        pressDelay={80}
         style={styles.startButton}
       />
     </View>
@@ -128,6 +129,9 @@ export function DashboardWeekCard({
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`Open ${dayName}'s ${day.types.join(', ')} workout`}
+                  // Delay the press so a scroll that starts on this control from
+                  // standstill is handed to the list instead of being swallowed.
+                  unstable_pressDelay={80}
                   onPress={() => {
                     lightHaptic();
                     onSelectDay?.(day);
@@ -223,6 +227,7 @@ export function DashboardLastWorkoutTile({
       accessibilityRole={lastWorkout ? 'button' : undefined}
       accessibilityLabel={lastWorkout ? `Open ${lastWorkout.name}` : undefined}
       disabled={!lastWorkout}
+      unstable_pressDelay={80}
       onPress={lastWorkout ? () => {
         lightHaptic();
         onOpen(lastWorkout.id);
