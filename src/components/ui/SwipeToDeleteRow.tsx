@@ -29,6 +29,7 @@ export function SwipeToDeleteRow({
   borderRadius,
   deleteWidth = DELETE_WIDTH,
   deleteIconSize = 18,
+  insetDeleteButton = false,
 }: {
   children: React.ReactNode;
   onDelete: () => void;
@@ -43,6 +44,9 @@ export function SwipeToDeleteRow({
   deleteWidth?: number;
   /** Size of the trash glyph in the revealed panel. */
   deleteIconSize?: number;
+  /** Reveal a floating rounded red button (like the set delete) instead of a
+   * full-height red panel — for inset rows rather than whole cards. */
+  insetDeleteButton?: boolean;
 }) {
   const theme = useForgeTheme();
   const reducedMotion = useForgeReducedMotion();
@@ -102,23 +106,27 @@ export function SwipeToDeleteRow({
 
   return (
     <GestureDetector gesture={swipe}>
-      <View style={[styles.row, borderRadius != null && { borderRadius }, { backgroundColor: theme.destructiveSurface }]}>
+      <View style={[styles.row, borderRadius != null && { borderRadius }, { backgroundColor: insetDeleteButton ? (contentBackgroundColor ?? theme.surface) : theme.destructiveSurface }]}>
         <Animated.View
           style={[
             styles.deleteLayer,
             { width: deleteWidth },
             layerStyle,
-            { backgroundColor: theme.destructiveSurface, pointerEvents: revealed ? 'auto' : 'none' },
+            { backgroundColor: insetDeleteButton ? 'transparent' : theme.destructiveSurface, pointerEvents: revealed ? 'auto' : 'none' },
           ]}
         >
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={deleteAccessibilityLabel}
             onPress={remove}
-            style={({ pressed }) => [styles.deleteAction, pressed && styles.deleteActionPressed]}
+            style={({ pressed }) => [
+              insetDeleteButton ? styles.insetDeleteAction : styles.deleteAction,
+              insetDeleteButton && { backgroundColor: theme.destructiveSurface },
+              pressed && styles.deleteActionPressed,
+            ]}
           >
             <Icon name="trash" size={deleteIconSize} color={theme.textDestructive} />
-            <Text style={[styles.deleteText, { color: theme.textDestructive }]}>Delete</Text>
+            {insetDeleteButton ? null : <Text style={[styles.deleteText, { color: theme.textDestructive }]}>Delete</Text>}
           </Pressable>
         </Animated.View>
         {/* The sliding content keeps the card's rounding so its right edge curves
@@ -151,6 +159,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   deleteAction: { flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', gap: 3 },
+  // A floating rounded red button (matching the set-row delete) for inset rows.
+  insetDeleteAction: { flex: 1, marginVertical: 6, marginRight: 10, marginLeft: 2, borderRadius: 14, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   deleteActionPressed: { opacity: 0.8 },
   deleteText: { ...typeScale.caption },
   divider: { position: 'absolute', left: 16, right: 0, bottom: 0, height: StyleSheet.hairlineWidth },

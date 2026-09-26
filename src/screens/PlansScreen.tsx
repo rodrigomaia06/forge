@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Image, LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, UIManager, View } from 'react-native';
 import { NestableDraggableFlatList, NestableScrollContainer, ScaleDecorator } from 'react-native-draggable-flatlist';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 import type { ForgeActionSheetAction } from '../components/ui';
 import {
@@ -211,6 +212,11 @@ export function PlansScreen({ navigation, route }: Props) {
           </View>
           {headerElevated ? <HeaderEdge /> : null}
         </View>
+        <Animated.View
+          key={editing ? 'edit' : 'view'}
+          entering={reducedMotion ? undefined : FadeIn.duration(200)}
+          style={styles.listArea}
+        >
         {editing && Platform.OS !== 'web' ? (
           <NestableScrollContainer
             style={styles.scrollView}
@@ -331,6 +337,7 @@ export function PlansScreen({ navigation, route }: Props) {
             {!standaloneRoutines.length && !plans.length ? <EmptyPlans /> : null}
           </ScrollView>
         )}
+        </Animated.View>
         <ForgeAnchoredMenu
           visible={createMenu.visible}
           anchor={createMenu.anchor}
@@ -551,8 +558,8 @@ function PlanCard({
         deleteAccessibilityLabel={`Delete ${plan.name}`}
         contentBackgroundColor={theme.surface}
         borderRadius={24}
-        deleteWidth={104}
-        deleteIconSize={22}
+        deleteWidth={64}
+        deleteIconSize={20}
       >
         <View style={styles.planCardSurface}>
           {header}
@@ -678,6 +685,9 @@ function RoutineRow({
       onDelete={onDelete}
       deleteAccessibilityLabel={`Delete ${routine.name}`}
       contentBackgroundColor={theme.surface}
+      insetDeleteButton
+      deleteWidth={64}
+      deleteIconSize={20}
     >
       <View style={[styles.routineRow, isActive && styles.rowActive]}>
         {!last ? <View pointerEvents="none" style={styles.rowSeparator} /> : null}
@@ -759,6 +769,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     planCard: { overflow: 'hidden', borderWidth: 0 },
     planCardSurface: { overflow: 'hidden' },
     screen: { flex: 1 },
+    listArea: { flex: 1 },
     scrollView: { flex: 1 },
     header: {
       position: 'relative',
