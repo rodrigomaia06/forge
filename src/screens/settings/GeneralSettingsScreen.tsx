@@ -162,10 +162,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
               onPress={() => choose({ weekStartsOn: 0 as WeekStartsOn })}
             />
           </SettingsSection>
-          <SettingsSection
-            title="Rest timer"
-            footer="Controls the rest timer in Live Workout, its notification and its native activity."
-          >
+          <SettingsSection title="Rest timer">
             <Toggle
               title="Rest timer"
               value={preferences.showRestTimer}

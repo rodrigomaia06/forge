@@ -603,7 +603,7 @@ const TimelineRow = React.memo(function TimelineRow({
               testID={`history-type-icon-${workout.id}`}
               style={[styles.typeIcon, { backgroundColor: type.background }]}
             >
-              <Icon name={type.icon} size={22} color={type.color} />
+              <Icon name={type.icon} size={26} color={type.color} />
             </View>
             <View style={styles.cardCopy}>
               <Text style={styles.name} numberOfLines={1}>

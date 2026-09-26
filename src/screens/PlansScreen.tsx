@@ -490,7 +490,7 @@ function RoutineCardBody({
     theme.colorScheme === 'dark' ? 0.24 : 0.14,
   );
   const typeIcon = (
-    <Icon name={getRoutineTypeIcon(routine.type, workoutTypes)} size={24} color={presentation.color} />
+    <Icon name={getRoutineTypeIcon(routine.type, workoutTypes)} size={26} color={presentation.color} />
   );
   const copy = (
     <>

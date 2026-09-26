@@ -230,7 +230,7 @@ export function DashboardLastWorkoutTile({
       style={({ pressed }) => [styles.wideInner, pressed && lastWorkout ? pressedFeedbackSubtle : null]}
     >
       <View style={[styles.tileIcon, { backgroundColor: presentation?.background ?? theme.surfaceMuted }]}>
-        <Icon name={presentation?.icon ?? 'fitness'} size={20} color={presentation?.color ?? theme.muted} />
+        <Icon name={presentation?.icon ?? 'fitness'} size={26} color={presentation?.color ?? theme.muted} />
       </View>
       <View style={styles.wideCopy}>
         <Text style={styles.tileLabel}>{DASHBOARD_TILE_DEFAULT_TITLE['last-workout']}</Text>
