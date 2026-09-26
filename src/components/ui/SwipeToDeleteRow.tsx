@@ -49,7 +49,6 @@ export function SwipeToDeleteRow({
   const translateX = useSharedValue(0);
   const open = useSharedValue(false);
   const [revealed, setRevealed] = useState(false);
-  const [pressed, setPressed] = useState(false);
   const contentStyle = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value }] }));
   const layerStyle = useAnimatedStyle(() => ({
     opacity: Math.min(1, Math.max(0, -translateX.value / deleteWidth)),
@@ -109,22 +108,29 @@ export function SwipeToDeleteRow({
             styles.deleteLayer,
             { width: deleteWidth },
             layerStyle,
-            { backgroundColor: pressed ? theme.destructiveSurfacePressed : theme.destructiveSurface, pointerEvents: revealed ? 'auto' : 'none' },
+            { backgroundColor: theme.destructiveSurface, pointerEvents: revealed ? 'auto' : 'none' },
           ]}
         >
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={deleteAccessibilityLabel}
             onPress={remove}
-            onPressIn={() => setPressed(true)}
-            onPressOut={() => setPressed(false)}
-            style={styles.deleteAction}
+            style={({ pressed }) => [styles.deleteAction, pressed && styles.deleteActionPressed]}
           >
             <Icon name="trash" size={deleteIconSize} color={theme.textDestructive} />
             <Text style={[styles.deleteText, { color: theme.textDestructive }]}>Delete</Text>
           </Pressable>
         </Animated.View>
-        <Animated.View style={[contentStyle, { backgroundColor: contentBackgroundColor ?? theme.surface }]}>
+        {/* The sliding content keeps the card's rounding so its right edge curves
+            away as it slides — the dashboard-card delete look, not a straight
+            square edge against the red panel. */}
+        <Animated.View
+          style={[
+            contentStyle,
+            borderRadius != null && { borderRadius, overflow: 'hidden' },
+            { backgroundColor: contentBackgroundColor ?? theme.surface },
+          ]}
+        >
           {children}
           {showDivider ? <View style={[styles.divider, { backgroundColor: theme.border }]} /> : null}
         </Animated.View>
@@ -145,6 +151,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   deleteAction: { flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', gap: 3 },
+  deleteActionPressed: { opacity: 0.8 },
   deleteText: { ...typeScale.caption },
   divider: { position: 'absolute', left: 16, right: 0, bottom: 0, height: StyleSheet.hairlineWidth },
 });

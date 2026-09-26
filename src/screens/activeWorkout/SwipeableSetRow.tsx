@@ -178,7 +178,7 @@ function SwipeableSetRowComponent({
           onPress={handleDelete}
           style={({ pressed }) => [styles.deleteAction, pressed && styles.deleteActionPressed]}
         >
-          <Icon name="trash" size={18} color={theme.textDestructive} weight="regular" />
+          <Icon name="trash" size={20} color={theme.textDestructive} weight="regular" />
         </Pressable>
       </Animated.View>
       <Animated.View
@@ -291,6 +291,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  deleteActionPressed: { backgroundColor: dashboardTheme.destructiveSurfacePressed },
+  deleteActionPressed: { opacity: 0.8 },
   });
 };
