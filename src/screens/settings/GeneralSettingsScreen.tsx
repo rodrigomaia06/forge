@@ -241,7 +241,8 @@ export function GeneralSettingsScreen({ navigation }: Props) {
           visible={restMenu.visible}
           anchor={restMenu.anchor}
           onClose={restMenu.close}
-          align="stretch"
+          align="end"
+          minWidth={180}
           initialScrollOffset={Math.max(0, (restOptions.findIndex((option) => option.value === preferences.defaultRestSeconds) - 2) * 52)}
           testID="default-rest-selection-menu"
         >
@@ -262,7 +263,8 @@ export function GeneralSettingsScreen({ navigation }: Props) {
           visible={reminderMenu.visible}
           anchor={reminderMenu.anchor}
           onClose={reminderMenu.close}
-          align="stretch"
+          align="end"
+          minWidth={180}
           testID="reminder-selection-menu"
         >
           <ForgeSingleSelectList
