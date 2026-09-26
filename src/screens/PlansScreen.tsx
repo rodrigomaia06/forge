@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Image, LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, UIManager, View } from 'react-native';
+import { NestableDraggableFlatList, NestableScrollContainer, ScaleDecorator } from 'react-native-draggable-flatlist';
 
 import type { ForgeActionSheetAction } from '../components/ui';
 import {
@@ -49,7 +50,7 @@ export function PlansScreen({ navigation, route }: Props) {
   const styles = useThemedStyles(createStyles);
   const dockScrollInset = useForgeDockScrollInset();
   const { preferences } = useSettings();
-  const { plans, standaloneRoutines, createPlan, deletePlan, deleteRoutine, duplicateRoutine, moveRoutine, updatePlan } = usePlans();
+  const { plans, standaloneRoutines, createPlan, deletePlan, deleteRoutine, duplicateRoutine, moveRoutine, updatePlan, reorderPlans, reorderRoutines } = usePlans();
   const { startWorkout, completedWorkouts } = useWorkouts();
   const createMenu = useAnchoredMenu();
   const [routineTarget, setRoutineTarget] = useState<WorkoutRoutine | null>(null);
@@ -197,53 +198,119 @@ export function PlansScreen({ navigation, route }: Props) {
           </View>
           {headerElevated ? <HeaderEdge /> : null}
         </View>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset }]}
-          showsVerticalScrollIndicator={false}
-          directionalLockEnabled
-          keyboardShouldPersistTaps="handled"
-          onScroll={(event) => handlePlansScrollOffset(event.nativeEvent.contentOffset.y)}
-          scrollEventThrottle={16}
-        >
-          <View style={styles.listHeader}>
+        {editing && Platform.OS !== 'web' ? (
+          <NestableScrollContainer
+            style={styles.scrollView}
+            contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset }]}
+            showsVerticalScrollIndicator={false}
+            onScroll={(event) => handlePlansScrollOffset(event.nativeEvent.contentOffset.y)}
+            scrollEventThrottle={16}
+          >
             {standaloneRoutines.length > 0 ? (
-              <Section title="Routines">
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Routines</Text>
                 <ForgeCard variant="base" style={styles.groupedCard}>
-                  {standaloneRoutines.map((routine, index) => (
-                    <RoutineRow
-                      key={routine.id}
-                      routine={routine}
-                      workoutTypes={preferences.workoutTypes}
-                      last={index === standaloneRoutines.length - 1}
-                      editing={editing}
-                      onStart={() => startRoutine(routine)}
-                      onPress={() => routineActions(routine)}
-                      onDelete={() => removeRoutine(routine.id)}
-                    />
-                  ))}
+                  <NestableDraggableFlatList
+                    data={standaloneRoutines}
+                    keyExtractor={(routine) => routine.id}
+                    activationDistance={8}
+                    onDragEnd={({ data }) => reorderRoutines(data, undefined)}
+                    renderItem={({ item, drag, isActive, getIndex }) => (
+                      <ScaleDecorator activeScale={1.02}>
+                        <RoutineRow
+                          routine={item}
+                          workoutTypes={preferences.workoutTypes}
+                          last={(getIndex() ?? 0) === standaloneRoutines.length - 1}
+                          editing
+                          drag={drag}
+                          isActive={isActive}
+                          onStart={() => startRoutine(item)}
+                          onPress={() => routineActions(item)}
+                          onDelete={() => removeRoutine(item.id)}
+                        />
+                      </ScaleDecorator>
+                    )}
+                  />
                 </ForgeCard>
-              </Section>
+              </View>
             ) : null}
-            {plans.length > 0 ? <Text style={styles.sectionTitle}>Plans</Text> : null}
-          </View>
-          {plans.map((plan) => (
-            <View key={plan.id} style={styles.planRow}>
-              <PlanCard
-                plan={plan}
-                workoutTypes={preferences.workoutTypes}
-                editing={editing}
-                onAddRoutine={() => addRoutine(plan.id)}
-                onOpenRoutine={routineActions}
-                onStartRoutine={startRoutine}
-                onDeleteRoutine={(routine) => removeRoutine(routine.id)}
-                onRename={(name) => renamePlan(plan.id, name)}
-                onDelete={() => removePlan(plan.id)}
-              />
+            {plans.length > 0 ? <Text style={[styles.sectionTitle, styles.plansTitleEdit]}>Plans</Text> : null}
+            <NestableDraggableFlatList
+              data={plans}
+              keyExtractor={(plan) => plan.id}
+              activationDistance={8}
+              onDragEnd={({ data }) => reorderPlans(data)}
+              renderItem={({ item: plan, drag, isActive }) => (
+                <ScaleDecorator activeScale={1.02}>
+                  <View style={styles.planRow}>
+                    <PlanCard
+                      plan={plan}
+                      workoutTypes={preferences.workoutTypes}
+                      editing
+                      drag={drag}
+                      isActive={isActive}
+                      onReorderRoutines={(routines) => reorderRoutines(routines, plan.id)}
+                      onAddRoutine={() => addRoutine(plan.id)}
+                      onOpenRoutine={routineActions}
+                      onStartRoutine={startRoutine}
+                      onDeleteRoutine={(routine) => removeRoutine(routine.id)}
+                      onRename={(name) => renamePlan(plan.id, name)}
+                      onDelete={() => removePlan(plan.id)}
+                    />
+                  </View>
+                </ScaleDecorator>
+              )}
+            />
+          </NestableScrollContainer>
+        ) : (
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset }]}
+            showsVerticalScrollIndicator={false}
+            directionalLockEnabled
+            keyboardShouldPersistTaps="handled"
+            onScroll={(event) => handlePlansScrollOffset(event.nativeEvent.contentOffset.y)}
+            scrollEventThrottle={16}
+          >
+            <View style={styles.listHeader}>
+              {standaloneRoutines.length > 0 ? (
+                <Section title="Routines">
+                  <ForgeCard variant="base" style={styles.groupedCard}>
+                    {standaloneRoutines.map((routine, index) => (
+                      <RoutineRow
+                        key={routine.id}
+                        routine={routine}
+                        workoutTypes={preferences.workoutTypes}
+                        last={index === standaloneRoutines.length - 1}
+                        editing={editing}
+                        onStart={() => startRoutine(routine)}
+                        onPress={() => routineActions(routine)}
+                        onDelete={() => removeRoutine(routine.id)}
+                      />
+                    ))}
+                  </ForgeCard>
+                </Section>
+              ) : null}
+              {plans.length > 0 ? <Text style={styles.sectionTitle}>Plans</Text> : null}
             </View>
-          ))}
-          {!standaloneRoutines.length && !plans.length ? <EmptyPlans /> : null}
-        </ScrollView>
+            {plans.map((plan) => (
+              <View key={plan.id} style={styles.planRow}>
+                <PlanCard
+                  plan={plan}
+                  workoutTypes={preferences.workoutTypes}
+                  editing={editing}
+                  onAddRoutine={() => addRoutine(plan.id)}
+                  onOpenRoutine={routineActions}
+                  onStartRoutine={startRoutine}
+                  onDeleteRoutine={(routine) => removeRoutine(routine.id)}
+                  onRename={(name) => renamePlan(plan.id, name)}
+                  onDelete={() => removePlan(plan.id)}
+                />
+              </View>
+            ))}
+            {!standaloneRoutines.length && !plans.length ? <EmptyPlans /> : null}
+          </ScrollView>
+        )}
         <ForgeAnchoredMenu
           visible={createMenu.visible}
           anchor={createMenu.anchor}
@@ -357,6 +424,9 @@ function PlanCard({
   plan,
   workoutTypes,
   editing,
+  drag,
+  isActive,
+  onReorderRoutines,
   onAddRoutine,
   onOpenRoutine,
   onStartRoutine,
@@ -367,6 +437,9 @@ function PlanCard({
   plan: WorkoutPlan;
   workoutTypes: WorkoutTypePreference[];
   editing: boolean;
+  drag?: () => void;
+  isActive?: boolean;
+  onReorderRoutines?: (routines: WorkoutRoutine[]) => void;
   onAddRoutine: () => void;
   onOpenRoutine: (routine: WorkoutRoutine) => void;
   onStartRoutine: (routine: WorkoutRoutine) => void;
@@ -386,10 +459,21 @@ function PlanCard({
   };
   const count = `${plan.routines.length} ${plan.routines.length === 1 ? 'routine' : 'routines'}`;
   return (
-    <ForgeCard variant="base" style={styles.planCard}>
+    <ForgeCard variant="base" style={[styles.planCard, isActive && styles.rowActive]}>
       <View style={styles.planCardSurface}>
         {editing ? (
           <View style={[styles.planHeader, styles.planOptions]}>
+            {drag ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Reorder ${plan.name}`}
+                onPressIn={drag}
+                disabled={isActive}
+                style={styles.dragHandle}
+              >
+                <Icon name="drag" size={20} color={theme.slate} />
+              </Pressable>
+            ) : null}
             <View style={styles.planHeadText}>
               <Text style={styles.planName}>{plan.name}</Text>
               <Text style={styles.planCount}>{count}</Text>
@@ -426,18 +510,42 @@ function PlanCard({
             <Icon name="note" size={18} color={theme.slate} />
           </Pressable>
         )}
-        {plan.routines.map((routine, index) => (
-          <RoutineRow
-            key={routine.id}
-            routine={routine}
-            workoutTypes={workoutTypes}
-            last={index === plan.routines.length - 1}
-            editing={editing}
-            onStart={() => onStartRoutine(routine)}
-            onPress={() => onOpenRoutine(routine)}
-            onDelete={() => onDeleteRoutine(routine)}
+        {editing && onReorderRoutines ? (
+          <NestableDraggableFlatList
+            data={plan.routines}
+            keyExtractor={(routine) => routine.id}
+            activationDistance={8}
+            onDragEnd={({ data }) => onReorderRoutines(data)}
+            renderItem={({ item, drag: routineDrag, isActive: routineActive, getIndex }) => (
+              <ScaleDecorator activeScale={1.02}>
+                <RoutineRow
+                  routine={item}
+                  workoutTypes={workoutTypes}
+                  last={(getIndex() ?? 0) === plan.routines.length - 1}
+                  editing
+                  drag={routineDrag}
+                  isActive={routineActive}
+                  onStart={() => onStartRoutine(item)}
+                  onPress={() => onOpenRoutine(item)}
+                  onDelete={() => onDeleteRoutine(item)}
+                />
+              </ScaleDecorator>
+            )}
           />
-        ))}
+        ) : (
+          plan.routines.map((routine, index) => (
+            <RoutineRow
+              key={routine.id}
+              routine={routine}
+              workoutTypes={workoutTypes}
+              last={index === plan.routines.length - 1}
+              editing={editing}
+              onStart={() => onStartRoutine(routine)}
+              onPress={() => onOpenRoutine(routine)}
+              onDelete={() => onDeleteRoutine(routine)}
+            />
+          ))
+        )}
         {editing ? null : (
           <Pressable
             accessibilityRole="button"
@@ -460,6 +568,8 @@ function RoutineRow({
   workoutTypes,
   last,
   editing,
+  drag,
+  isActive,
   onStart,
   onPress,
   onDelete,
@@ -468,6 +578,8 @@ function RoutineRow({
   workoutTypes: WorkoutTypePreference[];
   last: boolean;
   editing: boolean;
+  drag?: () => void;
+  isActive?: boolean;
   onStart: () => void;
   onPress: () => void;
   onDelete: () => void;
@@ -485,7 +597,18 @@ function RoutineRow({
   );
   if (editing) {
     return (
-      <View style={[styles.routineRow, !last && styles.divider]}>
+      <View style={[styles.routineRow, !last && styles.divider, isActive && styles.rowActive, { backgroundColor: theme.surface }]}>
+        {drag ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Reorder ${routine.name}`}
+            onPressIn={drag}
+            disabled={isActive}
+            style={styles.dragHandle}
+          >
+            <Icon name="drag" size={20} color={theme.slate} />
+          </Pressable>
+        ) : null}
         <View style={[styles.typeMarker, { backgroundColor: presentation.background }]}>{typeIcon}</View>
         <View style={styles.routineText}>
           <Text style={styles.routineName} numberOfLines={1}>{routine.name}</Text>
@@ -644,6 +767,9 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     editPill: { height: 40, paddingHorizontal: 16, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
     editPillText: { ...typeScale.controlLabel, color: theme.textPrimary },
     deleteButton: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.destructiveSurface },
+    dragHandle: { width: 30, alignItems: 'center', justifyContent: 'center', marginLeft: -4, marginRight: 2 },
+    rowActive: { shadowColor: theme.shadow, shadowOpacity: 0.16, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
+    plansTitleEdit: { marginTop: 8 },
     content: {
       paddingHorizontal: spacing.screen,
       paddingTop: 16,
