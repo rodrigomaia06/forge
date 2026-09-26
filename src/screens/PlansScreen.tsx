@@ -51,7 +51,7 @@ export function PlansScreen({ navigation, route }: Props) {
   const styles = useThemedStyles(createStyles);
   const dockScrollInset = useForgeDockScrollInset();
   const { preferences } = useSettings();
-  const { plans, standaloneRoutines, createPlan, deletePlan, deleteRoutine, duplicateRoutine, moveRoutine, updatePlan, reorderRoutines } = usePlans();
+  const { plans, standaloneRoutines, createPlan, deletePlan, deleteRoutine, duplicateRoutine, moveRoutine, updatePlan, reorderPlans, reorderRoutines } = usePlans();
   const { startWorkout, completedWorkouts } = useWorkouts();
   const createMenu = useAnchoredMenu();
   const [routineTarget, setRoutineTarget] = useState<WorkoutRoutine | null>(null);
@@ -154,6 +154,17 @@ export function PlansScreen({ navigation, route }: Props) {
     reflowRows();
     deletePlan(id);
   };
+  // Plans can't drag-reorder (that would re-nest the routine lists and break
+  // routine drag), so edit mode moves a plan one slot with up/down controls.
+  const movePlan = (index: number, direction: -1 | 1): void => {
+    const target = index + direction;
+    if (target < 0 || target >= plans.length) return;
+    const next = [...plans];
+    [next[index], next[target]] = [next[target], next[index]];
+    selectionHaptic();
+    reflowRows();
+    reorderPlans(next);
+  };
   const removeRoutine = (id: string): void => {
     reflowRows();
     deleteRoutine(id);
@@ -243,12 +254,16 @@ export function PlansScreen({ navigation, route }: Props) {
                 the pattern the standalone list uses and the one that measures
                 correctly. Nesting a draggable list inside a draggable plan cell
                 is what broke routine reordering (the measureLayout warnings). */}
-            {plans.map((plan) => (
+            {plans.map((plan, index) => (
               <View key={plan.id} style={styles.planRow}>
                 <PlanCard
                   plan={plan}
                   workoutTypes={preferences.workoutTypes}
                   editing
+                  canMoveUp={index > 0}
+                  canMoveDown={index < plans.length - 1}
+                  onMoveUp={() => movePlan(index, -1)}
+                  onMoveDown={() => movePlan(index, 1)}
                   onReorderRoutines={(routines) => reorderRoutines(routines, plan.id)}
                   onAddRoutine={() => addRoutine(plan.id)}
                   onOpenRoutineOptions={routineActions}
@@ -293,12 +308,16 @@ export function PlansScreen({ navigation, route }: Props) {
               ) : null}
               {plans.length > 0 ? <Text style={styles.sectionTitle}>Plans</Text> : null}
             </View>
-            {plans.map((plan) => (
+            {plans.map((plan, index) => (
               <View key={plan.id} style={styles.planRow}>
                 <PlanCard
                   plan={plan}
                   workoutTypes={preferences.workoutTypes}
                   editing={editing}
+                  canMoveUp={index > 0}
+                  canMoveDown={index < plans.length - 1}
+                  onMoveUp={() => movePlan(index, -1)}
+                  onMoveDown={() => movePlan(index, 1)}
                   onAddRoutine={() => addRoutine(plan.id)}
                   onOpenRoutineOptions={routineActions}
                   onOpenRoutineEditor={openRoutine}
@@ -414,6 +433,10 @@ function PlanCard({
   drag,
   isActive,
   onReorderRoutines,
+  canMoveUp,
+  canMoveDown,
+  onMoveUp,
+  onMoveDown,
   onAddRoutine,
   onOpenRoutineOptions,
   onOpenRoutineEditor,
@@ -427,6 +450,10 @@ function PlanCard({
   editing: boolean;
   drag?: () => void;
   isActive?: boolean;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
   onReorderRoutines?: (routines: WorkoutRoutine[]) => void;
   onAddRoutine: () => void;
   onOpenRoutineOptions: (routine: WorkoutRoutine) => void;
@@ -463,7 +490,32 @@ function PlanCard({
     </View>
   ) : editing ? (
     <View style={[styles.planHeader, styles.planOptions]}>
-      {drag ? <DragRail label={`Reorder ${plan.name}`} onDrag={drag} disabled={isActive} /> : null}
+      {/* Plans reorder one slot at a time (inline drag would re-nest the routine
+          lists). Up/down sit where a drag handle would, keeping routine drag. */}
+      <View style={styles.planMove}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Move ${plan.name} up`}
+          disabled={!canMoveUp}
+          onPress={onMoveUp}
+          hitSlop={6}
+          style={({ pressed }) => [styles.planMoveButton, pressed && pressedFeedbackSubtle]}
+        >
+          <View style={styles.flipUp}>
+            <Icon name="chevron-down" size={20} color={canMoveUp ? theme.slate : theme.textDisabled} />
+          </View>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Move ${plan.name} down`}
+          disabled={!canMoveDown}
+          onPress={onMoveDown}
+          hitSlop={6}
+          style={({ pressed }) => [styles.planMoveButton, pressed && pressedFeedbackSubtle]}
+        >
+          <Icon name="chevron-down" size={20} color={canMoveDown ? theme.slate : theme.textDisabled} />
+        </Pressable>
+      </View>
       <View style={styles.planHeadText}>
         <Text style={styles.planName}>{plan.name}</Text>
         <Text style={styles.planCount}>{count}</Text>
@@ -499,6 +551,8 @@ function PlanCard({
         deleteAccessibilityLabel={`Delete ${plan.name}`}
         contentBackgroundColor={theme.surface}
         borderRadius={24}
+        deleteWidth={104}
+        deleteIconSize={22}
       >
         <View style={styles.planCardSurface}>
           {header}
@@ -721,6 +775,9 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     // Grab-rail for reordering — a generous, edit-only left zone like the dashboard tile handle.
     dragRail: { width: 34, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', marginLeft: -6 },
     planEditTitle: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+    planMove: { width: 30, marginLeft: -2, marginRight: 6, alignItems: 'center', justifyContent: 'center' },
+    planMoveButton: { height: 18, alignItems: 'center', justifyContent: 'center' },
+    flipUp: { transform: [{ rotate: '180deg' }] },
     // A dragged card lifts via ScaleDecorator + a soft iOS shadow. No Android
     // `elevation` bump: with the card's overflow-hidden rounding, a raised
     // elevation renders square corners mid-drag.

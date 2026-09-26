@@ -27,6 +27,8 @@ export function SwipeToDeleteRow({
   contentBackgroundColor,
   enabled = true,
   borderRadius,
+  deleteWidth = DELETE_WIDTH,
+  deleteIconSize = 18,
 }: {
   children: React.ReactNode;
   onDelete: () => void;
@@ -37,6 +39,10 @@ export function SwipeToDeleteRow({
   enabled?: boolean;
   /** Rounds the swipe surface (and its red reveal) to match a rounded card. */
   borderRadius?: number;
+  /** Width of the revealed Delete panel (larger reads more like a card action). */
+  deleteWidth?: number;
+  /** Size of the trash glyph in the revealed panel. */
+  deleteIconSize?: number;
 }) {
   const theme = useForgeTheme();
   const reducedMotion = useForgeReducedMotion();
@@ -46,7 +52,7 @@ export function SwipeToDeleteRow({
   const [pressed, setPressed] = useState(false);
   const contentStyle = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value }] }));
   const layerStyle = useAnimatedStyle(() => ({
-    opacity: Math.min(1, Math.max(0, -translateX.value / DELETE_WIDTH)),
+    opacity: Math.min(1, Math.max(0, -translateX.value / deleteWidth)),
   }));
 
   if (!enabled) {
@@ -62,8 +68,8 @@ export function SwipeToDeleteRow({
     setRevealed(shouldOpen);
     open.value = shouldOpen;
     translateX.value = reducedMotion
-      ? (shouldOpen ? -DELETE_WIDTH : 0)
-      : withSpring(shouldOpen ? -DELETE_WIDTH : 0, forgeMotion.swipeSpring);
+      ? (shouldOpen ? -deleteWidth : 0)
+      : withSpring(shouldOpen ? -deleteWidth : 0, forgeMotion.swipeSpring);
   };
   const remove = (): void => {
     mediumHaptic();
@@ -86,12 +92,12 @@ export function SwipeToDeleteRow({
     .failOffsetY([-16, 16])
     .onUpdate((gesture) => {
       if (!open.value && gesture.translationX >= 0) return;
-      const base = open.value ? -DELETE_WIDTH : 0;
-      translateX.value = Math.max(-DELETE_WIDTH, Math.min(0, base + gesture.translationX));
+      const base = open.value ? -deleteWidth : 0;
+      translateX.value = Math.max(-deleteWidth, Math.min(0, base + gesture.translationX));
     })
     .onEnd((gesture) => {
-      const offset = (open.value ? -DELETE_WIDTH : 0) + gesture.translationX;
-      const shouldOpen = Math.max(-DELETE_WIDTH, Math.min(0, offset)) < -DELETE_WIDTH * 0.5;
+      const offset = (open.value ? -deleteWidth : 0) + gesture.translationX;
+      const shouldOpen = Math.max(-deleteWidth, Math.min(0, offset)) < -deleteWidth * 0.5;
       runOnJS(settle)(shouldOpen);
     });
 
@@ -101,6 +107,7 @@ export function SwipeToDeleteRow({
         <Animated.View
           style={[
             styles.deleteLayer,
+            { width: deleteWidth },
             layerStyle,
             { backgroundColor: pressed ? theme.destructiveSurfacePressed : theme.destructiveSurface, pointerEvents: revealed ? 'auto' : 'none' },
           ]}
@@ -113,7 +120,7 @@ export function SwipeToDeleteRow({
             onPressOut={() => setPressed(false)}
             style={styles.deleteAction}
           >
-            <Icon name="trash" size={18} color={theme.textDestructive} />
+            <Icon name="trash" size={deleteIconSize} color={theme.textDestructive} />
             <Text style={[styles.deleteText, { color: theme.textDestructive }]}>Delete</Text>
           </Pressable>
         </Animated.View>
