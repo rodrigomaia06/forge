@@ -113,7 +113,9 @@ test.describe('Plans and routines', () => {
     await expect(
       page.getByRole('button', { name: 'Routine actions for Options routine' }),
     ).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Rename New plan' })).toBeVisible();
+    // The normal plan header is a plain label; rename moves into edit mode.
+    await expect(page.getByRole('button', { name: 'Rename New plan' })).toHaveCount(0);
+    await expect(page.getByText('New plan', { exact: true })).toBeVisible();
   });
 
   test('creates a routine only after Save, edits it, and starts it as a workout', async ({
@@ -249,7 +251,7 @@ test.describe('Plans and routines', () => {
     await expect(page.getByRole('button', { name: 'Routine actions for Discarded routine' })).toHaveCount(0);
   });
 
-  test('uses type icons and supports edit-mode deletion for routines and plans', async ({ page }) => {
+  test('uses type icons and supports swipe-to-delete for routines and plans', async ({ page }) => {
     // Seed a standalone routine and a plan directly: this exercises the Plans
     // list affordances without depending on the routine editor's save flow.
     await page.addInitScript(() => {
@@ -269,8 +271,8 @@ test.describe('Plans and routines', () => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Plans' }).click();
 
-    // The routine card shows its type icon and action targets; the plan card
-    // renames inline and adds routines from its footer (no options popup).
+    // The routine card shows its type icon and action targets; the normal plan
+    // header is a plain label (rename lives in edit mode only).
     await expect(
       page.getByRole('button', { name: 'Start Swipe routine' }).locator('svg'),
     ).toBeVisible();
@@ -279,17 +281,21 @@ test.describe('Plans and routines', () => {
     ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Create standalone routine' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Add routine to New plan' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Rename New plan' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Rename New plan' })).toHaveCount(0);
 
-    // Deletion now lives in edit mode: swipe-to-delete is gone, and the create
-    // and add-routine affordances hide while editing.
+    // Deletion is a swipe on the row (no trash button); the destructive Delete
+    // control is rendered behind every swipeable row, revealed by the gesture.
+    // The gesture itself is exercised on device; here we assert it is wired.
+    await expect(page.getByRole('button', { name: 'Delete Swipe routine' })).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Delete New plan' })).toHaveCount(1);
+
+    // Edit mode reveals the rename control and hides the create / add affordances.
     await page.getByRole('button', { name: 'Edit plans' }).click();
     await expect(page.getByRole('button', { name: 'Create workout, routine, or plan' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Add routine to New plan' })).toHaveCount(0);
-    await page.getByRole('button', { name: 'Delete Swipe routine' }).click();
-    await expect(page.getByText('Swipe routine', { exact: true })).toHaveCount(0);
-    await page.getByRole('button', { name: 'Delete New plan' }).click();
-    await expect(page.getByText('New plan', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Rename New plan' })).toBeVisible();
+    // The plan's delete affordance still spans the card in edit mode.
+    await expect(page.getByRole('button', { name: 'Delete New plan' })).toHaveCount(1);
   });
 
   test('uses the shared action sheet for persisted routine-editor overflow actions', async ({

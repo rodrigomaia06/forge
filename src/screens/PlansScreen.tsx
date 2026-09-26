@@ -19,8 +19,8 @@ import {
   HeaderEdge,
   Icon,
   lightHaptic,
-  mediumHaptic,
   ScreenTitle,
+  SwipeToDeleteRow,
   pressedFeedbackSubtle,
   selectionHaptic,
   useAnchoredMenu,
@@ -215,7 +215,7 @@ export function PlansScreen({ navigation, route }: Props) {
                   <NestableDraggableFlatList
                     data={standaloneRoutines}
                     keyExtractor={(routine) => routine.id}
-                    activationDistance={8}
+                    activationDistance={12}
                     onDragEnd={({ data }) => reorderRoutines(data, undefined)}
                     renderItem={({ item, drag, isActive, getIndex }) => (
                       <ScaleDecorator activeScale={1.02}>
@@ -227,7 +227,8 @@ export function PlansScreen({ navigation, route }: Props) {
                           drag={drag}
                           isActive={isActive}
                           onStart={() => startRoutine(item)}
-                          onPress={() => routineActions(item)}
+                          onOpenOptions={() => routineActions(item)}
+                          onOpenEditor={() => openRoutine(item)}
                           onDelete={() => removeRoutine(item.id)}
                         />
                       </ScaleDecorator>
@@ -253,7 +254,8 @@ export function PlansScreen({ navigation, route }: Props) {
                       isActive={isActive}
                       onReorderRoutines={(routines) => reorderRoutines(routines, plan.id)}
                       onAddRoutine={() => addRoutine(plan.id)}
-                      onOpenRoutine={routineActions}
+                      onOpenRoutineOptions={routineActions}
+                      onOpenRoutineEditor={openRoutine}
                       onStartRoutine={startRoutine}
                       onDeleteRoutine={(routine) => removeRoutine(routine.id)}
                       onRename={(name) => renamePlan(plan.id, name)}
@@ -286,7 +288,8 @@ export function PlansScreen({ navigation, route }: Props) {
                         last={index === standaloneRoutines.length - 1}
                         editing={editing}
                         onStart={() => startRoutine(routine)}
-                        onPress={() => routineActions(routine)}
+                        onOpenOptions={() => routineActions(routine)}
+                        onOpenEditor={() => openRoutine(routine)}
                         onDelete={() => removeRoutine(routine.id)}
                       />
                     ))}
@@ -302,7 +305,8 @@ export function PlansScreen({ navigation, route }: Props) {
                   workoutTypes={preferences.workoutTypes}
                   editing={editing}
                   onAddRoutine={() => addRoutine(plan.id)}
-                  onOpenRoutine={routineActions}
+                  onOpenRoutineOptions={routineActions}
+                  onOpenRoutineEditor={openRoutine}
                   onStartRoutine={startRoutine}
                   onDeleteRoutine={(routine) => removeRoutine(routine.id)}
                   onRename={(name) => renamePlan(plan.id, name)}
@@ -407,20 +411,6 @@ function MoveDestinations({
   );
 }
 
-function DeleteButton({ accessibilityLabel, onPress }: { accessibilityLabel: string; onPress: () => void }) {
-  const theme = useForgeTheme();
-  const styles = useThemedStyles(createStyles);
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      onPress={() => { mediumHaptic(); onPress(); }}
-      style={({ pressed }) => [styles.deleteButton, pressed && { backgroundColor: theme.destructiveSurfacePressed }]}
-    >
-      <Icon name="trash" size={18} color={theme.textDestructive} />
-    </Pressable>
-  );
-}
 
 function PlanCard({
   plan,
@@ -430,7 +420,8 @@ function PlanCard({
   isActive,
   onReorderRoutines,
   onAddRoutine,
-  onOpenRoutine,
+  onOpenRoutineOptions,
+  onOpenRoutineEditor,
   onStartRoutine,
   onDeleteRoutine,
   onRename,
@@ -443,7 +434,8 @@ function PlanCard({
   isActive?: boolean;
   onReorderRoutines?: (routines: WorkoutRoutine[]) => void;
   onAddRoutine: () => void;
-  onOpenRoutine: (routine: WorkoutRoutine) => void;
+  onOpenRoutineOptions: (routine: WorkoutRoutine) => void;
+  onOpenRoutineEditor: (routine: WorkoutRoutine) => void;
   onStartRoutine: (routine: WorkoutRoutine) => void;
   onDeleteRoutine: (routine: WorkoutRoutine) => void;
   onRename: (name: string) => void;
@@ -460,63 +452,64 @@ function PlanCard({
     else setDraftName(plan.name);
   };
   const count = `${plan.routines.length} ${plan.routines.length === 1 ? 'routine' : 'routines'}`;
+  const header = renaming ? (
+    <View style={[styles.planHeader, styles.planOptions]}>
+      <ForgeTextInput
+        autoFocus
+        value={draftName}
+        onChangeText={setDraftName}
+        onSubmitEditing={commitRename}
+        onBlur={commitRename}
+        returnKeyType="done"
+        selectTextOnFocus
+        accessibilityLabel={`Rename ${plan.name}`}
+        style={styles.planNameInput}
+      />
+    </View>
+  ) : editing ? (
+    <View style={[styles.planHeader, styles.planOptions]}>
+      {drag ? <DragRail label={`Reorder ${plan.name}`} onDrag={drag} disabled={isActive} /> : null}
+      <View style={styles.planHeadText}>
+        <Text style={styles.planName}>{plan.name}</Text>
+        <Text style={styles.planCount}>{count}</Text>
+      </View>
+      {/* Rename lives only in edit mode; the normal card header is a clean label. */}
+      <Pressable
+        testID={`plan-header-${plan.id}`}
+        accessibilityRole="button"
+        accessibilityLabel={`Rename ${plan.name}`}
+        hitSlop={8}
+        onPress={() => { selectionHaptic(); setDraftName(plan.name); setRenaming(true); }}
+        style={({ pressed }) => [styles.planEditTitle, pressed && pressedFeedbackSubtle]}
+      >
+        <Icon name="note" size={18} color={theme.slate} />
+      </Pressable>
+    </View>
+  ) : (
+    <View style={[styles.planHeader, styles.planOptions]}>
+      <View style={styles.planHeadText}>
+        <Text style={styles.planName}>{plan.name}</Text>
+        <Text style={styles.planCount}>{count}</Text>
+      </View>
+    </View>
+  );
   return (
     <ForgeCard variant="base" style={[styles.planCard, isActive && styles.rowActive]}>
-      <View style={styles.planCardSurface}>
-        {editing ? (
-          <View style={[styles.planHeader, styles.planOptions]}>
-            {drag ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Reorder ${plan.name}`}
-                onPressIn={drag}
-                disabled={isActive}
-                style={styles.dragHandle}
-              >
-                <Icon name="drag" size={20} color={theme.slate} />
-              </Pressable>
-            ) : null}
-            <View style={styles.planHeadText}>
-              <Text style={styles.planName}>{plan.name}</Text>
-              <Text style={styles.planCount}>{count}</Text>
-            </View>
-            <DeleteButton accessibilityLabel={`Delete ${plan.name}`} onPress={onDelete} />
-          </View>
-        ) : renaming ? (
-          <View style={[styles.planHeader, styles.planOptions]}>
-            <ForgeTextInput
-              autoFocus
-              value={draftName}
-              onChangeText={setDraftName}
-              onSubmitEditing={commitRename}
-              onBlur={commitRename}
-              returnKeyType="done"
-              selectTextOnFocus
-              accessibilityLabel={`Rename ${plan.name}`}
-              style={styles.planNameInput}
-            />
-          </View>
-        ) : (
-          <Pressable
-            testID={`plan-header-${plan.id}`}
-            accessibilityRole="button"
-            accessibilityLabel={`Rename ${plan.name}`}
-            unstable_pressDelay={80}
-            onPress={() => { selectionHaptic(); setDraftName(plan.name); setRenaming(true); }}
-            style={({ pressed }) => [styles.planHeader, styles.planOptions, pressed && pressedFeedbackSubtle]}
-          >
-            <View style={styles.planHeadText}>
-              <Text style={styles.planName}>{plan.name}</Text>
-              <Text style={styles.planCount}>{count}</Text>
-            </View>
-            <Icon name="note" size={18} color={theme.slate} />
-          </Pressable>
-        )}
-        {editing && onReorderRoutines ? (
+      {/* The whole plan card is one swipe target, so the delete reveal spans the
+          entire card rather than just the header strip. Routine rows nest their
+          own swipe inside; the inner gesture wins when a row is swiped. */}
+      <SwipeToDeleteRow
+        onDelete={onDelete}
+        deleteAccessibilityLabel={`Delete ${plan.name}`}
+        contentBackgroundColor={theme.surface}
+      >
+        <View style={styles.planCardSurface}>
+          {header}
+          {editing && onReorderRoutines ? (
           <NestableDraggableFlatList
             data={plan.routines}
             keyExtractor={(routine) => routine.id}
-            activationDistance={8}
+            activationDistance={12}
             onDragEnd={({ data }) => onReorderRoutines(data)}
             renderItem={({ item, drag: routineDrag, isActive: routineActive, getIndex }) => (
               <ScaleDecorator activeScale={1.02}>
@@ -528,7 +521,8 @@ function PlanCard({
                   drag={routineDrag}
                   isActive={routineActive}
                   onStart={() => onStartRoutine(item)}
-                  onPress={() => onOpenRoutine(item)}
+                  onOpenOptions={() => onOpenRoutineOptions(item)}
+                  onOpenEditor={() => onOpenRoutineEditor(item)}
                   onDelete={() => onDeleteRoutine(item)}
                 />
               </ScaleDecorator>
@@ -543,25 +537,53 @@ function PlanCard({
               last={index === plan.routines.length - 1}
               editing={editing}
               onStart={() => onStartRoutine(routine)}
-              onPress={() => onOpenRoutine(routine)}
+              onOpenOptions={() => onOpenRoutineOptions(routine)}
+              onOpenEditor={() => onOpenRoutineEditor(routine)}
               onDelete={() => onDeleteRoutine(routine)}
             />
           ))
         )}
-        {editing ? null : (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Add routine to ${plan.name}`}
-            unstable_pressDelay={80}
-            onPress={onAddRoutine}
-            style={({ pressed }) => [styles.addToPlan, pressed && pressedFeedbackSubtle]}
-          >
-            <Icon name="add" size={16} color={theme.textPrimary} />
-            <Text style={styles.addToPlanText}>Add routine</Text>
-          </Pressable>
-        )}
-      </View>
+          {editing ? null : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Add routine to ${plan.name}`}
+              unstable_pressDelay={80}
+              onPress={onAddRoutine}
+              style={({ pressed }) => [styles.addToPlan, pressed && pressedFeedbackSubtle]}
+            >
+              <Icon name="add" size={16} color={theme.textPrimary} />
+              <Text style={styles.addToPlanText}>Add routine</Text>
+            </Pressable>
+          )}
+        </View>
+      </SwipeToDeleteRow>
     </ForgeCard>
+  );
+}
+
+function routineSummary(routine: WorkoutRoutine): string {
+  return routine.exercises.length
+    ? `${routine.type} · ${routine.exercises.length} ${routine.exercises.length === 1 ? 'exercise' : 'exercises'}`
+    : routine.type;
+}
+
+// A drag grab-rail, matching the dashboard tile handle. Rendered only in edit
+// mode; a stationary press grabs the row without competing with the horizontal
+// swipe-to-delete gesture that wraps the same row.
+function DragRail({ label, onDrag, disabled }: { label: string; onDrag: () => void; disabled?: boolean }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPressIn={onDrag}
+      disabled={disabled}
+      hitSlop={8}
+      style={styles.dragRail}
+    >
+      <Icon name="drag" size={18} color={theme.muted} />
+    </Pressable>
   );
 }
 
@@ -573,7 +595,8 @@ function RoutineRow({
   drag,
   isActive,
   onStart,
-  onPress,
+  onOpenOptions,
+  onOpenEditor,
   onDelete,
 }: {
   routine: WorkoutRoutine;
@@ -583,7 +606,8 @@ function RoutineRow({
   drag?: () => void;
   isActive?: boolean;
   onStart: () => void;
-  onPress: () => void;
+  onOpenOptions: () => void;
+  onOpenEditor: () => void;
   onDelete: () => void;
 }) {
   const theme = useForgeTheme();
@@ -597,117 +621,45 @@ function RoutineRow({
   const typeIcon = (
     <Icon name={getRoutineTypeIcon(routine.type, workoutTypes)} size={26} color={presentation.color} />
   );
-  if (editing) {
-    return (
-      <View style={[styles.routineRow, isActive && styles.rowActive, { backgroundColor: theme.surface }]}>
+  return (
+    <SwipeToDeleteRow
+      onDelete={onDelete}
+      deleteAccessibilityLabel={`Delete ${routine.name}`}
+      contentBackgroundColor={theme.surface}
+    >
+      <View style={[styles.routineRow, isActive && styles.rowActive]}>
         {!last ? <View pointerEvents="none" style={styles.rowSeparator} /> : null}
-        {drag ? (
+        {editing && drag ? (
+          <DragRail label={`Reorder ${routine.name}`} onDrag={drag} disabled={isActive} />
+        ) : null}
+        {editing ? (
+          <View style={[styles.typeMarker, { backgroundColor: presentation.background }]}>{typeIcon}</View>
+        ) : (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Reorder ${routine.name}`}
-            onPressIn={drag}
-            disabled={isActive}
-            style={styles.dragHandle}
+            accessibilityLabel={`Start ${routine.name}`}
+            unstable_pressDelay={80}
+            onPress={onStart}
+            style={({ pressed }) => [styles.typeMarker, { backgroundColor: presentation.background }, pressed && pressedFeedbackSubtle]}
           >
-            <Icon name="drag" size={20} color={theme.slate} />
+            {typeIcon}
           </Pressable>
-        ) : null}
-        <View style={[styles.typeMarker, { backgroundColor: presentation.background }]}>{typeIcon}</View>
-        <View style={styles.routineText}>
-          <Text style={styles.routineName} numberOfLines={1}>{routine.name}</Text>
-          <Text style={styles.routineSummary} numberOfLines={1}>{routineSummary(routine)}</Text>
-        </View>
-        <DeleteButton accessibilityLabel={`Delete ${routine.name}`} onPress={onDelete} />
-      </View>
-    );
-  }
-  return (
-    <RoutineCardBody
-      routine={routine}
-      workoutTypes={workoutTypes}
-      last={last}
-      onStart={onStart}
-      onPress={onPress}
-    />
-  );
-}
-
-function routineSummary(routine: WorkoutRoutine): string {
-  return routine.exercises.length
-    ? `${routine.type} · ${routine.exercises.length} ${routine.exercises.length === 1 ? 'exercise' : 'exercises'}`
-    : routine.type;
-}
-
-function RoutineCardBody({
-  routine,
-  workoutTypes,
-  last,
-  onStart,
-  onPress,
-}: {
-  routine: WorkoutRoutine;
-  workoutTypes: WorkoutTypePreference[];
-  last: boolean;
-  onStart?: () => void;
-  onPress?: () => void;
-}) {
-  const theme = useForgeTheme();
-  const styles = useThemedStyles(createStyles);
-  const presentation = getWorkoutTypePresentation(
-    routine.type,
-    workoutTypes,
-    theme,
-    theme.colorScheme === 'dark' ? 0.24 : 0.14,
-  );
-  const typeIcon = (
-    <Icon name={getRoutineTypeIcon(routine.type, workoutTypes)} size={26} color={presentation.color} />
-  );
-  const copy = (
-    <>
-      <View style={styles.routineText}>
-        <Text style={styles.routineName} numberOfLines={1}>
-          {routine.name}
-        </Text>
-        <Text
-          style={styles.routineSummary}
-          numberOfLines={1}
-        >{routine.exercises.length
-          ? `${routine.type} · ${routine.exercises.length} ${routine.exercises.length === 1 ? 'exercise' : 'exercises'}`
-          : routine.type}</Text>
-      </View>
-      <Icon name="chevron-forward" size={19} color={theme.slate} />
-    </>
-  );
-  return (
-    <View style={styles.routineRow}>
-      {!last ? <View pointerEvents="none" style={styles.rowSeparator} /> : null}
-      {onStart ? (
+        )}
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Start ${routine.name}`}
+          accessibilityLabel={editing ? `Edit ${routine.name}` : `Routine actions for ${routine.name}`}
           unstable_pressDelay={80}
-          onPress={onStart}
-          style={({ pressed }) => [styles.typeMarker, { backgroundColor: presentation.background }, pressed && pressedFeedbackSubtle]}
-        >
-          {typeIcon}
-        </Pressable>
-      ) : (
-        <View style={[styles.typeMarker, { backgroundColor: presentation.background }]}>{typeIcon}</View>
-      )}
-      {onPress ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Routine actions for ${routine.name}`}
-          unstable_pressDelay={80}
-          onPress={onPress}
+          onPress={editing ? onOpenEditor : onOpenOptions}
           style={({ pressed }) => [styles.routineCopy, pressed && pressedFeedbackSubtle]}
         >
-          {copy}
+          <View style={styles.routineText}>
+            <Text style={styles.routineName} numberOfLines={1}>{routine.name}</Text>
+            <Text style={styles.routineSummary} numberOfLines={1}>{routineSummary(routine)}</Text>
+          </View>
+          <Icon name="chevron-forward" size={19} color={theme.slate} />
         </Pressable>
-      ) : (
-        <View style={styles.routineCopy}>{copy}</View>
-      )}
-    </View>
+      </View>
+    </SwipeToDeleteRow>
   );
 }
 
@@ -768,10 +720,11 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     },
     darkHeaderAction: { backgroundColor: theme.surfaceMuted },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    deleteButton: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.destructiveSurface },
-    dragHandle: { width: 30, alignItems: 'center', justifyContent: 'center', marginLeft: -4, marginRight: 2 },
+    // Grab-rail for reordering — a generous, edit-only left zone like the dashboard tile handle.
+    dragRail: { width: 34, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', marginLeft: -6 },
+    planEditTitle: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
     rowActive: { shadowColor: theme.shadow, shadowOpacity: 0.16, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
-    plansTitleEdit: { marginTop: 8 },
+    plansTitleEdit: { marginTop: 22, marginBottom: 12 },
     content: {
       paddingHorizontal: spacing.screen,
       paddingTop: 16,
