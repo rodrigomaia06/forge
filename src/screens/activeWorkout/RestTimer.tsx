@@ -233,6 +233,14 @@ export function RestDurationPicker({
   const rowHeight = 44;
   const scrollOffset = useSharedValue(selectedIndex * rowHeight);
   const hapticIndex = useSharedValue(selectedIndex);
+  // Defer mounting the ~115 animated wheel rows one tick so the sheet opens
+  // immediately instead of blocking the JS thread on their mount. A full-height
+  // spacer keeps the scroll position correct until the rows swap in.
+  const [rowsReady, setRowsReady] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setRowsReady(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (programmaticScroll.current) return;
@@ -299,7 +307,7 @@ export function RestDurationPicker({
         }}
         onMomentumScrollEnd={(event) => handleScrollEnd(event.nativeEvent)}
       >
-        {REST_DURATION_OPTIONS.map((duration, index) => {
+        {rowsReady ? REST_DURATION_OPTIONS.map((duration, index) => {
           return (
             <Pressable
               key={duration}
@@ -320,7 +328,7 @@ export function RestDurationPicker({
               />
             </Pressable>
           );
-        })}
+        }) : <View style={{ height: REST_DURATION_OPTIONS.length * rowHeight }} />}
       </Animated.ScrollView>
     </View>
   );
