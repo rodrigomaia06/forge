@@ -5,10 +5,10 @@ import {
   reconcileLayout,
 } from '../../src/state/dashboardLayout';
 
-test('default layout lists every tile visible in order', () => {
+test('default layout lists every tile hidden in order (the dashboard starts empty)', () => {
   const layout = defaultDashboardLayout();
   expect(layout.map((tile) => tile.kind)).toEqual(DASHBOARD_TILE_ORDER);
-  expect(layout.every((tile) => tile.visible)).toBe(true);
+  expect(layout.every((tile) => !tile.visible)).toBe(true);
 });
 
 test('reconcile keeps saved order, visibility and titles', () => {
@@ -19,8 +19,8 @@ test('reconcile keeps saved order, visibility and titles', () => {
   const layout = reconcileLayout(saved);
   expect(layout[0]).toEqual({ id: 'week', kind: 'week', visible: true, title: 'My week', settings: undefined });
   expect(layout[1]).toEqual({ id: 'start', kind: 'start', visible: false, title: undefined, settings: undefined });
-  // Tiles missing from the saved layout are appended, visible.
-  expect(layout.slice(2).every((tile) => tile.visible)).toBe(true);
+  // Tiles missing from the saved layout are appended hidden (opt-in).
+  expect(layout.slice(2).every((tile) => !tile.visible)).toBe(true);
   expect(new Set(layout.map((tile) => tile.kind))).toEqual(new Set(DASHBOARD_TILE_ORDER));
 });
 
@@ -69,5 +69,5 @@ test('reconcile keeps the combined measurements singleton but never auto-appends
 
 test('reconcile falls back to defaults for non-array input', () => {
   expect(reconcileLayout(null).map((tile) => tile.kind)).toEqual(DASHBOARD_TILE_ORDER);
-  expect(reconcileLayout(undefined).every((tile) => tile.visible)).toBe(true);
+  expect(reconcileLayout(undefined).every((tile) => !tile.visible)).toBe(true);
 });

@@ -370,6 +370,17 @@ test.describe('Settings', () => {
   });
 
   test('persists the first day of the week and applies it to the Calendar', async ({ page }) => {
+    // The dashboard now starts empty; seed the week tile so the week-start
+    // setting can be verified on it.
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        '@forge/dashboard-layout-v1',
+        JSON.stringify([
+          { id: 'start', kind: 'start', visible: true },
+          { id: 'week', kind: 'week', visible: true },
+        ]),
+      );
+    });
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'General' }).click();
