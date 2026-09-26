@@ -119,8 +119,10 @@ export function tileSettings(config: DashboardTileConfig): DashboardTileSettings
   return { ...(DASHBOARD_TILE_DEFAULT_SETTINGS[config.kind] ?? {}), ...(config.settings ?? {}) };
 }
 
+// The dashboard starts empty: every tile is known but hidden, so a new user
+// builds their own dashboard by adding the widgets they want from edit mode.
 export function defaultDashboardLayout(): DashboardTileConfig[] {
-  return DASHBOARD_TILE_ORDER.map((kind) => ({ id: kind, kind, visible: true }));
+  return DASHBOARD_TILE_ORDER.map((kind) => ({ id: kind, kind, visible: false }));
 }
 
 /**
@@ -164,8 +166,10 @@ export function reconcileLayout(saved: unknown): DashboardTileConfig[] {
       });
     }
   }
+  // Tile kinds introduced since the layout was saved surface as hidden, so the
+  // user opts them in rather than having new widgets appear unannounced.
   for (const kind of DASHBOARD_TILE_ORDER) {
-    if (!seen.has(kind)) result.push({ id: kind, kind, visible: true });
+    if (!seen.has(kind)) result.push({ id: kind, kind, visible: false });
   }
   return result;
 }

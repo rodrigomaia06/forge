@@ -12,7 +12,48 @@ async function swipeCardLeft(page: Page, card: Locator): Promise<void> {
   await page.mouse.up();
 }
 
+// The dashboard now ships empty and the user adds tiles themselves, so these
+// tests seed the full set of tiles (the previous default) to exercise tile
+// behaviour. The empty default + add flow is covered separately below.
+const DASHBOARD_TILE_KINDS = [
+  'start', 'week', 'training-time', 'last-workout', 'volume',
+  'rest-stats', 'muscle-balance', 'consistency', 'streak', 'muscle-heatmap',
+];
+async function seedFullDashboard(page: Page): Promise<void> {
+  // Only seed when nothing is saved yet, so a test that removes a tile and
+  // reloads still sees its change persist (this init script re-runs per load).
+  await page.addInitScript((kinds) => {
+    if (localStorage.getItem('@forge/dashboard-layout-v1')) return;
+    localStorage.setItem(
+      '@forge/dashboard-layout-v1',
+      JSON.stringify(kinds.map((kind) => ({ id: kind, kind, visible: true }))),
+    );
+  }, DASHBOARD_TILE_KINDS);
+}
+
 test.describe('Dashboard', () => {
+  test.beforeEach(async ({ page }) => {
+    await seedFullDashboard(page);
+  });
+
+  test('starts empty and adds a widget from the popup chooser', async ({ page }) => {
+    // Override the seeded layout with the real empty default.
+    await page.addInitScript((kinds) => {
+      localStorage.setItem(
+        '@forge/dashboard-layout-v1',
+        JSON.stringify(kinds.map((kind) => ({ id: kind, kind, visible: false }))),
+      );
+    }, DASHBOARD_TILE_KINDS);
+    await page.goto('/');
+
+    await expect(page.getByText('Build your dashboard')).toBeVisible();
+    await expect(page.getByTestId('dashboard-week-card')).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Add widgets' }).click();
+    await page.getByRole('button', { name: 'This week' }).click();
+    await expect(page.getByTestId('dashboard-week-card')).toBeVisible();
+  });
+
   test('matches the phone visual baseline', async ({ page }, testInfo) => {
     test.skip(testInfo.project.use.isMobile !== true, 'The baseline targets configured phone profiles.');
     await page.goto('/');

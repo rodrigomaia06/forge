@@ -6,9 +6,8 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import {
-  AnchoredMenuActions,
   AppScreen,
-  ForgeAnchoredMenu,
+  ForgeActionSheet,
   ForgeCard,
   ForgeText as Text,
   HeaderEdge,
@@ -17,7 +16,6 @@ import {
   mediumHaptic,
   pressedFeedback,
   selectionHaptic,
-  useAnchoredMenu,
 } from '../components/ui';
 import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
 import { DashboardHeader } from '../components/DashboardHeader';
@@ -126,7 +124,7 @@ export function DashboardScreen() {
   const starter = useWorkoutStarter();
   const { layout, setLayout } = useDashboardLayout();
   const [editing, setEditing] = useState(false);
-  const addTileMenu = useAnchoredMenu();
+  const [addTileOpen, setAddTileOpen] = useState(false);
   const [settingsTileId, setSettingsTileId] = useState<string | null>(null);
   const [headerElevated, setHeaderElevated] = useState(false);
   const reducedMotion = useForgeReducedMotion();
@@ -251,7 +249,7 @@ export function DashboardScreen() {
       ...layout.filter((tile) => tile.id !== config.id),
       { ...config, visible: true },
     ]);
-    addTileMenu.close();
+    setAddTileOpen(false);
     // A fresh measurement card opens its settings so you can pick the metric(s)
     // and window straight away, rather than staring at an empty tile. Wait for
     // the add-tile sheet to finish closing first — opening a second bottom sheet
@@ -427,23 +425,45 @@ export function DashboardScreen() {
           contentContainerStyle={styles.listContent}
           contentInset={{ bottom: dockScrollInset }}
           onScrollOffsetChange={(offset) => setHeaderElevated(offset > 1)}
+          ListEmptyComponent={
+            editing ? null : (
+              <View style={styles.emptyDash}>
+                <Text style={styles.emptyDashTitle}>Build your dashboard</Text>
+                <Text style={styles.emptyDashText}>
+                  Add the widgets you want to see — stats, streaks, measurements and more.
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Add widgets"
+                  onPress={() => {
+                    lightHaptic();
+                    reflowTiles();
+                    setEditing(true);
+                    setAddTileOpen(true);
+                  }}
+                  style={({ pressed }) => [styles.addWidgetsButton, pressed && pressedFeedback]}
+                >
+                  <Icon name="add" size={20} color={theme.onActionPrimary} />
+                  <Text style={styles.addWidgetsLabel}>Add widgets</Text>
+                </Pressable>
+              </View>
+            )
+          }
           ListFooterComponent={
             <View style={{ paddingBottom: dockScrollInset }}>
               {editing && addableTiles.length ? (
-                <View ref={addTileMenu.ref} collapsable={false}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Add tile"
-                    onPress={() => {
-                      lightHaptic();
-                      addTileMenu.open();
-                    }}
-                    style={({ pressed }) => [styles.addTileRow, pressed && pressedFeedback]}
-                  >
-                    <Icon name="add" size={20} color={theme.ink} />
-                    <Text style={styles.addTileLabel}>Add tile</Text>
-                  </Pressable>
-                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Add tile"
+                  onPress={() => {
+                    lightHaptic();
+                    setAddTileOpen(true);
+                  }}
+                  style={({ pressed }) => [styles.addTileRow, pressed && pressedFeedback]}
+                >
+                  <Icon name="add" size={20} color={theme.ink} />
+                  <Text style={styles.addTileLabel}>Add tile</Text>
+                </Pressable>
               ) : null}
             </View>
           }
@@ -463,22 +483,18 @@ export function DashboardScreen() {
           )}
         />
         {starter.sheet}
-        <ForgeAnchoredMenu
-          visible={addTileMenu.visible}
-          anchor={addTileMenu.anchor}
-          onClose={addTileMenu.close}
-          align="stretch"
-          testID="add-tile-menu"
-        >
-          <AnchoredMenuActions
-            onClose={addTileMenu.close}
-            actions={addableTiles.map((tile) => ({
-              label: tile.label,
-              icon: 'add' as const,
-              onPress: tile.onPress,
-            }))}
-          />
-        </ForgeAnchoredMenu>
+        <ForgeActionSheet
+          visible={addTileOpen}
+          onClose={() => setAddTileOpen(false)}
+          accessibilityLabel="Dismiss add tile chooser"
+          title="Add tile"
+          testID="add-tile-sheet"
+          actions={addableTiles.map((tile) => ({
+            label: tile.label,
+            icon: 'add' as const,
+            onPress: tile.onPress,
+          }))}
+        />
         <DashboardTileSettingsSheet
           config={settingsTileId ? (layout.find((tile) => tile.id === settingsTileId) ?? null) : null}
           workoutTypes={preferences.workoutTypes}
@@ -701,4 +717,24 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   },
   addTileLabel: { color: theme.ink, ...typeScale.controlLabel },
   tileMissing: { color: theme.muted, ...typeScale.body },
+  emptyDash: {
+    marginTop: 48,
+    marginHorizontal: 20,
+    alignItems: 'center',
+    gap: 10,
+  },
+  emptyDashTitle: { color: theme.ink, ...typeScale.sectionTitle, textAlign: 'center' },
+  emptyDashText: { color: theme.slate, ...typeScale.body, textAlign: 'center', maxWidth: 300 },
+  addWidgetsButton: {
+    marginTop: 8,
+    minHeight: 48,
+    paddingHorizontal: 22,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 24,
+    backgroundColor: theme.actionPrimary,
+  },
+  addWidgetsLabel: { color: theme.onActionPrimary, ...typeScale.controlLabel },
 });
