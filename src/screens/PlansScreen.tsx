@@ -27,7 +27,7 @@ import {
 } from '../components/ui';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
-import { spacing, typeScale } from '../theme/tokens';
+import { spacing, typography, typeScale } from '../theme/tokens';
 import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
 import { usePlans } from '../state/PlansContext';
 import { useSettings } from '../state/SettingsContext';
@@ -499,6 +499,7 @@ function PlanCard({
           entire card rather than just the header strip. Routine rows nest their
           own swipe inside; the inner gesture wins when a row is swiped. */}
       <SwipeToDeleteRow
+        enabled={editing}
         onDelete={onDelete}
         deleteAccessibilityLabel={`Delete ${plan.name}`}
         contentBackgroundColor={theme.surface}
@@ -543,7 +544,7 @@ function PlanCard({
             />
           ))
         )}
-          {editing ? null : (
+          {editing ? (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Add routine to ${plan.name}`}
@@ -554,7 +555,7 @@ function PlanCard({
               <Icon name="add" size={16} color={theme.textPrimary} />
               <Text style={styles.addToPlanText}>Add routine</Text>
             </Pressable>
-          )}
+          ) : null}
         </View>
       </SwipeToDeleteRow>
     </ForgeCard>
@@ -623,6 +624,7 @@ function RoutineRow({
   );
   return (
     <SwipeToDeleteRow
+      enabled={editing}
       onDelete={onDelete}
       deleteAccessibilityLabel={`Delete ${routine.name}`}
       contentBackgroundColor={theme.surface}
@@ -723,7 +725,10 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     // Grab-rail for reordering — a generous, edit-only left zone like the dashboard tile handle.
     dragRail: { width: 34, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', marginLeft: -6 },
     planEditTitle: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-    rowActive: { shadowColor: theme.shadow, shadowOpacity: 0.16, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
+    // A dragged card lifts via ScaleDecorator + a soft iOS shadow. No Android
+    // `elevation` bump: with the card's overflow-hidden rounding, a raised
+    // elevation renders square corners mid-drag.
+    rowActive: { shadowColor: theme.shadow, shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 8 } },
     plansTitleEdit: { marginTop: 22, marginBottom: 12 },
     content: {
       paddingHorizontal: spacing.screen,
@@ -734,21 +739,24 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     sectionTitle: { ...typeScale.sectionTitle, color: theme.slate },
     planRow: { paddingBottom: 14 },
     planHeader: {
-      minHeight: 56,
+      minHeight: 64,
       flexDirection: 'row',
       alignItems: 'center',
     },
     planOptions: {
       minWidth: 0,
-      minHeight: 56,
+      minHeight: 64,
       paddingHorizontal: 16,
+      paddingVertical: 12,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
     },
-    planHeadText: { flex: 1, minWidth: 0, gap: 1 },
-    planName: { ...typeScale.sectionTitle, color: theme.ink },
-    planNameInput: { flex: 1, ...typeScale.sectionTitle, color: theme.ink, paddingVertical: 0, margin: 0 },
+    planHeadText: { flex: 1, minWidth: 0, gap: 2 },
+    // A confident card header: bolder and a step larger than the routine rows it
+    // owns and the section label above it, so the plan reads as their parent.
+    planName: { fontFamily: typography.bold, fontSize: 20, lineHeight: 25, fontWeight: '700', letterSpacing: -0.3, color: theme.ink },
+    planNameInput: { flex: 1, fontFamily: typography.bold, fontSize: 20, lineHeight: 25, fontWeight: '700', letterSpacing: -0.3, color: theme.ink, paddingVertical: 0, margin: 0 },
     planCount: { ...typeScale.caption, color: theme.muted },
     moveList: { marginHorizontal: 20, marginTop: 4, overflow: 'hidden', borderWidth: 1, borderColor: theme.border, borderRadius: 16, backgroundColor: theme.surface },
     moveRow: { minHeight: 56, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },

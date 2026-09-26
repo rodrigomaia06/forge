@@ -280,21 +280,21 @@ test.describe('Plans and routines', () => {
       page.getByRole('button', { name: 'Routine actions for Swipe routine' }).locator('svg'),
     ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Create standalone routine' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Add routine to New plan' })).toBeVisible();
+    // Add routine and rename both live in edit mode; the resting card is a clean label.
+    await expect(page.getByRole('button', { name: 'Add routine to New plan' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Rename New plan' })).toHaveCount(0);
 
-    // Deletion is a swipe on the row (no trash button); the destructive Delete
-    // control is rendered behind every swipeable row, revealed by the gesture.
-    // The gesture itself is exercised on device; here we assert it is wired.
-    await expect(page.getByRole('button', { name: 'Delete Swipe routine' })).toHaveCount(1);
-    await expect(page.getByRole('button', { name: 'Delete New plan' })).toHaveCount(1);
+    // Swipe-to-delete is reserved for edit mode: no destructive control at rest.
+    await expect(page.getByRole('button', { name: 'Delete Swipe routine' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Delete New plan' })).toHaveCount(0);
 
-    // Edit mode reveals the rename control and hides the create / add affordances.
+    // Edit mode reveals rename, add-routine and swipe-delete affordances, hides create.
+    // The swipe gesture itself is exercised on device; here we assert it is wired.
     await page.getByRole('button', { name: 'Edit plans' }).click();
     await expect(page.getByRole('button', { name: 'Create workout, routine, or plan' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Add routine to New plan' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Add routine to New plan' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Rename New plan' })).toBeVisible();
-    // The plan's delete affordance still spans the card in edit mode.
+    await expect(page.getByRole('button', { name: 'Delete Swipe routine' })).toHaveCount(1);
     await expect(page.getByRole('button', { name: 'Delete New plan' })).toHaveCount(1);
   });
 
