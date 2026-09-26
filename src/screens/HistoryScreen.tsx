@@ -171,7 +171,11 @@ export function HistoryScreen({
     return completedAt >= startOfDay(new Date(filters.from)).getTime()
       && completedAt < startOfNextDay(new Date(filters.to)).getTime();
   }), [completedWorkouts, filters]);
-  const groups = useMemo(() => groupByPeriod(filteredWorkouts), [filteredWorkouts]);
+  // Refresh "now" when History is shown so the This week / Last week / Earlier
+  // grouping stays correct across a day or week boundary.
+  const [historyNow, setHistoryNow] = useState(() => new Date());
+  useEffect(() => navigation.addListener('focus', () => setHistoryNow(new Date())), [navigation]);
+  const groups = useMemo(() => groupByPeriod(filteredWorkouts, historyNow), [filteredWorkouts, historyNow]);
   // A recorded title is normally the durable snapshot. Imported legacy rows
   // occasionally retained just the routine title beside their source IDs; use
   // that intact pair only for this narrow legacy repair, so later plan edits
@@ -677,8 +681,8 @@ function historyDateSummary(filters: HistoryFilterState): string {
   return `${formatHistoryDate(filters.from)} to ${formatHistoryDate(filters.to)}`;
 }
 
-function groupByPeriod(workouts: Workout[]): HistoryGroup[] {
-  const current = startOfWeek(new Date());
+function groupByPeriod(workouts: Workout[], now: Date = new Date()): HistoryGroup[] {
+  const current = startOfWeek(now);
   const groups = new Map<string, HistoryGroup>();
   [...workouts]
     .sort((a, b) => (b.completedAt ?? b.startedAt) - (a.completedAt ?? a.startedAt))

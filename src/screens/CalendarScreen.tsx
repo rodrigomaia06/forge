@@ -56,7 +56,10 @@ export function CalendarScreen({ navigation }: Props) {
   const { preferences } = useSettings();
   const weekStart = preferences.weekStartsOn;
 
-  const today = useMemo(() => new Date(), []);
+  // Keep "today" (marker, month range, year list) current, refreshed each time
+  // the calendar is shown — a value frozen at mount goes stale across midnight.
+  const [today, setToday] = useState(() => new Date());
+  useEffect(() => navigation.addListener('focus', () => setToday(new Date())), [navigation]);
   const todayKey = calendarDateKey(today);
   const [view, setView] = useState<CalendarView>('month');
   const viewMenu = useAnchoredMenu();
