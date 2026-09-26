@@ -84,6 +84,12 @@ async function replaceRestTimerNotification(
       body: `${restDurationLabel(duration)} complete. Back to work.`,
       sound: soundEnabled ? restTimerSound : false,
       data: { forgeTimer: 'rest' },
+      // Time Sensitive lets the end-of-rest alert break through Focus/Do Not
+      // Disturb (not the ringer switch). It only takes effect with the
+      // com.apple.developer.usernotifications.time-sensitive entitlement, which
+      // a paid Apple signing carries; without it iOS delivers this as an
+      // ordinary alert, so it is safe on the free-team sideload build.
+      interruptionLevel: 'timeSensitive',
       // Android permits a semantic notification accent. iOS owns notification
       // chrome and consistently presents the Forge app icon instead.
       color: Platform.OS === 'android' ? '#C85C5C' : undefined,
@@ -126,7 +132,7 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
   const { preferences } = useSettings();
   // Only the workout's identity/start time matter here, so read those scalars
   // (stable across set-entry keystrokes) rather than the live workout object.
-  const { activeWorkoutId, activeWorkoutStartedAt, ready: workoutsReady } = useWorkouts();
+  const { activeWorkoutId, activeWorkoutStartedAt, activeWorkoutSetCount, ready: workoutsReady } = useWorkouts();
   const [endAt, setEndAt] = useState<number | null>(null);
   const [duration, setDuration] = useState(0);
   // The most recent set completion (rest-timer start) within this workout, used
@@ -224,7 +230,9 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
     // active, so the reminder only fires after a genuine lull. A new workout's
     // start time is always newer than any prior activity, so the max never
     // leaks a stale timestamp across sessions.
-    const remindFrom = activeWorkoutStartedAt
+    // An empty session (no sets logged yet) isn't worth a reminder — only nag
+    // once the workout actually has something in it.
+    const remindFrom = activeWorkoutStartedAt && activeWorkoutSetCount > 0
       ? Math.max(activeWorkoutStartedAt, lastActivityAt)
       : null;
     void replaceUnfinishedWorkoutReminder(
@@ -232,7 +240,7 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
       preferences.unfinishedWorkoutReminderEnabled,
       preferences.unfinishedWorkoutReminderDelay,
     ).catch(() => undefined);
-  }, [activeWorkoutId, activeWorkoutStartedAt, lastActivityAt, preferences.unfinishedWorkoutReminderDelay, preferences.unfinishedWorkoutReminderEnabled, workoutsReady]);
+  }, [activeWorkoutId, activeWorkoutStartedAt, activeWorkoutSetCount, lastActivityAt, preferences.unfinishedWorkoutReminderDelay, preferences.unfinishedWorkoutReminderEnabled, workoutsReady]);
 
   // The app is in front of the user, so any delivered timer/reminder alert is
   // stale. Clear them on foreground and keep at most the one still-scheduled

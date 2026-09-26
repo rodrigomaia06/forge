@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { ForgeText as Text, HeaderAction, HeaderActionGroup, joinedHeaderAction, ScreenTitle } from './ui';
+import { ForgeText as Text, HeaderAction, HeaderEditActions, ScreenTitle } from './ui';
 import { spacing, typeScale } from '../theme/tokens';
 import type { ForgeTheme } from '../types';
 
@@ -45,27 +45,15 @@ export function DashboardHeader({
       </View>
       <View style={styles.actions}>
         {onToggleEdit ? (
-          <HeaderActionGroup testID="dashboard-header-actions">
-            <HeaderAction
-              accessibilityLabel={editing ? 'Done editing dashboard' : 'Edit dashboard'}
-              icon={editing ? 'check' : 'note'}
-              iconSize={editing ? 22 : 20}
-              iconWeight={editing ? 'bold' : 'regular'}
-              iconOnly
-              variant="ghost"
-              style={joinedHeaderAction}
-              onPress={onToggleEdit}
-            />
-            <HeaderAction
-              accessibilityLabel="Start workout"
-              icon="add"
-              iconSize={22}
-              iconOnly
-              variant="ghost"
-              style={joinedHeaderAction}
-              onPress={onStart}
-            />
-          </HeaderActionGroup>
+          <HeaderEditActions
+            editing={editing}
+            onToggleEdit={onToggleEdit}
+            onAdd={onStart}
+            editLabel="Edit dashboard"
+            doneLabel="Done editing dashboard"
+            addLabel="Start workout"
+            testID="dashboard-header-actions"
+          />
         ) : (
           <HeaderAction
             accessibilityLabel="Start workout"

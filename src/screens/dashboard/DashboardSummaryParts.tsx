@@ -13,6 +13,7 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import { formatTrainingTime, formatVolume } from './dashboardSummary';
+import { useTileChrome, tileHeaderRightInset } from './tileChrome';
 import { DASHBOARD_TILE_DEFAULT_TITLE } from '../../state/dashboardLayout';
 import type { ForgeTheme, Workout, WorkoutTypePreference } from '../../types';
 import type { WorkoutSuggestion } from '../../domain/workouts/suggestNextWorkout';
@@ -79,9 +80,10 @@ export function DashboardWeekCard({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const inset = tileHeaderRightInset(useTileChrome());
   return (
     <View style={styles.blockInner}>
-      <View style={styles.cardHeaderRow}>
+      <View style={[styles.cardHeaderRow, { paddingRight: inset }]}>
         <Text style={styles.cardTitle}>{DASHBOARD_TILE_DEFAULT_TITLE.week}</Text>
         <Text style={styles.cardAside}>{workoutCount} {workoutCount === 1 ? 'workout' : 'workouts'}</Text>
       </View>
@@ -228,7 +230,7 @@ export function DashboardLastWorkoutTile({
       style={({ pressed }) => [styles.wideInner, pressed && lastWorkout ? pressedFeedbackSubtle : null]}
     >
       <View style={[styles.tileIcon, { backgroundColor: presentation?.background ?? theme.surfaceMuted }]}>
-        <Icon name={presentation?.icon ?? 'fitness'} size={20} color={presentation?.color ?? theme.muted} />
+        <Icon name={presentation?.icon ?? 'fitness'} size={26} color={presentation?.color ?? theme.muted} />
       </View>
       <View style={styles.wideCopy}>
         <Text style={styles.tileLabel}>{DASHBOARD_TILE_DEFAULT_TITLE['last-workout']}</Text>
@@ -250,14 +252,20 @@ export function DashboardLastWorkoutTile({
 
 export function DashboardVolumeTile({
   thisWeekKg,
+  lastWeekKg,
   deltaPct,
 }: {
   thisWeekKg: number;
+  lastWeekKg: number;
   deltaPct: number | null;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const deltaUp = (deltaPct ?? 0) >= 0;
+  // An empty week is not zero volume — it means "nothing logged yet". Keep the
+  // tile useful by carrying last week's total forward as context, so the number
+  // still means something on a Monday morning.
+  const started = thisWeekKg > 0;
   return (
     <View style={styles.wideInner}>
       <View style={[styles.tileIcon, { backgroundColor: theme.surfaceMuted }]}>
@@ -265,13 +273,17 @@ export function DashboardVolumeTile({
       </View>
       <View style={styles.wideCopy}>
         <Text style={styles.tileLabel}>{DASHBOARD_TILE_DEFAULT_TITLE.volume}</Text>
-        {thisWeekKg > 0 ? (
+        {started ? (
           <Text style={styles.wideValue} numberOfLines={1}>{formatVolume(thisWeekKg)}</Text>
+        ) : lastWeekKg > 0 ? (
+          <Text style={styles.tileDetail} numberOfLines={1}>
+            Nothing yet · last week {formatVolume(lastWeekKg)}
+          </Text>
         ) : (
-          <Text style={styles.tileEmpty}>—</Text>
+          <Text style={styles.tileEmpty}>No training logged yet</Text>
         )}
       </View>
-      {thisWeekKg > 0 && deltaPct !== null ? (
+      {started && deltaPct !== null ? (
         <View style={styles.deltaRow}>
           <Icon name={deltaUp ? 'arrow-up' : 'arrow-down'} size={14} color={theme.slate} />
           <Text style={styles.tileDetail}>{Math.abs(deltaPct)}%</Text>
@@ -283,7 +295,7 @@ export function DashboardVolumeTile({
 
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   // Right padding keeps the aside ("N workouts") clear of the in-card remove (X).
-  cardHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 26 },
+  cardHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   cardTitle: { color: theme.ink, ...typeScale.sectionTitle },
   cardAside: { color: theme.slate, ...typeScale.supporting },
   blockInner: { gap: 0 },

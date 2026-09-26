@@ -47,6 +47,8 @@ interface ForgeActionSheetProps {
   replacement?: ((close: () => void) => ReactNode) | null;
   /** Wait for a required initial action card to be laid out before entry. */
   waitForContentLayoutBeforeEnter?: boolean;
+  /** Present the next entrance already open (restore after a screen push). */
+  enterInstant?: boolean;
 }
 
 /** Shared Forge presentation for bottom-attached action lists. */
@@ -66,6 +68,7 @@ export function ForgeActionSheet({
   dismissThreshold,
   replacement = null,
   waitForContentLayoutBeforeEnter = false,
+  enterInstant = false,
 }: ForgeActionSheetProps) {
   const theme = useForgeTheme();
   const neutralActions = actions.filter((action) => (action.tone ?? 'neutral') === 'neutral');
@@ -82,6 +85,7 @@ export function ForgeActionSheet({
       closeDistance={closeDistance}
       dismissThreshold={dismissThreshold}
       backdropIntensity={backdropIntensity}
+      enterInstant={enterInstant}
       waitForContentLayoutBeforeEnter={waitForContentLayoutBeforeEnter}
       // Ease the sheet height when the body swaps between the action list and a
       // replacement view (note / info / history / rest). Skipped for sheets that

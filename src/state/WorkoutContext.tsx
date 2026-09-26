@@ -258,12 +258,16 @@ export function WorkoutProvider({ children }: ChildrenProps) {
   // on a keystroke, so idle tabs and rows stop re-rendering during set entry.
   const activeWorkoutId = activeWorkout?.id ?? null;
   const activeWorkoutStartedAt = activeWorkout?.startedAt ?? null;
+  const activeWorkoutSetCount = activeWorkout
+    ? activeWorkout.exercises.reduce((sum, exercise) => sum + exercise.sets.length, 0)
+    : 0;
   const value = useMemo(
     () => ({
       ready,
       reload,
       activeWorkoutId,
       activeWorkoutStartedAt,
+      activeWorkoutSetCount,
       completedWorkouts,
       startWorkout,
       addExercise,
@@ -287,6 +291,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
       reload,
       activeWorkoutId,
       activeWorkoutStartedAt,
+      activeWorkoutSetCount,
       completedWorkouts,
       startWorkout,
       addExercise,

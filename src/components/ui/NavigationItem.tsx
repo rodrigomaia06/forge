@@ -101,7 +101,9 @@ export function NavigationItem({
               active
                 ? theme.dockForeground || theme.surface
                 : emphasis
-                  ? theme.actionPrimary
+                  // A mid-tone so the larger live-workout icon reads as distinct
+                  // without the loud near-black/near-white of actionPrimary.
+                  ? theme.slate
                   : theme.dockMuted || theme.slate
             }
             weight={emphasis ? 'thin' : active ? 'fill' : 'regular'}

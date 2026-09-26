@@ -1,24 +1,24 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useMemo } from 'react';
 import {
-  Platform,
   ScrollView,
   StyleSheet,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   AppScreen,
-  ForgeSelectionSheet,
+  ForgeAnchoredMenu,
+  ForgeSegmentedSwitch,
   ForgeSingleSelectList,
   ForgeSwitch,
   ForgeText as Text,
   Icon,
   selectionHaptic,
+  useAnchoredMenu,
 } from '../../components/ui';
-import type { ForgeSingleSelectOption } from '../../components/ui';
+import type { ForgeSegmentedOption, ForgeSingleSelectOption } from '../../components/ui';
 import { useSettings } from '../../state/SettingsContext';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
@@ -35,10 +35,10 @@ import { REST_DURATION_OPTIONS } from '../../domain/rest/restDurationOptions';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GeneralSettings'>;
 
-const appearanceOptions: readonly ForgeSingleSelectOption<AppearancePreference>[] = [
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-  { value: 'system', label: 'System' },
+const appearanceSegments: readonly ForgeSegmentedOption<AppearancePreference>[] = [
+  { value: 'system', label: 'System', icon: 'theme-system' },
+  { value: 'light', label: 'Light', icon: 'theme-light' },
+  { value: 'dark', label: 'Dark', icon: 'theme-dark' },
 ];
 const reminderOptions: readonly ForgeSingleSelectOption<number>[] = [
   { value: 900, label: '15 minutes' },
@@ -57,10 +57,8 @@ export function GeneralSettingsScreen({ navigation }: Props) {
   const { bottom: bottomInset } = useSafeAreaInsets();
   const { preferences, updatePreferences } = useSettings();
   const theme = useForgeTheme();
-  const { width } = useWindowDimensions();
-  const [appearanceOpen, setAppearanceOpen] = React.useState(false);
-  const [defaultRestOpen, setDefaultRestOpen] = React.useState(false);
-  const [reminderOpen, setReminderOpen] = React.useState(false);
+  const restMenu = useAnchoredMenu();
+  const reminderMenu = useAnchoredMenu();
   const [headerElevated, setHeaderElevated] = React.useState(false);
   const displayedWeight = useMemo(
     () =>
@@ -106,35 +104,14 @@ export function GeneralSettingsScreen({ navigation }: Props) {
             <SettingsRow
               title="Appearance"
               trailing={
-                <Text style={[styles.value, { color: theme.textSecondary }]}>
-                  {capitalize(preferences.appearance)}
-                </Text>
-              }
-              disclosure
-              onPress={() => setAppearanceOpen(true)}
-            />
-            {Platform.OS === 'web' && width >= 768 && appearanceOpen && (
-              <View
-                style={[
-                  styles.appearanceMenu,
-                  {
-                    backgroundColor: theme.surfaceElevated,
-                    borderColor: theme.border,
-                    shadowColor: theme.shadow,
-                  },
-                ]}
-              >
-                <ForgeSingleSelectList
-                  options={appearanceOptions}
-                  selectedValue={preferences.appearance}
-                  onSelect={(value) => {
-                    updatePreferences({ appearance: value });
-                    setAppearanceOpen(false);
-                  }}
-                  onSelectedPress={() => setAppearanceOpen(false)}
+                <ForgeSegmentedSwitch
+                  options={appearanceSegments}
+                  value={preferences.appearance}
+                  onChange={(value) => choose({ appearance: value })}
+                  accessibilityLabel="Appearance"
                 />
-              </View>
-            )}
+              }
+            />
           </SettingsSection>
           <SettingsSection
             title="Weight"
@@ -185,10 +162,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
               onPress={() => choose({ weekStartsOn: 0 as WeekStartsOn })}
             />
           </SettingsSection>
-          <SettingsSection
-            title="Rest timer"
-            footer="Controls the rest timer in Live Workout, its notification and its native activity."
-          >
+          <SettingsSection title="Rest timer">
             <Toggle
               title="Rest timer"
               value={preferences.showRestTimer}
@@ -197,17 +171,19 @@ export function GeneralSettingsScreen({ navigation }: Props) {
             />
             {preferences.showRestTimer && (
               <>
-                <SettingsRow
-                  title="Default rest time"
-                  trailing={
-                    <Text style={[styles.value, { color: theme.textSecondary }]}>
-                      {formatRestDuration(preferences.defaultRestSeconds)}
-                    </Text>
-                  }
-                  disclosure
-                  onPress={() => setDefaultRestOpen(true)}
-                  showDivider
-                />
+                <View ref={restMenu.ref} collapsable={false}>
+                  <SettingsRow
+                    title="Default rest time"
+                    trailing={
+                      <Text style={[styles.value, { color: theme.textSecondary }]}>
+                        {formatRestDuration(preferences.defaultRestSeconds)}
+                      </Text>
+                    }
+                    disclosure
+                    onPress={restMenu.open}
+                    showDivider
+                  />
+                </View>
                 <Toggle
                   title="Keep rest timer running"
                   value={preferences.keepRestTimerRunning}
@@ -246,52 +222,64 @@ export function GeneralSettingsScreen({ navigation }: Props) {
               divider={preferences.unfinishedWorkoutReminderEnabled}
             />
             {preferences.unfinishedWorkoutReminderEnabled && (
-              <SettingsRow
-                title="Remind after"
-                trailing={
-                  <Text style={[styles.value, { color: theme.textSecondary }]}>
-                    {formatSeconds(preferences.unfinishedWorkoutReminderDelay)}
-                  </Text>
-                }
-                disclosure
-                onPress={() => setReminderOpen(true)}
-              />
+              <View ref={reminderMenu.ref} collapsable={false}>
+                <SettingsRow
+                  title="Remind after"
+                  trailing={
+                    <Text style={[styles.value, { color: theme.textSecondary }]}>
+                      {formatSeconds(preferences.unfinishedWorkoutReminderDelay)}
+                    </Text>
+                  }
+                  disclosure
+                  onPress={reminderMenu.open}
+                />
+              </View>
             )}
           </SettingsSection>
         </ScrollView>
-        <ForgeSelectionSheet
-          visible={appearanceOpen && !(Platform.OS === 'web' && width >= 768)}
-          onClose={() => setAppearanceOpen(false)}
-          accessibilityLabel="Close appearance options"
-          title="Appearance"
-          options={appearanceOptions}
-          selectedValue={preferences.appearance}
-          onSelect={(value) => updatePreferences({ appearance: value })}
-          testID="appearance-selection-sheet"
-          listTestID="appearance-selection-list"
-        />
-        <ForgeSelectionSheet
-          visible={defaultRestOpen}
-          onClose={() => setDefaultRestOpen(false)}
-          accessibilityLabel="Close default rest time options"
-          title="Default rest time"
-          options={restOptions}
-          selectedValue={preferences.defaultRestSeconds}
-          onSelect={(value) => updatePreferences({ defaultRestSeconds: value })}
-          testID="default-rest-selection-sheet"
-          listTestID="default-rest-selection-list"
-        />
-        <ForgeSelectionSheet
-          visible={reminderOpen}
-          onClose={() => setReminderOpen(false)}
-          accessibilityLabel="Close reminder delay options"
-          title="Remind after"
-          options={reminderOptions}
-          selectedValue={preferences.unfinishedWorkoutReminderDelay}
-          onSelect={(value) => updatePreferences({ unfinishedWorkoutReminderDelay: value })}
-          testID="reminder-selection-sheet"
-          listTestID="reminder-selection-list"
-        />
+        <ForgeAnchoredMenu
+          visible={restMenu.visible}
+          anchor={restMenu.anchor}
+          onClose={restMenu.close}
+          align="end"
+          minWidth={180}
+          initialScrollOffset={Math.max(0, (restOptions.findIndex((option) => option.value === preferences.defaultRestSeconds) - 2) * 52)}
+          testID="default-rest-selection-menu"
+        >
+          <ForgeSingleSelectList
+            testID="default-rest-selection-list"
+            options={restOptions}
+            selectedValue={preferences.defaultRestSeconds}
+            rounded
+            disableVirtualization
+            onSelect={(value) => {
+              updatePreferences({ defaultRestSeconds: value });
+              restMenu.close();
+            }}
+            onSelectedPress={() => restMenu.close()}
+          />
+        </ForgeAnchoredMenu>
+        <ForgeAnchoredMenu
+          visible={reminderMenu.visible}
+          anchor={reminderMenu.anchor}
+          onClose={reminderMenu.close}
+          align="end"
+          minWidth={180}
+          testID="reminder-selection-menu"
+        >
+          <ForgeSingleSelectList
+            testID="reminder-selection-list"
+            options={reminderOptions}
+            selectedValue={preferences.unfinishedWorkoutReminderDelay}
+            rounded
+            disableVirtualization
+            onSelect={(value) => {
+              updatePreferences({ unfinishedWorkoutReminderDelay: value });
+              reminderMenu.close();
+            }}
+            onSelectedPress={() => reminderMenu.close()}
+          />
+        </ForgeAnchoredMenu>
       </View>
     </AppScreen>
   );
@@ -364,9 +352,6 @@ function formatSeconds(seconds: number) {
 function formatRestDuration(seconds: number) {
   return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 }
-function capitalize(value: string) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   scroll: { flex: 1 },
@@ -376,20 +361,6 @@ const styles = StyleSheet.create({
     gap: settingsLayout.sectionGap,
   },
   value: { ...typeScale.supporting },
-  appearanceMenu: {
-    position: 'absolute',
-    top: 54,
-    right: 8,
-    zIndex: 5,
-    width: 190,
-    overflow: 'hidden',
-    borderRadius: 16,
-    borderWidth: 1,
-    shadowOpacity: 0.16,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
-  },
   inputAction: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   weightInput: { width: 76, minHeight: 40, textAlign: 'right', ...typeScale.body },
   unit: { ...typeScale.supporting },

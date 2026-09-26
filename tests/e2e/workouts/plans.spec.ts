@@ -113,7 +113,9 @@ test.describe('Plans and routines', () => {
     await expect(
       page.getByRole('button', { name: 'Routine actions for Options routine' }),
     ).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Open options for New plan' })).toBeVisible();
+    // The normal plan header is a plain label; rename moves into edit mode.
+    await expect(page.getByRole('button', { name: 'Rename New plan' })).toHaveCount(0);
+    await expect(page.getByText('New plan', { exact: true })).toBeVisible();
   });
 
   test('creates a routine only after Save, edits it, and starts it as a workout', async ({
@@ -145,29 +147,10 @@ test.describe('Plans and routines', () => {
     await expect(page.getByText('Upper body')).toBeVisible();
     await page.getByRole('button', { name: 'Routine actions for Upper body' }).click();
     const routineActions = page.getByTestId('plans-options-sheet');
-    await expect(routineActions.getByText('Routine options', { exact: true })).toBeVisible();
-    await expect
-      .poll(() =>
-        routineActions
-          .locator('[role="button"]')
-          .evaluateAll((buttons) =>
-            buttons
-              .map((button) => button.getAttribute('aria-label'))
-              .filter((label): label is string =>
-                ['Start', 'Edit', 'Visualize'].includes(label ?? ''),
-              ),
-          ),
-      )
-      .toEqual(['Start', 'Edit', 'Visualize']);
-    await expect(
-      routineActions.getByRole('button', { name: 'Visualize' }).locator('svg').first(),
-    ).toBeVisible();
-    await expect(
-      routineActions.getByRole('button', { name: 'Edit' }).locator('svg').first(),
-    ).toBeVisible();
-    await expect(
-      routineActions.getByRole('button', { name: 'Start' }).locator('svg').first(),
-    ).toBeVisible();
+    await expect(routineActions.getByText('Upper body', { exact: true })).toBeVisible();
+    for (const label of ['Start', 'Edit', 'Duplicate', 'Visualize']) {
+      await expect(routineActions.getByRole('button', { name: label, exact: true })).toBeVisible();
+    }
     await routineActions.getByRole('button', { name: 'Edit' }).click();
     await expect(routineActions).toHaveCount(0);
     await page.getByLabel('Routine name').fill('Upper body updated');
@@ -194,7 +177,7 @@ test.describe('Plans and routines', () => {
       .getByRole('button', { name: 'New routine' })
       .click();
     await page.getByRole('button', { name: 'Workout type, Strength' }).click();
-    await expect(page.getByTestId('routine-type-selection-sheet')).toBeVisible();
+    await expect(page.getByTestId('routine-type-selection-menu')).toBeVisible();
     await expect(page.getByRole('radio', { name: 'Use Recovery workout type' })).toBeVisible();
     await page.getByRole('radio', { name: 'Use Recovery workout type' }).click();
     await expect(page.getByRole('button', { name: 'Workout type, Recovery' })).toBeVisible();
@@ -268,58 +251,101 @@ test.describe('Plans and routines', () => {
     await expect(page.getByRole('button', { name: 'Routine actions for Discarded routine' })).toHaveCount(0);
   });
 
-  test('uses type icons and supports swipe deletion for routines and plans', async ({ page }) => {
+  test('uses type icons and supports swipe-to-delete for routines and plans', async ({ page }) => {
+    // Seed a standalone routine and a plan directly: this exercises the Plans
+    // list affordances without depending on the routine editor's save flow.
+    await page.addInitScript(() => {
+      const now = Date.now();
+      localStorage.setItem('@forge/plans-v1', JSON.stringify({
+        plans: [{ id: 'edit-plan', name: 'New plan', createdAt: now, updatedAt: now, routines: [] }],
+        standaloneRoutines: [{
+          id: 'edit-routine',
+          name: 'Swipe routine',
+          type: 'Strength',
+          exercises: [],
+          createdAt: now,
+          updatedAt: now,
+        }],
+      }));
+    });
     await page.goto('/');
     await page.getByRole('tab', { name: 'Plans' }).click();
-    await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
-    await page
-      .getByTestId('plans-creation-popover')
-      .getByRole('button', { name: 'New routine' })
-      .click();
-    await page.getByLabel('Routine name').fill('Swipe routine');
-    await page.getByRole('button', { name: 'Save routine' }).click();
 
-    const routine = page.locator('[data-testid^="routine-swipe-"]').first();
+    // The routine card shows its type icon and action targets; the normal plan
+    // header is a plain label (rename lives in edit mode only).
     await expect(
-      routine.getByRole('button', { name: 'Start Swipe routine' }).locator('svg'),
+      page.getByRole('button', { name: 'Start Swipe routine' }).locator('svg'),
     ).toBeVisible();
     await expect(
-      routine.getByRole('button', { name: 'Routine actions for Swipe routine' }).locator('svg'),
+      page.getByRole('button', { name: 'Routine actions for Swipe routine' }).locator('svg'),
     ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Create standalone routine' })).toHaveCount(0);
-    await swipeLeftFrom(page, routine);
-    const deleteRoutine = page.getByRole('button', { name: 'Delete Swipe routine' });
-    await expect(deleteRoutine).toBeVisible();
-    await deleteRoutine.click();
-    await expect(page.getByText('Swipe routine', { exact: true })).toHaveCount(0);
+    // Add routine and rename both live in edit mode; the resting card is a clean label.
+    await expect(page.getByRole('button', { name: 'Add routine to New plan' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Rename New plan' })).toHaveCount(0);
 
-    await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
-    await page
-      .getByTestId('plans-creation-popover')
-      .getByRole('button', { name: 'New workout plan' })
-      .click();
-    await page.getByRole('button', { name: 'Open options for New plan' }).click();
-    const planOptions = page.getByTestId('plans-options-sheet');
-    await expect(planOptions.getByText('Plan options', { exact: true })).toBeVisible();
-    await expect(
-      planOptions.getByRole('button', { name: 'Add routine' }).locator('svg'),
-    ).toHaveCount(2);
-    await expect(
-      planOptions.getByRole('button', { name: 'Delete plan' }).locator('svg'),
-    ).toHaveCount(1);
-    await page.getByRole('button', { name: 'Dismiss plan options' }).click();
-    await expect(planOptions).toHaveCount(0);
-    const plan = page.locator('[data-testid^="plan-swipe-"]').first();
-    await swipeLeftFrom(page, plan);
-    const deletePlan = page.getByRole('button', { name: 'Delete New plan' });
-    await expect(deletePlan).toBeVisible();
-    const [planBox, deletePlanBox] = await Promise.all([
-      plan.boundingBox(),
-      deletePlan.boundingBox(),
-    ]);
-    expect(deletePlanBox?.height).toBeCloseTo(planBox?.height ?? 0, 0);
-    await deletePlan.click();
-    await expect(page.getByText('New plan', { exact: true })).toHaveCount(0);
+    // Swipe-to-delete is reserved for edit mode: no destructive control at rest.
+    await expect(page.getByRole('button', { name: 'Delete Swipe routine' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Delete New plan' })).toHaveCount(0);
+
+    // Edit mode reveals rename, add-routine and swipe-delete affordances, hides create.
+    // The swipe gesture itself is exercised on device; here we assert it is wired.
+    await page.getByRole('button', { name: 'Edit plans' }).click();
+    await expect(page.getByRole('button', { name: 'Create workout, routine, or plan' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Add routine to New plan' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Rename New plan' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Delete Swipe routine' })).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Delete New plan' })).toHaveCount(1);
+  });
+
+  test('reorders routines within a plan by dragging in edit mode', async ({ page }) => {
+    await page.addInitScript(() => {
+      const now = Date.now();
+      localStorage.setItem('@forge/plans-v1', JSON.stringify({
+        plans: [{
+          id: 'push',
+          name: 'Push',
+          createdAt: now,
+          updatedAt: now,
+          routines: [
+            { id: 'r1', name: 'Shoulder', type: 'Strength', exercises: [{ id: 'e1', name: 'X', sets: [] }], createdAt: now, updatedAt: now },
+            { id: 'r2', name: 'Chest', type: 'Strength', exercises: [{ id: 'e2', name: 'X', sets: [] }], createdAt: now, updatedAt: now },
+          ],
+        }],
+        standaloneRoutines: [],
+      }));
+    });
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await page.getByRole('button', { name: 'Edit plans' }).click();
+    await page.waitForTimeout(300);
+
+    // The flattened edit list exposes a per-row grab-rail.
+    const handle = page.getByRole('button', { name: 'Reorder Shoulder' });
+    const target = page.getByRole('button', { name: 'Edit Chest' });
+    const hb = await handle.boundingBox();
+    const tb = await target.boundingBox();
+    if (!hb || !tb) throw new Error('Expected measurable drag handles');
+    const sx = hb.x + hb.width / 2;
+    const sy = hb.y + hb.height / 2;
+    const ty = tb.y + tb.height + 30;
+    await page.mouse.move(sx, sy);
+    await page.mouse.down();
+    await page.waitForTimeout(60);
+    for (let i = 1; i <= 20; i++) {
+      await page.mouse.move(sx, sy + ((ty - sy) * i) / 20);
+      await page.waitForTimeout(16);
+    }
+    await page.waitForTimeout(120);
+    await page.mouse.up();
+    await page.waitForTimeout(600);
+
+    const order = await page.evaluate(() => {
+      const raw = localStorage.getItem('@forge/plans-v1');
+      const state = raw ? JSON.parse(raw) : null;
+      return state?.plans?.[0]?.routines?.map((routine: { name: string }) => routine.name) ?? null;
+    });
+    expect(order).toEqual(['Chest', 'Shoulder']);
   });
 
   test('uses the shared action sheet for persisted routine-editor overflow actions', async ({

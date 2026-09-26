@@ -173,7 +173,7 @@ export function SettingsSection({
   return (
     <View style={[styles.section, style]}>
       {title ? (
-        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{title}</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>{title}</Text>
       ) : null}
       <ForgeCard variant="base" style={cardStyle}>
         {children}
@@ -218,6 +218,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     leadingDivider: { left: 54 },
     framedDivider: { left: 70 },
     section: { gap: 8 },
-    sectionTitle: { ...typeScale.label, marginLeft: 6 },
+    sectionTitle: { ...typeScale.sectionTitle, marginLeft: 6, marginBottom: 2 },
     footer: { ...typeScale.caption, paddingHorizontal: 6 },
   });

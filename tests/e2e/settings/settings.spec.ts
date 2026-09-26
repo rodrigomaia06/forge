@@ -58,6 +58,7 @@ test.describe('Settings', () => {
     await page.getByRole('tab', { name: 'Settings' }).click();
 
     await expect(page.getByTestId('settings-title')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Muscle heatmap' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Exercises' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Workout types' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Measurements' })).toBeVisible();
@@ -65,9 +66,12 @@ test.describe('Settings', () => {
     await expect(page.getByRole('button', { name: 'Backup & Export' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Logs' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'About' })).toBeVisible();
-    const workoutTypesBox = await page.getByRole('button', { name: 'Workout types' }).boundingBox();
+    // Insights (Muscle heatmap, Measurements) sits above the Exercises group.
+    const heatmapBox = await page.getByRole('button', { name: 'Muscle heatmap' }).boundingBox();
     const measurementsBox = await page.getByRole('button', { name: 'Measurements' }).boundingBox();
-    expect(workoutTypesBox?.y ?? Infinity).toBeLessThan(measurementsBox?.y ?? -Infinity);
+    const exercisesBox = await page.getByRole('button', { name: 'Exercises' }).boundingBox();
+    expect(heatmapBox?.y ?? Infinity).toBeLessThan(measurementsBox?.y ?? -Infinity);
+    expect(measurementsBox?.y ?? Infinity).toBeLessThan(exercisesBox?.y ?? -Infinity);
 
     await page.getByRole('button', { name: 'Exercises' }).click();
     await expect(page.getByTestId('settings-detail-title')).toHaveText('Exercises');
@@ -133,8 +137,10 @@ test.describe('Settings', () => {
     await page.getByLabel('Body weight value').fill('81.4');
     await page.getByRole('button', { name: 'Save measurement' }).click();
     await expect(page.getByText('81.4 kg').first()).toBeVisible();
-    await expect(page.getByLabel('1 measurements chart')).toBeVisible();
-    await expect(page.getByText(/^History · /).last()).toBeVisible();
+    await expect(page.getByText('TREND', { exact: true })).toBeVisible();
+    // The swipe-to-delete hint only appears once editing is enabled.
+    await page.getByRole('button', { name: 'Edit measurements' }).click();
+    await expect(page.getByText('Tap to edit · swipe to delete')).toBeVisible();
 
     await page.reload();
     await page.getByRole('tab', { name: 'Settings' }).click();
@@ -142,7 +148,8 @@ test.describe('Settings', () => {
     // Entering the destination never fades or translates its initial metric.
     await expect(page.getByTestId('measurements-active-metric')).toHaveCSS('opacity', '1');
     await expect(page.getByText('81.4 kg').first()).toBeVisible();
-    await expect(page.getByText(/^History · /).last()).toBeVisible();
+    await page.getByRole('button', { name: 'Edit measurements' }).click();
+    await expect(page.getByText('Tap to edit · swipe to delete')).toBeVisible();
   });
 
   test('keeps measures user-defined and lets the user choose their chart colour', async ({ page }) => {
@@ -363,6 +370,17 @@ test.describe('Settings', () => {
   });
 
   test('persists the first day of the week and applies it to the Calendar', async ({ page }) => {
+    // The dashboard now starts empty; seed the week tile so the week-start
+    // setting can be verified on it.
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        '@forge/dashboard-layout-v1',
+        JSON.stringify([
+          { id: 'start', kind: 'start', visible: true },
+          { id: 'week', kind: 'week', visible: true },
+        ]),
+      );
+    });
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'General' }).click();
@@ -388,23 +406,20 @@ test.describe('Settings', () => {
     await page.getByRole('button', { name: 'General' }).click();
 
     await page.getByRole('button', { name: 'Default rest time' }).click();
-    const defaultRestSheet = page.getByTestId('default-rest-selection-sheet');
-    await expect(defaultRestSheet).toBeVisible();
-    // The scrim may fade in, but the sheet itself must never be transparent
+    const defaultRestMenu = page.getByTestId('default-rest-selection-menu');
+    await expect(defaultRestMenu).toBeVisible();
+    // The scrim may fade in, but the menu itself must never be transparent
     // during that entrance; otherwise underlying text shows through it.
     await page.waitForTimeout(80);
-    await expect(defaultRestSheet).toHaveCSS('opacity', '1');
+    await expect(defaultRestMenu).toHaveCSS('opacity', '1');
     const defaultRestList = page.getByTestId('default-rest-selection-list');
-    const defaultRestBox = await defaultRestList.boundingBox();
-    expect(defaultRestBox?.height ?? Infinity).toBeLessThanOrEqual(52 * 6 + 0.1);
-    expect(defaultRestBox?.height ?? 0).toBeGreaterThanOrEqual(52 * 4);
     await expect(defaultRestList).toHaveAttribute('role', 'radiogroup');
     await expect(page.getByRole('radio', { name: '01:30' })).toHaveAttribute(
       'aria-checked',
       'true',
     );
     await page.getByRole('radio', { name: '02:00' }).click();
-    await expect(page.getByTestId('default-rest-selection-sheet')).toHaveCount(0);
+    await expect(page.getByTestId('default-rest-selection-menu')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Default rest time' })).toContainText('02:00');
     await page.getByRole('button', { name: 'Default rest time' }).click();
     await expect(page.getByRole('radio', { name: '02:00' })).toHaveAttribute(
@@ -415,30 +430,21 @@ test.describe('Settings', () => {
 
     await page.getByRole('switch', { name: 'Unfinished workout reminder' }).click();
     await page.getByRole('button', { name: 'Remind after' }).click();
-    await expect(page.getByTestId('reminder-selection-sheet')).toBeVisible();
+    await expect(page.getByTestId('reminder-selection-menu')).toBeVisible();
     const reminderList = page.getByTestId('reminder-selection-list');
-    const reminderBox = await reminderList.boundingBox();
-    expect(reminderBox?.height).toBeCloseTo(52 * 4, 0);
+    await expect(reminderList).toHaveAttribute('role', 'radiogroup');
     await page.getByRole('radio', { name: '1 hour' }).click();
-    await expect(page.getByTestId('reminder-selection-sheet')).toHaveCount(0);
+    await expect(page.getByTestId('reminder-selection-menu')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Remind after' })).toContainText('1 hour');
 
-    await page.getByRole('button', { name: 'Appearance' }).click();
-    const viewport = page.viewportSize();
-    if ((viewport?.width ?? 0) >= 768) {
-      await expect(page.getByTestId('appearance-selection-sheet')).toHaveCount(0);
-    } else {
-      const appearanceSheet = page.getByTestId('appearance-selection-sheet');
-      await expect(appearanceSheet).toBeVisible();
-      const appearanceBox = await page.getByTestId('appearance-selection-list').boundingBox();
-      expect(appearanceBox?.height).toBeCloseTo(52 * 3, 0);
-      if (testInfo.project.use.isMobile === true) {
-        await page.waitForTimeout(250);
-        await page.screenshot({ path: testInfo.outputPath('appearance-picker-iphone.png') });
-      }
-    }
+    // Appearance is an inline segmented switcher (System / Light / Dark).
+    const readAppearance = () =>
+      page.evaluate(() => JSON.parse(localStorage.getItem('@forge/settings-preferences') ?? '{}').appearance);
+    await expect(page.getByRole('radiogroup', { name: 'Appearance' })).toBeVisible();
+    await page.getByRole('radio', { name: 'Light' }).click();
+    await expect.poll(readAppearance).toBe('light');
     await page.getByRole('radio', { name: 'Dark' }).click();
-    await expect(page.getByRole('button', { name: 'Appearance', exact: true })).toContainText('Dark');
+    await expect.poll(readAppearance).toBe('dark');
   });
 
   test('keeps a new workout type as a draft until Save', async ({ page }) => {

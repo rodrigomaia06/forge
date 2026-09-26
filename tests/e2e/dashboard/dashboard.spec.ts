@@ -1,6 +1,59 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+
+/** Slides a card to the left to reveal its swipe-to-delete action. */
+async function swipeCardLeft(page: Page, card: Locator): Promise<void> {
+  const box = await card.boundingBox();
+  if (!box) throw new Error('Expected a measurable card to swipe');
+  const y = box.y + box.height / 2;
+  const startX = box.x + box.width - 24;
+  await page.mouse.move(startX, y);
+  await page.mouse.down();
+  await page.mouse.move(startX - 100, y, { steps: 12 });
+  await page.mouse.up();
+}
+
+// The dashboard now ships empty and the user adds tiles themselves, so these
+// tests seed the full set of tiles (the previous default) to exercise tile
+// behaviour. The empty default + add flow is covered separately below.
+const DASHBOARD_TILE_KINDS = [
+  'start', 'week', 'training-time', 'last-workout', 'volume',
+  'rest-stats', 'muscle-balance', 'consistency', 'streak', 'muscle-heatmap',
+];
+async function seedFullDashboard(page: Page): Promise<void> {
+  // Only seed when nothing is saved yet, so a test that removes a tile and
+  // reloads still sees its change persist (this init script re-runs per load).
+  await page.addInitScript((kinds) => {
+    if (localStorage.getItem('@forge/dashboard-layout-v1')) return;
+    localStorage.setItem(
+      '@forge/dashboard-layout-v1',
+      JSON.stringify(kinds.map((kind) => ({ id: kind, kind, visible: true }))),
+    );
+  }, DASHBOARD_TILE_KINDS);
+}
 
 test.describe('Dashboard', () => {
+  test.beforeEach(async ({ page }) => {
+    await seedFullDashboard(page);
+  });
+
+  test('starts empty and adds a widget from the popup chooser', async ({ page }) => {
+    // Override the seeded layout with the real empty default.
+    await page.addInitScript((kinds) => {
+      localStorage.setItem(
+        '@forge/dashboard-layout-v1',
+        JSON.stringify(kinds.map((kind) => ({ id: kind, kind, visible: false }))),
+      );
+    }, DASHBOARD_TILE_KINDS);
+    await page.goto('/');
+
+    await expect(page.getByText('Build your dashboard')).toBeVisible();
+    await expect(page.getByTestId('dashboard-week-card')).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Add widgets' }).click();
+    await page.getByRole('button', { name: 'This week' }).click();
+    await expect(page.getByTestId('dashboard-week-card')).toBeVisible();
+  });
+
   test('matches the phone visual baseline', async ({ page }, testInfo) => {
     test.skip(testInfo.project.use.isMobile !== true, 'The baseline targets configured phone profiles.');
     await page.goto('/');
@@ -98,15 +151,19 @@ test.describe('Dashboard', () => {
     await expect(page.getByTestId('workout-details-summary-title')).toHaveText('Leg Day');
   });
 
-  test('removes and re-adds a dashboard tile in edit mode, persisting across reloads', async ({ page }) => {
+  test('removes and re-adds a dashboard tile in edit mode, persisting across reloads', async ({ page }, testInfo) => {
     await page.goto('/');
     await expect(page.getByTestId('dashboard-week-card')).toBeVisible();
-    // No remove control outside edit mode.
-    await expect(page.getByRole('button', { name: 'Remove This week tile' })).toHaveCount(0);
+    // No delete control outside edit mode.
+    await expect(page.getByRole('button', { name: 'Delete This week tile' })).toHaveCount(0);
 
-    // Enter edit mode from the header, then remove the tile.
+    // Enter edit mode from the header, then swipe the tile left and delete it.
     await page.getByRole('button', { name: 'Edit dashboard' }).click();
-    await page.getByRole('button', { name: 'Remove This week tile' }).click();
+    await swipeCardLeft(page, page.getByTestId('dashboard-week-card'));
+    if (testInfo.project.use.isMobile === true) {
+      await page.screenshot({ path: testInfo.outputPath('tile-swipe-revealed.png') });
+    }
+    await page.getByRole('button', { name: 'Delete This week tile' }).click();
     await expect(page.getByTestId('dashboard-week-card')).toHaveCount(0);
 
     // The removal persists across a fresh load.
@@ -120,6 +177,26 @@ test.describe('Dashboard', () => {
     await addTile.click();
     await page.getByRole('button', { name: 'This week' }).click();
     await expect(page.getByTestId('dashboard-week-card')).toBeVisible();
+  });
+
+  test('collapses the header to a single Done control while editing', async ({ page }, testInfo) => {
+    await page.goto('/');
+    const header = page.getByTestId('dashboard-header');
+    await expect(header.getByRole('button', { name: 'Edit dashboard' })).toBeVisible();
+    await expect(header.getByRole('button', { name: 'Start workout' })).toBeVisible();
+
+    await header.getByRole('button', { name: 'Edit dashboard' }).click();
+    // While editing there is only a Done control — no Start-workout to mis-tap.
+    await expect(header.getByRole('button', { name: 'Done editing dashboard' })).toBeVisible();
+    if (testInfo.project.use.isMobile === true) {
+      await header.screenshot({ path: testInfo.outputPath('editing-header-done.png') });
+    }
+    await expect(header.getByRole('button', { name: 'Start workout' })).toHaveCount(0);
+    await expect(header.getByRole('button', { name: 'Edit dashboard' })).toHaveCount(0);
+
+    await header.getByRole('button', { name: 'Done editing dashboard' }).click();
+    await expect(header.getByRole('button', { name: 'Start workout' })).toBeVisible();
+    await expect(header.getByRole('button', { name: 'Done editing dashboard' })).toHaveCount(0);
   });
 
   test('uses one title baseline and typography across primary tabs', async ({ page }) => {

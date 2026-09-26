@@ -717,6 +717,7 @@ export function ExerciseOptionsSheet({
   completedWorkouts = [],
   onRemove,
   onReplaceExercise,
+  enterInstant = false,
 }: {
   visible: boolean;
   exercise: WorkoutExercise;
@@ -731,6 +732,8 @@ export function ExerciseOptionsSheet({
   completedWorkouts?: readonly Workout[];
   onRemove?: () => void;
   onReplaceExercise?: () => void;
+  /** Restore the sheet already open when returning from a pushed workout. */
+  enterInstant?: boolean;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -788,6 +791,7 @@ export function ExerciseOptionsSheet({
   return (
     <ForgeActionSheet
       visible={visible}
+      enterInstant={enterInstant}
       onClose={close}
       accessibilityLabel="Close options"
       title="Exercise options"

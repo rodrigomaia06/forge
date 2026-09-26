@@ -5,15 +5,17 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   AppScreen,
   Button,
+  ForgeConfirmationDialog,
   ForgeText as Text,
   ForgeBackButton,
   HeaderAction,
+  HeaderActionGroup,
   HeaderEdge,
+  joinedHeaderAction,
   selectionHaptic,
 } from '../components/ui';
 import { WorkoutSummaryCard } from '../components/WorkoutSummaryCard';
 import { ReadOnlyExerciseSection } from './activeWorkout/ExerciseSection';
-import { WorkoutOptionsSheet } from './activeWorkout/WorkoutSheets';
 import { useWorkouts } from '../state/WorkoutContext';
 import { exercisesWithHistoricalPrevious } from '../domain/workouts/nextSessionTargets';
 import { useSettings } from '../state/SettingsContext';
@@ -30,7 +32,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
   const styles = useThemedStyles(createStyles);
   const { ready, completedWorkouts, deleteCompletedWorkout } = useWorkouts();
   const { preferences } = useSettings();
-  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [headerElevated, setHeaderElevated] = useState(false);
   const workout = completedWorkouts.find((item) => item.id === route.params.workoutId);
   // "Previous" is derived live from earlier sessions so imported/legacy workouts
@@ -84,14 +86,30 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
               {workout.name}
             </Text>
           </View>
-          <HeaderAction
-            accessibilityLabel="Workout options"
-            icon="ellipsis-horizontal"
-            label="More"
-            onPress={() => {
-              setOptionsOpen(true);
-            }}
-          />
+          <HeaderActionGroup>
+            <HeaderAction
+              accessibilityLabel="Edit workout"
+              icon="note"
+              iconSize={20}
+              iconOnly
+              variant="ghost"
+              style={joinedHeaderAction}
+              onPress={() => {
+                selectionHaptic();
+                navigation.navigate('HistoryWorkoutEditor', { mode: 'edit', workoutId: workout.id });
+              }}
+            />
+            <HeaderAction
+              accessibilityLabel="Delete workout"
+              icon="trash"
+              iconSize={20}
+              iconOnly
+              variant="ghost"
+              tone="destructive"
+              style={joinedHeaderAction}
+              onPress={() => { selectionHaptic(); setConfirmDelete(true); }}
+            />
+          </HeaderActionGroup>
         </View>
         <ScrollView
           style={styles.scroll}
@@ -111,14 +129,16 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
             ))}
           </View>
         </ScrollView>
-        <WorkoutOptionsSheet
-          visible={optionsOpen}
-          workoutName={workout.name}
-          onClose={() => setOptionsOpen(false)}
-          onEdit={() => {
-            navigation.navigate('HistoryWorkoutEditor', { mode: 'edit', workoutId: workout.id });
-          }}
-          onDelete={() => {
+        <ForgeConfirmationDialog
+          visible={confirmDelete}
+          title={`Delete ${workout.name}?`}
+          message="This permanently removes this workout and its sets. This can't be undone."
+          cancelLabel="Cancel"
+          confirmLabel="Delete"
+          confirmTone="destructive"
+          onCancel={() => setConfirmDelete(false)}
+          onConfirm={() => {
+            setConfirmDelete(false);
             deleteCompletedWorkout(workout.id);
             returnToHistory();
           }}

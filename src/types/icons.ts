@@ -64,5 +64,8 @@ export type IconName =
   | 'nutrition'
   | 'music'
   | 'shoe'
-  | 'goal';
+  | 'goal'
+  | 'theme-system'
+  | 'theme-light'
+  | 'theme-dark';
 export type IconWeight = 'thin' | 'regular' | 'bold' | 'fill';

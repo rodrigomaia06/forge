@@ -263,7 +263,7 @@ function SwipeTypeRow({
   const pan = Gesture.Pan()
     // Vertical list scrolling must win before a slight diagonal drag can reveal actions.
     .activeOffsetX([-16, 16])
-    .failOffsetY([-6, 6])
+    .failOffsetY([-16, 16])
     .onUpdate((event) => {
       if (!open.value && event.translationX >= 0) return;
       x.value = Math.max(-width, Math.min(0, (open.value ? -width : 0) + event.translationX));

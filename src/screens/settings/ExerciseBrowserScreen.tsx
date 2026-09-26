@@ -1319,7 +1319,7 @@ function SwipeCustomExerciseRow({
   const pan = Gesture.Pan()
     // Do not let a diagonal list scroll activate this horizontal delete gesture.
     .activeOffsetX([-16, 16])
-    .failOffsetY([-6, 6])
+    .failOffsetY([-16, 16])
     .onUpdate((event) => {
       if (!open.value && event.translationX >= 0) return;
       const initial = open.value ? -actionWidth : 0;

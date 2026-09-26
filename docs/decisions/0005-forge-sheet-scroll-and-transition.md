@@ -58,6 +58,18 @@ bound; the scroll view must stay content-sized via `flexShrink: 1`.
 Measuring the content with `onContentSizeChange` and setting an explicit height
 was also tried and is worse: it fights the surface layout and still gapped.
 
+**Also do not wrap the scroll view in an extra flex `View`.** In the
+hug-then-scroll pattern the scroll view must be a **direct child** of the
+`ForgeBottomSheet` surface (alongside the handle and header), exactly like
+`PreviousSessionsSheet`. Nesting it inside an intermediate `<View style={{
+flexShrink: 1 }}>` wrapper breaks the surface→scroll height chain: the wrapper
+takes the surface's height and the scroll view no longer hugs its content, so a
+tall body (observed on the muscle-balance tile settings) renders full-height with
+a large dead gap under the last row. Pass the handle/header/scroll view as direct
+children (`ForgeBottomSheet` accepts a plain `ReactNode`, not only a render
+function) and give the scroll body its bottom padding via the
+`contentContainerStyle`, not an outer wrapper.
+
 ## In-sheet content transitions: animate the surface, not with LayoutAnimation
 
 `animateSheetContent` uses RN `LayoutAnimation`, which does **not** ease the

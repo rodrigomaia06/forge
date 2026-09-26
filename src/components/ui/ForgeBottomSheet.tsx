@@ -72,6 +72,13 @@ interface ForgeBottomSheetProps {
    * keep their instant sizing.
    */
   animateContentLayout?: boolean;
+  /**
+   * Present the next entrance with no slide/fade — the sheet is simply already
+   * there. Used when a sheet is restored after it was temporarily dismissed to
+   * push a screen (previous sessions -> workout detail -> back): returning must
+   * not replay the pop-up animation, it should reappear in place.
+   */
+  enterInstant?: boolean;
   testID?: string;
 }
 
@@ -96,6 +103,7 @@ export function ForgeBottomSheet({
   dragEnabled = true,
   waitForContentLayoutBeforeEnter = false,
   animateContentLayout = false,
+  enterInstant = false,
   backdropIntensity = 'default',
   testID,
 }: ForgeBottomSheetProps) {
@@ -124,6 +132,11 @@ export function ForgeBottomSheet({
   const entryOffsetRef = useRef(initialOffset);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  // Read inside the entrance effect without adding it to the deps: it must be
+  // sampled at the moment `visible` flips true, and toggling it afterwards must
+  // never re-run (and thus re-animate) the entrance.
+  const enterInstantRef = useRef(enterInstant);
+  enterInstantRef.current = enterInstant;
 
   const clearExitTimer = useCallback(() => {
     if (exitTimerRef.current) {
@@ -203,7 +216,8 @@ export function ForgeBottomSheet({
         entryFallbackRef.current = null;
       };
     }
-    if (reducedMotion) {
+    // Reduced motion, or a restore-in-place, presents the sheet already open.
+    if (reducedMotion || enterInstantRef.current) {
       translateY.value = 0;
       backdropOpacity.value = 1;
       return undefined;

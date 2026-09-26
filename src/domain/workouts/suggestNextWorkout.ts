@@ -19,12 +19,18 @@ function completedAt(workout: Workout): number {
 
 /**
  * Suggests the routine to start next, inferred from the user's own history.
- * First matching strategy wins; returns null when there is nothing to lean on
- * (no routines, or no completed sessions tied to an existing routine).
  *
- *   1. Plan rotation — continue the plan you last trained, one routine forward.
+ * It reasons from *recency*, not a fixed index, so it stays correct even when
+ * sessions are skipped or repeated out of order:
+ *
+ *   1. Active plan — inside the plan you most recently trained, pick the routine
+ *      that is least-recently trained (or never), i.e. the one that is due.
  *   2. Weekday habit — the routine you most often do on this weekday.
- *   3. Recent repeat — the routine behind your most recent session.
+ *   3. Least-recently trained — across every routine you have history for.
+ *   4. Recent repeat, then a cold start on the first available routine.
+ *
+ * A routine already completed today is pushed to the back so the suggestion is
+ * always the *next* thing to do, never what was just finished.
  */
 export function suggestNextWorkout({
   completedWorkouts,
@@ -47,44 +53,81 @@ export function suggestNextWorkout({
     .filter((workout) => workout.completedAt !== null)
     .sort((left, right) => completedAt(right) - completedAt(left));
 
-  // 1. Plan rotation.
-  for (const workout of history) {
-    if (!workout.planId) continue;
-    const plan = plans.find((item) => item.id === workout.planId);
-    if (!plan || plan.routines.length < 2) continue;
-    const lastIndex = plan.routines.findIndex((routine) => routine.id === workout.routineId);
-    const nextIndex = lastIndex < 0 ? 0 : (lastIndex + 1) % plan.routines.length;
-    return { routine: plan.routines[nextIndex], plan };
-  }
-
-  // 2. Weekday habit — most frequent routine done on today's weekday, excluding
-  // one already trained today so we always point at the next thing to do.
-  const todayWeekday = now.getDay();
+  // When and how recently each routine was last trained, and which were trained
+  // today (so we never re-suggest a session that is already done).
   const todayKey = calendarDateKey(now);
-  const weekdayCounts = new Map<string, number>();
-  for (const workout of history) {
+  const lastTrained = new Map<string, number>();
+  const doneToday = new Set<string>();
+  for (const workout of completedWorkouts) {
     if (!workout.routineId) continue;
-    const date = new Date(completedAt(workout));
-    if (date.getDay() !== todayWeekday) continue;
-    if (calendarDateKey(date) === todayKey) continue;
-    weekdayCounts.set(workout.routineId, (weekdayCounts.get(workout.routineId) ?? 0) + 1);
+    const time = completedAt(workout);
+    const previous = lastTrained.get(workout.routineId);
+    if (previous === undefined || time > previous) lastTrained.set(workout.routineId, time);
+    if (calendarDateKey(new Date(time)) === todayKey) doneToday.add(workout.routineId);
   }
-  let bestRoutineId: string | undefined;
-  let bestCount = 0;
-  for (const [routineId, count] of weekdayCounts) {
-    if (count > bestCount) {
-      bestCount = count;
-      bestRoutineId = routineId;
+  // Lower is more "due": never-trained (-Infinity) beats old beats recent, and a
+  // routine done today is sent to the very back.
+  const dueScore = (routineId: string): number =>
+    doneToday.has(routineId) ? Number.POSITIVE_INFINITY : (lastTrained.get(routineId) ?? Number.NEGATIVE_INFINITY);
+
+  // 1. Active plan — the plan of the most recent plan-based session. Rotate to
+  // the routine in it that is least recently trained (ties keep plan order).
+  const activePlanWorkout = history.find(
+    (workout) => workout.planId && plans.some((plan) => plan.id === workout.planId && plan.routines.length > 0),
+  );
+  if (activePlanWorkout) {
+    const plan = plans.find((item) => item.id === activePlanWorkout.planId);
+    if (plan) {
+      let best: WorkoutRoutine | null = null;
+      let bestScore = Number.POSITIVE_INFINITY;
+      plan.routines.forEach((routine) => {
+        const score = dueScore(routine.id);
+        if (best === null || score < bestScore) {
+          best = routine;
+          bestScore = score;
+        }
+      });
+      // Only skip the plan entirely when every routine in it was trained today.
+      if (best && bestScore !== Number.POSITIVE_INFINITY) return { routine: best, plan };
     }
   }
-  const weekdaySuggestion = resolve(bestRoutineId);
+
+  // 2. Weekday habit — most frequent routine on today's weekday, not done today.
+  const todayWeekday = now.getDay();
+  const weekdayCounts = new Map<string, number>();
+  for (const workout of history) {
+    if (!workout.routineId || doneToday.has(workout.routineId)) continue;
+    const date = new Date(completedAt(workout));
+    if (date.getDay() !== todayWeekday || calendarDateKey(date) === todayKey) continue;
+    weekdayCounts.set(workout.routineId, (weekdayCounts.get(workout.routineId) ?? 0) + 1);
+  }
+  let habitRoutineId: string | undefined;
+  let habitCount = 0;
+  for (const [routineId, count] of weekdayCounts) {
+    if (count > habitCount) {
+      habitCount = count;
+      habitRoutineId = routineId;
+    }
+  }
+  const weekdaySuggestion = resolve(habitRoutineId);
   if (weekdaySuggestion) return weekdaySuggestion;
 
-  // 3. Recent repeat — the most recent session tied to a routine that still exists.
+  // 3. Least-recently trained across everything with history (not done today).
+  const candidates = [...lastTrained.keys()]
+    .filter((routineId) => !doneToday.has(routineId))
+    .sort((left, right) => (lastTrained.get(left) ?? 0) - (lastTrained.get(right) ?? 0));
+  for (const routineId of candidates) {
+    const suggestion = resolve(routineId);
+    if (suggestion) return suggestion;
+  }
+
+  // 4. Recent repeat, then a cold start (new user with routines but no history).
   for (const workout of history) {
     const suggestion = resolve(workout.routineId);
     if (suggestion) return suggestion;
   }
-
+  const firstPlan = plans.find((plan) => plan.routines.length > 0);
+  if (firstPlan) return { routine: firstPlan.routines[0], plan: firstPlan };
+  if (standaloneRoutines.length > 0) return { routine: standaloneRoutines[0] };
   return null;
 }

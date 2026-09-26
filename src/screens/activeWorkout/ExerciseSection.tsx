@@ -74,6 +74,9 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [restorePreviousSessions, setRestorePreviousSessions] = useState(false);
   const [previousSessionPushStarted, setPreviousSessionPushStarted] = useState(false);
+  // A restore after a workout-detail push must reappear in place, not replay the
+  // sheet's pop-up entrance. Only the return path sets this.
+  const [optionsRestoreInstant, setOptionsRestoreInstant] = useState(false);
   const [optionView, setOptionView] = useState<'history' | 'warmup' | 'info' | null>(null);
   const [removeConfirmationOpen, setRemoveConfirmationOpen] = useState(false);
   const optionTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -115,6 +118,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
       // Let the native stack's pop complete before the native modal rises
       // again, rather than making two independent surfaces compete mid-frame.
       const interaction = InteractionManager.runAfterInteractions(() => {
+        setOptionsRestoreInstant(true);
         setOptionsVisible(true);
         setRestorePreviousSessions(false);
       });
@@ -167,11 +171,12 @@ export const ExerciseSection = React.memo(function ExerciseSection({
 
   const cardGesture = Gesture.Pan()
     .enabled(swipeEnabled)
-    // Require a clearer horizontal intent and fail fast on any vertical motion so
-    // the list's native scroll always wins a near-vertical drag; a too-eager
-    // horizontal recognizer here could pin the scroll until the list remounts.
+    // Whichever axis clears 16 pt first wins: a horizontal-dominant drag reveals
+    // delete, a vertical-dominant one falls through to the list scroll. Matching
+    // the thresholds keeps a real left-swipe from being mistaken for a scroll,
+    // while a vertical drag still fails here before this recognizer pins scroll.
     .activeOffsetX([-16, 16])
-    .failOffsetY([-4, 4])
+    .failOffsetY([-16, 16])
     .onStart(() => {
       runOnJS(beginCardSwipe)();
     })
@@ -268,6 +273,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     accessibilityLabel={`More options for ${exercise.name}`}
                     onPress={() => {
                       selectionHaptic();
+                      setOptionsRestoreInstant(false);
                       setOptionsOpen(true);
                       setOptionsVisible(true);
                     }}
@@ -309,6 +315,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     accessibilityLabel={`More options for ${exercise.name}`}
                     onPress={() => {
                       selectionHaptic();
+                      setOptionsRestoreInstant(false);
                       setOptionsOpen(true);
                       setOptionsVisible(true);
                     }}
@@ -387,6 +394,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
               <ExerciseOptionsSheet
                 exercise={exercise}
                 visible={optionsVisible}
+                enterInstant={optionsRestoreInstant}
                 onClose={() => {
                   setOptionsVisible(false);
                   setOptionsOpen(false);
@@ -459,6 +467,8 @@ export function ReadOnlyExerciseSection({
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [restorePreviousSessions, setRestorePreviousSessions] = useState(false);
   const [previousSessionPushStarted, setPreviousSessionPushStarted] = useState(false);
+  // Restore in place (no pop-up) when returning from a pushed workout detail.
+  const [optionsRestoreInstant, setOptionsRestoreInstant] = useState(false);
   const { completedWorkouts } = useWorkouts();
   const navigation = useNavigation<RootNavigationProp>();
   const screenIsFocused = useIsFocused();
@@ -474,6 +484,7 @@ export function ReadOnlyExerciseSection({
     }
     if (restorePreviousSessions && !previousSessionPushStarted) {
       const interaction = InteractionManager.runAfterInteractions(() => {
+        setOptionsRestoreInstant(true);
         setOptionsVisible(true);
         setRestorePreviousSessions(false);
       });
@@ -519,7 +530,7 @@ export function ReadOnlyExerciseSection({
           color={theme.slate}
         />
       </Pressable>
-      {workoutId ? <Pressable accessibilityRole="button" accessibilityLabel={`More options for ${exercise.name}`} onPress={() => { selectionHaptic(); setOptionsOpen(true); setOptionsVisible(true); }} style={styles.readOnlyMoreButton}><Icon name="ellipsis-horizontal" size={20} color={theme.ink} /></Pressable> : null}
+      {workoutId ? <Pressable accessibilityRole="button" accessibilityLabel={`More options for ${exercise.name}`} onPress={() => { selectionHaptic(); setOptionsRestoreInstant(false); setOptionsOpen(true); setOptionsVisible(true); }} style={styles.readOnlyMoreButton}><Icon name="ellipsis-horizontal" size={20} color={theme.ink} /></Pressable> : null}
       </View>
       {expanded && (
         <View style={[styles.readOnlySets, minimal && styles.readOnlyMinimalSets]}>
@@ -558,6 +569,7 @@ export function ReadOnlyExerciseSection({
       )}
       {workoutId && optionsOpen ? <ExerciseOptionsSheet
         visible={optionsVisible}
+        enterInstant={optionsRestoreInstant}
         readOnly
         exercise={exercise}
         completedWorkouts={completedWorkouts}

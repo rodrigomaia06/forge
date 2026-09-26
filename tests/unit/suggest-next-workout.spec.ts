@@ -75,3 +75,44 @@ test('ignores a deleted plan and suggests from remaining history', () => {
   const suggestion = suggestNextWorkout({ completedWorkouts: completed, plans: [], standaloneRoutines: [push], now: MON });
   expect(suggestion?.routine.id).toBe('push');
 });
+
+test('rotates a plan by recency, not index, after sessions are skipped', () => {
+  const routines = [routine('a', 'A', 'p1'), routine('b', 'B', 'p1'), routine('c', 'C', 'p1')];
+  const plans = [plan('p1', routines)];
+  // Most recent is B (index-based rotation would jump to C), but A is the least
+  // recently trained, so A is what is actually due.
+  const completed = [
+    workout({ completedAt: day(-1), planId: 'p1', routineId: 'b' }),
+    workout({ completedAt: day(-3), planId: 'p1', routineId: 'c' }),
+    workout({ completedAt: day(-5), planId: 'p1', routineId: 'a' }),
+  ];
+  const suggestion = suggestNextWorkout({ completedWorkouts: completed, plans, standaloneRoutines: [], now: MON });
+  expect(suggestion?.routine.id).toBe('a');
+});
+
+test('treats a never-trained plan routine as the most due', () => {
+  const routines = [routine('a', 'A', 'p1'), routine('b', 'B', 'p1'), routine('c', 'C', 'p1')];
+  const plans = [plan('p1', routines)];
+  const completed = [
+    workout({ completedAt: day(-1), planId: 'p1', routineId: 'a' }),
+    workout({ completedAt: day(-3), planId: 'p1', routineId: 'c' }),
+  ];
+  const suggestion = suggestNextWorkout({ completedWorkouts: completed, plans, standaloneRoutines: [], now: MON });
+  expect(suggestion?.routine.id).toBe('b');
+});
+
+test('does not re-suggest a routine already trained today', () => {
+  const routines = [routine('a', 'A', 'p1'), routine('b', 'B', 'p1')];
+  const plans = [plan('p1', routines)];
+  const completed = [workout({ completedAt: day(0), planId: 'p1', routineId: 'a' })];
+  const suggestion = suggestNextWorkout({ completedWorkouts: completed, plans, standaloneRoutines: [], now: MON });
+  expect(suggestion?.routine.id).toBe('b');
+});
+
+test('cold-starts on the first plan routine when there is no history', () => {
+  const routines = [routine('a', 'A', 'p1'), routine('b', 'B', 'p1')];
+  const plans = [plan('p1', routines)];
+  const suggestion = suggestNextWorkout({ completedWorkouts: [], plans, standaloneRoutines: [], now: MON });
+  expect(suggestion?.routine.id).toBe('a');
+  expect(suggestion?.plan?.id).toBe('p1');
+});

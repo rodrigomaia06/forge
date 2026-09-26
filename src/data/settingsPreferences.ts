@@ -20,8 +20,12 @@ export function parseSettingsPreferences(value: string | null): SettingsPreferen
   } catch {
     return defaultSettingsPreferences;
   }
+  // Must stay in sync with the metric-icon picker in DailyMeasurementsScreen —
+  // an icon the picker offers but this list omits would silently drop the whole
+  // measurement definition on the next load.
   const validIcons: readonly IconName[] = [
     'weight', 'measure', 'heart', 'hydration', 'energy', 'sleep', 'recovery', 'activity',
+    'goal', 'running', 'fitness', 'time', 'temperature', 'nutrition', 'mood', 'focus',
   ];
   const definitions: DailyMeasurementDefinition[] = Array.isArray(parsed.dailyMeasurementDefinitions)
     ? parsed.dailyMeasurementDefinitions.flatMap((item) =>
@@ -82,6 +86,13 @@ export function parseSettingsPreferences(value: string | null): SettingsPreferen
         : {},
     dailyMeasurementDefinitions: uniqueDefinitions,
     dailyMeasurementEntries: uniqueById(entries),
+    muscleHeatmap: {
+      windowDays: [7, 30, 90].includes((parsed.muscleHeatmap?.windowDays as number))
+        ? (parsed.muscleHeatmap!.windowDays as number)
+        : defaultSettingsPreferences.muscleHeatmap.windowDays,
+      gender: parsed.muscleHeatmap?.gender === 'female' ? 'female' : 'male',
+      breakdown: parsed.muscleHeatmap?.breakdown === 'muscle' ? 'muscle' : 'group',
+    },
     // Upgrade only the React Native defaults. A deliberately edited built-in
     // or a custom type keeps the user-selected color.
     workoutTypes: parsedWorkoutTypes.map((item) =>

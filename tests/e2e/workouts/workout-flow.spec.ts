@@ -764,10 +764,15 @@ test.describe('Active workout flow', () => {
         .screenshot({ path: testInfo.outputPath('set-next-time-target-iphone.png') });
     }
 
-    // A comma/period in a next-session target is a decimal, not a range
-    // separator: it must survive blur as "82.5", never become "82–5".
+    // A comma in a next-session target is a decimal, not a range separator: it
+    // must survive blur as the user typed it ("82,5"), never be rewritten to a
+    // period ("82.5") nor split into a range ("82–5").
     const kgTarget = page.getByRole('textbox', { name: 'Next-time kg target for set 1' });
     await kgTarget.fill('82,5');
+    await page.getByRole('textbox', { name: 'Next-time reps target for set 1' }).click();
+    await expect(kgTarget).toHaveValue('82,5');
+    // A period entry is likewise preserved as a period.
+    await kgTarget.fill('82.5');
     await page.getByRole('textbox', { name: 'Next-time reps target for set 1' }).click();
     await expect(kgTarget).toHaveValue('82.5');
     await kgTarget.fill('62');
@@ -1173,5 +1178,50 @@ test.describe('Active workout flow', () => {
     await expect(page.getByRole('button', { name: 'Delete set 1' })).toBeVisible();
     await page.getByRole('button', { name: 'Delete set 1' }).click();
     await expect(page.getByLabel(/^Reps for set/)).toHaveCount(2);
+  });
+
+  test('restores the previous-sessions view in place after opening a prior session', async ({ page }, testInfo) => {
+    // Two completed sessions of the same exercise so Previous sessions can list
+    // a card that drills into a read-only workout detail.
+    for (const kg of ['60', '62']) {
+      await page.goto('/');
+      await startBlankWorkout(page);
+      await page.getByRole('button', { name: 'Add exercise' }).click();
+      await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
+      await page.waitForTimeout(260);
+      await selectStandardBarbellBenchPress(page);
+      await page.getByRole('button', { name: 'Confirm selected exercises' }).click();
+      await page.getByLabel('Kg for set 1').fill(kg);
+      await page.getByLabel('Reps for set 1').fill('8');
+      await page.getByRole('button', { name: 'Finish workout' }).click();
+      await page.getByTestId('finish-workout-confirmation').getByRole('button', { name: 'Finish workout' }).click();
+      await expect(page.getByRole('button', { name: 'Finish workout' })).toHaveCount(0);
+    }
+
+    // Open the latest session's read-only detail from History.
+    await page.getByRole('tab', { name: 'History' }).click();
+    await page.getByRole('button', { name: 'Open Workout' }).first().click();
+    await expect(page.getByTestId('workout-details-summary')).toBeVisible();
+
+    // Exercise options -> Previous sessions -> open the prior session.
+    await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
+    await page.getByRole('button', { name: 'Previous sessions' }).click();
+    const priorCard = page.locator('[data-testid^="previous-session-card-"]').first();
+    await expect(priorCard).toBeVisible();
+    await priorCard.getByRole('button', { name: 'Open Workout', exact: true }).click();
+
+    // The prior session is pushed as its own detail on top of the stack (the
+    // native stack keeps the originating detail mounted below it).
+    await expect(page.getByTestId('workout-details-summary')).toHaveCount(2);
+    // Returning must restore the previous-sessions sheet in place, not leave us
+    // on the plain detail with the sheet dismissed.
+    await page.getByRole('button', { name: /^Back to/ }).last().click();
+
+    await expect(page.getByTestId('workout-details-summary')).toHaveCount(1);
+    await expect(page.getByText('Previous sessions', { exact: true })).toBeVisible();
+    await expect(priorCard).toBeVisible();
+    if (testInfo.project.use.isMobile === true) {
+      await page.screenshot({ path: testInfo.outputPath('previous-sessions-restored.png') });
+    }
   });
 });

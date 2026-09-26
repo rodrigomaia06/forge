@@ -1,11 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import { LayoutAnimation, Platform, UIManager, View, StyleSheet } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   measure,
+  runOnJS,
   useAnimatedRef,
   useAnimatedStyle,
   useSharedValue,
+  withSpring,
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
@@ -41,6 +44,12 @@ export function BottomNavigation({
   const { preferences } = useSettings();
   const indicatorOpacity = useSharedValue(0);
   const activeIndex = useSharedValue(0);
+  const dragIndex = useSharedValue(0);
+  const lastScrubIndex = useSharedValue(-1);
+  // Grows the selection pill a touch while scrubbing, easing back on release.
+  const dragScale = useSharedValue(1);
+  // The tab the scrub is previewing, so its icon lights up before commit.
+  const [previewIndex, setPreviewIndex] = React.useState<number | null>(null);
   const navigationRef = useAnimatedRef<Animated.View>();
   const reducedMotion = useForgeReducedMotion();
   const hasActiveWorkout = Boolean(activeWorkout);
@@ -72,6 +81,9 @@ export function BottomNavigation({
     const next = Math.max(0, currentActiveIndex);
     activeIndex.value = reducedMotion ? next : withTiming(next, { duration: forgeMotion.state, easing: forgeMotion.easing });
     indicatorOpacity.value = reducedMotion ? 1 : withTiming(1, { duration: forgeMotion.state, easing: forgeMotion.easing });
+    // Once a navigation lands (from a tap or a committed scrub), the real active
+    // tab is authoritative again, so drop any scrub preview.
+    setPreviewIndex(null);
   }, [activeIndex, currentActiveIndex, indicatorOpacity, reducedMotion]);
 
   const selectionIndicatorStyle = useAnimatedStyle(() => {
@@ -90,12 +102,18 @@ export function BottomNavigation({
     // share of the full width; the pill is inset 2pt and centered on its slot:
     // start = i*slotWidth + inset. This holds for any tab count.
     const slotWidth = Math.max(0, navigationWidth / items.length);
+    // activeIndex is spring-driven in both phases — the resting position and the
+    // scrub glide — so the pill always eases rather than teleports. dragScale
+    // gives it a subtle lift while the finger is down.
     return {
       opacity: indicatorOpacity.value,
       width: Math.max(0, slotWidth - 4),
-      transform: [{ translateX: 2 + activeIndex.value * slotWidth }],
+      transform: [
+        { translateX: 2 + activeIndex.value * slotWidth },
+        { scale: dragScale.value },
+      ],
     };
-  }, [activeIndex, indicatorOpacity, items.length, navigationRef, surfaceWidth]);
+  }, [activeIndex, dragScale, indicatorOpacity, items.length, navigationRef, surfaceWidth]);
 
   const goTo = (screen: BottomNavigationScreen): void => {
     const target = state.routes.find((route) => route.name === screen);
@@ -111,7 +129,48 @@ export function BottomNavigation({
     navigation.navigate(screen);
   };
 
+  const itemCount = items.length;
+  const screens = items.map(([, , screen]) => screen);
+  const commitScrub = (index: number): void => {
+    const screen = screens[index];
+    if (screen) goTo(screen);
+  };
+  // Tap a tab, or press-and-drag across the dock and the highlight scrubs to the
+  // slot under the finger as a live preview, committing on release (iOS-26 dock
+  // feel). activeOffsetX lets a plain tap flow through to the tab buttons.
+  const scrub = Gesture.Pan()
+    .activeOffsetX([-8, 8])
+    .onStart(() => {
+      lastScrubIndex.value = -1;
+      dragScale.value = withSpring(1.12, forgeMotion.dockSpring);
+    })
+    .onUpdate((event) => {
+      if (!surfaceWidth) return;
+      const navigationWidth = Math.max(0, surfaceWidth.value - 14);
+      const slotWidth = itemCount > 0 ? navigationWidth / itemCount : 0;
+      if (slotWidth <= 0) return;
+      const index = Math.min(itemCount - 1, Math.max(0, Math.floor(event.x / slotWidth)));
+      // Glide the pill toward the slot under the finger rather than teleporting.
+      activeIndex.value = withSpring(index, forgeMotion.dockSpring);
+      if (index !== lastScrubIndex.value) {
+        lastScrubIndex.value = index;
+        dragIndex.value = index;
+        runOnJS(selectionHaptic)();
+        runOnJS(setPreviewIndex)(index);
+      }
+    })
+    .onEnd(() => {
+      // Settle on the committed slot; the preview highlight holds there until the
+      // navigation lands and the real active tab takes over (see the effect).
+      activeIndex.value = withSpring(dragIndex.value, forgeMotion.dockSpring);
+      runOnJS(commitScrub)(dragIndex.value);
+    })
+    .onFinalize(() => {
+      dragScale.value = withSpring(1, forgeMotion.dockSpring);
+    });
+
   return (
+    <GestureDetector gesture={scrub}>
     <Animated.View ref={navigationRef} style={[styles.navigation, compact && styles.navigationCompact]}>
       <Animated.View
         testID="dashboard-nav-selection-pill"
@@ -125,19 +184,25 @@ export function BottomNavigation({
           },
         ]}
       />
-      {items.map(([icon, label, screen, emphasis]) => {
+      {items.map(([icon, label, screen, emphasis], index) => {
         const active = activeRoute === screen;
+        // While scrubbing, the previewed tab reads as selected so the icon
+        // matches the pill under the finger; icon size stays keyed to the real
+        // active tab so the row never resizes mid-scrub.
+        const highlighted = previewIndex != null ? index === previewIndex : active;
+        // The live-workout (emphasis) icon is larger (40) but wears the muted
+        // slate tint, so it stands out by size without the loud accent colour.
         const iconSize = compact
           ? active
             ? emphasis
               ? 34
-              : 26
-            : 22
+              : 27
+            : 23
           : emphasis
             ? 40
             : hasActiveWorkout
-              ? 26
-              : 28;
+              ? 27
+              : 29;
         return (
           <View
             key={label}
@@ -146,7 +211,7 @@ export function BottomNavigation({
             <NavigationItem
               icon={icon}
               label={label}
-              active={active}
+              active={highlighted}
               emphasis={emphasis}
               onPress={() => goTo(screen)}
               theme={theme}
@@ -158,6 +223,7 @@ export function BottomNavigation({
         );
       })}
     </Animated.View>
+    </GestureDetector>
   );
 }
 

@@ -183,6 +183,48 @@ export function PlansProvider({ children }: ChildrenProps) {
     },
     [commit],
   );
+  const reorderAll = useCallback(
+    (
+      plans: { id: string; routineIds: string[] }[],
+      standaloneRoutineIds: string[],
+    ): void => {
+      commit((current) => {
+        const routineById = new Map<string, WorkoutRoutine>();
+        current.standaloneRoutines.forEach((routine) => routineById.set(routine.id, routine));
+        current.plans.forEach((plan) => plan.routines.forEach((routine) => routineById.set(routine.id, routine)));
+        const planById = new Map(current.plans.map((plan) => [plan.id, plan]));
+
+        // Validate the incoming shape matches the current id set exactly.
+        if (plans.length !== current.plans.length || plans.some((plan) => !planById.has(plan.id))) {
+          return current;
+        }
+        const incomingRoutineIds = [...standaloneRoutineIds, ...plans.flatMap((plan) => plan.routineIds)];
+        if (incomingRoutineIds.length !== routineById.size) return current;
+        const seen = new Set<string>();
+        for (const id of incomingRoutineIds) {
+          if (!routineById.has(id) || seen.has(id)) return current;
+          seen.add(id);
+        }
+
+        const now = Date.now();
+        const withPlan = (id: string, planId: string | undefined): WorkoutRoutine => {
+          const routine = routineById.get(id) as WorkoutRoutine;
+          return routine.planId === planId ? routine : { ...routine, planId, updatedAt: now };
+        };
+        const standaloneRoutines = standaloneRoutineIds.map((id) => withPlan(id, undefined));
+        const nextPlans = plans.map((entry) => {
+          const plan = planById.get(entry.id) as WorkoutPlan;
+          const routines = entry.routineIds.map((id) => withPlan(id, entry.id));
+          const unchanged =
+            routines.length === plan.routines.length &&
+            routines.every((routine, index) => plan.routines[index]?.id === routine.id);
+          return unchanged ? plan : { ...plan, routines, updatedAt: now };
+        });
+        return { plans: nextPlans, standaloneRoutines };
+      });
+    },
+    [commit],
+  );
   const moveRoutine = useCallback(
     (routineId: string, planId?: string, targetIndex?: number): void => {
       commit((current) => {
@@ -249,7 +291,7 @@ export function PlansProvider({ children }: ChildrenProps) {
       const copy = createRoutine({
         ...source,
         id: undefined,
-        name: `${source.name} copy`,
+        name: `${source.name} - copy`,
         planId: source.planId,
         exercises: source.exercises.map((exercise) => ({
           ...exercise,
@@ -269,6 +311,7 @@ export function PlansProvider({ children }: ChildrenProps) {
       createPlan,
       updatePlan,
       reorderPlans,
+      reorderAll,
       deletePlan,
       createRoutine,
       updateRoutine,
@@ -284,6 +327,7 @@ export function PlansProvider({ children }: ChildrenProps) {
       createPlan,
       updatePlan,
       reorderPlans,
+      reorderAll,
       deletePlan,
       createRoutine,
       updateRoutine,
