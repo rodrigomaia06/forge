@@ -11,6 +11,7 @@ import {
   ForgeAnchoredMenu,
   ForgeCard,
   ForgeText as Text,
+  HeaderEdge,
   Icon,
   lightHaptic,
   mediumHaptic,
@@ -127,6 +128,7 @@ export function DashboardScreen() {
   const [editing, setEditing] = useState(false);
   const addTileMenu = useAnchoredMenu();
   const [settingsTileId, setSettingsTileId] = useState<string | null>(null);
+  const [headerElevated, setHeaderElevated] = useState(false);
   const reducedMotion = useForgeReducedMotion();
   // Smoothly reflow the tile list when a tile is added/removed or edit mode
   // reveals its affordances, instead of letting the remaining tiles jump.
@@ -401,6 +403,20 @@ export function DashboardScreen() {
   return (
     <AppScreen testID="dashboard-app-screen" backgroundColor={theme.background} edges={['top']}>
       <View testID="dashboard-shell" style={styles.appShell}>
+        <View style={styles.headerWrap}>
+          <DashboardHeader
+            theme={theme}
+            variant={theme.headerVariant}
+            onStart={starter.openChooser}
+            editing={editing}
+            onToggleEdit={() => {
+              lightHaptic();
+              reflowTiles();
+              setEditing((current) => !current);
+            }}
+          />
+          {headerElevated ? <HeaderEdge /> : null}
+        </View>
         <DraggableFlatList
           testID="dashboard-scroll"
           data={visibleTiles}
@@ -410,19 +426,7 @@ export function DashboardScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
           contentInset={{ bottom: dockScrollInset }}
-          ListHeaderComponent={
-            <DashboardHeader
-              theme={theme}
-              variant={theme.headerVariant}
-              onStart={starter.openChooser}
-              editing={editing}
-              onToggleEdit={() => {
-                lightHaptic();
-                reflowTiles();
-                setEditing((current) => !current);
-              }}
-            />
-          }
+          onScrollOffsetChange={(offset) => setHeaderElevated(offset > 1)}
           ListFooterComponent={
             <View style={{ paddingBottom: dockScrollInset }}>
               {editing && addableTiles.length ? (
@@ -625,6 +629,7 @@ const TILE_DELETE_WIDTH = 64;
 
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   appShell: { flex: 1, minHeight: 0 },
+  headerWrap: { position: 'relative', zIndex: 2 },
   // Horizontal padding lives on the items (and the header owns its own), so the
   // header title lines up with the other tabs' titles at the screen inset.
   listContent: { paddingTop: 0 },
