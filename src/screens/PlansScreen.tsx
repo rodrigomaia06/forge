@@ -1,12 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Image, LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, UIManager, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
 
 import type { ForgeActionSheetAction } from '../components/ui';
 import {
@@ -50,7 +43,6 @@ import { workoutTypeIcon } from './settings/workoutTypeIcon';
 import { useForgeDockScrollInset } from '../components/DockChrome';
 
 type Props = RootTabScreenProps<'Plans'>;
-const swipeSpring = forgeMotion.swipeSpring;
 
 export function PlansScreen({ navigation, route }: Props) {
   const theme = useForgeTheme();
@@ -62,7 +54,9 @@ export function PlansScreen({ navigation, route }: Props) {
   const createMenu = useAnchoredMenu();
   const [routineTarget, setRoutineTarget] = useState<WorkoutRoutine | null>(null);
   const [moveMode, setMoveMode] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [headerElevated, setHeaderElevated] = useState(false);
+  const hasContent = plans.length > 0 || standaloneRoutines.length > 0;
   const reducedMotion = useForgeReducedMotion();
   // Animate the list reflow when a plan/routine row is created or deleted.
   const reflowRows = (): void => {
@@ -177,15 +171,29 @@ export function PlansScreen({ navigation, route }: Props) {
       <View style={styles.screen}>
         <View style={styles.header}>
           <ScreenTitle color={theme.textPrimary}>Plans</ScreenTitle>
-          <View ref={createMenu.ref} collapsable={false}>
-            <HeaderAction
-              accessibilityLabel="Create workout, routine, or plan"
-              icon="add"
-              iconOnly
-              onPress={createMenu.open}
-              variant={theme.colorScheme === 'dark' ? 'ghost' : 'secondary'}
-              style={theme.colorScheme === 'dark' ? styles.darkHeaderAction : undefined}
-            />
+          <View style={styles.headerActions}>
+            {hasContent ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={editing ? 'Done editing plans' : 'Edit plans'}
+                onPress={() => { lightHaptic(); setEditing((value) => !value); }}
+                style={({ pressed }) => [styles.editPill, pressed && pressedFeedbackSubtle]}
+              >
+                <Text style={styles.editPillText}>{editing ? 'Done' : 'Edit'}</Text>
+              </Pressable>
+            ) : null}
+            {!editing ? (
+              <View ref={createMenu.ref} collapsable={false}>
+                <HeaderAction
+                  accessibilityLabel="Create workout, routine, or plan"
+                  icon="add"
+                  iconOnly
+                  onPress={createMenu.open}
+                  variant={theme.colorScheme === 'dark' ? 'ghost' : 'secondary'}
+                  style={theme.colorScheme === 'dark' ? styles.darkHeaderAction : undefined}
+                />
+              </View>
+            ) : null}
           </View>
           {headerElevated ? <HeaderEdge /> : null}
         </View>
@@ -203,23 +211,16 @@ export function PlansScreen({ navigation, route }: Props) {
               <Section title="Routines">
                 <ForgeCard variant="base" style={styles.groupedCard}>
                   {standaloneRoutines.map((routine, index) => (
-                    <SwipeDelete
+                    <RoutineRow
                       key={routine.id}
-                      accessibilityLabel={`Delete ${routine.name}`}
-                      testID={`routine-swipe-${routine.id}`}
-                      onOpen={() => routineActions(routine)}
+                      routine={routine}
+                      workoutTypes={preferences.workoutTypes}
+                      last={index === standaloneRoutines.length - 1}
+                      editing={editing}
+                      onStart={() => startRoutine(routine)}
+                      onPress={() => routineActions(routine)}
                       onDelete={() => removeRoutine(routine.id)}
-                    >
-                      {(handleOpen) => (
-                        <RoutineRow
-                          routine={routine}
-                          workoutTypes={preferences.workoutTypes}
-                          last={index === standaloneRoutines.length - 1}
-                          onStart={() => startRoutine(routine)}
-                          onPress={handleOpen}
-                        />
-                      )}
-                    </SwipeDelete>
+                    />
                   ))}
                 </ForgeCard>
               </Section>
@@ -231,6 +232,7 @@ export function PlansScreen({ navigation, route }: Props) {
               <PlanCard
                 plan={plan}
                 workoutTypes={preferences.workoutTypes}
+                editing={editing}
                 onAddRoutine={() => addRoutine(plan.id)}
                 onOpenRoutine={routineActions}
                 onStartRoutine={startRoutine}
@@ -336,9 +338,25 @@ function MoveDestinations({
   );
 }
 
+function DeleteButton({ accessibilityLabel, onPress }: { accessibilityLabel: string; onPress: () => void }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      onPress={() => { mediumHaptic(); onPress(); }}
+      style={({ pressed }) => [styles.deleteButton, pressed && { backgroundColor: theme.destructiveSurfacePressed }]}
+    >
+      <Icon name="trash" size={18} color={theme.textDestructive} />
+    </Pressable>
+  );
+}
+
 function PlanCard({
   plan,
   workoutTypes,
+  editing,
   onAddRoutine,
   onOpenRoutine,
   onStartRoutine,
@@ -348,6 +366,7 @@ function PlanCard({
 }: {
   plan: WorkoutPlan;
   workoutTypes: WorkoutTypePreference[];
+  editing: boolean;
   onAddRoutine: () => void;
   onOpenRoutine: (routine: WorkoutRoutine) => void;
   onStartRoutine: (routine: WorkoutRoutine) => void;
@@ -367,67 +386,59 @@ function PlanCard({
   };
   const count = `${plan.routines.length} ${plan.routines.length === 1 ? 'routine' : 'routines'}`;
   return (
-    <SwipeDelete
-      accessibilityLabel={`Delete ${plan.name}`}
-      testID={`plan-swipe-${plan.id}`}
-      onDelete={onDelete}
-      rounded
-    >
-      {() => (
-        <View style={styles.planCardSurface}>
-          {renaming ? (
-            <View style={[styles.planHeader, styles.planOptions]}>
-              <ForgeTextInput
-                autoFocus
-                value={draftName}
-                onChangeText={setDraftName}
-                onSubmitEditing={commitRename}
-                onBlur={commitRename}
-                returnKeyType="done"
-                selectTextOnFocus
-                accessibilityLabel={`Rename ${plan.name}`}
-                style={styles.planNameInput}
-              />
+    <ForgeCard variant="base" style={styles.planCard}>
+      <View style={styles.planCardSurface}>
+        {editing ? (
+          <View style={[styles.planHeader, styles.planOptions]}>
+            <View style={styles.planHeadText}>
+              <Text style={styles.planName}>{plan.name}</Text>
+              <Text style={styles.planCount}>{count}</Text>
             </View>
-          ) : (
-            <Pressable
-              testID={`plan-header-${plan.id}`}
-              accessibilityRole="button"
+            <DeleteButton accessibilityLabel={`Delete ${plan.name}`} onPress={onDelete} />
+          </View>
+        ) : renaming ? (
+          <View style={[styles.planHeader, styles.planOptions]}>
+            <ForgeTextInput
+              autoFocus
+              value={draftName}
+              onChangeText={setDraftName}
+              onSubmitEditing={commitRename}
+              onBlur={commitRename}
+              returnKeyType="done"
+              selectTextOnFocus
               accessibilityLabel={`Rename ${plan.name}`}
-              unstable_pressDelay={80}
-              onPress={() => { selectionHaptic(); setDraftName(plan.name); setRenaming(true); }}
-              style={({ pressed }) => [
-                styles.planHeader,
-                styles.planOptions,
-                pressed && pressedFeedbackSubtle,
-              ]}
-            >
-              <View style={styles.planHeadText}>
-                <Text style={styles.planName}>{plan.name}</Text>
-                <Text style={styles.planCount}>{count}</Text>
-              </View>
-              <Icon name="note" size={18} color={theme.slate} />
-            </Pressable>
-          )}
-          {plan.routines.map((routine, index) => (
-            <SwipeDelete
-              key={routine.id}
-              accessibilityLabel={`Delete ${routine.name}`}
-              testID={`routine-swipe-${routine.id}`}
-              onOpen={() => onOpenRoutine(routine)}
-              onDelete={() => onDeleteRoutine(routine)}
-            >
-              {(handleOpen) => (
-                <RoutineRow
-                  routine={routine}
-                  workoutTypes={workoutTypes}
-                  last={index === plan.routines.length - 1}
-                  onStart={() => onStartRoutine(routine)}
-                  onPress={handleOpen}
-                />
-              )}
-            </SwipeDelete>
-          ))}
+              style={styles.planNameInput}
+            />
+          </View>
+        ) : (
+          <Pressable
+            testID={`plan-header-${plan.id}`}
+            accessibilityRole="button"
+            accessibilityLabel={`Rename ${plan.name}`}
+            unstable_pressDelay={80}
+            onPress={() => { selectionHaptic(); setDraftName(plan.name); setRenaming(true); }}
+            style={({ pressed }) => [styles.planHeader, styles.planOptions, pressed && pressedFeedbackSubtle]}
+          >
+            <View style={styles.planHeadText}>
+              <Text style={styles.planName}>{plan.name}</Text>
+              <Text style={styles.planCount}>{count}</Text>
+            </View>
+            <Icon name="note" size={18} color={theme.slate} />
+          </Pressable>
+        )}
+        {plan.routines.map((routine, index) => (
+          <RoutineRow
+            key={routine.id}
+            routine={routine}
+            workoutTypes={workoutTypes}
+            last={index === plan.routines.length - 1}
+            editing={editing}
+            onStart={() => onStartRoutine(routine)}
+            onPress={() => onOpenRoutine(routine)}
+            onDelete={() => onDeleteRoutine(routine)}
+          />
+        ))}
+        {editing ? null : (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Add routine to ${plan.name}`}
@@ -438,9 +449,9 @@ function PlanCard({
             <Icon name="add" size={16} color={theme.textPrimary} />
             <Text style={styles.addToPlanText}>Add routine</Text>
           </Pressable>
-        </View>
-      )}
-    </SwipeDelete>
+        )}
+      </View>
+    </ForgeCard>
   );
 }
 
@@ -448,15 +459,42 @@ function RoutineRow({
   routine,
   workoutTypes,
   last,
+  editing,
   onStart,
   onPress,
+  onDelete,
 }: {
   routine: WorkoutRoutine;
   workoutTypes: WorkoutTypePreference[];
   last: boolean;
+  editing: boolean;
   onStart: () => void;
   onPress: () => void;
+  onDelete: () => void;
 }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  const presentation = getWorkoutTypePresentation(
+    routine.type,
+    workoutTypes,
+    theme,
+    theme.colorScheme === 'dark' ? 0.24 : 0.14,
+  );
+  const typeIcon = (
+    <Icon name={getRoutineTypeIcon(routine.type, workoutTypes)} size={26} color={presentation.color} />
+  );
+  if (editing) {
+    return (
+      <View style={[styles.routineRow, !last && styles.divider]}>
+        <View style={[styles.typeMarker, { backgroundColor: presentation.background }]}>{typeIcon}</View>
+        <View style={styles.routineText}>
+          <Text style={styles.routineName} numberOfLines={1}>{routine.name}</Text>
+          <Text style={styles.routineSummary} numberOfLines={1}>{routineSummary(routine)}</Text>
+        </View>
+        <DeleteButton accessibilityLabel={`Delete ${routine.name}`} onPress={onDelete} />
+      </View>
+    );
+  }
   return (
     <RoutineCardBody
       routine={routine}
@@ -466,6 +504,12 @@ function RoutineRow({
       onPress={onPress}
     />
   );
+}
+
+function routineSummary(routine: WorkoutRoutine): string {
+  return routine.exercises.length
+    ? `${routine.type} · ${routine.exercises.length} ${routine.exercises.length === 1 ? 'exercise' : 'exercises'}`
+    : routine.type;
 }
 
 function RoutineCardBody({
@@ -574,123 +618,6 @@ function getRoutineTypeIcon(type: string, workoutTypes: WorkoutTypePreference[])
   return 'layers';
 }
 
-function SwipeDelete({
-  accessibilityLabel,
-  testID,
-  onOpen,
-  onDelete,
-  rounded = false,
-  children,
-}: {
-  accessibilityLabel: string;
-  testID: string;
-  onOpen?: () => void;
-  onDelete: () => void;
-  rounded?: boolean;
-  children: (onOpen: () => void) => React.ReactNode;
-}) {
-  const theme = useForgeTheme();
-  const styles = useThemedStyles(createStyles);
-  const reducedMotion = useForgeReducedMotion();
-  const actionWidth = 76;
-  const [revealed, setRevealed] = useState(false);
-  const offset = useSharedValue(0);
-  const open = useSharedValue(false);
-  const suppressNextPress = useRef(false);
-  const suppressDeletePress = useRef(false);
-
-  useEffect(() => {
-    open.value = revealed;
-    offset.value = reducedMotion ? (revealed ? -actionWidth : 0) : withSpring(revealed ? -actionWidth : 0, swipeSpring);
-  }, [offset, open, reducedMotion, revealed]);
-
-  const settle = (next: boolean, dragged: boolean): void => {
-    if (dragged) suppressNextPress.current = true;
-    if (next !== revealed) {
-      mediumHaptic();
-      setRevealed(next);
-    } else {
-      offset.value = reducedMotion ? (next ? -actionWidth : 0) : withSpring(next ? -actionWidth : 0, swipeSpring);
-    }
-    requestAnimationFrame(() => {
-      suppressDeletePress.current = false;
-    });
-  };
-  const beginSwipe = (): void => {
-    suppressDeletePress.current = true;
-  };
-  const pan = Gesture.Pan()
-    // Preserve vertical scrolling even when the first few pixels drift sideways.
-    .activeOffsetX([-16, 16])
-    .failOffsetY([-16, 16])
-    .onStart(() => {
-      runOnJS(beginSwipe)();
-    })
-    .onUpdate((event) => {
-      if (!open.value && event.translationX >= 0) return;
-      const initial = open.value ? -actionWidth : 0;
-      offset.value = Math.max(-actionWidth, Math.min(0, initial + event.translationX));
-    })
-    .onEnd((event) => {
-      const initial = open.value ? -actionWidth : 0;
-      const next = initial + event.translationX < -actionWidth * 0.55;
-      runOnJS(settle)(next, Math.abs(event.translationX) > 6);
-    });
-  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ translateX: offset.value }] }));
-  const handleOpen = (): void => {
-    if (suppressNextPress.current) {
-      suppressNextPress.current = false;
-      return;
-    }
-    lightHaptic();
-    onOpen?.();
-  };
-
-  const content = (
-    <GestureDetector gesture={pan}>
-      <View
-        testID={testID}
-        style={[styles.swipeContainer, rounded && styles.roundedSwipeContainer]}
-      >
-        <View
-          style={[
-            styles.deleteLayer,
-            {
-              backgroundColor: theme.destructiveSurface,
-              pointerEvents: revealed ? 'auto' : 'none',
-            },
-          ]}
-        >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={accessibilityLabel}
-            onPress={() => {
-              if (suppressDeletePress.current) return;
-              lightHaptic();
-              onDelete();
-            }}
-            style={({ pressed }) => [styles.deleteAction, pressed && styles.deleteActionPressed]}
-          >
-            <Icon name="trash" size={18} color={theme.textDestructive} />
-            <Text style={styles.deleteText}>Delete</Text>
-          </Pressable>
-        </View>
-        <Animated.View
-          style={[
-            styles.swipeSurface,
-            rounded && styles.swipeSurfaceRounded,
-            { backgroundColor: theme.surface },
-            animatedStyle,
-          ]}
-        >
-          {children(handleOpen)}
-        </Animated.View>
-      </View>
-    </GestureDetector>
-  );
-  return rounded ? <ForgeCard variant="base" style={styles.planCard}>{content}</ForgeCard> : content;
-}
-
 const createStyles = (theme: import('../types').ForgeTheme) =>
   StyleSheet.create({
     // Root lists are a single opaque Forge surface; their row dividers provide
@@ -713,6 +640,10 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       backgroundColor: theme.background,
     },
     darkHeaderAction: { backgroundColor: theme.surfaceMuted },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    editPill: { height: 40, paddingHorizontal: 16, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
+    editPillText: { ...typeScale.controlLabel, color: theme.textPrimary },
+    deleteButton: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.destructiveSurface },
     content: {
       paddingHorizontal: spacing.screen,
       paddingTop: 16,
@@ -791,29 +722,5 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       color: theme.slate,
       textAlign: 'center',
       marginBottom: 8,
-    },
-    swipeContainer: {
-      overflow: 'hidden',
-      position: 'relative',
-      backgroundColor: theme.destructiveSurface,
-    },
-    roundedSwipeContainer: { borderRadius: theme.cardRadius },
-    deleteLayer: {
-      position: 'absolute',
-      top: 0,
-      right: 0,
-      bottom: 0,
-      width: 76,
-      alignItems: 'stretch',
-      justifyContent: 'center',
-    },
-    deleteAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
-    deleteActionPressed: { backgroundColor: theme.destructiveSurfacePressed },
-    deleteText: { ...typeScale.caption, color: theme.textDestructive },
-    swipeSurface: { zIndex: 1, flex: 1, alignSelf: 'stretch' },
-    swipeSurfaceRounded: {
-      overflow: 'hidden',
-      borderTopRightRadius: theme.cardRadius,
-      borderBottomRightRadius: theme.cardRadius,
     },
   });
