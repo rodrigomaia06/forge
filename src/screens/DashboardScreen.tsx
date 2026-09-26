@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { InteractionManager, LayoutAnimation, Platform, Pressable, StyleSheet, UIManager, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
@@ -147,7 +147,12 @@ export function DashboardScreen() {
   // The workout-derived metric each tile needs, computed once per data change
   // (not on every render). Toggling edit mode no longer recomputes them, so the
   // charts they feed neither stutter nor rebuild.
-  const dashboardNow = useMemo(() => new Date(), []);
+  // Anchor the trailing-window metrics (last 7/30/90 days, etc.) to the current
+  // time, refreshed each time the dashboard is shown. A value frozen at mount
+  // drifts as the screen stays mounted, so the effective window keeps growing and
+  // the numbers read like all-time.
+  const [dashboardNow, setDashboardNow] = useState(() => new Date());
+  useEffect(() => navigation.addListener('focus', () => setDashboardNow(new Date())), [navigation]);
   const tileData = useMemo(() => {
     const map: Record<string, unknown> = {};
     for (const tile of layout) {
