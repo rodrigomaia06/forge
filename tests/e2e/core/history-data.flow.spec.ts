@@ -5,10 +5,12 @@ test.describe('Core flow: history and data', () => {
   test('persists a completed workout and imports plans in source order', async ({ page }) => {
     await page.goto('/');
     await startBlankWorkout(page);
+    await page.getByRole('button', { name: 'Add exercise', exact: true }).click();
     await addExerciseFromPicker(page, 'barbell bench press', 'Bench Press, variation');
     await page.getByLabel('Kg for set 1').fill('60');
     await page.getByLabel('Reps for set 1').fill('10');
     await page.getByRole('button', { name: 'Finish workout' }).click();
+    await page.getByTestId('finish-workout-confirmation').getByRole('button', { name: 'Finish workout' }).click();
     await page.getByRole('tab', { name: 'History' }).click();
     await expect(page.getByRole('button', { name: 'Open Workout' })).toBeVisible();
     await page.goto('/');
@@ -50,14 +52,16 @@ test.describe('Core flow: history and data', () => {
     await page.getByTestId('data-merged-summary').getByRole('button', { name: 'Done' }).click();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('tab', { name: 'Plans' }).click();
-    await page.getByRole('button', { name: 'Open options for Ordered plan' }).click();
-    const first = page.getByText('Routine first', { exact: true });
-    const second = page.getByText('Routine second', { exact: true });
+    // The plan lists its routines inline on the card; there is no options popup.
+    // Scope to the Plans-only action rows so the hidden Dashboard start card
+    // (which also renders a suggested routine name) cannot match.
+    const first = page.getByRole('button', { name: 'Routine actions for Routine first' });
+    const second = page.getByRole('button', { name: 'Routine actions for Routine second' });
     await expect(first).toBeVisible();
     await expect(second).toBeVisible();
     await expectVerticalOrder(first, second);
-    await page.getByRole('button', { name: 'Dismiss plan options' }).click();
-    await page.getByRole('button', { name: 'Start Routine first' }).click();
+    await first.click();
+    await page.getByTestId('plans-options-sheet').getByRole('button', { name: 'Start', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Finish workout' })).toBeVisible();
   });
 });

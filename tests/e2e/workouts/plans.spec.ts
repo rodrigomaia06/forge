@@ -249,50 +249,46 @@ test.describe('Plans and routines', () => {
     await expect(page.getByRole('button', { name: 'Routine actions for Discarded routine' })).toHaveCount(0);
   });
 
-  test('uses type icons and supports swipe deletion for routines and plans', async ({ page }) => {
+  test('uses type icons and supports edit-mode deletion for routines and plans', async ({ page }) => {
+    // Seed a standalone routine and a plan directly: this exercises the Plans
+    // list affordances without depending on the routine editor's save flow.
+    await page.addInitScript(() => {
+      const now = Date.now();
+      localStorage.setItem('@forge/plans-v1', JSON.stringify({
+        plans: [{ id: 'edit-plan', name: 'New plan', createdAt: now, updatedAt: now, routines: [] }],
+        standaloneRoutines: [{
+          id: 'edit-routine',
+          name: 'Swipe routine',
+          type: 'Strength',
+          exercises: [],
+          createdAt: now,
+          updatedAt: now,
+        }],
+      }));
+    });
     await page.goto('/');
     await page.getByRole('tab', { name: 'Plans' }).click();
-    await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
-    await page
-      .getByTestId('plans-creation-popover')
-      .getByRole('button', { name: 'New routine' })
-      .click();
-    await page.getByLabel('Routine name').fill('Swipe routine');
-    await page.getByRole('button', { name: 'Save routine' }).click();
 
-    const routine = page.locator('[data-testid^="routine-swipe-"]').first();
+    // The routine card shows its type icon and action targets; the plan card
+    // renames inline and adds routines from its footer (no options popup).
     await expect(
-      routine.getByRole('button', { name: 'Start Swipe routine' }).locator('svg'),
+      page.getByRole('button', { name: 'Start Swipe routine' }).locator('svg'),
     ).toBeVisible();
     await expect(
-      routine.getByRole('button', { name: 'Routine actions for Swipe routine' }).locator('svg'),
+      page.getByRole('button', { name: 'Routine actions for Swipe routine' }).locator('svg'),
     ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Create standalone routine' })).toHaveCount(0);
-    await swipeLeftFrom(page, routine);
-    const deleteRoutine = page.getByRole('button', { name: 'Delete Swipe routine' });
-    await expect(deleteRoutine).toBeVisible();
-    await deleteRoutine.click();
-    await expect(page.getByText('Swipe routine', { exact: true })).toHaveCount(0);
-
-    await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
-    await page
-      .getByTestId('plans-creation-popover')
-      .getByRole('button', { name: 'New workout plan' })
-      .click();
-    // The plan card adds routines inline and renames the plan from its header;
-    // there is no options popup for so few actions.
     await expect(page.getByRole('button', { name: 'Add routine to New plan' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Rename New plan' })).toBeVisible();
-    const plan = page.locator('[data-testid^="plan-swipe-"]').first();
-    await swipeLeftFrom(page, plan);
-    const deletePlan = page.getByRole('button', { name: 'Delete New plan' });
-    await expect(deletePlan).toBeVisible();
-    const [planBox, deletePlanBox] = await Promise.all([
-      plan.boundingBox(),
-      deletePlan.boundingBox(),
-    ]);
-    expect(deletePlanBox?.height).toBeCloseTo(planBox?.height ?? 0, 0);
-    await deletePlan.click();
+
+    // Deletion now lives in edit mode: swipe-to-delete is gone, and the create
+    // and add-routine affordances hide while editing.
+    await page.getByRole('button', { name: 'Edit plans' }).click();
+    await expect(page.getByRole('button', { name: 'Create workout, routine, or plan' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Add routine to New plan' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Delete Swipe routine' }).click();
+    await expect(page.getByText('Swipe routine', { exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Delete New plan' }).click();
     await expect(page.getByText('New plan', { exact: true })).toHaveCount(0);
   });
 
