@@ -422,8 +422,12 @@ export function DashboardScreen() {
           extraData={{ summary, editing }}
           activationDistance={editing ? 12 : 100000}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-          contentInset={{ bottom: dockScrollInset }}
+          // The list's wrapper must be flex-bounded (minHeight: 0) or it grows to
+          // content height on web and the tiles below the fold become unreachable.
+          containerStyle={styles.dashScrollContainer}
+          // paddingBottom (not contentInset, which is iOS-only) keeps the last
+          // tile clear of the dock on every platform, web included.
+          contentContainerStyle={[styles.listContent, { paddingBottom: dockScrollInset }]}
           onScrollOffsetChange={(offset) => setHeaderElevated(offset > 1)}
           ListEmptyComponent={
             editing ? null : (
@@ -450,7 +454,7 @@ export function DashboardScreen() {
             )
           }
           ListFooterComponent={
-            <View style={{ paddingBottom: dockScrollInset }}>
+            <View>
               {editing && addableTiles.length ? (
                 <Pressable
                   accessibilityRole="button"
@@ -648,6 +652,7 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   headerWrap: { position: 'relative', zIndex: 2 },
   // Horizontal padding lives on the items (and the header owns its own), so the
   // header title lines up with the other tabs' titles at the screen inset.
+  dashScrollContainer: { flex: 1, minHeight: 0 },
   listContent: { paddingTop: 0 },
   tileWrap: { marginBottom: 14, paddingHorizontal: 20 },
   tileCard: { position: 'relative' },

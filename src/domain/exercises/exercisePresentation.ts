@@ -6,6 +6,15 @@ function normalizedWords(value: string): Set<string> {
   return new Set(value.toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []);
 }
 
+// A variation word is already expressed by the title when every one of its
+// sub-tokens is in the title — so "Farmer's" (farmer + s) or "90/90" (90) is
+// recognised as redundant even though the title tokenizes across the
+// apostrophe/slash and never contains the joined word verbatim.
+function wordCoveredByTitle(word: string, titleWords: Set<string>): boolean {
+  const tokens = normalizedWords(word);
+  return tokens.size > 0 && [...tokens].every((token) => titleWords.has(token));
+}
+
 function titleAlreadySaysVariation(name: string, variation: string): boolean {
   const variationWords = normalizedWords(variation);
   const titleWords = normalizedWords(name);
@@ -17,7 +26,7 @@ function variationNotInTitle(name: string, variation: string): string {
   const titleWords = normalizedWords(name);
   return variation
     .split(/\s*[·,–—-]\s*|\s+/)
-    .filter((word) => word && !titleWords.has(word.toLocaleLowerCase()))
+    .filter((word) => word && !wordCoveredByTitle(word, titleWords))
     .join(' ');
 }
 
@@ -56,7 +65,7 @@ export function formatCatalogVariation(name: string, rawVariation: string | unde
   if (/\bpull[ -]?up\b/.test(normalizedName) && !/\bchin[ -]?up\b/.test(normalizedName)) implied.add('pronated');
   const titleWords = normalizedWords(name);
   const remaining = detail.split(/\s*[·,–—-]\s*|\s+/)
-    .filter((word) => word && !titleWords.has(word.toLocaleLowerCase()) && !implied.has(word.toLocaleLowerCase()));
+    .filter((word) => word && !wordCoveredByTitle(word, titleWords) && !implied.has(word.toLocaleLowerCase()));
   return remaining.length ? remaining.join(' ') : null;
 }
 
