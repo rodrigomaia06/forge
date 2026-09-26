@@ -8,7 +8,7 @@ export const TREND_DAY_OPTIONS = [7, 30, 90] as const;
 
 export type TrendDays = (typeof TREND_DAY_OPTIONS)[number];
 
-/** Compact selector label, e.g. `30D`. */
+/** Compact selector label, e.g. `30d`. */
 export function trendDayLabel(days: number): string {
-  return `${days}D`;
+  return `${days}d`;
 }
