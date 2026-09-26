@@ -1,10 +1,8 @@
 import React from 'react';
-import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { ForgeText as Text, HeaderAction, HeaderActionGroup, Icon, joinedHeaderAction, pressedFeedback, ScreenTitle } from './ui';
+import { ForgeText as Text, HeaderAction, HeaderEditActions, ScreenTitle } from './ui';
 import { spacing, typeScale } from '../theme/tokens';
-import { useForgeReducedMotion } from '../theme/motion';
 import type { ForgeTheme } from '../types';
 
 export const HEADER_VARIANTS = {
@@ -31,10 +29,6 @@ export function DashboardHeader({
   onToggleEdit,
 }: DashboardHeaderProps) {
   const content = getHeaderContent(variant);
-  const reducedMotion = useForgeReducedMotion();
-  const enter = reducedMotion ? undefined : FadeIn.duration(180);
-  const exit = reducedMotion ? undefined : FadeOut.duration(140);
-  const isDark = theme.colorScheme === 'dark';
 
   return (
     <View
@@ -51,55 +45,15 @@ export function DashboardHeader({
       </View>
       <View style={styles.actions}>
         {onToggleEdit ? (
-          // Both states share one fixed pill slot and are absolutely stacked, so
-          // switching crossfades in place rather than sliding two pills apart.
-          <View style={styles.morphSlot}>
-            {editing ? (
-              // While editing the whole pill becomes one Done control — same
-              // footprint, no Start-workout button to tap by mistake.
-              <Animated.View key="done" entering={enter} exiting={exit} style={StyleSheet.absoluteFill}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Done editing dashboard"
-                  onPress={onToggleEdit}
-                  style={({ pressed }) => [
-                    styles.donePill,
-                    {
-                      backgroundColor: isDark ? theme.surfaceMuted : theme.surfaceElevated,
-                      borderColor: theme.border,
-                      borderWidth: isDark ? 0 : 1,
-                    },
-                    pressed && pressedFeedback,
-                  ]}
-                >
-                  <Icon name="check" size={22} color={theme.ink} weight="bold" />
-                </Pressable>
-              </Animated.View>
-            ) : (
-              <Animated.View key="group" entering={enter} exiting={exit} style={StyleSheet.absoluteFill}>
-                <HeaderActionGroup testID="dashboard-header-actions">
-                  <HeaderAction
-                    accessibilityLabel="Edit dashboard"
-                    icon="note"
-                    iconSize={20}
-                    iconOnly
-                    variant="ghost"
-                    style={joinedHeaderAction}
-                    onPress={onToggleEdit}
-                  />
-                  <HeaderAction
-                    accessibilityLabel="Start workout"
-                    icon="add"
-                    iconSize={22}
-                    iconOnly
-                    variant="ghost"
-                    style={joinedHeaderAction}
-                    onPress={onStart}
-                  />
-                </HeaderActionGroup>
-              </Animated.View>
-            )}
-          </View>
+          <HeaderEditActions
+            editing={editing}
+            onToggleEdit={onToggleEdit}
+            onAdd={onStart}
+            editLabel="Edit dashboard"
+            doneLabel="Done editing dashboard"
+            addLabel="Start workout"
+            testID="dashboard-header-actions"
+          />
         ) : (
           <HeaderAction
             accessibilityLabel="Start workout"
@@ -144,17 +98,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screen,
   },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  // Fixed pill footprint (the joined edit+add group width) that both states
-  // stack inside, so the swap crossfades in place instead of resizing.
-  morphSlot: { width: 90, height: 44 },
-  donePill: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
   copy: { flex: 1, minWidth: 0, justifyContent: 'center', paddingRight: 16 },
   subtitle: { ...typeScale.label, marginTop: 2 },
 });

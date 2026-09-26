@@ -15,6 +15,7 @@ import {
   ForgeText as Text,
   ForgeTextInput,
   HeaderAction,
+  HeaderEditActions,
   HeaderEdge,
   Icon,
   lightHaptic,
@@ -174,16 +175,17 @@ export function PlansScreen({ navigation, route }: Props) {
           <ScreenTitle color={theme.textPrimary}>Plans</ScreenTitle>
           <View style={styles.headerActions}>
             {hasContent ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={editing ? 'Done editing plans' : 'Edit plans'}
-                onPress={() => { lightHaptic(); setEditing((value) => !value); }}
-                style={({ pressed }) => [styles.editPill, pressed && pressedFeedbackSubtle]}
-              >
-                <Text style={styles.editPillText}>{editing ? 'Done' : 'Edit'}</Text>
-              </Pressable>
-            ) : null}
-            {!editing ? (
+              <HeaderEditActions
+                editing={editing}
+                onToggleEdit={() => { lightHaptic(); setEditing((value) => !value); }}
+                onAdd={createMenu.open}
+                addRef={createMenu.ref}
+                editLabel="Edit plans"
+                doneLabel="Done editing plans"
+                addLabel="Create workout, routine, or plan"
+                testID="plans-header-actions"
+              />
+            ) : (
               <View ref={createMenu.ref} collapsable={false}>
                 <HeaderAction
                   accessibilityLabel="Create workout, routine, or plan"
@@ -194,7 +196,7 @@ export function PlansScreen({ navigation, route }: Props) {
                   style={theme.colorScheme === 'dark' ? styles.darkHeaderAction : undefined}
                 />
               </View>
-            ) : null}
+            )}
           </View>
           {headerElevated ? <HeaderEdge /> : null}
         </View>
@@ -597,7 +599,8 @@ function RoutineRow({
   );
   if (editing) {
     return (
-      <View style={[styles.routineRow, !last && styles.divider, isActive && styles.rowActive, { backgroundColor: theme.surface }]}>
+      <View style={[styles.routineRow, isActive && styles.rowActive, { backgroundColor: theme.surface }]}>
+        {!last ? <View pointerEvents="none" style={styles.rowSeparator} /> : null}
         {drag ? (
           <Pressable
             accessibilityRole="button"
@@ -676,7 +679,8 @@ function RoutineCardBody({
     </>
   );
   return (
-    <View style={[styles.routineRow, !last && styles.divider]}>
+    <View style={styles.routineRow}>
+      {!last ? <View pointerEvents="none" style={styles.rowSeparator} /> : null}
       {onStart ? (
         <Pressable
           accessibilityRole="button"
@@ -764,8 +768,6 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     },
     darkHeaderAction: { backgroundColor: theme.surfaceMuted },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    editPill: { height: 40, paddingHorizontal: 16, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
-    editPillText: { ...typeScale.controlLabel, color: theme.textPrimary },
     deleteButton: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.destructiveSurface },
     dragHandle: { width: 30, alignItems: 'center', justifyContent: 'center', marginLeft: -4, marginRight: 2 },
     rowActive: { shadowColor: theme.shadow, shadowOpacity: 0.16, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
@@ -800,12 +802,22 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     moveIcon: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
     moveLabel: { flex: 1, minWidth: 0, ...typeScale.controlLabel, color: theme.ink },
     routineRow: {
+      position: 'relative',
       minHeight: 76,
       paddingHorizontal: 16,
       flexDirection: 'row',
       alignItems: 'center',
     },
     divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
+    // Inset hairline between routine rows, aligned under the routine name.
+    rowSeparator: {
+      position: 'absolute',
+      left: 70,
+      right: 16,
+      bottom: 0,
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: theme.divider,
+    },
     typeMarker: {
       width: 44,
       height: 44,
