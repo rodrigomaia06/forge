@@ -24,7 +24,7 @@ import { SetDetailsCard } from './SetDetailsCard';
 import { SetRow } from './SetRow';
 import type { SwipeableSetRowProps } from './activeWorkoutTypes';
 
-const DELETE_ACTION_WIDTH = 52;
+const DELETE_ACTION_WIDTH = 76;
 
 function SwipeableSetRowComponent({
   set,
@@ -271,19 +271,25 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     zIndex: 1,
     backgroundColor: dashboardTheme.surface,
   },
+  // A floating rounded red button (inset from the edges) rather than a square
+  // full-bleed bar, matching the rounded card-delete treatment.
   deleteActionLayer: {
     position: 'absolute',
     top: 0,
     right: 0,
     bottom: 0,
     width: DELETE_ACTION_WIDTH,
-    backgroundColor: dashboardTheme.destructiveSurface,
   },
   deleteAction: {
     flex: 1,
+    marginVertical: 6,
+    marginRight: 10,
+    marginLeft: 2,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: dashboardTheme.destructiveSurface,
     alignItems: 'center',
     justifyContent: 'center',
-    transform: [{ translateY: 0 }],
   },
   deleteActionPressed: { backgroundColor: dashboardTheme.destructiveSurfacePressed },
   });

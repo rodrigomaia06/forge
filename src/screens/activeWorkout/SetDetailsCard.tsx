@@ -430,14 +430,7 @@ function SetTypeOption({
       onPress={onPress}
       style={({ pressed }) => [styles.typeRow, pressed && pressedFeedbackSubtle]}
     >
-      <Animated.View
-        style={[
-          styles.selectedTypeOverlay,
-          first && styles.firstTypeSelection,
-          last && styles.lastTypeSelection,
-          selectedStyle,
-        ]}
-      />
+      {/* Selection reads from the filled green radio alone — no green row tint. */}
       <View style={[styles.typeDot, { backgroundColor: color }]} />
       <Text style={styles.typeText}>{label}</Text>
       <View style={[styles.radio, { borderColor: selected ? (theme.marker ?? theme.success) : theme.slate }]}>
