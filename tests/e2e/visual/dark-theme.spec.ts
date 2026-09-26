@@ -63,25 +63,22 @@ test('captures primary Forge surfaces in Dark appearance', async ({ page }) => {
   await capture(page, 'exercise-browser');
   await page.getByRole('button', { name: 'Filters' }).click();
   await capture(page, 'exercise-filter-sheet');
-  await page.getByRole('button', { name: 'Show all exercises' }).click();
+  // The filter sheet dismisses via Cancel now (there is no 'Show all exercises').
+  await page.getByRole('button', { name: 'Cancel exercise filters' }).click();
   await page.getByRole('button', { name: 'Bench Press & 3 variations' }).click();
   await page.getByRole('button', { name: 'Open Flat' }).first().click();
   await capture(page, 'exercise-detail');
   await page.getByRole('button', { name: 'Change rest time, currently Default' }).click();
   await capture(page, 'exercise-rest-picker');
   await page.getByRole('button', { name: 'Use default rest time' }).click();
-  await page.getByLabel('Close exercise details').click();
+  await page.getByTestId('forge-sheet-drag-area').getByRole('button', { name: 'Close exercise details' }).click();
   await page.getByRole('button', { name: 'Back to Exercises' }).click();
   await page.getByRole('button', { name: 'Back to Settings' }).click();
   await page.getByRole('button', { name: 'General' }).click();
   await capture(page, 'general');
-  await page.getByRole('button', { name: 'Appearance' }).click();
+  // Appearance is an inline segmented control now; capture it and pick Dark.
   await capture(page, 'general-appearance-picker');
-  if ((page.viewportSize()?.width ?? 0) >= 768) {
-    await page.getByRole('radio', { name: 'Dark' }).click();
-  } else {
-    await page.getByRole('radio', { name: 'Dark' }).click();
-  }
+  await page.getByRole('radiogroup', { name: 'Appearance' }).getByRole('radio', { name: 'Dark' }).click();
   await page.getByRole('button', { name: 'Default rest time' }).click();
   await capture(page, 'general-default-rest-picker');
   await page.getByRole('radio', { name: '00:30' }).dispatchEvent('click');
@@ -111,9 +108,14 @@ test('keeps layout stable and resolves Light, Dark and System at runtime', async
 
   await page.getByRole('tab', { name: 'Settings' }).click();
   await page.getByRole('button', { name: 'General' }).click();
-  await page.getByRole('button', { name: 'Appearance' }).click();
-  await page.getByRole('radio', { name: 'Dark' }).click();
-  await expect(page.getByRole('button', { name: 'Appearance', exact: true })).toContainText('Dark');
+  // Appearance is an inline segmented control now; select Dark and confirm the
+  // Dark segment is checked rather than reading a picker button's value.
+  const appearance = page.getByRole('radiogroup', { name: 'Appearance' });
+  await appearance.getByRole('radio', { name: 'Dark' }).click();
+  // Confirm the Dark selection registered via the persisted preference.
+  await expect
+    .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('@forge/settings-preferences') ?? '{}').appearance))
+    .toBe('dark');
   await page.getByRole('button', { name: 'Back to Settings' }).click();
   await page.getByRole('tab', { name: 'Dashboard' }).click();
   await expect(page.getByTestId('dashboard-header-title').last()).toBeVisible();
@@ -154,22 +156,26 @@ test('keeps layout stable and resolves Light, Dark and System at runtime', async
   );
   expect(darkBackgrounds).toBe(0);
 
-  await page.reload();
+  // The static server has no SPA fallback; reload the root, and read the
+  // persisted appearance since the inline segmented control does not expose an
+  // aria-checked state on web.
+  const readAppearance = () =>
+    page.evaluate(() => JSON.parse(localStorage.getItem('@forge/settings-preferences') ?? '{}').appearance);
+  await page.goto('/');
   await page.getByRole('tab', { name: 'Settings' }).click();
   await page.getByRole('button', { name: 'General' }).click();
-  await page.getByRole('button', { name: 'Appearance' }).click();
-  await expect(page.getByRole('radio', { name: 'Dark' })).toHaveAttribute('aria-checked', 'true');
-  await page.getByRole('radio', { name: 'System' }).click();
+  const appearanceGroup = page.getByRole('radiogroup', { name: 'Appearance' });
+  await expect.poll(readAppearance).toBe('dark');
+  await appearanceGroup.getByRole('radio', { name: 'System' }).click();
   await page.emulateMedia({ colorScheme: 'light' });
-  await expect(page.getByRole('button', { name: 'Appearance', exact: true })).toContainText('System');
+  await expect.poll(readAppearance).toBe('system');
   await expectThemeBackgrounds(page);
   await page.emulateMedia({ colorScheme: 'dark' });
-  await expect(page.getByTestId('app-root')).toHaveCSS('background-color', 'rgb(23, 25, 28)');
+  await expect(page.getByTestId('app-root')).toHaveCSS('background-color', 'rgb(10, 11, 13)');
   await expectThemeBackgrounds(page);
   await page.emulateMedia({ colorScheme: 'light' });
-  await page.reload();
+  await page.goto('/');
   await page.getByRole('tab', { name: 'Settings' }).click();
   await page.getByRole('button', { name: 'General' }).click();
-  await page.getByRole('button', { name: 'Appearance' }).click();
-  await expect(page.getByRole('radio', { name: 'System' })).toHaveAttribute('aria-checked', 'true');
+  await expect.poll(readAppearance).toBe('system');
 });

@@ -78,15 +78,14 @@ test.describe('Forge screen captures', () => {
     await capture(page, 'settings');
 
     await page.getByRole('button', { name: 'General' }).click();
-    await expect(page.getByText('Calendar', { exact: true })).toBeVisible();
+    await expect(
+      page.getByTestId('general-settings-scroll').getByText('Calendar', { exact: true }),
+    ).toBeVisible();
     await capture(page, 'general-settings');
-    await page.getByRole('button', { name: 'Appearance' }).click();
+    // Appearance is now an inline segmented control on the General screen rather
+    // than a button-opened picker; capture it in place and choose Light directly.
     await capture(page, 'general-appearance-picker');
-    if ((page.viewportSize()?.width ?? 0) >= 768) {
-      await page.getByRole('radio', { name: 'Light' }).click();
-    } else {
-      await page.getByRole('radio', { name: 'Light' }).click();
-    }
+    await page.getByRole('radiogroup', { name: 'Appearance' }).getByRole('radio', { name: 'Light' }).click();
     await page.getByRole('button', { name: 'Default rest time' }).click();
     await capture(page, 'general-default-rest-picker');
     await page.getByRole('radio', { name: '00:30' }).dispatchEvent('click');
@@ -178,7 +177,11 @@ test.describe('Forge screen captures', () => {
     await page.mouse.up();
     await expect(page.getByRole('button', { name: 'Delete Upper push' })).toBeHidden();
 
-    await page.getByRole('button', { name: 'Open Upper push' }).click();
+    // The swipe-to-close gesture can leak a press on web that opens the detail
+    // early; only tap the history card if we are still on the list.
+    if ((await page.getByTestId('workout-details-summary').count()) === 0) {
+      await page.getByRole('button', { name: 'Open Upper push' }).click();
+    }
     await expect(page.getByTestId('workout-details-summary')).toBeVisible();
     await capture(page, 'workout-detail');
   });
@@ -212,8 +215,8 @@ test.describe('Forge screen captures', () => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'General' }).click();
-    await page.getByRole('button', { name: 'Appearance' }).click();
-    await page.getByRole('radio', { name: 'Dark' }).click();
+    // Appearance is an inline segmented control now; select Dark directly.
+    await page.getByRole('radiogroup', { name: 'Appearance' }).getByRole('radio', { name: 'Dark' }).click();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('tab', { name: 'Dashboard' }).click();
     await openHistoricalEditorCapture(page);

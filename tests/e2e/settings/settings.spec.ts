@@ -142,7 +142,9 @@ test.describe('Settings', () => {
     await page.getByRole('button', { name: 'Edit measurements' }).click();
     await expect(page.getByText('Tap to edit · swipe to delete')).toBeVisible();
 
-    await page.reload();
+    // The static webServer has no SPA fallback, so reload the app root (which
+    // preserves localStorage) instead of page.reload() on the deep settings route.
+    await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Measurements' }).click();
     // Entering the destination never fades or translates its initial metric.
@@ -324,6 +326,9 @@ test.describe('Settings', () => {
     }
     await summary.getByRole('button', { name: 'Done' }).click();
     await expect(summary).toBeHidden();
+    // Backup & Export is a pushed full-screen detail without the bottom tab bar,
+    // so return to the Settings root before reaching for the Plans tab.
+    await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('tab', { name: 'Plans' }).click();
     await expect(page.getByText('Routine A', { exact: true })).toBeVisible();
   });

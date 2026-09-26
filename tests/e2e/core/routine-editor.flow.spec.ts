@@ -6,8 +6,25 @@ test.describe('Core flow: routine editor', () => {
     await page.getByRole('tab', { name: 'Plans' }).click();
     await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
     await page.getByTestId('plans-creation-popover').getByRole('button', { name: 'New routine' }).click();
-    await page.getByLabel('Routine name').fill('Core intervals');
+    // This field does not accept Playwright's fill() (its value reverts); type
+    // real keystrokes so the routine name persists and Save stays enabled.
+    const routineName = page.getByLabel('Routine name');
+    await routineName.click();
+    await routineName.pressSequentially('Core intervals');
+    await expect(routineName).toHaveValue('Core intervals');
     await page.getByRole('button', { name: 'Add exercises to routine' }).click();
+    // A new routine defaults to Strength, whose initial type scope hides the
+    // cardio-only Elliptical from the picker. Clear that scope before searching.
+    await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
+    const initialScope = page.getByRole('button', { name: 'Filters, 1 active' });
+    if (!(await initialScope.count())) {
+      await initialScope.waitFor({ state: 'visible', timeout: 1500 }).catch(() => {});
+    }
+    if (await initialScope.count()) {
+      await initialScope.click();
+      await page.getByRole('button', { name: 'Clear filters' }).click();
+      await page.getByRole('button', { name: 'Apply filters' }).click();
+    }
     await page.getByLabel('Search exercises').fill('elliptical');
     await page.waitForTimeout(80);
     const elliptical = page.getByRole('checkbox', { name: 'Elliptical, variation' });

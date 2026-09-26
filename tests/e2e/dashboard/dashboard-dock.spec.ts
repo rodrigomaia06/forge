@@ -1,7 +1,24 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+// The dashboard now ships empty and the user adds tiles themselves, so seed the
+// previous default tile set to exercise the dock floating above real content.
+const DASHBOARD_TILE_KINDS = [
+  'start', 'week', 'training-time', 'last-workout', 'volume',
+  'rest-stats', 'muscle-balance', 'consistency', 'streak', 'muscle-heatmap',
+];
+async function seedFullDashboard(page: Page): Promise<void> {
+  await page.addInitScript((kinds) => {
+    if (localStorage.getItem('@forge/dashboard-layout-v1')) return;
+    localStorage.setItem(
+      '@forge/dashboard-layout-v1',
+      JSON.stringify(kinds.map((kind) => ({ id: kind, kind, visible: true }))),
+    );
+  }, DASHBOARD_TILE_KINDS);
+}
 
 test.describe('Dashboard dock geometry', () => {
   test.beforeEach(async ({ page }) => {
+    await seedFullDashboard(page);
     await page.goto('/');
     await expect(page.getByTestId('dashboard-shell')).toBeVisible();
   });
@@ -33,7 +50,9 @@ test.describe('Dashboard dock geometry', () => {
     expect(scroll).not.toBeNull();
     if (!header || !scroll)
       throw new Error('Expected dashboard header and scroll geometry to be measurable');
-    expect(header.y).toBe(scroll.y);
+    // The header sits above the scroll in normal flow, so the scroll viewport
+    // begins immediately below the header (not overlapping it).
+    expect(scroll.y).toBeCloseTo(header.y + header.height, 0);
     expect(dock.y).toBeGreaterThanOrEqual(header.y + header.height);
     expect(dock.y + dock.height).toBeLessThanOrEqual(viewport.height - 12);
     await expect(page.getByTestId('dashboard-header')).toHaveCSS('position', 'relative');

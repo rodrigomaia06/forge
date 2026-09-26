@@ -469,6 +469,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
     <AppScreen
       edges={['top']}
       backgroundColor={theme.background}
+      testID={isActive ? 'active-workout-editor' : 'history-workout-editor'}
       style={[styles.screen, { backgroundColor: theme.background }]}
     >
       <View style={styles.header}>
