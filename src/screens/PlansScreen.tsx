@@ -51,7 +51,7 @@ export function PlansScreen({ navigation, route }: Props) {
   const styles = useThemedStyles(createStyles);
   const dockScrollInset = useForgeDockScrollInset();
   const { preferences } = useSettings();
-  const { plans, standaloneRoutines, createPlan, deletePlan, deleteRoutine, duplicateRoutine, moveRoutine, updatePlan, reorderPlans, reorderRoutines } = usePlans();
+  const { plans, standaloneRoutines, createPlan, deletePlan, deleteRoutine, duplicateRoutine, moveRoutine, updatePlan, reorderRoutines } = usePlans();
   const { startWorkout, completedWorkouts } = useWorkouts();
   const createMenu = useAnchoredMenu();
   const [routineTarget, setRoutineTarget] = useState<WorkoutRoutine | null>(null);
@@ -238,33 +238,28 @@ export function PlansScreen({ navigation, route }: Props) {
               </View>
             ) : null}
             {plans.length > 0 ? <Text style={[styles.sectionTitle, styles.plansTitleEdit]}>Plans</Text> : null}
-            <NestableDraggableFlatList
-              data={plans}
-              keyExtractor={(plan) => plan.id}
-              activationDistance={8}
-              onDragEnd={({ data }) => reorderPlans(data)}
-              renderItem={({ item: plan, drag, isActive }) => (
-                <ScaleDecorator activeScale={1.02}>
-                  <View style={styles.planRow}>
-                    <PlanCard
-                      plan={plan}
-                      workoutTypes={preferences.workoutTypes}
-                      editing
-                      drag={drag}
-                      isActive={isActive}
-                      onReorderRoutines={(routines) => reorderRoutines(routines, plan.id)}
-                      onAddRoutine={() => addRoutine(plan.id)}
-                      onOpenRoutineOptions={routineActions}
-                      onOpenRoutineEditor={openRoutine}
-                      onStartRoutine={startRoutine}
-                      onDeleteRoutine={(routine) => removeRoutine(routine.id)}
-                      onRename={(name) => renamePlan(plan.id, name)}
-                      onDelete={() => removePlan(plan.id)}
-                    />
-                  </View>
-                </ScaleDecorator>
-              )}
-            />
+            {/* Plans render as a plain list (not draggable), so each plan's own
+                routine list is only singly-nested under the scroll container —
+                the pattern the standalone list uses and the one that measures
+                correctly. Nesting a draggable list inside a draggable plan cell
+                is what broke routine reordering (the measureLayout warnings). */}
+            {plans.map((plan) => (
+              <View key={plan.id} style={styles.planRow}>
+                <PlanCard
+                  plan={plan}
+                  workoutTypes={preferences.workoutTypes}
+                  editing
+                  onReorderRoutines={(routines) => reorderRoutines(routines, plan.id)}
+                  onAddRoutine={() => addRoutine(plan.id)}
+                  onOpenRoutineOptions={routineActions}
+                  onOpenRoutineEditor={openRoutine}
+                  onStartRoutine={startRoutine}
+                  onDeleteRoutine={(routine) => removeRoutine(routine.id)}
+                  onRename={(name) => renamePlan(plan.id, name)}
+                  onDelete={() => removePlan(plan.id)}
+                />
+              </View>
+            ))}
           </NestableScrollContainer>
         ) : (
           <ScrollView
