@@ -23,6 +23,7 @@ import {
   ForgeActionSheet,
   ForgeAnchoredMenu,
   ForgeAttributeEditorSheet,
+  ForgeSwipeableAttributeRow,
   ForgeBottomSheet,
   ForgeConfirmationDialog,
   ForgeText as Text,
@@ -258,9 +259,9 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
     setAttributeSheet(null);
     successHaptic();
   };
-  const removeAttribute = (): void => {
-    if (!attributeSheet?.original) return;
-    const label = attributeSheet.original;
+  const removeAttribute = (labelArg?: string): void => {
+    const label = labelArg ?? attributeSheet?.original;
+    if (!label) return;
     change((current) => {
       const attributes = { ...(current.attributes ?? {}) };
       const attributeIcons = { ...(current.attributeIcons ?? {}) };
@@ -504,21 +505,27 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                   </>
                 )}
                 {Object.entries(draft.attributes ?? {}).map(([label, value]) => (
-                  <React.Fragment key={label}>
-                    <View style={styles.divider} />
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Edit ${label} attribute`}
-                      disabled={viewing}
-                      onPress={() => openAttribute(label, value)}
-                      style={({ pressed }) => [styles.attributeRow, pressed && styles.pressed]}
-                    >
-                      <Icon name={draft.attributeIcons?.[label] ?? 'note'} size={19} color={theme.textPrimary} />
-                      <Text style={styles.attributeLabel} numberOfLines={1}>{label}</Text>
-                      {value ? <Text style={styles.attributeValue} numberOfLines={1}>{value}</Text> : null}
-                      <Icon name="chevron-forward" size={17} color={theme.slate} />
-                    </Pressable>
-                  </React.Fragment>
+                  viewing ? (
+                    <React.Fragment key={label}>
+                      <View style={styles.divider} />
+                      <View style={styles.attributeRow}>
+                        <Icon name={draft.attributeIcons?.[label] ?? 'note'} size={19} color={theme.textPrimary} />
+                        <Text style={styles.attributeLabel} numberOfLines={1}>{label}</Text>
+                        {value ? <Text style={styles.attributeValue} numberOfLines={1}>{value}</Text> : null}
+                      </View>
+                    </React.Fragment>
+                  ) : (
+                    // Same row language as Live Workout: tap to edit, swipe to delete.
+                    <ForgeSwipeableAttributeRow
+                      key={label}
+                      label={label}
+                      value={value}
+                      icon={draft.attributeIcons?.[label] ?? 'note'}
+                      divider
+                      onEdit={() => openAttribute(label, value)}
+                      onDelete={() => removeAttribute(label)}
+                    />
+                  )
                 ))}
                 {!viewing && (
                   <>
