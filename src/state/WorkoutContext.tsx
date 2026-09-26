@@ -27,6 +27,7 @@ import {
   updateWorkoutExercise,
   updateWorkoutSet,
 } from './workoutMutations';
+import { exercisesWithAddedPrevious } from '../domain/workouts/nextSessionTargets';
 
 const WorkoutContext = createContext<WorkoutContextValue | null>(null);
 const ActiveWorkoutContext = createContext<Workout | null>(null);
@@ -156,14 +157,25 @@ export function WorkoutProvider({ children }: ChildrenProps) {
     [persistActiveWorkoutNow],
   );
 
+  // Fill "previous" for the exercises just appended, from prior history — so an
+  // ad-hoc add shows last-session values like a routine-started exercise does.
+  const withAddedPrevious = (previous: Workout | null, next: Workout | null): Workout | null => {
+    if (!next) return next;
+    const added = next.exercises.length - (previous?.exercises.length ?? 0);
+    if (added <= 0) return next;
+    const head = next.exercises.slice(0, next.exercises.length - added);
+    const filled = exercisesWithAddedPrevious(next.exercises.slice(-added), completedWorkoutsRef.current);
+    return { ...next, exercises: [...head, ...filled] };
+  };
+
   const addExercise = useCallback((exercise: WorkoutExerciseInput | string): void => {
     if (!(typeof exercise === 'string' ? exercise : exercise.name).trim()) return;
-    setActiveWorkout((current) => addExerciseToWorkout(current, exercise));
+    setActiveWorkout((current) => withAddedPrevious(current, addExerciseToWorkout(current, exercise)));
   }, []);
 
   const addExercises = useCallback((exercises: readonly WorkoutExerciseInput[]): void => {
     if (!exercises.length) return;
-    setActiveWorkout((current) => addExercisesToWorkout(current, exercises));
+    setActiveWorkout((current) => withAddedPrevious(current, addExercisesToWorkout(current, exercises)));
   }, []);
 
   const addSet = useCallback((exerciseId: string): void => {

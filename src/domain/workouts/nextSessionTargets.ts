@@ -35,6 +35,38 @@ export function exercisesWithHistoricalPrevious(
 }
 
 /**
+ * Fills each set's `previous` for exercises just added to an in-progress workout,
+ * derived from the most recent earlier session of the same movement (matched by
+ * exercise id, name as a fallback) — so an ad-hoc add shows the same "previous"
+ * a routine-started exercise would, including sessions logged under other routines.
+ */
+export function exercisesWithAddedPrevious(
+  exercises: readonly WorkoutExercise[],
+  completedWorkouts: readonly Workout[],
+): WorkoutExercise[] {
+  const history = completedWorkouts
+    .filter((workout) => workout.completedAt !== null)
+    .sort((left, right) => completedAt(right) - completedAt(left));
+  if (!history.length) return exercises as WorkoutExercise[];
+  return exercises.map((exercise) => {
+    const trackingType = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType;
+    const previousSets = latestSetsForExercise(exercise, history);
+    if (!previousSets) return exercise;
+    return {
+      ...exercise,
+      sets: exercise.sets.map((set, index) => {
+        const previousSet = previousSets[index];
+        if (!previousSet) return set;
+        const values = trackingFields[trackingType ?? 'weight-reps']
+          .map((kind) => measurementText(previousSet, kind))
+          .filter(Boolean);
+        return values.length ? { ...set, previous: values.join(' × ') } : set;
+      }),
+    };
+  });
+}
+
+/**
  * Builds the next live-workout snapshot for a routine.
  *
  * A next-session target belongs to the completed workout that authored it. It
