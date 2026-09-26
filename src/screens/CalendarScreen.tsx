@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, InteractionManager, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { AppScreen, ForgeText as Text, Icon, pressedFeedback, selectionHaptic } from '../components/ui';
+import { AppScreen, ForgeAnchoredMenu, ForgeText as Text, Icon, pressedFeedback, selectionHaptic, useAnchoredMenu } from '../components/ui';
 import { SettingsDetailHeader } from './settings/SettingsScreenChrome';
 import { useWorkouts } from '../state/WorkoutContext';
 import { useSettings } from '../state/SettingsContext';
@@ -59,7 +59,7 @@ export function CalendarScreen({ navigation }: Props) {
   const today = useMemo(() => new Date(), []);
   const todayKey = calendarDateKey(today);
   const [view, setView] = useState<CalendarView>('month');
-  const [viewMenuOpen, setViewMenuOpen] = useState(false);
+  const viewMenu = useAnchoredMenu();
   const [elevated, setElevated] = useState(false);
   // Defer the (heavy) month/year grid mount until the navigation transition has
   // settled, so opening the Calendar from a tile feels instant.
@@ -87,7 +87,7 @@ export function CalendarScreen({ navigation }: Props) {
     scrolledRef.current = false;
     setFlashKey(`${year}-${month}`);
     setView('month');
-    setViewMenuOpen(false);
+    viewMenu.close();
   };
   const colorForDay = (key: string): string | undefined => {
     const workout = byDay.get(key)?.[0];
@@ -153,15 +153,17 @@ export function CalendarScreen({ navigation }: Props) {
           navigation={navigation}
           elevated={elevated}
           rightAction={
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Calendar view: ${VIEW_LABEL[view]}. Change`}
-              onPress={() => setViewMenuOpen((open) => !open)}
-              style={({ pressed }) => [styles.viewSelect, pressed && pressedFeedback]}
-            >
-              <Text style={styles.viewSelectText}>{VIEW_LABEL[view]}</Text>
-              <Icon name="chevron-down" size={16} color={theme.textPrimary} />
-            </Pressable>
+            <View ref={viewMenu.ref} collapsable={false}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Calendar view: ${VIEW_LABEL[view]}. Change`}
+                onPress={viewMenu.open}
+                style={({ pressed }) => [styles.viewSelect, pressed && pressedFeedback]}
+              >
+                <Text style={styles.viewSelectText}>{VIEW_LABEL[view]}</Text>
+                <Icon name="chevron-down" size={16} color={theme.textPrimary} />
+              </Pressable>
+            </View>
           }
         />
 
@@ -247,38 +249,36 @@ export function CalendarScreen({ navigation }: Props) {
           )}
         </ScrollView>
 
-        {viewMenuOpen ? (
-          <>
-            <Pressable accessibilityRole="button" accessibilityLabel="Dismiss view options" onPress={() => setViewMenuOpen(false)} style={StyleSheet.absoluteFill} />
-            <Animated.View
-              entering={reducedMotion ? undefined : FadeIn.duration(140)}
-              exiting={reducedMotion ? undefined : FadeOut.duration(120)}
-              style={[styles.dropdown, { backgroundColor: theme.surfaceElevated, borderColor: theme.border, shadowColor: theme.shadow }]}
-            >
-              {(['month', 'year'] as CalendarView[]).map((v) => {
-                const active = v === view;
-                return (
-                  <Pressable
-                    key={v}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: active }}
-                    accessibilityLabel={VIEW_LABEL[v]}
-                    onPress={() => {
-                      selectionHaptic();
-                      if (v === 'month') { scrollTarget.current = { year: today.getFullYear(), month: today.getMonth() }; scrolledRef.current = false; }
-                      setView(v);
-                      setViewMenuOpen(false);
-                    }}
-                    style={({ pressed }) => [styles.dropdownItem, pressed && { backgroundColor: theme.pressed }]}
-                  >
-                    <Text style={styles.dropdownText}>{VIEW_LABEL[v]}</Text>
-                    {active ? <Icon name="check" size={18} color={theme.textPrimary} weight="bold" /> : null}
-                  </Pressable>
-                );
-              })}
-            </Animated.View>
-          </>
-        ) : null}
+        <ForgeAnchoredMenu
+          visible={viewMenu.visible}
+          anchor={viewMenu.anchor}
+          onClose={viewMenu.close}
+          align="end"
+          minWidth={150}
+          testID="calendar-view-menu"
+        >
+          {(['month', 'year'] as CalendarView[]).map((v) => {
+            const active = v === view;
+            return (
+              <Pressable
+                key={v}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={VIEW_LABEL[v]}
+                onPress={() => {
+                  selectionHaptic();
+                  if (v === 'month') { scrollTarget.current = { year: today.getFullYear(), month: today.getMonth() }; scrolledRef.current = false; }
+                  setView(v);
+                  viewMenu.close();
+                }}
+                style={({ pressed }) => [styles.dropdownItem, pressed && { backgroundColor: theme.pressed }]}
+              >
+                <Text style={styles.dropdownText}>{VIEW_LABEL[v]}</Text>
+                {active ? <Icon name="check" size={18} color={theme.textPrimary} weight="bold" /> : null}
+              </Pressable>
+            );
+          })}
+        </ForgeAnchoredMenu>
       </View>
     </AppScreen>
   );
@@ -346,7 +346,6 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   screen: { flex: 1 },
   viewSelect: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 14, height: 40, borderRadius: 20, backgroundColor: theme.surfaceMuted },
   viewSelectText: { ...typeScale.controlLabel, color: theme.textPrimary },
-  dropdown: { position: 'absolute', top: 64, right: 16, minWidth: 150, borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', padding: 6, shadowOpacity: 0.22, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 14, zIndex: 20 },
   dropdownItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 12, height: 44, borderRadius: 12 },
   dropdownText: { ...typeScale.controlLabel, color: theme.textPrimary },
   scroll: { flex: 1 },
