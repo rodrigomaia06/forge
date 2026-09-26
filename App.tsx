@@ -1,12 +1,6 @@
 import React from 'react';
-import { LogBox } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-
-// react-native-draggable-flatlist's Nestable lists log this benign warning from
-// their own layout measurement (the plan/routine reorder still works); silence
-// just that message so it doesn't flood the console in edit mode.
-LogBox.ignoreLogs([/measureLayout must be called with a ref to a native component/]);
 import {
   Manrope_400Regular,
   Manrope_500Medium,

@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Image, LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, UIManager, View } from 'react-native';
-import { NestableDraggableFlatList, NestableScrollContainer, ScaleDecorator } from 'react-native-draggable-flatlist';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { FlatList, Image, LayoutAnimation, Platform, Pressable, StyleSheet, UIManager, View } from 'react-native';
+import type { PanGesture } from 'react-native-gesture-handler';
+import { useSharedValue, type SharedValue } from 'react-native-reanimated';
 
 import type { ForgeActionSheetAction } from '../components/ui';
 import {
@@ -11,6 +12,7 @@ import {
   ForgeBackButton,
   ForgeBottomSheetHandle,
   ForgeCard,
+  ForgeConfirmationDialog,
   ForgeSheetHeader,
   ForgeText as Text,
   ForgeTextInput,
@@ -43,8 +45,22 @@ import type {
 } from '../types';
 import { workoutTypeIcon } from './settings/workoutTypeIcon';
 import { useForgeDockScrollInset } from '../components/DockChrome';
+import { RoutineDragHandle, RoutineReorderGroup } from './plans/RoutineReorderGroup';
 
 type Props = RootTabScreenProps<'Plans'>;
+const ROUTINE_ROW_HEIGHT = 76;
+const AUTOSCROLL_EDGE = 72;
+const AUTOSCROLL_MAX_STEP = 12;
+
+/** Coordination a routine group needs from the Plans root list. */
+type RoutineReorderCoordination = {
+  outerScrollOffset: SharedValue<number>;
+  reducedMotion: boolean;
+  dragging: boolean;
+  onDragStateChange: (active: boolean) => void;
+  onDragPointerChange: (absoluteY: number | null) => void;
+  onDragBoundsChange: (canMoveUp: boolean, canMoveDown: boolean) => void;
+};
 
 export function PlansScreen({ navigation, route }: Props) {
   const theme = useForgeTheme();
@@ -55,9 +71,27 @@ export function PlansScreen({ navigation, route }: Props) {
   const { startWorkout, completedWorkouts } = useWorkouts();
   const createMenu = useAnchoredMenu();
   const [routineTarget, setRoutineTarget] = useState<WorkoutRoutine | null>(null);
+  const [routinePendingDelete, setRoutinePendingDelete] = useState<WorkoutRoutine | null>(null);
+  const [planPendingDelete, setPlanPendingDelete] = useState<WorkoutPlan | null>(null);
+  // Bumped to slide an open swipe row closed when its delete confirmation is
+  // cancelled; the row stays open behind the confirmation until then.
+  const [swipeCloseSignal, setSwipeCloseSignal] = useState(0);
   const [moveMode, setMoveMode] = useState(false);
   const [editing, setEditing] = useState(false);
   const [headerElevated, setHeaderElevated] = useState(false);
+  const [routineDragging, setRoutineDragging] = useState(false);
+  const plansListRef = useRef<FlatList<WorkoutPlan>>(null);
+  const plansViewportRef = useRef<View>(null);
+  const plansScrollOffset = useRef(0);
+  const plansContentHeight = useRef(0);
+  const plansViewportTop = useRef(0);
+  const plansViewportHeight = useRef(0);
+  const dragPointerY = useRef<number | null>(null);
+  const dragCanMoveUp = useRef(false);
+  const dragCanMoveDown = useRef(false);
+  const dragActive = useRef(false);
+  const autoscrollFrame = useRef<number | null>(null);
+  const animatedScrollOffset = useSharedValue(0);
   const hasContent = plans.length > 0 || standaloneRoutines.length > 0;
   const reducedMotion = useForgeReducedMotion();
   // Animate the list reflow when a plan/routine row is created or deleted.
@@ -70,14 +104,117 @@ export function PlansScreen({ navigation, route }: Props) {
     );
   };
   const handlePlansScrollOffset = useCallback((offset: number): void => {
+    plansScrollOffset.current = offset;
+    animatedScrollOffset.value = offset;
     setHeaderElevated(offset > 1);
+  }, [animatedScrollOffset]);
+
+  const measurePlansViewport = useCallback((): void => {
+    requestAnimationFrame(() => {
+      plansViewportRef.current?.measureInWindow((_x, y, _width, height) => {
+        plansViewportTop.current = y;
+        plansViewportHeight.current = height;
+      });
+    });
   }, []);
+
+  const stopAutoscroll = useCallback((): void => {
+    if (autoscrollFrame.current != null) {
+      cancelAnimationFrame(autoscrollFrame.current);
+      autoscrollFrame.current = null;
+    }
+  }, []);
+
+  // Edge autoscroll for a handle drag: while the finger sits in a top/bottom
+  // edge zone, ramp the parent list offset so a drag can cross a group taller
+  // than the viewport. The reorder surface recomputes its target from the live
+  // scroll offset, so the held row stays glued to the finger as the list moves.
+  const runAutoscroll = useCallback((): void => {
+    autoscrollFrame.current = requestAnimationFrame(() => {
+      const pointer = dragPointerY.current;
+      if (!dragActive.current || pointer == null) {
+        autoscrollFrame.current = null;
+        return;
+      }
+      const viewportHeight = plansViewportHeight.current;
+      const top = plansViewportTop.current;
+      const bottom = top + viewportHeight;
+      const maxOffset = Math.max(0, plansContentHeight.current - viewportHeight);
+      let delta = 0;
+      // Only autoscroll once the viewport is measured; an unmeasured (0-height)
+      // viewport would read every pointer as past the bottom edge.
+      if (viewportHeight <= 0 || maxOffset <= 0) {
+        runAutoscroll();
+        return;
+      }
+      if (pointer < top + AUTOSCROLL_EDGE) {
+        const intensity = Math.min(1, (top + AUTOSCROLL_EDGE - pointer) / AUTOSCROLL_EDGE);
+        delta = -AUTOSCROLL_MAX_STEP * intensity;
+      } else if (pointer > bottom - AUTOSCROLL_EDGE) {
+        const intensity = Math.min(1, (pointer - (bottom - AUTOSCROLL_EDGE)) / AUTOSCROLL_EDGE);
+        delta = AUTOSCROLL_MAX_STEP * intensity;
+      }
+      if (delta !== 0 && maxOffset > 0) {
+        const next = Math.max(0, Math.min(maxOffset, plansScrollOffset.current + delta));
+        if (next !== plansScrollOffset.current) {
+          plansScrollOffset.current = next;
+          plansListRef.current?.scrollToOffset({ offset: next, animated: false });
+        }
+      }
+      runAutoscroll();
+    });
+  }, []);
+
+  const handleRoutineDragState = useCallback((active: boolean): void => {
+    dragActive.current = active;
+    setRoutineDragging(active);
+    if (active) {
+      measurePlansViewport();
+      stopAutoscroll();
+      runAutoscroll();
+    } else {
+      dragPointerY.current = null;
+      dragCanMoveUp.current = false;
+      dragCanMoveDown.current = false;
+      stopAutoscroll();
+    }
+  }, [measurePlansViewport, runAutoscroll, stopAutoscroll]);
+  const handleRoutineDragPointer = useCallback((absoluteY: number | null): void => {
+    dragPointerY.current = absoluteY;
+  }, []);
+  const handleRoutineDragBounds = useCallback((canMoveUp: boolean, canMoveDown: boolean): void => {
+    dragCanMoveUp.current = canMoveUp;
+    dragCanMoveDown.current = canMoveDown;
+  }, []);
+
+  // Always restore parent scrolling: on edit exit, navigation away, and unmount.
+  useEffect(() => {
+    if (editing) return;
+    dragActive.current = false;
+    setRoutineDragging(false);
+    stopAutoscroll();
+  }, [editing, stopAutoscroll]);
+  useEffect(() => navigation.addListener('blur', () => {
+    dragActive.current = false;
+    setRoutineDragging(false);
+    stopAutoscroll();
+  }), [navigation, stopAutoscroll]);
+  useEffect(() => () => stopAutoscroll(), [stopAutoscroll]);
 
   useEffect(() => {
     if (!route.params?.openCreation) return;
     createMenu.open();
     navigation.setParams({ openCreation: undefined });
   }, [navigation, route.params?.openCreation]);
+
+  const coordination: RoutineReorderCoordination = {
+    outerScrollOffset: animatedScrollOffset,
+    reducedMotion,
+    dragging: routineDragging,
+    onDragStateChange: handleRoutineDragState,
+    onDragPointerChange: handleRoutineDragPointer,
+    onDragBoundsChange: handleRoutineDragBounds,
+  };
 
   const startRoutine = (routine: WorkoutRoutine, withHaptic = true): void => {
     if (withHaptic) selectionHaptic();
@@ -133,26 +270,53 @@ export function PlansScreen({ navigation, route }: Props) {
       .filter((plan) => plan.id !== routine.planId)
       .map((plan) => ({ key: plan.id, label: plan.name, icon: 'layers' as IconName, planId: plan.id })),
   ];
+  // Tapping a routine opens this popup in both modes. Outside edit mode it is
+  // the quick-use set (Start, Visualize, Edit); in edit mode it is the modify
+  // set (Move to, Edit, Duplicate, Delete). Delete routes through the shared
+  // confirmation; the swipe Delete remains available too.
   const routineOptionActions = (routine: WorkoutRoutine): ForgeActionSheetAction[] => {
-    const canMove = moveDestinations(routine).length > 0;
+    if (editing) {
+      const canMove = moveDestinations(routine).length > 0;
+      return [
+        ...(canMove
+          ? [{ label: 'Move to…', icon: 'arrow-forward' as IconName, dismiss: false, onPress: () => setMoveMode(true) }]
+          : []),
+        { label: 'Edit', icon: 'note', onPress: () => openRoutine(routine, false) },
+        { label: 'Duplicate', icon: 'duplicate', onPress: () => duplicate(routine) },
+        { label: 'Delete', icon: 'trash', tone: 'destructive' as const, onPress: () => requestDeleteRoutine(routine) },
+      ];
+    }
     return [
       { label: 'Start', icon: 'play', onPress: () => startRoutine(routine, false) },
-      { label: 'Edit', icon: 'note', onPress: () => openRoutine(routine, false) },
-      { label: 'Duplicate', icon: 'duplicate', onPress: () => duplicate(routine) },
       { label: 'Visualize', icon: 'info', onPress: () => viewRoutine(routine, false) },
-      ...(canMove
-        ? [{ label: 'Move to…', icon: 'arrow-forward' as IconName, dismiss: false, onPress: () => setMoveMode(true) }]
-        : []),
-      { label: 'Delete', icon: 'trash', tone: 'destructive' as const, onPress: () => removeRoutine(routine.id) },
+      { label: 'Edit', icon: 'note', onPress: () => openRoutine(routine, false) },
     ];
   };
   const addPlan = (): void => {
     reflowRows();
     createPlan();
   };
-  const removePlan = (id: string): void => {
+  // Deletion is destructive, so both the swipe reveal and the options-sheet
+  // Delete route through a confirmation card rather than removing immediately.
+  const requestDeleteRoutine = (routine: WorkoutRoutine): void => {
+    setRoutinePendingDelete(routine);
+  };
+  const confirmDeleteRoutine = (): void => {
+    const routine = routinePendingDelete;
+    setRoutinePendingDelete(null);
+    if (!routine) return;
     reflowRows();
-    deletePlan(id);
+    deleteRoutine(routine.id);
+  };
+  const requestDeletePlan = (plan: WorkoutPlan): void => {
+    setPlanPendingDelete(plan);
+  };
+  const confirmDeletePlan = (): void => {
+    const plan = planPendingDelete;
+    setPlanPendingDelete(null);
+    if (!plan) return;
+    reflowRows();
+    deletePlan(plan.id);
   };
   // Plans can't drag-reorder (that would re-nest the routine lists and break
   // routine drag), so edit mode moves a plan one slot with up/down controls.
@@ -165,10 +329,6 @@ export function PlansScreen({ navigation, route }: Props) {
     reflowRows();
     reorderPlans(next);
   };
-  const removeRoutine = (id: string): void => {
-    reflowRows();
-    deleteRoutine(id);
-  };
   const startBlankWorkout = (): void => {
     selectionHaptic();
     startWorkout();
@@ -178,17 +338,8 @@ export function PlansScreen({ navigation, route }: Props) {
     createMenu.close();
     navigation.navigate('RoutineEditor', { mode: 'create', planId });
   };
-  // Like the dashboard: one always-mounted list (native uses the nestable
-  // scroll container so its draggable lists work; web falls back to a plain
-  // ScrollView). Toggling edit only changes chrome, so it never remounts and a
-  // LayoutAnimation on the toggle can settle the rows smoothly.
-  const isNativeList = Platform.OS !== 'web';
-  const ListContainer = (isNativeList ? NestableScrollContainer : ScrollView) as React.ComponentType<
-    React.ComponentProps<typeof ScrollView>
-  >;
   const toggleEditing = (): void => {
     lightHaptic();
-    reflowRows();
     setEditing((value) => !value);
   };
 
@@ -224,86 +375,87 @@ export function PlansScreen({ navigation, route }: Props) {
           </View>
           {headerElevated ? <HeaderEdge /> : null}
         </View>
-        <ListContainer
-          style={styles.scrollView}
-          contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset }]}
-          showsVerticalScrollIndicator={false}
-          directionalLockEnabled
-          keyboardShouldPersistTaps="handled"
-          onScroll={(event) => handlePlansScrollOffset(event.nativeEvent.contentOffset.y)}
-          scrollEventThrottle={16}
-        >
-          <View style={styles.listHeader}>
-            {standaloneRoutines.length > 0 ? (
-              <Section title="Routines">
-                <ForgeCard variant="base" style={styles.groupedCard}>
-                  {isNativeList ? (
-                    <NestableDraggableFlatList
-                      data={standaloneRoutines}
-                      keyExtractor={(routine) => routine.id}
-                      activationDistance={editing ? 12 : 100000}
-                      onDragEnd={({ data }) => reorderRoutines(data, undefined)}
-                      renderItem={({ item, drag, isActive, getIndex }) => (
-                        <ScaleDecorator activeScale={1.02}>
+        <View ref={plansViewportRef} collapsable={false} style={styles.scrollView} onLayout={measurePlansViewport}>
+          <FlatList
+            ref={plansListRef}
+            testID="plans-scroll"
+            style={styles.scrollView}
+            data={plans}
+            keyExtractor={(plan) => plan.id}
+            extraData={{ editing, routineDragging, standaloneRoutines, workoutTypes: preferences.workoutTypes }}
+            contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset }]}
+            showsVerticalScrollIndicator={false}
+            directionalLockEnabled
+            // A handle drag owns the vertical axis; disable direct list scrolling
+            // so the finger reorders instead of scrolling. Edge autoscroll drives
+            // the offset while the drag is held, and scrolling is restored on drop.
+            scrollEnabled={!routineDragging}
+            keyboardShouldPersistTaps="handled"
+            onScroll={(event) => handlePlansScrollOffset(event.nativeEvent.contentOffset.y)}
+            onContentSizeChange={(_width, height) => { plansContentHeight.current = height; }}
+            scrollEventThrottle={16}
+            ListHeaderComponent={(
+              <View style={styles.listHeader}>
+                {standaloneRoutines.length > 0 ? (
+                  <Section title="Routines">
+                    <ForgeCard testID="standalone-routines-card" variant="base" style={styles.groupedCard}>
+                      <RoutineReorderGroup
+                        data={standaloneRoutines}
+                        enabled={editing}
+                        rowHeight={ROUTINE_ROW_HEIGHT}
+                        reducedMotion={reducedMotion}
+                        keyExtractor={(routine) => routine.id}
+                        outerScrollOffset={coordination.outerScrollOffset}
+                        onReorder={(routines) => reorderRoutines(routines, undefined)}
+                        onDragStateChange={coordination.onDragStateChange}
+                        onDragPointerChange={coordination.onDragPointerChange}
+                        onDragBoundsChange={coordination.onDragBoundsChange}
+                        renderItem={({ item, last, dragGesture }) => (
                           <RoutineRow
                             routine={item}
                             workoutTypes={preferences.workoutTypes}
-                            last={(getIndex() ?? 0) === standaloneRoutines.length - 1}
+                            last={last}
                             editing={editing}
-                            drag={drag}
-                            isActive={isActive}
+                            dragging={routineDragging}
+                            dragGesture={dragGesture}
+                            closeSignal={swipeCloseSignal}
                             onStart={() => startRoutine(item)}
                             onOpenOptions={() => routineActions(item)}
-                            onOpenEditor={() => openRoutine(item)}
-                            onDelete={() => removeRoutine(item.id)}
+                            onDelete={() => requestDeleteRoutine(item)}
                           />
-                        </ScaleDecorator>
-                      )}
-                    />
-                  ) : (
-                    standaloneRoutines.map((routine, index) => (
-                      <RoutineRow
-                        key={routine.id}
-                        routine={routine}
-                        workoutTypes={preferences.workoutTypes}
-                        last={index === standaloneRoutines.length - 1}
-                        editing={editing}
-                        onStart={() => startRoutine(routine)}
-                        onOpenOptions={() => routineActions(routine)}
-                        onOpenEditor={() => openRoutine(routine)}
-                        onDelete={() => removeRoutine(routine.id)}
+                        )}
                       />
-                    ))
-                  )}
-                </ForgeCard>
-              </Section>
-            ) : null}
-            {plans.length > 0 ? <Text style={styles.sectionTitle}>Plans</Text> : null}
-          </View>
-          {plans.map((plan, index) => (
-            <View key={plan.id} style={styles.planRow}>
-              <PlanCard
-                plan={plan}
-                workoutTypes={preferences.workoutTypes}
-                editing={editing}
-                nativeDrag={isNativeList}
-                canMoveUp={index > 0}
-                canMoveDown={index < plans.length - 1}
-                onMoveUp={() => movePlan(index, -1)}
-                onMoveDown={() => movePlan(index, 1)}
-                onReorderRoutines={(routines) => reorderRoutines(routines, plan.id)}
-                onAddRoutine={() => addRoutine(plan.id)}
-                onOpenRoutineOptions={routineActions}
-                onOpenRoutineEditor={openRoutine}
-                onStartRoutine={startRoutine}
-                onDeleteRoutine={(routine) => removeRoutine(routine.id)}
-                onRename={(name) => renamePlan(plan.id, name)}
-                onDelete={() => removePlan(plan.id)}
-              />
-            </View>
-          ))}
-          {!standaloneRoutines.length && !plans.length ? <EmptyPlans /> : null}
-        </ListContainer>
+                    </ForgeCard>
+                  </Section>
+                ) : null}
+                {plans.length > 0 ? <Text style={styles.sectionTitle}>Plans</Text> : null}
+              </View>
+            )}
+            ListEmptyComponent={standaloneRoutines.length === 0 ? <EmptyPlans /> : null}
+            renderItem={({ item: plan, index }) => (
+              <View style={styles.planRow}>
+                <PlanCard
+                  plan={plan}
+                  workoutTypes={preferences.workoutTypes}
+                  editing={editing}
+                  coordination={coordination}
+                  swipeCloseSignal={swipeCloseSignal}
+                  canMoveUp={index > 0}
+                  canMoveDown={index < plans.length - 1}
+                  onMoveUp={() => movePlan(index, -1)}
+                  onMoveDown={() => movePlan(index, 1)}
+                  onReorderRoutines={(routines) => reorderRoutines(routines, plan.id)}
+                  onAddRoutine={() => addRoutine(plan.id)}
+                  onOpenRoutineOptions={routineActions}
+                  onStartRoutine={startRoutine}
+                  onDeleteRoutine={(routine) => requestDeleteRoutine(routine)}
+                  onRename={(name) => renamePlan(plan.id, name)}
+                  onDelete={() => requestDeletePlan(plan)}
+                />
+              </View>
+            )}
+          />
+        </View>
         <ForgeAnchoredMenu
           visible={createMenu.visible}
           anchor={createMenu.anchor}
@@ -340,6 +492,28 @@ export function PlansScreen({ navigation, route }: Props) {
                 )
               : null
           }
+        />
+        <ForgeConfirmationDialog
+          visible={routinePendingDelete !== null}
+          title="Delete routine?"
+          message={`"${routinePendingDelete?.name ?? ''}" will be removed. This can't be undone.`}
+          cancelLabel="Cancel"
+          confirmLabel="Delete"
+          confirmTone="destructive"
+          onCancel={() => { setRoutinePendingDelete(null); setSwipeCloseSignal((n) => n + 1); }}
+          onConfirm={confirmDeleteRoutine}
+          testID="plans-delete-routine-confirm"
+        />
+        <ForgeConfirmationDialog
+          visible={planPendingDelete !== null}
+          title="Delete plan?"
+          message={`"${planPendingDelete?.name ?? ''}" will be removed. Its routines are kept and moved to Routines.`}
+          cancelLabel="Cancel"
+          confirmLabel="Delete"
+          confirmTone="destructive"
+          onCancel={() => { setPlanPendingDelete(null); setSwipeCloseSignal((n) => n + 1); }}
+          onConfirm={confirmDeletePlan}
+          testID="plans-delete-plan-confirm"
         />
       </View>
     </AppScreen>
@@ -403,9 +577,8 @@ function PlanCard({
   plan,
   workoutTypes,
   editing,
-  drag,
-  isActive,
-  nativeDrag,
+  coordination,
+  swipeCloseSignal,
   onReorderRoutines,
   canMoveUp,
   canMoveDown,
@@ -413,7 +586,6 @@ function PlanCard({
   onMoveDown,
   onAddRoutine,
   onOpenRoutineOptions,
-  onOpenRoutineEditor,
   onStartRoutine,
   onDeleteRoutine,
   onRename,
@@ -422,17 +594,15 @@ function PlanCard({
   plan: WorkoutPlan;
   workoutTypes: WorkoutTypePreference[];
   editing: boolean;
-  drag?: () => void;
-  isActive?: boolean;
-  nativeDrag?: boolean;
+  coordination: RoutineReorderCoordination;
+  swipeCloseSignal: number;
   canMoveUp?: boolean;
   canMoveDown?: boolean;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
-  onReorderRoutines?: (routines: WorkoutRoutine[]) => void;
+  onReorderRoutines: (routines: WorkoutRoutine[]) => void;
   onAddRoutine: () => void;
   onOpenRoutineOptions: (routine: WorkoutRoutine) => void;
-  onOpenRoutineEditor: (routine: WorkoutRoutine) => void;
   onStartRoutine: (routine: WorkoutRoutine) => void;
   onDeleteRoutine: (routine: WorkoutRoutine) => void;
   onRename: (name: string) => void;
@@ -516,12 +686,15 @@ function PlanCard({
     </View>
   );
   return (
-    <ForgeCard variant="base" style={[styles.planCard, isActive && styles.rowActive]}>
+    <ForgeCard testID={`plan-card-${plan.id}`} variant="base" style={styles.planCard}>
       {/* The whole plan card is one swipe target, so the delete reveal spans the
           entire card rather than just the header strip. Routine rows nest their
           own swipe inside; the inner gesture wins when a row is swiped. */}
       <SwipeToDeleteRow
         enabled={editing}
+        gestureEnabled={!coordination.dragging}
+        deferCloseOnDelete
+        closeSignal={swipeCloseSignal}
         onDelete={onDelete}
         deleteAccessibilityLabel={`Delete ${plan.name}`}
         contentBackgroundColor={theme.surface}
@@ -531,44 +704,32 @@ function PlanCard({
       >
         <View style={styles.planCardSurface}>
           {header}
-          {nativeDrag && onReorderRoutines ? (
-          <NestableDraggableFlatList
+          <RoutineReorderGroup
             data={plan.routines}
+            enabled={editing}
+            rowHeight={ROUTINE_ROW_HEIGHT}
+            reducedMotion={coordination.reducedMotion}
             keyExtractor={(routine) => routine.id}
-            activationDistance={editing ? 12 : 100000}
-            onDragEnd={({ data }) => onReorderRoutines(data)}
-            renderItem={({ item, drag: routineDrag, isActive: routineActive, getIndex }) => (
-              <ScaleDecorator activeScale={1.02}>
-                <RoutineRow
-                  routine={item}
-                  workoutTypes={workoutTypes}
-                  last={(getIndex() ?? 0) === plan.routines.length - 1}
-                  editing={editing}
-                  drag={routineDrag}
-                  isActive={routineActive}
-                  onStart={() => onStartRoutine(item)}
-                  onOpenOptions={() => onOpenRoutineOptions(item)}
-                  onOpenEditor={() => onOpenRoutineEditor(item)}
-                  onDelete={() => onDeleteRoutine(item)}
-                />
-              </ScaleDecorator>
+            outerScrollOffset={coordination.outerScrollOffset}
+            onReorder={onReorderRoutines}
+            onDragStateChange={coordination.onDragStateChange}
+            onDragPointerChange={coordination.onDragPointerChange}
+            onDragBoundsChange={coordination.onDragBoundsChange}
+            renderItem={({ item, last, dragGesture }) => (
+              <RoutineRow
+                routine={item}
+                workoutTypes={workoutTypes}
+                last={last}
+                editing={editing}
+                dragging={coordination.dragging}
+                dragGesture={dragGesture}
+                closeSignal={swipeCloseSignal}
+                onStart={() => onStartRoutine(item)}
+                onOpenOptions={() => onOpenRoutineOptions(item)}
+                onDelete={() => onDeleteRoutine(item)}
+              />
             )}
           />
-        ) : (
-          plan.routines.map((routine, index) => (
-            <RoutineRow
-              key={routine.id}
-              routine={routine}
-              workoutTypes={workoutTypes}
-              last={index === plan.routines.length - 1}
-              editing={editing}
-              onStart={() => onStartRoutine(routine)}
-              onOpenOptions={() => onOpenRoutineOptions(routine)}
-              onOpenEditor={() => onOpenRoutineEditor(routine)}
-              onDelete={() => onDeleteRoutine(routine)}
-            />
-          ))
-        )}
           {editing ? (
             <Pressable
               accessibilityRole="button"
@@ -593,47 +754,27 @@ function routineSummary(routine: WorkoutRoutine): string {
     : routine.type;
 }
 
-// A drag grab-rail, matching the dashboard tile handle. Rendered only in edit
-// mode; a stationary press grabs the row without competing with the horizontal
-// swipe-to-delete gesture that wraps the same row.
-function DragRail({ label, onDrag, disabled }: { label: string; onDrag: () => void; disabled?: boolean }) {
-  const theme = useForgeTheme();
-  const styles = useThemedStyles(createStyles);
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPressIn={onDrag}
-      disabled={disabled}
-      hitSlop={8}
-      style={styles.dragRail}
-    >
-      <Icon name="drag" size={18} color={theme.muted} />
-    </Pressable>
-  );
-}
-
 function RoutineRow({
   routine,
   workoutTypes,
   last,
   editing,
-  drag,
-  isActive,
+  dragging,
+  dragGesture,
+  closeSignal,
   onStart,
   onOpenOptions,
-  onOpenEditor,
   onDelete,
 }: {
   routine: WorkoutRoutine;
   workoutTypes: WorkoutTypePreference[];
   last: boolean;
   editing: boolean;
-  drag?: () => void;
-  isActive?: boolean;
+  dragging: boolean;
+  dragGesture?: PanGesture;
+  closeSignal: number;
   onStart: () => void;
   onOpenOptions: () => void;
-  onOpenEditor: () => void;
   onDelete: () => void;
 }) {
   const theme = useForgeTheme();
@@ -650,17 +791,31 @@ function RoutineRow({
   return (
     <SwipeToDeleteRow
       enabled={editing}
+      gestureEnabled={!dragging}
+      deferCloseOnDelete
+      closeSignal={closeSignal}
       onDelete={onDelete}
       deleteAccessibilityLabel={`Delete ${routine.name}`}
       contentBackgroundColor={theme.surface}
       insetDeleteButton
       deleteWidth={64}
-      deleteIconSize={20}
+      deleteIconSize={22}
     >
-      <View style={[styles.routineRow, isActive && styles.rowActive]}>
+      <View style={styles.routineRow}>
         {!last ? <View pointerEvents="none" style={styles.rowSeparator} /> : null}
-        {editing && drag ? (
-          <DragRail label={`Reorder ${routine.name}`} onDrag={drag} disabled={isActive} />
+        {/* The handle is the only drag activator; a deliberate 140 ms long press
+            keeps a horizontal swipe from ever starting a reorder. */}
+        {editing && dragGesture ? (
+          <RoutineDragHandle gesture={dragGesture}>
+            <View
+              accessibilityRole="button"
+              accessibilityLabel={`Reorder ${routine.name}`}
+              hitSlop={8}
+              style={styles.dragRail}
+            >
+              <Icon name="drag" size={18} color={theme.muted} />
+            </View>
+          </RoutineDragHandle>
         ) : null}
         {editing ? (
           <View style={[styles.typeMarker, { backgroundColor: presentation.background }]}>{typeIcon}</View>
@@ -677,9 +832,9 @@ function RoutineRow({
         )}
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={editing ? `Edit ${routine.name}` : `Routine actions for ${routine.name}`}
+          accessibilityLabel={`Routine actions for ${routine.name}`}
           unstable_pressDelay={80}
-          onPress={editing ? onOpenEditor : onOpenOptions}
+          onPress={onOpenOptions}
           style={({ pressed }) => [styles.routineCopy, pressed && pressedFeedbackSubtle]}
         >
           <View style={styles.routineText}>
@@ -756,10 +911,6 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     planMove: { width: 36, marginLeft: -2, marginRight: 6, alignItems: 'center', justifyContent: 'center' },
     planMoveButton: { height: 24, alignItems: 'center', justifyContent: 'center' },
     flipUp: { transform: [{ rotate: '180deg' }] },
-    // A dragged card lifts via ScaleDecorator + a soft iOS shadow. No Android
-    // `elevation` bump: with the card's overflow-hidden rounding, a raised
-    // elevation renders square corners mid-drag.
-    rowActive: { shadowColor: theme.shadow, shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 8 } },
     plansTitleEdit: { marginTop: 22, marginBottom: 12 },
     content: {
       paddingHorizontal: spacing.screen,
@@ -795,7 +946,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     moveLabel: { flex: 1, minWidth: 0, ...typeScale.controlLabel, color: theme.ink },
     routineRow: {
       position: 'relative',
-      minHeight: 76,
+      height: ROUTINE_ROW_HEIGHT,
       paddingHorizontal: 16,
       flexDirection: 'row',
       alignItems: 'center',

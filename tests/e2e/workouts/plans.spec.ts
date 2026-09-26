@@ -24,6 +24,34 @@ async function swipeRightFrom(
   await page.mouse.up();
 }
 
+async function dragBelow(
+  page: import('@playwright/test').Page,
+  handleName: string,
+  targetName: string,
+  onHeld?: () => Promise<void>,
+) {
+  const handle = page.getByRole('button', { name: handleName });
+  const target = page.getByRole('button', { name: targetName });
+  const handleBox = await handle.boundingBox();
+  const targetBox = await target.boundingBox();
+  if (!handleBox || !targetBox) throw new Error('Expected measurable drag targets');
+
+  const startX = handleBox.x + handleBox.width / 2;
+  const startY = handleBox.y + handleBox.height / 2;
+  const endY = targetBox.y + targetBox.height + 24;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.waitForTimeout(180);
+  for (let step = 1; step <= 20; step += 1) {
+    await page.mouse.move(startX, startY + ((endY - startY) * step) / 20);
+    await page.waitForTimeout(16);
+  }
+  await page.waitForTimeout(120);
+  await onHeld?.();
+  await page.mouse.up();
+  await page.waitForTimeout(600);
+}
+
 // The Routine name field is a controlled input that silently reverts a
 // programmatic `.fill()` on this build, leaving the Save button disabled. Real
 // keystrokes commit through the controlled value, so type name changes with
@@ -120,7 +148,7 @@ test.describe('Plans and routines', () => {
     await expect(page.getByRole('button', { name: 'Finish workout' })).toBeVisible();
   });
 
-  test('uses option controls rather than drag-and-drop on the Plans root', async ({ page }) => {
+  test('keeps routine and plan actions behind visible controls outside edit mode', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Plans' }).click();
     await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
@@ -181,9 +209,11 @@ test.describe('Plans and routines', () => {
     await page.getByRole('button', { name: 'Routine actions for Upper body' }).click();
     const routineActions = page.getByTestId('plans-options-sheet');
     await expect(routineActions.getByText('Upper body', { exact: true })).toBeVisible();
-    for (const label of ['Start', 'Edit', 'Duplicate', 'Visualize']) {
+    // Outside edit mode the popup is the quick-use set.
+    for (const label of ['Start', 'Visualize', 'Edit']) {
       await expect(routineActions.getByRole('button', { name: label, exact: true })).toBeVisible();
     }
+    await expect(routineActions.getByRole('button', { name: 'Duplicate', exact: true })).toHaveCount(0);
     await routineActions.getByRole('button', { name: 'Edit' }).click();
     await expect(routineActions).toHaveCount(0);
     await typeRoutineName(page, 'Upper body updated');
@@ -329,6 +359,181 @@ test.describe('Plans and routines', () => {
     await expect(page.getByRole('button', { name: 'Rename New plan' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Delete Swipe routine' })).toHaveCount(1);
     await expect(page.getByRole('button', { name: 'Delete New plan' })).toHaveCount(1);
+  });
+
+  test('reorders standalone and plan routines without dropping any routine', async ({
+    page,
+  }, testInfo) => {
+    await page.addInitScript(() => {
+      const now = Date.now();
+      localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance: 'dark' }));
+      const routine = (id: string, name: string, planId?: string) => ({
+        id,
+        name,
+        type: 'Strength',
+        exercises: [],
+        planId,
+        createdAt: now,
+        updatedAt: now,
+      });
+      localStorage.setItem('@forge/plans-v1', JSON.stringify({
+        plans: [{
+          id: 'push',
+          name: 'Push',
+          createdAt: now,
+          updatedAt: now,
+          routines: [routine('shoulder', 'Shoulder', 'push'), routine('chest', 'Chest', 'push')],
+        }],
+        standaloneRoutines: [routine('mobility', 'Mobility'), routine('cardio', 'Cardio')],
+      }));
+    });
+
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await page.getByRole('button', { name: 'Edit plans' }).click();
+
+    const standaloneCard = page.getByTestId('standalone-routines-card');
+    const planCard = page.getByTestId('plan-card-push');
+    const standaloneCardBefore = await standaloneCard.boundingBox();
+    const planCardBefore = await planCard.boundingBox();
+    if (!standaloneCardBefore || !planCardBefore) throw new Error('Expected measurable routine cards');
+    const assertStableCardGeometry = async () => {
+      const standaloneCardActive = await standaloneCard.boundingBox();
+      const planCardActive = await planCard.boundingBox();
+      expect(standaloneCardActive?.height).toBeCloseTo(standaloneCardBefore.height, 0);
+      expect(planCardActive?.height).toBeCloseTo(planCardBefore.height, 0);
+      for (const routineName of ['Mobility', 'Cardio', 'Shoulder', 'Chest']) {
+        await expect(page.getByRole('button', { name: `Routine actions for ${routineName}` })).toBeVisible();
+      }
+    };
+
+    await dragBelow(page, 'Reorder Mobility', 'Routine actions for Cardio', assertStableCardGeometry);
+    await dragBelow(
+      page,
+      'Reorder Shoulder',
+      'Routine actions for Chest',
+      async () => {
+        await assertStableCardGeometry();
+        if (testInfo.project.use.isMobile === true) {
+            await page.screenshot({ path: testInfo.outputPath('plans-active-routine-drag.png') });
+        }
+      },
+    );
+
+    await expect(page.getByRole('button', { name: /^Routine actions for / })).toHaveCount(4);
+    const order = await page.evaluate(() => {
+      const raw = localStorage.getItem('@forge/plans-v1');
+      const state = raw ? JSON.parse(raw) : null;
+      return {
+        standalone: state?.standaloneRoutines?.map((item: { name: string }) => item.name),
+        plan: state?.plans?.[0]?.routines?.map((item: { name: string }) => item.name),
+      };
+    });
+    expect(order).toEqual({ standalone: ['Cardio', 'Mobility'], plan: ['Chest', 'Shoulder'] });
+
+    const mobilityRail = page.getByRole('button', { name: 'Reorder Mobility' });
+    await swipeLeftFrom(page, mobilityRail);
+    const deleteMobility = page.getByRole('button', { name: 'Delete Mobility' });
+    await expect(deleteMobility).toBeVisible();
+    const deleteBox = await deleteMobility.boundingBox();
+    expect(deleteBox?.width).toBeGreaterThanOrEqual(56);
+    expect(deleteBox?.height).toBeGreaterThanOrEqual(56);
+    const standaloneCardRevealed = await standaloneCard.boundingBox();
+    if (!deleteBox || !standaloneCardRevealed) throw new Error('Expected measurable Delete reveal');
+    expect(standaloneCardRevealed.x + standaloneCardRevealed.width - deleteBox.x - deleteBox.width)
+      .toBeLessThanOrEqual(5);
+    for (const routineName of ['Mobility', 'Cardio', 'Shoulder', 'Chest']) {
+      await expect(page.getByRole('button', { name: `Routine actions for ${routineName}` })).toBeVisible();
+    }
+    if (testInfo.project.use.isMobile === true) {
+      await page.screenshot({ path: testInfo.outputPath('plans-routine-delete-revealed.png') });
+    }
+
+    if (testInfo.project.use.isMobile === true) {
+      await page.screenshot({ path: testInfo.outputPath('plans-reordered-edit-mode.png') });
+    }
+  });
+
+  test('confirms before deleting a routine and cancels without removing it', async ({ page }) => {
+    await page.addInitScript(() => {
+      const now = Date.now();
+      localStorage.setItem('@forge/plans-v1', JSON.stringify({
+        plans: [],
+        standaloneRoutines: [{
+          id: 'del-routine',
+          name: 'Warmup',
+          type: 'Strength',
+          exercises: [],
+          createdAt: now,
+          updatedAt: now,
+        }],
+      }));
+    });
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await page.getByRole('button', { name: 'Edit plans' }).click();
+
+    // Swipe reveals Delete; tapping it must ask before removing anything. The
+    // reveal stays open behind the confirmation (force click bypasses a
+    // web-only actionability quirk where the translated content over the inset
+    // button trips Playwright's hit-test; the button is on top on native).
+    await swipeLeftFrom(page, page.getByRole('button', { name: 'Reorder Warmup' }));
+    await page.waitForTimeout(400);
+    await page.getByRole('button', { name: 'Delete Warmup' }).click({ force: true });
+    const confirm = page.getByTestId('plans-delete-routine-confirm');
+    await expect(confirm).toBeVisible();
+
+    // Cancel keeps the routine and dismisses the confirmation.
+    await confirm.getByRole('button', { name: 'Cancel' }).click();
+    await expect(confirm).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Routine actions for Warmup' })).toBeVisible();
+    await page.waitForTimeout(400);
+
+    // Confirming actually deletes it.
+    await swipeLeftFrom(page, page.getByRole('button', { name: 'Reorder Warmup' }));
+    await page.waitForTimeout(400);
+    await page.getByRole('button', { name: 'Delete Warmup' }).click({ force: true });
+    await page.getByTestId('plans-delete-routine-confirm').getByRole('button', { name: 'Delete' }).click();
+    await expect(page.getByRole('button', { name: 'Routine actions for Warmup' })).toHaveCount(0);
+    const remaining = await page.evaluate(() => {
+      const raw = localStorage.getItem('@forge/plans-v1');
+      return raw ? JSON.parse(raw).standaloneRoutines.length : -1;
+    });
+    expect(remaining).toBe(0);
+  });
+
+  test('shows the modify options popup when a routine is tapped in edit mode', async ({ page }) => {
+    await page.addInitScript(() => {
+      const now = Date.now();
+      localStorage.setItem('@forge/plans-v1', JSON.stringify({
+        plans: [{ id: 'push', name: 'Push', createdAt: now, updatedAt: now, routines: [] }],
+        standaloneRoutines: [{
+          id: 'del-routine',
+          name: 'Warmup',
+          type: 'Strength',
+          exercises: [],
+          createdAt: now,
+          updatedAt: now,
+        }],
+      }));
+    });
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await page.getByRole('button', { name: 'Edit plans' }).click();
+
+    await page.getByRole('button', { name: 'Routine actions for Warmup' }).click();
+    const sheet = page.getByTestId('plans-options-sheet');
+    // Edit mode shows the modify set (a plan exists, so Move to… appears too).
+    for (const label of ['Move to…', 'Edit', 'Duplicate', 'Delete']) {
+      await expect(sheet.getByRole('button', { name: label, exact: true })).toBeVisible();
+    }
+    // The quick-use actions are not in the edit-mode popup.
+    await expect(sheet.getByRole('button', { name: 'Start', exact: true })).toHaveCount(0);
+    await expect(sheet.getByRole('button', { name: 'Visualize', exact: true })).toHaveCount(0);
+
+    // Delete from the popup routes through the shared confirmation.
+    await sheet.getByRole('button', { name: 'Delete', exact: true }).click();
+    await expect(page.getByTestId('plans-delete-routine-confirm')).toBeVisible();
   });
 
   test('uses the shared action sheet for persisted routine-editor overflow actions', async ({

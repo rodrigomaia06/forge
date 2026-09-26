@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { LayoutAnimation, Platform, Pressable, StyleSheet, UIManager, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
@@ -30,6 +30,10 @@ export function SwipeToDeleteRow({
   deleteWidth = DELETE_WIDTH,
   deleteIconSize = 18,
   insetDeleteButton = false,
+  gestureEnabled = true,
+  deferCloseOnDelete = false,
+  closeSignal,
+  onRevealChange,
 }: {
   children: React.ReactNode;
   onDelete: () => void;
@@ -47,6 +51,19 @@ export function SwipeToDeleteRow({
   /** Reveal a floating rounded red button (like the set delete) instead of a
    * full-height red panel — for inset rows rather than whole cards. */
   insetDeleteButton?: boolean;
+  /** Suppresses the swipe recognizer (and closes any open reveal) without
+   * changing the rendered tree, so a sibling drag can own the gesture without
+   * remounting this row. Distinct from `enabled`, which gates the affordance. */
+  gestureEnabled?: boolean;
+  /** Keep the row slid open when Delete is tapped and just fire `onDelete` (e.g.
+   * to raise a confirmation), instead of closing and collapsing immediately.
+   * The row then closes on `closeSignal` (cancel) or unmounts (confirmed). */
+  deferCloseOnDelete?: boolean;
+  /** A value the parent changes to slide an open row closed — used to dismiss
+   * the reveal when a deferred confirmation is cancelled. */
+  closeSignal?: number;
+  /** Reports whether the Delete action is open so compound gestures can coordinate. */
+  onRevealChange?: (revealed: boolean) => void;
 }) {
   const theme = useForgeTheme();
   const reducedMotion = useForgeReducedMotion();
@@ -58,6 +75,38 @@ export function SwipeToDeleteRow({
     opacity: Math.min(1, Math.max(0, -translateX.value / deleteWidth)),
   }));
 
+  const settle = (shouldOpen: boolean): void => {
+    setRevealed(shouldOpen);
+    onRevealChange?.(shouldOpen);
+    open.value = shouldOpen;
+    translateX.value = reducedMotion
+      ? (shouldOpen ? -deleteWidth : 0)
+      : withSpring(shouldOpen ? -deleteWidth : 0, forgeMotion.swipeSpring);
+  };
+  useEffect(() => {
+    if (enabled && gestureEnabled) return;
+    setRevealed(false);
+    onRevealChange?.(false);
+    open.value = false;
+    translateX.value = 0;
+  }, [enabled, gestureEnabled, onRevealChange, open, translateX]);
+
+  // Slide an open row closed when the parent bumps `closeSignal` (e.g. a deferred
+  // delete confirmation was cancelled). Only acts when currently revealed, so it
+  // is a no-op on mount.
+  useEffect(() => {
+    if (closeSignal === undefined) return;
+    if (!open.value) return;
+    setRevealed(false);
+    onRevealChange?.(false);
+    open.value = false;
+    translateX.value = reducedMotion ? 0 : withSpring(0, forgeMotion.swipeSpring);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [closeSignal]);
+
+  // When disabled (outside edit mode, or while a sibling drag owns the gesture)
+  // render only the content: no destructive control exists at rest, and an open
+  // reveal collapses closed — the reset effect above returns the shared values.
   if (!enabled) {
     return (
       <View style={[styles.row, borderRadius != null && { borderRadius }, { backgroundColor: contentBackgroundColor ?? theme.surface }]}>
@@ -67,16 +116,16 @@ export function SwipeToDeleteRow({
     );
   }
 
-  const settle = (shouldOpen: boolean): void => {
-    setRevealed(shouldOpen);
-    open.value = shouldOpen;
-    translateX.value = reducedMotion
-      ? (shouldOpen ? -deleteWidth : 0)
-      : withSpring(shouldOpen ? -deleteWidth : 0, forgeMotion.swipeSpring);
-  };
   const remove = (): void => {
+    // Deferred mode: keep the row slid open and let the caller confirm first.
+    // The dialog owns the haptic; the row closes on `closeSignal` or unmounts.
+    if (deferCloseOnDelete) {
+      onDelete();
+      return;
+    }
     mediumHaptic();
     setRevealed(false);
+    onRevealChange?.(false);
     open.value = false;
     translateX.value = 0;
     // Collapse the row's height and fade siblings up rather than letting them jump.
@@ -91,6 +140,7 @@ export function SwipeToDeleteRow({
   };
 
   const swipe = Gesture.Pan()
+    .enabled(gestureEnabled)
     .activeOffsetX([-16, 16])
     .failOffsetY([-16, 16])
     .onUpdate((gesture) => {
@@ -161,7 +211,7 @@ const styles = StyleSheet.create({
   deleteAction: { flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', gap: 3 },
   // A fixed rounded-square red button (centered by the delete layer), so tall
   // rows don't stretch it into a long pill.
-  insetDeleteAction: { width: 46, height: 46, borderRadius: 14, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  insetDeleteAction: { width: 56, height: 56, borderRadius: 16, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   deleteActionPressed: { opacity: 0.8 },
   deleteText: { ...typeScale.caption },
   divider: { position: 'absolute', left: 16, right: 0, bottom: 0, height: StyleSheet.hairlineWidth },
