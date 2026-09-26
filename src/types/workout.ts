@@ -189,6 +189,9 @@ export interface WorkoutContextValue extends Omit<WorkoutState, 'activeWorkout'>
    * of the live activeWorkout object so they do not re-render on every keystroke. */
   activeWorkoutId: string | null;
   activeWorkoutStartedAt: number | null;
+  /** Total sets in the active workout, as a scalar — lets consumers gate on an
+   * empty session without subscribing to the live workout object. */
+  activeWorkoutSetCount: number;
   reload: () => Promise<void>;
   startWorkout: (options?: StartWorkoutOptions) => Workout;
   addExercise: (exercise: WorkoutExerciseInput | string) => void;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import {
@@ -125,10 +125,8 @@ function ToggleRow({
       style={({ pressed }) => [styles.toggleRow, showDivider && styles.rowDivider, pressed && pressedFeedback]}
     >
       {color ? <View style={[styles.metricDot, { backgroundColor: color }]} /> : null}
-      <Text style={styles.metricName} numberOfLines={1}>{label}</Text>
-      <View style={[styles.metricCheck, { borderColor: selected ? theme.selectionIndicator : theme.border, backgroundColor: selected ? theme.selectionIndicator : 'transparent' }]}>
-        {selected ? <Icon name="check" size={13} color={theme.onActionPrimary ?? theme.surface} weight="bold" /> : null}
-      </View>
+      <Text style={[styles.metricName, selected && styles.metricNameSelected]} numberOfLines={1}>{label}</Text>
+      {selected ? <Icon name="check" size={19} color={theme.selectionIndicator} weight="bold" /> : null}
     </Pressable>
   );
 }
@@ -155,6 +153,8 @@ export function DashboardTileSettingsSheet({
   const dayOptions = kind ? WINDOW_DAYS[kind] : undefined;
   const weekOptions = kind ? WINDOW_WEEKS[kind] : undefined;
   const selectedIds = settings.measurementIds ?? [];
+  // Only show the header hairline once content has scrolled under it.
+  const [elevated, setElevated] = useState(false);
 
   return (
     <ForgeBottomSheet
@@ -170,11 +170,18 @@ export function DashboardTileSettingsSheet({
         compactTitle
         onClose={onClose}
       />
-      <View style={styles.headerDivider} />
+      {elevated ? <View style={styles.headerDivider} /> : null}
       {/* Direct child ScrollView (not wrapped in an extra flex View) so the sheet
           surface caps it and it hugs-then-scrolls without dead space. See ADR 0005
           and PreviousSessionsContent. */}
-      <ScrollView style={styles.bodyScroll} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.bodyScroll}
+        contentContainerStyle={styles.body}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        onScroll={(event) => setElevated(event.nativeEvent.contentOffset.y > 1)}
+        scrollEventThrottle={16}
+      >
             {kind === 'muscle-heatmap' && dayOptions ? (
               <GroupCard title="Display">
                 <Text style={styles.subLabel}>Trend window</Text>
@@ -340,7 +347,7 @@ export function DashboardTileSettingsSheet({
 }
 
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
-  headerDivider: { height: 1, backgroundColor: theme.divider, marginBottom: 4 },
+  headerDivider: { height: 1, backgroundColor: theme.divider },
   bodyScroll: { flexShrink: 1 },
   body: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 40, gap: 12 },
   soloCard: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -370,5 +377,5 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   stepValue: { minWidth: 26, textAlign: 'center', color: theme.ink, fontVariant: ['tabular-nums'], ...typeScale.controlLabel },
   metricDot: { width: 10, height: 10, borderRadius: 5 },
   metricName: { flex: 1, color: theme.ink, ...typeScale.label },
-  metricCheck: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  metricNameSelected: { fontWeight: '700' },
 });
