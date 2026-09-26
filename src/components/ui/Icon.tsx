@@ -12,7 +12,6 @@ import {
   IconBarbell,
   IconDatabaseExport,
   IconDots,
-  IconDumbbell,
   IconFilter,
   IconGripVertical,
   IconHistory,
@@ -61,6 +60,7 @@ import {
   IconApple,
   IconLicense,
 } from '@tabler/icons-react-native';
+import { DumbbellGlyph } from './DumbbellGlyph';
 import type { IconName, IconWeight } from '../../types';
 
 const iconMap: Record<IconName, React.ComponentType<SvgProps>> = {
@@ -83,7 +83,7 @@ const iconMap: Record<IconName, React.ComponentType<SvgProps>> = {
   menu: IconMenu2,
   fitness: IconBarbell,
   'fitness-outline': IconBarbell,
-  weight: IconDumbbell,
+  weight: DumbbellGlyph,
   'task-list': IconListCheck,
   basketball: IconBallFootball,
   activity: IconRunSprint,
