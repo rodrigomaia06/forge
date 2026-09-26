@@ -373,7 +373,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   setNumber: {
     width: 30,
     height: 30,
-    borderRadius: 15,
+    borderRadius: 9,
     textAlign: 'center',
     backgroundColor: dashboardTheme.surfaceMuted,
     color: dashboardTheme.ink,

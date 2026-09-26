@@ -62,7 +62,7 @@ export function CompletionCheck({
       >
         <Icon
           name="check"
-          size={15}
+          size={17}
           color={tone === 'selection' ? dashboardTheme.success : dashboardTheme.surface}
         />
       </Animated.View>
@@ -103,7 +103,7 @@ export function SplitCompletionCheck({
       style={styles.checkPressable}
     >
       <View style={[styles.splitVisual, complete && styles.success, half && styles.sideProgress]}>
-        {complete ? <Icon name="check" size={15} color={theme.surface} /> : null}
+        {complete ? <Icon name="check" size={17} color={theme.surface} /> : null}
         {half ? <View style={styles.halfFill} /> : null}
       </View>
     </Pressable>
@@ -114,13 +114,13 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   const dashboardTheme = theme;
   return StyleSheet.create({
   visual: {
-    width: 26,
-    height: 26,
+    width: 30,
+    height: 30,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: dashboardTheme.slate,
-    borderRadius: 13,
+    borderRadius: 15,
   },
   success: { backgroundColor: dashboardTheme.success, borderColor: dashboardTheme.success },
   interactive: { backgroundColor: dashboardTheme.selectionIndicator, borderColor: dashboardTheme.selectionIndicator },
@@ -131,9 +131,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   // Its own 26pt circle that clips the half-fill (the shared `visual` is left
   // untouched so the ordinary check animation is unaffected).
   splitVisual: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',

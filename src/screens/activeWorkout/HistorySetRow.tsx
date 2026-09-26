@@ -73,7 +73,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   fullRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6 },
   numberButton: { width: 46, height: 44, alignItems: 'center', justifyContent: 'center' },
   chipWrap: { position: 'relative', width: 30, height: 30 },
-  chip: { width: 30, height: 30, borderRadius: 15, textAlign: 'center', color: theme.ink, backgroundColor: theme.surfaceMuted, ...typeScale.caption, lineHeight: 30 },
+  chip: { width: 30, height: 30, borderRadius: 9, textAlign: 'center', color: theme.ink, backgroundColor: theme.surfaceMuted, ...typeScale.caption, lineHeight: 30 },
   targetDot: { position: 'absolute', top: 1, left: 1, width: 7, height: 7, borderRadius: 4 },
   commentDot: { position: 'absolute', right: 1, bottom: 1, width: 7, height: 7, borderRadius: 4 },
   rpe: { position: 'absolute', left: 3, bottom: 1, color: theme.ink, ...typeScale.caption },
