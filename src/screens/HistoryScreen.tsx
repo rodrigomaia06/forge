@@ -27,6 +27,7 @@ import {
 import { calendarDateKey } from '../domain/workouts/calendarDate';
 import { countWorkoutSets, formatCompactDuration, getWorkoutTypePresentation } from '../domain/workouts/presentation';
 import { useWorkouts } from '../state/WorkoutContext';
+import { useStartWorkoutGuard } from './useStartWorkoutGuard';
 import { usePlans } from '../state/PlansContext';
 import { useSettings } from '../state/SettingsContext';
 import { animateLayout, errorHaptic, mediumHaptic } from './activeWorkout/activeWorkoutFeedback';
@@ -142,6 +143,7 @@ export function HistoryScreen({
   navigation,
 }: RootTabScreenProps<'History'>) {
   const { completedWorkouts, deleteCompletedWorkout, startWorkout } = useWorkouts();
+  const { guardStart, notice: resumeNotice } = useStartWorkoutGuard();
   const { plans } = usePlans();
   const { preferences } = useSettings();
   const theme = useForgeTheme();
@@ -301,10 +303,10 @@ export function HistoryScreen({
                 ) : (
                   <Button
                     label="Start a workout"
-                    onPress={() => {
+                    onPress={() => guardStart(() => {
                       startWorkout();
                       navigation.navigate('ActiveWorkout');
-                    }}
+                    })}
                     theme={theme}
                     style={styles.emptyAction}
                   />
@@ -320,6 +322,7 @@ export function HistoryScreen({
           onApply={setFilters}
           onClose={() => setFiltersOpen(false)}
         />
+        {resumeNotice}
       </View>
     </AppScreen>
   );

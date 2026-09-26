@@ -46,6 +46,7 @@ import type {
 import { workoutTypeIcon } from './settings/workoutTypeIcon';
 import { useForgeDockScrollInset } from '../components/DockChrome';
 import { RoutineDragHandle, RoutineReorderGroup } from './plans/RoutineReorderGroup';
+import { useStartWorkoutGuard } from './useStartWorkoutGuard';
 
 type Props = RootTabScreenProps<'Plans'>;
 const ROUTINE_ROW_HEIGHT = 76;
@@ -69,6 +70,7 @@ export function PlansScreen({ navigation, route }: Props) {
   const { preferences } = useSettings();
   const { plans, standaloneRoutines, createPlan, deletePlan, deleteRoutine, duplicateRoutine, moveRoutine, updatePlan, reorderPlans, reorderRoutines } = usePlans();
   const { startWorkout, completedWorkouts } = useWorkouts();
+  const { guardStart, notice: resumeNotice } = useStartWorkoutGuard();
   const createMenu = useAnchoredMenu();
   const [routineTarget, setRoutineTarget] = useState<WorkoutRoutine | null>(null);
   const [routinePendingDelete, setRoutinePendingDelete] = useState<WorkoutRoutine | null>(null);
@@ -221,20 +223,22 @@ export function PlansScreen({ navigation, route }: Props) {
     const planName = routine.planId
       ? plans.find((plan) => plan.id === routine.planId)?.name
       : undefined;
-    startWorkout({
-      name: planName ? `${planName} - ${routine.name}` : routine.name,
-      type: routine.type,
-      note: routine.note,
-      // A routine owns the reusable field names. Each workout starts its own blank values.
-      attributes: routine.attributes
-        ? Object.fromEntries(Object.keys(routine.attributes).map((label) => [label, '']))
-        : undefined,
-      attributeIcons: routine.attributeIcons,
-      routineId: routine.id,
-      planId: routine.planId,
-      exercises: routineExercisesWithNextSessionTargets(routine, completedWorkouts),
+    guardStart(() => {
+      startWorkout({
+        name: planName ? `${planName} - ${routine.name}` : routine.name,
+        type: routine.type,
+        note: routine.note,
+        // A routine owns the reusable field names. Each workout starts its own blank values.
+        attributes: routine.attributes
+          ? Object.fromEntries(Object.keys(routine.attributes).map((label) => [label, '']))
+          : undefined,
+        attributeIcons: routine.attributeIcons,
+        routineId: routine.id,
+        planId: routine.planId,
+        exercises: routineExercisesWithNextSessionTargets(routine, completedWorkouts),
+      });
+      navigation.navigate('ActiveWorkout');
     });
-    navigation.navigate('ActiveWorkout');
   };
   const openRoutine = (routine: WorkoutRoutine, withHaptic = true): void => {
     if (withHaptic) selectionHaptic();
@@ -331,8 +335,10 @@ export function PlansScreen({ navigation, route }: Props) {
   };
   const startBlankWorkout = (): void => {
     selectionHaptic();
-    startWorkout();
-    navigation.navigate('ActiveWorkout');
+    guardStart(() => {
+      startWorkout();
+      navigation.navigate('ActiveWorkout');
+    });
   };
   const addRoutine = (planId?: string): void => {
     createMenu.close();
@@ -515,6 +521,7 @@ export function PlansScreen({ navigation, route }: Props) {
           onConfirm={confirmDeletePlan}
           testID="plans-delete-plan-confirm"
         />
+        {resumeNotice}
       </View>
     </AppScreen>
   );

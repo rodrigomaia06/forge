@@ -22,6 +22,7 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import { workoutTypeIcon } from '../settings/workoutTypeIcon';
+import { useStartWorkoutGuard } from '../useStartWorkoutGuard';
 import type { ReactNode } from 'react';
 import type {
   ForgeTheme,
@@ -50,6 +51,7 @@ export function useWorkoutStarter(): WorkoutStarter {
   const navigation = useNavigation<RootNavigationProp>();
   const { startWorkout, completedWorkouts } = useWorkouts();
   const { plans, standaloneRoutines } = usePlans();
+  const { guardStart, notice } = useStartWorkoutGuard();
   const [workoutSourceOpen, setWorkoutSourceOpen] = React.useState(false);
   const [routineSourceStep, setRoutineSourceStep] = React.useState<RoutineSourceStep>(null);
 
@@ -59,35 +61,41 @@ export function useWorkoutStarter(): WorkoutStarter {
   }, []);
 
   const startBlankWorkout = React.useCallback(() => {
-    startWorkout();
-    // The destination mounts the picker as visible, so it still makes its normal
-    // bottom-sheet entrance instead of flashing an empty workout.
-    navigation.navigate('ActiveWorkout', { openAddExercises: 'open' });
-  }, [navigation, startWorkout]);
+    setWorkoutSourceOpen(false);
+    guardStart(() => {
+      startWorkout();
+      // The destination mounts the picker as visible, so it still makes its normal
+      // bottom-sheet entrance instead of flashing an empty workout.
+      navigation.navigate('ActiveWorkout', { openAddExercises: 'open' });
+    });
+  }, [guardStart, navigation, startWorkout]);
 
   const startRoutine = React.useCallback(
     (routine: WorkoutRoutine, plan?: WorkoutPlan) => {
       selectionHaptic();
-      startWorkout({
-        name: plan ? `${plan.name} - ${routine.name}` : routine.name,
-        type: routine.type,
-        note: routine.note,
-        attributes: routine.attributes
-          ? Object.fromEntries(Object.keys(routine.attributes).map((label) => [label, '']))
-          : undefined,
-        attributeIcons: routine.attributeIcons,
-        routineId: routine.id,
-        planId: plan?.id ?? routine.planId,
-        exercises: routineExercisesWithNextSessionTargets(routine, completedWorkouts),
-      });
       setRoutineSourceStep(null);
       setWorkoutSourceOpen(false);
-      navigation.navigate('ActiveWorkout');
+      guardStart(() => {
+        startWorkout({
+          name: plan ? `${plan.name} - ${routine.name}` : routine.name,
+          type: routine.type,
+          note: routine.note,
+          attributes: routine.attributes
+            ? Object.fromEntries(Object.keys(routine.attributes).map((label) => [label, '']))
+            : undefined,
+          attributeIcons: routine.attributeIcons,
+          routineId: routine.id,
+          planId: plan?.id ?? routine.planId,
+          exercises: routineExercisesWithNextSessionTargets(routine, completedWorkouts),
+        });
+        navigation.navigate('ActiveWorkout');
+      });
     },
-    [completedWorkouts, navigation, startWorkout],
+    [completedWorkouts, guardStart, navigation, startWorkout],
   );
 
   const sheet = (
+    <>
     <ForgeActionSheet
       visible={workoutSourceOpen}
       onClose={() => {
@@ -132,6 +140,8 @@ export function useWorkoutStarter(): WorkoutStarter {
         />
       ) : null}
     />
+    {notice}
+    </>
   );
 
   return { openChooser, startRoutine, sheet };
