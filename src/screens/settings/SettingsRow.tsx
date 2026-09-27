@@ -157,12 +157,14 @@ export function SettingsRow({
 
 export function SettingsSection({
   title,
+  icon,
   footer,
   children,
   style,
   cardStyle,
 }: {
   title?: string;
+  icon?: IconName;
   footer?: string;
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
@@ -173,7 +175,10 @@ export function SettingsSection({
   return (
     <View style={[styles.section, style]}>
       {title ? (
-        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>{title}</Text>
+        <View style={styles.sectionHeader}>
+          {icon ? <Icon name={icon} size={16} color={theme.textSecondary} /> : null}
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>{title}</Text>
+        </View>
       ) : null}
       <ForgeCard variant="base" style={cardStyle}>
         {children}
@@ -218,6 +223,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     leadingDivider: { left: 54 },
     framedDivider: { left: 70 },
     section: { gap: 8 },
-    sectionTitle: { ...typeScale.sectionTitle, marginLeft: 6, marginBottom: 2 },
+    sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 6, marginBottom: 2 },
+    sectionTitle: { ...typeScale.sectionTitle },
     footer: { ...typeScale.caption, paddingHorizontal: 6 },
   });

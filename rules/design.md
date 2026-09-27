@@ -59,6 +59,8 @@ Backgrounds exposed behind pages during navigation gestures and transitions must
 
 All application icons are rendered through Forge's shared `Icon` adapter, backed by Tabler Icons. Choose the icon semantically for the action or content it represents; screens must not import a separate icon library directly.
 
+When choosing or changing an icon, confirm the actual rendered glyph — never select by name alone. Tabler names routinely mislead (`hourglass` maps to a mood/face glyph; `activity` renders as a running person), so map the intended Forge name through `Icon.tsx` to its Tabler component and verify that component's real glyph before using it. Prefer icons already proven correct in the codebase.
+
 Visual screen explorations use iPhone portrait format by default unless a task explicitly calls for a different target. They are directional previews rather than app assets or implementation specifications.
 
 Do not copy exact visual constants from an external design guideline when the platform provides a semantic/system value or Forge already owns that visual decision.
