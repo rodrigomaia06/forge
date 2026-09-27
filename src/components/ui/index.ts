@@ -32,6 +32,7 @@ export type { ForgeSingleSelectOption } from './ForgeSelection';
 export { ForgeCard } from './ForgeCard';
 export {
   ForgeAttributeEditorSheet,
+  ForgeAttributeRow,
   ForgeEditorBackButton,
   ForgeSwipeableAttributeRow,
   ForgeWorkoutTypePicker,

@@ -23,6 +23,7 @@ import {
   ForgeActionSheet,
   ForgeAnchoredMenu,
   ForgeAttributeEditorSheet,
+  ForgeAttributeRow,
   ForgeSwipeableAttributeRow,
   ForgeBottomSheet,
   ForgeConfirmationDialog,
@@ -532,14 +533,13 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                 )}
                 {Object.entries(draft.attributes ?? {}).map(([label, value]) => (
                   viewing ? (
-                    <React.Fragment key={label}>
-                      <View style={styles.divider} />
-                      <View style={styles.attributeRow}>
-                        <Icon name={draft.attributeIcons?.[label] ?? 'note'} size={19} color={theme.textPrimary} />
-                        <Text style={styles.attributeLabel} numberOfLines={1}>{label}</Text>
-                        {value ? <Text style={styles.attributeValue} numberOfLines={1}>{value}</Text> : null}
-                      </View>
-                    </React.Fragment>
+                    <ForgeAttributeRow
+                      key={label}
+                      icon={draft.attributeIcons?.[label] ?? 'note'}
+                      label={label}
+                      value={value}
+                      showDivider
+                    />
                   ) : (
                     // Same row language as Live Workout: tap to edit, swipe to delete.
                     <ForgeSwipeableAttributeRow
@@ -989,15 +989,6 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     typeChoiceSelected: {},
     choiceDot: { width: 11, height: 11, borderRadius: 6 },
     typeChoiceText: { ...typeScale.controlLabel, color: theme.ink, flex: 1 },
-    attributeRow: {
-      minHeight: 56,
-      paddingHorizontal: 16,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-    },
-    attributeLabel: { ...typeScale.label, color: theme.slate, flex: 1 },
-    attributeValue: { ...typeScale.supporting, color: theme.ink, flex: 1, textAlign: 'right' },
     addAttribute: {
       minHeight: 56,
       paddingHorizontal: 16,

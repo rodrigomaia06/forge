@@ -167,6 +167,45 @@ export function ForgeSwipeableAttributeRow({
   );
 }
 
+/**
+ * The read-only rendering of a saved attribute: `[icon] label … value`, with an
+ * optional leading hairline for stacked rows. The static sibling of
+ * `ForgeSwipeableAttributeRow`, so a routine's view mode, a workout summary, and
+ * workout details all present attributes identically instead of each screen
+ * hand-rolling the same layout.
+ */
+export function ForgeAttributeRow({
+  icon,
+  label,
+  value,
+  showDivider = false,
+  flush = false,
+}: {
+  icon: IconName;
+  label: string;
+  value?: string;
+  showDivider?: boolean;
+  /** Drop the row's own horizontal inset when the container already pads. */
+  flush?: boolean;
+}) {
+  const theme = useForgeTheme();
+  return (
+    <View
+      style={[
+        styles.attributeReadRow,
+        flush && styles.attributeReadRowFlush,
+        showDivider && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
+      ]}
+    >
+      <Icon name={icon} size={18} color={theme.slate} />
+      <ForgeText numberOfLines={1} style={[styles.attributeReadLabel, { color: theme.slate }]}>{label}</ForgeText>
+      {value ? (
+        <ForgeText numberOfLines={1} style={[styles.attributeReadValue, { color: theme.textPrimary }]}>{value}</ForgeText>
+      ) : null}
+    </View>
+  );
+}
+
 /** A type list with semantic icons and a current hidden type retained for editing. */
 export function ForgeWorkoutTypePicker({
   selectedType,
@@ -237,6 +276,10 @@ const styles = StyleSheet.create({
   swipeAttributeContent: { zIndex: 1 },
   attributeDeleteAction: { position: 'absolute', top: 0, right: 0, bottom: 0, width: 56 },
   attributeDeleteButton: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  attributeReadRow: { minHeight: 44, paddingHorizontal: 16, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  attributeReadRowFlush: { paddingHorizontal: 0 },
+  attributeReadLabel: { flexShrink: 1, ...typeScale.body },
+  attributeReadValue: { flex: 1, minWidth: 0, textAlign: 'right', ...typeScale.body },
   iconChoices: { padding: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   iconChoice: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 14, position: 'relative' },
 });

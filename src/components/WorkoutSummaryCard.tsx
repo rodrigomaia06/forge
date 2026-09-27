@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
-import { ForgeCard, ForgeText as Text, Icon, pressedFeedbackSubtle, selectionHaptic } from './ui';
+import { ForgeAttributeRow, ForgeCard, ForgeText as Text, Icon, pressedFeedbackSubtle, selectionHaptic } from './ui';
 import { countWorkoutSets, formatCompactDuration, getWorkoutTypePresentation } from '../domain/workouts/presentation';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
@@ -91,11 +91,12 @@ export function WorkoutSummaryCard({
 
           {metadata.length === 1 ? <>
             <View style={styles.divider} />
-            <View style={styles.attributeRow}>
-              <Icon name={metadata[0].icon} size={18} color={theme.slate} />
-              <Text style={styles.attributeLabel} numberOfLines={1}>{metadata[0].label}</Text>
-              <Text style={styles.attributeValue}>{metadata[0].value}</Text>
-            </View>
+            <ForgeAttributeRow
+              icon={metadata[0].icon}
+              label={metadata[0].label}
+              value={metadata[0].value}
+              flush
+            />
           </> : null}
 
           {metadata.length > 1 ? <>
@@ -119,13 +120,13 @@ export function WorkoutSummaryCard({
             {detailsExpanded ? (
               <ForgeCard variant="nested" size="compact" style={styles.detailGrid}>
                 {metadata.map((item, index) => (
-                  <View key={item.label} style={[styles.detailItem, index > 0 && styles.detailItemDivider]}>
-                    <Icon name={item.icon} size={18} color={theme.slate} />
-                    <View style={styles.detailCopy}>
-                      <Text style={styles.detailLabel} numberOfLines={1}>{item.label}</Text>
-                    </View>
-                    <Text style={styles.detailValue}>{item.value}</Text>
-                  </View>
+                  <ForgeAttributeRow
+                    key={item.label}
+                    icon={item.icon}
+                    label={item.label}
+                    value={item.value}
+                    showDivider={index > 0}
+                  />
                 ))}
               </ForgeCard>
             ) : null}
@@ -222,12 +223,4 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   detailsTrigger: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 10 },
   detailsPreview: { flex: 1, color: theme.ink, ...typeScale.body },
   detailGrid: { marginTop: -2, padding: 0, overflow: 'hidden' },
-  attributeRow: { minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  attributeLabel: { flexShrink: 1, color: theme.slate, ...typeScale.body },
-  attributeValue: { flex: 1, minWidth: 0, color: theme.ink, ...typeScale.body, textAlign: 'right' },
-  detailItem: { minHeight: 52, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  detailItemDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
-  detailCopy: { flexShrink: 1, maxWidth: '34%', minWidth: 0 },
-  detailLabel: { color: theme.slate, ...typeScale.body },
-  detailValue: { flex: 1, minWidth: 0, color: theme.ink, ...typeScale.body, textAlign: 'right' },
 });
