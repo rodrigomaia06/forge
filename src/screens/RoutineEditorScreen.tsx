@@ -29,6 +29,8 @@ import {
   ForgeText as Text,
   ForgeTextInput as TextInput,
   HeaderAction,
+  HeaderActionGroup,
+  joinedHeaderAction,
   HeaderEdge,
   Icon,
   lightHaptic,
@@ -374,27 +376,50 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
         behavior={Platform.OS === 'android' ? 'height' : undefined}
       >
         <View style={styles.header}>
-          <HeaderAction
-            accessibilityLabel="Cancel editing routine"
-            icon="close"
-            iconOnly
-            onPress={discard}
-          />
-          <View style={[styles.headerTitleWrap, styles.pointerEventsNone]}>
-            <Text style={styles.headerTitle} numberOfLines={1}>
-              {creating ? 'New routine' : viewing ? draft.name.trim() || 'Routine' : 'Edit routine'}
-            </Text>
-          </View>
-          <View style={styles.headerActions}>
-            {!creating && !viewing && (
+          {!creating && !viewing ? (
+            // Edit mode carries a second neutral action (options), so Cancel and
+            // options join into the app's canonical divided pill instead of
+            // reading as two loose circles. Save stays a standalone confirm on
+            // the opposite edge — the live-workout header's pattern.
+            <HeaderActionGroup testID="routine-editor-leading-actions">
+              <HeaderAction
+                accessibilityLabel="Cancel editing routine"
+                icon="close"
+                iconOnly
+                variant="ghost"
+                style={joinedHeaderAction}
+                onPress={discard}
+              />
               <HeaderAction
                 accessibilityLabel="Routine options"
                 icon="ellipsis-horizontal"
                 iconSize={20}
                 iconOnly
+                variant="ghost"
+                style={joinedHeaderAction}
                 onPress={() => setOptionsOpen(true)}
               />
-            )}
+            </HeaderActionGroup>
+          ) : (
+            <HeaderAction
+              accessibilityLabel="Cancel editing routine"
+              icon="close"
+              iconOnly
+              onPress={discard}
+            />
+          )}
+          <View
+            style={[
+              styles.headerTitleWrap,
+              styles.pointerEventsNone,
+              !creating && !viewing && styles.headerTitleWrapWide,
+            ]}
+          >
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {creating ? 'New routine' : viewing ? draft.name.trim() || 'Routine' : 'Edit routine'}
+            </Text>
+          </View>
+          <View style={styles.headerActions}>
             {viewing ? (
               <HeaderAction
                 accessibilityLabel="Edit routine"
@@ -886,6 +911,9 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       borderBottomColor: theme.divider,
     },
     headerTitleWrap: { position: 'absolute', left: 74, right: 74, alignItems: 'center' },
+    // Clear the wider leading pill (Cancel + options) in edit mode so the
+    // centered title never underlaps it.
+    headerTitleWrapWide: { left: 112 },
     pointerEventsNone: { pointerEvents: 'none' },
     headerTitle: { ...typeScale.headerTitle, color: theme.ink },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
