@@ -2,7 +2,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React from 'react';
 import { Alert, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { AppScreen, ForgeBackButton, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeCard, ForgeConfirmationDialog, ForgeFloatingCta, ForgeSheetHeader, ForgeText as Text, Icon, pressedFeedback } from '../../components/ui';
+import * as Clipboard from 'expo-clipboard';
+import { AppScreen, ForgeAnchoredMenu, ForgeBackButton, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeCard, ForgeConfirmationDialog, ForgeFloatingCta, ForgeSheetHeader, ForgeSingleSelectList, ForgeText as Text, Icon, pressedFeedback, useAnchoredMenu } from '../../components/ui';
+import type { ForgeSingleSelectOption } from '../../components/ui';
 import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
 import { dashboardTheme } from '../../theme/dashboardTheme';
 import { useForgeTheme } from '../../theme/ThemeProvider';
@@ -11,7 +13,9 @@ import type { IconName, RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 import { allDataTransferSelection, createSqliteBackup, databaseStatus, eraseAllForgeData, exportJson, exportText, inspectDataTransfer, mergeDataTransfer, pickJsonTransfer, pickSqliteBackup, restoreSqliteBackup, type DataTransferCategory, type DataTransferInspection, type DataTransferMergeResult, type DataTransferSelection, type ForgeDataTransfer } from '../../data/backupRepository';
-import { clearDiagnostics, exportDiagnostics, loadDiagnostics, recordDiagnostic, type DiagnosticEntry } from '../../data/diagnosticsRepository';
+import { clearDiagnostics, exportDiagnostics, loadDiagnostics, recordDiagnostic, type DiagnosticEntry, type DiagnosticKind } from '../../data/diagnosticsRepository';
+import { loadBackupHistory, recordBackupEvent, type BackupHistory } from '../../data/backupHistory';
+import { relativeTime } from '../../utils/relativeTime';
 import { useSettings } from '../../state/SettingsContext';
 import { usePlans } from '../../state/PlansContext';
 import { useWorkouts } from '../../state/WorkoutContext';
@@ -71,6 +75,9 @@ function BackupExport() {
   const [restoreInspection, setRestoreInspection] = React.useState<Awaited<ReturnType<typeof pickSqliteBackup>>>(null);
   const [notice, setNotice] = React.useState<{ title: string; message: string; tone?: 'neutral' | 'success' } | null>(null);
   const [mergeSummary, setMergeSummary] = React.useState<DataTransferMergeResult | null>(null);
+  const [history, setHistory] = React.useState<BackupHistory>({});
+  const reloadHistory = React.useCallback(() => { void loadBackupHistory().then(setHistory); }, []);
+  React.useEffect(() => { reloadHistory(); }, [reloadHistory]);
   const theme = useForgeTheme();
   const { reload: reloadSettings } = useSettings();
   const { reload: reloadPlans } = usePlans();
@@ -139,7 +146,7 @@ function BackupExport() {
       await recordDiagnostic('backup-restored');
       setNotice({
         title: 'Backup restored',
-        message: 'Forge has reloaded the restored data.',
+        message: `Forge reloaded ${inspection.workoutCount} workouts, ${inspection.planCount} plans and ${inspection.customExerciseCount} custom exercises from this backup.`,
         tone: 'success',
       });
     });
@@ -160,7 +167,8 @@ function BackupExport() {
     <View style={styles.stack}>
       <SettingsSection
         title="Data transfer"
-        footer="Portable JSON adds data without replacing your current workouts. Text is a read-only summary for sharing."
+        icon="database-export"
+        footer={`${history.lastExportAt ? `Last export ${relativeTime(history.lastExportAt)}. ` : ''}Portable JSON adds data without replacing your current workouts. Text is a read-only summary for sharing.`}
       >
         <Action title="Export JSON" divider onPress={() => { setSelection(allDataTransferSelection()); setTransferStep('export-json'); }} />
         <Action title="Export text" divider onPress={() => { setSelection(allDataTransferSelection()); setTransferStep('export-text'); }} />
@@ -184,9 +192,12 @@ function BackupExport() {
       </SettingsSection>
       <SettingsSection
         title="Database backup"
-        footer={Platform.OS === 'web' ? 'Full SQLite backup and restore are available in iOS and Android builds.' : 'A complete Forge .sqlite file includes WAL changes. Restore validates it first and creates an in-app safety copy.'}
+        icon="save"
+        footer={Platform.OS === 'web'
+          ? 'Full SQLite backup and restore are available in iOS and Android builds.'
+          : `${history.lastSqliteBackupAt ? `Last backup ${relativeTime(history.lastSqliteBackupAt)}. ` : 'No SQLite backup yet. '}A complete Forge .sqlite file includes WAL changes. Restore validates it first and creates an in-app safety copy.`}
       >
-        <Action title="Create SQLite backup" divider disabled={Platform.OS === 'web'} onPress={() => void run(async () => { await createSqliteBackup(); await recordDiagnostic('backup-created'); })} />
+        <Action title="Create SQLite backup" divider disabled={Platform.OS === 'web'} onPress={() => void run(async () => { await createSqliteBackup(); await recordBackupEvent('sqlite-backup'); await recordDiagnostic('backup-created'); reloadHistory(); })} />
         <Action title="Restore SQLite backup" divider disabled={Platform.OS === 'web'} onPress={restore} />
         <Action title="Delete all app data" destructive onPress={erase} />
       </SettingsSection>
@@ -198,8 +209,8 @@ function BackupExport() {
         onChangeSelection={setSelection}
         onClose={() => { setTransferStep(null); setInspection(null); setTransfer(null); }}
         onBack={() => { setInspection(null); setTransferStep('import-selection'); }}
-        onExportJson={() => void run(async () => { await exportJson(selection); await recordDiagnostic('data-exported'); setTransferStep(null); })}
-        onExportText={() => void run(async () => { await exportText(selection); setTransferStep(null); })}
+        onExportJson={() => void run(async () => { await exportJson(selection); await recordBackupEvent('data-export'); await recordDiagnostic('data-exported'); setTransferStep(null); reloadHistory(); })}
+        onExportText={() => void run(async () => { await exportText(selection); await recordBackupEvent('data-export'); setTransferStep(null); reloadHistory(); })}
         onReviewImport={reviewImport}
         onImport={mergeSelected}
         busy={busy}
@@ -407,15 +418,43 @@ function ImportReview({ inspection, selection }: { inspection: DataTransferInspe
   );
 }
 
+const logFilterOptions: readonly ForgeSingleSelectOption<DiagnosticKind | 'all'>[] = [
+  { value: 'all', label: 'All events' },
+  { value: 'operation-failed', label: 'Failures' },
+  { value: 'app-opened', label: 'App opened' },
+  { value: 'data-exported', label: 'Data exported' },
+  { value: 'data-imported', label: 'Data imported' },
+  { value: 'backup-created', label: 'Backup created' },
+  { value: 'backup-restored', label: 'Backup restored' },
+];
+
 function Logs() {
+  const theme = useForgeTheme();
   const [entries, setEntries] = React.useState<DiagnosticEntry[]>([]);
   const [status, setStatus] = React.useState('Checking local storage…');
+  const [filter, setFilter] = React.useState<DiagnosticKind | 'all'>('all');
+  const [copied, setCopied] = React.useState<string | null>(null);
+  const filterMenu = useAnchoredMenu();
+  const copiedTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const refresh = React.useCallback(() => {
     void Promise.all([loadDiagnostics(), databaseStatus()]).then(([next, database]) => {
       setEntries(next); setStatus(`${database.database} · ${database.tables} tables · local only`);
     }).catch(() => setStatus('Local storage is unavailable.'));
   }, []);
   React.useEffect(() => { refresh(); }, [refresh]);
+  React.useEffect(() => () => { if (copiedTimer.current) clearTimeout(copiedTimer.current); }, []);
+  const flagCopied = (id: string): void => {
+    setCopied(id);
+    if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    copiedTimer.current = setTimeout(() => setCopied(null), 1600);
+  };
+  const copyEntry = (entry: DiagnosticEntry): void => {
+    void Clipboard.setStringAsync(logEntryLine(entry)).then(() => flagCopied(entry.id));
+  };
+  const copyAll = (): void => {
+    const payload = JSON.stringify({ format: 'forge-diagnostics', entries: entries.map(({ at, kind, detail }) => ({ at, kind, ...(detail ? { detail } : {}) })) }, null, 2);
+    void Clipboard.setStringAsync(payload).then(() => flagCopied('all'));
+  };
   const exportLogs = (): void => {
     void exportDiagnostics().catch(async () => {
       await recordDiagnostic('operation-failed', 'unavailable');
@@ -427,21 +466,84 @@ function Logs() {
     { text: 'Cancel', style: 'cancel' },
     { text: 'Clear', style: 'destructive', onPress: () => void clearDiagnostics().then(refresh) },
   ]);
+  const visible = filter === 'all' ? entries : entries.filter((entry) => entry.kind === filter);
+  const filterLabel = logFilterOptions.find((option) => option.value === filter)?.label ?? 'All events';
   return <View style={styles.stack}>
-    <SettingsSection title="Local diagnostics" footer="Logs are private to this device and limited to 80 technical events. They never contain workout names, exercises, values, notes or identifiers.">
+    <SettingsSection title="Local diagnostics" icon="info" footer="Logs are private to this device and limited to 80 technical events. They never contain workout names, exercises, values, notes or identifiers.">
       <Text style={styles.copy}>{status}</Text>
     </SettingsSection>
     <SettingsSection title="Recent events">
-      {entries.length ? entries.map((entry, index) => <Action key={entry.id} title={diagnosticLabel(entry)} subtitle={new Date(entry.at).toLocaleString()} divider={index < entries.length - 1} />) : <Text style={styles.copy}>No diagnostic events recorded.</Text>}
+      {entries.length ? (
+        <>
+          <View ref={filterMenu.ref} collapsable={false}>
+            <SettingsRow
+              title="Show"
+              trailing={<Text style={[styles.value, { color: theme.textSecondary }]}>{filterLabel}</Text>}
+              disclosure
+              onPress={filterMenu.open}
+              showDivider
+            />
+          </View>
+          {visible.length ? visible.map((entry, index) => (
+            <SettingsRow
+              key={entry.id}
+              icon={kindIcon(entry.kind)}
+              iconColor={entry.kind === 'operation-failed' ? theme.textPrimary : theme.textSecondary}
+              title={diagnosticLabel(entry)}
+              subtitle={relativeTime(entry.at)}
+              accessibilityLabel={`${diagnosticLabel(entry)}, ${new Date(entry.at).toLocaleString()}. Tap to copy.`}
+              trailing={<Icon name={copied === entry.id ? 'check' : 'copy'} size={18} color={copied === entry.id ? theme.success : theme.textSecondary} />}
+              onPress={() => copyEntry(entry)}
+              showDivider={index < visible.length - 1}
+            />
+          )) : <Text style={styles.copy}>No {filterLabel.toLowerCase()} recorded.</Text>}
+        </>
+      ) : (
+        <View style={styles.logsEmpty}>
+          <Icon name="clipboard" size={30} color={theme.textSecondary} />
+          <Text style={[styles.logsEmptyText, { color: theme.textSecondary }]}>No diagnostic events recorded yet.</Text>
+        </View>
+      )}
     </SettingsSection>
     <SettingsSection>
-      <Action title="Export logs" divider onPress={exportLogs} />
-      <Action title="Clear logs" destructive onPress={clear} />
+      <Action title={copied === 'all' ? 'Copied to clipboard' : 'Copy all logs'} icon={copied === 'all' ? 'check' : 'copy'} iconColor={copied === 'all' ? theme.success : undefined} disabled={!entries.length} disclosure={false} divider onPress={copyAll} />
+      <Action title="Export logs" icon="database-export" disclosure={false} divider onPress={exportLogs} />
+      <Action title="Clear logs" icon="trash" disclosure={false} destructive onPress={clear} />
     </SettingsSection>
+    <ForgeAnchoredMenu
+      visible={filterMenu.visible}
+      anchor={filterMenu.anchor}
+      onClose={filterMenu.close}
+      align="end"
+      minWidth={200}
+      testID="logs-filter-menu"
+    >
+      <ForgeSingleSelectList
+        options={logFilterOptions}
+        selectedValue={filter}
+        rounded
+        disableVirtualization
+        onSelect={(value) => { setFilter(value); filterMenu.close(); }}
+        onSelectedPress={() => filterMenu.close()}
+      />
+    </ForgeAnchoredMenu>
   </View>;
+}
+function kindIcon(kind: DiagnosticKind): IconName {
+  return ({
+    'app-opened': 'play',
+    'data-exported': 'database-export',
+    'data-imported': 'database-import',
+    'backup-created': 'save',
+    'backup-restored': 'restore',
+    'operation-failed': 'alert-triangle',
+  } as Record<DiagnosticKind, IconName>)[kind];
 }
 function diagnosticLabel(entry: DiagnosticEntry): string {
   return ({ 'app-opened': 'App opened', 'data-exported': 'Data exported', 'data-imported': 'Data imported', 'backup-created': 'SQLite backup created', 'backup-restored': 'SQLite backup restored', 'operation-failed': 'Operation could not complete' } as Record<DiagnosticEntry['kind'], string>)[entry.kind];
+}
+function logEntryLine(entry: DiagnosticEntry): string {
+  return `${new Date(entry.at).toISOString()} ${entry.kind}${entry.detail ? ` (${entry.detail})` : ''}`;
 }
 function About() {
   const theme = useForgeTheme();
@@ -490,6 +592,7 @@ function Action({
   title,
   subtitle,
   icon,
+  iconColor,
   iconSize,
   onPress,
   divider = false,
@@ -501,6 +604,7 @@ function Action({
   title: string;
   subtitle?: string;
   icon?: IconName;
+  iconColor?: string;
   iconSize?: number;
   onPress?: () => void;
   divider?: boolean;
@@ -514,6 +618,7 @@ function Action({
       title={title}
       subtitle={subtitle}
       icon={icon}
+      iconColor={iconColor}
       iconSize={iconSize}
       destructive={destructive}
       disabled={!onPress || disabled}
@@ -570,4 +675,7 @@ const styles = StyleSheet.create({
   brandSubtitle: { marginTop: 3, color: dashboardTheme.slate, ...typeScale.supporting },
   privacy: { padding: 18, color: dashboardTheme.slate, ...typeScale.supporting },
   copy: { padding: 20, color: dashboardTheme.slate, ...typeScale.body },
+  value: { ...typeScale.supporting },
+  logsEmpty: { paddingVertical: 32, paddingHorizontal: 20, alignItems: 'center', gap: 10 },
+  logsEmptyText: { ...typeScale.supporting, textAlign: 'center' },
 });
