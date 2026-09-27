@@ -125,9 +125,11 @@ test.describe('Interactive control consistency', () => {
     await page.getByRole('button', { name: 'General' }).click();
     const toggle = await dimensions(page.getByTestId('general-switch-unfinished-workout-reminder'));
     await page.getByRole('switch', { name: 'Unfinished workout reminder' }).click();
-    expect((await dimensions(page.getByTestId('general-switch-unfinished-workout-reminder'))).background).toBe(
-      'rgb(245, 247, 248)',
-    );
+    // The switch track animates to its checked colour; poll for the settled
+    // value rather than reading mid-transition.
+    await expect
+      .poll(async () => (await dimensions(page.getByTestId('general-switch-unfinished-workout-reminder'))).background)
+      .toBe('rgb(245, 247, 248)');
     expect(toggle.background).not.toBe('rgb(124, 140, 248)');
 
     await page.getByRole('button', { name: 'Back to Settings' }).click();
