@@ -1,14 +1,15 @@
 import type { PlansState, WorkoutPlan, WorkoutRoutine } from '../types';
 import { uniqueById } from './uniqueById';
 
-const normalizeName = (name: string): string => (name ?? '').trim().toLowerCase();
+export const normalizeName = (name: string): string => (name ?? '').trim().toLowerCase();
 
 /**
- * Give an imported routine a distinct name when one with the same name already
+ * Give an imported record a distinct name when one with the same name already
  * exists, so the two don't look identical after an import: "Chest" becomes
- * "Chest - imported", then "Chest - imported 2", and so on.
+ * "Chest - imported", then "Chest - imported 2", and so on. Adds the chosen name
+ * to `taken`.
  */
-function distinctName(base: string, taken: Set<string>): string {
+export function distinctName(base: string, taken: Set<string>): string {
   const name = base?.trim() ? base : 'Routine';
   if (!taken.has(normalizeName(name))) {
     taken.add(normalizeName(name));

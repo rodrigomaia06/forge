@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ExerciseCatalogItem } from './exerciseCatalog';
 import { loadCustomExercises, saveCustomExercises } from './exerciseRepository';
 import { mergeImportedPlans, type ImportRename } from './dataTransferPlans';
+import { renameSharedExercises, renameSharedWorkouts } from './sharedImport';
 import { normalizeDataTransfer } from './dataTransferNormalization';
 import { loadPlansState, savePlansState } from './plansRepository';
 import { loadSettingsPreferences, saveSettingsPreferences } from './settingsRepository';
@@ -29,7 +30,7 @@ export type DataTransferInspection = {
 export type DataTransferMergeResult = {
   categories: Record<DataTransferCategory, number>;
   activeWorkoutAdded: boolean;
-  renamedRoutines: ImportRename[];
+  renamed: ImportRename[];
 };
 export type ForgeDataTransfer = {
   format: 'forge-data';
@@ -40,6 +41,7 @@ export type ForgeDataTransfer = {
   workouts: WorkoutState;
   customExercises: ExerciseCatalogItem[];
   selection?: DataTransferSelection;
+  share?: { kind: 'routine' | 'plan' | 'workout' | 'exercise'; title: string; summary?: string };
 };
 export type BackupInspection = {
   bytes: Uint8Array;
@@ -262,8 +264,15 @@ export async function mergeDataTransfer(
   ]);
   const merge = <T extends { id: string }>(current: T[], addition: T[]): T[] =>
     uniqueById([...current, ...addition]);
+  const renamed: ImportRename[] = [];
+  const incomingWorkouts = incoming.share
+    ? renameSharedWorkouts(incoming.workouts.completedWorkouts, workouts.completedWorkouts.map((w) => w.name), renamed)
+    : incoming.workouts.completedWorkouts;
+  const incomingExercises = incoming.share
+    ? renameSharedExercises(incoming.customExercises, exercises.map((e) => e.name), renamed)
+    : incoming.customExercises;
   const completed = selection.workouts
-    ? merge(workouts.completedWorkouts, incoming.workouts.completedWorkouts)
+    ? merge(workouts.completedWorkouts, incomingWorkouts)
     : workouts.completedWorkouts;
   const importedActive =
     selection.workouts &&
@@ -271,9 +280,8 @@ export async function mergeDataTransfer(
     !completed.some((workout) => workout.id === incoming.workouts.activeWorkout?.id)
       ? incoming.workouts.activeWorkout
       : null;
-  const custom = selection.exercises ? merge(exercises, incoming.customExercises) : exercises;
-  const renamedRoutines: ImportRename[] = [];
-  const mergedPlanState = selection.plans ? mergeImportedPlans(plans, incoming.plans, renamedRoutines) : plans;
+  const custom = selection.exercises ? merge(exercises, incomingExercises) : exercises;
+  const mergedPlanState = selection.plans ? mergeImportedPlans(plans, incoming.plans, renamed) : plans;
   const mergedPlans = mergedPlanState.plans;
   const mergedStandaloneRoutines = mergedPlanState.standaloneRoutines;
   const mergedSettings = {
@@ -319,7 +327,7 @@ export async function mergeDataTransfer(
         settings.dailyMeasurementEntries.length,
     },
     activeWorkoutAdded: Boolean(!workouts.activeWorkout && importedActive),
-    renamedRoutines,
+    renamed,
   };
 }
 

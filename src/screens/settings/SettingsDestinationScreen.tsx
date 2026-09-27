@@ -15,6 +15,7 @@ import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 import { allDataTransferSelection, createSqliteBackup, databaseStatus, eraseAllForgeData, exportJson, exportText, inspectDataTransfer, mergeDataTransfer, pickJsonTransfer, pickSqliteBackup, restoreSqliteBackup, type DataTransferCategory, type DataTransferInspection, type DataTransferMergeResult, type DataTransferSelection, type ForgeDataTransfer, type ShareDescriptor } from '../../data/backupRepository';
 import { clearDiagnostics, exportDiagnostics, loadDiagnostics, recordDiagnostic, type DiagnosticEntry, type DiagnosticKind } from '../../data/diagnosticsRepository';
 import { loadBackupHistory, recordBackupEvent, type BackupHistory } from '../../data/backupHistory';
+import { freshenSharedIds } from '../../data/sharedImport';
 import { relativeTime } from '../../utils/relativeTime';
 import { useSettings } from '../../state/SettingsContext';
 import { usePlans } from '../../state/PlansContext';
@@ -102,8 +103,11 @@ function BackupExport() {
   }, [busy]);
   const importData = (): void => {
     void run(async () => {
-      const incoming = await pickJsonTransfer();
-      if (!incoming) return;
+      const picked = await pickJsonTransfer();
+      if (!picked) return;
+      // A shared item always imports as a new copy — freshen its ids so the
+      // review shows it as new and the merge adds it (never "already on device").
+      const incoming = freshenSharedIds(picked);
       setTransfer(incoming);
       // A shared single item declares exactly which sections it carries; default
       // the picker to those rather than everything.
@@ -293,8 +297,8 @@ function mergeSummaryMessage(result: DataTransferMergeResult): string {
   const base = added.length
     ? `Added ${added.join(', ')}. Existing matching records stayed on device.`
     : 'No new records were needed. Matching records stayed on device.';
-  if (result.renamedRoutines.length) {
-    const renames = result.renamedRoutines.map(({ from, to }) => `“${from}” → “${to}”`).join(', ');
+  if (result.renamed.length) {
+    const renames = result.renamed.map(({ from, to }) => `“${from}” → “${to}”`).join(', ');
     return `${base}\n\nRenamed to avoid duplicates: ${renames}.`;
   }
   return base;
@@ -336,6 +340,17 @@ function DataTransferSheet({
   const importing = step === 'import-selection' || reviewing;
   const title = exporting ? 'Export data' : reviewing ? 'Review import' : 'Choose import data';
   const toggle = (key: DataTransferCategory): void => onChangeSelection({ ...selection, [key]: !selection[key] });
+  // Nothing new to add means the file is already on this device — surface that
+  // instead of an enabled Import that quietly does nothing.
+  const newTotal = reviewing && inspection
+    ? transferCategories.reduce((sum, { key }) => sum + (selection[key] ? inspection.categories[key].newRecords : 0), 0)
+      + (inspection.activeWorkout ? 1 : 0)
+    : 0;
+  const nothingNew = reviewing && inspection !== null && newTotal === 0;
+  // Only scroll when the body overflows (ADR 0005) — a short sheet should not rubber-band.
+  const [viewportHeight, setViewportHeight] = React.useState(0);
+  const [contentHeight, setContentHeight] = React.useState(0);
+  const scrollable = contentHeight > viewportHeight + 1;
   return (
     <ForgeBottomSheet
       visible={step !== null}
@@ -352,7 +367,14 @@ function DataTransferSheet({
         onClose={onClose}
         leading={reviewing && !share ? <ForgeBackButton accessibilityLabel="Back" onPress={onBack} /> : undefined}
       />
-      <ScrollView style={styles.transferScroll} contentContainerStyle={[styles.transferContent, { paddingBottom: clearance }]} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.transferScroll}
+        contentContainerStyle={[styles.transferContent, { paddingBottom: clearance }]}
+        showsVerticalScrollIndicator={false}
+        scrollEnabled={scrollable}
+        onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
+        onContentSizeChange={(_width, height) => setContentHeight(height)}
+      >
         {share ? (
           <ForgeCard variant="nested" size="compact" style={styles.shareBanner}>
             <Icon name="share" size={20} color={theme.textSecondary} />
@@ -365,7 +387,7 @@ function DataTransferSheet({
           </ForgeCard>
         ) : null}
         {reviewing ? (
-          <ImportReview inspection={inspection} selection={selection} />
+          <ImportReview inspection={inspection} selection={selection} nothingNew={nothingNew} />
         ) : (
           <>
             <Text style={[styles.transferIntro, { color: theme.textSecondary }]}>
@@ -403,7 +425,7 @@ function DataTransferSheet({
       <ForgeFloatingCta
         label={reviewing ? 'Import selected data' : importing ? 'Review selected data' : 'Export selected data'}
         accessibilityLabel={reviewing ? 'Import selected data' : importing ? 'Review selected data' : 'Export selected data'}
-        disabled={!selectedCount || busy}
+        disabled={!selectedCount || busy || nothingNew}
         tone={reviewing ? 'success' : 'neutral'}
         icon={reviewing ? 'check' : undefined}
         onPress={reviewing ? onImport : importing ? onReviewImport : step === 'export-json' ? onExportJson : onExportText}
@@ -412,7 +434,7 @@ function DataTransferSheet({
   );
 }
 
-function ImportReview({ inspection, selection }: { inspection: DataTransferInspection | null; selection: DataTransferSelection }) {
+function ImportReview({ inspection, selection, nothingNew }: { inspection: DataTransferInspection | null; selection: DataTransferSelection; nothingNew: boolean }) {
   const theme = useForgeTheme();
   if (!inspection) return null;
   const reviewCategories = transferCategories.filter(({ key }) => (
@@ -420,6 +442,12 @@ function ImportReview({ inspection, selection }: { inspection: DataTransferInspe
   ));
   return (
     <View style={styles.reviewStack}>
+      {nothingNew ? (
+        <ForgeCard variant="nested" size="compact" style={styles.reviewNoticeCard}>
+          <Icon name="verified" size={20} color={theme.textSecondary} />
+          <Text style={[styles.reviewNotice, { color: theme.textSecondary }]}>Everything here is already on this device — nothing new to import.</Text>
+        </ForgeCard>
+      ) : null}
       {reviewCategories.length ? <ForgeCard variant="nested" size="compact">
         {reviewCategories.map(({ key, title: categoryTitle }, index) => {
           const summary = inspection.categories[key];
@@ -673,6 +701,8 @@ const styles = StyleSheet.create({
   reviewRow: { minHeight: 64, paddingHorizontal: 16, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   reviewNew: { ...typeScale.controlLabel, textAlign: 'right' },
   transferNote: { ...typeScale.caption, lineHeight: 19, paddingHorizontal: 2 },
+  reviewNoticeCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+  reviewNotice: { flex: 1, ...typeScale.supporting, lineHeight: 20 },
   unavailable: { textAlign: 'center', color: dashboardTheme.slate, ...typeScale.supporting },
   brand: {
     paddingHorizontal: 8,

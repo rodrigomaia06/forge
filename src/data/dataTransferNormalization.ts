@@ -8,7 +8,7 @@ function isObject(value: unknown): value is TransferRecord {
 }
 
 /** UUIDs let a hand-authored import become durable without a central service. */
-function createImportId(): string {
+export function createImportId(): string {
   const bytes = new Uint8Array(16);
   if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
   else
