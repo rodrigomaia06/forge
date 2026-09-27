@@ -72,6 +72,7 @@ test.describe('Page bottom safe areas', () => {
       await page.getByRole('tab', { name: 'History' }).click();
       await page.getByRole('button', { name: 'Open Bottom layout session' }).click();
       if (editing) {
+        await page.getByRole('button', { name: 'Workout options' }).click();
         await page.getByRole('button', { name: 'Edit workout' }).click();
         await expect(page.getByLabel('Workout name')).toBeVisible();
       }

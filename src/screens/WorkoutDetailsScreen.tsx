@@ -5,13 +5,12 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   AppScreen,
   Button,
+  ForgeActionSheet,
   ForgeConfirmationDialog,
   ForgeText as Text,
   ForgeBackButton,
   HeaderAction,
-  HeaderActionGroup,
   HeaderEdge,
-  joinedHeaderAction,
   selectionHaptic,
 } from '../components/ui';
 import { WorkoutSummaryCard } from '../components/WorkoutSummaryCard';
@@ -34,6 +33,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
   const { ready, completedWorkouts, deleteCompletedWorkout } = useWorkouts();
   const { preferences } = useSettings();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const [headerElevated, setHeaderElevated] = useState(false);
   const workout = completedWorkouts.find((item) => item.id === route.params.workoutId);
   // "Previous" is derived live from earlier sessions so imported/legacy workouts
@@ -87,39 +87,20 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
               {workout.name}
             </Text>
           </View>
-          <HeaderActionGroup>
-            <HeaderAction
-              accessibilityLabel="Share workout"
-              icon="share"
-              iconSize={20}
-              iconOnly
-              variant="ghost"
-              style={joinedHeaderAction}
-              onPress={() => { selectionHaptic(); shareItem({ kind: 'workout', id: workout.id }); }}
-            />
-            <HeaderAction
-              accessibilityLabel="Edit workout"
-              icon="note"
-              iconSize={20}
-              iconOnly
-              variant="ghost"
-              style={joinedHeaderAction}
-              onPress={() => {
-                selectionHaptic();
-                navigation.navigate('HistoryWorkoutEditor', { mode: 'edit', workoutId: workout.id });
-              }}
-            />
-            <HeaderAction
-              accessibilityLabel="Delete workout"
-              icon="trash"
-              iconSize={20}
-              iconOnly
-              variant="ghost"
-              tone="destructive"
-              style={joinedHeaderAction}
-              onPress={() => { selectionHaptic(); setConfirmDelete(true); }}
-            />
-          </HeaderActionGroup>
+          <HeaderAction
+            accessibilityLabel="Workout options"
+            icon="ellipsis-horizontal"
+            iconSize={20}
+            iconOnly
+            // Match the back button's circular surface so the two header
+            // controls read as peers (the borderless-dark rule drops the border
+            // in Dark, exactly as it does for Back).
+            style={{
+              backgroundColor: theme.colorScheme === 'dark' ? theme.surfaceMuted : theme.surfaceElevated,
+              borderColor: theme.border,
+            }}
+            onPress={() => { selectionHaptic(); setOptionsOpen(true); }}
+          />
         </View>
         <ScrollView
           style={styles.scroll}
@@ -139,6 +120,18 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
             ))}
           </View>
         </ScrollView>
+        <ForgeActionSheet
+          visible={optionsOpen}
+          onClose={() => setOptionsOpen(false)}
+          accessibilityLabel="Close workout options"
+          title={workout.name}
+          titleNumberOfLines={1}
+          actions={[
+            { label: 'Share workout', icon: 'share', onPress: () => shareItem({ kind: 'workout', id: workout.id }) },
+            { label: 'Edit workout', icon: 'note', onPress: () => navigation.navigate('HistoryWorkoutEditor', { mode: 'edit', workoutId: workout.id }) },
+            { label: 'Delete workout', icon: 'trash', tone: 'destructive', onPress: () => setConfirmDelete(true) },
+          ]}
+        />
         <ForgeConfirmationDialog
           visible={confirmDelete}
           title={`Delete ${workout.name}?`}

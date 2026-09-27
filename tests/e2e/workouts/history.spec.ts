@@ -214,8 +214,7 @@ test.describe('History screen', () => {
     await expect(page.getByText('Rest', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Back to History' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Back to History' })).not.toContainText('Back');
-    await expect(page.getByRole('button', { name: 'Edit workout' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Delete workout' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Workout options' })).toBeVisible();
 
     await expect(page.getByText('Exercise 1', { exact: true })).toBeVisible();
   });
@@ -327,6 +326,7 @@ test.describe('History screen', () => {
 
   test('opens functional workout options and can delete the selected workout', async ({ page }) => {
     await page.getByRole('button', { name: 'Open Muay Thai' }).click();
+    await page.getByRole('button', { name: 'Workout options' }).click();
     await page.getByRole('button', { name: 'Delete workout' }).click();
     await expect(page.getByText('Delete Muay Thai?', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Delete', exact: true }).click();
@@ -336,6 +336,7 @@ test.describe('History screen', () => {
 
   test('edits a completed workout and persists the saved session', async ({ page }, testInfo) => {
     await page.getByRole('button', { name: 'Open Muay Thai' }).click();
+    await page.getByRole('button', { name: 'Workout options' }).click();
     await page.getByRole('button', { name: 'Edit workout' }).click();
     await expect(page.getByLabel('Workout name')).toBeVisible();
     const workoutName = page.getByLabel('Workout name');
@@ -433,6 +434,7 @@ test.describe('History screen', () => {
 
   test('uses the Forge card before discarding changed historical edits', async ({ page }) => {
     await page.getByRole('button', { name: 'Open Muay Thai' }).click();
+    await page.getByRole('button', { name: 'Workout options' }).click();
     await page.getByRole('button', { name: 'Edit workout' }).click();
     const workoutName = page.getByLabel('Workout name');
     await workoutName.click();
@@ -540,7 +542,7 @@ test.describe('History screen', () => {
     // Targets remain discoverable through the marker and Set details, rather
     // than adding a second property line below the row.
     await expect(firstSet).not.toContainText('Next time');
-    await expect(page.getByRole('button', { name: 'Edit workout' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Workout options' })).toBeVisible();
     await page.getByRole('button', { name: 'Open details for set 1' }).click();
     const sheet = page.getByTestId('set-details-sheet');
     await expect(sheet.getByText('Set 1', { exact: true })).toBeVisible();
