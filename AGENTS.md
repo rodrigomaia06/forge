@@ -124,6 +124,8 @@ src/
 │   ├── ui.ts
 │   └── workout.ts
 ├── types.ts
+├── utils
+│   └── idle.ts
 └── widgets
     └── RestTimerLiveActivity.tsx
 tests/

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { InteractionManager, LayoutAnimation, Platform, Pressable, StyleSheet, UIManager, View } from 'react-native';
+import { LayoutAnimation, Platform, Pressable, StyleSheet, UIManager, View } from 'react-native';
+import { runWhenIdle } from '../utils/idle';
 import { useNavigation } from '@react-navigation/native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -261,7 +262,7 @@ export function DashboardScreen() {
     // the add-tile sheet to finish closing first — opening a second bottom sheet
     // in the same frame deadlocks the overlay/gesture layer on native.
     if (tileHasSettings(config.kind)) {
-      InteractionManager.runAfterInteractions(() => {
+      runWhenIdle(() => {
         setTimeout(() => setSettingsTileId(config.id), 320);
       });
     }

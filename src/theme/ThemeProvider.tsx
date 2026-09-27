@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo } from 'react';
-import { Appearance, InteractionManager, Platform, useColorScheme } from 'react-native';
+import { Appearance, Platform, useColorScheme } from 'react-native';
+import { runWhenIdle } from '../utils/idle';
 import * as SystemUI from 'expo-system-ui';
 import { useSettings } from '../state/SettingsContext';
 import type { ChildrenProps, ForgeTheme } from '../types';
@@ -34,10 +35,9 @@ export function ForgeThemeProvider({ children }: ChildrenProps) {
   useEffect(() => {
     // Pre-build the inactive appearance's StyleSheets while the UI is idle so a
     // later switch reuses the cache instead of rebuilding the whole tree on the
-    // switch frame. Kept off the input path via InteractionManager.
+    // switch frame. Kept off the input path via an idle callback.
     const inactive = theme === darkTheme ? lightTheme : darkTheme;
-    const task = InteractionManager.runAfterInteractions(() => warmThemedStyles(inactive));
-    return () => task.cancel();
+    return runWhenIdle(() => warmThemedStyles(inactive));
   }, [theme]);
   return <ForgeThemeContext.Provider value={theme}>{children}</ForgeThemeContext.Provider>;
 }

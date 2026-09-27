@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, InteractionManager, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { runWhenIdle } from '../utils/idle';
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -67,10 +68,7 @@ export function CalendarScreen({ navigation }: Props) {
   // Defer the (heavy) month/year grid mount until the navigation transition has
   // settled, so opening the Calendar from a tile feels instant.
   const [ready, setReady] = useState(false);
-  useEffect(() => {
-    const task = InteractionManager.runAfterInteractions(() => setReady(true));
-    return () => task.cancel();
-  }, []);
+  useEffect(() => runWhenIdle(() => setReady(true)), []);
   // Briefly highlights the month you jumped to from the year view.
   const [flashKey, setFlashKey] = useState<string | null>(null);
   useEffect(() => {
