@@ -147,7 +147,6 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
             <HeaderAction
               accessibilityLabel="Cancel new workout type"
               icon="close"
-              label="Cancel"
               iconOnly
               onPress={discardDraft}
               haptic="none"
@@ -163,7 +162,9 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
             <HeaderAction
               accessibilityLabel="Save workout type"
               icon="check"
-              label="Save"
+              iconOnly
+              variant="outline"
+              tone="success"
               onPress={saveDraft}
               disabled={!draft?.name.trim()}
               haptic="none"
@@ -418,7 +419,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     createTitleWrap: {
       position: 'absolute',
       top: 0,
-      right: 124,
+      right: 76,
       bottom: 0,
       left: 76,
       alignItems: 'center',

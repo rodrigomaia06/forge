@@ -477,7 +477,6 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
           <HeaderAction
             accessibilityLabel="Cancel editing workout"
             icon="close"
-            label="Cancel"
             iconOnly
             onPress={discard}
           />
@@ -485,8 +484,9 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
           <HeaderAction
             accessibilityLabel="Save workout"
             icon="check"
-            label="Save"
-            variant="primary"
+            iconOnly
+            variant="outline"
+            tone="success"
             onPress={save}
             haptic="none"
             disabled={saveDisabled}

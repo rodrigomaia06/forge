@@ -57,7 +57,10 @@ test.describe('Interactive control consistency', () => {
     expect((await dimensions(save)).height).toBe(44);
     await page.getByLabel('Workout type name').fill('Recovery');
     await expect(save).toBeEnabled();
-    expect((await dimensions(save)).background).toBe(neutralBackground);
+    // An enabled add/edit-form Save uses the sanctioned success-outline
+    // treatment (design.md l.38): a soft success surface, not the neutral
+    // header surface. Its disabled state (asserted above) stays neutral.
+    expect((await dimensions(save)).background).toBe('rgb(227, 238, 232)');
 
     await save.click();
     await expect(page.getByRole('button', { name: 'Recovery workout type' })).toBeVisible();
