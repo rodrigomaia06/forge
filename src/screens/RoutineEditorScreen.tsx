@@ -1,5 +1,5 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -110,7 +110,6 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
   const [reorderingExercises, setReorderingExercises] = useState(false);
   const [headerElevated, setHeaderElevated] = useState(false);
   const [confirmation, setConfirmation] = useState<RoutineConfirmation | null>(null);
-  const changedSinceOpenRef = useRef(false);
   const exerciseListRef = React.useRef<GestureHandlerFlatList<WorkoutRoutine['exercises'][number]>>(null);
   const { onSetInputFocus, onScrollOffsetChange } = useFocusedSetKeyboardLift(exerciseListRef);
   const handleRoutineScrollOffset = (offset: number) => {
@@ -121,7 +120,10 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
     });
   };
 
-  const dirty = changedSinceOpenRef.current || Boolean(
+  // A pure content comparison: reverting an edit, or a no-op change such as
+  // re-selecting the current type, clears it — so cancelling a routine that
+  // still matches how it opened never raises the discard prompt.
+  const dirty = Boolean(
     draft && initialDraft && JSON.stringify(draft) !== JSON.stringify(initialDraft),
   );
   const noteHeight = routineNoteHeight(draft?.note);
@@ -149,9 +151,6 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
   }
 
   const change = (update: (current: WorkoutRoutine) => WorkoutRoutine): void => {
-    // React may batch the final text event with a rapid header press. Record
-    // the intent synchronously so Cancel still offers to preserve that draft.
-    changedSinceOpenRef.current = true;
     setDraft((current) => (current ? update(current) : current));
     setError(null);
   };
@@ -193,7 +192,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
     setReplacingExerciseIndex(null);
   };
   const discard = (): void => {
-    if (!(dirty || changedSinceOpenRef.current)) return navigation.goBack();
+    if (!dirty) return navigation.goBack();
     confirmDiscard(() => navigation.goBack());
   };
   const save = (): void => {
