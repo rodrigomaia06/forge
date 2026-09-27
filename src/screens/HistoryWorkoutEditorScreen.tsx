@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { usePreventRemove } from '@react-navigation/native';
-import type { FlatList as GestureHandlerFlatList } from 'react-native-gesture-handler';
+import { ScrollView as GestureScrollView, type FlatList as GestureHandlerFlatList } from 'react-native-gesture-handler';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 
 import {
@@ -538,7 +538,11 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
             }}
           />
         ) : (
-          <ScrollView
+          <GestureScrollView
+            // A gesture-handler ScrollView so it arbitrates the vertical pan with
+            // the exercise cards' and set rows' horizontal swipe recognizers; a
+            // plain RN ScrollView loses that arbitration and cannot scroll over
+            // the cards.
             contentContainerStyle={[styles.content, { paddingBottom: styles.content.paddingBottom + bottomInset }]}
             keyboardShouldPersistTaps="handled"
             onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
@@ -550,7 +554,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
               {draft.exercises.map((exercise, index) => renderExercise(exercise, index))}
               {addExerciseButton}
             </View>
-          </ScrollView>
+          </GestureScrollView>
         )}
       </KeyboardAvoidingView>
       <AddExerciseSheet
