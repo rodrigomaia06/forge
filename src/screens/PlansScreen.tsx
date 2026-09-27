@@ -7,9 +7,11 @@ import type { ForgeActionSheetAction } from '../components/ui';
 import {
   AnchoredMenuActions,
   AppScreen,
+  Button,
   ForgeActionSheet,
   ForgeAnchoredMenu,
   ForgeBackButton,
+  ForgeBottomSheet,
   ForgeBottomSheetHandle,
   ForgeCard,
   ForgeConfirmationDialog,
@@ -25,6 +27,7 @@ import {
   SwipeToDeleteRow,
   pressedFeedbackSubtle,
   selectionHaptic,
+  successHaptic,
   useAnchoredMenu,
 } from '../components/ui';
 import { useForgeTheme } from '../theme/ThemeProvider';
@@ -75,6 +78,7 @@ export function PlansScreen({ navigation, route }: Props) {
   const createMenu = useAnchoredMenu();
   const [routineTarget, setRoutineTarget] = useState<WorkoutRoutine | null>(null);
   const [planTarget, setPlanTarget] = useState<WorkoutPlan | null>(null);
+  const [planEditTarget, setPlanEditTarget] = useState<WorkoutPlan | null>(null);
   const [routinePendingDelete, setRoutinePendingDelete] = useState<WorkoutRoutine | null>(null);
   const [planPendingDelete, setPlanPendingDelete] = useState<WorkoutPlan | null>(null);
   // Bumped to slide an open swipe row closed when its delete confirmation is
@@ -512,10 +516,37 @@ export function PlansScreen({ navigation, route }: Props) {
           titleNumberOfLines={1}
           testID="plans-plan-options-sheet"
           actions={planTarget ? [
+            {
+              label: 'Edit plan',
+              icon: 'note',
+              onPress: () => {
+                // Let the options sheet finish dismissing before the edit sheet
+                // presents, so the two modals never overlap on iOS.
+                const target = planTarget;
+                setTimeout(() => setPlanEditTarget(target), 280);
+              },
+            },
             { label: 'Share', icon: 'share', onPress: () => shareItemFromSheet({ kind: 'plan', id: planTarget.id }) },
             { label: 'Delete', icon: 'trash', tone: 'destructive' as const, onPress: () => requestDeletePlan(planTarget) },
           ] : []}
         />
+        <ForgeBottomSheet
+          visible={planEditTarget !== null}
+          onClose={() => setPlanEditTarget(null)}
+          accessibilityLabel="Close edit plan"
+          keyboardAvoiding
+        >
+          {(close) =>
+            planEditTarget ? (
+              <PlanEditSheet
+                key={planEditTarget.id}
+                plan={planEditTarget}
+                onClose={close}
+                onSave={(changes) => updatePlan(planEditTarget.id, (current) => ({ ...current, ...changes }))}
+              />
+            ) : null
+          }
+        </ForgeBottomSheet>
         <ForgeConfirmationDialog
           visible={routinePendingDelete !== null}
           title="Delete routine?"
@@ -597,6 +628,72 @@ function MoveDestinations({
 }
 
 
+/** Lightweight sheet for editing a plan's name and description from the "…" menu. */
+function PlanEditSheet({
+  plan,
+  onClose,
+  onSave,
+}: {
+  plan: WorkoutPlan;
+  onClose: () => void;
+  onSave: (changes: { name: string; description?: string }) => void;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  const [name, setName] = useState(plan.name);
+  const [description, setDescription] = useState(plan.description ?? '');
+  const canSave = name.trim().length > 0;
+  const save = (): void => {
+    if (!canSave) return;
+    onSave({ name: name.trim(), description: description.trim() || undefined });
+    successHaptic();
+    onClose();
+  };
+  return (
+    <View style={styles.editSheet}>
+      <ForgeBottomSheetHandle />
+      <ForgeSheetHeader
+        title="Edit plan"
+        onClose={onClose}
+        closeAccessibilityLabel="Close edit plan"
+      />
+      <View style={styles.editSheetBody}>
+        <ForgeCard variant="nested" style={styles.editFieldCard}>
+          <ForgeTextInput
+            accessibilityLabel="Plan name"
+            value={name}
+            onChangeText={setName}
+            placeholder="Plan name"
+            placeholderTextColor={theme.muted}
+            style={styles.editNameInput}
+          />
+        </ForgeCard>
+        <ForgeCard variant="nested" style={styles.editFieldCard}>
+          <ForgeTextInput
+            accessibilityLabel="Plan description"
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Add a short description (optional)"
+            placeholderTextColor={theme.muted}
+            multiline
+            style={styles.editDescriptionInput}
+          />
+        </ForgeCard>
+        <Button
+          label="Save plan"
+          accessibilityLabel="Save plan"
+          onPress={save}
+          disabled={!canSave}
+          tone="success"
+          variant="outline"
+          theme={theme}
+          style={styles.editSaveButton}
+        />
+      </View>
+    </View>
+  );
+}
+
 function PlanCard({
   plan,
   workoutTypes,
@@ -645,6 +742,7 @@ function PlanCard({
     else setDraftName(plan.name);
   };
   const count = `${plan.routines.length} ${plan.routines.length === 1 ? 'routine' : 'routines'}`;
+  const description = plan.description?.trim();
   const header = renaming ? (
     <View style={[styles.planHeader, styles.planOptions]}>
       <ForgeTextInput
@@ -707,7 +805,9 @@ function PlanCard({
     <View style={[styles.planHeader, styles.planOptions]}>
       <View style={styles.planHeadText}>
         <Text style={styles.planName} numberOfLines={1}>{plan.name}</Text>
-        <Text style={styles.planCount}>{count}</Text>
+        {description ? (
+          <Text style={styles.planDescription} numberOfLines={2}>{description}</Text>
+        ) : null}
       </View>
       <Pressable
         testID={`plan-options-${plan.id}`}
@@ -957,20 +1057,28 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     sectionTitle: { ...typeScale.sectionTitle, color: theme.slate },
     planRow: { paddingBottom: 14 },
     planHeader: {
-      minHeight: 64,
       flexDirection: 'row',
       alignItems: 'center',
     },
     planOptions: {
+      // No fixed height: the header hugs a name-only plan and only grows taller
+      // when a description is present, so a plain plan leaves no empty band above
+      // its routine rows.
       minWidth: 0,
-      minHeight: 64,
       paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingVertical: 14,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
     },
     planHeadText: { flex: 1, minWidth: 0, gap: 2 },
+    planDescription: { ...typeScale.supporting, color: theme.slate },
+    editSheet: { paddingBottom: 28 },
+    editSheetBody: { paddingHorizontal: 20, paddingTop: 6, gap: 12 },
+    editFieldCard: { paddingHorizontal: 14, paddingVertical: 4 },
+    editNameInput: { minHeight: 44, paddingVertical: 0, color: theme.ink, ...typeScale.cardTitle },
+    editDescriptionInput: { minHeight: 60, paddingVertical: 8, color: theme.ink, ...typeScale.body },
+    editSaveButton: { minHeight: 48, marginTop: 4 },
     // A confident card header: bolder and a step larger than the routine rows it
     // owns and the section label above it, so the plan reads as their parent.
     planName: { fontFamily: typography.bold, fontSize: 20, lineHeight: 25, fontWeight: '700', letterSpacing: -0.3, color: theme.ink },

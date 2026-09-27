@@ -141,6 +141,8 @@ export interface WorkoutRoutine {
 export interface WorkoutPlan {
   id: string;
   name: string;
+  /** Optional short free-text description shown on the plan card header. */
+  description?: string;
   routines: WorkoutRoutine[];
   createdAt: number;
   updatedAt: number;

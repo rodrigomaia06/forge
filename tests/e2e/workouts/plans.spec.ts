@@ -773,10 +773,11 @@ test.describe('Plans and routines', () => {
       .getByTestId('plans-creation-popover')
       .getByRole('button', { name: 'New workout plan' })
       .click();
-    // The resting plan card is a compact label: name plus routine count, with no
-    // inline rename or add-routine controls (those are edit-mode only).
+    // The resting plan card is a compact label: just the name (and description
+    // when set), with no routine-count line, inline rename, or add-routine
+    // controls (those are edit-mode only).
     await expect(page.getByText('New plan', { exact: true })).toBeVisible();
-    await expect(page.getByText('0 routines', { exact: true })).toBeVisible();
+    await expect(page.getByText('0 routines', { exact: true })).toHaveCount(0);
     await expect(page.getByTestId(/^plan-header-/)).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Add routine to New plan' })).toHaveCount(0);
 
@@ -806,5 +807,31 @@ test.describe('Plans and routines', () => {
     await expect(routineActions.getByRole('button', { name: 'Start' })).toBeVisible();
     await routineActions.getByRole('button', { name: 'Start' }).click();
     await expect(page.getByText('New plan - Plan draft', { exact: true })).toBeVisible();
+  });
+
+  test('adds a description to a plan through the Edit plan sheet', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
+    await page
+      .getByTestId('plans-creation-popover')
+      .getByRole('button', { name: 'New workout plan' })
+      .click();
+    await expect(page.getByText('New plan', { exact: true })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Options for New plan' }).click();
+    await page
+      .getByTestId('plans-plan-options-sheet')
+      .getByRole('button', { name: 'Edit plan' })
+      .click();
+
+    const description = page.getByLabel('Plan description');
+    await description.click();
+    await description.pressSequentially('Twelve week strength block');
+    await expect(description).toHaveValue('Twelve week strength block');
+    await page.getByRole('button', { name: 'Save plan' }).click();
+
+    // The description surfaces on the resting plan card, under the name.
+    await expect(page.getByText('Twelve week strength block', { exact: true })).toBeVisible();
   });
 });
