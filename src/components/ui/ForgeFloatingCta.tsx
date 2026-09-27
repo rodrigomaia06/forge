@@ -54,6 +54,9 @@ export function ForgeFloatingCta({
   const insets = useSafeAreaInsets();
   const contextTheme = useForgeTheme();
   const resolvedTheme = theme ?? contextTheme;
+  // A success-tone floating confirm is a form/selection completion, so it wears
+  // the shared checkmark by default (design.md) unless a caller sets its own icon.
+  const resolvedIcon = icon ?? (tone === 'success' ? 'check' : undefined);
   const gradientId = `forgeFloatingCtaFade${React.useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   return (
     <>
@@ -81,7 +84,7 @@ export function ForgeFloatingCta({
           disabled={disabled}
           onPress={onPress}
           theme={resolvedTheme}
-          icon={icon}
+          icon={resolvedIcon}
           variant="outline"
           tone={tone}
           style={styles.button}
