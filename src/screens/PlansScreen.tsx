@@ -804,11 +804,11 @@ function PlanCard({
     </View>
   ) : (
     <View style={[styles.planHeader, styles.planOptions]}>
-      <View style={styles.planHeadText}>
-        {description ? (
-          <Text style={styles.planDescription} numberOfLines={2}>{description}</Text>
-        ) : null}
+      <View style={styles.planHeadRow}>
         <Text style={styles.planName} numberOfLines={1}>{plan.name}</Text>
+        {description ? (
+          <Text style={styles.planDescription} numberOfLines={1}>{description}</Text>
+        ) : null}
       </View>
       <Pressable
         testID={`plan-options-${plan.id}`}
@@ -1073,7 +1073,10 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       justifyContent: 'space-between',
     },
     planHeadText: { flex: 1, minWidth: 0, gap: 2 },
-    planDescription: { ...typeScale.supporting, color: theme.slate },
+    planHeadRow: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    // The description sits to the right of the name as a secondary label, so it
+    // truncates from the right and yields the left space to the name.
+    planDescription: { flex: 1, minWidth: 0, textAlign: 'right', ...typeScale.supporting, color: theme.slate },
     editSheet: { paddingBottom: 28 },
     editSheetBody: { paddingHorizontal: 20, paddingTop: 6, gap: 12 },
     editFieldCard: { paddingHorizontal: 14, paddingVertical: 4 },
@@ -1082,7 +1085,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     editSaveButton: { minHeight: 48, marginTop: 4 },
     // A confident card header: bolder and a step larger than the routine rows it
     // owns and the section label above it, so the plan reads as their parent.
-    planName: { fontFamily: typography.bold, fontSize: 20, lineHeight: 25, fontWeight: '700', letterSpacing: -0.3, color: theme.ink },
+    planName: { flexShrink: 1, fontFamily: typography.bold, fontSize: 20, lineHeight: 25, fontWeight: '700', letterSpacing: -0.3, color: theme.ink },
     planNameInput: { flex: 1, fontFamily: typography.bold, fontSize: 20, lineHeight: 25, fontWeight: '700', letterSpacing: -0.3, color: theme.ink, paddingVertical: 0, margin: 0 },
     planCount: { ...typeScale.caption, color: theme.muted },
     moveList: { marginHorizontal: 20, marginTop: 4, overflow: 'hidden', borderWidth: 1, borderColor: theme.border, borderRadius: 16, backgroundColor: theme.surface },
