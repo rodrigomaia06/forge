@@ -36,10 +36,10 @@ export function ImportSelectionScreen({ navigation }: Props) {
   const styles = useThemedStyles(createStyles);
   const { bottom: bottomInset } = useSafeAreaInsets();
   const clearance = useForgeFloatingCtaClearance();
-  const { reload: reloadSettings } = useSettings();
-  const { reload: reloadPlans } = usePlans();
-  const { reload: reloadWorkouts } = useWorkouts();
-  const { reload: reloadExercises } = useExerciseCatalog();
+  const { reload: reloadSettings, preferences } = useSettings();
+  const { reload: reloadPlans, plans, standaloneRoutines } = usePlans();
+  const { reload: reloadWorkouts, completedWorkouts } = useWorkouts();
+  const { reload: reloadExercises, customExercises } = useExerciseCatalog();
   const { stop: stopRestTimer } = useRestTimer();
 
   const [transfer] = useState<ForgeDataTransfer | null>(() => takePendingImport());
@@ -48,9 +48,19 @@ export function ImportSelectionScreen({ navigation }: Props) {
     () => (items ? CATEGORY_META.filter((meta) => items[meta.key].length > 0) : []),
     [items],
   );
+  // Records already on this device — used to flag them and default them off, so
+  // an import adds only what's genuinely new.
+  const onDevice = useMemo<Record<ImportSelectionKey, Set<string>>>(() => ({
+    workouts: new Set(completedWorkouts.map((w) => w.id)),
+    plans: new Set(plans.map((p) => p.id)),
+    routines: new Set(standaloneRoutines.map((r) => r.id)),
+    exercises: new Set(customExercises.map((e) => e.id)),
+    workoutTypes: new Set(preferences.workoutTypes.map((t) => t.id)),
+    measurements: new Set(preferences.dailyMeasurementDefinitions.map((d) => d.id)),
+  }), [completedWorkouts, plans, standaloneRoutines, customExercises, preferences]);
   const [selection, setSelection] = useState(() => {
     const next = emptyImportSelection();
-    if (items) for (const meta of CATEGORY_META) items[meta.key].forEach((item) => next[meta.key].add(item.id));
+    if (items) for (const meta of CATEGORY_META) items[meta.key].forEach((item) => { if (!onDevice[meta.key].has(item.id)) next[meta.key].add(item.id); });
     return next;
   });
   const [expanded, setExpanded] = useState<Set<ImportSelectionKey>>(() => new Set(categories.length ? [categories[0].key] : []));
@@ -137,9 +147,9 @@ export function ImportSelectionScreen({ navigation }: Props) {
                     accessibilityLabel={`${allOn ? 'Deselect all' : 'Select all'} ${meta.title}`}
                     onPress={() => toggleAll(meta.key)}
                     hitSlop={10}
-                    style={[styles.check, { borderColor: allOn || someOn ? theme.success : theme.border, backgroundColor: allOn ? theme.success : 'transparent' }]}
+                    style={[styles.check, { borderColor: allOn || someOn ? theme.selectionIndicator : theme.border, backgroundColor: allOn ? theme.selectionIndicator : 'transparent' }]}
                   >
-                    {allOn ? <Icon name="check" size={16} color={theme.onSuccess} /> : someOn ? <View style={[styles.partial, { backgroundColor: theme.success }]} /> : null}
+                    {allOn ? <Icon name="check" size={16} color={theme.onActionPrimary} /> : someOn ? <View style={[styles.partial, { backgroundColor: theme.selectionIndicator }]} /> : null}
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
@@ -166,13 +176,14 @@ export function ImportSelectionScreen({ navigation }: Props) {
                       onPress={() => toggleItem(meta.key, item.id)}
                       style={({ pressed }) => [styles.itemRow, index === 0 && styles.itemFirst, pressed && pressedFeedback]}
                     >
-                      <View style={[styles.check, { borderColor: checked ? theme.success : theme.border, backgroundColor: checked ? theme.success : 'transparent' }]}>
-                        {checked ? <Icon name="check" size={16} color={theme.onSuccess} /> : null}
+                      <View style={[styles.check, { borderColor: checked ? theme.selectionIndicator : theme.border, backgroundColor: checked ? theme.selectionIndicator : 'transparent' }]}>
+                        {checked ? <Icon name="check" size={16} color={theme.onActionPrimary} /> : null}
                       </View>
                       <View style={styles.itemCopy}>
                         <Text style={styles.itemLabel} numberOfLines={1}>{item.label}</Text>
                         {item.sublabel ? <Text style={styles.itemSub} numberOfLines={1}>{item.sublabel}</Text> : null}
                       </View>
+                      {onDevice[meta.key].has(item.id) ? <Text style={[styles.onDeviceTag, { color: theme.textSecondary }]}>On device</Text> : null}
                     </Pressable>
                   );
                 }) : null}
@@ -237,6 +248,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     itemCopy: { flex: 1, minWidth: 0 },
     itemLabel: { ...typeScale.body, color: theme.textPrimary },
     itemSub: { ...typeScale.caption, color: theme.textSecondary, marginTop: 1 },
+    onDeviceTag: { ...typeScale.caption },
     // Rounded-square, not a full circle, so multi-select reads differently from a radio.
     check: { width: 24, height: 24, borderRadius: 7, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
     partial: { width: 10, height: 2, borderRadius: 1 },

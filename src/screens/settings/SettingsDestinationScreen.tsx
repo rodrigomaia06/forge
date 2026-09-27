@@ -417,8 +417,8 @@ function DataTransferSheet({
                       <Text style={[styles.transferOptionDetail, { color: theme.textSecondary }]}>{detail}</Text>
                     </View>
                   </View>
-                  <View style={[styles.transferCheck, { borderColor: selection[key] ? theme.success : theme.border, backgroundColor: selection[key] ? theme.success : 'transparent' }]}>
-                    {selection[key] ? <Icon name="check" size={16} color={theme.onSuccess} /> : null}
+                  <View style={[styles.transferCheck, { borderColor: selection[key] ? theme.selectionIndicator : theme.border, backgroundColor: selection[key] ? theme.selectionIndicator : 'transparent' }]}>
+                    {selection[key] ? <Icon name="check" size={16} color={theme.onActionPrimary} /> : null}
                   </View>
                 </Pressable>
               ))}
@@ -700,7 +700,7 @@ const styles = StyleSheet.create({
   shareBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
   transferOptionTitle: { ...typeScale.controlLabel },
   transferOptionDetail: { ...typeScale.caption },
-  transferCheck: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  transferCheck: { width: 24, height: 24, borderRadius: 7, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   reviewStack: { gap: 16 },
   reviewRow: { minHeight: 64, paddingHorizontal: 16, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   reviewNew: { ...typeScale.controlLabel, textAlign: 'right' },
