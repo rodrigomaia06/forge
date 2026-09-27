@@ -289,7 +289,20 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     cancelWorkout();
     returnToDashboard(null);
   };
-  const handleCancel = (): void => setDiscardConfirmationOpen(true);
+  // A blank workout the user opened but never touched (no exercises, still the
+  // default name, no note) has nothing to lose, so cancelling it should close
+  // straight away instead of interrupting with a discard confirmation.
+  const workoutUntouched =
+    activeWorkout.exercises.length === 0 &&
+    activeWorkout.name.trim() === 'Workout' &&
+    !activeWorkout.note?.trim();
+  const handleCancel = (): void => {
+    if (workoutUntouched) {
+      discardWorkout();
+      return;
+    }
+    setDiscardConfirmationOpen(true);
+  };
   const openWorkoutEditor = (): void => navigation.navigate('HistoryWorkoutEditor', { mode: 'active' });
   return (
     <AppScreen

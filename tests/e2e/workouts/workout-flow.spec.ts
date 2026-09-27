@@ -651,16 +651,24 @@ test.describe('Active workout flow', () => {
     await page.screenshot({ path: testInfo.outputPath('workout-duration-compact.png') });
   });
 
-  test('confirms before discarding an active workout', async ({ page }) => {
+  test('skips the discard prompt for an untouched workout but confirms once touched', async ({
+    page,
+  }) => {
     await page.goto('/');
+    // An untouched blank workout (no exercises, default name) has nothing to
+    // lose, so cancelling it closes straight to the Dashboard with no prompt.
     await startBlankWorkout(page);
+    await page.getByRole('button', { name: 'Cancel workout' }).click();
+    await expect(page.getByTestId('discard-live-workout-confirmation')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Start workout' })).toBeVisible();
 
+    // Once the workout is touched (an exercise added), cancelling confirms first.
+    await startEmptyWorkoutWithExercise(page);
     await page.getByRole('button', { name: 'Cancel workout' }).click();
     const confirmation = page.getByTestId('discard-live-workout-confirmation');
     await expect(confirmation).toBeVisible();
     await confirmation.getByRole('button', { name: 'Keep working out' }).click();
     await expect(confirmation).toBeHidden();
-    await expect(page.getByRole('button', { name: 'Add exercise' })).toBeVisible();
     await page.getByRole('button', { name: 'Cancel workout' }).click();
     await confirmation.getByRole('button', { name: 'Discard workout' }).click();
     await expect(page.getByRole('button', { name: 'Start workout' })).toBeVisible();
