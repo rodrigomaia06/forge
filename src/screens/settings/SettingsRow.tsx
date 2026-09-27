@@ -183,14 +183,14 @@ export function SettingsSection({
       {title ? (
         <View style={styles.sectionHeader}>
           <View style={styles.sectionHeaderTitle}>
-            {icon ? <Icon name={icon} size={16} color={theme.textSecondary} /> : null}
+            {icon ? <Icon name={icon} size={19} color={theme.textSecondary} /> : null}
             <Text style={[styles.sectionTitle, { color: theme.textPrimary }]} numberOfLines={1}>{title}</Text>
           </View>
           {info ? (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`About ${title}`}
-              hitSlop={10}
+              hitSlop={8}
               onPress={() => { lightHaptic(); setInfoOpen(true); }}
               style={({ pressed }) => [styles.sectionInfoButton, pressed && pressedFeedback]}
             >
@@ -212,6 +212,7 @@ export function SettingsSection({
           message={info}
           cancelLabel="Got it"
           confirmLabel="Got it"
+          confirmTone="neutral"
           showCancel={false}
           onCancel={() => setInfoOpen(false)}
           onConfirm={() => setInfoOpen(false)}
@@ -256,7 +257,16 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     section: { gap: 8 },
     sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginLeft: 6, marginRight: 6, marginBottom: 2 },
     sectionHeaderTitle: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1, minWidth: 0 },
-    sectionInfoButton: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+    sectionInfoButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.surfaceMuted,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+    },
     sectionTitle: { ...typeScale.sectionTitle },
     footer: { ...typeScale.caption, paddingHorizontal: 6 },
   });
