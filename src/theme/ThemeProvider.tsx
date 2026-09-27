@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useEffect, useMemo } from 'react';
-import { Appearance, Platform, useColorScheme } from 'react-native';
+import { Appearance, InteractionManager, Platform, useColorScheme } from 'react-native';
 import * as SystemUI from 'expo-system-ui';
 import { useSettings } from '../state/SettingsContext';
 import type { ChildrenProps, ForgeTheme } from '../types';
 import { darkTheme, lightTheme } from './tokens';
 import { setDashboardTheme, setWebThemeVariables } from './dashboardTheme';
+import { warmThemedStyles } from './useThemedStyles';
 
 const ForgeThemeContext = createContext<ForgeTheme>(lightTheme);
 
@@ -30,6 +31,14 @@ export function ForgeThemeProvider({ children }: ChildrenProps) {
       console.warn('Unable to update the app background', error);
     });
   }, [theme.background]);
+  useEffect(() => {
+    // Pre-build the inactive appearance's StyleSheets while the UI is idle so a
+    // later switch reuses the cache instead of rebuilding the whole tree on the
+    // switch frame. Kept off the input path via InteractionManager.
+    const inactive = theme === darkTheme ? lightTheme : darkTheme;
+    const task = InteractionManager.runAfterInteractions(() => warmThemedStyles(inactive));
+    return () => task.cancel();
+  }, [theme]);
   return <ForgeThemeContext.Provider value={theme}>{children}</ForgeThemeContext.Provider>;
 }
 
