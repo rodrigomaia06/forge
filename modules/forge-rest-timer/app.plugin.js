@@ -131,6 +131,11 @@ struct ForgeRestTimerLiveActivity: Widget {
               .font(.forgeTimer(34, relativeTo: .largeTitle).monospacedDigit())
               .multilineTextAlignment(.center)
           }
+          // Center the glyph + countdown as a group in the expanded region.
+          // Without an explicit fill+center frame the region packs its content
+          // to the leading edge, so the timer drifts off to one side under the
+          // TrueDepth camera / Dynamic Island cutout.
+          .frame(maxWidth: .infinity, alignment: .center)
         }
         DynamicIslandExpandedRegion(.bottom) {
           ForgeRestBar(state: context.state, color: context.forgeTimerTint)

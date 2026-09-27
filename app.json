@@ -47,7 +47,8 @@
           "sounds": ["./assets/sounds/alarm.wav"]
         }
       ],
-      "./modules/forge-rest-timer/app.plugin.js"
+      "./modules/forge-rest-timer/app.plugin.js",
+      "./plugins/withDisableShakeToEdit.js"
     ],
     "owner": "pristine6589"
   }
