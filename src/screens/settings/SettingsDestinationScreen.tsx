@@ -109,8 +109,15 @@ function BackupExport() {
       // the picker to those rather than everything.
       const nextSelection = incoming.selection ?? allDataTransferSelection();
       setSelection(nextSelection);
-      setInspection(null);
-      setTransferStep('import-selection');
+      if (incoming.share) {
+        // A single shared item skips the generic category grid — straight to a
+        // review of exactly what it carries.
+        setInspection(await inspectDataTransfer(incoming, nextSelection));
+        setTransferStep('import-review');
+      } else {
+        setInspection(null);
+        setTransferStep('import-selection');
+      }
     });
   };
   const reviewImport = (): void => {
@@ -352,7 +359,7 @@ function DataTransferSheet({
         title={title}
         closePosition="right"
         onClose={onClose}
-        leading={reviewing ? <ForgeBackButton accessibilityLabel="Back" onPress={onBack} /> : undefined}
+        leading={reviewing && !share ? <ForgeBackButton accessibilityLabel="Back" onPress={onBack} /> : undefined}
       />
       <ScrollView style={styles.transferScroll} contentContainerStyle={[styles.transferContent, { paddingBottom: clearance }]} showsVerticalScrollIndicator={false}>
         {share ? (

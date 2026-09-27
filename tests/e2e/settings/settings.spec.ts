@@ -333,7 +333,7 @@ test.describe('Settings', () => {
     await expect(page.getByText('Routine A', { exact: true })).toBeVisible();
   });
 
-  test('previews a shared single routine and pre-selects only its sections', async ({ page }) => {
+  test('imports a shared single routine straight from a review, skipping the category grid', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Backup & Export' }).click();
@@ -354,14 +354,13 @@ test.describe('Settings', () => {
       })),
     });
     const sheet = page.getByRole('dialog');
-    // The friendly share banner names the item.
+    // A single shared item skips the generic category grid and lands straight on
+    // the review, which names the item and shows only what it carries.
     await expect(sheet.getByText('Push Day', { exact: true })).toBeVisible();
     await expect(sheet.getByText(/Shared routine/)).toBeVisible();
-    // Only Plans is pre-selected; workouts is not part of a routine share.
-    await expect(sheet.getByRole('checkbox', { name: 'Remove Plans & routines' })).toBeChecked();
-    await expect(sheet.getByRole('checkbox', { name: 'Include Workouts' })).not.toBeChecked();
-    await sheet.getByRole('button', { name: 'Review selected data' }).click();
     await expect(sheet.getByText('Review import', { exact: true })).toBeVisible();
+    await expect(sheet.getByRole('checkbox', { name: 'Remove Plans & routines' })).toHaveCount(0);
+    await expect(sheet.getByText('Workouts', { exact: true })).toHaveCount(0);
     await sheet.getByRole('button', { name: 'Import selected data' }).click();
     await expect(page.getByTestId('data-merged-summary')).toBeVisible();
     await page.getByTestId('data-merged-summary').getByRole('button', { name: 'Done' }).click();
