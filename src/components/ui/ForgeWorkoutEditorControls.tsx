@@ -51,7 +51,6 @@ export function ForgeAttributeEditorSheet({
         title={value.original ? 'Edit attribute' : 'Add attribute'}
         onClose={undefined}
         closePosition={onDelete ? 'left' : 'right'}
-        horizontalInset={0}
         leading={<ForgeEditorBackButton onPress={onClose} />}
         trailing={onDelete ? <HeaderAction accessibilityLabel="Remove attribute" icon="trash" iconOnly tone="destructive" haptic="none" onPress={() => { errorHaptic(); onDelete(); }} /> : undefined}
       />
@@ -213,7 +212,7 @@ export function ForgeEditorBackButton({ onPress, accessibilityLabel = 'Back to e
 
 const styles = StyleSheet.create({
   editorScroll: { flexGrow: 0, flexShrink: 1 },
-  editorContent: { paddingTop: 14, paddingBottom: 24, gap: 12 },
+  editorContent: { paddingTop: 14, paddingBottom: 24, paddingHorizontal: 20, gap: 12 },
   typePickerContent: { paddingTop: 22, paddingBottom: 20 },
   attributeEditorLayout: { flexDirection: 'row', alignItems: 'stretch', gap: 12 },
   iconFieldCard: { width: 100, minWidth: 92, overflow: 'hidden' },
