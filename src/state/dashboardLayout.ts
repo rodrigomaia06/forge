@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import type { IconName } from '../types';
+
 export type DashboardTileKind =
   | 'start'
   | 'week'
@@ -95,6 +97,27 @@ export const DASHBOARD_TILE_DEFAULT_TITLE: Record<DashboardTileKind, string> = {
   measurements: 'Measurements',
   note: 'Note',
   calendar: 'Calendar',
+};
+
+/**
+ * A distinct glyph per tile kind, so the Add-tile chooser reads as a set of
+ * recognisable cards rather than a flat list of identical "+" rows.
+ */
+export const DASHBOARD_TILE_ICON: Record<DashboardTileKind, IconName> = {
+  start: 'fitness', // barbell
+  week: 'calendar', // calendar
+  'training-time': 'stopwatch', // stopwatch
+  'last-workout': 'history', // clock with a rewind arrow
+  volume: 'weight', // dumbbell
+  'rest-stats': 'clock', // clock face (NOT 'hourglass' — that glyph is a blank face)
+  'muscle-balance': 'goal', // target (NOT 'activity' — that glyph is a running person)
+  consistency: 'task-list', // checklist
+  streak: 'energy', // lightning bolt
+  'muscle-heatmap': 'temperature', // thermometer
+  measurement: 'measure', // ruler
+  measurements: 'measure', // ruler
+  note: 'comment', // lined note page
+  calendar: 'calendar', // calendar
 };
 
 /** Default settings a tile starts with, and the domain of what its gear edits. */

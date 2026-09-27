@@ -62,6 +62,7 @@ import type { WeekStripDay } from './dashboard/dashboardSummary';
 import {
   DASHBOARD_TILE_DEFAULT_SETTINGS,
   DASHBOARD_TILE_DEFAULT_TITLE,
+  DASHBOARD_TILE_ICON,
   newMeasurementsTileId,
   OPTIONAL_SINGLETON_KINDS,
   tileHasSettings,
@@ -78,7 +79,7 @@ import { useForgeDockScrollInset } from '../components/DockChrome';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
-import type { ForgeTheme, RootNavigationProp } from '../types';
+import type { ForgeTheme, IconName, RootNavigationProp } from '../types';
 
 const TILE_TEST_ID: Record<DashboardTileKind, string> = {
   start: 'dashboard-start-card',
@@ -274,12 +275,13 @@ export function DashboardScreen() {
   // Measurements card and choose which metrics it shows in its settings.
   const measurementsCardCount = layout.filter((tile) => tile.kind === 'measurements' && tile.visible).length;
   const canAddMeasurements = preferences.dailyMeasurementDefinitions.length > measurementsCardCount;
-  const addableTiles: { key: string; label: string; onPress: () => void }[] = [
+  const addableTiles: { key: string; label: string; icon: IconName; onPress: () => void }[] = [
     ...hiddenTiles
       .filter((tile) => tile.kind !== 'measurement' && tile.kind !== 'measurements')
       .map((tile) => ({
         key: tile.id,
         label: tileName(tile),
+        icon: DASHBOARD_TILE_ICON[tile.kind],
         onPress: () => addTile({ ...tile, visible: true }),
       })),
     // A Measurements card — addable more than once, capped at how many metrics
@@ -288,6 +290,7 @@ export function DashboardScreen() {
       ? [{
           key: 'add-measurements',
           label: DASHBOARD_TILE_DEFAULT_TITLE.measurements,
+          icon: DASHBOARD_TILE_ICON.measurements,
           onPress: () => addTile({ id: newMeasurementsTileId(), kind: 'measurements' as const, visible: true, settings: { ...DASHBOARD_TILE_DEFAULT_SETTINGS.measurements } }),
         }]
       : []),
@@ -295,6 +298,7 @@ export function DashboardScreen() {
     ...OPTIONAL_SINGLETON_KINDS.filter((kind) => !layout.some((tile) => tile.id === kind)).map((kind) => ({
       key: kind,
       label: DASHBOARD_TILE_DEFAULT_TITLE[kind],
+      icon: DASHBOARD_TILE_ICON[kind],
       onPress: () => addTile({ id: kind, kind, visible: true, settings: { ...DASHBOARD_TILE_DEFAULT_SETTINGS[kind] } }),
     })),
   ];
@@ -500,7 +504,7 @@ export function DashboardScreen() {
           testID="add-tile-sheet"
           actions={addableTiles.map((tile) => ({
             label: tile.label,
-            icon: 'add' as const,
+            icon: tile.icon,
             onPress: tile.onPress,
           }))}
         />
