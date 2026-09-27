@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Extrapolation,
   interpolate,
@@ -15,7 +15,7 @@ import { createActiveWorkoutStyles } from './activeWorkoutStyles';
 import { formatRest } from './activeWorkoutFormatters';
 import { lightHaptic, selectionHaptic } from './activeWorkoutFeedback';
 import type { RestTimerSheetProps } from './activeWorkoutTypes';
-import type { NativeScrollEvent } from 'react-native';
+import type { ListRenderItemInfo, NativeScrollEvent } from 'react-native';
 import { REST_DURATION_OPTIONS } from '../../domain/rest/restDurationOptions';
 import { useSynchronizedNow } from '../../domain/rest/synchronizedClock';
 
@@ -226,28 +226,20 @@ export function RestDurationPicker({
   onSelect: (duration: number) => void;
 }) {
   const styles = useThemedStyles(createActiveWorkoutStyles);
-  const pickerRef = useRef<ScrollView>(null);
+  const pickerRef = useRef<FlatList<number>>(null);
   const selectedIndex = Math.max(0, REST_DURATION_OPTIONS.indexOf(selectedDuration as typeof REST_DURATION_OPTIONS[number]));
   const lastHapticIndex = useRef(selectedIndex);
   const programmaticScroll = useRef(false);
   const rowHeight = 44;
   const scrollOffset = useSharedValue(selectedIndex * rowHeight);
   const hapticIndex = useSharedValue(selectedIndex);
-  // Defer mounting the ~115 animated wheel rows one tick so the sheet opens
-  // immediately instead of blocking the JS thread on their mount. A full-height
-  // spacer keeps the scroll position correct until the rows swap in.
-  const [rowsReady, setRowsReady] = useState(false);
-  useEffect(() => {
-    const timer = setTimeout(() => setRowsReady(true), 0);
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     if (programmaticScroll.current) return;
     lastHapticIndex.current = selectedIndex;
     scrollOffset.value = selectedIndex * rowHeight;
     hapticIndex.value = selectedIndex;
-    pickerRef.current?.scrollTo({ y: selectedIndex * rowHeight, animated: false });
+    pickerRef.current?.scrollToOffset({ offset: selectedIndex * rowHeight, animated: false });
   }, [hapticIndex, rowHeight, scrollOffset, selectedIndex]);
 
   const scrollToIndex = (index: number): void => {
@@ -257,7 +249,7 @@ export function RestDurationPicker({
     hapticIndex.value = nextIndex;
     selectionHaptic();
     onSelect(REST_DURATION_OPTIONS[nextIndex]);
-    pickerRef.current?.scrollTo({ y: nextIndex * rowHeight, animated: true });
+    pickerRef.current?.scrollToOffset({ offset: nextIndex * rowHeight, animated: true });
   };
 
   const handleScroll = useAnimatedScrollHandler({
@@ -284,11 +276,47 @@ export function RestDurationPicker({
     onSelect(REST_DURATION_OPTIONS[index]);
   };
 
+  const renderRow = ({ item: duration, index }: ListRenderItemInfo<number>) => (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Rest duration ${formatRest(duration)}`}
+      // Let a drag win: hold the press briefly so the scroll can claim
+      // the gesture instead of a tap-to-select firing mid-drag.
+      unstable_pressDelay={110}
+      onPress={() => scrollToIndex(index)}
+      style={({ pressed }) => [styles.durationRow, pressed && styles.durationRowPressed]}
+    >
+      <DurationText
+        duration={duration}
+        index={index}
+        rowHeight={rowHeight}
+        selected={index === selectedIndex}
+        scrollOffset={scrollOffset}
+      />
+    </Pressable>
+  );
+
   return (
     <View style={styles.durationPicker}>
       <View style={[styles.durationSelection, styles.pointerEventsNone]} />
-      <Animated.ScrollView
+      <Animated.FlatList
         ref={pickerRef}
+        data={REST_DURATION_OPTIONS as number[]}
+        keyExtractor={(duration) => String(duration)}
+        renderItem={renderRow}
+        // Re-render rows when the highlighted value changes so the selected row
+        // picks up its larger/centered styling.
+        extraData={selectedIndex}
+        // Fixed-height rows let the list jump straight to the selected value and
+        // window the ~115 rows: only the visible slice (plus a small buffer)
+        // mounts, so the picker shows immediately with no open-time JS stall and
+        // stays smooth while scrolling.
+        getItemLayout={(_, index) => ({ length: rowHeight, offset: rowHeight * index, index })}
+        initialScrollIndex={selectedIndex}
+        initialNumToRender={20}
+        maxToRenderPerBatch={20}
+        windowSize={9}
+        removeClippedSubviews
         showsVerticalScrollIndicator={false}
         snapToInterval={rowHeight}
         snapToAlignment="start"
@@ -306,30 +334,7 @@ export function RestDurationPicker({
           if (Math.abs(event.nativeEvent.velocity?.y ?? 0) < 0.08) handleScrollEnd(event.nativeEvent);
         }}
         onMomentumScrollEnd={(event) => handleScrollEnd(event.nativeEvent)}
-      >
-        {rowsReady ? REST_DURATION_OPTIONS.map((duration, index) => {
-          return (
-            <Pressable
-              key={duration}
-              accessibilityRole="button"
-              accessibilityLabel={`Rest duration ${formatRest(duration)}`}
-              // Let a drag win: hold the press briefly so the scroll can claim
-              // the gesture instead of a tap-to-select firing mid-drag.
-              unstable_pressDelay={110}
-              onPress={() => scrollToIndex(index)}
-              style={({ pressed }) => [styles.durationRow, pressed && styles.durationRowPressed]}
-            >
-              <DurationText
-                duration={duration}
-                index={index}
-                rowHeight={rowHeight}
-                selected={index === selectedIndex}
-                scrollOffset={scrollOffset}
-              />
-            </Pressable>
-          );
-        }) : <View style={{ height: REST_DURATION_OPTIONS.length * rowHeight }} />}
-      </Animated.ScrollView>
+      />
     </View>
   );
 }
