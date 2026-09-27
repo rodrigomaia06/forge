@@ -290,9 +290,14 @@ function mergeSummaryMessage(result: DataTransferMergeResult): string {
     .filter(([, count]) => count > 0)
     .map(([key, count]) => `${count} ${labels[key]}`);
   if (result.activeWorkoutAdded) added.push('current workout');
-  return added.length
+  const base = added.length
     ? `Added ${added.join(', ')}. Existing matching records stayed on device.`
     : 'No new records were needed. Matching records stayed on device.';
+  if (result.renamedRoutines.length) {
+    const renames = result.renamedRoutines.map(({ from, to }) => `“${from}” → “${to}”`).join(', ');
+    return `${base}\n\nRenamed to avoid duplicates: ${renames}.`;
+  }
+  return base;
 }
 
 function shareKindLabel(kind: ShareDescriptor['kind']): string {

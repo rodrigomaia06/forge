@@ -30,9 +30,13 @@ function distinctName(base: string, taken: Set<string>): string {
  * their existing plan, which keeps an import review and the written result in
  * agreement.
  */
+export type ImportRename = { from: string; to: string };
+
 export function mergeImportedPlans(
   current: PlansState,
   incoming: PlansState,
+  /** Collects the routines that had to be renamed to avoid a name clash. */
+  renamed?: ImportRename[],
 ): PlansState {
   // Rename only genuinely new incoming routines whose name collides with one
   // already on device (a matching id is an update, dropped by uniqueById below).
@@ -44,8 +48,12 @@ export function mergeImportedPlans(
     ...current.standaloneRoutines.map((routine) => normalizeName(routine.name)),
     ...current.plans.flatMap((plan) => plan.routines.map((routine) => normalizeName(routine.name))),
   ]);
-  const renameNew = (routine: WorkoutRoutine): WorkoutRoutine =>
-    currentRoutineIds.has(routine.id) ? routine : { ...routine, name: distinctName(routine.name, takenNames) };
+  const renameNew = (routine: WorkoutRoutine): WorkoutRoutine => {
+    if (currentRoutineIds.has(routine.id)) return routine;
+    const nextName = distinctName(routine.name, takenNames);
+    if (renamed && nextName !== routine.name) renamed.push({ from: routine.name, to: nextName });
+    return { ...routine, name: nextName };
+  };
   incoming = {
     plans: incoming.plans.map((plan) => ({ ...plan, routines: plan.routines.map(renameNew) })),
     standaloneRoutines: incoming.standaloneRoutines.map(renameNew),

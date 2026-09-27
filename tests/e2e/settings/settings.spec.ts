@@ -369,6 +369,44 @@ test.describe('Settings', () => {
     await expect(page.getByText('Push Day', { exact: true })).toBeVisible();
   });
 
+  test('renames an imported routine that clashes by name and reports it', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Backup & Export' }).click();
+    const importPushDay = async () => {
+      const chooserPromise = page.waitForEvent('filechooser');
+      await page.getByRole('button', { name: 'Import data' }).click();
+      const chooser = await chooserPromise;
+      await chooser.setFiles({
+        name: 'push.forge',
+        mimeType: 'application/json',
+        // No routine id, so each import gets a fresh id (a new routine, not an update).
+        buffer: Buffer.from(JSON.stringify({
+          format: 'forge-data', version: 1, exportedAt: '2026-09-13T00:00:00.000Z',
+          share: { kind: 'routine', title: 'Push Day', summary: '1 exercise' },
+          selection: { workouts: false, plans: true, exercises: false, workoutTypes: false, measurements: false },
+          settings: { workoutTypes: [], dailyMeasurementDefinitions: [], dailyMeasurementEntries: [] },
+          plans: { plans: [], standaloneRoutines: [{ name: 'Push Day', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }] },
+          workouts: { activeWorkout: null, completedWorkouts: [] }, customExercises: [],
+        })),
+      });
+      const sheet = page.getByRole('dialog');
+      await sheet.getByRole('button', { name: 'Import selected data' }).click();
+      return page.getByTestId('data-merged-summary');
+    };
+    const first = await importPushDay();
+    await expect(first).toBeVisible();
+    await first.getByRole('button', { name: 'Done' }).click();
+    const second = await importPushDay();
+    await expect(second).toContainText('Renamed to avoid duplicates');
+    await expect(second).toContainText('Push Day - imported');
+    await second.getByRole('button', { name: 'Done' }).click();
+    await page.getByRole('button', { name: 'Back to Settings' }).click();
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await expect(page.getByText('Push Day', { exact: true })).toBeVisible();
+    await expect(page.getByText('Push Day - imported', { exact: true })).toBeVisible();
+  });
+
   test('uses a Forge decision card when data transfer cannot complete', async ({ page }, testInfo) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();

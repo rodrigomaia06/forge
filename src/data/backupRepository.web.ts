@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { ExerciseCatalogItem } from './exerciseCatalog';
 import { loadCustomExercises, saveCustomExercises } from './exerciseRepository';
-import { mergeImportedPlans } from './dataTransferPlans';
+import { mergeImportedPlans, type ImportRename } from './dataTransferPlans';
 import { normalizeDataTransfer } from './dataTransferNormalization';
 import { loadPlansState, savePlansState } from './plansRepository';
 import { loadSettingsPreferences, saveSettingsPreferences } from './settingsRepository';
@@ -29,6 +29,7 @@ export type DataTransferInspection = {
 export type DataTransferMergeResult = {
   categories: Record<DataTransferCategory, number>;
   activeWorkoutAdded: boolean;
+  renamedRoutines: ImportRename[];
 };
 export type ForgeDataTransfer = {
   format: 'forge-data';
@@ -271,7 +272,8 @@ export async function mergeDataTransfer(
       ? incoming.workouts.activeWorkout
       : null;
   const custom = selection.exercises ? merge(exercises, incoming.customExercises) : exercises;
-  const mergedPlanState = selection.plans ? mergeImportedPlans(plans, incoming.plans) : plans;
+  const renamedRoutines: ImportRename[] = [];
+  const mergedPlanState = selection.plans ? mergeImportedPlans(plans, incoming.plans, renamedRoutines) : plans;
   const mergedPlans = mergedPlanState.plans;
   const mergedStandaloneRoutines = mergedPlanState.standaloneRoutines;
   const mergedSettings = {
@@ -317,6 +319,7 @@ export async function mergeDataTransfer(
         settings.dailyMeasurementEntries.length,
     },
     activeWorkoutAdded: Boolean(!workouts.activeWorkout && importedActive),
+    renamedRoutines,
   };
 }
 

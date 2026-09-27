@@ -10,7 +10,7 @@ import { loadPlansState } from './plansRepository';
 import { loadSettingsPreferences } from './settingsRepository';
 import { loadWorkoutState } from './workoutRepository';
 import { uniqueById } from './uniqueById';
-import { mergeImportedPlans } from './dataTransferPlans';
+import { mergeImportedPlans, type ImportRename } from './dataTransferPlans';
 import { normalizeDataTransfer } from './dataTransferNormalization';
 import type { PlansState, SettingsPreferences, WorkoutState } from '../types';
 import {
@@ -59,6 +59,8 @@ export type DataTransferInspection = {
 export type DataTransferMergeResult = {
   categories: Record<DataTransferCategory, number>;
   activeWorkoutAdded: boolean;
+  /** Routines renamed on import to avoid a name clash (from -> to). */
+  renamedRoutines: ImportRename[];
 };
 
 export type BackupInspection = {
@@ -329,8 +331,9 @@ export async function mergeDataTransfer(
     !completed.some((workout) => workout.id === incoming.workouts.activeWorkout?.id)
       ? incoming.workouts.activeWorkout
       : null;
+  const renamedRoutines: ImportRename[] = [];
   const mergedPlanState = selection.plans
-    ? mergeImportedPlans(currentPlans, incoming.plans)
+    ? mergeImportedPlans(currentPlans, incoming.plans, renamedRoutines)
     : currentPlans;
   const plans = mergedPlanState.plans;
   const routines = mergedPlanState.standaloneRoutines;
@@ -434,6 +437,7 @@ export async function mergeDataTransfer(
         currentSettings.dailyMeasurementEntries.length,
     },
     activeWorkoutAdded: Boolean(!currentWorkouts.activeWorkout && importedActive),
+    renamedRoutines,
   };
 }
 
