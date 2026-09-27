@@ -183,7 +183,7 @@ export function SettingsSection({
       {title ? (
         <View style={styles.sectionHeader}>
           <View style={styles.sectionHeaderTitle}>
-            {icon ? <Icon name={icon} size={19} color={theme.textSecondary} /> : null}
+            {icon ? <Icon name={icon} size={20} color={theme.textSecondary} /> : null}
             <Text style={[styles.sectionTitle, { color: theme.textPrimary }]} numberOfLines={1}>{title}</Text>
           </View>
           {info ? (
