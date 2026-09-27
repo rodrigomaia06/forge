@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { InteractionManager, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { runWhenIdle } from '../../utils/idle';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -26,11 +27,6 @@ import { SwipeableSetRow } from './SwipeableSetRow';
 import { SetDetailsCard } from './SetDetailsCard';
 import { ExerciseOptionsSheet } from './WorkoutSheets';
 import { useSettings } from '../../state/SettingsContext';
-import {
-  ExerciseInfoSheet,
-  PreviousSessionsSheet,
-  WarmupSetsSheet,
-} from './ExerciseOptionSheets';
 import type { ExerciseSectionProps } from './activeWorkoutTypes';
 import type { RootNavigationProp, WorkoutExercise, WorkoutSet } from '../../types';
 import { measurementText, trackingFieldLabel, trackingFields } from '../../domain/exercises/tracking';
@@ -79,7 +75,6 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   // A restore after a workout-detail push must reappear in place, not replay the
   // sheet's pop-up entrance. Only the return path sets this.
   const [optionsRestoreInstant, setOptionsRestoreInstant] = useState(false);
-  const [optionView, setOptionView] = useState<'history' | 'warmup' | 'info' | null>(null);
   const [removeConfirmationOpen, setRemoveConfirmationOpen] = useState(false);
   const optionTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [openSetId, setOpenSetId] = useState<string | null>(null);
@@ -123,12 +118,11 @@ export const ExerciseSection = React.memo(function ExerciseSection({
     if (restorePreviousSessions && !previousSessionPushStarted) {
       // Let the native stack's pop complete before the native modal rises
       // again, rather than making two independent surfaces compete mid-frame.
-      const interaction = InteractionManager.runAfterInteractions(() => {
+      return runWhenIdle(() => {
         setOptionsRestoreInstant(true);
         setOptionsVisible(true);
         setRestorePreviousSessions(false);
       });
-      return () => interaction.cancel();
     }
   }, [previousSessionPushStarted, restorePreviousSessions, screenIsFocused]);
 
@@ -434,7 +428,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 onEditNote={updateExercise ? (note) => updateExercise(exercise.id, { note }) : undefined}
                 onToggleOffSession={updateExercise ? () => afterOptionsClose(() => updateExercise(exercise.id, { offSession: !exercise.offSession })) : undefined}
                 onOpenPreviousSessions={() => undefined}
-                onOpenWarmupSets={canBuildWarmups ? () => afterOptionsClose(() => setOptionView('warmup')) : undefined}
+                addWarmupSets={canBuildWarmups && addWarmupSets ? (sets) => addWarmupSets(exercise.id, sets) : undefined}
                 onOpenExerciseInfo={hasExerciseInfo ? () => undefined : undefined}
                 completedWorkouts={completedWorkouts}
                 onOpenWorkout={(workoutId) => {
@@ -451,15 +445,6 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 onReplaceExercise={onReplaceExercise ? () => afterOptionsClose(() => onReplaceExercise(exercise.id)) : undefined}
               />
             )}
-            {optionView === 'warmup' && addWarmupSets ? (
-              <WarmupSetsSheet
-                visible
-                exercise={exercise}
-                workouts={completedWorkouts}
-                onClose={() => setOptionView(null)}
-                onAdd={(sets) => addWarmupSets(exercise.id, sets)}
-              />
-            ) : null}
             <ForgeConfirmationDialog
               visible={removeConfirmationOpen}
               title={`Remove ${exercise.name}?`}
@@ -516,12 +501,11 @@ export function ReadOnlyExerciseSection({
       return;
     }
     if (restorePreviousSessions && !previousSessionPushStarted) {
-      const interaction = InteractionManager.runAfterInteractions(() => {
+      return runWhenIdle(() => {
         setOptionsRestoreInstant(true);
         setOptionsVisible(true);
         setRestorePreviousSessions(false);
       });
-      return () => interaction.cancel();
     }
   }, [previousSessionPushStarted, restorePreviousSessions, screenIsFocused]);
 

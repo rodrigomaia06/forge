@@ -1,15 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import {
+  Button,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
   ForgeCard,
   ForgeSheetHeader,
   ForgeText as Text,
   ForgeTextInput as TextInput,
-  HeaderAction,
   Icon,
   pressedFeedback,
   pressedFeedbackSubtle,
@@ -22,27 +22,25 @@ import { buildWarmupPlan } from '../../domain/workouts/warmup';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import { useForgeReducedMotion } from '../../theme/motion';
+import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import type { Workout, WorkoutExercise, WorkoutSet, WorkoutSide } from '../../types';
 import { HistorySetRow } from './HistorySetRow';
 import { SetDetailsCard } from './SetDetailsCard';
 import { animateLayout } from './activeWorkoutFeedback';
 
-export function WarmupSetsSheet({
-  visible,
+export function WarmupSetsContent({
   exercise,
   workouts,
-  onClose,
   onAdd,
 }: {
-  visible: boolean;
   exercise: WorkoutExercise;
   workouts: readonly Workout[];
-  onClose: () => void;
+  /** Adds the computed ramp; the host sheet returns to its action list. */
   onAdd: (sets: readonly { weight: string; reps: string }[]) => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const reducedMotion = useForgeReducedMotion();
   const previousWorkingSet = useMemo(() => {
     const latest = findPreviousSessions(exercise, workouts)[0]?.exercise;
     return latest?.sets.find((set) => set.tag !== 'Warm Up') ?? latest?.sets[0];
@@ -51,56 +49,69 @@ export function WarmupSetsSheet({
     () => previousWorkingSet ?? exercise.sets.find((set) => set.tag !== 'Warm Up' && (set.weight || set.reps)) ?? exercise.sets[0],
     [exercise.sets, previousWorkingSet],
   );
+  // This view mounts fresh each time the warm-up option opens (keyed fragment),
+  // so it can seed its working set from state without a visibility effect.
   const [weight, setWeight] = useState(initialWorkingSet?.weight ?? '');
   const [reps, setReps] = useState(initialWorkingSet?.reps ?? '');
-  useEffect(() => {
-    if (!visible) return;
-    setWeight(initialWorkingSet?.weight ?? '');
-    setReps(initialWorkingSet?.reps ?? '');
-  }, [initialWorkingSet?.reps, initialWorkingSet?.weight, visible]);
+  // Scroll only when the ramp overflows the sheet — a short plan stays static.
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
   const plan = buildWarmupPlan(Number(weight.replace(',', '.')), Number(reps));
+  const scrollable = contentHeight > viewportHeight + 1;
   const add = (): void => {
     if (!plan.length) return;
     onAdd(plan);
-    onClose();
   };
 
   return (
-    <ForgeBottomSheet visible={visible} onClose={onClose} accessibilityLabel="Close warm-up sets">
-      <ForgeBottomSheetHandle />
-      <ForgeSheetHeader
-        title="Warm-up sets"
-        onClose={onClose}
-        closePosition="left"
-        trailing={<HeaderAction accessibilityLabel="Add warm-up sets" label="Add" icon="add" variant="primary" disabled={!plan.length} onPress={add} />}
+    <Animated.ScrollView
+      // Direct child of the sheet surface (ADR 0005): flexShrink lets it hug its
+      // content and scroll only within the surface cap. The fade lives on this
+      // scroll root, never a wrapping View, so the height chain stays intact.
+      style={styles.infoScrollView}
+      contentContainerStyle={styles.compactContent}
+      keyboardShouldPersistTaps="handled"
+      scrollEnabled={scrollable}
+      onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
+      onContentSizeChange={(_width, height) => setContentHeight(height)}
+      entering={reducedMotion ? undefined : FadeIn.duration(forgeMotion.state)}
+      exiting={reducedMotion ? undefined : FadeOut.duration(forgeMotion.feedback)}
+    >
+      <Text style={styles.sectionLabel}>Working set</Text>
+      <ForgeCard variant="base" style={styles.workingCard}>
+        <View style={styles.workingRow}>
+          <Text style={styles.workingLabel}>Weight</Text>
+          <TextInput accessibilityLabel="Working weight" value={weight} selection={{ start: weight.length, end: weight.length }} selectTextOnFocus={false} onChangeText={setWeight} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={theme.textDisabled} style={styles.workingInput} />
+          <Text style={styles.unit}>kg</Text>
+        </View>
+        <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+        <View style={styles.workingRow}>
+          <Text style={styles.workingLabel}>Reps</Text>
+          <TextInput accessibilityLabel="Working reps" value={reps} selection={{ start: reps.length, end: reps.length }} selectTextOnFocus={false} onChangeText={setReps} keyboardType="number-pad" placeholder="0" placeholderTextColor={theme.textDisabled} style={styles.workingInput} />
+          <Text style={styles.unit}>reps</Text>
+        </View>
+      </ForgeCard>
+      <Text style={styles.sectionLabel}>Warm-up sets</Text>
+      <ForgeCard variant="base" style={styles.planCard}>
+        {plan.length ? plan.map((set, index) => (
+          <View key={`${set.weight}-${set.reps}`} style={[styles.planRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
+            <Text style={styles.planIndex}>{index + 1}</Text>
+            <Text style={styles.planWeight}>{`${set.weight} kg`}</Text>
+            <Text style={[styles.planReps, { color: theme.textSecondary }]}>{`× ${set.reps}`}</Text>
+          </View>
+        )) : <Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>Enter a working weight to see a warm-up ramp.</Text>}
+      </ForgeCard>
+      <Button
+        label="Add warm-up sets"
+        accessibilityLabel="Add warm-up sets"
+        icon="check"
+        variant="outline"
+        tone={plan.length ? 'success' : 'neutral'}
+        disabled={!plan.length}
+        onPress={add}
+        style={styles.warmupAddButton}
       />
-      <ScrollView style={styles.infoScrollView} contentContainerStyle={styles.compactContent} keyboardShouldPersistTaps="handled">
-        <Text style={styles.sectionLabel}>Working set</Text>
-        <ForgeCard variant="base" style={styles.workingCard}>
-          <View style={styles.workingRow}>
-            <Text style={styles.workingLabel}>Weight</Text>
-            <TextInput accessibilityLabel="Working weight" value={weight} selection={{ start: weight.length, end: weight.length }} selectTextOnFocus={false} onChangeText={setWeight} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={theme.textDisabled} style={styles.workingInput} />
-            <Text style={styles.unit}>kg</Text>
-          </View>
-          <View style={[styles.divider, { backgroundColor: theme.divider }]} />
-          <View style={styles.workingRow}>
-            <Text style={styles.workingLabel}>Reps</Text>
-            <TextInput accessibilityLabel="Working reps" value={reps} selection={{ start: reps.length, end: reps.length }} selectTextOnFocus={false} onChangeText={setReps} keyboardType="number-pad" placeholder="0" placeholderTextColor={theme.textDisabled} style={styles.workingInput} />
-            <Text style={styles.unit}>reps</Text>
-          </View>
-        </ForgeCard>
-        <Text style={styles.sectionLabel}>Warm-up sets</Text>
-        <ForgeCard variant="base" style={styles.planCard}>
-          {plan.length ? plan.map((set, index) => (
-            <View key={`${set.weight}-${set.reps}`} style={[styles.planRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
-              <Text style={styles.planIndex}>{index + 1}</Text>
-              <Text style={styles.planWeight}>{`${set.weight} kg`}</Text>
-              <Text style={[styles.planReps, { color: theme.textSecondary }]}>{`× ${set.reps}`}</Text>
-            </View>
-          )) : <Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>Enter a working weight to see a warm-up ramp.</Text>}
-        </ForgeCard>
-      </ScrollView>
-    </ForgeBottomSheet>
+    </Animated.ScrollView>
   );
 }
 
@@ -185,6 +196,7 @@ export function ExerciseInfoContent({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const reducedMotion = useForgeReducedMotion();
   const { preferences } = useSettings();
   const detail = useMemo(() => catalogueDetail(exercise), [exercise]);
   // Only allow scrolling when the content actually overflows: a fits-on-screen
@@ -199,13 +211,16 @@ export function ExerciseInfoContent({
   const scrollable = contentHeight > viewportHeight + 1;
   // Reuse the exact Exercise Library detail card so the two read identically.
   return (
-    <ScrollView
+    <Animated.ScrollView
       testID="exercise-info-content"
       style={styles.infoScrollView}
       contentContainerStyle={styles.infoScroll}
       scrollEnabled={scrollable}
       onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
       onContentSizeChange={(_width, height) => setContentHeight(height)}
+      // Cross-fade the drill-in/back swap while the surface height eases.
+      entering={reducedMotion ? undefined : FadeIn.duration(forgeMotion.state)}
+      exiting={reducedMotion ? undefined : FadeOut.duration(forgeMotion.feedback)}
     >
       <ExerciseDetailBody
         detail={detail}
@@ -237,7 +252,7 @@ export function ExerciseInfoContent({
           </>
         ) : undefined}
       />
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 
@@ -323,7 +338,7 @@ export function PreviousSessionsContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showAll]);
 
-  return <><ScrollView
+  return <><Animated.ScrollView
     ref={scrollViewRef}
     // Hug the content and scroll only once it exceeds the sheet's own max
     // height. See docs/decisions/0005 — a maxHeight ON the ScrollView parks it
@@ -333,6 +348,9 @@ export function PreviousSessionsContent({
     nestedScrollEnabled
     onScroll={(event) => onScrollOffsetChange?.(event.nativeEvent.contentOffset.y)}
     scrollEventThrottle={16}
+    // Cross-fade the drill-in/back swap while the surface height eases.
+    entering={reducedMotion ? undefined : FadeIn.duration(forgeMotion.state)}
+    exiting={reducedMotion ? undefined : FadeOut.duration(forgeMotion.feedback)}
   >{sessions.length ? <>
     {visibleSessions.map(({ workout, exercise: sessionExercise }) => <View key={workout.id}>
       <ForgeCard testID={`previous-session-card-${workout.id}`} variant="base" style={styles.previousSessionCard}>
@@ -343,7 +361,7 @@ export function PreviousSessionsContent({
       </ForgeCard>
     </View>)}
     {!showAll && sessions.length > 3 ? <Pressable accessibilityRole="button" accessibilityLabel={`Show ${sessions.length - 3} more sessions`} onPress={revealAll} style={({ pressed }) => [styles.showMoreSessions, { backgroundColor: theme.surface }, pressed && pressedFeedbackSubtle]}><Text style={styles.showMoreText}>{`Show ${sessions.length - 3} more`}</Text></Pressable> : null}
-  </> : <View style={[styles.emptyCard, { borderColor: theme.border, backgroundColor: theme.surfaceMuted }]}><Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>No completed sessions for this exercise yet.</Text></View>}</ScrollView>{openSet ? <SetDetailsCard visible set={openSet.set} index={openSet.index} editable={false} onChange={() => undefined} onDelete={() => undefined} onDone={() => setOpenSet(null)} trackingType={openSet.trackingType} /> : null}</>;
+  </> : <View style={[styles.emptyCard, { borderColor: theme.border, backgroundColor: theme.surfaceMuted }]}><Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>No completed sessions for this exercise yet.</Text></View>}</Animated.ScrollView>{openSet ? <SetDetailsCard visible set={openSet.set} index={openSet.index} editable={false} onChange={() => undefined} onDelete={() => undefined} onDone={() => setOpenSet(null)} trackingType={openSet.trackingType} /> : null}</>;
 }
 
 function catalogueDetail(exercise: WorkoutExercise): ExerciseCatalogItem | undefined {
@@ -456,6 +474,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   planIndex: { width: 22, color: theme.slate, ...typeScale.label },
   planWeight: { flex: 1, color: theme.ink, ...typeScale.label },
   planReps: { ...typeScale.label },
+  // The warm-up confirmation lives in the scroll body, not the sheet header, so
+  // no working-set state has to lift into the host options sheet.
+  warmupAddButton: { marginTop: 2, alignSelf: 'stretch', minHeight: 48, borderRadius: 14 },
   emptyMessage: { padding: 16, ...typeScale.body },
   infoCard: { overflow: 'hidden', borderRadius: 16 },
   infoRow: { minHeight: 54, paddingHorizontal: 16, paddingVertical: 10, gap: 2 },

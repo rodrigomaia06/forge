@@ -89,6 +89,18 @@ so a `layout` transition on the content wrapper would let the surface jump to th
 final height while the content eased inside it. The surface's own `overflow:
 hidden` clips the content cleanly while the surface height eases.
 
+The content itself **cross-fades** across the swap (a hierarchical drill-in, per
+`rules/design.md` Motion — never a lateral slide). The fade goes on **each view's
+own content root** (an `Animated.ScrollView` for a scroll body, an `Animated.View`
+for a static body) via reduced-motion-aware `FadeIn`/`FadeOut`, **never on a
+wrapping `View`**: a wrapper would reintroduce the hugging intermediate that
+breaks the surface→scroll direct-child height chain below. The keyed
+`React.Fragment` already remounts each view, so its content root's `entering`/
+`exiting` fire on the swap while `animateContentLayout` eases the surface height.
+`ExerciseOptionsSheet`'s views (note / history / info / rest / warm-up) follow
+this. Warm-up is an in-place view of that sheet, not a separately presented
+sheet.
+
 ## `ForgeActionSheet` replacement views must render as direct children
 
 `ForgeActionSheet` hosts multiple views (its action list plus `replacement`

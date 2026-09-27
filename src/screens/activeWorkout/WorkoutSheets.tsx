@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Keyboard, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import {
   Button,
   ForgeActionSheet,
@@ -20,7 +21,7 @@ import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingC
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import { useForgeReducedMotion } from '../../theme/motion';
+import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import type { ExerciseCatalogItem } from '../../data/exerciseCatalog';
 import { useExerciseCatalog } from '../../state/ExerciseCatalogContext';
 import { useSettings } from '../../state/SettingsContext';
@@ -28,7 +29,7 @@ import { CompletionCheck } from './CompletionCheck';
 import { RestDurationPicker } from './RestTimer';
 import { animateLayout, animateSheetContent, lightHaptic, mediumHaptic, selectionHaptic } from './activeWorkoutFeedback';
 import type { Workout, WorkoutExercise } from '../../types';
-import { ExerciseInfoContent, PreviousSessionsContent } from './ExerciseOptionSheets';
+import { ExerciseInfoContent, PreviousSessionsContent, WarmupSetsContent } from './ExerciseOptionSheets';
 import { catalogFacets, filterCatalog, groupCatalogByPrimaryEquipment } from '../../domain/exercises/catalogSelectors';
 import { formatCatalogVariation, formatPickerPrimaryEquipment } from '../../domain/exercises/exercisePresentation';
 import { isUnilateralExercise } from '../../domain/exercises/laterality';
@@ -714,7 +715,7 @@ export function ExerciseOptionsSheet({
   onClose,
   onEditNote,
   onOpenPreviousSessions,
-  onOpenWarmupSets,
+  addWarmupSets,
   onOpenExerciseInfo,
   onOpenWorkout,
   excludeWorkoutId,
@@ -730,7 +731,8 @@ export function ExerciseOptionsSheet({
   onClose: () => void;
   onEditNote?: (note: string) => void;
   onOpenPreviousSessions?: () => void;
-  onOpenWarmupSets?: () => void;
+  /** Present when warm-up ramps apply; opens an in-place warm-up view. */
+  addWarmupSets?: (sets: readonly { weight: string; reps: string }[]) => void;
   onOpenExerciseInfo?: () => void;
   onOpenWorkout?: (workoutId: string) => void;
   excludeWorkoutId?: string;
@@ -747,7 +749,11 @@ export function ExerciseOptionsSheet({
   const styles = useThemedStyles(createStyles);
   const reducedMotion = useForgeReducedMotion();
   const { preferences, updatePreferences } = useSettings();
-  const [view, setView] = useState<'actions' | 'note' | 'history' | 'info' | 'rest' | 'rest-unilateral'>('actions');
+  const [view, setView] = useState<'actions' | 'note' | 'history' | 'info' | 'rest' | 'rest-unilateral' | 'warmup'>('actions');
+  // Cross-fade each view's content while the surface height eases (ADR 0005 /
+  // rules/design Motion): a hierarchical drill-in, never a lateral slide.
+  const viewEntering = reducedMotion ? undefined : FadeIn.duration(forgeMotion.state);
+  const viewExiting = reducedMotion ? undefined : FadeOut.duration(forgeMotion.feedback);
   const [noteDraft, setNoteDraft] = useState(exercise.note ?? '');
   const [noteHeight, setNoteHeight] = useState(156);
   const [historyShowAll, setHistoryShowAll] = useState(false);
@@ -787,10 +793,10 @@ export function ExerciseOptionsSheet({
   const commitNote = (): void => {
     onEditNote?.(noteDraft.trim());
   };
-  const openView = (nextView: 'note' | 'history' | 'info' | 'rest' | 'rest-unilateral'): void => {
-    // These destinations replace the action list in one Forge sheet. Note: this
-    // swap does not visibly animate — see docs/decisions/0005 (LayoutAnimation
-    // does not ease the Reanimated Modal surface across a key remount).
+  const openView = (nextView: 'note' | 'history' | 'info' | 'rest' | 'rest-unilateral' | 'warmup'): void => {
+    // These destinations replace the action list in one Forge sheet. The
+    // keyed-fragment remount cross-fades each view's content (its Animated root)
+    // while ForgeActionSheet's animateContentLayout eases the surface height.
     animateSheetContent(reducedMotion);
     setView(nextView);
   };
@@ -831,7 +837,7 @@ export function ExerciseOptionsSheet({
           onPress: () => openView('note'),
         }] : []),
         ...(onOpenPreviousSessions ? [{ icon: 'history' as const, label: 'Previous sessions', dismiss: false, onPress: () => openView('history') }] : []),
-        ...(onOpenWarmupSets ? [{ icon: 'temperature-sun' as const, label: 'Warm-up sets', onPress: onOpenWarmupSets }] : []),
+        ...(addWarmupSets ? [{ icon: 'temperature-sun' as const, label: 'Warm-up sets', dismiss: false, onPress: () => openView('warmup') }] : []),
         ...(onOpenExerciseInfo ? [{ icon: 'info' as const, label: 'Exercise info', dismiss: false, onPress: () => openView('info') }] : []),
         ...(!readOnly && onReplaceExercise ? [{ icon: 'replace' as const, label: 'Replace exercise', onPress: onReplaceExercise }] : []),
         ...(!readOnly && onToggleOffSession ? [{
@@ -854,11 +860,11 @@ export function ExerciseOptionsSheet({
         <React.Fragment key={view}>
           <ForgeBottomSheetHandle />
           <ForgeSheetHeader
-            title={view === 'note' ? 'Exercise note' : view === 'history' ? 'Previous sessions' : view === 'rest' ? 'Duration' : view === 'rest-unilateral' ? 'Side rest' : 'Exercise info'}
+            title={view === 'note' ? 'Exercise note' : view === 'history' ? 'Previous sessions' : view === 'rest' ? 'Duration' : view === 'rest-unilateral' ? 'Side rest' : view === 'warmup' ? 'Warm-up sets' : 'Exercise info'}
             // The Duration views drop the close X and give their right slot to
             // Default; Back returns to the info card and the sheet closes there.
             onClose={view === 'rest' || view === 'rest-unilateral' ? undefined : closeSheet}
-            closeAccessibilityLabel={`Close ${view === 'note' ? 'exercise note' : view === 'history' ? 'previous sessions' : 'exercise info'}`}
+            closeAccessibilityLabel={`Close ${view === 'note' ? 'exercise note' : view === 'history' ? 'previous sessions' : view === 'warmup' ? 'warm-up sets' : 'exercise info'}`}
             leading={
               view === 'rest' || view === 'rest-unilateral'
                 ? <ForgeEditorBackButton onPress={() => openView('info')} accessibilityLabel="Back to exercise info" />
@@ -902,24 +908,34 @@ export function ExerciseOptionsSheet({
               onToggleLeadSide={readOnly ? undefined : toggleLeadSide}
             />
           ) : null}
+          {view === 'warmup' && addWarmupSets ? (
+            <WarmupSetsContent
+              exercise={exercise}
+              workouts={completedWorkouts}
+              onAdd={(sets) => {
+                addWarmupSets(sets);
+                backToActions();
+              }}
+            />
+          ) : null}
           {view === 'rest' ? (
-            <View style={styles.restPickerContent}>
+            <Animated.View style={styles.restPickerContent} entering={viewEntering} exiting={viewExiting}>
               <RestDurationPicker
                 selectedDuration={restOverride ?? preferences.defaultRestSeconds}
                 onSelect={applyRest}
               />
-            </View>
+            </Animated.View>
           ) : null}
           {view === 'rest-unilateral' ? (
-            <View style={styles.restPickerContent}>
+            <Animated.View style={styles.restPickerContent} entering={viewEntering} exiting={viewExiting}>
               <RestDurationPicker
                 selectedDuration={unilateralRestOverride ?? preferences.defaultUnilateralRestSeconds}
                 onSelect={applyUnilateralRest}
               />
-            </View>
+            </Animated.View>
           ) : null}
           {view === 'note' && readOnly ? <ExerciseNoteView note={exercise.note ?? ''} /> : null}
-          {view === 'note' && !readOnly ? <View style={styles.exerciseNoteContent}>
+          {view === 'note' && !readOnly ? <Animated.View style={styles.exerciseNoteContent} entering={viewEntering} exiting={viewExiting}>
             <ForgeCard variant="nested" style={styles.exerciseNoteCard}>
               <TextInput
                 accessibilityLabel="Exercise note"
@@ -941,7 +957,7 @@ export function ExerciseOptionsSheet({
                 style={[styles.exerciseNoteInput, { height: noteHeight, color: theme.textPrimary }]}
               />
             </ForgeCard>
-          </View> : null}
+          </Animated.View> : null}
         </React.Fragment>
       ) : null}
     />
@@ -950,7 +966,12 @@ export function ExerciseOptionsSheet({
 
 function ExerciseNoteView({ note }: { note: string }) {
   const styles = useThemedStyles(createStyles);
-  return <View style={styles.exerciseNoteContent}><ForgeCard variant="nested" style={styles.exerciseNoteCard}><Text style={styles.readOnlyExerciseNote}>{note}</Text></ForgeCard></View>;
+  const reducedMotion = useForgeReducedMotion();
+  return <Animated.View
+    style={styles.exerciseNoteContent}
+    entering={reducedMotion ? undefined : FadeIn.duration(forgeMotion.state)}
+    exiting={reducedMotion ? undefined : FadeOut.duration(forgeMotion.feedback)}
+  ><ForgeCard variant="nested" style={styles.exerciseNoteCard}><Text style={styles.readOnlyExerciseNote}>{note}</Text></ForgeCard></Animated.View>;
 }
 
 export function WorkoutOptionsSheet({
