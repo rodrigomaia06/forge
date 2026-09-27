@@ -264,7 +264,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: theme.surfaceMuted,
-      borderWidth: StyleSheet.hairlineWidth,
+      // Circular header/sheet controls drop their outline in Dark (design.md).
+      borderWidth: theme.colorScheme === 'dark' ? 0 : StyleSheet.hairlineWidth,
       borderColor: theme.border,
     },
     sectionTitle: { ...typeScale.sectionTitle },

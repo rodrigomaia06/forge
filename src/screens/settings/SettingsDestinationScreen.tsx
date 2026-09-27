@@ -316,7 +316,7 @@ const transferCategories: Array<{ key: DataTransferCategory; title: string; deta
   { key: 'workouts', title: 'Workouts', detail: 'Completed training and the current workout', icon: 'history' },
   { key: 'plans', title: 'Plans & routines', detail: 'Your saved training structures', icon: 'layers' },
   { key: 'exercises', title: 'Custom exercises', detail: 'Exercises you created', icon: 'fitness' },
-  { key: 'workoutTypes', title: 'Workout types', detail: 'Your type library', icon: 'activity' },
+  { key: 'workoutTypes', title: 'Workout types', detail: 'Your type library', icon: 'tag' },
   { key: 'measurements', title: 'Measurements', detail: 'Definitions and entries', icon: 'measure' },
 ];
 

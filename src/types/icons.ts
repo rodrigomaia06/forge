@@ -57,6 +57,7 @@ export type IconName =
   | 'copy'
   | 'share'
   | 'sparkles'
+  | 'tag'
   | 'clipboard'
   | 'contrast'
   | 'bell'

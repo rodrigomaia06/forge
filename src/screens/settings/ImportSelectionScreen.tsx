@@ -27,7 +27,7 @@ const CATEGORY_META: { key: ImportSelectionKey; title: string; icon: IconName }[
   { key: 'plans', title: 'Plans', icon: 'layers' },
   { key: 'routines', title: 'Routines', icon: 'book' },
   { key: 'exercises', title: 'Custom exercises', icon: 'fitness' },
-  { key: 'workoutTypes', title: 'Workout types', icon: 'activity' },
+  { key: 'workoutTypes', title: 'Workout types', icon: 'tag' },
   { key: 'measurements', title: 'Measurements', icon: 'measure' },
 ];
 
@@ -116,6 +116,12 @@ export function ImportSelectionScreen({ navigation }: Props) {
           scrollEventThrottle={16}
         >
           <Text style={[styles.intro, { color: theme.textSecondary }]}>Choose exactly what to add. Records already on this device are kept.</Text>
+          {categories.length === 0 ? (
+            <View style={styles.empty}>
+              <Icon name="database-import" size={30} color={theme.textSecondary} />
+              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>This file carries no importable records.</Text>
+            </View>
+          ) : null}
           {categories.map((meta) => {
             const all = items[meta.key];
             const selected = selection[meta.key];
@@ -130,7 +136,7 @@ export function ImportSelectionScreen({ navigation }: Props) {
                     accessibilityState={{ checked: allOn }}
                     accessibilityLabel={`${allOn ? 'Deselect all' : 'Select all'} ${meta.title}`}
                     onPress={() => toggleAll(meta.key)}
-                    hitSlop={8}
+                    hitSlop={10}
                     style={[styles.check, { borderColor: allOn || someOn ? theme.success : theme.border, backgroundColor: allOn ? theme.success : 'transparent' }]}
                   >
                     {allOn ? <Icon name="check" size={16} color={theme.onSuccess} /> : someOn ? <View style={[styles.partial, { backgroundColor: theme.success }]} /> : null}
@@ -160,12 +166,12 @@ export function ImportSelectionScreen({ navigation }: Props) {
                       onPress={() => toggleItem(meta.key, item.id)}
                       style={({ pressed }) => [styles.itemRow, index === 0 && styles.itemFirst, pressed && pressedFeedback]}
                     >
+                      <View style={[styles.check, { borderColor: checked ? theme.success : theme.border, backgroundColor: checked ? theme.success : 'transparent' }]}>
+                        {checked ? <Icon name="check" size={16} color={theme.onSuccess} /> : null}
+                      </View>
                       <View style={styles.itemCopy}>
                         <Text style={styles.itemLabel} numberOfLines={1}>{item.label}</Text>
                         {item.sublabel ? <Text style={styles.itemSub} numberOfLines={1}>{item.sublabel}</Text> : null}
-                      </View>
-                      <View style={[styles.check, { borderColor: checked ? theme.success : theme.border, backgroundColor: checked ? theme.success : 'transparent' }]}>
-                        {checked ? <Icon name="check" size={16} color={theme.onSuccess} /> : null}
                       </View>
                     </Pressable>
                   );
@@ -219,16 +225,19 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     scroll: { flex: 1 },
     content: { padding: settingsLayout.screenPadding, paddingTop: settingsLayout.contentTop, gap: settingsLayout.sectionGap },
     intro: { ...typeScale.supporting, lineHeight: 20, paddingHorizontal: 6 },
+    empty: { alignItems: 'center', gap: 10, paddingVertical: 48, paddingHorizontal: 24 },
+    emptyText: { ...typeScale.supporting, textAlign: 'center' },
     categoryHeader: { minHeight: 60, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
     categoryExpand: { flex: 1, minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 12 },
     categoryCopy: { flex: 1, minWidth: 0 },
     categoryTitle: { ...typeScale.cardTitle, color: theme.textPrimary },
     categorySub: { ...typeScale.caption, color: theme.textSecondary, marginTop: 1 },
-    itemRow: { minHeight: 56, paddingHorizontal: 16, paddingLeft: 48, flexDirection: 'row', alignItems: 'center', gap: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
+    itemRow: { minHeight: 56, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
     itemFirst: { borderTopColor: theme.border },
     itemCopy: { flex: 1, minWidth: 0 },
     itemLabel: { ...typeScale.body, color: theme.textPrimary },
     itemSub: { ...typeScale.caption, color: theme.textSecondary, marginTop: 1 },
-    check: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+    // Rounded-square, not a full circle, so multi-select reads differently from a radio.
+    check: { width: 24, height: 24, borderRadius: 7, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
     partial: { width: 10, height: 2, borderRadius: 1 },
   });

@@ -131,7 +131,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
                 accessibilityRole="button"
                 accessibilityLabel="Clear search"
                 onPress={() => setQuery('')}
-                hitSlop={8}
+                hitSlop={14}
               >
                 <Icon name="close" size={18} color={theme.textSecondary} />
               </Pressable>
