@@ -11,6 +11,7 @@ import {
 
 import {
   ForgeCard,
+  ForgeConfirmationDialog,
   ForgeText as Text,
   Icon,
   lightHaptic,
@@ -159,6 +160,7 @@ export function SettingsSection({
   title,
   icon,
   footer,
+  info,
   children,
   style,
   cardStyle,
@@ -166,18 +168,35 @@ export function SettingsSection({
   title?: string;
   icon?: IconName;
   footer?: string;
+  /** Longer, non-essential explanation shown behind an (i) button instead of an
+   * always-on footer, so the screen stays uncluttered. */
+  info?: string;
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   cardStyle?: StyleProp<ViewStyle>;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const [infoOpen, setInfoOpen] = React.useState(false);
   return (
     <View style={[styles.section, style]}>
       {title ? (
         <View style={styles.sectionHeader}>
-          {icon ? <Icon name={icon} size={16} color={theme.textSecondary} /> : null}
-          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>{title}</Text>
+          <View style={styles.sectionHeaderTitle}>
+            {icon ? <Icon name={icon} size={16} color={theme.textSecondary} /> : null}
+            <Text style={[styles.sectionTitle, { color: theme.textPrimary }]} numberOfLines={1}>{title}</Text>
+          </View>
+          {info ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`About ${title}`}
+              hitSlop={10}
+              onPress={() => { lightHaptic(); setInfoOpen(true); }}
+              style={({ pressed }) => [styles.sectionInfoButton, pressed && pressedFeedback]}
+            >
+              <Icon name="info" size={17} color={theme.textSecondary} />
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
       <ForgeCard variant="base" style={cardStyle}>
@@ -185,6 +204,18 @@ export function SettingsSection({
       </ForgeCard>
       {footer ? (
         <Text style={[styles.footer, { color: theme.textSecondary }]}>{footer}</Text>
+      ) : null}
+      {info ? (
+        <ForgeConfirmationDialog
+          visible={infoOpen}
+          title={title ?? 'Details'}
+          message={info}
+          cancelLabel="Got it"
+          confirmLabel="Got it"
+          showCancel={false}
+          onCancel={() => setInfoOpen(false)}
+          onConfirm={() => setInfoOpen(false)}
+        />
       ) : null}
     </View>
   );
@@ -223,7 +254,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     leadingDivider: { left: 54 },
     framedDivider: { left: 70 },
     section: { gap: 8 },
-    sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 6, marginBottom: 2 },
+    sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginLeft: 6, marginRight: 6, marginBottom: 2 },
+    sectionHeaderTitle: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1, minWidth: 0 },
+    sectionInfoButton: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
     sectionTitle: { ...typeScale.sectionTitle },
     footer: { ...typeScale.caption, paddingHorizontal: 6 },
   });
