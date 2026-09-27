@@ -141,7 +141,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
           <SettingsSection
             title="Appearance"
             icon="contrast"
-            footer="Dark and System are beta while the visual migration is completed."
+            info="Dark and System are beta while the visual migration is completed."
           >
             <SettingsRow
               title="Appearance"
@@ -160,7 +160,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
           <SettingsSection
             title="Units"
             icon="measure"
-            footer="Applies to every weight shown across Forge."
+            info="Applies to every weight shown across Forge."
           >
             <Choice
               title="Metric (kg)"
@@ -179,7 +179,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
           <SettingsSection
             title="Bodyweight"
             icon="weight"
-            footer="Stored locally as your bodyweight reference. Leave empty to keep it unset."
+            info="Stored locally as your bodyweight reference. Leave empty to keep it unset."
           >
             <SettingsRow
               title="Bodyweight"
@@ -266,7 +266,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
           </SettingsSection>
           )}
           {matches('rest timer alert', 'sound', 'haptic', 'vibration', 'alert') && (
-          <SettingsSection title="Rest timer alert" icon="bell" footer="At the end of a rest, Forge can alert you in-app and on your locked device.">
+          <SettingsSection title="Rest timer alert" icon="bell" info="At the end of a rest, Forge can alert you in-app and on your locked device.">
             <Toggle
               title="Sound"
               value={preferences.restTimerSound}
@@ -284,7 +284,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
           <SettingsSection
             title="Reminders"
             icon="bell-ringing"
-            footer="Forge sends one local reminder while an unfinished workout remains open."
+            info="Forge sends one local reminder while an unfinished workout remains open."
           >
             <Toggle
               title="Unfinished workout reminder"

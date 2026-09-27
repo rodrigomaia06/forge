@@ -22,7 +22,7 @@ test.describe('Core flow: history and data', () => {
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Backup & Export' }).click();
     const chooserPromise = page.waitForEvent('filechooser');
-    await page.getByRole('button', { name: 'Import JSON' }).click();
+    await page.getByRole('button', { name: 'Import data' }).click();
     const chooser = await chooserPromise;
     await chooser.setFiles({
       name: 'ordered-forge-import.json',

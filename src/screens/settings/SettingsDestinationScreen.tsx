@@ -177,37 +177,23 @@ function BackupExport() {
       <SettingsSection
         title="Data transfer"
         icon="database-export"
-        footer={`${history.lastExportAt ? `Last export ${relativeTime(history.lastExportAt)}. ` : ''}Portable JSON adds data without replacing your current workouts. Text is a read-only summary for sharing.`}
+        info="Export data writes a portable .forge file that adds to another device without replacing anything. Export summary is a read-only text overview. Import accepts .forge files only."
+        footer={history.lastExportAt ? `Last export ${relativeTime(history.lastExportAt)}.` : undefined}
       >
-        <Action title="Export JSON" divider onPress={() => { setSelection(allDataTransferSelection()); setTransferStep('export-json'); }} />
-        <Action title="Export text" divider onPress={() => { setSelection(allDataTransferSelection()); setTransferStep('export-text'); }} />
-        <View style={styles.importRow}>
-          <Action title="Import JSON" disclosure={false} style={styles.importAction} onPress={importData} />
-          <View
-            testID="json-import-info-placeholder"
-            accessible={false}
-            pointerEvents="none"
-            style={[
-              styles.importInfoPlaceholder,
-              {
-                backgroundColor: theme.colorScheme === 'dark' ? theme.surfaceMuted : theme.surface,
-                borderColor: theme.border,
-              },
-            ]}
-          >
-            <Icon name="info" size={20} color={theme.textSecondary} />
-          </View>
-        </View>
+        <Action title="Export data" divider onPress={() => { setSelection(allDataTransferSelection()); setTransferStep('export-json'); }} />
+        <Action title="Export summary" divider onPress={() => { setSelection(allDataTransferSelection()); setTransferStep('export-text'); }} />
+        <Action title="Import data" onPress={importData} />
       </SettingsSection>
       <SettingsSection
         title="Database backup"
         icon="save"
+        info="A complete Forge .sqlite file includes WAL changes. Restoring it replaces everything on this device after validating the file and keeping an in-app safety copy."
         footer={Platform.OS === 'web'
-          ? 'Full SQLite backup and restore are available in iOS and Android builds.'
-          : `${history.lastSqliteBackupAt ? `Last backup ${relativeTime(history.lastSqliteBackupAt)}. ` : 'No SQLite backup yet. '}A complete Forge .sqlite file includes WAL changes. Restore validates it first and creates an in-app safety copy.`}
+          ? 'Full backup and restore are available in the iOS and Android builds.'
+          : history.lastSqliteBackupAt ? `Last backup ${relativeTime(history.lastSqliteBackupAt)}.` : 'No backup yet.'}
       >
-        <Action title="Create SQLite backup" divider disabled={Platform.OS === 'web'} onPress={() => void run(async () => { await createSqliteBackup(); await recordBackupEvent('sqlite-backup'); await recordDiagnostic('backup-created'); reloadHistory(); })} />
-        <Action title="Restore SQLite backup" divider disabled={Platform.OS === 'web'} onPress={restore} />
+        <Action title="Create backup" divider disabled={Platform.OS === 'web'} onPress={() => void run(async () => { await createSqliteBackup(); await recordBackupEvent('sqlite-backup'); await recordDiagnostic('backup-created'); reloadHistory(); })} />
+        <Action title="Restore backup" divider disabled={Platform.OS === 'web'} onPress={restore} />
         <Action title="Delete all app data" destructive onPress={erase} />
       </SettingsSection>
       {busy ? <Text style={styles.unavailable}>Working securely with local data…</Text> : null}
@@ -496,7 +482,7 @@ function Logs() {
   const visible = filter === 'all' ? entries : entries.filter((entry) => entry.kind === filter);
   const filterLabel = logFilterOptions.find((option) => option.value === filter)?.label ?? 'All events';
   return <View style={styles.stack}>
-    <SettingsSection title="Local diagnostics" icon="info" footer="Logs are private to this device and limited to 80 technical events. They never contain workout names, exercises, values, notes or identifiers.">
+    <SettingsSection title="Local diagnostics" info="Logs are private to this device and limited to 80 technical events. They never contain workout names, exercises, values, notes or identifiers.">
       <Text style={styles.copy}>{status}</Text>
     </SettingsSection>
     <SettingsSection title="Recent events">
@@ -665,9 +651,6 @@ const styles = StyleSheet.create({
     paddingBottom: settingsLayout.contentBottom,
   },
   stack: { gap: settingsLayout.sectionGap },
-  importRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center' },
-  importAction: { flex: 1 },
-  importInfoPlaceholder: { width: 44, height: 44, marginRight: 12, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   transferSheet: { maxHeight: '82%' },
   // Hug-then-scroll (ADR 0005): the body sizes to content and scrolls within the
   // sheet's maxHeight cap rather than parking high with dead space beneath.
