@@ -180,6 +180,7 @@ export function ForgeAttributeRow({
   value,
   showDivider = false,
   flush = false,
+  compact = false,
 }: {
   icon: IconName;
   label: string;
@@ -187,12 +188,15 @@ export function ForgeAttributeRow({
   showDivider?: boolean;
   /** Drop the row's own horizontal inset when the container already pads. */
   flush?: boolean;
+  /** A denser row for compact display surfaces like the workout summary card. */
+  compact?: boolean;
 }) {
   const theme = useForgeTheme();
   return (
     <View
       style={[
         styles.attributeReadRow,
+        compact && styles.attributeReadRowCompact,
         flush && styles.attributeReadRowFlush,
         showDivider && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
       ]}
@@ -276,7 +280,8 @@ const styles = StyleSheet.create({
   swipeAttributeContent: { zIndex: 1 },
   attributeDeleteAction: { position: 'absolute', top: 0, right: 0, bottom: 0, width: 56 },
   attributeDeleteButton: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  attributeReadRow: { minHeight: 44, paddingHorizontal: 16, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  attributeReadRow: { minHeight: 56, paddingHorizontal: 16, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  attributeReadRowCompact: { minHeight: 44 },
   attributeReadRowFlush: { paddingHorizontal: 0 },
   attributeReadLabel: { flexShrink: 1, ...typeScale.body },
   attributeReadValue: { flex: 1, minWidth: 0, textAlign: 'right', ...typeScale.body },

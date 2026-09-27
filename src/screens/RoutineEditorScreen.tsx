@@ -485,18 +485,11 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                   }}
                   style={({ pressed }) => [
                     styles.typeRow,
-                    viewing && styles.viewTypeRow,
                     !viewing && pressed && styles.pressed,
                   ]}
                 >
                   <Text style={styles.typeLabel}>Type</Text>
-                  <View
-                    style={[
-                      styles.typeSelection,
-                      viewing && styles.viewTypeSelection,
-                      styles.pointerEventsNone,
-                    ]}
-                  >
+                  <View style={[styles.typeSelection, styles.pointerEventsNone]}>
                     <View
                       style={[
                         styles.typeDot,
@@ -910,9 +903,10 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       borderBottomColor: theme.divider,
     },
     headerTitleWrap: { position: 'absolute', left: 74, right: 74, alignItems: 'center' },
-    // Clear the wider leading pill (Cancel + options) in edit mode so the
-    // centered title never underlaps it.
-    headerTitleWrapWide: { left: 112 },
+    // Edit mode's leading pill (Cancel + options) is wider than the trailing
+    // Save, so inset both sides equally to clear it — keeping the title centered
+    // on the screen instead of shifted toward the narrower side.
+    headerTitleWrapWide: { left: 112, right: 112 },
     pointerEventsNone: { pointerEvents: 'none' },
     headerTitle: { ...typeScale.headerTitle, color: theme.ink },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -927,7 +921,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     nameInput: {
       ...typeScale.body,
       color: theme.ink,
-      minHeight: 52,
+      minHeight: 56,
       paddingHorizontal: 16,
       paddingVertical: 0,
     },
@@ -938,7 +932,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     noteInput: {
       ...typeScale.body,
       color: theme.ink,
-      minHeight: 52,
+      minHeight: 56,
       maxHeight: 144,
       paddingHorizontal: 16,
       paddingVertical: 15,
@@ -946,30 +940,23 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       textAlign: 'left',
     },
     divider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.divider },
+    // Edit and view share one row layout: the label on the left and the type
+    // value on the right (before the edit-only chevron), so the two modes read
+    // identically instead of the editor stacking the value under the label.
     typeRow: {
       minHeight: 56,
       paddingHorizontal: 16,
       paddingVertical: 7,
-      justifyContent: 'center',
-      gap: 2,
-    },
-    viewTypeRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
       gap: 12,
     },
     typeDot: { width: 12, height: 12, borderRadius: 6 },
-    typeSelection: { minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 9 },
-    viewTypeSelection: { flex: 1, justifyContent: 'flex-end' },
+    typeSelection: { minWidth: 0, flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 9 },
     typeValue: { ...typeScale.body, color: theme.ink, flexShrink: 1 },
     typeChevron: {
-      position: 'absolute',
-      right: 8,
-      top: 6,
-      width: 44,
-      height: 44,
-      alignItems: 'center',
+      width: 24,
+      alignItems: 'flex-end',
       justifyContent: 'center',
     },
     typePicker: { maxHeight: '84%', paddingBottom: 24 },

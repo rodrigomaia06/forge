@@ -198,9 +198,10 @@ test.describe('Plans and routines', () => {
       page.getByRole('button', { name: 'Workout type, Strength' }).boundingBox(),
       page.getByLabel('Routine note').boundingBox(),
     ]);
-    expect(nameBox?.height).toBeCloseTo(52, 0);
+    // The identity-card rows share one height so the boxes read as a set.
+    expect(nameBox?.height).toBeCloseTo(56, 0);
     expect(typeBox?.height).toBeCloseTo(56, 0);
-    expect(noteBox?.height).toBeCloseTo(52, 0);
+    expect(noteBox?.height).toBeCloseTo(56, 0);
     await expect(page.getByRole('button', { name: 'Save routine' })).toBeDisabled();
     await typeRoutineName(page, 'Upper body');
     await expect(page.getByRole('button', { name: 'Start Upper body' })).toHaveCount(0);

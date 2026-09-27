@@ -96,6 +96,7 @@ export function WorkoutSummaryCard({
               label={metadata[0].label}
               value={metadata[0].value}
               flush
+              compact
             />
           </> : null}
 
@@ -126,6 +127,7 @@ export function WorkoutSummaryCard({
                     label={item.label}
                     value={item.value}
                     showDivider={index > 0}
+                    compact
                   />
                 ))}
               </ForgeCard>
