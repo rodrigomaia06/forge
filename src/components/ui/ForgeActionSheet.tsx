@@ -49,6 +49,14 @@ interface ForgeActionSheetProps {
   waitForContentLayoutBeforeEnter?: boolean;
   /** Present the next entrance already open (restore after a screen push). */
   enterInstant?: boolean;
+  /**
+   * Ease the surface height when the body swaps between views. Defaults on
+   * (except when measuring before entry). Turn off for multi-view sheets whose
+   * views differ a lot in height: the Reanimated `layout` transition can fail to
+   * shrink the surface back on a native Modal, leaving dead space under a
+   * shorter view.
+   */
+  animateContentLayout?: boolean;
 }
 
 /** Shared Forge presentation for bottom-attached action lists. */
@@ -69,6 +77,7 @@ export function ForgeActionSheet({
   replacement = null,
   waitForContentLayoutBeforeEnter = false,
   enterInstant = false,
+  animateContentLayout,
 }: ForgeActionSheetProps) {
   const theme = useForgeTheme();
   const neutralActions = actions.filter((action) => (action.tone ?? 'neutral') === 'neutral');
@@ -90,8 +99,9 @@ export function ForgeActionSheet({
       // Ease the sheet height when the body swaps between the action list and a
       // replacement view (note / info / history / rest). Skipped for sheets that
       // measure before entering, whose post-mount measurement would otherwise
-      // animate on open.
-      animateContentLayout={!waitForContentLayoutBeforeEnter}
+      // animate on open, or when a caller opts out (views too different in height
+      // for the Modal's layout transition to shrink back reliably).
+      animateContentLayout={animateContentLayout ?? !waitForContentLayoutBeforeEnter}
     >
       {(close) => (
         <View style={[styles.sheet, emphasis === 'prominent' && styles.prominentSheet]}>

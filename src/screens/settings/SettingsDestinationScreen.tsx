@@ -334,7 +334,7 @@ function DataTransferSheet({
         onClose={onClose}
         leading={reviewing ? <ForgeBackButton accessibilityLabel="Back" onPress={onBack} /> : undefined}
       />
-      <ScrollView contentContainerStyle={[styles.transferContent, { paddingBottom: clearance }]} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.transferScroll} contentContainerStyle={[styles.transferContent, { paddingBottom: clearance }]} showsVerticalScrollIndicator={false}>
         {reviewing ? (
           <ImportReview inspection={inspection} selection={selection} />
         ) : (
@@ -537,6 +537,9 @@ const styles = StyleSheet.create({
   importAction: { flex: 1 },
   importInfoPlaceholder: { width: 44, height: 44, marginRight: 12, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   transferSheet: { maxHeight: '82%' },
+  // Hug-then-scroll (ADR 0005): the body sizes to content and scrolls within the
+  // sheet's maxHeight cap rather than parking high with dead space beneath.
+  transferScroll: { flexShrink: 1 },
   transferContent: { paddingHorizontal: 20, paddingTop: 10, gap: 16 },
   transferIntro: { ...typeScale.supporting, lineHeight: 20 },
   transferOption: { minHeight: 68, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },

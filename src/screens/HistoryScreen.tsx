@@ -452,7 +452,7 @@ function HistoryFilterSheet({
 function HistoryFilterSummary({ filters, onOpenTypes, onOpenDates }: { filters: HistoryFilterState; onOpenTypes: () => void; onOpenDates: () => void }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  return <ScrollView testID="history-filter-summary" contentContainerStyle={styles.historyFilterSummary} showsVerticalScrollIndicator={false}>
+  return <ScrollView testID="history-filter-summary" style={styles.historyFilterShrink} contentContainerStyle={styles.historyFilterSummary} showsVerticalScrollIndicator={false}>
     <View style={[styles.historyFilterCard, { backgroundColor: theme.surface }]}>
       <HistoryFilterRow icon="layers" title="Workout type" summary={filters.types.length ? (filters.types.length === 1 ? filters.types[0] : `${filters.types.length} selected`) : 'Any'} onPress={onOpenTypes} />
       <View style={[styles.historyFilterDivider, styles.historyFilterSummaryDivider, { backgroundColor: theme.divider }]} />
@@ -479,7 +479,7 @@ function HistoryDateRangeControls({ filters, onSetMode, onPreviousMonth, onNextM
     { value: 'month', label: 'Month', description: 'Choose one calendar month' },
     { value: 'dates', label: 'Custom dates', description: 'Choose a start and end date' },
   ];
-  return <ScrollView contentContainerStyle={styles.historyDateControls} showsVerticalScrollIndicator={false}>
+  return <ScrollView style={styles.historyFilterShrink} contentContainerStyle={styles.historyDateControls} showsVerticalScrollIndicator={false}>
     <View testID="history-filter-date-mode" style={[styles.historyFilterCard, { backgroundColor: theme.surface }]}>
       {modes.map((mode, index) => {
         const selected = filters.dateMode === mode.value;
@@ -733,6 +733,9 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   historyFilterSheetTall: { alignSelf: 'stretch', height: 620 },
   historyFilterClear: { minHeight: 38, paddingHorizontal: 12, borderRadius: 14 },
   historyFilterScroll: { flex: 1, minHeight: 0 },
+  // Hug-then-scroll (ADR 0005) for the summary/date views whose sheet hugs its
+  // content under a maxHeight cap (not the definite-height "…Tall" variant).
+  historyFilterShrink: { flexShrink: 1 },
   historyFilterContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 28, gap: 10 },
   historyDatePickerContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 28 },
   historyFilterSummary: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 96 },
