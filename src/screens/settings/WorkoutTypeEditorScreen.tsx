@@ -1,7 +1,7 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import type { NavigationAction } from '@react-navigation/native';
+import { usePreventRemove, type NavigationAction } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import {
@@ -59,7 +59,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
       }
     : null;
   const [draft, setDraft] = useState<WorkoutTypePreference | null>(initialDraft);
-  const confirmedDraftDiscard = useRef(false);
+  const [canLeave, setCanLeave] = useState(false);
   const storedParams = 'workoutTypeId' in route.params ? route.params : null;
   const storedType = storedParams
     ? preferences.workoutTypes.find((item) => item.id === storedParams.workoutTypeId)
@@ -107,6 +107,12 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
     creating && draft !== null && initialDraft !== null
       ? draft.name !== initialDraft.name || draft.color !== initialDraft.color
       : false;
+  // Defer the actual navigation until after the guard is lifted, matching the
+  // routine and history editors' discard flow.
+  const leave = (action: () => void): void => {
+    setCanLeave(true);
+    setTimeout(action, 0);
+  };
   const discardDraft = (): void => {
     if (draftChanged) {
       setDiscardConfirmationOpen(true);
@@ -116,22 +122,16 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
     navigation.goBack();
   };
 
-  useEffect(() => {
-    if (!creating || !draftChanged) return undefined;
-    return navigation.addListener('beforeRemove', (event) => {
-      if (confirmedDraftDiscard.current) return;
-      event.preventDefault();
-      pendingDiscardActionRef.current = event.data.action;
-      setDiscardConfirmationOpen(true);
-    });
-  }, [creating, draftChanged, navigation]);
+  usePreventRemove(creating && draftChanged && !canLeave, ({ data }) => {
+    pendingDiscardActionRef.current = data.action;
+    setDiscardConfirmationOpen(true);
+  });
   const saveDraft = (): void => {
     const name = draft?.name.trim() ?? '';
     if (!draft || !name) return;
     updatePreferences({ workoutTypes: [...preferences.workoutTypes, { ...draft, name }] });
     successHaptic();
-    confirmedDraftDiscard.current = true;
-    navigation.goBack();
+    leave(() => navigation.goBack());
   };
   const mustHide = type.source === 'builtIn' || type.hasReferencedData || referenced;
   const destructiveLabel = type.hidden ? 'Unhide type' : mustHide ? 'Hide type' : 'Delete type';
@@ -367,11 +367,12 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
           onConfirm={() => {
             const pendingAction = pendingDiscardActionRef.current;
             pendingDiscardActionRef.current = null;
-            confirmedDraftDiscard.current = true;
             setDiscardConfirmationOpen(false);
             lightHaptic();
-            if (pendingAction) navigation.dispatch(pendingAction);
-            else navigation.goBack();
+            leave(() => {
+              if (pendingAction) navigation.dispatch(pendingAction);
+              else navigation.goBack();
+            });
           }}
           testID="discard-workout-type-confirmation"
         />
