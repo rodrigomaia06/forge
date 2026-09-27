@@ -804,10 +804,10 @@ function PlanCard({
   ) : (
     <View style={[styles.planHeader, styles.planOptions]}>
       <View style={styles.planHeadText}>
-        <Text style={styles.planName} numberOfLines={1}>{plan.name}</Text>
         {description ? (
           <Text style={styles.planDescription} numberOfLines={2}>{description}</Text>
         ) : null}
+        <Text style={styles.planName} numberOfLines={1}>{plan.name}</Text>
       </View>
       <Pressable
         testID={`plan-options-${plan.id}`}
