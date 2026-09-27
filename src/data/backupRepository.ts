@@ -78,17 +78,21 @@ function filename(extension: string): string {
 function dateStamp(): string {
   return new Date().toISOString().slice(0, 10);
 }
-/** Filesystem-safe, human name (spaces kept, illegal characters dropped). */
-function sanitizeName(name: string): string {
-  return name.replace(/[\\/:*?"<>|\u0000-\u001F]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
+/**
+ * A readable, URL-safe filename slug. Spaces and punctuation become single
+ * underscores — a share file URI with raw spaces fails to load on iOS, so the
+ * shared name must avoid them.
+ */
+function slug(name: string): string {
+  return name.replace(/[^\p{L}\p{N}]+/gu, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60);
 }
 /** A `.forge` filename that says what the file holds, not a timestamp blob. */
 function shareFilename(transfer: ForgeDataTransfer): string {
   if (transfer.share) {
-    const base = sanitizeName(transfer.share.title) || transfer.share.kind;
-    return `${base} (${transfer.share.kind}).forge`;
+    const base = slug(transfer.share.title) || transfer.share.kind;
+    return `${base}_${transfer.share.kind}.forge`;
   }
-  return `Forge export ${dateStamp()}.forge`;
+  return `Forge_export_${dateStamp()}.forge`;
 }
 
 async function shareFile(file: File, mimeType: string): Promise<void> {
@@ -158,7 +162,7 @@ export async function exportText(selection = allDataTransferSelection()): Promis
     `Plans: ${transfer.plans.plans.length}`,
     `Custom exercises: ${transfer.customExercises.length}`,
   ];
-  await shareFile(cacheFile(`Forge summary ${dateStamp()}.txt`, lines.join('\n')), 'text/plain');
+  await shareFile(cacheFile(`Forge_summary_${dateStamp()}.txt`, lines.join('\n')), 'text/plain');
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

@@ -18,7 +18,7 @@ import { ReadOnlyExerciseSection } from './activeWorkout/ExerciseSection';
 import { useWorkouts } from '../state/WorkoutContext';
 import { exercisesWithHistoricalPrevious } from '../domain/workouts/nextSessionTargets';
 import { useSettings } from '../state/SettingsContext';
-import { shareItem } from '../utils/shareItem';
+import { shareItemFromSheet } from '../utils/shareItem';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
@@ -127,7 +127,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
           title={workout.name}
           titleNumberOfLines={1}
           actions={[
-            { label: 'Share workout', icon: 'share', onPress: () => shareItem({ kind: 'workout', id: workout.id }) },
+            { label: 'Share workout', icon: 'share', onPress: () => shareItemFromSheet({ kind: 'workout', id: workout.id }) },
             { label: 'Edit workout', icon: 'note', onPress: () => navigation.navigate('HistoryWorkoutEditor', { mode: 'edit', workoutId: workout.id }) },
             { label: 'Delete workout', icon: 'trash', tone: 'destructive', onPress: () => setConfirmDelete(true) },
           ]}
