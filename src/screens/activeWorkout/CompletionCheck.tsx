@@ -74,17 +74,21 @@ export function CompletionCheck({
  * Two-step completion for a unilateral set, occupying the exact same 44pt column
  * as every other set's single check. Both sides share the set's inputs, so this
  * only tracks order: the first tap fills the check halfway (one side done), the
- * second fills it fully (both done). A further tap clears it. No left/right is
- * imposed — do whichever side first.
+ * second fills it fully (both done). A further tap clears it. The half-fill sits
+ * on the leading side (the side completed first), so the filled half tells the
+ * user which side is already done.
  */
 export function SplitCompletionCheck({
   done,
+  leadSide = 'left',
   onAdvance,
   accessibilityLabel,
   testID,
 }: {
   /** Number of sides completed: 0, 1, or 2. */
   done: number;
+  /** Side completed first; the half-fill mirrors it. */
+  leadSide?: 'left' | 'right';
   onAdvance: () => void;
   accessibilityLabel: string;
   testID?: string;
@@ -104,7 +108,7 @@ export function SplitCompletionCheck({
     >
       <View style={[styles.splitVisual, complete && styles.success, half && styles.sideProgress]}>
         {complete ? <Icon name="check" size={17} color={theme.surface} /> : null}
-        {half ? <View style={styles.halfFill} /> : null}
+        {half ? <View style={[styles.halfFill, leadSide === 'right' ? styles.halfFillRight : styles.halfFillLeft]} /> : null}
       </View>
     </Pressable>
   );
@@ -140,8 +144,11 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     borderWidth: 1.5,
     borderColor: dashboardTheme.slate,
   },
-  // One side done: green ring with the left half filled, reading as "half done".
+  // One side done: green ring with one half filled, reading as "half done". The
+  // filled half is the leading side, so it names which side is already complete.
   sideProgress: { borderColor: dashboardTheme.success },
-  halfFill: { position: 'absolute', top: 0, bottom: 0, left: 0, width: '50%', backgroundColor: dashboardTheme.success },
+  halfFill: { position: 'absolute', top: 0, bottom: 0, width: '50%', backgroundColor: dashboardTheme.success },
+  halfFillLeft: { left: 0 },
+  halfFillRight: { right: 0 },
   });
 };

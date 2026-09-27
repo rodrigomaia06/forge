@@ -295,6 +295,7 @@ export function SetRow({
             <SplitCompletionCheck
               testID={`set-split-check-${index + 1}`}
               done={sidesDone}
+              leadSide={leadSide}
               accessibilityLabel={unilateralLabel}
               onAdvance={handleUnilateralAdvance}
             />
