@@ -11,6 +11,8 @@ export type IconName =
   | 'layers'
   | 'layers-outline'
   | 'book'
+  | 'notes'
+  | 'notes-off'
   | 'play'
   | 'time'
   | 'time-outline'

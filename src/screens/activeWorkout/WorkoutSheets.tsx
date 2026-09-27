@@ -717,6 +717,7 @@ export function ExerciseOptionsSheet({
   completedWorkouts = [],
   onRemove,
   onReplaceExercise,
+  onToggleOffSession,
   enterInstant = false,
 }: {
   visible: boolean;
@@ -732,6 +733,8 @@ export function ExerciseOptionsSheet({
   completedWorkouts?: readonly Workout[];
   onRemove?: () => void;
   onReplaceExercise?: () => void;
+  /** Toggle the per-exercise off-session stamp (kept in history, counts for nothing). */
+  onToggleOffSession?: () => void;
   /** Restore the sheet already open when returning from a pushed workout. */
   enterInstant?: boolean;
 }) {
@@ -809,6 +812,14 @@ export function ExerciseOptionsSheet({
         ...(onOpenWarmupSets ? [{ icon: 'temperature-sun' as const, label: 'Warm-up sets', onPress: onOpenWarmupSets }] : []),
         ...(onOpenExerciseInfo ? [{ icon: 'info' as const, label: 'Exercise info', dismiss: false, onPress: () => openView('info') }] : []),
         ...(!readOnly && onReplaceExercise ? [{ icon: 'replace' as const, label: 'Replace exercise', onPress: onReplaceExercise }] : []),
+        ...(!readOnly && onToggleOffSession ? [{
+          icon: exercise.offSession ? ('notes' as const) : ('notes-off' as const),
+          label: exercise.offSession ? 'Count in session' : 'Mark off-session',
+          accessibilityLabel: exercise.offSession
+            ? `Count ${exercise.name} in this session`
+            : `Mark ${exercise.name} as done off-session`,
+          onPress: onToggleOffSession,
+        }] : []),
         ...(!readOnly && onRemove ? [{
           icon: 'trash' as const,
           label: 'Remove exercise',

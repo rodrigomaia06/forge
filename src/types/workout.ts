@@ -39,11 +39,19 @@ export interface WorkoutExercise {
   metric?: ExerciseSetMetric;
   exerciseSnapshot?: ExerciseSnapshot;
   trackingType?: TrackingType;
+  /**
+   * Marked as done outside the tracked session (the per-exercise counterpart of
+   * a workout's off-plan flag). It stays in history for the record but is
+   * excluded from every stat and from next/previous-session data — it counts for
+   * nothing beyond being visible.
+   */
+  offSession?: boolean;
   sets: WorkoutSet[];
 }
 /** Editable fields that belong to an exercise rather than an individual set. */
 export interface WorkoutExerciseChanges {
   note?: string;
+  offSession?: boolean;
 }
 export type TrackingType = 'weight-reps' | 'bodyweight-reps' | 'weighted-bodyweight' | 'assisted-bodyweight' | 'reps-only' | 'duration' | 'duration-weight' | 'distance-duration' | 'weight-distance';
 export interface ExerciseVariationFacets {

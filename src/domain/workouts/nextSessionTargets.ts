@@ -18,7 +18,7 @@ export function exercisesWithHistoricalPrevious(
   if (!priorHistory.length) return workout.exercises;
   return workout.exercises.map((exercise) => {
     const trackingType = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType;
-    const previousSets = latestSetsForExercise(exercise, priorHistory);
+    const previousSets = latestSetsForExercise(exercise, priorHistory, true);
     if (!previousSets) return exercise;
     return {
       ...exercise,
@@ -50,7 +50,7 @@ export function exercisesWithAddedPrevious(
   if (!history.length) return exercises as WorkoutExercise[];
   return exercises.map((exercise) => {
     const trackingType = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType;
-    const previousSets = latestSetsForExercise(exercise, history);
+    const previousSets = latestSetsForExercise(exercise, history, true);
     if (!previousSets) return exercise;
     return {
       ...exercise,
@@ -88,14 +88,18 @@ export function routineExercisesWithNextSessionTargets(
     // Match by the movement itself, not by which routine authored the session,
     // so "previous" reflects the last time this exercise was actually done —
     // including workouts imported from JSON or logged under another routine.
-    const previousSets = latestSetsForExercise(exercise, history);
-    if (!previousSets) return exercise;
+    // The next-session target may progress from an off-session effort, but the
+    // greyed "previous" placeholder must ignore off-session work — so the two
+    // are sourced separately.
+    const targetSets = latestSetsForExercise(exercise, history, false);
+    const previousSets = latestSetsForExercise(exercise, history, true);
+    if (!targetSets && !previousSets) return exercise;
     return {
       ...exercise,
       sets: (exercise.sets ?? []).map((set, index) =>
         withPreviousSessionData(
-          withNextSessionTargets(set, previousSets[index], trackingType),
-          previousSets[index],
+          withNextSessionTargets(set, targetSets?.[index], trackingType),
+          previousSets?.[index],
           trackingType,
         ),
       ),
@@ -106,11 +110,15 @@ export function routineExercisesWithNextSessionTargets(
 function latestSetsForExercise(
   exercise: WorkoutExerciseInput,
   workoutsNewestFirst: readonly Workout[],
+  // Off-session exercises never seed the greyed "previous" placeholder, but may
+  // still inform the next-session target — so the two lookups differ only here.
+  skipOffSession: boolean,
 ): WorkoutSet[] | undefined {
   for (const workout of workoutsNewestFirst) {
     const match = workout.exercises.find((candidate) =>
-      (exercise.exerciseId && candidate.exerciseId === exercise.exerciseId)
-      || sameExerciseName(candidate.name, exercise.name),
+      (!skipOffSession || !candidate.offSession)
+      && ((exercise.exerciseId && candidate.exerciseId === exercise.exerciseId)
+        || sameExerciseName(candidate.name, exercise.name)),
     );
     if (match) return match.sets;
   }

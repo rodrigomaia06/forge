@@ -278,6 +278,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                       {exercise.name}
                     </Text>
                     {unilateral ? <UnilateralBadge /> : null}
+                    {exercise.offSession ? <OffSessionBadge /> : null}
                     {exercise.note?.trim() ? (
                       <Icon accessibilityLabel="Exercise has a comment" name="comment" size={15} color={theme.slate} />
                     ) : null}
@@ -318,6 +319,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                       {exercise.name}
                     </Text>
                     {unilateral ? <UnilateralBadge /> : null}
+                    {exercise.offSession ? <OffSessionBadge /> : null}
                     {exercise.note?.trim() ? (
                       <Icon accessibilityLabel="Exercise has a comment" name="comment" size={16} color={theme.slate} />
                     ) : null}
@@ -419,6 +421,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                   setOptionsOpen(false);
                 }}
                 onEditNote={updateExercise ? (note) => updateExercise(exercise.id, { note }) : undefined}
+                onToggleOffSession={updateExercise ? () => afterOptionsClose(() => updateExercise(exercise.id, { offSession: !exercise.offSession })) : undefined}
                 onOpenPreviousSessions={() => undefined}
                 onOpenWarmupSets={canBuildWarmups ? () => afterOptionsClose(() => setOptionView('warmup')) : undefined}
                 onOpenExerciseInfo={hasExerciseInfo ? () => undefined : undefined}
@@ -534,6 +537,7 @@ export function ReadOnlyExerciseSection({
                 {exercise.name}
               </Text>
               {unilateral ? <UnilateralBadge /> : null}
+              {exercise.offSession ? <OffSessionBadge /> : null}
               {exercise.note?.trim() ? (
                 <Icon accessibilityLabel="Exercise has a comment" name="comment" size={15} color={theme.slate} />
               ) : null}
@@ -617,6 +621,16 @@ function UnilateralBadge() {
     <View accessible accessibilityLabel="Unilateral, complete one side at a time">
       {/* A boxed "U" reads as unilateral without relying on a language label. */}
       <Icon name="square-letter-u" size={19} color={theme.slate} />
+    </View>
+  );
+}
+
+function OffSessionBadge() {
+  const theme = useForgeTheme();
+  return (
+    <View accessible accessibilityLabel="Marked off-session; kept in history but excluded from previous values">
+      {/* A crossed-out notes glyph mirrors the "Mark off-session" action icon. */}
+      <Icon name="notes-off" size={17} color={theme.slate} />
     </View>
   );
 }
