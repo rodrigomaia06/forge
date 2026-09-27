@@ -675,7 +675,7 @@ function PlanCard({
         </Pressable>
       </View>
       <View style={styles.planHeadText}>
-        <Text style={styles.planName}>{plan.name}</Text>
+        <Text style={styles.planName} numberOfLines={1}>{plan.name}</Text>
         <Text style={styles.planCount}>{count}</Text>
       </View>
       {/* Rename lives only in edit mode; the normal card header is a clean label. */}
@@ -693,7 +693,7 @@ function PlanCard({
   ) : (
     <View style={[styles.planHeader, styles.planOptions]}>
       <View style={styles.planHeadText}>
-        <Text style={styles.planName}>{plan.name}</Text>
+        <Text style={styles.planName} numberOfLines={1}>{plan.name}</Text>
         <Text style={styles.planCount}>{count}</Text>
       </View>
       <Pressable

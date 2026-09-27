@@ -1022,7 +1022,10 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   onClose={close}
                   closeAccessibilityLabel="Close exercise details"
                   // Custom exercises get a "..." that opens an in-sheet options
-                  // view (Share / Edit / Delete); built-ins have nothing extra.
+                  // view (Share / Edit / Delete). Keep one control per side —
+                  // Close left, "..." right — so a long name never overlaps them
+                  // (the shared header only reserves room for one control a side).
+                  closePosition={isCustom(detail) ? 'left' : 'right'}
                   trailing={
                     isCustom(detail) ? (
                       <HeaderAction

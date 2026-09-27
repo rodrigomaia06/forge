@@ -173,11 +173,13 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       backgroundColor: theme.background,
     },
     headerCopy: {
-      position: 'absolute',
-      top: 0,
-      right: 116,
-      bottom: 0,
-      left: 116,
+      // A flex middle column (not an absolute overlay) so the title truncates in
+      // the space between the back button and the action pill — its width scales
+      // with however many actions the pill holds, instead of a fixed reservation
+      // that a third action would overlap.
+      flex: 1,
+      minWidth: 0,
+      paddingHorizontal: 8,
       alignItems: 'center',
       justifyContent: 'center',
     },
