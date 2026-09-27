@@ -3,6 +3,8 @@ import type { IconName } from './icons';
 export type WorkoutType = 'Strength' | 'Court sport' | 'Mobility' | 'Cardio' | string;
 
 export type ExerciseSetMetric = 'reps' | 'time' | 'timeRange' | 'distance';
+/** A single body side, for unilateral (one-side-at-a-time) exercises. */
+export type WorkoutSide = 'left' | 'right';
 export type SetMeasurementKind = 'reps' | 'weight' | 'addedWeight' | 'duration' | 'distance' | 'rpe';
 export interface SetMeasurement { id: string; kind: SetMeasurementKind; unit: 'count' | 'kg' | 'sec' | 'km' | 'rpe'; value: number; }
 export interface SetTarget { id: string; kind: SetMeasurementKind; unit: SetMeasurement['unit']; minValue?: number; maxValue?: number; }

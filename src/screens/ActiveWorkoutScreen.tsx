@@ -102,6 +102,11 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     const catalogRest = exerciseId ? catalogExercises.find((item) => item.id === exerciseId)?.restSeconds : undefined;
     return override ?? snapshotRest ?? catalogRest ?? preferences.defaultRestSeconds;
   }, [catalogExercises, preferences.defaultRestSeconds, preferences.exerciseRestSeconds]);
+  const unilateralRestForExercise = useCallback((exercise: WorkoutExercise): number => {
+    const exerciseId = exercise.exerciseId ?? exercise.exerciseSnapshot?.id;
+    const override = exerciseId ? preferences.exerciseUnilateralRestSeconds[exerciseId] : undefined;
+    return override ?? preferences.defaultUnilateralRestSeconds;
+  }, [preferences.defaultUnilateralRestSeconds, preferences.exerciseUnilateralRestSeconds]);
   const handleSetCompleted = useCallback((exercise: WorkoutExercise): void => {
     const duration = restDurationForExercise(exercise);
     // Completion timestamps, not the configured countdown, own the actual
@@ -110,6 +115,14 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     if (!preferences.showRestTimer) return;
     startRestTimer(duration);
   }, [preferences.showRestTimer, restDurationForExercise, startRestTimer, updateActiveWorkout]);
+  const handleSetSideCompleted = useCallback((exercise: WorkoutExercise): void => {
+    // The first side of a unilateral set is done: rest between sides before the
+    // other. This is a shorter, separate countdown from the between-sets rest,
+    // and it deliberately does not record a rest-stats sample (that measures
+    // between-set rest, which lands only once both sides finish).
+    if (!preferences.showRestTimer) return;
+    startRestTimer(unilateralRestForExercise(exercise));
+  }, [preferences.showRestTimer, startRestTimer, unilateralRestForExercise]);
   const openRestTimer = () => {
     lightHaptic();
     if (restRunning) setRestSelection(restDuration);
@@ -368,6 +381,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
         toggleSet={toggleSet}
         updateActiveWorkout={updateActiveWorkout}
         onSetCompleted={handleSetCompleted}
+        onSetSideCompleted={handleSetSideCompleted}
         onReplaceExercise={setReplacingExerciseId}
         onOpenAddExercise={openAddExercise}
         onScrollOffsetChange={handleWorkoutScrollOffset}
@@ -540,6 +554,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
   toggleSet,
   updateActiveWorkout,
   onSetCompleted,
+  onSetSideCompleted,
   onReplaceExercise,
   onOpenAddExercise,
   onScrollOffsetChange,
@@ -555,6 +570,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
   toggleSet: (exerciseId: string, setId: string) => void;
   updateActiveWorkout: (update: (workout: Workout) => Workout) => void;
   onSetCompleted: (exercise: WorkoutExercise) => void;
+  onSetSideCompleted: (exercise: WorkoutExercise) => void;
   onReplaceExercise: (exerciseId: string) => void;
   onOpenAddExercise: () => void;
   onScrollOffsetChange: (offset: number) => void;
@@ -650,6 +666,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
         updateSet={updateSet}
         toggleSet={toggleSet}
         onSetCompleted={onSetCompleted}
+        onSetSideCompleted={onSetSideCompleted}
         onReplaceExercise={onReplaceExercise}
         showCatalogMetadata
         showWarmupSets
@@ -658,7 +675,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
         onDeleteRevealChange={handleExerciseDeleteReveal}
       />
     ),
-    [addSet, addWarmupSets, handleExerciseDeleteReveal, onReplaceExercise, onSetCompleted, onSetInputFocus, openExerciseId, removeExercise, removeSet, toggleSet, updateExercise, updateSet],
+    [addSet, addWarmupSets, handleExerciseDeleteReveal, onReplaceExercise, onSetCompleted, onSetSideCompleted, onSetInputFocus, openExerciseId, removeExercise, removeSet, toggleSet, updateExercise, updateSet],
   );
   const liveAttributeEntries = Object.entries(workout.attributes ?? {});
 

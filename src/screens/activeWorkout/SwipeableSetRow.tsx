@@ -32,6 +32,7 @@ function SwipeableSetRowComponent({
   onChange,
   onToggle,
   unilateral = false,
+  leadSide = 'left',
   onSetSides,
   onDelete,
   deleteRevealed,
@@ -215,6 +216,7 @@ function SwipeableSetRowComponent({
             onChange={onChange}
             onToggle={onToggle}
             unilateral={unilateral}
+            leadSide={leadSide}
             onSetSides={onSetSides}
             onDelete={handleDelete}
             onOpenDetails={() => setDetailsOpen(true)}
@@ -260,7 +262,8 @@ export const SwipeableSetRow = React.memo(
     // reps-only → weighted swap never shows the Kg input.
     previous.trackingType === next.trackingType &&
     previous.setTargetMode === next.setTargetMode &&
-    previous.unilateral === next.unilateral,
+    previous.unilateral === next.unilateral &&
+    previous.leadSide === next.leadSide,
 );
 
 const createStyles = (theme: import('../../types').ForgeTheme) => {

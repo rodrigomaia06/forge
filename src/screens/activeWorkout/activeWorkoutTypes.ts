@@ -1,6 +1,6 @@
 import type { GestureResponderEvent } from 'react-native';
 import type { ReactNode } from 'react';
-import type { WorkoutExercise, WorkoutExerciseChanges, WorkoutSet, WorkoutSetChanges } from '../../types';
+import type { WorkoutExercise, WorkoutExerciseChanges, WorkoutSet, WorkoutSetChanges, WorkoutSide } from '../../types';
 
 export type SetInputFrame = { y: number; height: number };
 export type MeasureSetInput = (callback: (frame: SetInputFrame) => void) => void;
@@ -17,6 +17,8 @@ export interface ExerciseSectionProps {
   updateSet: (exerciseId: string, setId: string, changes: WorkoutSetChanges) => void;
   toggleSet: (exerciseId: string, setId: string) => void;
   onSetCompleted: (exercise: WorkoutExercise) => void;
+  /** Live Workout: the first side of a unilateral set landed — start the between-sides rest. */
+  onSetSideCompleted?: (exercise: WorkoutExercise) => void;
   deleteRevealed: boolean;
   onDeleteRevealChange: (exerciseId: string, revealed: boolean) => void;
   size?: 'standard' | 'large';
@@ -49,6 +51,8 @@ export interface SwipeableSetRowProps {
   onToggle: () => void;
   /** Unilateral sets complete per side; when set this replaces the single check. */
   unilateral?: boolean;
+  /** Which side a unilateral set completes first; defaults to the left. */
+  leadSide?: WorkoutSide;
   onSetSides?: (next: { left: boolean; right: boolean }) => void;
   onDelete: () => void;
   deleteRevealed: boolean;

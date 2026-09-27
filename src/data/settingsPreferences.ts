@@ -72,6 +72,7 @@ export function parseSettingsPreferences(value: string | null): SettingsPreferen
     weekStartsOn: parsed.weekStartsOn === 0 ? 0 : 1,
     showRestTimer: parsed.showRestTimer !== false,
     defaultRestSeconds: typeof parsed.defaultRestSeconds === 'number' && parsed.defaultRestSeconds >= 0 ? parsed.defaultRestSeconds : 90,
+    defaultUnilateralRestSeconds: typeof parsed.defaultUnilateralRestSeconds === 'number' && parsed.defaultUnilateralRestSeconds >= 0 ? parsed.defaultUnilateralRestSeconds : 30,
     // Match Forge's established timer behavior for saved settings predating
     // this flag: an elapsed rest remains visible in destructive red until it
     // is stopped or extended. An explicit false is still respected.
@@ -83,6 +84,14 @@ export function parseSettingsPreferences(value: string | null): SettingsPreferen
     exerciseRestSeconds:
       parsed.exerciseRestSeconds && typeof parsed.exerciseRestSeconds === 'object'
         ? Object.fromEntries(Object.entries(parsed.exerciseRestSeconds).filter(([, item]) => typeof item === 'number' && item >= 0))
+        : {},
+    exerciseUnilateralRestSeconds:
+      parsed.exerciseUnilateralRestSeconds && typeof parsed.exerciseUnilateralRestSeconds === 'object'
+        ? Object.fromEntries(Object.entries(parsed.exerciseUnilateralRestSeconds).filter(([, item]) => typeof item === 'number' && item >= 0))
+        : {},
+    exerciseLeadSide:
+      parsed.exerciseLeadSide && typeof parsed.exerciseLeadSide === 'object'
+        ? Object.fromEntries(Object.entries(parsed.exerciseLeadSide).filter(([, item]) => item === 'left' || item === 'right'))
         : {},
     dailyMeasurementDefinitions: uniqueDefinitions,
     dailyMeasurementEntries: uniqueById(entries),

@@ -19,6 +19,7 @@ export function SetRow({
   onChange,
   onToggle,
   unilateral = false,
+  leadSide = 'left',
   onSetSides,
   onDelete,
   onOpenDetails,
@@ -100,18 +101,28 @@ export function SetRow({
   const handleUnilateralAdvance = (): void => {
     const sides = set.sideCompletion ?? { left: false, right: false };
     const both = sides.left && sides.right;
-    const next = both ? { left: false, right: false } : { left: true, right: sides.left };
+    const anyDone = sides.left || sides.right;
+    // none -> lead side -> both -> none, so the favoured side is completed first.
+    const next = both
+      ? { left: false, right: false }
+      : anyDone
+        ? { left: true, right: true }
+        : leadSide === 'right'
+          ? { left: false, right: true }
+          : { left: true, right: false };
     const adding = (next.left && !sides.left) || (next.right && !sides.right);
     if (adding && !validateForCompletion()) return;
     onSetSides?.(next);
   };
   const sidesDone = (set.sideCompletion?.left ? 1 : 0) + (set.sideCompletion?.right ? 1 : 0);
+  const firstSideName = leadSide === 'right' ? 'right' : 'left';
+  const secondSideName = leadSide === 'right' ? 'left' : 'right';
   const unilateralLabel =
     sidesDone >= 2
       ? `Set ${index + 1} completed`
       : sidesDone === 1
-        ? `Complete second side of set ${index + 1}`
-        : `Complete first side of set ${index + 1}`;
+        ? `Complete ${secondSideName} side of set ${index + 1}`
+        : `Complete ${firstSideName} side of set ${index + 1}`;
 
   const invalidStyle = (progress: Animated.Value) => ({
     borderColor: progress.interpolate({

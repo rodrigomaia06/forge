@@ -1,4 +1,5 @@
 import type { IconName } from './icons';
+import type { WorkoutSide } from './workout';
 
 export type AppearancePreference = 'light' | 'dark' | 'system';
 export type UnitsPreference = 'metric' | 'imperial';
@@ -36,6 +37,8 @@ export interface SettingsPreferences {
   weekStartsOn: WeekStartsOn;
   showRestTimer: boolean;
   defaultRestSeconds: number;
+  /** Default between-sides rest for unilateral exercises (fired after the first side). */
+  defaultUnilateralRestSeconds: number;
   keepRestTimerRunning: boolean;
   restTimerSound: boolean;
   restTimerHaptic: boolean;
@@ -43,6 +46,10 @@ export interface SettingsPreferences {
   unfinishedWorkoutReminderDelay: number;
   /** Built-in exercise rest-time overrides; omitted keys inherit the General default. */
   exerciseRestSeconds: Record<string, number>;
+  /** Per-exercise between-sides rest overrides (unilateral); omitted keys inherit the General default. */
+  exerciseUnilateralRestSeconds: Record<string, number>;
+  /** Per-exercise leading side for unilateral exercises; omitted keys lead with the left side. */
+  exerciseLeadSide: Record<string, WorkoutSide>;
   workoutTypes: WorkoutTypePreference[];
   dailyMeasurementDefinitions: DailyMeasurementDefinition[];
   dailyMeasurementEntries: DailyMeasurementEntry[];

@@ -58,6 +58,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
   const { preferences, updatePreferences } = useSettings();
   const theme = useForgeTheme();
   const restMenu = useAnchoredMenu();
+  const unilateralRestMenu = useAnchoredMenu();
   const reminderMenu = useAnchoredMenu();
   const [headerElevated, setHeaderElevated] = React.useState(false);
   const displayedWeight = useMemo(
@@ -184,6 +185,20 @@ export function GeneralSettingsScreen({ navigation }: Props) {
                     showDivider
                   />
                 </View>
+                <View ref={unilateralRestMenu.ref} collapsable={false}>
+                  <SettingsRow
+                    title="Rest between sides"
+                    subtitle="Unilateral exercises, after the first side"
+                    trailing={
+                      <Text style={[styles.value, { color: theme.textSecondary }]}>
+                        {formatRestDuration(preferences.defaultUnilateralRestSeconds)}
+                      </Text>
+                    }
+                    disclosure
+                    onPress={unilateralRestMenu.open}
+                    showDivider
+                  />
+                </View>
                 <Toggle
                   title="Keep rest timer running"
                   value={preferences.keepRestTimerRunning}
@@ -257,6 +272,28 @@ export function GeneralSettingsScreen({ navigation }: Props) {
               restMenu.close();
             }}
             onSelectedPress={() => restMenu.close()}
+          />
+        </ForgeAnchoredMenu>
+        <ForgeAnchoredMenu
+          visible={unilateralRestMenu.visible}
+          anchor={unilateralRestMenu.anchor}
+          onClose={unilateralRestMenu.close}
+          align="end"
+          minWidth={180}
+          initialScrollOffset={Math.max(0, (restOptions.findIndex((option) => option.value === preferences.defaultUnilateralRestSeconds) - 2) * 52)}
+          testID="default-unilateral-rest-selection-menu"
+        >
+          <ForgeSingleSelectList
+            testID="default-unilateral-rest-selection-list"
+            options={restOptions}
+            selectedValue={preferences.defaultUnilateralRestSeconds}
+            rounded
+            disableVirtualization
+            onSelect={(value) => {
+              updatePreferences({ defaultUnilateralRestSeconds: value });
+              unilateralRestMenu.close();
+            }}
+            onSelectedPress={() => unilateralRestMenu.close()}
           />
         </ForgeAnchoredMenu>
         <ForgeAnchoredMenu
