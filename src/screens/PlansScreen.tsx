@@ -47,7 +47,7 @@ import { workoutTypeIcon } from './settings/workoutTypeIcon';
 import { useForgeDockScrollInset } from '../components/DockChrome';
 import { RoutineDragHandle, RoutineReorderGroup } from './plans/RoutineReorderGroup';
 import { useStartWorkoutGuard } from './useStartWorkoutGuard';
-import { shareItem, shareItemFromSheet } from '../utils/shareItem';
+import { shareItemFromSheet } from '../utils/shareItem';
 
 type Props = RootTabScreenProps<'Plans'>;
 const ROUTINE_ROW_HEIGHT = 76;
@@ -74,6 +74,7 @@ export function PlansScreen({ navigation, route }: Props) {
   const { guardStart, notice: resumeNotice } = useStartWorkoutGuard();
   const createMenu = useAnchoredMenu();
   const [routineTarget, setRoutineTarget] = useState<WorkoutRoutine | null>(null);
+  const [planTarget, setPlanTarget] = useState<WorkoutPlan | null>(null);
   const [routinePendingDelete, setRoutinePendingDelete] = useState<WorkoutRoutine | null>(null);
   const [planPendingDelete, setPlanPendingDelete] = useState<WorkoutPlan | null>(null);
   // Bumped to slide an open swipe row closed when its delete confirmation is
@@ -459,7 +460,7 @@ export function PlansScreen({ navigation, route }: Props) {
                   onStartRoutine={startRoutine}
                   onDeleteRoutine={(routine) => requestDeleteRoutine(routine)}
                   onRename={(name) => renamePlan(plan.id, name)}
-                  onShare={() => shareItem({ kind: 'plan', id: plan.id })}
+                  onOpenOptions={() => { lightHaptic(); setPlanTarget(plan); }}
                   onDelete={() => requestDeletePlan(plan)}
                 />
               </View>
@@ -502,6 +503,18 @@ export function PlansScreen({ navigation, route }: Props) {
                 )
               : null
           }
+        />
+        <ForgeActionSheet
+          visible={planTarget !== null}
+          onClose={() => setPlanTarget(null)}
+          accessibilityLabel="Dismiss plan options"
+          title={planTarget?.name ?? 'Plan options'}
+          titleNumberOfLines={1}
+          testID="plans-plan-options-sheet"
+          actions={planTarget ? [
+            { label: 'Share', icon: 'share', onPress: () => shareItemFromSheet({ kind: 'plan', id: planTarget.id }) },
+            { label: 'Delete', icon: 'trash', tone: 'destructive' as const, onPress: () => requestDeletePlan(planTarget) },
+          ] : []}
         />
         <ForgeConfirmationDialog
           visible={routinePendingDelete !== null}
@@ -600,7 +613,7 @@ function PlanCard({
   onStartRoutine,
   onDeleteRoutine,
   onRename,
-  onShare,
+  onOpenOptions,
   onDelete,
 }: {
   plan: WorkoutPlan;
@@ -618,7 +631,7 @@ function PlanCard({
   onStartRoutine: (routine: WorkoutRoutine) => void;
   onDeleteRoutine: (routine: WorkoutRoutine) => void;
   onRename: (name: string) => void;
-  onShare: () => void;
+  onOpenOptions: () => void;
   onDelete: () => void;
 }) {
   const theme = useForgeTheme();
@@ -697,14 +710,14 @@ function PlanCard({
         <Text style={styles.planCount}>{count}</Text>
       </View>
       <Pressable
-        testID={`plan-share-${plan.id}`}
+        testID={`plan-options-${plan.id}`}
         accessibilityRole="button"
-        accessibilityLabel={`Share ${plan.name}`}
+        accessibilityLabel={`Options for ${plan.name}`}
         hitSlop={8}
-        onPress={onShare}
+        onPress={onOpenOptions}
         style={({ pressed }) => [styles.planEditTitle, pressed && pressedFeedbackSubtle]}
       >
-        <Icon name="share" size={19} color={theme.slate} />
+        <Icon name="ellipsis-horizontal" size={20} color={theme.slate} />
       </Pressable>
     </View>
   );
