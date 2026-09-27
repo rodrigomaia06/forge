@@ -682,6 +682,7 @@ function PlanEditSheet({
         <Button
           label="Save plan"
           accessibilityLabel="Save plan"
+          icon="check"
           onPress={save}
           disabled={!canSave}
           tone="success"

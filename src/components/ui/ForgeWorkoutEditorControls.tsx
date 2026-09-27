@@ -83,7 +83,7 @@ export function ForgeAttributeEditorSheet({
             {attributeIcons.map((icon) => <Pressable key={icon} testID={icon === draft.icon ? `attribute-icon-choice-${icon}-selected` : `attribute-icon-choice-${icon}`} accessibilityRole="radio" accessibilityLabel={`Use ${icon} icon`} accessibilityState={{ checked: icon === draft.icon }} onPress={() => { selectionHaptic(); setDraft((current) => ({ ...current, icon })); setSelectingIcon(false); }} style={({ pressed }) => [styles.iconChoice, pressed && pressedFeedback]}><Icon name={icon} size={22} color={theme.textPrimary} />{icon === draft.icon ? <Icon name="check" size={16} color={theme.selectionIndicator} weight="bold" /> : null}</Pressable>)}
           </View>
         </ForgeCard> : null}
-        <Button label="Save attribute" accessibilityLabel="Save attribute" onPress={() => onSave(draft)} disabled={!draft.label.trim()} tone="success" variant="outline" style={styles.inlineSaveButton} />
+        <Button label="Save attribute" accessibilityLabel="Save attribute" icon="check" onPress={() => onSave(draft)} disabled={!draft.label.trim()} tone="success" variant="outline" style={styles.inlineSaveButton} />
       </ScrollView>
     </>
   );
