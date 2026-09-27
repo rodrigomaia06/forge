@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import {
   ForgeBottomSheet,
@@ -10,6 +11,7 @@ import {
   ForgeTextInput as TextInput,
   HeaderAction,
   Icon,
+  pressedFeedback,
   pressedFeedbackSubtle,
 } from '../../components/ui';
 import { ExerciseDetailBody } from '../../components/ExerciseDetailBody';
@@ -21,7 +23,7 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import { useForgeReducedMotion } from '../../theme/motion';
-import type { Workout, WorkoutExercise, WorkoutSet } from '../../types';
+import type { Workout, WorkoutExercise, WorkoutSet, WorkoutSide } from '../../types';
 import { HistorySetRow } from './HistorySetRow';
 import { SetDetailsCard } from './SetDetailsCard';
 import { animateLayout } from './activeWorkoutFeedback';
@@ -72,22 +74,22 @@ export function WarmupSetsSheet({
         closePosition="left"
         trailing={<HeaderAction accessibilityLabel="Add warm-up sets" label="Add" icon="add" variant="primary" disabled={!plan.length} onPress={add} />}
       />
-      <ScrollView contentContainerStyle={styles.compactContent} keyboardShouldPersistTaps="handled">
-        <Text style={styles.sectionLabel}>WORKING SET</Text>
+      <ScrollView style={styles.infoScrollView} contentContainerStyle={styles.compactContent} keyboardShouldPersistTaps="handled">
+        <Text style={styles.sectionLabel}>Working set</Text>
         <ForgeCard variant="base" style={styles.workingCard}>
           <View style={styles.workingRow}>
             <Text style={styles.workingLabel}>Weight</Text>
-            <TextInput accessibilityLabel="Working weight" value={weight} onChangeText={setWeight} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={theme.textDisabled} style={styles.workingInput} />
+            <TextInput accessibilityLabel="Working weight" value={weight} selection={{ start: weight.length, end: weight.length }} selectTextOnFocus={false} onChangeText={setWeight} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={theme.textDisabled} style={styles.workingInput} />
             <Text style={styles.unit}>kg</Text>
           </View>
           <View style={[styles.divider, { backgroundColor: theme.divider }]} />
           <View style={styles.workingRow}>
             <Text style={styles.workingLabel}>Reps</Text>
-            <TextInput accessibilityLabel="Working reps" value={reps} onChangeText={setReps} keyboardType="number-pad" placeholder="0" placeholderTextColor={theme.textDisabled} style={styles.workingInput} />
+            <TextInput accessibilityLabel="Working reps" value={reps} selection={{ start: reps.length, end: reps.length }} selectTextOnFocus={false} onChangeText={setReps} keyboardType="number-pad" placeholder="0" placeholderTextColor={theme.textDisabled} style={styles.workingInput} />
             <Text style={styles.unit}>reps</Text>
           </View>
         </ForgeCard>
-        <Text style={styles.sectionLabel}>WARM-UP SETS</Text>
+        <Text style={styles.sectionLabel}>Warm-up sets</Text>
         <ForgeCard variant="base" style={styles.planCard}>
           {plan.length ? plan.map((set, index) => (
             <View key={`${set.weight}-${set.reps}`} style={[styles.planRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
@@ -157,23 +159,39 @@ export function PreviousSessionsSheet({
   );
 }
 
+function restReadout(seconds: number | undefined): string {
+  return seconds === undefined
+    ? 'Default'
+    : `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
 export function ExerciseInfoContent({
   exercise,
   onPressRest,
+  unilateral = false,
+  leadSide = 'left',
+  unilateralRestOverride,
+  onPressUnilateralRest,
+  onToggleLeadSide,
 }: {
   exercise: WorkoutExercise;
   onPressRest?: () => void;
+  /** Unilateral exercises expose a between-sides rest and a leading-side choice. */
+  unilateral?: boolean;
+  leadSide?: WorkoutSide;
+  unilateralRestOverride?: number;
+  onPressUnilateralRest?: () => void;
+  onToggleLeadSide?: () => void;
 }) {
+  const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const { preferences } = useSettings();
   const detail = useMemo(() => catalogueDetail(exercise), [exercise]);
   if (!detail) return null;
   // Match the read path in ActiveWorkoutScreen.restDurationForExercise.
   const exerciseId = exercise.exerciseId ?? exercise.exerciseSnapshot?.id ?? detail.id;
-  const restOverride = preferences.exerciseRestSeconds[exerciseId];
-  const restLabel = restOverride === undefined
-    ? 'Default'
-    : `${Math.floor(restOverride / 60)}:${String(restOverride % 60).padStart(2, '0')}`;
+  const restLabel = restReadout(preferences.exerciseRestSeconds[exerciseId]);
+  const unilateralRestLabel = restReadout(unilateralRestOverride);
   // Reuse the exact Exercise Library detail card so the two read identically.
   return (
     <ScrollView testID="exercise-info-content" contentContainerStyle={styles.infoScroll}>
@@ -182,8 +200,62 @@ export function ExerciseInfoContent({
         workoutTypes={preferences.workoutTypes}
         restLabel={restLabel}
         onPressRest={onPressRest}
+        secondaryRest={unilateral
+          ? { title: 'Between sides', value: unilateralRestLabel, onPress: onPressUnilateralRest }
+          : undefined}
+        footer={unilateral ? (
+          <>
+            <Text style={styles.uniSectionLabel}>Unilateral</Text>
+            <ForgeCard variant="nested" style={styles.uniCard}>
+              <View style={styles.uniRow}>
+                <View style={styles.uniRowIcon}>
+                  <Icon name="square-rounded-letter-s" size={20} color={theme.textSecondary} />
+                </View>
+                <Text style={styles.uniRowTitle}>Leading side</Text>
+                {onToggleLeadSide ? (
+                  <LeadingSideToggle value={leadSide} onChange={(side) => { if (side !== leadSide) onToggleLeadSide(); }} />
+                ) : (
+                  <Text style={styles.uniRowValue}>{leadSide === 'right' ? 'Right' : 'Left'}</Text>
+                )}
+              </View>
+            </ForgeCard>
+          </>
+        ) : undefined}
       />
     </ScrollView>
+  );
+}
+
+/** A two-option segmented control whose selected pill slides between sides. */
+function LeadingSideToggle({ value, onChange }: { value: WorkoutSide; onChange: (side: WorkoutSide) => void }) {
+  const styles = useThemedStyles(createStyles);
+  const [innerWidth, setInnerWidth] = useState(0);
+  const progress = useSharedValue(value === 'right' ? 1 : 0);
+  useEffect(() => {
+    progress.value = withTiming(value === 'right' ? 1 : 0, { duration: 190 });
+  }, [progress, value]);
+  const pillStyle = useAnimatedStyle(() => ({ transform: [{ translateX: progress.value * (innerWidth / 2) }] }));
+  return (
+    <View
+      style={styles.sideToggle}
+      onLayout={(event) => setInnerWidth(event.nativeEvent.layout.width - 4)}
+    >
+      {innerWidth > 0 ? <Animated.View style={[styles.sidePill, { width: innerWidth / 2 }, pillStyle]} /> : null}
+      {(['left', 'right'] as const).map((side) => (
+        <Pressable
+          key={side}
+          accessibilityRole="button"
+          accessibilityState={{ selected: value === side }}
+          accessibilityLabel={`Lead with the ${side} side`}
+          onPress={() => onChange(side)}
+          style={styles.sideOption}
+        >
+          <Text style={[styles.sideOptionText, value === side && styles.sideOptionTextActive]}>
+            {side === 'left' ? 'Left' : 'Right'}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
   );
 }
 
@@ -319,22 +391,50 @@ function formatRecordedSet(set: WorkoutSet, exercise: WorkoutExercise): string {
 }
 
 const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.create({
-  compactContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 72, gap: 14 },
+  compactContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 28, gap: 14 },
   // Warm-up editing needs room above its final confirmation control; static
   // Exercise info only keeps the normal short-sheet safe trailing clearance.
   infoContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24 },
+  // Hug-then-scroll (ADR 0005): flexShrink lets the body size to its content and
+  // scroll within the surface cap instead of parking content high with dead
+  // space beneath it. Never put a height/maxHeight on the scroll view itself.
+  infoScrollView: { flexShrink: 1 },
   infoScroll: { paddingTop: 4, paddingBottom: 8 },
+  uniSectionLabel: { marginTop: 8, marginLeft: 6, color: theme.textPrimary, ...typeScale.sectionTitle },
+  uniCard: { overflow: 'hidden', borderRadius: 18 },
+  uniRow: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 12 },
+  uniRowIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
+  uniRowTitle: { flex: 1, color: theme.textPrimary, ...typeScale.cardTitle },
+  uniRowValue: { color: theme.textSecondary, ...typeScale.body },
+  sideToggle: { width: 132, flexDirection: 'row', borderRadius: 10, padding: 2, position: 'relative', backgroundColor: theme.surfaceMuted, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border },
+  sidePill: { position: 'absolute', top: 2, bottom: 2, left: 2, borderRadius: 8, backgroundColor: theme.surface },
+  sideOption: { flex: 1, paddingVertical: 7, alignItems: 'center' },
+  sideOptionText: { color: theme.textSecondary, ...typeScale.label },
+  sideOptionTextActive: { color: theme.ink, fontWeight: '600' },
   // Let the list occupy all remaining sheet height. The former percentage cap
   // left an inert band under the final card and could clip Show more.
   previousSessionsScroll: { flexShrink: 1 },
   previousSessionsContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 14 },
   supporting: { ...typeScale.body },
-  sectionLabel: { marginTop: 4, color: theme.slate, ...typeScale.caption },
+  sectionLabel: { marginTop: 8, marginLeft: 6, color: theme.textPrimary, ...typeScale.sectionTitle },
   workingCard: { overflow: 'hidden', borderRadius: 16 },
-  workingRow: { minHeight: 54, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 8 },
+  workingRow: { minHeight: 54, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 10 },
   workingLabel: { flex: 1, color: theme.ink, ...typeScale.label },
-  workingInput: { width: 70, minHeight: 42, padding: 0, color: theme.ink, ...typeScale.sectionTitle, textAlign: 'right' },
-  unit: { width: 38, color: theme.slate, ...typeScale.label },
+  // Boxed, centre-aligned entry that matches the Live Workout set/reps inputs,
+  // so text is edited from the centre rather than right-anchored.
+  workingInput: {
+    width: 78,
+    minHeight: 38,
+    borderWidth: 1,
+    borderColor: theme.divider,
+    borderRadius: 8,
+    backgroundColor: theme.surfaceMuted,
+    color: theme.ink,
+    ...typeScale.body,
+    textAlign: 'center',
+    paddingHorizontal: 6,
+  },
+  unit: { width: 34, color: theme.slate, ...typeScale.label },
   divider: { height: StyleSheet.hairlineWidth, marginLeft: 16 },
   planCard: { overflow: 'hidden', borderRadius: 16 },
   planRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 12 },

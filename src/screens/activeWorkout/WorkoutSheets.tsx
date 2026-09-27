@@ -31,6 +31,7 @@ import type { Workout, WorkoutExercise } from '../../types';
 import { ExerciseInfoContent, PreviousSessionsContent } from './ExerciseOptionSheets';
 import { catalogFacets, filterCatalog, groupCatalogByPrimaryEquipment } from '../../domain/exercises/catalogSelectors';
 import { formatCatalogVariation, formatPickerPrimaryEquipment } from '../../domain/exercises/exercisePresentation';
+import { isUnilateralExercise } from '../../domain/exercises/laterality';
 import {
   buildVariationFamily,
   hasComposableInputs,
@@ -448,6 +449,10 @@ function ExerciseOutputChooser({ resolution, onBack, onClose, onConfirm }: {
     <ForgeSheetHeader title="Choose exercises" compactTitle onClose={onClose} leading={<ForgeEditorBackButton onPress={onBack} accessibilityLabel="Back to exercise choices" />} />
     <FlatList
       testID="variation-output-chooser"
+      // Always-full (ADR 0005): fill the fixed-height picker card like the
+      // catalogue list, so a long resolved-variation list scrolls instead of
+      // sizing to content and clipping under the floating CTA.
+      style={styles.pickerList}
       data={resolution.choices}
       keyExtractor={(item) => item.exercise.id}
       contentContainerStyle={[styles.outputChooserContent, { paddingBottom: 124 }]}
@@ -742,7 +747,7 @@ export function ExerciseOptionsSheet({
   const styles = useThemedStyles(createStyles);
   const reducedMotion = useForgeReducedMotion();
   const { preferences, updatePreferences } = useSettings();
-  const [view, setView] = useState<'actions' | 'note' | 'history' | 'info' | 'rest'>('actions');
+  const [view, setView] = useState<'actions' | 'note' | 'history' | 'info' | 'rest' | 'rest-unilateral'>('actions');
   const [noteDraft, setNoteDraft] = useState(exercise.note ?? '');
   const [noteHeight, setNoteHeight] = useState(156);
   const [historyShowAll, setHistoryShowAll] = useState(false);
@@ -761,11 +766,28 @@ export function ExerciseOptionsSheet({
     else next[restKey] = seconds;
     updatePreferences({ exerciseRestSeconds: next });
   };
+  // Unilateral exercises additionally carry a between-sides rest and a leading
+  // side, both editable here and both keyed by the same exercise identity.
+  const unilateral = isUnilateralExercise(exercise);
+  const unilateralRestOverride = preferences.exerciseUnilateralRestSeconds[restKey];
+  const applyUnilateralRest = (seconds: number | undefined): void => {
+    const next = { ...preferences.exerciseUnilateralRestSeconds };
+    if (seconds === undefined) delete next[restKey];
+    else next[restKey] = seconds;
+    updatePreferences({ exerciseUnilateralRestSeconds: next });
+  };
+  const leadSide = preferences.exerciseLeadSide[restKey] ?? 'left';
+  const toggleLeadSide = (): void => {
+    selectionHaptic();
+    updatePreferences({
+      exerciseLeadSide: { ...preferences.exerciseLeadSide, [restKey]: leadSide === 'left' ? 'right' : 'left' },
+    });
+  };
 
   const commitNote = (): void => {
     onEditNote?.(noteDraft.trim());
   };
-  const openView = (nextView: 'note' | 'history' | 'info' | 'rest'): void => {
+  const openView = (nextView: 'note' | 'history' | 'info' | 'rest' | 'rest-unilateral'): void => {
     // These destinations replace the action list in one Forge sheet. Note: this
     // swap does not visibly animate — see docs/decisions/0005 (LayoutAnimation
     // does not ease the Reanimated Modal surface across a key remount).
@@ -832,25 +854,25 @@ export function ExerciseOptionsSheet({
         <View key={view}>
           <ForgeBottomSheetHandle />
           <ForgeSheetHeader
-            title={view === 'note' ? 'Exercise note' : view === 'history' ? 'Previous sessions' : view === 'rest' ? 'Duration' : 'Exercise info'}
-            // The Duration view drops the close X and gives its right slot to
+            title={view === 'note' ? 'Exercise note' : view === 'history' ? 'Previous sessions' : view === 'rest' ? 'Duration' : view === 'rest-unilateral' ? 'Side rest' : 'Exercise info'}
+            // The Duration views drop the close X and give their right slot to
             // Default; Back returns to the info card and the sheet closes there.
-            onClose={view === 'rest' ? undefined : closeSheet}
+            onClose={view === 'rest' || view === 'rest-unilateral' ? undefined : closeSheet}
             closeAccessibilityLabel={`Close ${view === 'note' ? 'exercise note' : view === 'history' ? 'previous sessions' : 'exercise info'}`}
             leading={
-              view === 'rest'
+              view === 'rest' || view === 'rest-unilateral'
                 ? <ForgeEditorBackButton onPress={() => openView('info')} accessibilityLabel="Back to exercise info" />
                 : <ForgeEditorBackButton onPress={backToActions} accessibilityLabel="Back to exercise options" />
             }
             trailing={
-              view === 'rest' && !readOnly ? (
+              (view === 'rest' || view === 'rest-unilateral') && !readOnly ? (
                 <HeaderAction
-                  accessibilityLabel="Use default rest time"
+                  accessibilityLabel={view === 'rest-unilateral' ? 'Use default between-sides rest' : 'Use default rest time'}
                   label="Default"
                   icon="time-outline"
                   variant="secondary"
                   haptic="none"
-                  onPress={() => { applyRest(undefined); openView('info'); }}
+                  onPress={() => { (view === 'rest-unilateral' ? applyUnilateralRest : applyRest)(undefined); openView('info'); }}
                   style={styles.restDefaultAction}
                 />
               ) : undefined
@@ -869,12 +891,30 @@ export function ExerciseOptionsSheet({
               closeSheet();
             }}
           /> : null}
-          {view === 'info' ? <ExerciseInfoContent exercise={exercise} onPressRest={readOnly ? undefined : () => openView('rest')} /> : null}
+          {view === 'info' ? (
+            <ExerciseInfoContent
+              exercise={exercise}
+              onPressRest={readOnly ? undefined : () => openView('rest')}
+              unilateral={unilateral}
+              leadSide={leadSide}
+              unilateralRestOverride={unilateralRestOverride}
+              onPressUnilateralRest={readOnly ? undefined : () => openView('rest-unilateral')}
+              onToggleLeadSide={readOnly ? undefined : toggleLeadSide}
+            />
+          ) : null}
           {view === 'rest' ? (
             <View style={styles.restPickerContent}>
               <RestDurationPicker
                 selectedDuration={restOverride ?? preferences.defaultRestSeconds}
                 onSelect={applyRest}
+              />
+            </View>
+          ) : null}
+          {view === 'rest-unilateral' ? (
+            <View style={styles.restPickerContent}>
+              <RestDurationPicker
+                selectedDuration={unilateralRestOverride ?? preferences.defaultUnilateralRestSeconds}
+                onSelect={applyUnilateralRest}
               />
             </View>
           ) : null}

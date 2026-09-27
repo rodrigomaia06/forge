@@ -74,9 +74,9 @@ export function WorkoutSummaryCard({
 
           <View style={styles.divider} />
           <View style={[styles.timingRow, isCompactPhone && styles.timingRowCompact]}>
-            <TimingMetric compact={isCompactPhone} icon="stopwatch-outline" label="Duration" value={duration} />
+            <TimingMetric compact={isCompactPhone} icon="clock" label="Duration" value={duration} />
             <View style={styles.verticalDivider} />
-            <TimingMetric compact={isCompactPhone} icon="hourglass" label="Avg rest" value={rest} />
+            <TimingMetric compact={isCompactPhone} icon="alarm-average" iconSize={20} label="Avg rest" value={rest} />
           </View>
 
           {note ? <>
@@ -136,9 +136,11 @@ export function WorkoutSummaryCard({
   );
 }
 
-function TimingMetric({ compact = false, icon, label, value }: {
+function TimingMetric({ compact = false, icon, iconSize = 18, label, value }: {
   compact?: boolean;
   icon: React.ComponentProps<typeof Icon>['name'];
+  /** Optical size: a busier glyph is bumped so its core reads the same size as a plain one. */
+  iconSize?: number;
   label: string;
   value: string;
 }) {
@@ -147,7 +149,7 @@ function TimingMetric({ compact = false, icon, label, value }: {
   return (
     <View style={[styles.timingMetric, compact && styles.timingMetricCompact]}>
       <View style={[styles.metricIcon, compact && styles.metricIconCompact]}>
-        <Icon name={icon} size={18} color={theme.slate} />
+        <Icon name={icon} size={iconSize} color={theme.slate} />
       </View>
       <View style={[styles.timingCopy, compact && styles.timingCopyCompact]}>
         <Text style={styles.timingLabel}>{label}</Text>

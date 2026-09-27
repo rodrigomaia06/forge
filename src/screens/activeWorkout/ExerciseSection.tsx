@@ -25,6 +25,7 @@ import { CompletionCheck } from './CompletionCheck';
 import { SwipeableSetRow } from './SwipeableSetRow';
 import { SetDetailsCard } from './SetDetailsCard';
 import { ExerciseOptionsSheet } from './WorkoutSheets';
+import { useSettings } from '../../state/SettingsContext';
 import {
   ExerciseInfoSheet,
   PreviousSessionsSheet,
@@ -50,6 +51,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   updateSet,
   toggleSet,
   onSetCompleted,
+  onSetSideCompleted,
   deleteRevealed,
   onDeleteRevealChange,
   size = 'standard',
@@ -98,6 +100,9 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   // falling back to the catalog for exercises added before laterality was captured.
   const unilateral = isUnilateralExercise(exercise)
     || exerciseCatalogById.get(exercise.exerciseId ?? '')?.laterality === 'unilateral';
+  const { preferences } = useSettings();
+  const leadSideKey = exercise.exerciseId ?? exercise.exerciseSnapshot?.id;
+  const leadSide = (leadSideKey ? preferences.exerciseLeadSide[leadSideKey] : undefined) ?? 'left';
   // Keep the live grid stable. A missing prior value is meaningful information,
   // not a reason to move all measurement fields into a different column.
   const showPrevious = true;
@@ -371,16 +376,22 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                       if (!set.completed) onSetCompleted(exercise);
                     }}
                     unilateral={unilateral}
+                    leadSide={leadSide}
                     onSetSides={(nextSides) => {
                       lightHaptic();
+                      const prevSides = set.sideCompletion ?? { left: false, right: false };
+                      const prevCount = (prevSides.left ? 1 : 0) + (prevSides.right ? 1 : 0);
+                      const nextCount = (nextSides.left ? 1 : 0) + (nextSides.right ? 1 : 0);
                       const bothDone = nextSides.left && nextSides.right;
                       updateSet(exercise.id, set.id, {
                         sideCompletion: nextSides,
                         completed: bothDone,
                         completedAt: bothDone ? Date.now() : undefined,
                       });
-                      // Rest starts only as the second side lands the completion.
+                      // The between-sets rest starts only as the second side lands the
+                      // completion; the first side starts the shorter between-sides rest.
                       if (bothDone && !set.completed) onSetCompleted(exercise);
+                      else if (nextCount === 1 && prevCount === 0) onSetSideCompleted?.(exercise);
                     }}
                     onDelete={() => {
                       errorHaptic();
@@ -619,8 +630,8 @@ function UnilateralBadge() {
   const theme = useForgeTheme();
   return (
     <View accessible accessibilityLabel="Unilateral, complete one side at a time">
-      {/* A boxed "U" reads as unilateral without relying on a language label. */}
-      <Icon name="square-letter-u" size={19} color={theme.slate} />
+      {/* A rounded boxed "U" reads as unilateral without relying on a language label. */}
+      <Icon name="square-rounded-letter-u" size={19} color={theme.slate} />
     </View>
   );
 }

@@ -32,17 +32,18 @@ test('completes a unilateral exercise one side at a time', async ({ page }) => {
   // The unilateral exercise is marked, and its check completes in two steps.
   await expect(page.getByLabel('Unilateral, complete one side at a time').first()).toBeVisible();
   const control = page.getByTestId('set-split-check-1');
-  await expect(control).toHaveAccessibleName('Complete first side of set 1');
+  // Sides are named; the default leading side is the left.
+  await expect(control).toHaveAccessibleName('Complete left side of set 1');
 
   // A side cannot be completed before the set's inputs are entered.
   await control.click();
-  await expect(control).toHaveAccessibleName('Complete first side of set 1');
+  await expect(control).toHaveAccessibleName('Complete left side of set 1');
 
   await page.getByRole('textbox', { name: 'Reps for set 1' }).fill('10');
 
   // First tap fills the check halfway; the set is done only after the second tap.
   await control.click();
-  await expect(control).toHaveAccessibleName('Complete second side of set 1');
+  await expect(control).toHaveAccessibleName('Complete right side of set 1');
   await control.click();
   await expect(control).toHaveAccessibleName('Set 1 completed');
 });
@@ -1155,9 +1156,9 @@ test.describe('Active workout flow', () => {
     await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
     await page.getByRole('button', { name: 'Exercise info' }).click();
     // The Exercise info sheet now renders the shared ExerciseDetailBody: an
-    // ESSENTIALS fact grid (Category, Equipment, Tracking, Movement family)
+    // Essentials fact grid (Category, Equipment, Tracking, Movement family)
     // rather than the old Exercise/Variation labelled rows.
-    await expect(page.getByText('ESSENTIALS', { exact: true })).toBeVisible();
+    await expect(page.getByText('Essentials', { exact: true })).toBeVisible();
     await expect(page.getByText('Category', { exact: true })).toBeVisible();
     await expect(page.getByText('Movement family', { exact: true })).toBeVisible();
     // The movement family for Barbell Bench Press reads "Bench Press".

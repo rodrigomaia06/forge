@@ -326,8 +326,8 @@ test.describe('Exercise library', () => {
     await expect(page.getByText('Primary muscle', { exact: true })).toBeVisible();
     await expect(page.getByText('Chest', { exact: true }).first()).toBeVisible();
     await expect(page.getByTestId('exercise-section-type-strength').locator('svg')).toBeVisible();
-    await expect(page.getByText('ESSENTIALS', { exact: true })).toBeVisible();
-    await expect(page.getByText('TRAINING PROFILE', { exact: true })).toBeVisible();
+    await expect(page.getByText('Essentials', { exact: true })).toBeVisible();
+    await expect(page.getByText('Training profile', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Change rest time, currently Default' })).toBeVisible();
     const detailSheet = page.getByTestId('exercise-detail-sheet-surface');
     await page.waitForTimeout(250);
