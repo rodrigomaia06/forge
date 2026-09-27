@@ -288,7 +288,7 @@ test.describe('Settings', () => {
     await page.getByRole('button', { name: 'Import JSON' }).click();
     const chooser = await chooserPromise;
     await chooser.setFiles({
-      name: 'forge-import.json',
+      name: 'forge-import.forge',
       mimeType: 'application/json',
       buffer: Buffer.from(JSON.stringify({
         format: 'forge-data', version: 1, exportedAt: '2026-09-13T00:00:00.000Z',
@@ -341,7 +341,7 @@ test.describe('Settings', () => {
     await page.getByRole('button', { name: 'Import JSON' }).click();
     const chooser = await chooserPromise;
     await chooser.setFiles({
-      name: 'forge-push-day.json',
+      name: 'forge-push-day.forge',
       mimeType: 'application/json',
       buffer: Buffer.from(JSON.stringify({
         format: 'forge-data', version: 1, exportedAt: '2026-09-13T00:00:00.000Z',
@@ -378,7 +378,7 @@ test.describe('Settings', () => {
     await page.getByRole('button', { name: 'Import JSON' }).click();
     const chooser = await chooserPromise;
     await chooser.setFiles({
-      name: 'not-forge.json',
+      name: 'not-forge.forge',
       mimeType: 'application/json',
       buffer: Buffer.from('{not-valid-json'),
     });

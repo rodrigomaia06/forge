@@ -281,6 +281,7 @@ function BackupExport() {
 
 function localDataErrorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : '';
+  if (/\.forge/i.test(message)) return message;
   if (/unable to open database|prepareAsync|SQLiteError/i.test(message))
     return 'Forge could not open that SQLite file. Your current data was not changed. Choose a complete Forge backup and try again.';
   if (/compatible|integrity|header/i.test(message))

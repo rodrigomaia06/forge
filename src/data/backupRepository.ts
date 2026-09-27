@@ -75,6 +75,21 @@ function stamp(): string {
 function filename(extension: string): string {
   return `forge-${stamp()}.${extension}`;
 }
+function dateStamp(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+/** Filesystem-safe, human name (spaces kept, illegal characters dropped). */
+function sanitizeName(name: string): string {
+  return name.replace(/[\\/:*?"<>|\u0000-\u001F]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
+}
+/** A `.forge` filename that says what the file holds, not a timestamp blob. */
+function shareFilename(transfer: ForgeDataTransfer): string {
+  if (transfer.share) {
+    const base = sanitizeName(transfer.share.title) || transfer.share.kind;
+    return `${base} (${transfer.share.kind}).forge`;
+  }
+  return `Forge export ${dateStamp()}.forge`;
+}
 
 async function shareFile(file: File, mimeType: string): Promise<void> {
   if (!(await Sharing.isAvailableAsync()))
@@ -119,21 +134,17 @@ export async function createDataTransfer(
 }
 
 export async function exportJson(selection = allDataTransferSelection()): Promise<void> {
-  const transfer = await createDataTransfer(selection);
-  await shareFile(
-    cacheFile(filename('json'), JSON.stringify(transfer, null, 2)),
-    'application/json',
-  );
+  await shareTransfer(await createDataTransfer(selection));
 }
 
 /**
- * Shares an already-built transfer (e.g. a single-item scoped share) as JSON.
- * The recipient imports it through the same Import JSON flow as a full export.
+ * Shares a transfer (whole-app export or a single-item scoped share) as a
+ * `.forge` file — JSON content, distinct extension so the OS can associate it
+ * with Forge. The recipient imports it through the same Import flow.
  */
-export async function shareTransfer(transfer: ForgeDataTransfer, basename: string): Promise<void> {
-  const safe = basename.replace(/[^\w-]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'item';
+export async function shareTransfer(transfer: ForgeDataTransfer): Promise<void> {
   await shareFile(
-    cacheFile(`forge-${safe}-${stamp()}.json`, JSON.stringify(transfer, null, 2)),
+    cacheFile(shareFilename(transfer), JSON.stringify(transfer, null, 2)),
     'application/json',
   );
 }
@@ -147,7 +158,7 @@ export async function exportText(selection = allDataTransferSelection()): Promis
     `Plans: ${transfer.plans.plans.length}`,
     `Custom exercises: ${transfer.customExercises.length}`,
   ];
-  await shareFile(cacheFile(filename('txt'), lines.join('\n')), 'text/plain');
+  await shareFile(cacheFile(`Forge summary ${dateStamp()}.txt`, lines.join('\n')), 'text/plain');
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -202,12 +213,17 @@ export function parseDataTransfer(raw: string): ForgeDataTransfer {
 }
 
 async function pickTextFile(): Promise<string | null> {
-  const result = await DocumentPicker.getDocumentAsync({
-    type: ['application/json', 'text/json'],
-    copyToCacheDirectory: true,
-  });
+  // `.forge` has no registered MIME/UTI yet (that arrives with the native
+  // open-in-Forge work), so accept any file and gate on the extension here plus
+  // the content check in parseDataTransfer. Only Forge's own `.forge` exports
+  // are accepted — a plain `.json` is rejected by name.
+  const result = await DocumentPicker.getDocumentAsync({ type: '*/*', copyToCacheDirectory: true });
   if (result.canceled) return null;
-  return new File(result.assets[0].uri).text();
+  const asset = result.assets[0];
+  if (!/\.forge$/i.test(asset.name ?? '')) {
+    throw new Error('Choose a Forge (.forge) file. Other files are not accepted.');
+  }
+  return new File(asset.uri).text();
 }
 
 /** Merge portable JSON by stable ids. Preferences remain local except user-created lists. */

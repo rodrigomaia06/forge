@@ -20,8 +20,7 @@ export async function buildScopedTransfer(scope: ShareScope): Promise<ForgeDataT
   return scopedTransferFrom({ settings, plans, workouts, customExercises }, scope);
 }
 
-/** Builds a single-item transfer and hands it to the OS share sheet as JSON. */
+/** Builds a single-item transfer and hands it to the OS share sheet as a .forge file. */
 export async function shareScopedItem(scope: ShareScope): Promise<void> {
-  const transfer = await buildScopedTransfer(scope);
-  await shareTransfer(transfer, transfer.share?.title ?? scope.kind);
+  await shareTransfer(await buildScopedTransfer(scope));
 }
