@@ -1,6 +1,7 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useMemo } from 'react';
 import {
+  Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -61,6 +62,20 @@ export function GeneralSettingsScreen({ navigation }: Props) {
   const unilateralRestMenu = useAnchoredMenu();
   const reminderMenu = useAnchoredMenu();
   const [headerElevated, setHeaderElevated] = React.useState(false);
+  const [query, setQuery] = React.useState('');
+  // Lightweight in-screen filter: a section shows when its title or any of its
+  // keywords contains the query, so the whole (self-consistent) section stays
+  // intact rather than hiding dependent sub-rows.
+  const q = query.trim().toLowerCase();
+  const matches = (...terms: string[]): boolean => !q || terms.some((term) => term.includes(q));
+  const anyMatch =
+    matches('appearance', 'theme', 'display', 'dark', 'light', 'system') ||
+    matches('units', 'metric', 'imperial', 'kg', 'lb', 'kilograms', 'pounds') ||
+    matches('bodyweight', 'body weight') ||
+    matches('calendar', 'week', 'starts', 'monday', 'sunday') ||
+    matches('rest timer', 'rest', 'duration', 'between sides', 'unilateral', 'keep running') ||
+    matches('rest timer alert', 'sound', 'haptic', 'vibration', 'alert') ||
+    matches('reminders', 'unfinished', 'workout', 'reminder', 'notification');
   const displayedWeight = useMemo(
     () =>
       preferences.units === 'imperial'
@@ -98,8 +113,34 @@ export function GeneralSettingsScreen({ navigation }: Props) {
           onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
           scrollEventThrottle={16}
         >
+          <View style={[styles.searchField, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Icon name="search" size={18} color={theme.textSecondary} />
+            <TextInput
+              accessibilityLabel="Search settings"
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search settings"
+              placeholderTextColor={theme.textDisabled}
+              autoCorrect={false}
+              autoCapitalize="none"
+              returnKeyType="search"
+              style={[styles.searchInput, { color: theme.textPrimary }]}
+            />
+            {query ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Clear search"
+                onPress={() => setQuery('')}
+                hitSlop={8}
+              >
+                <Icon name="close" size={18} color={theme.textSecondary} />
+              </Pressable>
+            ) : null}
+          </View>
+          {matches('appearance', 'theme', 'display', 'dark', 'light', 'system') && (
           <SettingsSection
             title="Appearance"
+            icon="contrast"
             footer="Dark and System are beta while the visual migration is completed."
           >
             <SettingsRow
@@ -114,9 +155,12 @@ export function GeneralSettingsScreen({ navigation }: Props) {
               }
             />
           </SettingsSection>
+          )}
+          {matches('units', 'metric', 'imperial', 'kg', 'lb', 'kilograms', 'pounds') && (
           <SettingsSection
-            title="Weight"
-            footer="Stored locally as your bodyweight reference. Leave empty to keep it unset."
+            title="Units"
+            icon="measure"
+            footer="Applies to every weight shown across Forge."
           >
             <Choice
               title="Metric (kg)"
@@ -128,8 +172,15 @@ export function GeneralSettingsScreen({ navigation }: Props) {
               title="Imperial (lb)"
               selected={preferences.units === 'imperial'}
               onPress={() => choose({ units: 'imperial' as UnitsPreference })}
-              divider
             />
+          </SettingsSection>
+          )}
+          {matches('bodyweight', 'body weight') && (
+          <SettingsSection
+            title="Bodyweight"
+            icon="weight"
+            footer="Stored locally as your bodyweight reference. Leave empty to keep it unset."
+          >
             <SettingsRow
               title="Bodyweight"
               trailing={
@@ -150,7 +201,9 @@ export function GeneralSettingsScreen({ navigation }: Props) {
               }
             />
           </SettingsSection>
-          <SettingsSection title="Calendar">
+          )}
+          {matches('calendar', 'week', 'starts', 'monday', 'sunday') && (
+          <SettingsSection title="Calendar" icon="calendar">
             <Choice
               title="Monday"
               selected={preferences.weekStartsOn === 1}
@@ -163,7 +216,9 @@ export function GeneralSettingsScreen({ navigation }: Props) {
               onPress={() => choose({ weekStartsOn: 0 as WeekStartsOn })}
             />
           </SettingsSection>
-          <SettingsSection title="Rest timer">
+          )}
+          {matches('rest timer', 'rest', 'duration', 'between sides', 'unilateral', 'keep running') && (
+          <SettingsSection title="Rest timer" icon="stopwatch">
             <Toggle
               title="Rest timer"
               value={preferences.showRestTimer}
@@ -209,7 +264,9 @@ export function GeneralSettingsScreen({ navigation }: Props) {
               </>
             )}
           </SettingsSection>
-          <SettingsSection title="Rest timer alert" footer="At the end of a rest, Forge can alert you in-app and on your locked device.">
+          )}
+          {matches('rest timer alert', 'sound', 'haptic', 'vibration', 'alert') && (
+          <SettingsSection title="Rest timer alert" icon="bell" footer="At the end of a rest, Forge can alert you in-app and on your locked device.">
             <Toggle
               title="Sound"
               value={preferences.restTimerSound}
@@ -222,8 +279,11 @@ export function GeneralSettingsScreen({ navigation }: Props) {
               onPress={() => choose({ restTimerHaptic: !preferences.restTimerHaptic })}
             />
           </SettingsSection>
+          )}
+          {matches('reminders', 'unfinished', 'workout', 'reminder', 'notification') && (
           <SettingsSection
             title="Reminders"
+            icon="bell-ringing"
             footer="Forge sends one local reminder while an unfinished workout remains open."
           >
             <Toggle
@@ -251,6 +311,12 @@ export function GeneralSettingsScreen({ navigation }: Props) {
               </View>
             )}
           </SettingsSection>
+          )}
+          {!anyMatch ? (
+            <Text style={[styles.noResults, { color: theme.textSecondary }]}>
+              No settings match “{query.trim()}”.
+            </Text>
+          ) : null}
         </ScrollView>
         <ForgeAnchoredMenu
           visible={restMenu.visible}
@@ -398,6 +464,17 @@ const styles = StyleSheet.create({
     gap: settingsLayout.sectionGap,
   },
   value: { ...typeScale.supporting },
+  searchField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 44,
+    paddingHorizontal: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 14,
+  },
+  searchInput: { flex: 1, minHeight: 44, ...typeScale.body, padding: 0 },
+  noResults: { ...typeScale.supporting, textAlign: 'center', paddingVertical: 24 },
   inputAction: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   weightInput: { width: 76, minHeight: 40, textAlign: 'right', ...typeScale.body },
   unit: { ...typeScale.supporting },
