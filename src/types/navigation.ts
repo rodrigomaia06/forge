@@ -34,6 +34,7 @@ export type RootStackParamList = {
     | { workoutTypeId: string }
     | { mode: 'create'; draftId: string; initialColor: string };
   BackupExport: undefined;
+  ImportSelection: undefined;
   Logs: undefined;
   About: undefined;
   MuscleHeatmapDetail: undefined;

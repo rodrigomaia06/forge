@@ -280,7 +280,7 @@ test.describe('Settings', () => {
     }
   });
 
-  test('validates JSON, lets the user select import data, then opens its review', async ({ page }, testInfo) => {
+  test('opens the per-item import screen for a data dump and imports the selection', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Backup & Export' }).click();
@@ -295,8 +295,6 @@ test.describe('Settings', () => {
         settings: { workoutTypes: [], dailyMeasurementDefinitions: [], dailyMeasurementEntries: [] },
         plans: {
           plans: [
-            // Older/manual exports can omit empty child lists. Importing them must not
-            // leave Plans with an undefined collection when it renders the routine row.
             { name: 'Plan A', createdAt: 0, updatedAt: 0, routines: [{ name: 'Routine A', type: 'Strength', createdAt: 0, updatedAt: 0 }, { name: 'Routine B', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }] },
             { name: 'Plan B', createdAt: 0, updatedAt: 0, routines: [{ name: 'Routine C', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }, { name: 'Routine D', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }] },
           ],
@@ -305,32 +303,27 @@ test.describe('Settings', () => {
         workouts: { activeWorkout: null, completedWorkouts: [] }, customExercises: [],
       })),
     });
-    const sheet = page.getByRole('dialog');
-    await expect(sheet.getByText('Choose import data', { exact: true })).toBeVisible();
-    await expect(sheet.getByRole('checkbox', { name: 'Remove Workouts' })).toBeChecked();
-    await sheet.getByRole('checkbox', { name: 'Remove Workouts' }).click();
-    await expect(sheet.getByRole('checkbox', { name: 'Include Workouts' })).not.toBeChecked();
-    await sheet.getByRole('button', { name: 'Review selected data' }).click();
-    await expect(sheet.getByText('Review import', { exact: true })).toBeVisible();
-    await expect(sheet.getByText('2 plans · 5 routines · 0 on device')).toBeVisible();
-    await expect(sheet.getByRole('button', { name: 'Import selected data' })).toBeVisible();
-    await expect(sheet.getByText('Workouts', { exact: true })).toHaveCount(0);
-    await sheet.getByRole('button', { name: 'Import selected data' }).click();
-    const summary = page.getByTestId('data-merged-summary');
+    // A full dump opens the dedicated per-item screen, showing only non-empty categories.
+    await expect(page.getByTestId('settings-detail-title').last()).toHaveText('Import');
+    await expect(page.getByRole('button', { name: /Plans, 2 of 2 selected/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Routines, 1 of 1 selected/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Workouts,/ })).toHaveCount(0);
+    // Expand Routines and drop it from the selection, keeping the two plans.
+    await page.getByRole('button', { name: /Routines, 1 of 1 selected/ }).click();
+    await page.getByRole('checkbox', { name: 'Deselect all Routines' }).click();
+    await expect(page.getByRole('button', { name: /Routines, 0 of 1 selected/ })).toBeVisible();
+    await page.getByRole('button', { name: /Import 2 items/ }).click();
+    const summary = page.getByTestId('import-selection-summary');
     await expect(summary).toBeVisible();
-    await expect(summary).toContainText('7 plans and routines');
-    await expect(summary).toContainText('stayed on device');
-    if (testInfo.project.use.isMobile === true) {
-      await page.waitForTimeout(250);
-      await page.screenshot({ path: testInfo.outputPath('import-merged-summary-iphone.png') });
-    }
+    await expect(summary).toContainText('plans and routines');
     await summary.getByRole('button', { name: 'Done' }).click();
-    await expect(summary).toBeHidden();
-    // Backup & Export is a pushed full-screen detail without the bottom tab bar,
-    // so return to the Settings root before reaching for the Plans tab.
+    // Done returns to Backup & Export (a full-screen detail); step back to the
+    // Settings root before reaching for the Plans tab.
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('tab', { name: 'Plans' }).click();
     await expect(page.getByText('Routine A', { exact: true })).toBeVisible();
+    // Routine E was deselected, so it is not imported.
+    await expect(page.getByText('Routine E', { exact: true })).toHaveCount(0);
   });
 
   test('imports a shared single routine straight from a review, skipping the category grid', async ({ page }) => {

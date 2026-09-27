@@ -25,7 +25,7 @@ test.describe('Core flow: history and data', () => {
     await page.getByRole('button', { name: 'Import data' }).click();
     const chooser = await chooserPromise;
     await chooser.setFiles({
-      name: 'ordered-forge-import.json',
+      name: 'ordered-forge-import.forge',
       mimeType: 'application/json',
       buffer: Buffer.from(JSON.stringify({
         format: 'forge-data',
@@ -46,10 +46,9 @@ test.describe('Core flow: history and data', () => {
         customExercises: [],
       })),
     });
-    const dialog = page.getByRole('dialog');
-    await dialog.getByRole('button', { name: 'Review selected data' }).click();
-    await dialog.getByRole('button', { name: 'Import selected data' }).click();
-    await page.getByTestId('data-merged-summary').getByRole('button', { name: 'Done' }).click();
+    await expect(page.getByTestId('settings-detail-title').last()).toHaveText('Import');
+    await page.getByRole('button', { name: /Import \d+ item/ }).click();
+    await page.getByTestId('import-selection-summary').getByRole('button', { name: 'Done' }).click();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('tab', { name: 'Plans' }).click();
     // The plan lists its routines inline on the card; there is no options popup.

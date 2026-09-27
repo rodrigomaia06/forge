@@ -1,7 +1,9 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React from 'react';
 import { Alert, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
+import { setPendingImport } from '../../state/pendingImport';
 import * as Clipboard from 'expo-clipboard';
 import { AppScreen, ForgeAnchoredMenu, ForgeBackButton, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeCard, ForgeConfirmationDialog, ForgeFloatingCta, ForgeSheetHeader, ForgeSingleSelectList, ForgeText as Text, Icon, pressedFeedback, useAnchoredMenu } from '../../components/ui';
 import type { ForgeSingleSelectOption } from '../../components/ui';
@@ -66,6 +68,7 @@ export function SettingsDestinationScreen({ navigation, route }: Props) {
 }
 
 function BackupExport() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [busy, setBusy] = React.useState(false);
   const [transferStep, setTransferStep] = React.useState<'export-json' | 'export-text' | 'import-selection' | 'import-review' | null>(null);
   const [transfer, setTransfer] = React.useState<ForgeDataTransfer | null>(null);
@@ -119,8 +122,9 @@ function BackupExport() {
         setInspection(await inspectDataTransfer(incoming, nextSelection));
         setTransferStep('import-review');
       } else {
-        setInspection(null);
-        setTransferStep('import-selection');
+        // A full data dump opens the dedicated per-item selection screen.
+        setPendingImport(incoming);
+        navigation.navigate('ImportSelection');
       }
     });
   };
