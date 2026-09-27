@@ -12,7 +12,7 @@ import { typeScale } from '../../theme/tokens';
 import type { IconName, RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
-import { allDataTransferSelection, createSqliteBackup, databaseStatus, eraseAllForgeData, exportJson, exportText, inspectDataTransfer, mergeDataTransfer, pickJsonTransfer, pickSqliteBackup, restoreSqliteBackup, type DataTransferCategory, type DataTransferInspection, type DataTransferMergeResult, type DataTransferSelection, type ForgeDataTransfer } from '../../data/backupRepository';
+import { allDataTransferSelection, createSqliteBackup, databaseStatus, eraseAllForgeData, exportJson, exportText, inspectDataTransfer, mergeDataTransfer, pickJsonTransfer, pickSqliteBackup, restoreSqliteBackup, type DataTransferCategory, type DataTransferInspection, type DataTransferMergeResult, type DataTransferSelection, type ForgeDataTransfer, type ShareDescriptor } from '../../data/backupRepository';
 import { clearDiagnostics, exportDiagnostics, loadDiagnostics, recordDiagnostic, type DiagnosticEntry, type DiagnosticKind } from '../../data/diagnosticsRepository';
 import { loadBackupHistory, recordBackupEvent, type BackupHistory } from '../../data/backupHistory';
 import { relativeTime } from '../../utils/relativeTime';
@@ -105,7 +105,9 @@ function BackupExport() {
       const incoming = await pickJsonTransfer();
       if (!incoming) return;
       setTransfer(incoming);
-      const nextSelection = allDataTransferSelection();
+      // A shared single item declares exactly which sections it carries; default
+      // the picker to those rather than everything.
+      const nextSelection = incoming.selection ?? allDataTransferSelection();
       setSelection(nextSelection);
       setInspection(null);
       setTransferStep('import-selection');
@@ -206,6 +208,7 @@ function BackupExport() {
         step={transferStep}
         selection={selection}
         inspection={inspection}
+        share={transferStep?.startsWith('import') ? transfer?.share : undefined}
         onChangeSelection={setSelection}
         onClose={() => { setTransferStep(null); setInspection(null); setTransfer(null); }}
         onBack={() => { setInspection(null); setTransferStep('import-selection'); }}
@@ -298,6 +301,10 @@ function mergeSummaryMessage(result: DataTransferMergeResult): string {
     : 'No new records were needed. Matching records stayed on device.';
 }
 
+function shareKindLabel(kind: ShareDescriptor['kind']): string {
+  return { routine: 'Shared routine', plan: 'Shared plan', workout: 'Shared workout', exercise: 'Shared exercise' }[kind];
+}
+
 const transferCategories: Array<{ key: DataTransferCategory; title: string; detail: string; icon: IconName }> = [
   { key: 'workouts', title: 'Workouts', detail: 'Completed training and the current workout', icon: 'history' },
   { key: 'plans', title: 'Plans & routines', detail: 'Your saved training structures', icon: 'layers' },
@@ -307,11 +314,12 @@ const transferCategories: Array<{ key: DataTransferCategory; title: string; deta
 ];
 
 function DataTransferSheet({
-  step, selection, inspection, onChangeSelection, onClose, onBack, onExportJson, onExportText, onReviewImport, onImport, busy,
+  step, selection, inspection, share, onChangeSelection, onClose, onBack, onExportJson, onExportText, onReviewImport, onImport, busy,
 }: {
   step: 'export-json' | 'export-text' | 'import-selection' | 'import-review' | null;
   selection: DataTransferSelection;
   inspection: DataTransferInspection | null;
+  share?: ShareDescriptor;
   onChangeSelection: (selection: DataTransferSelection) => void;
   onClose: () => void;
   onBack: () => void;
@@ -346,6 +354,17 @@ function DataTransferSheet({
         leading={reviewing ? <ForgeBackButton accessibilityLabel="Back" onPress={onBack} /> : undefined}
       />
       <ScrollView style={styles.transferScroll} contentContainerStyle={[styles.transferContent, { paddingBottom: clearance }]} showsVerticalScrollIndicator={false}>
+        {share ? (
+          <ForgeCard variant="nested" size="compact" style={styles.shareBanner}>
+            <Icon name="share" size={20} color={theme.textSecondary} />
+            <View style={styles.transferOptionText}>
+              <Text style={[styles.transferOptionTitle, { color: theme.textPrimary }]}>{share.title}</Text>
+              <Text style={[styles.transferOptionDetail, { color: theme.textSecondary }]}>
+                {shareKindLabel(share.kind)}{share.summary ? ` · ${share.summary}` : ''}
+              </Text>
+            </View>
+          </ForgeCard>
+        ) : null}
         {reviewing ? (
           <ImportReview inspection={inspection} selection={selection} />
         ) : (
@@ -650,6 +669,7 @@ const styles = StyleSheet.create({
   transferOption: { minHeight: 68, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   transferOptionCopy: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   transferOptionText: { flex: 1, gap: 2 },
+  shareBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
   transferOptionTitle: { ...typeScale.controlLabel },
   transferOptionDetail: { ...typeScale.caption },
   transferCheck: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },

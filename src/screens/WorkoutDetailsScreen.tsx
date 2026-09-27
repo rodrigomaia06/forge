@@ -19,6 +19,7 @@ import { ReadOnlyExerciseSection } from './activeWorkout/ExerciseSection';
 import { useWorkouts } from '../state/WorkoutContext';
 import { exercisesWithHistoricalPrevious } from '../domain/workouts/nextSessionTargets';
 import { useSettings } from '../state/SettingsContext';
+import { shareItem } from '../utils/shareItem';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
@@ -87,6 +88,15 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
             </Text>
           </View>
           <HeaderActionGroup>
+            <HeaderAction
+              accessibilityLabel="Share workout"
+              icon="share"
+              iconSize={20}
+              iconOnly
+              variant="ghost"
+              style={joinedHeaderAction}
+              onPress={() => { selectionHaptic(); shareItem({ kind: 'workout', id: workout.id }); }}
+            />
             <HeaderAction
               accessibilityLabel="Edit workout"
               icon="note"

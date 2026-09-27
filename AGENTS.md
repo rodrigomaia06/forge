@@ -97,6 +97,9 @@ src/
 │   ├── backupRepository.ts
 │   ├── diagnosticsRepository.ts
 │   ├── mockWorkouts.ts
+│   ├── scopedTransfer.ts
+│   ├── scopedTransferCore.ts
+│   ├── transferFormat.ts
 │   └── workoutRepository.ts
 ├── debug
 │   └── layoutProbe.ts
@@ -127,7 +130,8 @@ src/
 ├── types.ts
 ├── utils
 │   ├── idle.ts
-│   └── relativeTime.ts
+│   ├── relativeTime.ts
+│   └── shareItem.ts
 └── widgets
     └── RestTimerLiveActivity.tsx
 tests/

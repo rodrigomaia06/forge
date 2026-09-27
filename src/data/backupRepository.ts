@@ -13,8 +13,26 @@ import { uniqueById } from './uniqueById';
 import { mergeImportedPlans } from './dataTransferPlans';
 import { normalizeDataTransfer } from './dataTransferNormalization';
 import type { PlansState, SettingsPreferences, WorkoutState } from '../types';
+import {
+  FORGE_TRANSFER_VERSION,
+  allDataTransferSelection,
+  type DataTransferCategory,
+  type DataTransferSelection,
+  type ForgeDataTransfer,
+  type ShareDescriptor,
+  type ShareKind,
+} from './transferFormat';
 
-export const FORGE_TRANSFER_VERSION = 1;
+export {
+  FORGE_TRANSFER_VERSION,
+  allDataTransferSelection,
+  type DataTransferCategory,
+  type DataTransferSelection,
+  type ForgeDataTransfer,
+  type ShareDescriptor,
+  type ShareKind,
+};
+
 const REQUIRED_TABLES = [
   'forge_meta',
   'preferences',
@@ -25,21 +43,6 @@ const REQUIRED_TABLES = [
   'workout_types',
 ];
 
-export type ForgeDataTransfer = {
-  format: 'forge-data';
-  version: number;
-  exportedAt: string;
-  settings: SettingsPreferences;
-  plans: PlansState;
-  workouts: WorkoutState;
-  customExercises: ExerciseCatalogItem[];
-  /** Describes the intentionally selected portable sections. Older v1 files safely omit it. */
-  selection?: DataTransferSelection;
-};
-
-export type DataTransferCategory =
-  'workouts' | 'plans' | 'exercises' | 'workoutTypes' | 'measurements';
-export type DataTransferSelection = Record<DataTransferCategory, boolean>;
 export type DataTransferCategorySummary = {
   available: number;
   newRecords: number;
@@ -57,14 +60,6 @@ export type DataTransferMergeResult = {
   categories: Record<DataTransferCategory, number>;
   activeWorkoutAdded: boolean;
 };
-
-export const allDataTransferSelection = (): DataTransferSelection => ({
-  workouts: true,
-  plans: true,
-  exercises: true,
-  workoutTypes: true,
-  measurements: true,
-});
 
 export type BackupInspection = {
   bytes: Uint8Array;
@@ -127,6 +122,18 @@ export async function exportJson(selection = allDataTransferSelection()): Promis
   const transfer = await createDataTransfer(selection);
   await shareFile(
     cacheFile(filename('json'), JSON.stringify(transfer, null, 2)),
+    'application/json',
+  );
+}
+
+/**
+ * Shares an already-built transfer (e.g. a single-item scoped share) as JSON.
+ * The recipient imports it through the same Import JSON flow as a full export.
+ */
+export async function shareTransfer(transfer: ForgeDataTransfer, basename: string): Promise<void> {
+  const safe = basename.replace(/[^\w-]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'item';
+  await shareFile(
+    cacheFile(`forge-${safe}-${stamp()}.json`, JSON.stringify(transfer, null, 2)),
     'application/json',
   );
 }

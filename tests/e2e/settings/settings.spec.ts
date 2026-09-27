@@ -333,6 +333,43 @@ test.describe('Settings', () => {
     await expect(page.getByText('Routine A', { exact: true })).toBeVisible();
   });
 
+  test('previews a shared single routine and pre-selects only its sections', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Backup & Export' }).click();
+    const chooserPromise = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: 'Import JSON' }).click();
+    const chooser = await chooserPromise;
+    await chooser.setFiles({
+      name: 'forge-push-day.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify({
+        format: 'forge-data', version: 1, exportedAt: '2026-09-13T00:00:00.000Z',
+        share: { kind: 'routine', title: 'Push Day', summary: '1 exercise' },
+        // A scoped share declares exactly which sections it carries.
+        selection: { workouts: false, plans: true, exercises: false, workoutTypes: false, measurements: false },
+        settings: { workoutTypes: [], dailyMeasurementDefinitions: [], dailyMeasurementEntries: [] },
+        plans: { plans: [], standaloneRoutines: [{ name: 'Push Day', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }] },
+        workouts: { activeWorkout: null, completedWorkouts: [] }, customExercises: [],
+      })),
+    });
+    const sheet = page.getByRole('dialog');
+    // The friendly share banner names the item.
+    await expect(sheet.getByText('Push Day', { exact: true })).toBeVisible();
+    await expect(sheet.getByText(/Shared routine/)).toBeVisible();
+    // Only Plans is pre-selected; workouts is not part of a routine share.
+    await expect(sheet.getByRole('checkbox', { name: 'Remove Plans & routines' })).toBeChecked();
+    await expect(sheet.getByRole('checkbox', { name: 'Include Workouts' })).not.toBeChecked();
+    await sheet.getByRole('button', { name: 'Review selected data' }).click();
+    await expect(sheet.getByText('Review import', { exact: true })).toBeVisible();
+    await sheet.getByRole('button', { name: 'Import selected data' }).click();
+    await expect(page.getByTestId('data-merged-summary')).toBeVisible();
+    await page.getByTestId('data-merged-summary').getByRole('button', { name: 'Done' }).click();
+    await page.getByRole('button', { name: 'Back to Settings' }).click();
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await expect(page.getByText('Push Day', { exact: true })).toBeVisible();
+  });
+
   test('uses a Forge decision card when data transfer cannot complete', async ({ page }, testInfo) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();

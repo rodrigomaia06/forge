@@ -49,6 +49,7 @@ import { routineExercisesWithNextSessionTargets } from '../domain/workouts/nextS
 import { useSettings } from '../state/SettingsContext';
 import { makeWorkoutId } from '../state/workoutMutations';
 import { createExerciseSnapshot } from '../domain/exercises/exerciseSnapshot';
+import { shareItem } from '../utils/shareItem';
 import type { ExerciseCatalogItem } from '../data/exerciseCatalog';
 import type {
   RootStackParamList,
@@ -579,6 +580,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                 onPress: () =>
                   change((current) => ({ ...current, planId: current.planId ? undefined : plans[0]?.id })),
               },
+              { label: 'Share routine', icon: 'share', onPress: () => shareItem({ kind: 'routine', id: draft.id }) },
               { label: 'Delete routine', icon: 'trash', tone: 'destructive', onPress: confirmDelete },
             ]}
           />

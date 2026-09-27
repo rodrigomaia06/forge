@@ -47,6 +47,7 @@ import { workoutTypeIcon } from './settings/workoutTypeIcon';
 import { useForgeDockScrollInset } from '../components/DockChrome';
 import { RoutineDragHandle, RoutineReorderGroup } from './plans/RoutineReorderGroup';
 import { useStartWorkoutGuard } from './useStartWorkoutGuard';
+import { shareItem } from '../utils/shareItem';
 
 type Props = RootTabScreenProps<'Plans'>;
 const ROUTINE_ROW_HEIGHT = 76;
@@ -287,6 +288,7 @@ export function PlansScreen({ navigation, route }: Props) {
           : []),
         { label: 'Edit', icon: 'note', onPress: () => openRoutine(routine, false) },
         { label: 'Duplicate', icon: 'duplicate', onPress: () => duplicate(routine) },
+        { label: 'Share', icon: 'share', onPress: () => shareItem({ kind: 'routine', id: routine.id }) },
         { label: 'Delete', icon: 'trash', tone: 'destructive' as const, onPress: () => requestDeleteRoutine(routine) },
       ];
     }
@@ -294,6 +296,7 @@ export function PlansScreen({ navigation, route }: Props) {
       { label: 'Start', icon: 'play', onPress: () => startRoutine(routine, false) },
       { label: 'Visualize', icon: 'info', onPress: () => viewRoutine(routine, false) },
       { label: 'Edit', icon: 'note', onPress: () => openRoutine(routine, false) },
+      { label: 'Share', icon: 'share', onPress: () => shareItem({ kind: 'routine', id: routine.id }) },
     ];
   };
   const addPlan = (): void => {
@@ -456,6 +459,7 @@ export function PlansScreen({ navigation, route }: Props) {
                   onStartRoutine={startRoutine}
                   onDeleteRoutine={(routine) => requestDeleteRoutine(routine)}
                   onRename={(name) => renamePlan(plan.id, name)}
+                  onShare={() => shareItem({ kind: 'plan', id: plan.id })}
                   onDelete={() => requestDeletePlan(plan)}
                 />
               </View>
@@ -596,6 +600,7 @@ function PlanCard({
   onStartRoutine,
   onDeleteRoutine,
   onRename,
+  onShare,
   onDelete,
 }: {
   plan: WorkoutPlan;
@@ -613,6 +618,7 @@ function PlanCard({
   onStartRoutine: (routine: WorkoutRoutine) => void;
   onDeleteRoutine: (routine: WorkoutRoutine) => void;
   onRename: (name: string) => void;
+  onShare: () => void;
   onDelete: () => void;
 }) {
   const theme = useForgeTheme();
@@ -690,6 +696,16 @@ function PlanCard({
         <Text style={styles.planName}>{plan.name}</Text>
         <Text style={styles.planCount}>{count}</Text>
       </View>
+      <Pressable
+        testID={`plan-share-${plan.id}`}
+        accessibilityRole="button"
+        accessibilityLabel={`Share ${plan.name}`}
+        hitSlop={8}
+        onPress={onShare}
+        style={({ pressed }) => [styles.planEditTitle, pressed && pressedFeedbackSubtle]}
+      >
+        <Icon name="share" size={19} color={theme.slate} />
+      </Pressable>
     </View>
   );
   return (

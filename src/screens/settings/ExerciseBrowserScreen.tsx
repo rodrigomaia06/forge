@@ -68,6 +68,7 @@ import {
 } from '../../domain/exercises/catalogSelectors';
 import { formatCatalogVariation } from '../../domain/exercises/exercisePresentation';
 import { REST_DURATION_OPTIONS } from '../../domain/rest/restDurationOptions';
+import { shareItem } from '../../utils/shareItem';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseBrowser'>;
@@ -998,13 +999,21 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   onPressRest={() => transitionDetailSheet('restTime')}
                 />
                 {isCustom(detail) ? (
-                  <View style={styles.deleteVariationWrap}>
+                  <View style={[styles.deleteVariationWrap, styles.customActionsRow]}>
+                    <Button
+                      label="Share"
+                      icon="share"
+                      variant="outline"
+                      haptic="none"
+                      style={styles.customAction}
+                      onPress={() => shareItem({ kind: 'exercise', id: detail.id })}
+                    />
                     <Button
                       label="Delete variation"
                       variant="outline"
                       tone="destructive"
                       haptic="none"
-                      style={styles.deleteVariationAction}
+                      style={styles.customAction}
                       onPress={() => {
                         catalog.removeCustomExercise(detail.id);
                         close();
@@ -1610,6 +1619,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     editVariationHeaderAction: { backgroundColor: theme.surfaceMuted, borderColor: theme.border, borderWidth: 1 },
     deleteVariationAction: { marginTop: 8, marginBottom: 4 },
     deleteVariationWrap: { paddingHorizontal: 20, paddingBottom: 30 },
+    customActionsRow: { flexDirection: 'row', gap: 10 },
+    customAction: { flex: 1, marginTop: 8, marginBottom: 4 },
     input: {
       minHeight: 48,
       paddingHorizontal: 14,
