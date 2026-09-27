@@ -31,6 +31,7 @@ export function ExerciseDetailBody({
   onPressRest,
   secondaryRest,
   footer,
+  bottomPadding,
 }: {
   detail: ExerciseCatalogItem;
   workoutTypes: readonly WorkoutTypePreference[];
@@ -40,11 +41,14 @@ export function ExerciseDetailBody({
   secondaryRest?: { title: string; value: string; onPress?: () => void };
   /** Extra content appended after the profile card (e.g. the unilateral section). */
   footer?: React.ReactNode;
+  /** Override the content's own bottom padding — a hosting sheet may already
+   * provide clearance, so the default 30 would otherwise stack into dead space. */
+  bottomPadding?: number;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   return (
-    <View style={styles.detailContent}>
+    <View style={[styles.detailContent, bottomPadding !== undefined && { paddingBottom: bottomPadding }]}>
       <Text style={styles.detailSectionLabel}>Rest</Text>
       <ForgeCard variant="nested" style={styles.restTimeCard}>
         <RestRow title="Rest time" value={restLabel} onPress={onPressRest} />

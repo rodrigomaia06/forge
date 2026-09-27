@@ -88,3 +88,42 @@ Animate the **surface**, not the content wrapper: the surface hugs its content,
 so a `layout` transition on the content wrapper would let the surface jump to the
 final height while the content eased inside it. The surface's own `overflow:
 hidden` clips the content cleanly while the surface height eases.
+
+## `ForgeActionSheet` replacement views must render as direct children
+
+`ForgeActionSheet` hosts multiple views (its action list plus `replacement`
+views: note / info / previous-sessions / rest pickers). The reason a scroll
+body in a `replacement` view was clipping instead of scrolling — a tall
+Exercise-info body with the last card cut off and no scroll — is the direct-child
+rule above: `flexShrink: 1` only bounds a scroll view when its parent chain has a
+**definite** height. The surface has one (its `maxHeight`), but the action
+sheet's own `<View style={styles.sheet}>` wrapper *and* a caller's per-view
+`<View key={view}>` transition wrapper both **hug**, so they never pass a
+definite height down. The scroll view then grows to its content and the surface's
+`overflow: hidden` clips it — it cannot scroll.
+
+Fix, applied here:
+
+- `ForgeActionSheet` renders a `replacement` **directly** (`replacement(close)`),
+  not wrapped in its `styles.sheet` view. Only the default action-list path keeps
+  that wrapper. So a replacement's handle / header / scroll view are direct
+  children of the surface, exactly like the single-view `ForgeBottomSheet`
+  sheets. Each replacement view therefore owns its **own bottom clearance** (its
+  scroll `contentContainerStyle` padding), since it no longer inherits the
+  wrapper's `paddingBottom`.
+- The per-view transition wrapper is a **keyed `React.Fragment`**
+  (`<React.Fragment key={view}>`), not a `<View>`. A keyed fragment still
+  remounts the view on change (for the cross-fade) without inserting a hugging
+  wrapper that breaks the height chain.
+- Do **not** stack bottom padding. Exercise-info content came from the shared
+  `ExerciseDetailBody`, whose `detailContent` already carries a `paddingBottom`;
+  inside the sheet that stacked with the scroll padding into visible dead space.
+  `ExerciseDetailBody` now takes a `bottomPadding` override so the hosting sheet
+  can collapse it and provide clearance once, via the scroll container.
+
+## Scroll only when the body overflows
+
+A `flexShrink: 1` scroll body that fits its viewport should not rubber-band. Set
+`scrollEnabled` from a measured comparison — `contentHeight > viewportHeight`
+via `onContentSizeChange` and `onLayout` — so a short Exercise-info card is
+static and only a genuinely tall one scrolls. `ExerciseInfoContent` does this.

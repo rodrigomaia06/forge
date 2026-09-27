@@ -851,7 +851,7 @@ export function ExerciseOptionsSheet({
         }] : []),
       ]}
       replacement={view !== 'actions' ? (closeSheet) => (
-        <View key={view}>
+        <React.Fragment key={view}>
           <ForgeBottomSheetHandle />
           <ForgeSheetHeader
             title={view === 'note' ? 'Exercise note' : view === 'history' ? 'Previous sessions' : view === 'rest' ? 'Duration' : view === 'rest-unilateral' ? 'Side rest' : 'Exercise info'}
@@ -942,7 +942,7 @@ export function ExerciseOptionsSheet({
               />
             </ForgeCard>
           </View> : null}
-        </View>
+        </React.Fragment>
       ) : null}
     />
   );
@@ -1220,10 +1220,10 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     exerciseOptionCopy: { flex: 1, gap: 2, alignSelf: 'center', justifyContent: 'center' },
     exerciseOptionName: { color: dashboardTheme.ink, ...typeScale.cardTitle },
     exerciseOptionEquipment: { color: '#4F625A', ...typeScale.label },
-    restPickerContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 20 },
+    restPickerContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 32 },
     restChoiceCard: { overflow: 'hidden', borderRadius: 16 },
     restDefaultAction: { paddingHorizontal: 14, backgroundColor: theme.surfaceMuted, borderColor: theme.border, borderWidth: 1 },
-    exerciseNoteContent: { paddingHorizontal: 20, paddingBottom: 28 },
+    exerciseNoteContent: { paddingHorizontal: 20, paddingBottom: 32 },
     exerciseNoteCard: { paddingHorizontal: 14, paddingVertical: 12, minHeight: 156 },
     readOnlyExerciseNote: { color: theme.textPrimary, ...typeScale.body },
     exerciseNoteInput: {

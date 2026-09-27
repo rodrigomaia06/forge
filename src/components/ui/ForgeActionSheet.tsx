@@ -104,8 +104,12 @@ export function ForgeActionSheet({
       animateContentLayout={animateContentLayout ?? !waitForContentLayoutBeforeEnter}
     >
       {(close) => (
+        // A replacement view renders as a direct child of the sheet surface (no
+        // wrapping View) so a scroll body inside it can bound against the
+        // surface's maxHeight and actually scroll — per ADR 0005, a scroll view
+        // nested under hugging wrappers never gets a definite height and clips.
+        replacement ? replacement(close) : (
         <View style={[styles.sheet, emphasis === 'prominent' && styles.prominentSheet]}>
-          {replacement ? replacement(close) : <>
             <ForgeBottomSheetHandle />
             <ForgeSheetHeader
               title={title}
@@ -173,8 +177,8 @@ export function ForgeActionSheet({
                 ))}
               </View>
             )}
-          </>}
         </View>
+        )
       )}
     </ForgeBottomSheet>
   );

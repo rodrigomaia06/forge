@@ -187,19 +187,34 @@ export function ExerciseInfoContent({
   const styles = useThemedStyles(createStyles);
   const { preferences } = useSettings();
   const detail = useMemo(() => catalogueDetail(exercise), [exercise]);
+  // Only allow scrolling when the content actually overflows: a fits-on-screen
+  // card should not rubber-band. Compare measured content vs viewport height.
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
   if (!detail) return null;
   // Match the read path in ActiveWorkoutScreen.restDurationForExercise.
   const exerciseId = exercise.exerciseId ?? exercise.exerciseSnapshot?.id ?? detail.id;
   const restLabel = restReadout(preferences.exerciseRestSeconds[exerciseId]);
   const unilateralRestLabel = restReadout(unilateralRestOverride);
+  const scrollable = contentHeight > viewportHeight + 1;
   // Reuse the exact Exercise Library detail card so the two read identically.
   return (
-    <ScrollView testID="exercise-info-content" contentContainerStyle={styles.infoScroll}>
+    <ScrollView
+      testID="exercise-info-content"
+      style={styles.infoScrollView}
+      contentContainerStyle={styles.infoScroll}
+      scrollEnabled={scrollable}
+      onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
+      onContentSizeChange={(_width, height) => setContentHeight(height)}
+    >
       <ExerciseDetailBody
         detail={detail}
         workoutTypes={preferences.workoutTypes}
         restLabel={restLabel}
         onPressRest={onPressRest}
+        // The sheet already provides bottom clearance; keep the content's own
+        // padding small so it doesn't stack into dead space under the last card.
+        bottomPadding={2}
         secondaryRest={unilateral
           ? { title: 'Between sides', value: unilateralRestLabel, onPress: onPressUnilateralRest }
           : undefined}
@@ -391,7 +406,7 @@ function formatRecordedSet(set: WorkoutSet, exercise: WorkoutExercise): string {
 }
 
 const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.create({
-  compactContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 28, gap: 14 },
+  compactContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 32, gap: 14 },
   // Warm-up editing needs room above its final confirmation control; static
   // Exercise info only keeps the normal short-sheet safe trailing clearance.
   infoContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24 },
@@ -399,7 +414,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   // scroll within the surface cap instead of parking content high with dead
   // space beneath it. Never put a height/maxHeight on the scroll view itself.
   infoScrollView: { flexShrink: 1 },
-  infoScroll: { paddingTop: 4, paddingBottom: 8 },
+  infoScroll: { paddingTop: 4, paddingBottom: 30 },
   uniSectionLabel: { marginTop: 8, marginLeft: 6, color: theme.textPrimary, ...typeScale.sectionTitle },
   uniCard: { overflow: 'hidden', borderRadius: 18 },
   uniRow: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 12 },
@@ -414,7 +429,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   // Let the list occupy all remaining sheet height. The former percentage cap
   // left an inert band under the final card and could clip Show more.
   previousSessionsScroll: { flexShrink: 1 },
-  previousSessionsContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 14 },
+  previousSessionsContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 32, gap: 14 },
   supporting: { ...typeScale.body },
   sectionLabel: { marginTop: 8, marginLeft: 6, color: theme.textPrimary, ...typeScale.sectionTitle },
   workingCard: { overflow: 'hidden', borderRadius: 16 },
