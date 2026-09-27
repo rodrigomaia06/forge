@@ -56,6 +56,7 @@ export type IconName =
   | 'restore'
   | 'copy'
   | 'share'
+  | 'sparkles'
   | 'clipboard'
   | 'contrast'
   | 'bell'

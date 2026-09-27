@@ -72,7 +72,7 @@ import { shareItem } from '../../utils/shareItem';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseBrowser'>;
-type DetailSheetView = 'details' | 'restTime';
+type DetailSheetView = 'details' | 'restTime' | 'options';
 type ExerciseFormView =
   | 'details'
   | 'category'
@@ -912,7 +912,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
             setDetailSheetView('details');
           }}
           onBackRequest={() => {
-            if (detailSheetView !== 'restTime') return false;
+            if (detailSheetView === 'details') return false;
             transitionDetailSheet('details');
             return true;
           }}
@@ -969,6 +969,51 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   </ForgeCard>
                 </View>
               </View>
+            ) : detailSheetView === 'options' ? (
+              <View style={styles.detailSheet}>
+                <ForgeBottomSheetHandle />
+                <ForgeSheetHeader
+                  title="Options"
+                  compactTitle
+                  leading={
+                    <ForgeBackButton
+                      accessibilityLabel="Back to exercise details"
+                      onPress={() => transitionDetailSheet('details')}
+                    />
+                  }
+                />
+                <View style={styles.optionsList}>
+                  <ForgeCard variant="nested" size="compact">
+                    <ExerciseOptionRow
+                      icon="share"
+                      label="Share exercise"
+                      onPress={() => {
+                        shareItem({ kind: 'exercise', id: detail.id });
+                        transitionDetailSheet('details');
+                      }}
+                    />
+                    <ExerciseOptionRow
+                      icon="note"
+                      label="Edit variation"
+                      divider
+                      onPress={() => {
+                        close();
+                        openEdit(detail);
+                      }}
+                    />
+                    <ExerciseOptionRow
+                      icon="trash"
+                      label="Delete variation"
+                      destructive
+                      divider
+                      onPress={() => {
+                        catalog.removeCustomExercise(detail.id);
+                        close();
+                      }}
+                    />
+                  </ForgeCard>
+                </View>
+              </View>
             ) : (
               <View style={styles.detailSheet}>
                 <ForgeBottomSheetHandle />
@@ -976,57 +1021,68 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   title={detail.name}
                   onClose={close}
                   closeAccessibilityLabel="Close exercise details"
-                  closePosition={isCustom(detail) ? 'left' : 'right'}
+                  // Custom exercises get a "..." that opens an in-sheet options
+                  // view (Share / Edit / Delete); built-ins have nothing extra.
                   trailing={
                     isCustom(detail) ? (
                       <HeaderAction
-                        accessibilityLabel="Edit variation"
-                        icon="note"
+                        accessibilityLabel="Exercise options"
+                        icon="ellipsis-horizontal"
                         iconOnly
-                        style={styles.editVariationHeaderAction}
-                        onPress={() => {
-                          close();
-                          openEdit(detail);
-                        }}
+                        variant="ghost"
+                        onPress={() => transitionDetailSheet('options')}
                       />
                     ) : undefined
                   }
                 />
+                {isCustom(detail) ? (
+                  <View style={styles.customBadgeRow}>
+                    <View style={styles.customBadge} accessibilityLabel="Custom exercise">
+                      <Icon name="sparkles" size={15} color={theme.textSecondary} />
+                    </View>
+                  </View>
+                ) : null}
                 <ExerciseDetailBody
                   detail={detail}
                   workoutTypes={preferences.workoutTypes}
                   restLabel={restLabel(detail)}
                   onPressRest={() => transitionDetailSheet('restTime')}
+                  bottomPadding={Math.max(30, bottomInset + 20)}
                 />
-                {isCustom(detail) ? (
-                  <View style={[styles.deleteVariationWrap, styles.customActionsRow]}>
-                    <Button
-                      label="Share"
-                      icon="share"
-                      variant="outline"
-                      haptic="none"
-                      style={styles.customAction}
-                      onPress={() => shareItem({ kind: 'exercise', id: detail.id })}
-                    />
-                    <Button
-                      label="Delete variation"
-                      variant="outline"
-                      tone="destructive"
-                      haptic="none"
-                      style={styles.customAction}
-                      onPress={() => {
-                        catalog.removeCustomExercise(detail.id);
-                        close();
-                      }}
-                    />
-                  </View>
-                ) : null}
               </View>
             ))
           }
         </ForgeBottomSheet>
       </View>
     </AppScreen>
+  );
+}
+
+function ExerciseOptionRow({
+  icon,
+  label,
+  destructive = false,
+  divider = false,
+  onPress,
+}: {
+  icon: IconName;
+  label: string;
+  destructive?: boolean;
+  divider?: boolean;
+  onPress: () => void;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => [styles.optionRow, divider && styles.optionDivider, pressed && pressedFeedback]}
+    >
+      <Icon name={icon} size={20} color={destructive ? theme.textDestructive : theme.textSecondary} />
+      <Text style={[styles.optionLabel, { color: destructive ? theme.textDestructive : theme.textPrimary }]}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -1616,11 +1672,12 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     detailProfileRow: { minHeight: 54, paddingHorizontal: 14, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
     detailProfileLabel: { flex: 1, ...typeScale.label, color: theme.textSecondary },
     detailProfileValue: { flexShrink: 1, maxWidth: '62%', textAlign: 'right', ...typeScale.label, color: theme.textPrimary },
-    editVariationHeaderAction: { backgroundColor: theme.surfaceMuted, borderColor: theme.border, borderWidth: 1 },
-    deleteVariationAction: { marginTop: 8, marginBottom: 4 },
-    deleteVariationWrap: { paddingHorizontal: 20, paddingBottom: 30 },
-    customActionsRow: { flexDirection: 'row', gap: 10 },
-    customAction: { flex: 1, marginTop: 8, marginBottom: 4 },
+    customBadgeRow: { paddingHorizontal: 20, paddingTop: 2, paddingBottom: 4, alignItems: 'flex-start' },
+    customBadge: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
+    optionsList: { marginHorizontal: 20, marginTop: 4 },
+    optionRow: { minHeight: 56, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 14 },
+    optionDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
+    optionLabel: { ...typeScale.controlLabel },
     input: {
       minHeight: 48,
       paddingHorizontal: 14,
