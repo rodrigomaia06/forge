@@ -518,17 +518,13 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
           scrollEventThrottle={16}
           extraData={expanded}
           ListHeaderComponent={<View style={styles.searchRow}>
-            <View style={styles.search}>
-              <Icon name="search" size={20} color={theme.slate} />
-              <TextInput
-                accessibilityLabel="Search exercises"
-                value={query}
-                onChangeText={setQuery}
-                placeholder="Search exercises"
-                placeholderTextColor={theme.muted}
-                style={styles.searchInput}
-              />
-            </View>
+            <ForgeSearchField
+              value={query}
+              onChangeText={setQuery}
+              accessibilityLabel="Search exercises"
+              placeholder="Search exercises"
+              style={styles.searchFlex}
+            />
             {!customOnly && (
               <Button
                 accessibilityLabel={`Filters${active ? `, ${active} active` : ''}`}
@@ -1452,20 +1448,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       paddingBottom: settingsLayout.contentBottom,
       gap: settingsLayout.listGap,
     },
-    searchRow: { flexDirection: 'row', gap: 8 },
-    search: {
-      flex: 1,
-      minHeight: 48,
-      paddingHorizontal: 13,
-      borderRadius: 14,
-      gap: 8,
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: theme.input,
-      borderWidth: 1,
-      borderColor: theme.divider,
-    },
-    searchInput: { flex: 1, color: theme.ink, ...typeScale.body, paddingVertical: 0 },
+    searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    searchFlex: { flex: 1 },
     filters: {
       minHeight: 48,
       paddingHorizontal: 13,

@@ -1,7 +1,6 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useMemo } from 'react';
 import {
-  Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -11,6 +10,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   AppScreen,
   ForgeAnchoredMenu,
+  ForgeSearchField,
   ForgeSegmentedSwitch,
   ForgeSingleSelectList,
   ForgeSwitch,
@@ -113,30 +113,12 @@ export function GeneralSettingsScreen({ navigation }: Props) {
           onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
           scrollEventThrottle={16}
         >
-          <View style={[styles.searchField, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Icon name="search" size={18} color={theme.textSecondary} />
-            <TextInput
-              accessibilityLabel="Search settings"
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search settings"
-              placeholderTextColor={theme.textDisabled}
-              autoCorrect={false}
-              autoCapitalize="none"
-              returnKeyType="search"
-              style={[styles.searchInput, { color: theme.textPrimary }]}
-            />
-            {query ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Clear search"
-                onPress={() => setQuery('')}
-                hitSlop={14}
-              >
-                <Icon name="close" size={18} color={theme.textSecondary} />
-              </Pressable>
-            ) : null}
-          </View>
+          <ForgeSearchField
+            value={query}
+            onChangeText={setQuery}
+            accessibilityLabel="Search settings"
+            placeholder="Search settings"
+          />
           {matches('appearance', 'theme', 'display', 'dark', 'light', 'system') && (
           <SettingsSection
             title="Appearance"
@@ -464,16 +446,6 @@ const styles = StyleSheet.create({
     gap: settingsLayout.sectionGap,
   },
   value: { ...typeScale.supporting },
-  searchField: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    minHeight: 44,
-    paddingHorizontal: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 14,
-  },
-  searchInput: { flex: 1, minHeight: 44, ...typeScale.body, padding: 0 },
   noResults: { ...typeScale.supporting, textAlign: 'center', paddingVertical: 24 },
   inputAction: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   weightInput: { width: 76, minHeight: 40, textAlign: 'right', ...typeScale.body },

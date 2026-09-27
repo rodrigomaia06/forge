@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
@@ -15,6 +15,7 @@ export function ForgeSearchField({
   placeholder = 'Search',
   autoFocus = false,
   style,
+  testID,
 }: {
   value: string;
   onChangeText: (value: string) => void;
@@ -22,6 +23,7 @@ export function ForgeSearchField({
   placeholder?: string;
   autoFocus?: boolean;
   style?: StyleProp<ViewStyle>;
+  testID?: string;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -29,7 +31,11 @@ export function ForgeSearchField({
     <View style={[styles.field, style]}>
       <Icon name="search" size={19} color={theme.slate} />
       <ForgeTextInput
+        testID={testID}
         autoFocus={autoFocus}
+        autoCorrect={false}
+        autoCapitalize="none"
+        returnKeyType="search"
         accessibilityLabel={accessibilityLabel}
         value={value}
         onChangeText={onChangeText}
@@ -37,6 +43,16 @@ export function ForgeSearchField({
         placeholderTextColor={theme.muted}
         style={styles.input}
       />
+      {value ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Clear search"
+          onPress={() => onChangeText('')}
+          hitSlop={14}
+        >
+          <Icon name="close" size={18} color={theme.slate} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }
