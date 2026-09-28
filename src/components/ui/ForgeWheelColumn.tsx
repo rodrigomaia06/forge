@@ -62,7 +62,6 @@ export function ForgeWheelColumn({
   const styles = useThemedStyles(createStyles);
   const scrollRef = useRef<ScrollView>(null);
   const selectedIndex = Math.max(0, options.indexOf(selectedValue));
-  const positioned = useRef(false);
   const programmaticScroll = useRef(false);
   const scrollOffset = useSharedValue(selectedIndex * WHEEL_ROW_HEIGHT);
   const hapticIndex = useSharedValue(selectedIndex);
@@ -72,22 +71,23 @@ export function ForgeWheelColumn({
     scrollRef.current?.scrollTo({ y: index * WHEEL_ROW_HEIGHT, animated });
   };
 
-  // Position the drum once its content is laid out. This fires after the rows
-  // exist and their height is known, so the offset lands on the selected row
-  // even while the parent sheet is still sliding in.
-  const handleContentSizeChange = (): void => {
-    if (positioned.current) return;
-    positioned.current = true;
-    scrollOffset.value = selectedIndex * WHEEL_ROW_HEIGHT;
-    scrollToIndex(selectedIndex, false);
-  };
-
-  // Re-align when the selection is changed from outside (not by our own scroll).
+  // Land on the selected row on mount and whenever the selection changes from
+  // outside. The parent sheet is still animating its height when we mount, and a
+  // scrollTo against a not-yet-settled ScrollView is a no-op — so retry across a
+  // few frames. `contentOffset` (below) sets the position declaratively too;
+  // between the two the drum is centred from the first frame on native, where
+  // FlatList's initialScrollIndex used to leave it pinned at the top.
   useEffect(() => {
-    if (!positioned.current || programmaticScroll.current) return;
+    if (programmaticScroll.current) return;
     scrollOffset.value = selectedIndex * WHEEL_ROW_HEIGHT;
     hapticIndex.value = selectedIndex;
-    scrollToIndex(selectedIndex, false);
+    let frame = 0;
+    let raf = requestAnimationFrame(function tick() {
+      scrollToIndex(selectedIndex, false);
+      frame += 1;
+      if (frame < 4) raf = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(raf);
   }, [hapticIndex, scrollOffset, selectedIndex]);
 
   const handleScroll = useAnimatedScrollHandler({
@@ -135,7 +135,7 @@ export function ForgeWheelColumn({
           decelerationRate="normal"
           scrollEventThrottle={16}
           contentContainerStyle={{ paddingVertical: padding }}
-          onContentSizeChange={handleContentSizeChange}
+          contentOffset={{ x: 0, y: selectedIndex * WHEEL_ROW_HEIGHT }}
           onScroll={handleScroll}
           onScrollEndDrag={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
             if (Math.abs(event.nativeEvent.velocity?.y ?? 0) < 0.08) settleAtOffset(event.nativeEvent.contentOffset.y);
