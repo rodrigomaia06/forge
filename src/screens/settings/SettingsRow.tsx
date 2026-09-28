@@ -53,6 +53,9 @@ interface SettingsRowProps {
   accessibilityState?: AccessibilityState;
   testID?: string;
   style?: StyleProp<ViewStyle>;
+  /** Tint the row's background on press (a lighter overlay) instead of the
+   * default opacity dim — for rows that sit on their own card surface. */
+  pressTintColor?: string;
 }
 
 export function SettingsRow({
@@ -75,6 +78,7 @@ export function SettingsRow({
   accessibilityState,
   testID,
   style,
+  pressTintColor,
 }: SettingsRowProps) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -148,7 +152,7 @@ export function SettingsRow({
         styles.row,
         subtitle && styles.supportingRow,
         style,
-        pressed && pressedFeedback,
+        pressed && (pressTintColor ? { backgroundColor: pressTintColor } : pressedFeedback),
       ]}
     >
       {content}

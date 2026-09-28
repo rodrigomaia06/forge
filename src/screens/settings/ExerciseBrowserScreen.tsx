@@ -1216,6 +1216,7 @@ const Movement = React.memo(function Movement({
               onPress={() => onOpen(item)}
               trailing={<Icon name="sparkles" size={19} color={theme.textSecondary} />}
               disclosure
+              pressTintColor={theme.pressed}
             />
             <Button
               accessibilityLabel={`Add variation to ${group}`}
