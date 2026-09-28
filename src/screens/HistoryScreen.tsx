@@ -30,7 +30,7 @@ import { useWorkouts } from '../state/WorkoutContext';
 import { useStartWorkoutGuard } from './useStartWorkoutGuard';
 import { usePlans } from '../state/PlansContext';
 import { useSettings } from '../state/SettingsContext';
-import { animateLayout, errorHaptic, mediumHaptic } from './activeWorkout/activeWorkoutFeedback';
+import { animateLayout, animateSheetContent, errorHaptic, mediumHaptic } from './activeWorkout/activeWorkoutFeedback';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
@@ -346,9 +346,18 @@ function HistoryFilterSheet({
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const { preferences } = useSettings();
+  const reducedMotion = useForgeReducedMotion();
   const [draft, setDraft] = useState(filters);
   const [view, setView] = useState<'summary' | 'types' | 'dates' | 'from' | 'to'>('summary');
   const [query, setQuery] = useState('');
+  // Ease the surface height with LayoutAnimation when swapping sub-views. The
+  // sheet snaps (no reanimated layout), and a native Modal only reliably GROWS a
+  // raw re-render; LayoutAnimation drives the shrink back (e.g. the tall type
+  // list → the compact summary) so the shorter view doesn't sit low with a gap.
+  const changeView = (next: typeof view): void => {
+    animateSheetContent(reducedMotion);
+    setView(next);
+  };
   useEffect(() => {
     if (!visible) return;
     setDraft(filters);
@@ -372,7 +381,7 @@ function HistoryFilterSheet({
   const title = view === 'types' ? 'Workout type' : view === 'dates' ? 'Date range' : view === 'from' ? 'From date' : view === 'to' ? 'To date' : 'Filter history';
   const goBack = (): void => {
     setQuery('');
-    setView(view === 'from' || view === 'to' ? 'dates' : 'summary');
+    changeView(view === 'from' || view === 'to' ? 'dates' : 'summary');
   };
   return (
     <ForgeBottomSheet
@@ -399,8 +408,8 @@ function HistoryFilterSheet({
           {view === 'summary' ? (
             <HistoryFilterSummary
               filters={draft}
-              onOpenTypes={() => { selectionHaptic(); setView('types'); }}
-              onOpenDates={() => { selectionHaptic(); setView('dates'); }}
+              onOpenTypes={() => { selectionHaptic(); changeView('types'); }}
+              onOpenDates={() => { selectionHaptic(); changeView('dates'); }}
             />
           ) : view === 'types' ? (
             <ScrollView style={styles.historyFilterScroll} contentContainerStyle={styles.historyFilterContent} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
@@ -426,8 +435,8 @@ function HistoryFilterSheet({
               onSetMode={setDateMode}
               onPreviousMonth={() => setDraft((current) => ({ ...current, month: new Date(new Date(current.month).getFullYear(), new Date(current.month).getMonth() - 1, 1).getTime() }))}
               onNextMonth={() => setDraft((current) => ({ ...current, month: new Date(new Date(current.month).getFullYear(), new Date(current.month).getMonth() + 1, 1).getTime() }))}
-              onOpenFrom={() => setView('from')}
-              onOpenTo={() => setView('to')}
+              onOpenFrom={() => changeView('from')}
+              onOpenTo={() => changeView('to')}
             />
           ) : (
             <ScrollView style={styles.historyFilterScroll} contentContainerStyle={styles.historyDatePickerContent} showsVerticalScrollIndicator={false}>

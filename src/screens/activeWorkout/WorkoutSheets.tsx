@@ -830,6 +830,11 @@ export function ExerciseOptionsSheet({
       initialOffset={420}
       closeDistance={520}
       dismissThreshold={260}
+      // This sheet eases its own height with LayoutAnimation (animateSheetContent)
+      // as it swaps the action list for a taller sub-view, so it must NOT also run
+      // ForgeActionSheet's reanimated layout — the two fought and left a shorter
+      // view (e.g. back on the action list) sitting low with dead space.
+      animateContentLayout={false}
       actions={[
         ...((onEditNote || (readOnly && exercise.note?.trim())) ? [{
           icon: 'note' as const,
