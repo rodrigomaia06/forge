@@ -75,7 +75,7 @@ export function ExerciseLibraryScreen({ navigation }: Props) {
               showDivider
             />
             <LibraryRow
-              icon="add"
+              icon="sparkles"
               color={theme.slate}
               title="Custom"
               count={customExercises.length}

@@ -49,9 +49,9 @@ import { catalogTaxonomies, taxonomyLabel, type ExerciseCatalogItem } from '../.
 import { useExerciseCatalog } from '../../state/ExerciseCatalogContext';
 import { useSettings } from '../../state/SettingsContext';
 import { useForgeTheme } from '../../theme/ThemeProvider';
+import { useForgeReducedMotion } from '../../theme/motion';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import { useForgeReducedMotion } from '../../theme/motion';
 import type { IconName, RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { workoutTypeIcon } from './workoutTypeIcon';
@@ -90,12 +90,15 @@ function customVariationFacets(value: string): import('../../types').ExerciseVar
 }
 
 const EMPTY_ITEMS: ExerciseCatalogItem[] = [];
+// A picker's first synchronous render is capped to a screenful; the rest fill
+// in on the next frame so a long list can't stall the sheet's open animation.
+const FORM_OPTION_INITIAL_RENDER = 40;
 
 export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const { bottom: bottomInset } = useSafeAreaInsets();
   const theme = useForgeTheme();
-  const reducedMotion = useForgeReducedMotion();
   const styles = useThemedStyles(createStyles);
+  const reducedMotion = useForgeReducedMotion();
   const { height: viewportHeight } = useWindowDimensions();
   const floatingCtaClearance = useForgeFloatingCtaClearance();
   const { preferences, updatePreferences } = useSettings();
@@ -401,34 +404,27 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     if (restOverride(item) === seconds) return;
     setRestOverride(item, seconds);
   };
+  // The detail sheet animates its own height via `animateContentLayout`
+  // (reanimated LinearTransition), so its view swap must NOT also run RN's
+  // LayoutAnimation — the two fought and left the sheet at the wrong height.
   const transitionDetailSheet = (nextView: DetailSheetView) => {
-    if (reducedMotion) {
-      setDetailSheetView(nextView);
-      return;
-    }
-    if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setDetailSheetView(nextView);
   };
+  // The form sheet has no reanimated content layout, so it animates its own
+  // view swaps with LayoutAnimation.
   const transitionFormView = (nextView: ExerciseFormView) => {
-    if (reducedMotion) {
-      setSelectorQuery('');
-      setFormView(nextView);
-      return;
+    if (!reducedMotion) {
+      if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     }
-    if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setSelectorQuery('');
     setFormView(nextView);
   };
   const toggleOptionalDetails = () => {
-    if (reducedMotion) {
-      selectionHaptic();
-      setShowOptionalDetails((current) => !current);
-      return;
+    if (!reducedMotion) {
+      if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     }
-    if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     selectionHaptic();
     setShowOptionalDetails((current) => !current);
   };
@@ -479,7 +475,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
           rightAction={
             <HeaderAction
               accessibilityLabel="Create custom exercise"
-              icon="sparkles"
+              icon="add"
               iconOnly
               onPress={() => openCreate(null)}
             />
@@ -1013,6 +1009,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                         iconOnly
                         variant="ghost"
                         onPress={() => transitionDetailSheet('options')}
+                        style={{ backgroundColor: theme.surfaceMuted }}
                       />
                     ) : undefined
                   }
@@ -1171,17 +1168,27 @@ function ExerciseFormOptionList({
   multiple?: boolean;
 }) {
   const styles = useThemedStyles(createStyles);
+  // Render the first screenful synchronously, then the rest after a frame, so
+  // opening a long picker (the exercise-group list is 100+ rows) doesn't block
+  // the sheet's open animation with one big synchronous render.
+  const [limit, setLimit] = useState(FORM_OPTION_INITIAL_RENDER);
+  useEffect(() => {
+    if (limit >= options.length) return;
+    const raf = requestAnimationFrame(() => setLimit(options.length));
+    return () => cancelAnimationFrame(raf);
+  }, [limit, options.length]);
+  const shown = options.length > limit ? options.slice(0, limit) : options;
   return (
     <View accessibilityRole={multiple ? undefined : 'radiogroup'}>
       <ForgeCard variant="nested" size="compact" style={styles.formChoiceList}>
-        {options.map((option, index) => (
+        {shown.map((option, index) => (
           <FormChoiceRow
             key={option.label}
             label={option.label}
             icon={sourceIcon ? (option.source === 'forge' ? 'verified' : 'note') : undefined}
             selected={selectedValues ? selectedValues.includes(option.label) : selected === option.label}
             role={multiple ? 'checkbox' : 'radio'}
-            showDivider={index < options.length - 1 || Boolean(footer)}
+            showDivider={index < shown.length - 1 || Boolean(footer)}
             accessibilityLabel={`${accessibilityPrefix} ${option.label}`}
             onPress={() => onSelect(option.label, option.source)}
           />
@@ -1234,25 +1241,33 @@ const Movement = React.memo(function Movement({
             deleteWidth={64}
             deleteIconSize={20}
           >
-            <SettingsRow
-              title={group}
-              subtitle={`${item.equipment} · ${item.category}`}
+            {/* Pressing the card (to open it) tints the whole surface; the
+                Add-variation button keeps its own opaque fill so it stays a
+                distinct control on top of the tint. */}
+            <Pressable
+              accessibilityRole="button"
               accessibilityLabel={`Open ${group}`}
-              onPress={() => onOpen(item)}
-              trailing={<Icon name="sparkles" size={19} color={theme.textSecondary} />}
-              disclosure
-              pressTintColor={theme.pressed}
-            />
-            <Button
-              accessibilityLabel={`Add variation to ${group}`}
-              label="Add variation"
-              icon="add"
-              iconSize={16}
-              variant="outline"
-              hitSlop={4}
-              onPress={() => onAdd(group)}
-              style={styles.singleAddVariation}
-            />
+              unstable_pressDelay={80}
+              onPress={() => { lightHaptic(); onOpen(item); }}
+              style={({ pressed }) => pressed && { backgroundColor: theme.pressed }}
+            >
+              <SettingsRow
+                title={group}
+                subtitle={`${item.equipment} · ${item.category}`}
+                trailing={<Icon name="sparkles" size={19} color={theme.textSecondary} />}
+                disclosure
+              />
+              <Button
+                accessibilityLabel={`Add variation to ${group}`}
+                label="Add variation"
+                icon="add"
+                iconSize={16}
+                variant="outline"
+                hitSlop={4}
+                onPress={() => onAdd(group)}
+                style={styles.singleAddVariation}
+              />
+            </Pressable>
           </SwipeToDeleteRow>
         ) : (
           <>
