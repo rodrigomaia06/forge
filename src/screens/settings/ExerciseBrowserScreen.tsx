@@ -13,13 +13,6 @@ import {
   View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
 import {
   AppScreen,
   Button,
@@ -37,9 +30,9 @@ import {
   HeaderAction,
   Icon,
   lightHaptic,
-  mediumHaptic,
   pressedFeedback,
   selectionHaptic,
+  SwipeToDeleteRow,
 } from '../../components/ui';
 import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
 import { ExerciseDetailBody } from '../../components/ExerciseDetailBody';
@@ -56,7 +49,7 @@ import { useSettings } from '../../state/SettingsContext';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
+import { useForgeReducedMotion } from '../../theme/motion';
 import type { IconName, RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { workoutTypeIcon } from './workoutTypeIcon';
@@ -94,7 +87,6 @@ function customVariationFacets(value: string): import('../../types').ExerciseVar
   return Object.keys(facets).length ? facets : undefined;
 }
 
-const swipeSpring = forgeMotion.swipeSpring;
 const EMPTY_ITEMS: ExerciseCatalogItem[] = [];
 
 export function ExerciseBrowserScreen({ navigation, route }: Props) {
@@ -1208,31 +1200,34 @@ const Movement = React.memo(function Movement({
       <SettingsSection>
         {isCustom(item) ? (
           // Swipe the whole exercise — its row and the Add-variation button —
-          // as one unit, so the delete action spans the entire card.
-          <SwipeCustomExerciseRow item={item} onOpen={() => onOpen(item)} onRemove={() => onRemove(item)}>
-            {(onPress) => (
-              <>
-                <SettingsRow
-                  title={group}
-                  subtitle={`${item.equipment} · ${item.category}`}
-                  accessibilityLabel={`Open ${group}`}
-                  onPress={onPress}
-                  trailing={<Icon name="sparkles" size={19} color={theme.textSecondary} />}
-                  disclosure
-                />
-                <Button
-                  accessibilityLabel={`Add variation to ${group}`}
-                  label="Add variation"
-                  icon="add"
-                  iconSize={16}
-                  variant="outline"
-                  hitSlop={4}
-                  onPress={() => onAdd(group)}
-                  style={styles.singleAddVariation}
-                />
-              </>
-            )}
-          </SwipeCustomExerciseRow>
+          // as one unit, using the shared delete reveal so it matches routines.
+          <SwipeToDeleteRow
+            onDelete={() => onRemove(item)}
+            deleteAccessibilityLabel={`Delete ${group}`}
+            contentBackgroundColor={theme.surface}
+            insetDeleteButton
+            deleteWidth={64}
+            deleteIconSize={22}
+          >
+            <SettingsRow
+              title={group}
+              subtitle={`${item.equipment} · ${item.category}`}
+              accessibilityLabel={`Open ${group}`}
+              onPress={() => onOpen(item)}
+              trailing={<Icon name="sparkles" size={19} color={theme.textSecondary} />}
+              disclosure
+            />
+            <Button
+              accessibilityLabel={`Add variation to ${group}`}
+              label="Add variation"
+              icon="add"
+              iconSize={16}
+              variant="outline"
+              hitSlop={4}
+              onPress={() => onAdd(group)}
+              style={styles.singleAddVariation}
+            />
+          </SwipeToDeleteRow>
         ) : (
           <>
             <SettingsRow
@@ -1299,14 +1294,17 @@ const Movement = React.memo(function Movement({
                   </Pressable>
                 );
                 return isCustom(item) ? (
-                  <SwipeCustomExerciseRow
+                  <SwipeToDeleteRow
                     key={item.id}
-                    item={item}
-                    onOpen={() => onOpen(item)}
-                    onRemove={() => onRemove(item)}
+                    onDelete={() => onRemove(item)}
+                    deleteAccessibilityLabel={`Delete ${label}`}
+                    contentBackgroundColor={theme.surface}
+                    insetDeleteButton
+                    deleteWidth={64}
+                    deleteIconSize={22}
                   >
-                    {variation}
-                  </SwipeCustomExerciseRow>
+                    {variation(() => { lightHaptic(); onOpen(item); })}
+                  </SwipeToDeleteRow>
                 ) : (
                   <React.Fragment key={item.id}>
                     {variation(() => {
@@ -1334,94 +1332,6 @@ const Movement = React.memo(function Movement({
   );
 });
 
-function SwipeCustomExerciseRow({
-  item,
-  onOpen,
-  onRemove,
-  children,
-}: {
-  item: ExerciseCatalogItem;
-  onOpen: () => void;
-  onRemove: () => void;
-  children: (onPress: () => void) => React.ReactNode;
-}) {
-  const theme = useForgeTheme();
-  const styles = useThemedStyles(createStyles);
-  const reducedMotion = useForgeReducedMotion();
-  const actionWidth = 84;
-  const [revealed, setRevealed] = useState(false);
-  const offset = useSharedValue(0);
-  const open = useSharedValue(false);
-  const suppressNextPress = useRef(false);
-
-  useEffect(() => {
-    open.value = revealed;
-    offset.value = reducedMotion ? (revealed ? -actionWidth : 0) : withSpring(revealed ? -actionWidth : 0, swipeSpring);
-  }, [offset, open, reducedMotion, revealed]);
-
-  const settle = (next: boolean, dragged: boolean): void => {
-    if (dragged) suppressNextPress.current = true;
-    if (next !== revealed) {
-      mediumHaptic();
-      setRevealed(next);
-      return;
-    }
-    offset.value = reducedMotion ? (next ? -actionWidth : 0) : withSpring(next ? -actionWidth : 0, swipeSpring);
-  };
-  const pan = Gesture.Pan()
-    // Do not let a diagonal list scroll activate this horizontal delete gesture.
-    .activeOffsetX([-16, 16])
-    .failOffsetY([-16, 16])
-    .onUpdate((event) => {
-      if (!open.value && event.translationX >= 0) return;
-      const initial = open.value ? -actionWidth : 0;
-      offset.value = Math.max(-actionWidth, Math.min(0, initial + event.translationX));
-    })
-    .onEnd((event) => {
-      const initial = open.value ? -actionWidth : 0;
-      const next = initial + event.translationX < -actionWidth * 0.55;
-      runOnJS(settle)(next, Math.abs(event.translationX) > 6);
-    });
-  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ translateX: offset.value }] }));
-  const handleOpen = (): void => {
-    if (suppressNextPress.current) {
-      suppressNextPress.current = false;
-      return;
-    }
-    lightHaptic();
-    onOpen();
-  };
-  const label = formatCatalogVariation(item.name, item.variation) || item.name;
-
-  return (
-    <GestureDetector gesture={pan}>
-      <View testID={`custom-exercise-swipe-${item.id}`} style={styles.customSwipe}>
-        <View
-          style={[
-            styles.customDeleteLayer,
-            { backgroundColor: theme.destructiveSurface, pointerEvents: revealed ? 'auto' : 'none' },
-          ]}
-        >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Delete ${label}`}
-            onPress={() => {
-              lightHaptic();
-              onRemove();
-            }}
-            style={({ pressed }) => [styles.customDeleteAction, pressed && styles.customDeletePressed]}
-          >
-            <Icon name="trash" size={18} color={theme.textDestructive} />
-            <Text style={styles.customDeleteText}>Delete</Text>
-          </Pressable>
-        </View>
-        <Animated.View style={[styles.customSwipeSurface, animatedStyle]}>
-          {children(handleOpen)}
-        </Animated.View>
-      </View>
-    </GestureDetector>
-  );
-}
 const createStyles = (theme: import('../../types').ForgeTheme) =>
   StyleSheet.create({
     screen: { flex: 1 },
@@ -1485,25 +1395,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     },
     variationName: { ...typeScale.cardTitle, color: theme.ink },
     variationIcons: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-    customSwipe: {
-      position: 'relative',
-      overflow: 'hidden',
-    },
-    // A floating rounded delete card, inset from the row's edges, revealed as
-    // the content slides left.
-    customDeleteLayer: {
-      position: 'absolute',
-      top: 6,
-      right: 8,
-      bottom: 6,
-      width: 68,
-      borderRadius: 20,
-      overflow: 'hidden',
-    },
-    customDeleteAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
-    customDeletePressed: { backgroundColor: theme.destructiveSurfacePressed },
-    customDeleteText: { color: theme.textDestructive, ...typeScale.caption },
-    customSwipeSurface: { zIndex: 1, flex: 1, alignSelf: 'stretch', backgroundColor: theme.surfaceElevated },
     addVariation: {
       alignSelf: 'stretch',
       height: 38,
