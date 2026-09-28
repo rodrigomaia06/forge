@@ -14,11 +14,15 @@ export const forgeMotion = {
   // withTiming default), so the sheet leaves crisply instead of dragging at the
   // start; the entrance stays a spring so open and close read as one system.
   sheetExitEasing: Easing.in(Easing.cubic),
+  // The sheet entrance (and drag snap-back). Softened from a very stiff spring
+  // (stiffness 280) toward a smoother, premium open that eases into place with a
+  // barely-perceptible settle (dampingRatio ~0.9) rather than an abrupt snap.
+  // Feel is judged on device; stiffness/damping are the knobs to nudge it.
   sheetSpring: {
-    damping: 28,
-    stiffness: 280,
-    mass: 0.85,
-    overshootClamping: true,
+    damping: 26,
+    stiffness: 210,
+    mass: 1,
+    overshootClamping: false,
   },
   swipeSpring: {
     damping: 22,
