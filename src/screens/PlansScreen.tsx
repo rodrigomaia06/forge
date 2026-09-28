@@ -6,7 +6,6 @@ import { useSharedValue, type SharedValue } from 'react-native-reanimated';
 import type { ForgeActionSheetAction } from '../components/ui';
 import {
   AppScreen,
-  Button,
   ForgeActionSheet,
   ForgeBackButton,
   ForgeBottomSheet,
@@ -286,7 +285,15 @@ export function PlansScreen({ navigation, route }: Props) {
         { label: 'Edit', icon: 'note', onPress: () => openRoutine(routine, false) },
         { label: 'Duplicate', icon: 'duplicate', onPress: () => duplicate(routine) },
         { label: 'Share', icon: 'share', onPress: () => shareItemFromSheet({ kind: 'routine', id: routine.id }) },
-        { label: 'Delete', icon: 'trash', tone: 'destructive' as const, onPress: () => requestDeleteRoutine(routine) },
+        {
+          label: 'Delete',
+          icon: 'trash',
+          tone: 'destructive' as const,
+          // Defer the confirmation until the options sheet has dismissed; iOS
+          // drops a Modal presented while another is mid-dismiss (same reason
+          // as the Edit action's deferred open).
+          onPress: () => { const target = routine; setTimeout(() => requestDeleteRoutine(target), 280); },
+        },
       ];
     }
     return [
@@ -512,7 +519,14 @@ export function PlansScreen({ navigation, route }: Props) {
               },
             },
             { label: 'Share', icon: 'share', onPress: () => shareItemFromSheet({ kind: 'plan', id: planTarget.id }) },
-            { label: 'Delete', icon: 'trash', tone: 'destructive' as const, onPress: () => requestDeletePlan(planTarget) },
+            {
+              label: 'Delete',
+              icon: 'trash',
+              tone: 'destructive' as const,
+              // Defer the confirmation until the options sheet has dismissed; iOS
+              // drops a Modal presented while another is mid-dismiss.
+              onPress: () => { const target = planTarget; setTimeout(() => requestDeletePlan(target), 280); },
+            },
           ] : []}
         />
         <ForgeBottomSheet
@@ -641,6 +655,21 @@ function PlanEditSheet({
         title="Edit plan"
         onClose={onClose}
         closeAccessibilityLabel="Close edit plan"
+        // Close on the left, Save (the success check) on the right — matching
+        // the app's other edit forms instead of a full-width bottom button.
+        closePosition="left"
+        trailing={
+          <HeaderAction
+            accessibilityLabel="Save plan"
+            icon="check"
+            iconOnly
+            variant="outline"
+            tone="success"
+            disabled={!canSave}
+            haptic="none"
+            onPress={save}
+          />
+        }
       />
       <View style={styles.editSheetBody}>
         <ForgeCard variant="nested" style={styles.editFieldCard}>
@@ -664,17 +693,6 @@ function PlanEditSheet({
             style={styles.editDescriptionInput}
           />
         </ForgeCard>
-        <Button
-          label="Save plan"
-          accessibilityLabel="Save plan"
-          icon="check"
-          onPress={save}
-          disabled={!canSave}
-          tone="success"
-          variant="outline"
-          theme={theme}
-          style={styles.editSaveButton}
-        />
       </View>
     </View>
   );
@@ -1048,7 +1066,6 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     editFieldCard: { paddingHorizontal: 14, paddingVertical: 4 },
     editNameInput: { minHeight: 44, paddingVertical: 0, color: theme.ink, ...typeScale.cardTitle },
     editDescriptionInput: { minHeight: 60, paddingVertical: 8, color: theme.ink, ...typeScale.body },
-    editSaveButton: { minHeight: 48, marginTop: 4 },
     // A confident card header: bolder and a step larger than the routine rows it
     // owns and the section label above it, so the plan reads as their parent.
     planName: { flexShrink: 1, fontFamily: typography.bold, fontSize: 20, lineHeight: 25, fontWeight: '700', letterSpacing: -0.3, color: theme.ink },
