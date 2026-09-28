@@ -81,12 +81,19 @@ const styles = StyleSheet.create({
   leading: {
     position: 'absolute',
     left: 20,
+    // Span the header's full height so alignItems actually centres the control
+    // vertically; without top/bottom an absolute box wraps its content and
+    // top-aligns on web, leaving the action sitting above the title.
+    top: 0,
+    bottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
   },
   trailing: {
     position: 'absolute',
     right: 20,
+    top: 0,
+    bottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
