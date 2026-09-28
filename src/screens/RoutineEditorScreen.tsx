@@ -21,7 +21,6 @@ import {
   AppScreen,
   errorHaptic,
   ForgeActionSheet,
-  ForgeAnchoredMenu,
   ForgeAttributeEditorSheet,
   ForgeAttributeRow,
   ForgeSwipeableAttributeRow,
@@ -29,6 +28,7 @@ import {
   ForgeConfirmationDialog,
   ForgeText as Text,
   ForgeTextInput as TextInput,
+  ForgeWorkoutTypeSheet,
   HeaderAction,
   HeaderActionGroup,
   joinedHeaderAction,
@@ -37,9 +37,8 @@ import {
   lightHaptic,
   selectionHaptic,
   successHaptic,
-  useAnchoredMenu,
 } from '../components/ui';
-import type { AnchorRect, ForgeAttributeDraft } from '../components/ui';
+import type { ForgeAttributeDraft } from '../components/ui';
 import { AddExerciseSheet } from './activeWorkout/WorkoutSheets';
 import { ExerciseSection, ReadOnlyExerciseSection } from './activeWorkout/ExerciseSection';
 import { useFocusedSetKeyboardLift } from './activeWorkout/useFocusedSetKeyboardLift';
@@ -98,7 +97,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
     () => (viewing && draft ? routineExercisesWithNextSessionTargets(draft, completedWorkouts) : null),
     [viewing, draft, completedWorkouts],
   );
-  const typeMenu = useAnchoredMenu();
+  const [typeSheetOpen, setTypeSheetOpen] = useState(false);
   const [addingExercises, setAddingExercises] = useState(false);
   const [replacingExerciseIndex, setReplacingExerciseIndex] = useState<number | null>(null);
   const [optionsOpen, setOptionsOpen] = useState(false);
@@ -475,13 +474,12 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                 />
                 <View style={styles.divider} />
                 <Pressable
-                  ref={typeMenu.ref}
                   accessibilityRole="button"
                   accessibilityLabel={`Workout type, ${draft.type}`}
                   disabled={viewing}
                   onPress={() => {
                     selectionHaptic();
-                    typeMenu.open();
+                    setTypeSheetOpen(true);
                   }}
                   style={({ pressed }) => [
                     styles.typeRow,
@@ -608,16 +606,13 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
         {replacingExerciseIndex !== null && (
           <AddExerciseSheet visible workoutType={draft.type} selectionLimit={1} onClose={() => setReplacingExerciseIndex(null)} onSubmit={replaceExercise} />
         )}
-        <RoutineTypePicker
-          visible={typeMenu.visible}
-          anchor={typeMenu.anchor}
+        <ForgeWorkoutTypeSheet
+          visible={typeSheetOpen}
+          onClose={() => setTypeSheetOpen(false)}
           types={preferences.workoutTypes.filter((type) => !type.hidden || type.name === draft.type)}
           selectedType={draft.type}
-          onClose={typeMenu.close}
-          onSelect={(type) => {
-            change((current) => ({ ...current, type }));
-            typeMenu.close();
-          }}
+          onSelect={(type) => change((current) => ({ ...current, type }))}
+          testID="routine-type-sheet"
         />
         {attributeSheet ? (
           <ForgeBottomSheet visible onClose={() => setAttributeSheet(null)} accessibilityLabel="Close attribute editor" surfaceTestID="routine-attribute-sheet" style={styles.attributeSheet}>
@@ -642,63 +637,6 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
         ) : null}
       </KeyboardAvoidingView>
     </AppScreen>
-  );
-}
-
-function RoutineTypePicker({
-  visible,
-  anchor,
-  types,
-  selectedType,
-  onClose,
-  onSelect,
-}: {
-  visible: boolean;
-  anchor: AnchorRect | null;
-  types: WorkoutTypePreference[];
-  selectedType: string;
-  onClose: () => void;
-  onSelect: (type: string) => void;
-}) {
-  const theme = useForgeTheme();
-  const styles = useThemedStyles(createStyles);
-  return (
-    <ForgeAnchoredMenu
-      visible={visible}
-      anchor={anchor}
-      onClose={onClose}
-      align="stretch"
-      testID="routine-type-selection-menu"
-      scrollTestID="routine-type-selection-scroll"
-    >
-      <View accessibilityRole="radiogroup" style={styles.typePickerList}>
-        {types.map((type, index) => {
-          const selected = type.name === selectedType;
-          return (
-            <Pressable
-              key={type.id}
-              accessibilityRole="radio"
-              accessibilityLabel={`Use ${type.name} workout type`}
-              accessibilityState={{ selected, checked: selected }}
-              onPress={() => {
-                selectionHaptic();
-                onSelect(type.name);
-              }}
-              style={({ pressed }) => [
-                styles.typeChoice,
-                index > 0 && styles.typeChoiceDivider,
-                selected && styles.typeChoiceSelected,
-                pressed && styles.pressed,
-              ]}
-            >
-              <View style={[styles.choiceDot, { backgroundColor: type.color }]} />
-              <Text style={styles.typeChoiceText}>{type.name}</Text>
-              {selected && <Icon name="check" size={17} color={theme.selectionIndicator} weight="bold" />}
-            </Pressable>
-          );
-        })}
-      </View>
-    </ForgeAnchoredMenu>
   );
 }
 
@@ -962,19 +900,6 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     typePicker: { maxHeight: '84%', paddingBottom: 24 },
     typePickerScroll: { flexShrink: 1, minHeight: 0 },
     typePickerContent: { paddingBottom: 4 },
-    typePickerList: {},
-    typeChoice: {
-      minHeight: 46,
-      paddingHorizontal: 12,
-      borderRadius: 12,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-    },
-    typeChoiceDivider: {},
-    typeChoiceSelected: {},
-    choiceDot: { width: 11, height: 11, borderRadius: 6 },
-    typeChoiceText: { ...typeScale.controlLabel, color: theme.ink, flex: 1 },
     addAttribute: {
       minHeight: 56,
       paddingHorizontal: 16,

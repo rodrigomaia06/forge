@@ -17,7 +17,6 @@ import {
   AppScreen,
   Button,
   ForgeActionSheet,
-  ForgeAnchoredMenu,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
   ForgeCard,
@@ -30,8 +29,8 @@ import {
   ForgeSheetHeader,
   ForgeText as Text,
   ForgeTextInput as TextInput,
+  ForgeWorkoutTypeSheet,
   HeaderAction,
-  useAnchoredMenu,
   HeaderEdge,
   Icon,
   lightHaptic,
@@ -112,7 +111,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [headerElevated, setHeaderElevated] = useState(false);
   const [discardConfirmationOpen, setDiscardConfirmationOpen] = useState(false);
-  const typeMenu = useAnchoredMenu();
+  const [typeSheetOpen, setTypeSheetOpen] = useState(false);
   const [attributeDraft, setAttributeDraft] = useState<import('../components/ui').ForgeAttributeDraft | null>(null);
   const [reorderingExercises, setReorderingExercises] = useState(false);
   const [sourceStep, setSourceStep] = useState<'source' | 'routine-list' | { planId: string } | null>(
@@ -376,12 +375,11 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         </View>
         <View style={styles.identityDivider} />
         <Pressable
-          ref={typeMenu.ref}
           accessibilityRole="button"
           accessibilityLabel="Choose workout type"
           onPress={() => {
             lightHaptic();
-            typeMenu.open();
+            setTypeSheetOpen(true);
           }}
           style={({ pressed }) => [styles.identityField, styles.typePicker, pressed && pressedFeedbackSubtle]}
         >
@@ -604,37 +602,14 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
           </>
         ) : null}
       </ForgeBottomSheet>
-      <ForgeAnchoredMenu
-        visible={typeMenu.visible}
-        anchor={typeMenu.anchor}
-        onClose={typeMenu.close}
-        align="stretch"
-        testID="history-type-selection-menu"
-      >
-        <View accessibilityRole="radiogroup">
-          {availableWorkoutTypes.map((type) => {
-            const selected = type.name === draft.type;
-            return (
-              <Pressable
-                key={type.id}
-                accessibilityRole="radio"
-                accessibilityLabel={type.name}
-                accessibilityState={{ checked: selected }}
-                onPress={() => {
-                  selectionHaptic();
-                  updateDraft((current) => ({ ...current, type: type.name }));
-                  typeMenu.close();
-                }}
-                style={({ pressed }) => [styles.menuTypeChoice, pressed && pressedFeedback]}
-              >
-                <Icon name={workoutTypeIcon(type)} size={20} color={theme.textPrimary} />
-                <Text style={styles.menuTypeLabel}>{type.name}</Text>
-                {selected ? <Icon name="check" size={18} color={theme.selectionIndicator} weight="bold" /> : null}
-              </Pressable>
-            );
-          })}
-        </View>
-      </ForgeAnchoredMenu>
+      <ForgeWorkoutTypeSheet
+        visible={typeSheetOpen}
+        onClose={() => setTypeSheetOpen(false)}
+        types={availableWorkoutTypes}
+        selectedType={draft.type}
+        onSelect={(type) => updateDraft((current) => ({ ...current, type }))}
+        testID="history-type-sheet"
+      />
       <ForgeBottomSheet
         visible={attributeDraft !== null}
         onClose={() => setAttributeDraft(null)}
@@ -1058,8 +1033,6 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   },
   typePicker: { justifyContent: 'flex-start' },
   typePickerValue: { minHeight: 44, paddingHorizontal: 10, borderWidth: 1, borderColor: theme.divider, borderRadius: 12, backgroundColor: theme.surfaceMuted, flexDirection: 'row', alignItems: 'center', gap: 7 },
-  menuTypeChoice: { minHeight: 46, paddingHorizontal: 12, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  menuTypeLabel: { flex: 1, ...typeScale.label, color: theme.textPrimary },
   typeText: { flex: 1, color: theme.ink, ...typeScale.body },
   cardDivider: { height: 1, marginVertical: 2, backgroundColor: theme.divider },
   formRow: { flexDirection: 'row', gap: 10 },

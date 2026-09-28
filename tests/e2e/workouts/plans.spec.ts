@@ -241,7 +241,7 @@ test.describe('Plans and routines', () => {
       .getByRole('button', { name: 'New routine' })
       .click();
     await page.getByRole('button', { name: 'Workout type, Strength' }).click();
-    await expect(page.getByTestId('routine-type-selection-menu')).toBeVisible();
+    await expect(page.getByTestId('routine-type-sheet-surface')).toBeVisible();
     await expect(page.getByRole('radio', { name: 'Use Recovery workout type' })).toBeVisible();
     await page.getByRole('radio', { name: 'Use Recovery workout type' }).click();
     await expect(page.getByRole('button', { name: 'Workout type, Recovery' })).toBeVisible();
@@ -276,7 +276,7 @@ test.describe('Plans and routines', () => {
       .click();
     await page.getByRole('button', { name: 'Workout type, Strength' }).click();
 
-    const typeScroll = page.getByTestId('routine-type-selection-scroll');
+    const typeScroll = page.getByTestId('routine-type-sheet-scroll');
     await expect(typeScroll).toBeVisible();
     const hasOverflow = await typeScroll.evaluate((element) => element.scrollHeight > element.clientHeight);
     expect(hasOverflow).toBe(true);

@@ -345,8 +345,8 @@ test.describe('History screen', () => {
     await workoutName.pressSequentially('Edited Muay Thai');
     await expect(page.getByLabel('Workout name')).toHaveValue('Edited Muay Thai');
     await page.getByRole('button', { name: 'Choose workout type' }).click();
-    await expect(page.getByRole('radio', { name: 'Strength' })).toBeVisible();
-    await page.getByRole('radio', { name: 'Cardio' }).click();
+    await expect(page.getByRole('radio', { name: 'Use Strength workout type' })).toBeVisible();
+    await page.getByRole('radio', { name: 'Use Cardio workout type' }).click();
     await expect(page.getByRole('button', { name: 'Choose workout type' })).toContainText('Cardio');
     await page.getByRole('button', { name: 'Select Date' }).click();
     const datePicker = page.getByTestId('history-date-picker');

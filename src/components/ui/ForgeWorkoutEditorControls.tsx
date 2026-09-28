@@ -6,9 +6,10 @@ import type { IconName, WorkoutTypePreference } from '../../types';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
 import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from './Button';
 import { ForgeCard } from './ForgeCard';
-import { ForgeBottomSheetHandle } from './ForgeBottomSheet';
+import { ForgeBottomSheet, ForgeBottomSheetHandle } from './ForgeBottomSheet';
 import { ForgeSheetHeader } from './ForgeSheetHeader';
 import { ForgeText, ForgeTextInput } from './ForgeText';
 import { ForgeBackButton, HeaderAction } from './HeaderAction';
@@ -253,6 +254,63 @@ export function ForgeEditorBackButton({ onPress, accessibilityLabel = 'Back to e
   return <ForgeBackButton accessibilityLabel={accessibilityLabel} onPress={onPress} />;
 }
 
+/**
+ * The canonical workout-type picker: a Forge bottom sheet with a colour-dotted
+ * single-select list. Shared by the routine and history editors so the type
+ * choice is presented one way instead of as differing anchored dropdowns.
+ */
+export function ForgeWorkoutTypeSheet({
+  visible,
+  onClose,
+  types,
+  selectedType,
+  onSelect,
+  testID = 'workout-type-sheet',
+}: {
+  visible: boolean;
+  onClose: () => void;
+  types: WorkoutTypePreference[];
+  selectedType: string;
+  onSelect: (type: string) => void;
+  testID?: string;
+}) {
+  const theme = useForgeTheme();
+  const insets = useSafeAreaInsets();
+  return (
+    <ForgeBottomSheet visible={visible} onClose={onClose} accessibilityLabel="Close workout type picker" testID={testID}>
+      {(close) => (
+        <View testID={`${testID}-surface`} style={[styles.typeSheet, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+          <ForgeBottomSheetHandle />
+          <ForgeSheetHeader title="Workout type" onClose={close} closeAccessibilityLabel="Close workout type picker" />
+          <ScrollView testID={`${testID}-scroll`} style={styles.editorScroll} contentContainerStyle={styles.typeSheetContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <ForgeCard variant="nested">
+              <View accessibilityRole="radiogroup">
+                {types.map((type, index) => {
+                  const selected = type.name === selectedType;
+                  return (
+                    <Pressable
+                      key={type.id}
+                      accessibilityRole="radio"
+                      accessibilityLabel={`Use ${type.name} workout type`}
+                      accessibilityState={{ checked: selected, selected }}
+                      onPress={() => { selectionHaptic(); onSelect(type.name); close(); }}
+                      style={({ pressed }) => [styles.typeSheetRow, index > 0 ? { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider } : null, pressed && pressedFeedback]}
+                    >
+                      <View style={[styles.typeSheetDot, { backgroundColor: type.color }]} />
+                      <ForgeText style={[styles.typeSheetLabel, { color: theme.textPrimary }]}>{type.name}</ForgeText>
+                      {selected ? <Icon name="check" size={20} color={theme.selectionIndicator} weight="bold" /> : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </ForgeCard>
+          </ScrollView>
+        </View>
+      )}
+    </ForgeBottomSheet>
+  );
+}
+
 const styles = StyleSheet.create({
   editorScroll: { flexGrow: 0, flexShrink: 1 },
   editorContent: { paddingTop: 14, paddingBottom: 24, paddingHorizontal: 20, gap: 12 },
@@ -280,6 +338,11 @@ const styles = StyleSheet.create({
   swipeAttributeContent: { zIndex: 1 },
   attributeDeleteAction: { position: 'absolute', top: 0, right: 0, bottom: 0, width: 56 },
   attributeDeleteButton: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  typeSheet: { flexShrink: 1, paddingHorizontal: 16 },
+  typeSheetContent: { paddingTop: 4, paddingBottom: 8 },
+  typeSheetRow: { minHeight: 52, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  typeSheetDot: { width: 12, height: 12, borderRadius: 6 },
+  typeSheetLabel: { flex: 1, minWidth: 0, ...typeScale.body },
   attributeReadRow: { minHeight: 56, paddingHorizontal: 16, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 10 },
   attributeReadRowCompact: { minHeight: 44 },
   attributeReadRowFlush: { paddingHorizontal: 0 },

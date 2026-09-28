@@ -36,6 +36,7 @@ export {
   ForgeEditorBackButton,
   ForgeSwipeableAttributeRow,
   ForgeWorkoutTypePicker,
+  ForgeWorkoutTypeSheet,
 } from './ForgeWorkoutEditorControls';
 export type { ForgeAttributeDraft } from './ForgeWorkoutEditorControls';
 export {
