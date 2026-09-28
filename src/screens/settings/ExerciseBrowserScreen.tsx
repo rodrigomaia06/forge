@@ -66,11 +66,10 @@ import {
   groupCatalogByMovement,
 } from '../../domain/exercises/catalogSelectors';
 import { formatCatalogVariation } from '../../domain/exercises/exercisePresentation';
-import { shareItemFromSheet } from '../../utils/shareItem';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseBrowser'>;
-type DetailSheetView = 'details' | 'restTime' | 'options';
+type DetailSheetView = 'details' | 'restTime';
 type ExerciseFormView =
   | 'details'
   | 'category'
@@ -943,53 +942,6 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   />
                 </View>
               </View>
-            ) : detailSheetView === 'options' ? (
-              <View style={styles.detailSheet}>
-                <ForgeBottomSheetHandle />
-                <ForgeSheetHeader
-                  title="Options"
-                  compactTitle
-                  leading={
-                    <ForgeBackButton
-                      accessibilityLabel="Back to exercise details"
-                      onPress={() => transitionDetailSheet('details')}
-                    />
-                  }
-                />
-                <View style={styles.optionsList}>
-                  <ForgeCard variant="nested" size="compact">
-                    <ExerciseOptionRow
-                      icon="share"
-                      label="Share exercise"
-                      onPress={() => {
-                        // Close the whole sheet first — iOS won't present the
-                        // share sheet while this modal is still up.
-                        close();
-                        shareItemFromSheet({ kind: 'exercise', id: detail.id });
-                      }}
-                    />
-                    <ExerciseOptionRow
-                      icon="note"
-                      label="Edit variation"
-                      divider
-                      onPress={() => {
-                        close();
-                        openEdit(detail);
-                      }}
-                    />
-                    <ExerciseOptionRow
-                      icon="trash"
-                      label="Delete variation"
-                      destructive
-                      divider
-                      onPress={() => {
-                        catalog.removeCustomExercise(detail.id);
-                        close();
-                      }}
-                    />
-                  </ForgeCard>
-                </View>
-              </View>
             ) : (
               <View style={styles.detailSheet}>
                 <ForgeBottomSheetHandle />
@@ -997,30 +949,36 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   title={detail.name}
                   onClose={close}
                   closeAccessibilityLabel="Close exercise details"
-                  // Custom exercises get a "..." that opens an in-sheet options
-                  // view (Share / Edit / Delete). Keep one control per side —
-                  // Close left, "..." right — so a long name never overlaps them
-                  // (the shared header only reserves room for one control a side).
+                  // Custom exercises carry their edit/delete actions in a pill on
+                  // the right; keep Close on the left so a long name has one
+                  // control per side, and reserve room for the wider pill so a
+                  // long name truncates instead of sliding under it.
                   closePosition={isCustom(detail) ? 'left' : 'right'}
+                  titleInset={isCustom(detail) ? 104 : undefined}
                   trailing={
                     isCustom(detail) ? (
-                      <HeaderAction
-                        accessibilityLabel="Exercise options"
-                        icon="ellipsis-horizontal"
-                        iconOnly
-                        variant="ghost"
-                        onPress={() => transitionDetailSheet('options')}
-                      />
+                      <View style={styles.detailActionPill}>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel="Edit exercise"
+                          onPress={() => { close(); openEdit(detail); }}
+                          style={({ pressed }) => [styles.detailActionButton, pressed && styles.detailActionPressed]}
+                        >
+                          <Icon name="note" size={18} color={theme.textPrimary} />
+                        </Pressable>
+                        <View style={styles.detailActionDivider} />
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel="Delete exercise"
+                          onPress={() => { catalog.removeCustomExercise(detail.id); close(); }}
+                          style={({ pressed }) => [styles.detailActionButton, pressed && styles.detailActionPressed]}
+                        >
+                          <Icon name="trash" size={18} color={theme.textDestructive} />
+                        </Pressable>
+                      </View>
                     ) : undefined
                   }
                 />
-                {isCustom(detail) ? (
-                  <View style={styles.customBadgeRow}>
-                    <View style={styles.customBadge} accessibilityLabel="Custom exercise">
-                      <Icon name="sparkles" size={15} color={theme.textSecondary} />
-                    </View>
-                  </View>
-                ) : null}
                 <ExerciseDetailBody
                   detail={detail}
                   workoutTypes={preferences.workoutTypes}
@@ -1034,34 +992,6 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
         </ForgeBottomSheet>
       </View>
     </AppScreen>
-  );
-}
-
-function ExerciseOptionRow({
-  icon,
-  label,
-  destructive = false,
-  divider = false,
-  onPress,
-}: {
-  icon: IconName;
-  label: string;
-  destructive?: boolean;
-  divider?: boolean;
-  onPress: () => void;
-}) {
-  const theme = useForgeTheme();
-  const styles = useThemedStyles(createStyles);
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={({ pressed }) => [styles.optionRow, divider && styles.optionDivider, pressed && pressedFeedback]}
-    >
-      <Icon name={icon} size={20} color={destructive ? theme.textDestructive : theme.textSecondary} />
-      <Text style={[styles.optionLabel, { color: destructive ? theme.textDestructive : theme.textPrimary }]}>{label}</Text>
-    </Pressable>
   );
 }
 
@@ -1215,37 +1145,53 @@ const Movement = React.memo(function Movement({
     return (
       <SettingsSection>
         {isCustom(item) ? (
+          // Swipe the whole exercise — its row and the Add-variation button —
+          // as one unit, so the delete action spans the entire card.
           <SwipeCustomExerciseRow item={item} onOpen={() => onOpen(item)} onRemove={() => onRemove(item)}>
             {(onPress) => (
-              <SettingsRow
-                title={group}
-                subtitle={`${item.equipment} · ${item.category}`}
-                accessibilityLabel={`Open ${group}`}
-                onPress={onPress}
-                trailing={<Icon name="sparkles" size={16} color={theme.textSecondary} />}
-                disclosure
-              />
+              <>
+                <SettingsRow
+                  title={group}
+                  subtitle={`${item.equipment} · ${item.category}`}
+                  accessibilityLabel={`Open ${group}`}
+                  onPress={onPress}
+                  trailing={<Icon name="sparkles" size={16} color={theme.textSecondary} />}
+                  disclosure
+                />
+                <Button
+                  accessibilityLabel={`Add variation to ${group}`}
+                  label="Add variation"
+                  icon="add"
+                  iconSize={16}
+                  variant="outline"
+                  hitSlop={4}
+                  onPress={() => onAdd(group)}
+                  style={styles.singleAddVariation}
+                />
+              </>
             )}
           </SwipeCustomExerciseRow>
         ) : (
-          <SettingsRow
-            title={group}
-            subtitle={`${item.equipment} · ${item.category}`}
-            accessibilityLabel={`Open ${group}`}
-            onPress={() => onOpen(item)}
-            disclosure
-          />
+          <>
+            <SettingsRow
+              title={group}
+              subtitle={`${item.equipment} · ${item.category}`}
+              accessibilityLabel={`Open ${group}`}
+              onPress={() => onOpen(item)}
+              disclosure
+            />
+            <Button
+              accessibilityLabel={`Add variation to ${group}`}
+              label="Add variation"
+              icon="add"
+              iconSize={16}
+              variant="outline"
+              hitSlop={4}
+              onPress={() => onAdd(group)}
+              style={styles.singleAddVariation}
+            />
+          </>
         )}
-        <Button
-          accessibilityLabel={`Add variation to ${group}`}
-          label="Add variation"
-          icon="add"
-          iconSize={16}
-          variant="outline"
-          hitSlop={4}
-          onPress={() => onAdd(group)}
-          style={styles.singleAddVariation}
-        />
       </SettingsSection>
     );
   }
@@ -1550,12 +1496,17 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     formChoice: { minHeight: 56, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
     formChoiceDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.divider },
     formChoiceText: { flex: 1, ...typeScale.cardTitle, color: theme.textPrimary },
-    customBadgeRow: { paddingHorizontal: 20, paddingTop: 2, paddingBottom: 4, alignItems: 'flex-start' },
-    customBadge: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
-    optionsList: { marginHorizontal: 20, marginTop: 4 },
-    optionRow: { minHeight: 56, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 14 },
-    optionDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
-    optionLabel: { ...typeScale.controlLabel },
+    detailActionPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.surfaceMuted,
+      overflow: 'hidden',
+    },
+    detailActionButton: { width: 36, height: 40, alignItems: 'center', justifyContent: 'center' },
+    detailActionPressed: { backgroundColor: theme.pressed },
+    detailActionDivider: { width: StyleSheet.hairlineWidth, height: 22, backgroundColor: theme.border },
     input: {
       minHeight: 48,
       paddingHorizontal: 14,

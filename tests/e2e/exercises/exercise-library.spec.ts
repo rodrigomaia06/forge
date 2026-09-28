@@ -494,14 +494,12 @@ test.describe('Exercise library', () => {
     await page.getByRole('button', { name: 'Save variation' }).click();
     await page.getByRole('button', { name: 'Open Rows' }).click();
     const details = page.getByRole('dialog');
-    // The details view marks the exercise custom and shows its sections/targets.
-    await expect(details.getByLabel('Custom exercise')).toBeVisible();
+    // The details view shows the custom exercise's sections/targets, and its
+    // edit/delete pill in the header marks it custom.
+    await expect(details.getByRole('button', { name: 'Edit exercise' })).toBeVisible();
     await expect(details).toContainText('Mobility');
     await expect(details).toContainText('Lats');
     await expect(details).toContainText('Biceps');
-    // Edit and Delete live in the in-sheet options view opened from "...".
-    await page.getByRole('button', { name: 'Exercise options' }).click();
-    await expect(page.getByRole('button', { name: 'Edit variation' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Delete variation' })).toBeVisible();
+    await expect(details.getByRole('button', { name: 'Delete exercise' })).toBeVisible();
   });
 });

@@ -13,6 +13,12 @@ interface ForgeSheetHeaderProps {
   titleNumberOfLines?: number;
   /** Compact semantic title for a dense, chooser-style sheet header. */
   compactTitle?: boolean;
+  /**
+   * Horizontal room reserved on each side of the centred title so it clears the
+   * leading/trailing controls. The default fits a single circular control; a
+   * wider trailing (e.g. a two-action pill) needs a larger value.
+   */
+  titleInset?: number;
   onClose?: () => void;
   closeAccessibilityLabel?: string;
   closePosition?: 'left' | 'right';
@@ -27,6 +33,7 @@ export function ForgeSheetHeader({
   title,
   titleNumberOfLines = 1,
   compactTitle = false,
+  titleInset,
   onClose,
   closeAccessibilityLabel,
   closePosition = 'right',
@@ -48,7 +55,7 @@ export function ForgeSheetHeader({
         ) : null}
         {leading}
       </View>
-      <Text numberOfLines={titleNumberOfLines} style={[styles.title, compactTitle && styles.compactTitle, { color: theme.textPrimary }]}>
+      <Text numberOfLines={titleNumberOfLines} style={[styles.title, compactTitle && styles.compactTitle, titleInset !== undefined && { marginHorizontal: titleInset }, { color: theme.textPrimary }]}>
         {title}
       </Text>
       <View style={[styles.trailing, { right: horizontalInset }]}>
@@ -75,6 +82,11 @@ const styles = StyleSheet.create({
   title: {
     ...typeScale.headerTitle,
     textAlign: 'center',
+    // Stretch to the header width so the horizontal margins actually bound the
+    // title. Without this the title sizes to its content and a long name
+    // overflows to the container edge, sliding under the trailing control
+    // instead of truncating clear of it.
+    alignSelf: 'stretch',
     marginHorizontal: 74,
   },
   compactTitle: { ...typeScale.sectionTitle },
