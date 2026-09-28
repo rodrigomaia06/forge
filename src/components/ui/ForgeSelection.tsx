@@ -232,7 +232,7 @@ export function ForgeSelectionSheet<T extends SelectionValue>({
           style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 24) }]}
         >
           <ForgeBottomSheetHandle />
-          <ForgeSheetHeader title={title} compactTitle onClose={close} />
+          <ForgeSheetHeader title={title} onClose={close} />
           <View style={[styles.optionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <ForgeSingleSelectList
               testID={listTestID}
