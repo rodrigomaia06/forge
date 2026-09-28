@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { DarkTheme, DefaultTheme, NavigationContainer, type LinkingOptions } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, NavigationContainer, useNavigationContainerRef, type LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { enableFreeze } from 'react-native-screens';
 import { WorkoutDetailsScreen } from '../screens/WorkoutDetailsScreen';
@@ -21,6 +21,7 @@ import { useForgeTheme } from '../theme/ThemeProvider';
 import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
 import type { RootStackParamList } from '../types';
 import { MainTabNavigator } from './MainTabNavigator';
+import { useForgeFileOpen } from './useForgeFileOpen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -43,6 +44,11 @@ export function AppNavigator() {
   const { ready } = useWorkouts();
   const theme = useForgeTheme();
   const reducedMotion = useForgeReducedMotion();
+  const navigationRef = useNavigationContainerRef<RootStackParamList>();
+  // Route a `.forge` file the OS asked Forge to open into the existing import
+  // flow. `onReady` handles the cold-launch initial URL; the hook also listens
+  // for warm opens while the app is running.
+  const { onReady: handleFileOpenReady } = useForgeFileOpen(navigationRef);
   const navigationTheme = useMemo(
     () => {
       const base = theme.colorScheme === 'dark' ? DarkTheme : DefaultTheme;
@@ -67,7 +73,7 @@ export function AppNavigator() {
   if (!ready) return <ForgeLoadingScreen />;
 
   return (
-    <NavigationContainer linking={linking} theme={navigationTheme}>
+    <NavigationContainer ref={navigationRef} linking={linking} theme={navigationTheme} onReady={handleFileOpenReady}>
       <Stack.Navigator
         initialRouteName="MainTabs"
         screenOptions={{

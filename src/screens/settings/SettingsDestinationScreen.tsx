@@ -18,6 +18,8 @@ import { allDataTransferSelection, createSqliteBackup, databaseStatus, eraseAllF
 import { clearDiagnostics, exportDiagnostics, loadDiagnostics, recordDiagnostic, type DiagnosticEntry, type DiagnosticKind } from '../../data/diagnosticsRepository';
 import { loadBackupHistory, recordBackupEvent, type BackupHistory } from '../../data/backupHistory';
 import { freshenSharedIds } from '../../data/sharedImport';
+import { readForgeTransferFromUri } from '../../data/readForgeTransferFile';
+import { takePendingFileImport, subscribePendingFileImport } from '../../state/pendingFileImport';
 import { relativeTime } from '../../utils/relativeTime';
 import { useSettings } from '../../state/SettingsContext';
 import { usePlans } from '../../state/PlansContext';
@@ -104,30 +106,47 @@ function BackupExport() {
       });
     } finally { setBusy(false); }
   }, [busy]);
+  const openTransfer = async (picked: ForgeDataTransfer): Promise<void> => {
+    // A shared item always imports as a copy — freshen its ids so the review
+    // shows it as new and the merge reconciles it (skip identical, copy the rest).
+    const incoming = freshenSharedIds(picked);
+    setTransfer(incoming);
+    // A shared single item declares exactly which sections it carries; default
+    // the picker to those rather than everything.
+    const nextSelection = incoming.selection ?? allDataTransferSelection();
+    setSelection(nextSelection);
+    if (incoming.share) {
+      // A single shared item skips the generic category grid — straight to a
+      // review of exactly what it carries.
+      setInspection(await inspectDataTransfer(incoming, nextSelection));
+      setTransferStep('import-review');
+    } else {
+      // A full data dump opens the dedicated per-item selection screen.
+      setPendingImport(incoming);
+      navigation.navigate('ImportSelection');
+    }
+  };
   const importData = (): void => {
     void run(async () => {
       const picked = await pickJsonTransfer();
       if (!picked) return;
-      // A shared item always imports as a new copy — freshen its ids so the
-      // review shows it as new and the merge adds it (never "already on device").
-      const incoming = freshenSharedIds(picked);
-      setTransfer(incoming);
-      // A shared single item declares exactly which sections it carries; default
-      // the picker to those rather than everything.
-      const nextSelection = incoming.selection ?? allDataTransferSelection();
-      setSelection(nextSelection);
-      if (incoming.share) {
-        // A single shared item skips the generic category grid — straight to a
-        // review of exactly what it carries.
-        setInspection(await inspectDataTransfer(incoming, nextSelection));
-        setTransferStep('import-review');
-      } else {
-        // A full data dump opens the dedicated per-item selection screen.
-        setPendingImport(incoming);
-        navigation.navigate('ImportSelection');
-      }
+      await openTransfer(picked);
     });
   };
+  // A .forge file opened from outside the app (AirDrop, Files, Mail, a VIEW
+  // intent) is routed to this screen by useForgeFileOpen, which stores its URI.
+  // Consume it on mount (cold start) and subscribe for opens that arrive while
+  // this screen is already showing (warm start), then open it like Import data.
+  React.useEffect(() => {
+    const open = (uri: string): void => {
+      void run(async () => { await openTransfer(await readForgeTransferFromUri(uri)); });
+    };
+    const pending = takePendingFileImport();
+    if (pending) open(pending);
+    return subscribePendingFileImport((uri) => { takePendingFileImport(); open(uri); });
+    // Runs once per mount; run/openTransfer close over this render deliberately.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const reviewImport = (): void => {
     if (!transfer) return;
     void run(async () => {

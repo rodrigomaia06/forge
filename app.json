@@ -48,7 +48,8 @@
         }
       ],
       "./modules/forge-rest-timer/app.plugin.js",
-      "./plugins/withDisableShakeToEdit.js"
+      "./plugins/withDisableShakeToEdit.js",
+      "./plugins/withForgeFileAssociation.js"
     ],
     "owner": "pristine6589"
   }
