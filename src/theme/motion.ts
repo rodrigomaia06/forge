@@ -10,6 +10,10 @@ export const forgeMotion = {
   transition: 180,
   sheetExit: 200,
   easing: Easing.out(Easing.cubic),
+  // A dismiss should accelerate away rather than ease in-and-out (Reanimated's
+  // withTiming default), so the sheet leaves crisply instead of dragging at the
+  // start; the entrance stays a spring so open and close read as one system.
+  sheetExitEasing: Easing.in(Easing.cubic),
   sheetSpring: {
     damping: 28,
     stiffness: 280,

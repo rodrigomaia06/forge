@@ -171,7 +171,7 @@ export function ForgeBottomSheet({
       completeExit();
       return;
     }
-    translateY.value = withTiming(closeDistance, { duration: forgeMotion.sheetExit }, (finished) => {
+    translateY.value = withTiming(closeDistance, { duration: forgeMotion.sheetExit, easing: forgeMotion.sheetExitEasing }, (finished) => {
       if (finished) runOnJS(completeExit)();
     });
     backdropOpacity.value = withTiming(0, { duration: forgeMotion.state });
