@@ -33,6 +33,7 @@ import {
   pressedFeedback,
   selectionHaptic,
   SwipeToDeleteRow,
+  UnilateralBadge,
 } from '../../components/ui';
 import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
 import { ExerciseDetailBody } from '../../components/ExerciseDetailBody';
@@ -460,9 +461,9 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     // height from a flex parent on web.
     92 + (formView === 'family' || formView === 'category' || formView === 'equipment' ? 64 : 0) + Math.max(1, selectorOptionCount) * 56 + 36,
   );
-  const detailFormHeight = showOptionalDetails
-    ? Math.min(viewportHeight * 0.82, 640)
-    : Math.min(viewportHeight * 0.72, 540);
+  // One fixed height for the form whether or not "Optional details" is open, so
+  // toggling it doesn't resize the sheet; the extra fields scroll into view.
+  const detailFormHeight = Math.min(viewportHeight * 0.72, 540);
   return (
     <AppScreen edges={['top']} backgroundColor={theme.background}>
       <View style={styles.screen}>
@@ -572,9 +573,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
             <View style={[
               styles.formSheet,
               formView === 'details'
-                // Size to content and only scroll past this cap, so a short
-                // form is not a tall half-empty sheet.
-                ? { maxHeight: detailFormHeight }
+                ? { height: detailFormHeight }
                 : { height: selectorIsLong ? activeSelectorMaxHeight : compactSelectorHeight },
             ]}>
               <ForgeBottomSheetHandle />
@@ -627,7 +626,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
               {formView === 'details' ? (
                 <>
                   <ScrollView
-                    style={styles.formScrollDetails}
+                    style={styles.formScroll}
                     contentContainerStyle={styles.form}
                     keyboardShouldPersistTaps="handled"
                     keyboardDismissMode="on-drag"
@@ -1022,6 +1021,19 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   restLabel={restLabel(detail)}
                   onPressRest={() => transitionDetailSheet('restTime')}
                   bottomPadding={Math.max(30, bottomInset + 20)}
+                  footer={detail.laterality === 'unilateral' ? (
+                    <>
+                      <Text style={styles.uniSectionLabel}>Unilateral</Text>
+                      <ForgeCard variant="nested" style={styles.uniCard}>
+                        <View style={styles.uniRow}>
+                          <View style={styles.uniRowIcon}>
+                            <UnilateralBadge size={20} color={theme.textSecondary} />
+                          </View>
+                          <Text style={styles.uniRowTitle}>Complete one side at a time</Text>
+                        </View>
+                      </ForgeCard>
+                    </>
+                  ) : undefined}
                 />
               </View>
             ))
@@ -1419,6 +1431,11 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     empty: { paddingTop: 60, alignItems: 'center' },
     formSheet: { alignSelf: 'stretch', flexShrink: 1 },
     detailSheet: {},
+    uniSectionLabel: { marginTop: 8, marginLeft: 6, color: theme.textPrimary, ...typeScale.sectionTitle },
+    uniCard: { overflow: 'hidden', borderRadius: 18 },
+    uniRow: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 12 },
+    uniRowIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
+    uniRowTitle: { flex: 1, color: theme.textPrimary, ...typeScale.cardTitle },
     restTimeSheet: { minHeight: 400 },
     restTimeDefaultAction: {
       minWidth: 112,
@@ -1434,8 +1451,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     restTimePickerContent: { paddingHorizontal: 20, paddingBottom: 24, gap: 10 },
     restTimeChoiceCard: { overflow: 'hidden', borderRadius: 18 },
     formScroll: { flex: 1, minHeight: 0 },
-    // Grows with content, then scrolls once the sheet hits its max height.
-    formScrollDetails: { flexShrink: 1, minHeight: 0 },
     form: { padding: 20, gap: 18 },
     formPickerContent: { padding: 20, gap: 12, paddingBottom: 36 },
     formNameCard: { padding: 14, gap: 8, borderRadius: 18 },

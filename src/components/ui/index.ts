@@ -48,6 +48,7 @@ export type { CatalogFilterFacet, CatalogFilterKey, CatalogFilterOption, Catalog
 export { pressedFeedback, pressedFeedbackSubtle } from './pressFeedback';
 export { Icon } from './Icon';
 export { SwipeToDeleteRow } from './SwipeToDeleteRow';
+export { UnilateralBadge } from './UnilateralBadge';
 export { NavigationItem } from './NavigationItem';
 export { ScreenTitle } from './ScreenTitle';
 export { SectionHeader } from './SectionHeader';

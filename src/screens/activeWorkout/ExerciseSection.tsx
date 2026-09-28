@@ -9,7 +9,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { Button, ForgeConfirmationDialog, ForgeText as Text, Icon, pressedFeedback } from '../../components/ui';
+import { Button, ForgeConfirmationDialog, ForgeText as Text, Icon, pressedFeedback, UnilateralBadge } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
@@ -614,15 +614,6 @@ export function ReadOnlyExerciseSection({
 }
 
 /** A small "Uni" chip marking a unilateral exercise, whose sets complete a side at a time. */
-function UnilateralBadge() {
-  const theme = useForgeTheme();
-  return (
-    <View accessible accessibilityLabel="Unilateral, complete one side at a time">
-      {/* A rounded boxed "U" reads as unilateral without relying on a language label. */}
-      <Icon name="square-rounded-letter-u" size={19} color={theme.slate} />
-    </View>
-  );
-}
 
 function OffSessionBadge() {
   const theme = useForgeTheme();
