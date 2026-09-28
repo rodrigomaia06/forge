@@ -5,7 +5,7 @@ import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-n
 import { useNavigation } from '@react-navigation/native';
 import { setPendingImport } from '../../state/pendingImport';
 import * as Clipboard from 'expo-clipboard';
-import { AppScreen, ForgeAnchoredMenu, ForgeBackButton, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeCard, ForgeConfirmationDialog, ForgeFloatingCta, ForgeSheetHeader, ForgeSingleSelectList, ForgeText as Text, Icon, pressedFeedback, useAnchoredMenu } from '../../components/ui';
+import { AppScreen, ForgeBackButton, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeCard, ForgeConfirmationDialog, ForgeFloatingCta, ForgeSelectionSheet, ForgeSheetHeader, ForgeText as Text, Icon, pressedFeedback } from '../../components/ui';
 import type { ForgeSingleSelectOption } from '../../components/ui';
 import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
 import { dashboardTheme } from '../../theme/dashboardTheme';
@@ -484,7 +484,7 @@ function Logs() {
   const [status, setStatus] = React.useState('Checking local storage…');
   const [filter, setFilter] = React.useState<DiagnosticKind | 'all'>('all');
   const [copied, setCopied] = React.useState<string | null>(null);
-  const filterMenu = useAnchoredMenu();
+  const [filterSheetOpen, setFilterSheetOpen] = React.useState(false);
   const copiedTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const refresh = React.useCallback(() => {
     void Promise.all([loadDiagnostics(), databaseStatus()]).then(([next, database]) => {
@@ -525,15 +525,13 @@ function Logs() {
     <SettingsSection title="Recent events">
       {entries.length ? (
         <>
-          <View ref={filterMenu.ref} collapsable={false}>
-            <SettingsRow
-              title="Show"
-              trailing={<Text style={[styles.value, { color: theme.textSecondary }]}>{filterLabel}</Text>}
-              disclosure
-              onPress={filterMenu.open}
-              showDivider
-            />
-          </View>
+          <SettingsRow
+            title="Show"
+            trailing={<Text style={[styles.value, { color: theme.textSecondary }]}>{filterLabel}</Text>}
+            disclosure
+            onPress={() => setFilterSheetOpen(true)}
+            showDivider
+          />
           {visible.length ? visible.map((entry, index) => (
             <SettingsRow
               key={entry.id}
@@ -560,23 +558,16 @@ function Logs() {
       <Action title="Export logs" icon="database-export" disclosure={false} divider onPress={exportLogs} />
       <Action title="Clear logs" icon="trash" disclosure={false} destructive onPress={clear} />
     </SettingsSection>
-    <ForgeAnchoredMenu
-      visible={filterMenu.visible}
-      anchor={filterMenu.anchor}
-      onClose={filterMenu.close}
-      align="end"
-      minWidth={200}
-      testID="logs-filter-menu"
-    >
-      <ForgeSingleSelectList
-        options={logFilterOptions}
-        selectedValue={filter}
-        rounded
-        disableVirtualization
-        onSelect={(value) => { setFilter(value); filterMenu.close(); }}
-        onSelectedPress={() => filterMenu.close()}
-      />
-    </ForgeAnchoredMenu>
+    <ForgeSelectionSheet
+      visible={filterSheetOpen}
+      onClose={() => setFilterSheetOpen(false)}
+      accessibilityLabel="Close log filter picker"
+      title="Show"
+      options={logFilterOptions}
+      selectedValue={filter}
+      onSelect={(value) => setFilter(value)}
+      testID="logs-filter-sheet"
+    />
   </View>;
 }
 function kindIcon(kind: DiagnosticKind): IconName {

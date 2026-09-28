@@ -5,7 +5,7 @@ import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { AppScreen, ForgeAnchoredMenu, ForgeText as Text, Icon, pressedFeedback, selectionHaptic, useAnchoredMenu } from '../components/ui';
+import { AppScreen, ForgeSelectionSheet, ForgeText as Text, Icon, pressedFeedback, selectionHaptic } from '../components/ui';
 import { SettingsDetailHeader } from './settings/SettingsScreenChrome';
 import { useWorkouts } from '../state/WorkoutContext';
 import { useSettings } from '../state/SettingsContext';
@@ -63,7 +63,7 @@ export function CalendarScreen({ navigation }: Props) {
   useEffect(() => navigation.addListener('focus', () => setToday(new Date())), [navigation]);
   const todayKey = calendarDateKey(today);
   const [view, setView] = useState<CalendarView>('month');
-  const viewMenu = useAnchoredMenu();
+  const [viewSheetOpen, setViewSheetOpen] = useState(false);
   const [elevated, setElevated] = useState(false);
   // Defer the (heavy) month/year grid mount until the navigation transition has
   // settled, so opening the Calendar from a tile feels instant.
@@ -88,7 +88,6 @@ export function CalendarScreen({ navigation }: Props) {
     scrolledRef.current = false;
     setFlashKey(`${year}-${month}`);
     setView('month');
-    viewMenu.close();
   };
   const colorForDay = (key: string): string | undefined => {
     const workout = byDay.get(key)?.[0];
@@ -154,11 +153,11 @@ export function CalendarScreen({ navigation }: Props) {
           navigation={navigation}
           elevated={elevated}
           rightAction={
-            <View ref={viewMenu.ref} collapsable={false}>
+            <View collapsable={false}>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Calendar view: ${VIEW_LABEL[view]}. Change`}
-                onPress={viewMenu.open}
+                onPress={() => setViewSheetOpen(true)}
                 style={({ pressed }) => [styles.viewSelect, pressed && pressedFeedback]}
               >
                 <Text style={styles.viewSelectText}>{VIEW_LABEL[view]}</Text>
@@ -250,36 +249,19 @@ export function CalendarScreen({ navigation }: Props) {
           )}
         </ScrollView>
 
-        <ForgeAnchoredMenu
-          visible={viewMenu.visible}
-          anchor={viewMenu.anchor}
-          onClose={viewMenu.close}
-          align="end"
-          minWidth={150}
-          testID="calendar-view-menu"
-        >
-          {(['month', 'year'] as CalendarView[]).map((v) => {
-            const active = v === view;
-            return (
-              <Pressable
-                key={v}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                accessibilityLabel={VIEW_LABEL[v]}
-                onPress={() => {
-                  selectionHaptic();
-                  if (v === 'month') { scrollTarget.current = { year: today.getFullYear(), month: today.getMonth() }; scrolledRef.current = false; }
-                  setView(v);
-                  viewMenu.close();
-                }}
-                style={({ pressed }) => [styles.dropdownItem, pressed && { backgroundColor: theme.pressed }]}
-              >
-                <Text style={styles.dropdownText}>{VIEW_LABEL[v]}</Text>
-                {active ? <Icon name="check" size={18} color={theme.textPrimary} weight="bold" /> : null}
-              </Pressable>
-            );
-          })}
-        </ForgeAnchoredMenu>
+        <ForgeSelectionSheet
+          visible={viewSheetOpen}
+          onClose={() => setViewSheetOpen(false)}
+          accessibilityLabel="Close calendar view picker"
+          title="Calendar view"
+          options={(['month', 'year'] as CalendarView[]).map((v) => ({ value: v, label: VIEW_LABEL[v] }))}
+          selectedValue={view}
+          onSelect={(v) => {
+            if (v === 'month') { scrollTarget.current = { year: today.getFullYear(), month: today.getMonth() }; scrolledRef.current = false; }
+            setView(v);
+          }}
+          testID="calendar-view-sheet"
+        />
       </View>
     </AppScreen>
   );
