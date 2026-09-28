@@ -36,6 +36,58 @@ export function distinctName(base: string, taken: Set<string>): string {
  */
 export type ImportRename = { from: string; to: string };
 
+/**
+ * A resolved "Update" decision for a shared routine/plan conflict: replace the
+ * on-device item (`existingId`) with the incoming content in place, rather than
+ * adding it as a "X 2" copy. Keeps the existing id (and, for a routine, its
+ * plan membership) so it is an update, not a duplicate.
+ */
+export type SharePlanUpdate = { kind: 'routine' | 'plan'; existingId: string };
+
+function updateRoutineInPlans(
+  current: PlansState,
+  existingId: string,
+  incoming: WorkoutRoutine,
+): PlansState {
+  const replace = (routines: readonly WorkoutRoutine[]): WorkoutRoutine[] =>
+    routines.map((routine) =>
+      routine.id === existingId
+        ? {
+            ...incoming,
+            id: existingId,
+            planId: routine.planId,
+            createdAt: routine.createdAt,
+            updatedAt: incoming.updatedAt || Date.now(),
+          }
+        : routine,
+    );
+  return {
+    plans: current.plans.map((plan) => ({ ...plan, routines: replace(plan.routines) })),
+    standaloneRoutines: replace(current.standaloneRoutines),
+  };
+}
+
+function updatePlanInPlans(
+  current: PlansState,
+  existingId: string,
+  incoming: WorkoutPlan,
+): PlansState {
+  return {
+    ...current,
+    plans: current.plans.map((plan) =>
+      plan.id === existingId
+        ? {
+            ...incoming,
+            id: existingId,
+            createdAt: plan.createdAt,
+            updatedAt: incoming.updatedAt || Date.now(),
+            routines: incoming.routines.map((routine) => ({ ...routine, planId: existingId })),
+          }
+        : plan,
+    ),
+  };
+}
+
 export function mergeImportedPlans(
   current: PlansState,
   incoming: PlansState,
@@ -43,7 +95,23 @@ export function mergeImportedPlans(
   renamed?: ImportRename[],
   /** Collects the names of incoming records the device already had verbatim. */
   skipped?: string[],
+  /** When set, replace the named on-device item in place instead of adding a copy. */
+  update?: SharePlanUpdate,
 ): PlansState {
+  // An "Update" decision replaces the matched item in place, keeping its id.
+  if (update?.kind === 'routine') {
+    const incomingRoutine = [
+      ...incoming.standaloneRoutines,
+      ...incoming.plans.flatMap((plan) => plan.routines),
+    ][0];
+    if (incomingRoutine) return updateRoutineInPlans(current, update.existingId, incomingRoutine);
+    return current;
+  }
+  if (update?.kind === 'plan') {
+    const incomingPlan = incoming.plans[0];
+    if (incomingPlan) return updatePlanInPlans(current, update.existingId, incomingPlan);
+    return current;
+  }
   const currentRoutines = [
     ...current.standaloneRoutines,
     ...current.plans.flatMap((plan) => plan.routines),

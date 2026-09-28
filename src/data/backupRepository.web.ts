@@ -4,6 +4,13 @@ import type { ExerciseCatalogItem } from './exerciseCatalog';
 import { loadCustomExercises, saveCustomExercises } from './exerciseRepository';
 import { mergeImportedPlans, type ImportRename } from './dataTransferPlans';
 import { renameSharedExercises, renameSharedWorkouts } from './sharedImport';
+import {
+  detectShareConflict,
+  dropSharedItem,
+  shareResolutionResult,
+  type ShareConflict,
+  type ShareResolution,
+} from './importDiff';
 import { normalizeDataTransfer } from './dataTransferNormalization';
 import { loadPlansState, savePlansState } from './plansRepository';
 import { loadSettingsPreferences, saveSettingsPreferences } from './settingsRepository';
@@ -26,12 +33,16 @@ export type DataTransferInspection = {
   exportedAt: string;
   categories: Record<DataTransferCategory, DataTransferCategorySummary>;
   activeWorkout: boolean;
+  /** Present when a single-item share updates an existing item (same name, different content). */
+  conflict?: ShareConflict;
 };
 export type DataTransferMergeResult = {
   categories: Record<DataTransferCategory, number>;
   activeWorkoutAdded: boolean;
   renamed: ImportRename[];
   skipped: string[];
+  /** The applied decision for a single-item share conflict, if one was resolved. */
+  resolution?: { action: 'updated' | 'keptBoth' | 'skipped'; name: string };
 };
 export type ForgeDataTransfer = {
   format: 'forge-data';
@@ -214,6 +225,12 @@ export async function inspectDataTransfer(
     activeWorkout: Boolean(
       selection.workouts && incoming.workouts.activeWorkout && !workouts.activeWorkout,
     ),
+    conflict:
+      detectShareConflict(incoming, {
+        plans,
+        workouts: workouts.completedWorkouts,
+        exercises,
+      }) ?? undefined,
     categories: {
       workouts: selection.workouts
         ? summary(incoming.workouts.completedWorkouts, workouts.completedWorkouts)
@@ -255,6 +272,7 @@ export async function inspectDataTransfer(
 export async function mergeDataTransfer(
   incoming: ForgeDataTransfer,
   selection = allDataTransferSelection(),
+  resolution?: ShareResolution,
 ): Promise<DataTransferMergeResult> {
   incoming = normalizeDataTransfer(incoming);
   const [settings, plans, workouts, exercises] = await Promise.all([
@@ -265,25 +283,55 @@ export async function mergeDataTransfer(
   ]);
   const merge = <T extends { id: string }>(current: T[], addition: T[]): T[] =>
     uniqueById([...current, ...addition]);
+  // Resolve a single-item share conflict per the user's decision (see the native twin).
+  const conflict = resolution
+    ? detectShareConflict(incoming, { plans, workouts: workouts.completedWorkouts, exercises })
+    : null;
+  const resolutionResult = shareResolutionResult(conflict, resolution);
+  if (conflict && resolution === 'skip') incoming = dropSharedItem(incoming, conflict.kind);
+  const planUpdate =
+    conflict && resolution === 'update' && (conflict.kind === 'routine' || conflict.kind === 'plan')
+      ? { kind: conflict.kind, existingId: conflict.existingId }
+      : undefined;
+  const workoutUpdate = conflict && resolution === 'update' && conflict.kind === 'workout' ? conflict : null;
+  const exerciseUpdate = conflict && resolution === 'update' && conflict.kind === 'exercise' ? conflict : null;
   const renamed: ImportRename[] = [];
   const skipped: string[] = [];
-  const incomingWorkouts = incoming.share
+  const incomingWorkouts = incoming.share && !workoutUpdate
     ? renameSharedWorkouts(incoming.workouts.completedWorkouts, workouts.completedWorkouts, renamed, skipped)
-    : incoming.workouts.completedWorkouts;
-  const incomingExercises = incoming.share
+    : workoutUpdate
+      ? []
+      : incoming.workouts.completedWorkouts;
+  const incomingExercises = incoming.share && !exerciseUpdate
     ? renameSharedExercises(incoming.customExercises, exercises, renamed, skipped)
-    : incoming.customExercises;
-  const completed = selection.workouts
-    ? merge(workouts.completedWorkouts, incomingWorkouts)
+    : exerciseUpdate
+      ? []
+      : incoming.customExercises;
+  const baseCompleted = workoutUpdate
+    ? workouts.completedWorkouts.map((workout) =>
+        workout.id === workoutUpdate.existingId
+          ? { ...incoming.workouts.completedWorkouts[0], id: workoutUpdate.existingId }
+          : workout,
+      )
     : workouts.completedWorkouts;
+  const baseExercises = exerciseUpdate
+    ? exercises.map((exercise) =>
+        exercise.id === exerciseUpdate.existingId
+          ? { ...incoming.customExercises[0], id: exerciseUpdate.existingId }
+          : exercise,
+      )
+    : exercises;
+  const completed = selection.workouts
+    ? merge(baseCompleted, incomingWorkouts)
+    : baseCompleted;
   const importedActive =
     selection.workouts &&
     incoming.workouts.activeWorkout &&
     !completed.some((workout) => workout.id === incoming.workouts.activeWorkout?.id)
       ? incoming.workouts.activeWorkout
       : null;
-  const custom = selection.exercises ? merge(exercises, incomingExercises) : exercises;
-  const mergedPlanState = selection.plans ? mergeImportedPlans(plans, incoming.plans, renamed, skipped) : plans;
+  const custom = selection.exercises ? merge(baseExercises, incomingExercises) : baseExercises;
+  const mergedPlanState = selection.plans ? mergeImportedPlans(plans, incoming.plans, renamed, skipped, planUpdate) : plans;
   const mergedPlans = mergedPlanState.plans;
   const mergedStandaloneRoutines = mergedPlanState.standaloneRoutines;
   const mergedSettings = {
@@ -331,6 +379,7 @@ export async function mergeDataTransfer(
     activeWorkoutAdded: Boolean(!workouts.activeWorkout && importedActive),
     renamed,
     skipped,
+    resolution: resolutionResult,
   };
 }
 

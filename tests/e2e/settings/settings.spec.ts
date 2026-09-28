@@ -362,46 +362,95 @@ test.describe('Settings', () => {
     await expect(page.getByText('Push Day', { exact: true })).toBeVisible();
   });
 
+  // Shared-routine imports funnel into one helper: open the picker, feed a
+  // Push Day `.forge`, and return the review sheet so each caller drives its own
+  // decision (plain Import, or an Update / Keep both conflict choice).
+  async function openPushDayImport(
+    page: import('@playwright/test').Page,
+    exercises: unknown[],
+  ): Promise<import('@playwright/test').Locator> {
+    const chooserPromise = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: 'Import data' }).click();
+    const chooser = await chooserPromise;
+    await chooser.setFiles({
+      name: 'push.forge',
+      mimeType: 'application/json',
+      // No routine id, so each import gets a fresh id (a new routine, not an update).
+      buffer: Buffer.from(JSON.stringify({
+        format: 'forge-data', version: 1, exportedAt: '2026-09-13T00:00:00.000Z',
+        share: { kind: 'routine', title: 'Push Day', summary: '1 exercise' },
+        selection: { workouts: false, plans: true, exercises: false, workoutTypes: false, measurements: false },
+        settings: { workoutTypes: [], dailyMeasurementDefinitions: [], dailyMeasurementEntries: [] },
+        plans: { plans: [], standaloneRoutines: [{ name: 'Push Day', type: 'Strength', exercises, createdAt: 0, updatedAt: 0 }] },
+        workouts: { activeWorkout: null, completedWorkouts: [] }, customExercises: [],
+      })),
+    });
+    return page.getByRole('dialog');
+  }
+
   test('skips an identical re-import and keeps a different same-named one as a copy', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Backup & Export' }).click();
-    const importPushDay = async (exercises: unknown[]) => {
-      const chooserPromise = page.waitForEvent('filechooser');
-      await page.getByRole('button', { name: 'Import data' }).click();
-      const chooser = await chooserPromise;
-      await chooser.setFiles({
-        name: 'push.forge',
-        mimeType: 'application/json',
-        // No routine id, so each import gets a fresh id (a new routine, not an update).
-        buffer: Buffer.from(JSON.stringify({
-          format: 'forge-data', version: 1, exportedAt: '2026-09-13T00:00:00.000Z',
-          share: { kind: 'routine', title: 'Push Day', summary: '1 exercise' },
-          selection: { workouts: false, plans: true, exercises: false, workoutTypes: false, measurements: false },
-          settings: { workoutTypes: [], dailyMeasurementDefinitions: [], dailyMeasurementEntries: [] },
-          plans: { plans: [], standaloneRoutines: [{ name: 'Push Day', type: 'Strength', exercises, createdAt: 0, updatedAt: 0 }] },
-          workouts: { activeWorkout: null, completedWorkouts: [] }, customExercises: [],
-        })),
-      });
-      const sheet = page.getByRole('dialog');
-      await sheet.getByRole('button', { name: 'Import selected data' }).click();
-      return page.getByTestId('data-merged-summary');
-    };
-    const first = await importPushDay([]);
+    // First import into an empty library: a brand-new routine, plain review.
+    const firstSheet = await openPushDayImport(page, []);
+    await firstSheet.getByRole('button', { name: 'Import selected data' }).click();
+    const first = page.getByTestId('data-merged-summary');
     await expect(first).toBeVisible();
     await first.getByRole('button', { name: 'Done' }).click();
     // A content-identical re-import is skipped, not duplicated as "Push Day 2".
-    const second = await importPushDay([]);
+    const secondSheet = await openPushDayImport(page, []);
+    await secondSheet.getByRole('button', { name: 'Import selected data' }).click();
+    const second = page.getByTestId('data-merged-summary');
     await expect(second).toContainText('already on this device');
     await second.getByRole('button', { name: 'Done' }).click();
-    // A same-named but genuinely different routine is kept as a numbered copy.
-    const third = await importPushDay([{ id: 'e1', name: 'Bench Press', sets: [] }]);
+    // A same-named but genuinely different routine is now a conflict; Keep both
+    // preserves the on-device copy behaviour (a numbered "Push Day 2").
+    const thirdSheet = await openPushDayImport(page, [{ id: 'e1', name: 'Bench Press', sets: [] }]);
+    await thirdSheet.getByRole('button', { name: 'Keep both' }).click();
+    const third = page.getByTestId('data-merged-summary');
     await expect(third).toContainText('Kept as a separate copy');
     await expect(third).toContainText('Push Day 2');
     await third.getByRole('button', { name: 'Done' }).click();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('tab', { name: 'Plans' }).click();
     await expect(page.getByText('Push Day', { exact: true })).toBeVisible();
+    await expect(page.getByText('Push Day 2', { exact: true })).toBeVisible();
+  });
+
+  test('offers Update for a changed shared routine and replaces it in place', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Backup & Export' }).click();
+    // Seed a Push Day routine on device.
+    const seedSheet = await openPushDayImport(page, [{ id: 'e1', name: 'Bench Press', sets: [] }]);
+    await seedSheet.getByRole('button', { name: 'Import selected data' }).click();
+    await page.getByTestId('data-merged-summary').getByRole('button', { name: 'Done' }).click();
+    // Import a same-named routine with a DIFFERENT exercise: the review offers a
+    // decision, with the change summary and an Update primary action.
+    const changedSheet = await openPushDayImport(page, [{ id: 'e2', name: 'Overhead Press', sets: [] }]);
+    await expect(changedSheet.getByText('Updates a routine already on this device')).toBeVisible();
+    await expect(changedSheet.getByRole('button', { name: 'View changes' })).toBeVisible();
+    await expect(changedSheet.getByRole('button', { name: 'Keep both' })).toBeVisible();
+    await expect(changedSheet.getByRole('button', { name: 'Skip' })).toBeVisible();
+    await changedSheet.getByRole('button', { name: 'Update' }).click();
+    const updated = page.getByTestId('data-merged-summary');
+    await expect(updated).toContainText('Updated');
+    await updated.getByRole('button', { name: 'Done' }).click();
+    await page.getByRole('button', { name: 'Back to Settings' }).click();
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    // Updated in place: exactly one routine of that name, no "Push Day 2".
+    await expect(page.getByText('Push Day', { exact: true })).toHaveCount(1);
+    await expect(page.getByText('Push Day 2', { exact: true })).toHaveCount(0);
+    // A further different import, resolved with Keep both, yields the copy instead.
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Backup & Export' }).click();
+    const keepBothSheet = await openPushDayImport(page, [{ id: 'e3', name: 'Lateral Raise', sets: [] }]);
+    await keepBothSheet.getByRole('button', { name: 'Keep both' }).click();
+    await expect(page.getByTestId('data-merged-summary')).toContainText('Push Day 2');
+    await page.getByTestId('data-merged-summary').getByRole('button', { name: 'Done' }).click();
+    await page.getByRole('button', { name: 'Back to Settings' }).click();
+    await page.getByRole('tab', { name: 'Plans' }).click();
     await expect(page.getByText('Push Day 2', { exact: true })).toBeVisible();
   });
 
