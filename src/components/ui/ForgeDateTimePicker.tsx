@@ -133,7 +133,6 @@ function ForgeTimePicker({ value, onChange, testID }: Omit<ForgeDateTimePickerPr
           options={HOURS}
           selectedValue={value.getHours()}
           visibleRows={WHEEL_TIME_VISIBLE_ROWS}
-          fullyRendered
           formatValue={pad}
           accessibilityLabel={(hour) => `Hours ${pad(hour)}`}
           onSelect={(hour) => {
@@ -152,7 +151,6 @@ function ForgeTimePicker({ value, onChange, testID }: Omit<ForgeDateTimePickerPr
           options={MINUTES}
           selectedValue={value.getMinutes()}
           visibleRows={WHEEL_TIME_VISIBLE_ROWS}
-          fullyRendered
           formatValue={pad}
           accessibilityLabel={(minute) => `Minutes ${pad(minute)}`}
           onSelect={(minute) => {

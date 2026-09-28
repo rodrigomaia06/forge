@@ -41,7 +41,7 @@ export function ForgeWheelColumn({
   label,
   testID,
   visibleRows = WHEEL_VISIBLE_ROWS,
-  fullyRendered = false,
+  fullyRendered = true,
 }: {
   options: readonly number[];
   selectedValue: number;
@@ -53,7 +53,12 @@ export function ForgeWheelColumn({
   label?: string;
   testID?: string;
   visibleRows?: number;
-  /** Render every row up front (small fixed lists), so no blank drum rows appear on a fling. */
+  /**
+   * Render every row up front. Forge's wheels are bounded (≤115 rows), and
+   * virtualizing them left the rows *above* the selected index unrendered while
+   * the sheet animated in — the wheel then showed a lone faded value with no
+   * band. Rendering the whole drum keeps it complete from the first frame.
+   */
   fullyRendered?: boolean;
 }) {
   const styles = useThemedStyles(createStyles);
