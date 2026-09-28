@@ -1,11 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import {
-  FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   View,
-  type ListRenderItemInfo,
   type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
 import Animated, {
   Extrapolation,
@@ -16,7 +16,6 @@ import Animated, {
   useSharedValue,
 } from 'react-native-reanimated';
 
-import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import type { ForgeTheme } from '../../types';
@@ -30,6 +29,13 @@ export const WHEEL_VISIBLE_ROWS = 7;
  * The single Forge wheel: a snapping, fading column of values with the Clock-app
  * feel. Every duration and time in the app is picked on this one implementation
  * so the momentum, haptics, and fade read identically everywhere.
+ *
+ * It is a plain ScrollView with every row rendered up front (the lists are
+ * bounded, ≤115 rows) and positioned imperatively from `onContentSizeChange`.
+ * FlatList's `initialScrollIndex` is unreliable inside an animating bottom sheet
+ * — it leaves the list pinned at the top, so the wheel showed a lone faded value
+ * with no selection band. Setting the offset once the content is laid out works
+ * regardless of the sheet's entrance transform.
  */
 export function ForgeWheelColumn({
   options,
@@ -41,7 +47,6 @@ export function ForgeWheelColumn({
   label,
   testID,
   visibleRows = WHEEL_VISIBLE_ROWS,
-  fullyRendered = true,
 }: {
   options: readonly number[];
   selectedValue: number;
@@ -53,38 +58,37 @@ export function ForgeWheelColumn({
   label?: string;
   testID?: string;
   visibleRows?: number;
-  /**
-   * Render every row up front. Forge's wheels are bounded (≤115 rows), and
-   * virtualizing them left the rows *above* the selected index unrendered while
-   * the sheet animated in — the wheel then showed a lone faded value with no
-   * band. Rendering the whole drum keeps it complete from the first frame.
-   */
-  fullyRendered?: boolean;
 }) {
   const styles = useThemedStyles(createStyles);
-  const pickerRef = useRef<FlatList<number>>(null);
+  const scrollRef = useRef<ScrollView>(null);
   const selectedIndex = Math.max(0, options.indexOf(selectedValue));
+  const positioned = useRef(false);
   const programmaticScroll = useRef(false);
   const scrollOffset = useSharedValue(selectedIndex * WHEEL_ROW_HEIGHT);
   const hapticIndex = useSharedValue(selectedIndex);
   const padding = WHEEL_ROW_HEIGHT * ((visibleRows - 1) / 2);
 
+  const scrollToIndex = (index: number, animated: boolean): void => {
+    scrollRef.current?.scrollTo({ y: index * WHEEL_ROW_HEIGHT, animated });
+  };
+
+  // Position the drum once its content is laid out. This fires after the rows
+  // exist and their height is known, so the offset lands on the selected row
+  // even while the parent sheet is still sliding in.
+  const handleContentSizeChange = (): void => {
+    if (positioned.current) return;
+    positioned.current = true;
+    scrollOffset.value = selectedIndex * WHEEL_ROW_HEIGHT;
+    scrollToIndex(selectedIndex, false);
+  };
+
+  // Re-align when the selection is changed from outside (not by our own scroll).
   useEffect(() => {
-    if (programmaticScroll.current) return;
+    if (!positioned.current || programmaticScroll.current) return;
     scrollOffset.value = selectedIndex * WHEEL_ROW_HEIGHT;
     hapticIndex.value = selectedIndex;
-    pickerRef.current?.scrollToOffset({ offset: selectedIndex * WHEEL_ROW_HEIGHT, animated: false });
+    scrollToIndex(selectedIndex, false);
   }, [hapticIndex, scrollOffset, selectedIndex]);
-
-  const scrollToIndex = (index: number): void => {
-    const nextIndex = Math.max(0, Math.min(options.length - 1, index));
-    if (nextIndex === selectedIndex) return;
-    programmaticScroll.current = true;
-    hapticIndex.value = nextIndex;
-    selectionHaptic();
-    onSelect(options[nextIndex]);
-    pickerRef.current?.scrollToOffset({ offset: nextIndex * WHEEL_ROW_HEIGHT, animated: true });
-  };
 
   const handleScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -97,63 +101,66 @@ export function ForgeWheelColumn({
     },
   });
 
-  const handleScrollEnd = (event: NativeScrollEvent): void => {
-    const index = Math.max(0, Math.min(options.length - 1, Math.round(event.contentOffset.y / WHEEL_ROW_HEIGHT)));
+  const settleAtOffset = (offsetY: number): void => {
+    const index = Math.max(0, Math.min(options.length - 1, Math.round(offsetY / WHEEL_ROW_HEIGHT)));
     programmaticScroll.current = false;
     onSelect(options[index]);
   };
 
-  const renderRow = ({ item, index }: ListRenderItemInfo<number>) => (
-    <Pressable
-      accessibilityRole={accessibilityRole}
-      accessibilityLabel={accessibilityLabel(item)}
-      accessibilityState={accessibilityRole === 'radio' ? { checked: index === selectedIndex } : undefined}
-      unstable_pressDelay={110}
-      onPress={() => scrollToIndex(index)}
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-    >
-      <WheelValue
-        text={formatValue(item)}
-        index={index}
-        selected={index === selectedIndex}
-        scrollOffset={scrollOffset}
-      />
-    </Pressable>
-  );
+  const handleTap = (index: number): void => {
+    const nextIndex = Math.max(0, Math.min(options.length - 1, index));
+    if (nextIndex === selectedIndex) return;
+    programmaticScroll.current = true;
+    hapticIndex.value = nextIndex;
+    selectionHaptic();
+    onSelect(options[nextIndex]);
+    scrollOffset.value = nextIndex * WHEEL_ROW_HEIGHT;
+    scrollToIndex(nextIndex, true);
+  };
 
   return (
     <View style={styles.column}>
       {label ? <Text style={styles.columnLabel}>{label}</Text> : null}
       <View style={[styles.wheel, { height: WHEEL_ROW_HEIGHT * visibleRows }]}>
         <View style={[styles.selection, { top: padding }, styles.pointerEventsNone]} />
-        <Animated.FlatList
-          ref={pickerRef}
+        <Animated.ScrollView
+          ref={scrollRef}
           testID={testID}
-          data={options as number[]}
-          keyExtractor={(value) => String(value)}
-          renderItem={renderRow}
-          extraData={selectedIndex}
-          getItemLayout={(_, index) => ({ length: WHEEL_ROW_HEIGHT, offset: WHEEL_ROW_HEIGHT * index, index })}
-          initialScrollIndex={selectedIndex}
-          initialNumToRender={fullyRendered ? options.length : 20}
-          maxToRenderPerBatch={fullyRendered ? options.length : 20}
-          windowSize={fullyRendered ? Math.max(9, options.length) : 9}
-          removeClippedSubviews={!fullyRendered}
           showsVerticalScrollIndicator={false}
-          snapToOffsets={options.map((_, index) => index * WHEEL_ROW_HEIGHT)}
+          snapToInterval={WHEEL_ROW_HEIGHT}
           snapToAlignment="start"
-          // The iOS default deceleration ("normal") gives the long, smooth glide of
-          // the Clock-app drum (matching @quidone's wheel), rather than the abrupt
-          // stop of a fast deceleration; snapToOffsets settles it on an item.
+          // The iOS default deceleration ("normal") gives the long, smooth glide
+          // of the Clock-app drum rather than the abrupt stop of a fast
+          // deceleration; snapToInterval settles it on a row.
           decelerationRate="normal"
           scrollEventThrottle={16}
           contentContainerStyle={{ paddingVertical: padding }}
+          onContentSizeChange={handleContentSizeChange}
           onScroll={handleScroll}
-          onScrollEndDrag={(event) => {
-            if (Math.abs(event.nativeEvent.velocity?.y ?? 0) < 0.08) handleScrollEnd(event.nativeEvent);
+          onScrollEndDrag={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
+            if (Math.abs(event.nativeEvent.velocity?.y ?? 0) < 0.08) settleAtOffset(event.nativeEvent.contentOffset.y);
           }}
-          onMomentumScrollEnd={(event) => handleScrollEnd(event.nativeEvent)}
-        />
+          onMomentumScrollEnd={(event: NativeSyntheticEvent<NativeScrollEvent>) => settleAtOffset(event.nativeEvent.contentOffset.y)}
+        >
+          {options.map((item, index) => (
+            <Pressable
+              key={item}
+              accessibilityRole={accessibilityRole}
+              accessibilityLabel={accessibilityLabel(item)}
+              accessibilityState={accessibilityRole === 'radio' ? { checked: index === selectedIndex } : undefined}
+              unstable_pressDelay={110}
+              onPress={() => handleTap(index)}
+              style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+            >
+              <WheelValue
+                text={formatValue(item)}
+                index={index}
+                selected={index === selectedIndex}
+                scrollOffset={scrollOffset}
+              />
+            </Pressable>
+          ))}
+        </Animated.ScrollView>
       </View>
     </View>
   );
