@@ -655,15 +655,18 @@ test.describe('Active workout flow', () => {
     page,
   }) => {
     await page.goto('/');
-    // An untouched blank workout (no exercises, default name) has nothing to
-    // lose, so cancelling it closes straight to the Dashboard with no prompt.
-    await startBlankWorkout(page);
+    // An untouched workout has nothing to lose, so cancelling it closes straight
+    // to the Dashboard with no prompt — even with pre-filled but unlogged
+    // exercises (the routine-start case), which we approximate here by adding an
+    // exercise and logging nothing.
+    await startEmptyWorkoutWithExercise(page);
     await page.getByRole('button', { name: 'Cancel workout' }).click();
     await expect(page.getByTestId('discard-live-workout-confirmation')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Start workout' })).toBeVisible();
 
-    // Once the workout is touched (an exercise added), cancelling confirms first.
+    // Once the workout is touched (a set value logged), cancelling confirms first.
     await startEmptyWorkoutWithExercise(page);
+    await page.getByLabel('Kg for set 1').fill('60');
     await page.getByRole('button', { name: 'Cancel workout' }).click();
     const confirmation = page.getByTestId('discard-live-workout-confirmation');
     await expect(confirmation).toBeVisible();

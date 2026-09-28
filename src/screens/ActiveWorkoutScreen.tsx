@@ -289,13 +289,23 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     cancelWorkout();
     returnToDashboard(null);
   };
-  // A blank workout the user opened but never touched (no exercises, still the
-  // default name, no note) has nothing to lose, so cancelling it should close
-  // straight away instead of interrupting with a discard confirmation.
+  // A workout the user opened but never logged into — whether blank or started
+  // from a routine (which pre-fills empty exercises) — has nothing to lose, so
+  // cancelling it closes straight away instead of prompting. Any logged work
+  // (a completed set, an entered value, a set note/tag) or a workout note keeps
+  // the discard confirmation.
   const workoutUntouched =
-    activeWorkout.exercises.length === 0 &&
-    activeWorkout.name.trim() === 'Workout' &&
-    !activeWorkout.note?.trim();
+    !activeWorkout.note?.trim() &&
+    !activeWorkout.exercises.some((exercise) =>
+      exercise.sets.some((set) =>
+        set.completed ||
+        set.weight.trim() !== '' ||
+        set.reps.trim() !== '' ||
+        (set.measurements?.length ?? 0) > 0 ||
+        Boolean(set.comment?.trim()) ||
+        Boolean(set.tag),
+      ),
+    );
   const handleCancel = (): void => {
     if (workoutUntouched) {
       discardWorkout();
