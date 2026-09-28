@@ -66,10 +66,11 @@ import {
   groupCatalogByMovement,
 } from '../../domain/exercises/catalogSelectors';
 import { formatCatalogVariation } from '../../domain/exercises/exercisePresentation';
+import { shareItemFromSheet } from '../../utils/shareItem';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseBrowser'>;
-type DetailSheetView = 'details' | 'restTime';
+type DetailSheetView = 'details' | 'restTime' | 'options';
 type ExerciseFormView =
   | 'details'
   | 'category'
@@ -942,6 +943,53 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   />
                 </View>
               </View>
+            ) : detailSheetView === 'options' ? (
+              <View style={styles.detailSheet}>
+                <ForgeBottomSheetHandle />
+                <ForgeSheetHeader
+                  title="Options"
+                  compactTitle
+                  leading={
+                    <ForgeBackButton
+                      accessibilityLabel="Back to exercise details"
+                      onPress={() => transitionDetailSheet('details')}
+                    />
+                  }
+                />
+                <View style={styles.optionsList}>
+                  <ForgeCard variant="nested" size="compact">
+                    <ExerciseOptionRow
+                      icon="share"
+                      label="Share exercise"
+                      onPress={() => {
+                        // Close the whole sheet first — iOS won't present the
+                        // share sheet while this modal is still up.
+                        close();
+                        shareItemFromSheet({ kind: 'exercise', id: detail.id });
+                      }}
+                    />
+                    <ExerciseOptionRow
+                      icon="note"
+                      label="Edit exercise"
+                      divider
+                      onPress={() => {
+                        close();
+                        openEdit(detail);
+                      }}
+                    />
+                    <ExerciseOptionRow
+                      icon="trash"
+                      label="Delete exercise"
+                      destructive
+                      divider
+                      onPress={() => {
+                        catalog.removeCustomExercise(detail.id);
+                        close();
+                      }}
+                    />
+                  </ForgeCard>
+                </View>
+              </View>
             ) : (
               <View style={styles.detailSheet}>
                 <ForgeBottomSheetHandle />
@@ -949,33 +997,19 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   title={detail.name}
                   onClose={close}
                   closeAccessibilityLabel="Close exercise details"
-                  // Custom exercises carry their edit/delete actions in a pill on
-                  // the right; keep Close on the left so a long name has one
-                  // control per side, and reserve room for the wider pill so a
-                  // long name truncates instead of sliding under it.
+                  // Custom exercises get a "..." that opens an in-sheet options
+                  // view (Share / Edit / Delete). Keep one control per side —
+                  // Close left, "..." right — so a long name never overlaps them.
                   closePosition={isCustom(detail) ? 'left' : 'right'}
-                  titleInset={isCustom(detail) ? 104 : undefined}
                   trailing={
                     isCustom(detail) ? (
-                      <View style={styles.detailActionPill}>
-                        <Pressable
-                          accessibilityRole="button"
-                          accessibilityLabel="Edit exercise"
-                          onPress={() => { close(); openEdit(detail); }}
-                          style={({ pressed }) => [styles.detailActionButton, pressed && styles.detailActionPressed]}
-                        >
-                          <Icon name="note" size={18} color={theme.textPrimary} />
-                        </Pressable>
-                        <View style={styles.detailActionDivider} />
-                        <Pressable
-                          accessibilityRole="button"
-                          accessibilityLabel="Delete exercise"
-                          onPress={() => { catalog.removeCustomExercise(detail.id); close(); }}
-                          style={({ pressed }) => [styles.detailActionButton, pressed && styles.detailActionPressed]}
-                        >
-                          <Icon name="trash" size={18} color={theme.textDestructive} />
-                        </Pressable>
-                      </View>
+                      <HeaderAction
+                        accessibilityLabel="Exercise options"
+                        icon="ellipsis-horizontal"
+                        iconOnly
+                        variant="ghost"
+                        onPress={() => transitionDetailSheet('options')}
+                      />
                     ) : undefined
                   }
                 />
@@ -992,6 +1026,34 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
         </ForgeBottomSheet>
       </View>
     </AppScreen>
+  );
+}
+
+function ExerciseOptionRow({
+  icon,
+  label,
+  destructive = false,
+  divider = false,
+  onPress,
+}: {
+  icon: IconName;
+  label: string;
+  destructive?: boolean;
+  divider?: boolean;
+  onPress: () => void;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => [styles.optionRow, divider && styles.optionDivider, pressed && pressedFeedback]}
+    >
+      <Icon name={icon} size={20} color={destructive ? theme.textDestructive : theme.textSecondary} />
+      <Text style={[styles.optionLabel, { color: destructive ? theme.textDestructive : theme.textPrimary }]}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -1155,7 +1217,7 @@ const Movement = React.memo(function Movement({
                   subtitle={`${item.equipment} · ${item.category}`}
                   accessibilityLabel={`Open ${group}`}
                   onPress={onPress}
-                  trailing={<Icon name="sparkles" size={16} color={theme.textSecondary} />}
+                  trailing={<Icon name="sparkles" size={19} color={theme.textSecondary} />}
                   disclosure
                 />
                 <Button
@@ -1231,7 +1293,7 @@ const Movement = React.memo(function Movement({
                   >
                     <Text style={styles.variationName}>{label}</Text>
                     <View style={styles.variationIcons}>
-                      {isCustom(item) && <Icon name="sparkles" size={15} color={theme.textSecondary} />}
+                      {isCustom(item) && <Icon name="sparkles" size={18} color={theme.textSecondary} />}
                       <Icon name="chevron-forward" size={17} color={theme.slate} />
                     </View>
                   </Pressable>
@@ -1286,7 +1348,7 @@ function SwipeCustomExerciseRow({
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const reducedMotion = useForgeReducedMotion();
-  const actionWidth = 72;
+  const actionWidth = 84;
   const [revealed, setRevealed] = useState(false);
   const offset = useSharedValue(0);
   const open = useSharedValue(false);
@@ -1427,12 +1489,16 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       position: 'relative',
       overflow: 'hidden',
     },
+    // A floating rounded delete card, inset from the row's edges, revealed as
+    // the content slides left.
     customDeleteLayer: {
       position: 'absolute',
-      top: 0,
-      right: 0,
-      bottom: 0,
-      width: 72,
+      top: 6,
+      right: 8,
+      bottom: 6,
+      width: 68,
+      borderRadius: 20,
+      overflow: 'hidden',
     },
     customDeleteAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
     customDeletePressed: { backgroundColor: theme.destructiveSurfacePressed },
@@ -1496,17 +1562,10 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     formChoice: { minHeight: 56, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
     formChoiceDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.divider },
     formChoiceText: { flex: 1, ...typeScale.cardTitle, color: theme.textPrimary },
-    detailActionPill: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: theme.surfaceMuted,
-      overflow: 'hidden',
-    },
-    detailActionButton: { width: 36, height: 40, alignItems: 'center', justifyContent: 'center' },
-    detailActionPressed: { backgroundColor: theme.pressed },
-    detailActionDivider: { width: StyleSheet.hairlineWidth, height: 22, backgroundColor: theme.border },
+    optionRow: { minHeight: 56, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 14 },
+    optionDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
+    optionLabel: { ...typeScale.controlLabel },
+    optionsList: { marginHorizontal: 20, marginTop: 4 },
     input: {
       minHeight: 48,
       paddingHorizontal: 14,
