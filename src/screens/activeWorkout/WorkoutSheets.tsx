@@ -915,7 +915,10 @@ export function ExerciseOptionsSheet({
               workouts={completedWorkouts}
               onAdd={(sets) => {
                 addWarmupSets(sets);
-                backToActions();
+                // Close the whole options sheet so the user lands back on the
+                // workout with the just-added warm-up sets visible, rather than
+                // returning to the action list.
+                closeSheet();
               }}
             />
           ) : null}

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Keyboard, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import {
@@ -35,7 +35,7 @@ export function WarmupSetsContent({
 }: {
   exercise: WorkoutExercise;
   workouts: readonly Workout[];
-  /** Adds the computed ramp; the host sheet returns to its action list. */
+  /** Adds the computed ramp; the host sheet closes so the new sets show in the workout. */
   onAdd: (sets: readonly { weight: string; reps: string }[]) => void;
 }) {
   const theme = useForgeTheme();
@@ -60,6 +60,9 @@ export function WarmupSetsContent({
   const scrollable = contentHeight > viewportHeight + 1;
   const add = (): void => {
     if (!plan.length) return;
+    // Dismiss the working-set keyboard before the sheet closes so the workout's
+    // set list is fully visible when the user lands back on it.
+    Keyboard.dismiss();
     onAdd(plan);
   };
 

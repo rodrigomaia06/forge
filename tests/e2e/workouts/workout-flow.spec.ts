@@ -1162,11 +1162,13 @@ test.describe('Active workout flow', () => {
     await page.getByLabel('Working reps').fill('8');
     await expect(page.getByRole('button', { name: 'Add warm-up sets' })).toBeEnabled();
     await page.getByRole('button', { name: 'Add warm-up sets' }).click();
+    // Adding the ramp closes the whole options sheet and returns to the workout
+    // so the just-added warm-up sets are immediately visible in the set list.
+    await expect(page.getByText('Exercise options', { exact: true })).toHaveCount(0);
     await expect(page.getByLabel(/^Kg for set/)).toHaveCount(6);
 
-    // Warm-up now transitions in place: adding the ramp returns to the same
-    // options sheet's action list rather than dismissing a separate sheet, so
-    // Exercise info opens directly without reopening the options sheet.
+    // Reopen the options sheet to continue exercising the info view.
+    await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
     await expect(page.getByText('Exercise options', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Exercise info' }).click();
     // The Exercise info sheet now renders the shared ExerciseDetailBody: an
