@@ -5,11 +5,9 @@ import { useSharedValue, type SharedValue } from 'react-native-reanimated';
 
 import type { ForgeActionSheetAction } from '../components/ui';
 import {
-  AnchoredMenuActions,
   AppScreen,
   Button,
   ForgeActionSheet,
-  ForgeAnchoredMenu,
   ForgeBackButton,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
@@ -28,7 +26,6 @@ import {
   pressedFeedbackSubtle,
   selectionHaptic,
   successHaptic,
-  useAnchoredMenu,
 } from '../components/ui';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
@@ -75,7 +72,7 @@ export function PlansScreen({ navigation, route }: Props) {
   const { plans, standaloneRoutines, createPlan, deletePlan, deleteRoutine, duplicateRoutine, moveRoutine, updatePlan, reorderPlans, reorderRoutines } = usePlans();
   const { startWorkout, completedWorkouts } = useWorkouts();
   const { guardStart, notice: resumeNotice } = useStartWorkoutGuard();
-  const createMenu = useAnchoredMenu();
+  const [createSheetOpen, setCreateSheetOpen] = useState(false);
   const [routineTarget, setRoutineTarget] = useState<WorkoutRoutine | null>(null);
   const [planTarget, setPlanTarget] = useState<WorkoutPlan | null>(null);
   const [planEditTarget, setPlanEditTarget] = useState<WorkoutPlan | null>(null);
@@ -211,7 +208,7 @@ export function PlansScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     if (!route.params?.openCreation) return;
-    createMenu.open();
+    setCreateSheetOpen(true);
     navigation.setParams({ openCreation: undefined });
   }, [navigation, route.params?.openCreation]);
 
@@ -344,7 +341,7 @@ export function PlansScreen({ navigation, route }: Props) {
     });
   };
   const addRoutine = (planId?: string): void => {
-    createMenu.close();
+    setCreateSheetOpen(false);
     navigation.navigate('RoutineEditor', { mode: 'create', planId });
   };
   const toggleEditing = (): void => {
@@ -362,24 +359,21 @@ export function PlansScreen({ navigation, route }: Props) {
               <HeaderEditActions
                 editing={editing}
                 onToggleEdit={toggleEditing}
-                onAdd={createMenu.open}
-                addRef={createMenu.ref}
+                onAdd={() => setCreateSheetOpen(true)}
                 editLabel="Edit plans"
                 doneLabel="Done editing plans"
                 addLabel="Create workout, routine, or plan"
                 testID="plans-header-actions"
               />
             ) : (
-              <View ref={createMenu.ref} collapsable={false}>
-                <HeaderAction
-                  accessibilityLabel="Create workout, routine, or plan"
-                  icon="add"
-                  iconOnly
-                  onPress={createMenu.open}
-                  variant={theme.colorScheme === 'dark' ? 'ghost' : 'secondary'}
-                  style={theme.colorScheme === 'dark' ? styles.darkHeaderAction : undefined}
-                />
-              </View>
+              <HeaderAction
+                accessibilityLabel="Create workout, routine, or plan"
+                icon="add"
+                iconOnly
+                onPress={() => setCreateSheetOpen(true)}
+                variant={theme.colorScheme === 'dark' ? 'ghost' : 'secondary'}
+                style={theme.colorScheme === 'dark' ? styles.darkHeaderAction : undefined}
+              />
             )}
           </View>
           {headerElevated ? <HeaderEdge /> : null}
@@ -465,21 +459,18 @@ export function PlansScreen({ navigation, route }: Props) {
             )}
           />
         </View>
-        <ForgeAnchoredMenu
-          visible={createMenu.visible}
-          anchor={createMenu.anchor}
-          onClose={createMenu.close}
+        <ForgeActionSheet
+          visible={createSheetOpen}
+          onClose={() => setCreateSheetOpen(false)}
+          accessibilityLabel="Close create menu"
+          title="Create"
           testID="plans-creation-popover"
-        >
-          <AnchoredMenuActions
-            onClose={createMenu.close}
-            actions={[
-              { label: 'New workout', icon: 'fitness', onPress: startBlankWorkout },
-              { label: 'New routine', icon: 'book', onPress: () => addRoutine() },
-              { label: 'New workout plan', icon: 'layers', onPress: addPlan },
-            ]}
-          />
-        </ForgeAnchoredMenu>
+          actions={[
+            { label: 'New workout', icon: 'fitness', onPress: startBlankWorkout },
+            { label: 'New routine', icon: 'book', onPress: () => addRoutine() },
+            { label: 'New workout plan', icon: 'layers', onPress: addPlan },
+          ]}
+        />
         <ForgeActionSheet
           visible={routineTarget !== null}
           onClose={() => { setRoutineTarget(null); setMoveMode(false); }}
@@ -1074,13 +1065,14 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       alignItems: 'center',
     },
     divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
-    // Inset hairline between routine rows, aligned under the routine name.
+    // Inset 1px rule between routine rows, aligned under the routine name and
+    // matched to the plan header rule and the add-routine separator.
     rowSeparator: {
       position: 'absolute',
       left: 70,
       right: 16,
       bottom: 0,
-      height: StyleSheet.hairlineWidth,
+      height: 1,
       backgroundColor: theme.divider,
     },
     typeMarker: {
@@ -1113,7 +1105,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'flex-start',
-      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopWidth: 1,
       borderTopColor: theme.divider,
     },
     addToPlanText: { ...typeScale.controlLabel, color: theme.slate },
