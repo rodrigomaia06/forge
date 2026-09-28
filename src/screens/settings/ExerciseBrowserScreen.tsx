@@ -2,6 +2,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
   LayoutAnimation,
   FlatList,
   Platform,
@@ -282,6 +283,8 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   };
   const openCreate = useCallback((parent: string | null) => {
     lightHaptic();
+    // Don't carry a search keyboard from the list into the form.
+    Keyboard.dismiss();
     savingVariation.current = false;
     const inherited = parent
       ? [...catalog.exercises, ...catalog.customExercises].find((item) => item.group === parent)
@@ -319,6 +322,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   );
   const openEdit = (item: ExerciseCatalogItem) => {
     lightHaptic();
+    Keyboard.dismiss();
     savingVariation.current = false;
     setDetail(null);
     setFormView('details');
@@ -461,9 +465,9 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     // height from a flex parent on web.
     92 + (formView === 'family' || formView === 'category' || formView === 'equipment' ? 64 : 0) + Math.max(1, selectorOptionCount) * 56 + 36,
   );
-  // One fixed height for the form whether or not "Optional details" is open, so
-  // toggling it doesn't resize the sheet; the extra fields scroll into view.
-  const detailFormHeight = Math.min(viewportHeight * 0.72, 540);
+  // The form sizes to its content (no trailing empty space) up to this cap,
+  // past which it scrolls. Content stays anchored at the top.
+  const detailFormHeight = Math.min(viewportHeight * 0.82, 620);
   return (
     <AppScreen edges={['top']} backgroundColor={theme.background}>
       <View style={styles.screen}>
@@ -573,7 +577,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
             <View style={[
               styles.formSheet,
               formView === 'details'
-                ? { height: detailFormHeight }
+                ? { maxHeight: detailFormHeight }
                 : { height: selectorIsLong ? activeSelectorMaxHeight : compactSelectorHeight },
             ]}>
               <ForgeBottomSheetHandle />
@@ -626,7 +630,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
               {formView === 'details' ? (
                 <>
                   <ScrollView
-                    style={styles.formScroll}
+                    style={styles.formScrollDetails}
                     contentContainerStyle={styles.form}
                     keyboardShouldPersistTaps="handled"
                     keyboardDismissMode="on-drag"
@@ -1451,6 +1455,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     restTimePickerContent: { paddingHorizontal: 20, paddingBottom: 24, gap: 10 },
     restTimeChoiceCard: { overflow: 'hidden', borderRadius: 18 },
     formScroll: { flex: 1, minHeight: 0 },
+    // Size to content (top-aligned) and only scroll once the sheet hits its cap.
+    formScrollDetails: { flexGrow: 0, flexShrink: 1, minHeight: 0 },
     form: { padding: 20, gap: 18 },
     formPickerContent: { padding: 20, gap: 12, paddingBottom: 36 },
     formNameCard: { padding: 14, gap: 8, borderRadius: 18 },
