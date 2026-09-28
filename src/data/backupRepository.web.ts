@@ -31,6 +31,7 @@ export type DataTransferMergeResult = {
   categories: Record<DataTransferCategory, number>;
   activeWorkoutAdded: boolean;
   renamed: ImportRename[];
+  skipped: string[];
 };
 export type ForgeDataTransfer = {
   format: 'forge-data';
@@ -265,11 +266,12 @@ export async function mergeDataTransfer(
   const merge = <T extends { id: string }>(current: T[], addition: T[]): T[] =>
     uniqueById([...current, ...addition]);
   const renamed: ImportRename[] = [];
+  const skipped: string[] = [];
   const incomingWorkouts = incoming.share
-    ? renameSharedWorkouts(incoming.workouts.completedWorkouts, workouts.completedWorkouts.map((w) => w.name), renamed)
+    ? renameSharedWorkouts(incoming.workouts.completedWorkouts, workouts.completedWorkouts, renamed, skipped)
     : incoming.workouts.completedWorkouts;
   const incomingExercises = incoming.share
-    ? renameSharedExercises(incoming.customExercises, exercises.map((e) => e.name), renamed)
+    ? renameSharedExercises(incoming.customExercises, exercises, renamed, skipped)
     : incoming.customExercises;
   const completed = selection.workouts
     ? merge(workouts.completedWorkouts, incomingWorkouts)
@@ -281,7 +283,7 @@ export async function mergeDataTransfer(
       ? incoming.workouts.activeWorkout
       : null;
   const custom = selection.exercises ? merge(exercises, incomingExercises) : exercises;
-  const mergedPlanState = selection.plans ? mergeImportedPlans(plans, incoming.plans, renamed) : plans;
+  const mergedPlanState = selection.plans ? mergeImportedPlans(plans, incoming.plans, renamed, skipped) : plans;
   const mergedPlans = mergedPlanState.plans;
   const mergedStandaloneRoutines = mergedPlanState.standaloneRoutines;
   const mergedSettings = {
@@ -328,6 +330,7 @@ export async function mergeDataTransfer(
     },
     activeWorkoutAdded: Boolean(!workouts.activeWorkout && importedActive),
     renamed,
+    skipped,
   };
 }
 

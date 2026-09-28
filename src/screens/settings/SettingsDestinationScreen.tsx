@@ -298,14 +298,20 @@ function mergeSummaryMessage(result: DataTransferMergeResult): string {
     .filter(([, count]) => count > 0)
     .map(([key, count]) => `${count} ${labels[key]}`);
   if (result.activeWorkoutAdded) added.push('current workout');
-  const base = added.length
-    ? `Added ${added.join(', ')}. Existing matching records stayed on device.`
-    : 'No new records were needed. Matching records stayed on device.';
+  const parts = [
+    added.length
+      ? `Added ${added.join(', ')}.`
+      : 'Nothing new to add — this device already had these items.',
+  ];
+  if (result.skipped.length) {
+    const n = result.skipped.length;
+    parts.push(`${n} item${n === 1 ? '' : 's'} already on this device ${n === 1 ? 'was' : 'were'} skipped.`);
+  }
   if (result.renamed.length) {
     const renames = result.renamed.map(({ from, to }) => `“${from}” → “${to}”`).join(', ');
-    return `${base}\n\nRenamed to avoid duplicates: ${renames}.`;
+    parts.push(`Kept as a separate copy: ${renames}.`);
   }
-  return base;
+  return parts.join('\n\n');
 }
 
 function shareKindLabel(kind: ShareDescriptor['kind']): string {

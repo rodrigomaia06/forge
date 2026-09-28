@@ -34,9 +34,41 @@ test('leaves a non-share transfer untouched (idempotent backup)', () => {
   expect(out.plans.standaloneRoutines[0].id).toBe('r1');
 });
 
-test('renames a shared workout that clashes by name and reports it', () => {
+test('renames a shared workout that clashes by name with a different one', () => {
   const renamed: { from: string; to: string }[] = [];
-  const out = renameSharedWorkouts([{ id: 'w2', name: 'Pull' } as any], ['Pull'], renamed);
-  expect(out[0].name).toBe('Pull - imported');
-  expect(renamed).toEqual([{ from: 'Pull', to: 'Pull - imported' }]);
+  const skipped: string[] = [];
+  // Same name, different content -> kept as a numbered copy, not "- imported".
+  const out = renameSharedWorkouts(
+    [{ id: 'w2', name: 'Pull', note: 'new' } as any],
+    [{ id: 'w1', name: 'Pull', note: 'old' } as any],
+    renamed,
+    skipped,
+  );
+  expect(out[0].name).toBe('Pull 2');
+  expect(renamed).toEqual([{ from: 'Pull', to: 'Pull 2' }]);
+  expect(skipped).toEqual([]);
+});
+
+test('skips a shared workout the device already has verbatim (no "- imported")', () => {
+  const renamed: { from: string; to: string }[] = [];
+  const skipped: string[] = [];
+  // Identical content, only the freshly-minted id differs -> skipped entirely.
+  const out = renameSharedWorkouts(
+    [{ id: 'w2', name: 'Pull', note: 'same' } as any],
+    [{ id: 'w1', name: 'Pull', note: 'same' } as any],
+    renamed,
+    skipped,
+  );
+  expect(out).toEqual([]);
+  expect(renamed).toEqual([]);
+  expect(skipped).toEqual(['Pull']);
+});
+
+test('imports a genuinely new shared workout under its own name', () => {
+  const renamed: { from: string; to: string }[] = [];
+  const skipped: string[] = [];
+  const out = renameSharedWorkouts([{ id: 'w2', name: 'Legs' } as any], [], renamed, skipped);
+  expect(out[0].name).toBe('Legs');
+  expect(renamed).toEqual([]);
+  expect(skipped).toEqual([]);
 });

@@ -62,6 +62,8 @@ export type DataTransferMergeResult = {
   activeWorkoutAdded: boolean;
   /** Records renamed on import to avoid a name clash (from -> to). */
   renamed: ImportRename[];
+  /** Names of shared records the device already had verbatim, so they were skipped. */
+  skipped: string[];
 };
 
 export type BackupInspection = {
@@ -324,13 +326,15 @@ export async function mergeDataTransfer(
   const mergeById = <T extends { id: string }>(current: T[], addition: T[]): T[] =>
     uniqueById([...current, ...addition]);
   const renamed: ImportRename[] = [];
-  // A shared item was freshened to always add; rename its flat records if their
-  // name clashes so an added copy is distinguishable (routines: plan merge).
+  const skipped: string[] = [];
+  // A shared item is freshened to import as a copy; but skip the flat records
+  // the device already has verbatim, and only rename (X 2) a genuinely different
+  // one whose name clashes. Routine/plan records go through the plan merge.
   const incomingWorkouts = incoming.share
-    ? renameSharedWorkouts(incoming.workouts.completedWorkouts, currentWorkouts.completedWorkouts.map((w) => w.name), renamed)
+    ? renameSharedWorkouts(incoming.workouts.completedWorkouts, currentWorkouts.completedWorkouts, renamed, skipped)
     : incoming.workouts.completedWorkouts;
   const incomingExercises = incoming.share
-    ? renameSharedExercises(incoming.customExercises, currentExercises.map((e) => e.name), renamed)
+    ? renameSharedExercises(incoming.customExercises, currentExercises, renamed, skipped)
     : incoming.customExercises;
   const completed = selection.workouts
     ? mergeById(currentWorkouts.completedWorkouts, incomingWorkouts)
@@ -342,7 +346,7 @@ export async function mergeDataTransfer(
       ? incoming.workouts.activeWorkout
       : null;
   const mergedPlanState = selection.plans
-    ? mergeImportedPlans(currentPlans, incoming.plans, renamed)
+    ? mergeImportedPlans(currentPlans, incoming.plans, renamed, skipped)
     : currentPlans;
   const plans = mergedPlanState.plans;
   const routines = mergedPlanState.standaloneRoutines;
@@ -447,6 +451,7 @@ export async function mergeDataTransfer(
     },
     activeWorkoutAdded: Boolean(!currentWorkouts.activeWorkout && importedActive),
     renamed,
+    skipped,
   };
 }
 

@@ -1,5 +1,6 @@
 import { createImportId } from './dataTransferNormalization';
 import { distinctName, normalizeName, type ImportRename } from './dataTransferPlans';
+import { contentSignature } from './importMatch';
 import type { ForgeDataTransfer } from './transferFormat';
 import type { ExerciseCatalogItem } from './exerciseCatalog';
 import type { Workout } from '../types';
@@ -48,33 +49,45 @@ export function freshenSharedIds(transfer: ForgeDataTransfer): ForgeDataTransfer
 }
 
 /**
- * Rename shared workouts / custom exercises that clash by name with what's
- * already on device, so an added copy is distinguishable ("Pull - Extension" ->
- * "Pull - Extension - imported"). Routine/plan names are handled by the plan
- * merge; this covers the two flat categories. Only runs for share files.
+ * Reconcile shared workouts / custom exercises against what's already on device:
+ * drop the ones the device already has verbatim (content-identical re-imports),
+ * and give the rest a distinct name only when a *different* record already owns
+ * it ("Pull - Extension" -> "Pull - Extension 2"). Routine/plan names are handled
+ * by the plan merge; this covers the two flat categories. Only runs for share
+ * files. `skipped` collects the names dropped as already-present.
  */
 export function renameSharedWorkouts(
   workouts: readonly Workout[],
-  currentNames: readonly string[],
+  current: readonly Workout[],
   renamed: ImportRename[],
+  skipped?: string[],
 ): Workout[] {
-  const taken = new Set(currentNames.map(normalizeName));
-  return workouts.map((workout) => {
+  const taken = new Set(current.map((workout) => normalizeName(workout.name)));
+  const present = new Set(current.map((workout) => contentSignature(workout)));
+  const kept: Workout[] = [];
+  for (const workout of workouts) {
+    if (present.has(contentSignature(workout))) { skipped?.push(workout.name); continue; }
     const to = distinctName(workout.name || 'Workout', taken);
     if (to !== workout.name) renamed.push({ from: workout.name, to });
-    return to === workout.name ? workout : { ...workout, name: to };
-  });
+    kept.push(to === workout.name ? workout : { ...workout, name: to });
+  }
+  return kept;
 }
 
 export function renameSharedExercises(
   exercises: readonly ExerciseCatalogItem[],
-  currentNames: readonly string[],
+  current: readonly ExerciseCatalogItem[],
   renamed: ImportRename[],
+  skipped?: string[],
 ): ExerciseCatalogItem[] {
-  const taken = new Set(currentNames.map(normalizeName));
-  return exercises.map((exercise) => {
+  const taken = new Set(current.map((exercise) => normalizeName(exercise.name)));
+  const present = new Set(current.map((exercise) => contentSignature(exercise)));
+  const kept: ExerciseCatalogItem[] = [];
+  for (const exercise of exercises) {
+    if (present.has(contentSignature(exercise))) { skipped?.push(exercise.name); continue; }
     const to = distinctName(exercise.name || 'Exercise', taken);
     if (to !== exercise.name) renamed.push({ from: exercise.name, to });
-    return to === exercise.name ? exercise : { ...exercise, name: to };
-  });
+    kept.push(to === exercise.name ? exercise : { ...exercise, name: to });
+  }
+  return kept;
 }

@@ -362,11 +362,11 @@ test.describe('Settings', () => {
     await expect(page.getByText('Push Day', { exact: true })).toBeVisible();
   });
 
-  test('renames an imported routine that clashes by name and reports it', async ({ page }) => {
+  test('skips an identical re-import and keeps a different same-named one as a copy', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Backup & Export' }).click();
-    const importPushDay = async () => {
+    const importPushDay = async (exercises: unknown[]) => {
       const chooserPromise = page.waitForEvent('filechooser');
       await page.getByRole('button', { name: 'Import data' }).click();
       const chooser = await chooserPromise;
@@ -379,7 +379,7 @@ test.describe('Settings', () => {
           share: { kind: 'routine', title: 'Push Day', summary: '1 exercise' },
           selection: { workouts: false, plans: true, exercises: false, workoutTypes: false, measurements: false },
           settings: { workoutTypes: [], dailyMeasurementDefinitions: [], dailyMeasurementEntries: [] },
-          plans: { plans: [], standaloneRoutines: [{ name: 'Push Day', type: 'Strength', exercises: [], createdAt: 0, updatedAt: 0 }] },
+          plans: { plans: [], standaloneRoutines: [{ name: 'Push Day', type: 'Strength', exercises, createdAt: 0, updatedAt: 0 }] },
           workouts: { activeWorkout: null, completedWorkouts: [] }, customExercises: [],
         })),
       });
@@ -387,17 +387,22 @@ test.describe('Settings', () => {
       await sheet.getByRole('button', { name: 'Import selected data' }).click();
       return page.getByTestId('data-merged-summary');
     };
-    const first = await importPushDay();
+    const first = await importPushDay([]);
     await expect(first).toBeVisible();
     await first.getByRole('button', { name: 'Done' }).click();
-    const second = await importPushDay();
-    await expect(second).toContainText('Renamed to avoid duplicates');
-    await expect(second).toContainText('Push Day - imported');
+    // A content-identical re-import is skipped, not duplicated as "Push Day 2".
+    const second = await importPushDay([]);
+    await expect(second).toContainText('already on this device');
     await second.getByRole('button', { name: 'Done' }).click();
+    // A same-named but genuinely different routine is kept as a numbered copy.
+    const third = await importPushDay([{ id: 'e1', name: 'Bench Press', sets: [] }]);
+    await expect(third).toContainText('Kept as a separate copy');
+    await expect(third).toContainText('Push Day 2');
+    await third.getByRole('button', { name: 'Done' }).click();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('tab', { name: 'Plans' }).click();
     await expect(page.getByText('Push Day', { exact: true })).toBeVisible();
-    await expect(page.getByText('Push Day - imported', { exact: true })).toBeVisible();
+    await expect(page.getByText('Push Day 2', { exact: true })).toBeVisible();
   });
 
   test('uses a Forge decision card when data transfer cannot complete', async ({ page }, testInfo) => {
