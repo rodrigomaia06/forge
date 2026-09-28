@@ -47,11 +47,16 @@ function catalogItemIndex(item: ExerciseCatalogItem): CatalogItemIndex {
   const cached = itemIndexCache.get(item);
   if (cached) return cached;
   const equipment = item.equipmentIds?.map((id) => taxonomyLabel('equipment', id)) ?? [item.equipment];
-  const muscles = [item.primaryMuscle, ...item.secondaryMuscles];
+  // Defensive against custom exercises persisted by older builds that lack some
+  // array fields (aliases/secondaryMuscles) — spreading undefined here crashes
+  // the whole browser.
+  const secondaryMuscles = item.secondaryMuscles ?? [];
+  const aliases = item.aliases ?? [];
+  const muscles = [item.primaryMuscle, ...secondaryMuscles];
   const facetTerms = item.variationFacets
     ? Object.values(item.variationFacets).flatMap((value) => (Array.isArray(value) ? value : value ? [value] : []))
     : [];
-  const searchable = [item.name, ...equipment, item.category, item.primaryMuscle, ...item.secondaryMuscles, ...item.aliases, ...(item.searchTerms ?? []), ...facetTerms];
+  const searchable = [item.name, ...equipment, item.category, item.primaryMuscle, ...secondaryMuscles, ...aliases, ...(item.searchTerms ?? []), ...facetTerms];
   const name = catalogSearchKey(item.name);
   // Store one full haystack plus the small group-token string separately rather
   // than a second near-duplicate haystack that repeats every field. The group is
@@ -64,7 +69,7 @@ function catalogItemIndex(item: ExerciseCatalogItem): CatalogItemIndex {
     groupHaystack: catalogSearchKey(item.group),
     name,
     nameWords: name ? name.split(' ') : [],
-    aliasText: catalogSearchKey([...item.aliases, ...(item.searchTerms ?? [])].join(' ')),
+    aliasText: catalogSearchKey([...aliases, ...(item.searchTerms ?? [])].join(' ')),
     tagText: catalogSearchKey([...equipment, item.category, ...muscles, ...facetTerms].join(' ')),
   };
   itemIndexCache.set(item, index);
