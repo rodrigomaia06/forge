@@ -132,6 +132,13 @@ export function ForgeBottomSheet({
   const entryOffsetRef = useRef(initialOffset);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  // Keep the last visible content mounted through the slide-out. `close()` fires
+  // the parent's onClose synchronously, which usually clears the state the
+  // children read (e.g. the selected item, or a sub-view), so re-rendering the
+  // children during the exit would blank — and collapse — the still-sliding
+  // surface. Snapshot it here, mirroring how ForgeConfirmationDialog retains its
+  // `shown` copy through the fade-out.
+  const lastChildrenRef = useRef<React.ReactNode>(null);
   // Read inside the entrance effect without adding it to the deps: it must be
   // sampled at the moment `visible` flips true, and toggling it afterwards must
   // never re-run (and thus re-animate) the entrance.
@@ -309,6 +316,12 @@ export function ForgeBottomSheet({
   const maximumSheetHeight = windowHeight - insets.top;
 
   if (!visible && !rendered) return null;
+  // While open, render (and remember) the live content; while exiting, keep
+  // rendering the remembered content so the surface slides out with what the
+  // user was looking at instead of an empty, collapsed card.
+  const liveChildren = typeof children === 'function' ? children(() => close(false)) : children;
+  if (visible && liveChildren != null && liveChildren !== false) lastChildrenRef.current = liveChildren;
+  const renderedChildren = visible ? liveChildren : lastChildrenRef.current;
   return (
     <Modal
       visible
@@ -393,9 +406,7 @@ export function ForgeBottomSheet({
                 sheetStyle,
               ]}
             >
-              {dragArea
-                ? dragArea(typeof children === 'function' ? children(() => close(false)) : children)
-                : (typeof children === 'function' ? children(() => close(false)) : children)}
+              {dragArea ? dragArea(renderedChildren) : renderedChildren}
             </Animated.View>
           </SheetDragContext.Provider>
         </View>

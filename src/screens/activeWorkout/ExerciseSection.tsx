@@ -136,6 +136,15 @@ export const ExerciseSection = React.memo(function ExerciseSection({
     }, reducedMotion ? 0 : forgeMotion.sheetExit);
   };
 
+  // If the options sheet is reopened before its deferred unmount fires, cancel
+  // that unmount so the freshly-reopened sheet is not torn down under the user.
+  useEffect(() => {
+    if (optionsVisible && optionTransitionTimer.current) {
+      clearTimeout(optionTransitionTimer.current);
+      optionTransitionTimer.current = null;
+    }
+  }, [optionsVisible]);
+
   useEffect(() => {
     cardOpen.value = deleteRevealed;
     cardTranslateX.value = reducedMotion
@@ -425,8 +434,11 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 visible={optionsVisible}
                 enterInstant={optionsRestoreInstant}
                 onClose={() => {
+                  // Flip visible so the sheet plays its slide-out, and defer the
+                  // unmount past the exit so it isn't torn down mid-slide (which
+                  // would make it vanish instead of sliding down).
                   setOptionsVisible(false);
-                  setOptionsOpen(false);
+                  afterOptionsClose(() => setOptionsOpen(false));
                 }}
                 onEditNote={updateExercise ? (note) => updateExercise(exercise.id, { note }) : undefined}
                 onToggleOffSession={updateExercise ? () => afterOptionsClose(() => updateExercise(exercise.id, { offSession: !exercise.offSession })) : undefined}
@@ -490,6 +502,22 @@ export function ReadOnlyExerciseSection({
   const [previousSessionPushStarted, setPreviousSessionPushStarted] = useState(false);
   // Restore in place (no pop-up) when returning from a pushed workout detail.
   const [optionsRestoreInstant, setOptionsRestoreInstant] = useState(false);
+  const optionTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Defer the sheet's unmount past its slide-out so a dismiss doesn't tear it
+  // down mid-slide (which reads as vanishing rather than sliding down).
+  const afterOptionsClose = (action: () => void): void => {
+    if (optionTransitionTimer.current) clearTimeout(optionTransitionTimer.current);
+    optionTransitionTimer.current = setTimeout(() => {
+      optionTransitionTimer.current = null;
+      action();
+    }, reducedMotion ? 0 : forgeMotion.sheetExit);
+  };
+  useEffect(() => {
+    if (optionsVisible && optionTransitionTimer.current) {
+      clearTimeout(optionTransitionTimer.current);
+      optionTransitionTimer.current = null;
+    }
+  }, [optionsVisible]);
   const { completedWorkouts } = useWorkouts();
   const navigation = useNavigation<RootNavigationProp>();
   const screenIsFocused = useIsFocused();
@@ -597,8 +625,10 @@ export function ReadOnlyExerciseSection({
         completedWorkouts={completedWorkouts}
         excludeWorkoutId={workoutId}
         onClose={() => {
+          // Slide out, then unmount after the exit (see the note on the other
+          // ExerciseOptionsSheet) so it doesn't vanish mid-slide.
           setOptionsVisible(false);
-          setOptionsOpen(false);
+          afterOptionsClose(() => setOptionsOpen(false));
         }}
         onOpenPreviousSessions={() => undefined}
         onOpenExerciseInfo={() => undefined}

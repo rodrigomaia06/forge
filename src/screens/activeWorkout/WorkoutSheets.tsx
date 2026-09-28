@@ -760,6 +760,15 @@ export function ExerciseOptionsSheet({
   const [historyShowAll, setHistoryShowAll] = useState(false);
   const [historyScrollOffset, setHistoryScrollOffset] = useState(0);
   const pendingWorkoutIdRef = useRef<string | null>(null);
+  // Each fresh open starts on the action list. The parent now defers this
+  // sheet's unmount past its slide-out (and cancels it on a quick reopen), so
+  // the component can survive a close/reopen — reset the sub-view here on open
+  // instead of relying on the unmount, or a fast reopen would show a stale view.
+  // `enterInstant` marks a restore (returning from a pushed prior session), which
+  // deliberately keeps its sub-view, so it is left untouched.
+  useEffect(() => {
+    if (visible && !enterInstant) setView('actions');
+  }, [visible, enterInstant]);
 
   // Per-exercise rest override, editable from Exercise info. Match the read path
   // in ActiveWorkoutScreen.restDurationForExercise.
