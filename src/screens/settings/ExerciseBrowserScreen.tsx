@@ -31,7 +31,7 @@ import {
   ForgeFloatingCta,
   ForgeSearchField,
   ForgeSheetHeader,
-  ForgeSingleSelectList,
+  ForgeDurationWheel,
   ForgeText as Text,
   ForgeTextInput as TextInput,
   HeaderAction,
@@ -50,7 +50,6 @@ import {
   type CatalogFilterState,
 } from '../../components/ui';
 import { forgeSheetHeader } from '../../components/ui/ForgeBottomSheet';
-import type { ForgeSingleSelectOption } from '../../components/ui';
 import { catalogTaxonomies, taxonomyLabel, type ExerciseCatalogItem } from '../../data/exerciseCatalog';
 import { useExerciseCatalog } from '../../state/ExerciseCatalogContext';
 import { useSettings } from '../../state/SettingsContext';
@@ -67,7 +66,6 @@ import {
   groupCatalogByMovement,
 } from '../../domain/exercises/catalogSelectors';
 import { formatCatalogVariation } from '../../domain/exercises/exercisePresentation';
-import { REST_DURATION_OPTIONS } from '../../domain/rest/restDurationOptions';
 import { shareItemFromSheet } from '../../utils/shareItem';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 
@@ -84,10 +82,6 @@ type ExerciseFormView =
   | 'secondaryMuscles';
 type CatalogSource = 'forge' | 'custom';
 
-function formatPickerDuration(seconds: number): string {
-  const minutes = Math.floor(seconds / 60);
-  return `${String(minutes).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
-}
 function customVariationFacets(value: string): import('../../types').ExerciseVariationFacets | undefined {
   const words = value.toLocaleLowerCase().split(/[^a-z]+/).filter(Boolean);
   const pick = (...choices: string[]) => choices.find((choice) => words.includes(choice));
@@ -100,13 +94,6 @@ function customVariationFacets(value: string): import('../../types').ExerciseVar
   return Object.keys(facets).length ? facets : undefined;
 }
 
-const restTimeOptions: readonly ForgeSingleSelectOption<number>[] = REST_DURATION_OPTIONS.map(
-  (seconds) => ({
-    value: seconds,
-    label: formatPickerDuration(seconds),
-    accessibilityLabel: `Rest duration ${formatPickerDuration(seconds)}`,
-  }),
-);
 const swipeSpring = forgeMotion.swipeSpring;
 const EMPTY_ITEMS: ExerciseCatalogItem[] = [];
 
@@ -948,21 +935,11 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                     />
                   }
                 />
-                <View style={styles.restTimePickerContent}>
-                  <ForgeCard variant="nested" size="compact" style={styles.restTimeChoiceCard}>
-                    <ForgeSingleSelectList<number>
-                      testID="exercise-rest-selection-list"
-                      options={restTimeOptions}
-                      selectedValue={restOverride(detail) ?? -1}
-                      selectedTone="success"
-                      maxVisibleRows={6}
-                      onSelect={(value) => {
-                        chooseRestOverride(detail, value);
-                        transitionDetailSheet('details');
-                      }}
-                      onSelectedPress={() => transitionDetailSheet('details')}
-                    />
-                  </ForgeCard>
+                <View testID="exercise-rest-selection-list" style={styles.restTimePickerContent}>
+                  <ForgeDurationWheel
+                    selectedDuration={restOverride(detail) ?? preferences.defaultRestSeconds}
+                    onSelect={(value) => chooseRestOverride(detail, value)}
+                  />
                 </View>
               </View>
             ) : detailSheetView === 'options' ? (

@@ -340,33 +340,21 @@ test.describe('Exercise library', () => {
     expect(Math.abs(((await defaultAction.boundingBox())?.y ?? 0) - ((await restTimeTitle.boundingBox())?.y ?? Infinity))).toBeLessThan(12);
     const restPicker = page.getByTestId('exercise-rest-selection-list');
     await page.waitForTimeout(250);
-    const sheetBox = await detailSheet.boundingBox();
-    const listBox = await restPicker.boundingBox();
-    expect(listBox?.height).toBe(52 * 6);
-    // The picker is intentionally compact; it only needs room for its six-row window.
-    expect(sheetBox?.height ?? 0).toBeGreaterThanOrEqual((listBox?.height ?? Infinity) + 88);
-    expect((sheetBox?.y ?? Infinity) + (sheetBox?.height ?? 0)).toBeCloseTo(page.viewportSize()?.height ?? 0, 0);
+    await expect(restPicker).toBeVisible();
     await expect(page.getByTestId('exercise-detail-sheet-surface')).toHaveCount(1);
-    await expect(defaultAction).toBeVisible();
-    await expect(restPicker).toHaveAttribute('role', 'radiogroup');
-    await expect(restPicker.locator('svg')).toHaveCount(0);
     await page.getByRole('button', { name: 'Back to exercise details' }).click();
     await expect(page.getByRole('button', { name: 'Change rest time, currently Default' })).toBeVisible();
+
+    // The rest override is picked on the shared duration wheel. The default rest
+    // is 01:30, so 01:40 sits within the wheel's window; scroll/tap selects it
+    // live and Back returns to the details.
     await page.getByRole('button', { name: 'Change rest time, currently Default' }).click();
-    await page.getByRole('radio', { name: 'Rest duration 02:00' }).click();
-    await expect(page.getByRole('button', { name: 'Change rest time, currently 2:00' })).toBeVisible();
-    await page.getByRole('button', { name: 'Change rest time, currently 2:00' }).click();
-    const selectedDuration = page.getByRole('radio', { name: 'Rest duration 02:00' });
-    await expect(selectedDuration).toHaveAttribute('aria-checked', 'true');
-    await expect(selectedDuration).toHaveCSS('background-color', 'rgb(227, 238, 232)');
-    await restPicker.getByLabel('Selection options').evaluate((element) => {
-      element.scrollTop = element.scrollHeight;
-      element.dispatchEvent(new Event('scroll', { bubbles: true }));
-    });
-    await page.getByRole('radio', { name: 'Rest duration 10:00' }).click();
-    await expect(page.getByRole('button', { name: 'Change rest time, currently 10:00' })).toBeVisible();
-    await page.getByRole('button', { name: 'Change rest time, currently 10:00' }).click();
-    await expect(page.getByRole('radio', { name: 'Rest duration 10:00' })).toHaveAttribute('aria-checked', 'true');
+    await restPicker.getByRole('button', { name: 'Rest duration 01:40' }).click();
+    await page.getByRole('button', { name: 'Back to exercise details' }).click();
+    await expect(page.getByRole('button', { name: 'Change rest time, currently 1:40' })).toBeVisible();
+
+    // The Default action clears the override back to the app default.
+    await page.getByRole('button', { name: 'Change rest time, currently 1:40' }).click();
     await page.getByRole('button', { name: 'Use default rest time' }).click();
     await expect(page.getByRole('button', { name: 'Change rest time, currently Default' })).toBeVisible();
     await page.getByRole('button', { name: 'Change rest time, currently Default' }).click();
