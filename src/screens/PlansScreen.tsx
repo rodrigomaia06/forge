@@ -1078,9 +1078,9 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     // The description sits just after the name as a secondary label — close to
     // the title, not pushed against the options button.
     planDescription: { flexShrink: 1, minWidth: 0, ...typeScale.supporting, color: theme.slate },
-    // A full-width hairline under the plan header, separating it from its
-    // routines like the inset separators between the routine rows.
-    planHeaderDivider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.divider },
+    // A full-width rule under the plan header, matched to the 1px separators
+    // used between the rows of an expanded routine set table.
+    planHeaderDivider: { height: 1, backgroundColor: theme.divider },
     editSheet: { paddingBottom: 28 },
     editSheetBody: { paddingHorizontal: 20, paddingTop: 6, gap: 12 },
     editFieldCard: { paddingHorizontal: 14, paddingVertical: 4 },
