@@ -31,7 +31,8 @@ import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import type { ForgeAttributeDraft } from '../components/ui';
 import type { RootTabScreenProps, Workout, WorkoutExercise, WorkoutSetChanges } from '../types';
-import { lightHaptic, successHaptic } from './activeWorkout/activeWorkoutFeedback';
+import { animateLayout, lightHaptic, successHaptic } from './activeWorkout/activeWorkoutFeedback';
+import { useForgeReducedMotion } from '../theme/motion';
 import {
   formatElapsed,
   formatRest,
@@ -54,6 +55,7 @@ const exerciseKeyExtractor = (exercise: WorkoutExercise): string => exercise.id;
 export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenProps) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createActiveWorkoutStyles);
+  const reducedMotion = useForgeReducedMotion();
   const dockScrollInset = useForgeDockScrollInset();
   const activeWorkout = useActiveWorkout();
   const {
@@ -213,10 +215,11 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
   const handleAddExercises = useCallback(
     (exercises: import('../data/exerciseCatalog').ExerciseCatalogItem[]) => {
       lightHaptic();
+      animateLayout(reducedMotion);
       addExercises(exercises.map((exercise) => ({ exerciseId: exercise.id, name: exercise.name, trackingType: exercise.trackingType, exerciseSnapshot: createExerciseSnapshot(exercise) })));
       setSheetOpen(false);
     },
-    [addExercises],
+    [addExercises, reducedMotion],
   );
   const replaceExercise = useCallback((exercises: import('../data/exerciseCatalog').ExerciseCatalogItem[]) => {
     const replacement = exercises[0];
@@ -775,7 +778,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
         }
       />
       {attributeDraft ? (
-        <ForgeBottomSheet visible onClose={() => setAttributeDraft(null)} accessibilityLabel="Close attribute editor">
+        <ForgeBottomSheet visible onClose={() => setAttributeDraft(null)} accessibilityLabel="Close attribute editor" animateContentLayout>
           {() => <ForgeAttributeEditorSheet value={attributeDraft} onClose={() => setAttributeDraft(null)} onSave={saveLiveAttribute} onDelete={() => deleteLiveAttribute(attributeDraft.original ?? attributeDraft.label)} />}
         </ForgeBottomSheet>
       ) : null}

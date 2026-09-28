@@ -43,6 +43,8 @@ import { AddExerciseSheet } from './activeWorkout/WorkoutSheets';
 import { ExerciseSection, ReadOnlyExerciseSection } from './activeWorkout/ExerciseSection';
 import { useFocusedSetKeyboardLift } from './activeWorkout/useFocusedSetKeyboardLift';
 import { useForgeTheme } from '../theme/ThemeProvider';
+import { useForgeReducedMotion } from '../theme/motion';
+import { animateLayout } from './activeWorkout/activeWorkoutFeedback';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
 import { usePlans } from '../state/PlansContext';
@@ -78,6 +80,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
   const { findRoutine, createRoutine, updateRoutine, deleteRoutine, plans, moveRoutine } = usePlans();
   const { completedWorkouts } = useWorkouts();
   const { preferences } = useSettings();
+  const reducedMotion = useForgeReducedMotion();
   const creating = route.params.mode === 'create';
   const viewing = route.params.mode === 'view';
   const source = route.params.mode === 'edit' || route.params.mode === 'view'
@@ -155,6 +158,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
   };
   const addExercises = (exercises: ExerciseCatalogItem[]): void => {
     lightHaptic();
+    animateLayout(reducedMotion);
     change((current) => ({
       ...current,
       exercises: [
@@ -247,6 +251,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
         key.localeCompare(label, undefined, { sensitivity: 'accent' }) === 0,
     );
     if (duplicate) return;
+    animateLayout(reducedMotion);
     change((current) => {
       const attributes = { ...(current.attributes ?? {}) };
       const attributeIcons = { ...(current.attributeIcons ?? {}) };
@@ -264,6 +269,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
   const removeAttribute = (labelArg?: string): void => {
     const label = labelArg ?? attributeSheet?.original;
     if (!label) return;
+    animateLayout(reducedMotion);
     change((current) => {
       const attributes = { ...(current.attributes ?? {}) };
       const attributeIcons = { ...(current.attributeIcons ?? {}) };
@@ -615,7 +621,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           testID="routine-type-sheet"
         />
         {attributeSheet ? (
-          <ForgeBottomSheet visible onClose={() => setAttributeSheet(null)} accessibilityLabel="Close attribute editor" surfaceTestID="routine-attribute-sheet" style={styles.attributeSheet}>
+          <ForgeBottomSheet visible onClose={() => setAttributeSheet(null)} accessibilityLabel="Close attribute editor" surfaceTestID="routine-attribute-sheet" style={styles.attributeSheet} animateContentLayout>
             {() => <ForgeAttributeEditorSheet value={attributeSheet} onClose={() => setAttributeSheet(null)} onSave={saveAttribute} onDelete={attributeSheet.original ? removeAttribute : undefined} />}
           </ForgeBottomSheet>
         ) : null}

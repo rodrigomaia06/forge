@@ -43,6 +43,8 @@ import { ExerciseSection } from './activeWorkout/ExerciseSection';
 import { AddExerciseSheet } from './activeWorkout/WorkoutSheets';
 import { useFocusedSetKeyboardLift } from './activeWorkout/useFocusedSetKeyboardLift';
 import { useForgeTheme } from '../theme/ThemeProvider';
+import { useForgeReducedMotion } from '../theme/motion';
+import { animateLayout } from './activeWorkout/activeWorkoutFeedback';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
 import { useActiveWorkout, useWorkouts } from '../state/WorkoutContext';
@@ -70,6 +72,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
   const { bottom: bottomInset } = useSafeAreaInsets();
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const reducedMotion = useForgeReducedMotion();
   const activeWorkout = useActiveWorkout();
   const {
     completedWorkouts,
@@ -560,6 +563,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         workoutType={draft.type}
         onClose={() => setAddExerciseOpen(false)}
         onSubmit={(exercises) => {
+          animateLayout(reducedMotion);
           exercises.forEach((exercise) =>
             updateDraft((current) => addExerciseToWorkout(current, { exerciseId: exercise.id, name: exercise.name, trackingType: exercise.trackingType, exerciseSnapshot: createExerciseSnapshot(exercise) }) as Workout),
           );
@@ -617,6 +621,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         initialOffset={420}
         closeDistance={460}
         style={styles.editorSheet}
+        animateContentLayout
       >
         {() => attributeDraft ? (
           <ForgeAttributeEditorSheet
