@@ -9,15 +9,14 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   AppScreen,
-  ForgeAnchoredMenu,
+  ForgeRestDurationSheet,
   ForgeSearchField,
   ForgeSegmentedSwitch,
-  ForgeSingleSelectList,
+  ForgeSelectionSheet,
   ForgeSwitch,
   ForgeText as Text,
   Icon,
   selectionHaptic,
-  useAnchoredMenu,
 } from '../../components/ui';
 import type { ForgeSegmentedOption, ForgeSingleSelectOption } from '../../components/ui';
 import { useSettings } from '../../state/SettingsContext';
@@ -32,7 +31,6 @@ import type {
 } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
-import { REST_DURATION_OPTIONS } from '../../domain/rest/restDurationOptions';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GeneralSettings'>;
 
@@ -47,20 +45,13 @@ const reminderOptions: readonly ForgeSingleSelectOption<number>[] = [
   { value: 3600, label: '1 hour' },
   { value: 7200, label: '2 hours' },
 ];
-const restOptions: readonly ForgeSingleSelectOption<number>[] = REST_DURATION_OPTIONS.map(
-  (seconds) => ({
-    value: seconds,
-    label: formatRestDuration(seconds),
-  }),
-);
-
 export function GeneralSettingsScreen({ navigation }: Props) {
   const { bottom: bottomInset } = useSafeAreaInsets();
   const { preferences, updatePreferences } = useSettings();
   const theme = useForgeTheme();
-  const restMenu = useAnchoredMenu();
-  const unilateralRestMenu = useAnchoredMenu();
-  const reminderMenu = useAnchoredMenu();
+  const [restSheetOpen, setRestSheetOpen] = React.useState(false);
+  const [unilateralRestSheetOpen, setUnilateralRestSheetOpen] = React.useState(false);
+  const [reminderSheetOpen, setReminderSheetOpen] = React.useState(false);
   const [headerElevated, setHeaderElevated] = React.useState(false);
   const [query, setQuery] = React.useState('');
   // Lightweight in-screen filter: a section shows when its title or any of its
@@ -209,33 +200,29 @@ export function GeneralSettingsScreen({ navigation }: Props) {
             />
             {preferences.showRestTimer && (
               <>
-                <View ref={restMenu.ref} collapsable={false}>
-                  <SettingsRow
-                    title="Default rest time"
-                    trailing={
-                      <Text style={[styles.value, { color: theme.textSecondary }]}>
-                        {formatRestDuration(preferences.defaultRestSeconds)}
-                      </Text>
-                    }
-                    disclosure
-                    onPress={restMenu.open}
-                    showDivider
-                  />
-                </View>
-                <View ref={unilateralRestMenu.ref} collapsable={false}>
-                  <SettingsRow
-                    title="Rest between sides"
-                    subtitle="Unilateral exercises, after the first side"
-                    trailing={
-                      <Text style={[styles.value, { color: theme.textSecondary }]}>
-                        {formatRestDuration(preferences.defaultUnilateralRestSeconds)}
-                      </Text>
-                    }
-                    disclosure
-                    onPress={unilateralRestMenu.open}
-                    showDivider
-                  />
-                </View>
+                <SettingsRow
+                  title="Default rest time"
+                  trailing={
+                    <Text style={[styles.value, { color: theme.textSecondary }]}>
+                      {formatRestDuration(preferences.defaultRestSeconds)}
+                    </Text>
+                  }
+                  disclosure
+                  onPress={() => setRestSheetOpen(true)}
+                  showDivider
+                />
+                <SettingsRow
+                  title="Rest between sides"
+                  subtitle="Unilateral exercises, after the first side"
+                  trailing={
+                    <Text style={[styles.value, { color: theme.textSecondary }]}>
+                      {formatRestDuration(preferences.defaultUnilateralRestSeconds)}
+                    </Text>
+                  }
+                  disclosure
+                  onPress={() => setUnilateralRestSheetOpen(true)}
+                  showDivider
+                />
                 <Toggle
                   title="Keep rest timer running"
                   value={preferences.keepRestTimerRunning}
@@ -279,18 +266,16 @@ export function GeneralSettingsScreen({ navigation }: Props) {
               divider={preferences.unfinishedWorkoutReminderEnabled}
             />
             {preferences.unfinishedWorkoutReminderEnabled && (
-              <View ref={reminderMenu.ref} collapsable={false}>
-                <SettingsRow
-                  title="Remind after"
-                  trailing={
-                    <Text style={[styles.value, { color: theme.textSecondary }]}>
-                      {formatSeconds(preferences.unfinishedWorkoutReminderDelay)}
-                    </Text>
-                  }
-                  disclosure
-                  onPress={reminderMenu.open}
-                />
-              </View>
+              <SettingsRow
+                title="Remind after"
+                trailing={
+                  <Text style={[styles.value, { color: theme.textSecondary }]}>
+                    {formatSeconds(preferences.unfinishedWorkoutReminderDelay)}
+                  </Text>
+                }
+                disclosure
+                onPress={() => setReminderSheetOpen(true)}
+              />
             )}
           </SettingsSection>
           )}
@@ -300,71 +285,32 @@ export function GeneralSettingsScreen({ navigation }: Props) {
             </Text>
           ) : null}
         </ScrollView>
-        <ForgeAnchoredMenu
-          visible={restMenu.visible}
-          anchor={restMenu.anchor}
-          onClose={restMenu.close}
-          align="end"
-          minWidth={180}
-          initialScrollOffset={Math.max(0, (restOptions.findIndex((option) => option.value === preferences.defaultRestSeconds) - 2) * 52)}
-          testID="default-rest-selection-menu"
-        >
-          <ForgeSingleSelectList
-            testID="default-rest-selection-list"
-            options={restOptions}
-            selectedValue={preferences.defaultRestSeconds}
-            rounded
-            disableVirtualization
-            onSelect={(value) => {
-              updatePreferences({ defaultRestSeconds: value });
-              restMenu.close();
-            }}
-            onSelectedPress={() => restMenu.close()}
-          />
-        </ForgeAnchoredMenu>
-        <ForgeAnchoredMenu
-          visible={unilateralRestMenu.visible}
-          anchor={unilateralRestMenu.anchor}
-          onClose={unilateralRestMenu.close}
-          align="end"
-          minWidth={180}
-          initialScrollOffset={Math.max(0, (restOptions.findIndex((option) => option.value === preferences.defaultUnilateralRestSeconds) - 2) * 52)}
-          testID="default-unilateral-rest-selection-menu"
-        >
-          <ForgeSingleSelectList
-            testID="default-unilateral-rest-selection-list"
-            options={restOptions}
-            selectedValue={preferences.defaultUnilateralRestSeconds}
-            rounded
-            disableVirtualization
-            onSelect={(value) => {
-              updatePreferences({ defaultUnilateralRestSeconds: value });
-              unilateralRestMenu.close();
-            }}
-            onSelectedPress={() => unilateralRestMenu.close()}
-          />
-        </ForgeAnchoredMenu>
-        <ForgeAnchoredMenu
-          visible={reminderMenu.visible}
-          anchor={reminderMenu.anchor}
-          onClose={reminderMenu.close}
-          align="end"
-          minWidth={180}
-          testID="reminder-selection-menu"
-        >
-          <ForgeSingleSelectList
-            testID="reminder-selection-list"
-            options={reminderOptions}
-            selectedValue={preferences.unfinishedWorkoutReminderDelay}
-            rounded
-            disableVirtualization
-            onSelect={(value) => {
-              updatePreferences({ unfinishedWorkoutReminderDelay: value });
-              reminderMenu.close();
-            }}
-            onSelectedPress={() => reminderMenu.close()}
-          />
-        </ForgeAnchoredMenu>
+        <ForgeRestDurationSheet
+          visible={restSheetOpen}
+          onClose={() => setRestSheetOpen(false)}
+          title="Default rest time"
+          selectedDuration={preferences.defaultRestSeconds}
+          onSelect={(value) => updatePreferences({ defaultRestSeconds: value })}
+          testID="default-rest-sheet"
+        />
+        <ForgeRestDurationSheet
+          visible={unilateralRestSheetOpen}
+          onClose={() => setUnilateralRestSheetOpen(false)}
+          title="Rest between sides"
+          selectedDuration={preferences.defaultUnilateralRestSeconds}
+          onSelect={(value) => updatePreferences({ defaultUnilateralRestSeconds: value })}
+          testID="unilateral-rest-sheet"
+        />
+        <ForgeSelectionSheet
+          visible={reminderSheetOpen}
+          onClose={() => setReminderSheetOpen(false)}
+          accessibilityLabel="Close remind after picker"
+          title="Remind after"
+          options={reminderOptions}
+          selectedValue={preferences.unfinishedWorkoutReminderDelay}
+          onSelect={(value) => updatePreferences({ unfinishedWorkoutReminderDelay: value })}
+          testID="reminder-sheet"
+        />
       </View>
     </AppScreen>
   );

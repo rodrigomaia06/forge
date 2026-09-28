@@ -16,6 +16,7 @@ export type { AnchorRect, AnchoredMenuActionItem } from './ForgeAnchoredMenu';
 export { ForgeActionSheet } from './ForgeActionSheet';
 export type { ForgeActionSheetAction } from './ForgeActionSheet';
 export { ForgeConfirmationDialog } from './ForgeConfirmationDialog';
+export { ForgeDurationWheel, ForgeRestDurationSheet, formatDurationValue } from './ForgeDurationWheel';
 export { ForgeDateTimePicker } from './ForgeDateTimePicker';
 export type { ForgeDateTimePickerMode } from './ForgeDateTimePicker';
 export { HeaderEdge } from './HeaderEdge';

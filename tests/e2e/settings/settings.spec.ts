@@ -477,36 +477,24 @@ test.describe('Settings', () => {
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'General' }).click();
 
+    // Rest durations are picked on the shared wheel inside a bottom sheet.
     await page.getByRole('button', { name: 'Default rest time' }).click();
-    const defaultRestMenu = page.getByTestId('default-rest-selection-menu');
-    await expect(defaultRestMenu).toBeVisible();
-    // The scrim may fade in, but the menu itself must never be transparent
-    // during that entrance; otherwise underlying text shows through it.
-    await page.waitForTimeout(80);
-    await expect(defaultRestMenu).toHaveCSS('opacity', '1');
-    const defaultRestList = page.getByTestId('default-rest-selection-list');
-    await expect(defaultRestList).toHaveAttribute('role', 'radiogroup');
-    await expect(page.getByRole('radio', { name: '01:30' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
-    await page.getByRole('radio', { name: '02:00' }).click();
-    await expect(page.getByTestId('default-rest-selection-menu')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Default rest time' })).toContainText('02:00');
-    await page.getByRole('button', { name: 'Default rest time' }).click();
-    await expect(page.getByRole('radio', { name: '02:00' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
-    await page.getByRole('radio', { name: '02:00' }).click();
+    const restSheet = page.getByTestId('default-rest-sheet-surface');
+    await expect(restSheet).toBeVisible();
+    await page.waitForTimeout(120);
+    // 01:40 sits two rows below the 01:30 default, within the wheel's window.
+    await restSheet.getByRole('button', { name: 'Rest duration 01:40' }).click();
+    await page.getByRole('button', { name: 'Close default rest time picker' }).first().click();
+    await expect(page.getByRole('button', { name: 'Default rest time' })).toContainText('01:40');
 
+    // Discrete reminder options use the shared single-select list in a sheet.
     await page.getByRole('switch', { name: 'Unfinished workout reminder' }).click();
     await page.getByRole('button', { name: 'Remind after' }).click();
-    await expect(page.getByTestId('reminder-selection-menu')).toBeVisible();
-    const reminderList = page.getByTestId('reminder-selection-list');
-    await expect(reminderList).toHaveAttribute('role', 'radiogroup');
-    await page.getByRole('radio', { name: '1 hour' }).click();
-    await expect(page.getByTestId('reminder-selection-menu')).toHaveCount(0);
+    const reminderSheet = page.getByTestId('reminder-sheet-surface');
+    await expect(reminderSheet).toBeVisible();
+    await expect(reminderSheet.getByRole('radiogroup')).toBeVisible();
+    await reminderSheet.getByRole('radio', { name: '1 hour' }).click();
+    await expect(page.getByTestId('reminder-sheet-surface')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Remind after' })).toContainText('1 hour');
 
     // Appearance is an inline segmented switcher (System / Light / Dark).

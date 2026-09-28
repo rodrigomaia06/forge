@@ -8,6 +8,7 @@ import {
   ForgeBottomSheetHandle,
   ForgeCard,
   ForgeCatalogFilterContent,
+  ForgeDurationWheel,
   ForgeEditorBackButton,
   ForgeFloatingCta,
   ForgeSheetHeader,
@@ -26,7 +27,7 @@ import type { ExerciseCatalogItem } from '../../data/exerciseCatalog';
 import { useExerciseCatalog } from '../../state/ExerciseCatalogContext';
 import { useSettings } from '../../state/SettingsContext';
 import { CompletionCheck } from './CompletionCheck';
-import { RestDurationPicker } from './RestTimer';
+
 import { animateLayout, animateSheetContent, lightHaptic, mediumHaptic, selectionHaptic } from './activeWorkoutFeedback';
 import type { Workout, WorkoutExercise } from '../../types';
 import { ExerciseInfoContent, PreviousSessionsContent, WarmupSetsContent } from './ExerciseOptionSheets';
@@ -920,7 +921,7 @@ export function ExerciseOptionsSheet({
           ) : null}
           {view === 'rest' ? (
             <Animated.View style={styles.restPickerContent} entering={viewEntering} exiting={viewExiting}>
-              <RestDurationPicker
+              <ForgeDurationWheel
                 selectedDuration={restOverride ?? preferences.defaultRestSeconds}
                 onSelect={applyRest}
               />
@@ -928,7 +929,7 @@ export function ExerciseOptionsSheet({
           ) : null}
           {view === 'rest-unilateral' ? (
             <Animated.View style={styles.restPickerContent} entering={viewEntering} exiting={viewExiting}>
-              <RestDurationPicker
+              <ForgeDurationWheel
                 selectedDuration={unilateralRestOverride ?? preferences.defaultUnilateralRestSeconds}
                 onSelect={applyUnilateralRest}
               />

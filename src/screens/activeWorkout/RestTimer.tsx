@@ -1,22 +1,11 @@
-import React, { useEffect, useRef } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
-import Animated, {
-  Extrapolation,
-  interpolate,
-  runOnJS,
-  useAnimatedScrollHandler,
-  useAnimatedStyle,
-  useSharedValue,
-} from 'react-native-reanimated';
-import { Button, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeSheetHeader, ForgeText as Text, Icon } from '../../components/ui';
+import React, { useEffect } from 'react';
+import { View } from 'react-native';
+import { Button, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeDurationWheel, ForgeSheetHeader, ForgeText as Text, Icon } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { createActiveWorkoutStyles } from './activeWorkoutStyles';
 import { formatRest } from './activeWorkoutFormatters';
-import { lightHaptic, selectionHaptic } from './activeWorkoutFeedback';
 import type { RestTimerSheetProps } from './activeWorkoutTypes';
-import type { ListRenderItemInfo, NativeScrollEvent } from 'react-native';
-import { REST_DURATION_OPTIONS } from '../../domain/rest/restDurationOptions';
 import { useSynchronizedNow } from '../../domain/rest/synchronizedClock';
 
 export function RestTimerIndicator({
@@ -55,7 +44,6 @@ export function RestTimerIndicator({
     </View>
   );
 }
-
 
 export function RestTimerSheet({
   visible,
@@ -102,7 +90,7 @@ export function RestTimerSheet({
             />
           ) : (
             <>
-              <RestDurationPicker selectedDuration={selectedDuration} onSelect={onSelect} />
+              <ForgeDurationWheel selectedDuration={selectedDuration} onSelect={onSelect} />
               <Button
                 accessibilityLabel="Start rest timer"
                 label="Start"
@@ -218,178 +206,3 @@ function useLiveRemaining(endAt: number | null | undefined, fallback: number): n
   return endAt ? Math.ceil((endAt - now) / 1000) : fallback;
 }
 
-export function RestDurationPicker({
-  selectedDuration,
-  onSelect,
-}: {
-  selectedDuration: number;
-  onSelect: (duration: number) => void;
-}) {
-  const styles = useThemedStyles(createActiveWorkoutStyles);
-  const pickerRef = useRef<FlatList<number>>(null);
-  const selectedIndex = Math.max(0, REST_DURATION_OPTIONS.indexOf(selectedDuration as typeof REST_DURATION_OPTIONS[number]));
-  const lastHapticIndex = useRef(selectedIndex);
-  const programmaticScroll = useRef(false);
-  const rowHeight = 44;
-  const scrollOffset = useSharedValue(selectedIndex * rowHeight);
-  const hapticIndex = useSharedValue(selectedIndex);
-
-  useEffect(() => {
-    if (programmaticScroll.current) return;
-    lastHapticIndex.current = selectedIndex;
-    scrollOffset.value = selectedIndex * rowHeight;
-    hapticIndex.value = selectedIndex;
-    pickerRef.current?.scrollToOffset({ offset: selectedIndex * rowHeight, animated: false });
-  }, [hapticIndex, rowHeight, scrollOffset, selectedIndex]);
-
-  const scrollToIndex = (index: number): void => {
-    const nextIndex = Math.max(0, Math.min(REST_DURATION_OPTIONS.length - 1, index));
-    if (nextIndex === selectedIndex) return;
-    programmaticScroll.current = true;
-    hapticIndex.value = nextIndex;
-    selectionHaptic();
-    onSelect(REST_DURATION_OPTIONS[nextIndex]);
-    pickerRef.current?.scrollToOffset({ offset: nextIndex * rowHeight, animated: true });
-  };
-
-  const handleScroll = useAnimatedScrollHandler({
-    onScroll: (event) => {
-      const index = Math.max(
-        0,
-        Math.min(REST_DURATION_OPTIONS.length - 1, Math.round(event.contentOffset.y / rowHeight)),
-      );
-      scrollOffset.value = event.contentOffset.y;
-      if (index !== hapticIndex.value) {
-        hapticIndex.value = index;
-        runOnJS(selectionHaptic)();
-      }
-    },
-  });
-
-  const handleScrollEnd = (event: NativeScrollEvent): void => {
-    const index = Math.max(
-      0,
-      Math.min(REST_DURATION_OPTIONS.length - 1, Math.round(event.contentOffset.y / rowHeight)),
-    );
-    programmaticScroll.current = false;
-    lastHapticIndex.current = index;
-    onSelect(REST_DURATION_OPTIONS[index]);
-  };
-
-  const renderRow = ({ item: duration, index }: ListRenderItemInfo<number>) => (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Rest duration ${formatRest(duration)}`}
-      // Let a drag win: hold the press briefly so the scroll can claim
-      // the gesture instead of a tap-to-select firing mid-drag.
-      unstable_pressDelay={110}
-      onPress={() => scrollToIndex(index)}
-      style={({ pressed }) => [styles.durationRow, pressed && styles.durationRowPressed]}
-    >
-      <DurationText
-        duration={duration}
-        index={index}
-        rowHeight={rowHeight}
-        selected={index === selectedIndex}
-        scrollOffset={scrollOffset}
-      />
-    </Pressable>
-  );
-
-  return (
-    <View style={styles.durationPicker}>
-      <View style={[styles.durationSelection, styles.pointerEventsNone]} />
-      <Animated.FlatList
-        ref={pickerRef}
-        data={REST_DURATION_OPTIONS as number[]}
-        keyExtractor={(duration) => String(duration)}
-        renderItem={renderRow}
-        // Re-render rows when the highlighted value changes so the selected row
-        // picks up its larger/centered styling.
-        extraData={selectedIndex}
-        // Fixed-height rows let the list jump straight to the selected value and
-        // window the ~115 rows: only the visible slice (plus a small buffer)
-        // mounts, so the picker shows immediately with no open-time JS stall and
-        // stays smooth while scrolling.
-        getItemLayout={(_, index) => ({ length: rowHeight, offset: rowHeight * index, index })}
-        initialScrollIndex={selectedIndex}
-        initialNumToRender={20}
-        maxToRenderPerBatch={20}
-        windowSize={9}
-        removeClippedSubviews
-        showsVerticalScrollIndicator={false}
-        snapToInterval={rowHeight}
-        snapToAlignment="start"
-        // Settle quickly on release rather than gliding for a beat, so the wheel
-        // snaps with the crisp feel of the Clock-app timer picker (spinning far
-        // with a big flick still works).
-        decelerationRate={0.9}
-        scrollEventThrottle={16}
-        contentContainerStyle={styles.durationPickerContent}
-        onScroll={handleScroll}
-        onScrollEndDrag={(event) => {
-          // Only commit on release when the wheel is essentially still, so a
-          // real flick still decelerates and snaps through onMomentumScrollEnd
-          // (the iOS picker feel) instead of jumping the value on lift.
-          if (Math.abs(event.nativeEvent.velocity?.y ?? 0) < 0.08) handleScrollEnd(event.nativeEvent);
-        }}
-        onMomentumScrollEnd={(event) => handleScrollEnd(event.nativeEvent)}
-      />
-    </View>
-  );
-}
-
-function DurationText({
-  duration,
-  index,
-  rowHeight,
-  selected,
-  scrollOffset,
-}: {
-  duration: number;
-  index: number;
-  rowHeight: number;
-  selected: boolean;
-  scrollOffset: { value: number };
-}) {
-  const styles = useThemedStyles(createActiveWorkoutStyles);
-  const center = index * rowHeight;
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      scrollOffset.value,
-      [
-        center - rowHeight * 2,
-        center - rowHeight,
-        center,
-        center + rowHeight,
-        center + rowHeight * 2,
-      ],
-      [0.24, 0.58, 1, 0.58, 0.24],
-      Extrapolation.CLAMP,
-    ),
-    transform: [
-      {
-        scale: interpolate(
-          scrollOffset.value,
-          [
-            center - rowHeight * 2,
-            center - rowHeight,
-            center,
-            center + rowHeight,
-            center + rowHeight * 2,
-          ],
-          [0.88, 0.94, 1, 0.94, 0.88],
-          Extrapolation.CLAMP,
-        ),
-      },
-    ],
-  }));
-
-  return (
-    <Animated.Text
-      style={[styles.durationText, selected && styles.durationTextSelected, animatedStyle]}
-    >
-      {formatRest(duration)}
-    </Animated.Text>
-  );
-}
