@@ -13,8 +13,10 @@ import { uniqueById } from './uniqueById';
 import { mergeImportedPlans, type ImportRename } from './dataTransferPlans';
 import { renameSharedExercises, renameSharedWorkouts } from './sharedImport';
 import {
+  applySelectiveShareUpdate,
   detectShareConflict,
   dropSharedItem,
+  isUpdateResolution,
   shareResolutionResult,
   type ShareConflict,
   type ShareResolution,
@@ -355,13 +357,24 @@ export async function mergeDataTransfer(
       })
     : null;
   const resolutionResult = shareResolutionResult(conflict, resolution);
+  const updateAction = Boolean(conflict) && isUpdateResolution(resolution);
+  // A selective update carries the checked change-unit ids: merge them onto the
+  // on-device item and swap the result into the shared-item slot, so the whole-
+  // item update path below replaces the record in place with exactly that.
+  if (conflict && typeof resolution === 'object' && resolution.kind === 'update') {
+    incoming = applySelectiveShareUpdate(incoming, conflict, resolution.selectedIds, {
+      plans: currentPlans,
+      workouts: currentWorkouts.completedWorkouts,
+      exercises: currentExercises,
+    });
+  }
   if (conflict && resolution === 'skip') incoming = dropSharedItem(incoming, conflict.kind);
   const planUpdate =
-    conflict && resolution === 'update' && (conflict.kind === 'routine' || conflict.kind === 'plan')
+    conflict && updateAction && (conflict.kind === 'routine' || conflict.kind === 'plan')
       ? { kind: conflict.kind, existingId: conflict.existingId }
       : undefined;
-  const workoutUpdate = conflict && resolution === 'update' && conflict.kind === 'workout' ? conflict : null;
-  const exerciseUpdate = conflict && resolution === 'update' && conflict.kind === 'exercise' ? conflict : null;
+  const workoutUpdate = conflict && updateAction && conflict.kind === 'workout' ? conflict : null;
+  const exerciseUpdate = conflict && updateAction && conflict.kind === 'exercise' ? conflict : null;
   const renamed: ImportRename[] = [];
   const skipped: string[] = [];
   // A shared item is freshened to import as a copy; but skip the flat records

@@ -42,7 +42,7 @@ import type {
   WorkoutRoutine,
   WorkoutTypePreference,
 } from '../types';
-import { workoutTypeIcon } from './settings/workoutTypeIcon';
+import { resolveWorkoutTypeIcon } from './settings/workoutTypeIcon';
 import { useForgeDockScrollInset } from '../components/DockChrome';
 import { RoutineDragHandle, RoutineReorderGroup } from './plans/RoutineReorderGroup';
 import { useStartWorkoutGuard } from './useStartWorkoutGuard';
@@ -988,16 +988,7 @@ function EmptyPlans() {
 }
 
 function getRoutineTypeIcon(type: string, workoutTypes: WorkoutTypePreference[]): IconName {
-  const normalized = type.trim().toLowerCase();
-  const preference = workoutTypes.find(
-    (item) => item.id.toLowerCase() === normalized || item.name.toLowerCase() === normalized,
-  );
-  if (preference) return workoutTypeIcon(preference);
-  if (normalized === 'strength') return 'fitness';
-  if (normalized === 'mobility') return 'stretching';
-  if (normalized === 'cardio') return 'running';
-  if (normalized === 'court sport') return 'tennis-ball';
-  return 'layers';
+  return resolveWorkoutTypeIcon(type, workoutTypes);
 }
 
 const createStyles = (theme: import('../types').ForgeTheme) =>

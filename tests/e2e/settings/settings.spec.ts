@@ -420,40 +420,71 @@ test.describe('Settings', () => {
     await expect(page.getByText('Push Day 2', { exact: true })).toBeVisible();
   });
 
-  test('offers Update for a changed shared routine and replaces it in place on a dedicated screen', async ({ page }) => {
+  test('applies only the checked changes for a shared routine on a dedicated review screen', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Backup & Export' }).click();
-    // Seed a Push Day routine on device (new item → plain in-sheet review).
-    const seedSheet = await openPushDayImport(page, [{ id: 'e1', name: 'Bench Press', sets: [] }]);
+    // Seed a Push Day routine on device with two exercises (new item → plain review).
+    const seedSheet = await openPushDayImport(page, [
+      { id: 'e1', name: 'Bench Press', sets: [] },
+      { id: 'e2', name: 'Squat', sets: [] },
+    ]);
     await seedSheet.getByRole('button', { name: 'Import selected data' }).click();
     await page.getByTestId('data-merged-summary').getByRole('button', { name: 'Done' }).click();
-    // Import a same-named routine with a DIFFERENT exercise: the conflict is the
-    // only "problem" case, so it leaves the sheet and opens a dedicated review
-    // screen with the change list and an Update / Keep both / Skip decision.
-    await openPushDayImport(page, [{ id: 'e2', name: 'Overhead Press', sets: [] }]);
+    // Import a same-named routine that keeps Bench Press, drops Squat and adds
+    // Overhead Press: the conflict opens the dedicated per-change review screen.
+    await openPushDayImport(page, [
+      { id: 'e1', name: 'Bench Press', sets: [] },
+      { id: 'e3', name: 'Overhead Press', sets: [] },
+    ]);
     await expect(page.getByTestId('settings-detail-title').last()).toHaveText('Review update');
     const conflictScreen = page.getByTestId('import-conflict-screen');
     await expect(conflictScreen.getByText('This replaces the routine already on this device.')).toBeVisible();
-    // A scannable change list, grouped, shows the swapped exercise (added + removed).
+    // Grouped, per-change checkbox rows — only the changed children appear, each
+    // with the item's contextual (barbell) icon; unchanged Bench Press has no row.
     await expect(conflictScreen.getByText('Exercises', { exact: true })).toBeVisible();
-    await expect(conflictScreen.getByText('Overhead Press', { exact: true })).toBeVisible();
-    await expect(conflictScreen.getByText('Bench Press', { exact: true })).toBeVisible();
+    await expect(conflictScreen.getByRole('checkbox', { name: 'Overhead Press' })).toBeVisible();
+    await expect(conflictScreen.getByRole('checkbox', { name: 'Squat' })).toBeVisible();
+    await expect(conflictScreen.getByRole('checkbox', { name: 'Bench Press' })).toHaveCount(0);
+    await expect(conflictScreen.getByTestId('import-conflict-lead-icon')).toBeVisible();
+    await expect(conflictScreen.getByTestId('import-conflict-icon-child:added:overhead press')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Keep both' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Skip' })).toBeVisible();
+    // Uncheck the "added Overhead Press" change, then Update: it must NOT be
+    // applied, while the still-checked "removed Squat" is.
+    await conflictScreen.getByRole('checkbox', { name: 'Overhead Press' }).click();
     await page.getByRole('button', { name: 'Update' }).click();
     const updated = page.getByTestId('import-conflict-summary');
     await expect(updated).toContainText('Updated');
     await updated.getByRole('button', { name: 'Done' }).click();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('tab', { name: 'Plans' }).click();
-    // Updated in place: exactly one routine of that name, no "Push Day 2".
+    // In place (no "Push Day 2"); only Bench Press remains — Squat removed,
+    // Overhead Press excluded — so the routine now carries a single exercise.
     await expect(page.getByText('Push Day', { exact: true })).toHaveCount(1);
     await expect(page.getByText('Push Day 2', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Strength · 1 exercise', { exact: true })).toBeVisible();
+
+    // All-checked Update fully replaces in place: swap the single exercise for two.
+    await page.getByRole('tab', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Backup & Export' }).click();
+    await openPushDayImport(page, [
+      { id: 'e4', name: 'Overhead Press', sets: [] },
+      { id: 'e5', name: 'Lateral Raise', sets: [] },
+    ]);
+    await expect(page.getByTestId('settings-detail-title').last()).toHaveText('Review update');
+    await page.getByRole('button', { name: 'Update' }).click();
+    await expect(page.getByTestId('import-conflict-summary')).toContainText('Updated');
+    await page.getByTestId('import-conflict-summary').getByRole('button', { name: 'Done' }).click();
+    await page.getByRole('button', { name: 'Back to Settings' }).click();
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await expect(page.getByText('Push Day', { exact: true })).toHaveCount(1);
+    await expect(page.getByText('Strength · 2 exercises', { exact: true })).toBeVisible();
+
     // A further different import, resolved with Keep both, yields the copy instead.
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Backup & Export' }).click();
-    await openPushDayImport(page, [{ id: 'e3', name: 'Lateral Raise', sets: [] }]);
+    await openPushDayImport(page, [{ id: 'e6', name: 'Deadlift', sets: [] }]);
     await expect(page.getByTestId('settings-detail-title').last()).toHaveText('Review update');
     await page.getByRole('button', { name: 'Keep both' }).click();
     await expect(page.getByTestId('import-conflict-summary')).toContainText('Push Day 2');

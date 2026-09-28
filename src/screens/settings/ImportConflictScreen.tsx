@@ -1,16 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { AppScreen, Button, ForgeCard, ForgeConfirmationDialog, ForgeFloatingCta, ForgeText as Text, Icon } from '../../components/ui';
+import { AppScreen, Button, ForgeConfirmationDialog, ForgeFloatingCta, ForgeText as Text, Icon, pressedFeedback, selectionHaptic } from '../../components/ui';
 import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import type { RootStackParamList } from '../../types';
+import type { IconName, RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
-import { settingsLayout } from './SettingsRow';
+import { SettingsSection, settingsLayout } from './SettingsRow';
+import { resolveWorkoutTypeIcon } from './workoutTypeIcon';
 import { takePendingConflict } from '../../state/pendingConflict';
 import { mergeDataTransfer, type DataTransferMergeResult } from '../../data/backupRepository';
 import { recordDiagnostic } from '../../data/diagnosticsRepository';
@@ -27,34 +28,23 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ImportConflict'>;
 const KIND_NOUN: Record<ShareConflict['kind'], string> = {
   routine: 'routine', plan: 'plan', workout: 'workout', exercise: 'exercise',
 };
-// The scalar fields `importDiff` compares per kind, in emission order. A conflict's
-// `changes` is [...fields, ...children]; the field labels let us split the flat list
-// back into a "Details" group and a child group without a raw text hunk.
-const SCALAR_LABELS: Record<ShareConflict['kind'], readonly string[]> = {
-  routine: ['Name', 'Type', 'Note'],
-  workout: ['Name', 'Type', 'Note'],
-  plan: ['Name', 'Description'],
-  exercise: ['Name', 'Muscle', 'Equipment', 'Category', 'Rest'],
-};
-const CHILD_GROUP: Record<ShareConflict['kind'], string | null> = {
-  routine: 'Exercises', workout: 'Exercises', plan: 'Routines', exercise: null,
+// The child a conflict groups under, and the section header icon for it.
+const CHILD_GROUP: Record<ShareConflict['kind'], { title: string; icon: IconName } | null> = {
+  routine: { title: 'Exercises', icon: 'fitness' },
+  workout: { title: 'Exercises', icon: 'fitness' },
+  plan: { title: 'Routines', icon: 'book' },
+  exercise: null,
 };
 const CHANGE_MARKER: Record<ShareChange['type'], string> = { added: '+', removed: '−', changed: '~' };
 
-/** Split the flat change list into its scalar "Details" and its child group. */
-function splitChanges(conflict: ShareConflict): { details: ShareChange[]; children: ShareChange[] } {
-  const scalar = new Set<string>(SCALAR_LABELS[conflict.kind]);
-  const boundary = conflict.changes.findIndex((change) => !scalar.has(change.label));
-  if (boundary === -1) return { details: conflict.changes, children: [] };
-  return { details: conflict.changes.slice(0, boundary), children: conflict.changes.slice(boundary) };
-}
+type Group = { key: 'details' | 'children'; title: string; icon: IconName; changes: ShareChange[] };
 
 export function ImportConflictScreen({ navigation }: Props) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const { bottom: bottomInset } = useSafeAreaInsets();
   const clearance = useForgeFloatingCtaClearance();
-  const { reload: reloadSettings } = useSettings();
+  const { reload: reloadSettings, preferences } = useSettings();
   const { reload: reloadPlans } = usePlans();
   const { reload: reloadWorkouts } = useWorkouts();
   const { reload: reloadExercises } = useExerciseCatalog();
@@ -64,16 +54,61 @@ export function ImportConflictScreen({ navigation }: Props) {
   const [headerElevated, setHeaderElevated] = useState(false);
   const [busy, setBusy] = useState(false);
   const [summary, setSummary] = useState<DataTransferMergeResult | null>(null);
+  // Every change unit defaults to CHECKED: all-checked "Update" == a full replace.
+  const [checked, setChecked] = useState<Set<string>>(
+    () => new Set(pending ? pending.conflict.changes.map((change) => change.id) : []),
+  );
+  const [expanded, setExpanded] = useState<Set<Group['key']>>(() => new Set(['details', 'children']));
 
   // Re-entry without a stashed conflict (e.g. a back swipe that re-mounts) has
   // nothing to resolve.
   useEffect(() => { if (!pending) navigation.goBack(); }, [pending, navigation]);
 
-  const groups = useMemo(() => (pending ? splitChanges(pending.conflict) : { details: [], children: [] }), [pending]);
+  const groups = useMemo<Group[]>(() => {
+    if (!pending) return [];
+    const child = CHILD_GROUP[pending.conflict.kind];
+    const details = pending.conflict.changes.filter((change) => change.group === 'field');
+    const children = pending.conflict.changes.filter((change) => change.group === 'child');
+    const out: Group[] = [];
+    if (details.length) out.push({ key: 'details', title: 'Details', icon: 'replace', changes: details });
+    if (child && children.length) out.push({ key: 'children', title: child.title, icon: child.icon, changes: children });
+    return out;
+  }, [pending]);
+
   if (!pending) return null;
   const { conflict } = pending;
   const noun = KIND_NOUN[conflict.kind];
-  const childGroupTitle = CHILD_GROUP[conflict.kind];
+  const leadIcon = leadItemIcon(conflict, preferences.workoutTypes);
+
+  const toggleUnit = (id: string): void => {
+    selectionHaptic();
+    setChecked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const toggleGroup = (group: Group): void => {
+    selectionHaptic();
+    setChecked((prev) => {
+      const allOn = group.changes.every((change) => prev.has(change.id));
+      const next = new Set(prev);
+      for (const change of group.changes) {
+        if (allOn) next.delete(change.id);
+        else next.add(change.id);
+      }
+      return next;
+    });
+  };
+  const toggleExpanded = (key: Group['key']): void => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const resolve = (resolution: ShareResolution): void => {
     if (busy) return;
@@ -91,33 +126,8 @@ export function ImportConflictScreen({ navigation }: Props) {
     })();
   };
 
-  const renderGroup = (title: string, changes: ShareChange[]): React.ReactNode => {
-    if (!changes.length) return null;
-    return (
-      <View style={styles.group}>
-        <Text style={styles.groupTitle}>{title}</Text>
-        <ForgeCard variant="nested" size="compact">
-          {changes.map((change, index) => (
-            <View
-              key={`${change.type}-${change.label}-${index}`}
-              style={[styles.changeRow, index > 0 && styles.changeDivider]}
-            >
-              <Text
-                style={[styles.changeMarker, { color: markerColor(change.type, theme) }]}
-                accessibilityLabel={changeAccessibility(change.type)}
-              >
-                {CHANGE_MARKER[change.type]}
-              </Text>
-              <View style={styles.changeCopy}>
-                <Text style={styles.changeLabel}>{change.label}</Text>
-                {change.detail ? <Text style={styles.changeDetail}>{change.detail}</Text> : null}
-              </View>
-            </View>
-          ))}
-        </ForgeCard>
-      </View>
-    );
-  };
+  const childIconFor = (change: ShareChange): IconName =>
+    conflict.kind === 'plan' ? resolveWorkoutTypeIcon(change.childType, preferences.workoutTypes) : 'fitness';
 
   return (
     <AppScreen edges={['top']} backgroundColor={theme.background}>
@@ -132,14 +142,82 @@ export function ImportConflictScreen({ navigation }: Props) {
         >
           <View style={styles.lead}>
             <View style={styles.leadHead}>
-              <Icon name="share" size={20} color={theme.textSecondary} />
+              <View testID="import-conflict-lead-icon">
+                <Icon name={leadIcon} size={20} color={theme.textSecondary} />
+              </View>
               <Text style={styles.leadTitle} numberOfLines={2}>{conflict.name}</Text>
             </View>
             <Text style={styles.leadSub}>This replaces the {noun} already on this device.</Text>
-            {conflict.summary ? <Text style={styles.leadSummary}>{conflict.summary}</Text> : null}
+            <Text style={styles.leadSummary}>Choose what to keep. {conflict.summary}</Text>
           </View>
-          {renderGroup('Details', groups.details)}
-          {childGroupTitle ? renderGroup(childGroupTitle, groups.children) : null}
+          {groups.map((group) => {
+            const allOn = group.changes.every((change) => checked.has(change.id));
+            const someOn = !allOn && group.changes.some((change) => checked.has(change.id));
+            const isExpanded = expanded.has(group.key);
+            const selectedCount = group.changes.filter((change) => checked.has(change.id)).length;
+            const showChildIcon = group.key === 'children';
+            return (
+              <SettingsSection key={group.key}>
+                <View style={styles.groupHeader}>
+                  <Pressable
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: allOn }}
+                    accessibilityLabel={`${allOn ? 'Deselect all' : 'Select all'} ${group.title}`}
+                    onPress={() => toggleGroup(group)}
+                    hitSlop={10}
+                    style={[styles.check, { borderColor: allOn || someOn ? theme.selectionIndicator : theme.border, backgroundColor: allOn ? theme.selectionIndicator : 'transparent' }]}
+                  >
+                    {allOn ? <Icon name="check" size={16} color={theme.onActionPrimary} /> : someOn ? <View style={[styles.partial, { backgroundColor: theme.selectionIndicator }]} /> : null}
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${group.title}, ${selectedCount} of ${group.changes.length} selected`}
+                    onPress={() => toggleExpanded(group.key)}
+                    style={({ pressed }) => [styles.groupExpand, pressed && pressedFeedback]}
+                  >
+                    <Icon name={group.icon} size={20} color={theme.textSecondary} />
+                    <View style={styles.groupCopy}>
+                      <Text style={styles.groupTitle}>{group.title}</Text>
+                      <Text style={styles.groupSub}>{selectedCount} of {group.changes.length} selected</Text>
+                    </View>
+                    <Icon name={isExpanded ? 'chevron-down' : 'chevron-forward'} size={18} color={theme.textSecondary} />
+                  </Pressable>
+                </View>
+                {isExpanded ? group.changes.map((change, index) => {
+                  const isChecked = checked.has(change.id);
+                  return (
+                    <Pressable
+                      key={change.id}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: isChecked }}
+                      accessibilityLabel={change.label}
+                      onPress={() => toggleUnit(change.id)}
+                      style={({ pressed }) => [styles.itemRow, index === 0 && styles.itemFirst, pressed && pressedFeedback]}
+                    >
+                      <View style={[styles.check, { borderColor: isChecked ? theme.selectionIndicator : theme.border, backgroundColor: isChecked ? theme.selectionIndicator : 'transparent' }]}>
+                        {isChecked ? <Icon name="check" size={16} color={theme.onActionPrimary} /> : null}
+                      </View>
+                      {showChildIcon ? (
+                        <View testID={`import-conflict-icon-${change.id}`}>
+                          <Icon name={childIconFor(change)} size={20} color={theme.textSecondary} />
+                        </View>
+                      ) : null}
+                      <View style={styles.itemCopy}>
+                        <Text style={styles.itemLabel} numberOfLines={1}>{change.label}</Text>
+                        {change.detail ? <Text style={styles.itemSub} numberOfLines={1}>{change.detail}</Text> : null}
+                      </View>
+                      <Text
+                        style={[styles.marker, { color: markerColor(change.type, theme) }]}
+                        accessibilityLabel={changeAccessibility(change.type)}
+                      >
+                        {CHANGE_MARKER[change.type]}
+                      </Text>
+                    </Pressable>
+                  );
+                }) : null}
+              </SettingsSection>
+            );
+          })}
           <View style={styles.secondaryActions}>
             <Button label="Keep both" variant="outline" onPress={() => resolve('keepBoth')} disabled={busy} style={styles.secondaryButton} />
             <Button label="Skip" variant="ghost" tone="destructive" onPress={() => resolve('skip')} disabled={busy} style={styles.secondaryButton} />
@@ -148,10 +226,10 @@ export function ImportConflictScreen({ navigation }: Props) {
         <ForgeFloatingCta
           label="Update"
           accessibilityLabel="Update"
-          disabled={busy}
+          disabled={busy || checked.size === 0}
           tone="success"
           icon="check"
-          onPress={() => resolve('update')}
+          onPress={() => resolve({ kind: 'update', selectedIds: [...checked] })}
         />
         <ForgeConfirmationDialog
           visible={Boolean(summary)}
@@ -168,6 +246,12 @@ export function ImportConflictScreen({ navigation }: Props) {
       </View>
     </AppScreen>
   );
+}
+
+function leadItemIcon(conflict: ShareConflict, workoutTypes: import('../../types').WorkoutTypePreference[]): IconName {
+  if (conflict.kind === 'plan') return 'layers';
+  if (conflict.kind === 'exercise') return 'fitness';
+  return resolveWorkoutTypeIcon(conflict.type, workoutTypes);
 }
 
 function markerColor(type: ShareChange['type'], theme: import('../../types').ForgeTheme): string {
@@ -190,14 +274,20 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     leadTitle: { flex: 1, ...typeScale.sectionTitle, color: theme.textPrimary },
     leadSub: { ...typeScale.supporting, lineHeight: 20, color: theme.textSecondary },
     leadSummary: { ...typeScale.caption, color: theme.textSecondary },
-    group: { gap: 8 },
-    groupTitle: { ...typeScale.controlLabel, color: theme.textPrimary, paddingHorizontal: 6 },
-    changeRow: { minHeight: 52, paddingHorizontal: 16, paddingVertical: 10, flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-    changeDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
-    changeMarker: { ...typeScale.controlLabel, width: 14, textAlign: 'center', lineHeight: 22 },
-    changeCopy: { flex: 1, gap: 2 },
-    changeLabel: { ...typeScale.body, color: theme.textPrimary },
-    changeDetail: { ...typeScale.caption, color: theme.textSecondary },
+    groupHeader: { minHeight: 60, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    groupExpand: { flex: 1, minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    groupCopy: { flex: 1, minWidth: 0 },
+    groupTitle: { ...typeScale.cardTitle, color: theme.textPrimary },
+    groupSub: { ...typeScale.caption, color: theme.textSecondary, marginTop: 1 },
+    itemRow: { minHeight: 56, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
+    itemFirst: { borderTopColor: theme.border },
+    itemCopy: { flex: 1, minWidth: 0 },
+    itemLabel: { ...typeScale.body, color: theme.textPrimary },
+    itemSub: { ...typeScale.caption, color: theme.textSecondary, marginTop: 1 },
+    marker: { ...typeScale.controlLabel, width: 14, textAlign: 'center' },
     secondaryActions: { flexDirection: 'row', gap: 12, paddingHorizontal: 6 },
     secondaryButton: { flex: 1 },
+    // Rounded-square, not a full circle, so multi-select reads differently from a radio.
+    check: { width: 24, height: 24, borderRadius: 7, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+    partial: { width: 10, height: 2, borderRadius: 1 },
   });

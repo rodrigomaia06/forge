@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { detectShareConflict, type ShareCurrentState } from '../../src/data/importDiff';
+import { applyShareUpdate, detectShareConflict, type ShareCurrentState } from '../../src/data/importDiff';
 import type { ForgeDataTransfer } from '../../src/data/transferFormat';
 import type { WorkoutRoutine } from '../../src/types';
 
@@ -79,4 +79,43 @@ test('detects a removed child exercise', () => {
   const conflict = detectShareConflict(incoming, current([existing]));
   const changes = conflict!.changes.map((change) => `${change.type}:${change.label}`);
   expect(changes).toContain('removed:Dips');
+});
+
+test('applyShareUpdate applies only the checked change units, in place', () => {
+  const existing = routine({
+    id: 'ex',
+    note: 'old note',
+    exercises: [
+      { id: 'e1', name: 'Bench Press', sets: [] },
+      { id: 'e2', name: 'Squat', sets: [] },
+    ],
+  });
+  const incoming = sharedRoutine(
+    routine({
+      id: 'in',
+      note: 'new note',
+      exercises: [
+        { id: 'e1', name: 'Bench Press', sets: [] },
+        { id: 'e3', name: 'Overhead Press', sets: [] },
+      ],
+    }),
+  );
+  const conflict = detectShareConflict(incoming, current([existing]))!;
+  const ids = Object.fromEntries(conflict.changes.map((change) => [`${change.type}:${change.label}`, change.id]));
+
+  // Only the checked units apply: keep the removed Squat, exclude the added Overhead.
+  const partial = applyShareUpdate(existing, conflict, [ids['removed:Squat']]);
+  expect(partial.id).toBe('ex'); // clone preserves identity for an in-place write
+  expect(partial.note).toBe('old note'); // Note change unchecked -> unchanged
+  expect(partial.exercises.map((e) => e.name)).toEqual(['Bench Press']); // Squat dropped, Overhead not added
+
+  // All checked == a full update: every field + child change applied.
+  const full = applyShareUpdate(existing, conflict, conflict.changes.map((change) => change.id));
+  expect(full.note).toBe('new note');
+  expect(full.exercises.map((e) => e.name).sort()).toEqual(['Bench Press', 'Overhead Press']);
+
+  // Nothing checked leaves the existing item untouched.
+  const none = applyShareUpdate(existing, conflict, []);
+  expect(none.note).toBe('old note');
+  expect(none.exercises.map((e) => e.name)).toEqual(['Bench Press', 'Squat']);
 });

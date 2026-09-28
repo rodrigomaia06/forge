@@ -5,8 +5,10 @@ import { loadCustomExercises, saveCustomExercises } from './exerciseRepository';
 import { mergeImportedPlans, type ImportRename } from './dataTransferPlans';
 import { renameSharedExercises, renameSharedWorkouts } from './sharedImport';
 import {
+  applySelectiveShareUpdate,
   detectShareConflict,
   dropSharedItem,
+  isUpdateResolution,
   shareResolutionResult,
   type ShareConflict,
   type ShareResolution,
@@ -288,13 +290,23 @@ export async function mergeDataTransfer(
     ? detectShareConflict(incoming, { plans, workouts: workouts.completedWorkouts, exercises })
     : null;
   const resolutionResult = shareResolutionResult(conflict, resolution);
+  const updateAction = Boolean(conflict) && isUpdateResolution(resolution);
+  // A selective update merges only the checked change units onto the on-device
+  // item and swaps the result into the shared-item slot (see the native twin).
+  if (conflict && typeof resolution === 'object' && resolution.kind === 'update') {
+    incoming = applySelectiveShareUpdate(incoming, conflict, resolution.selectedIds, {
+      plans,
+      workouts: workouts.completedWorkouts,
+      exercises,
+    });
+  }
   if (conflict && resolution === 'skip') incoming = dropSharedItem(incoming, conflict.kind);
   const planUpdate =
-    conflict && resolution === 'update' && (conflict.kind === 'routine' || conflict.kind === 'plan')
+    conflict && updateAction && (conflict.kind === 'routine' || conflict.kind === 'plan')
       ? { kind: conflict.kind, existingId: conflict.existingId }
       : undefined;
-  const workoutUpdate = conflict && resolution === 'update' && conflict.kind === 'workout' ? conflict : null;
-  const exerciseUpdate = conflict && resolution === 'update' && conflict.kind === 'exercise' ? conflict : null;
+  const workoutUpdate = conflict && updateAction && conflict.kind === 'workout' ? conflict : null;
+  const exerciseUpdate = conflict && updateAction && conflict.kind === 'exercise' ? conflict : null;
   const renamed: ImportRename[] = [];
   const skipped: string[] = [];
   const incomingWorkouts = incoming.share && !workoutUpdate

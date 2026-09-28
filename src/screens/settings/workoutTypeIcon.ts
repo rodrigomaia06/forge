@@ -13,3 +13,27 @@ export function workoutTypeIcon(type: WorkoutTypePreference): IconName {
   if (type.id === 'martial-arts') return 'warm-up';
   return 'layers';
 }
+
+/**
+ * Resolve a routine/workout's leading icon from its free-text `type`, matching a
+ * saved workout-type preference by id or name first, then a small set of
+ * built-in fallbacks. Shared so the Plans list and the import review show the
+ * same glyph for the same type.
+ */
+export function resolveWorkoutTypeIcon(
+  type: string | undefined,
+  workoutTypes: readonly WorkoutTypePreference[],
+): IconName {
+  const normalized = (type ?? '').trim().toLowerCase();
+  if (!normalized) return 'layers';
+  const preference = workoutTypes.find(
+    (item) => item.id.toLowerCase() === normalized || item.name.toLowerCase() === normalized,
+  );
+  if (preference) return workoutTypeIcon(preference);
+  if (normalized === 'strength') return 'fitness';
+  if (normalized === 'calisthenics') return 'activity';
+  if (normalized === 'mobility') return 'stretching';
+  if (normalized === 'cardio') return 'running';
+  if (normalized === 'court sport') return 'tennis-ball';
+  return 'layers';
+}
