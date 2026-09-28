@@ -625,22 +625,20 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
             {() => <ForgeAttributeEditorSheet value={attributeSheet} onClose={() => setAttributeSheet(null)} onSave={saveAttribute} onDelete={attributeSheet.original ? removeAttribute : undefined} />}
           </ForgeBottomSheet>
         ) : null}
-        {confirmation ? (
-          <ForgeConfirmationDialog
-            visible
-            title={confirmation.title}
-            message={confirmation.message}
-            cancelLabel="Keep editing"
-            confirmLabel={confirmation.confirmLabel}
-            testID="routine-confirmation-sheet"
-            onCancel={() => setConfirmation(null)}
-            onConfirm={() => {
-              const action = confirmation.onConfirm;
-              setConfirmation(null);
-              action();
-            }}
-          />
-        ) : null}
+        <ForgeConfirmationDialog
+          visible={confirmation !== null}
+          title={confirmation?.title ?? ''}
+          message={confirmation?.message ?? ''}
+          cancelLabel="Keep editing"
+          confirmLabel={confirmation?.confirmLabel ?? ''}
+          testID="routine-confirmation-sheet"
+          onCancel={() => setConfirmation(null)}
+          onConfirm={() => {
+            const action = confirmation?.onConfirm;
+            setConfirmation(null);
+            action?.();
+          }}
+        />
       </KeyboardAvoidingView>
     </AppScreen>
   );

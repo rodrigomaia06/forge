@@ -3,6 +3,7 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
+import { forgeMotion } from '../../theme/motion';
 import { Button } from './Button';
 import { ForgeText as Text } from './ForgeText';
 import { mediumHaptic } from './haptics';
@@ -35,16 +36,34 @@ export function ForgeConfirmationDialog({
 }: ForgeConfirmationDialogProps) {
   const theme = useForgeTheme();
 
-  // Pulse a haptic the moment the dialog appears, so the tactile cue lands with
-  // the card rather than trailing the fade-in. The opening button no longer
-  // needs its own cue for this transition.
+  // Keep the Modal mounted through its fade-out: the RN Modal only animates its
+  // exit while it stays rendered with `visible` toggling false, so unmounting on
+  // !visible would snap the card away. Defer the unmount until the fade finishes,
+  // and keep showing the last content so the text does not blank out mid-fade
+  // when the caller clears its state.
+  const [rendered, setRendered] = React.useState(visible);
+  const [shown, setShown] = React.useState({ title, message, cancelLabel, confirmLabel, confirmTone, showCancel });
+
   React.useEffect(() => {
-    if (visible) mediumHaptic();
+    if (visible) {
+      setRendered(true);
+      // Pulse a haptic the moment the dialog appears, so the tactile cue lands
+      // with the card rather than trailing the fade-in.
+      mediumHaptic();
+      return;
+    }
+    const timer = setTimeout(() => setRendered(false), forgeMotion.sheetExit);
+    return () => clearTimeout(timer);
   }, [visible]);
 
-  if (!visible) return null;
+  // Keep the shown copy current while open; it is retained through the fade-out.
+  React.useEffect(() => {
+    if (visible) setShown({ title, message, cancelLabel, confirmLabel, confirmTone, showCancel });
+  }, [visible, title, message, cancelLabel, confirmLabel, confirmTone, showCancel]);
+
+  if (!rendered) return null;
   return (
-    <Modal transparent animationType="fade" visible onRequestClose={onCancel}>
+    <Modal transparent animationType="fade" visible={visible} onRequestClose={onCancel} onDismiss={() => setRendered(false)}>
       <View style={styles.backdrop}>
         <Pressable
           accessible={false}
@@ -65,22 +84,22 @@ export function ForgeConfirmationDialog({
             },
           ]}
         >
-          <Text style={[styles.title, { color: theme.textPrimary }]}>{title}</Text>
-          <Text style={[styles.message, { color: theme.slate }]}>{message}</Text>
+          <Text style={[styles.title, { color: theme.textPrimary }]}>{shown.title}</Text>
+          <Text style={[styles.message, { color: theme.slate }]}>{shown.message}</Text>
           <View style={styles.actions}>
-            {showCancel ? <Button
-                accessibilityLabel={cancelLabel}
-                label={cancelLabel}
+            {shown.showCancel ? <Button
+                accessibilityLabel={shown.cancelLabel}
+                label={shown.cancelLabel}
                 variant="primary"
                 onPress={onCancel}
                 haptic="light"
                 style={styles.action}
               /> : null}
             <Button
-              accessibilityLabel={confirmLabel}
-              label={confirmLabel}
+              accessibilityLabel={shown.confirmLabel}
+              label={shown.confirmLabel}
               variant="primary"
-              tone={confirmTone}
+              tone={shown.confirmTone}
               onPress={onConfirm}
               haptic="medium"
               style={styles.action}
