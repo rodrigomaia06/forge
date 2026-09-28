@@ -258,11 +258,6 @@ export function PlansScreen({ navigation, route }: Props) {
     lightHaptic();
     setRoutineTarget(routine);
   };
-  const renamePlan = (planId: string, name: string): void => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    updatePlan(planId, (plan) => ({ ...plan, name: trimmed }));
-  };
   const duplicate = (routine: WorkoutRoutine): void => {
     reflowRows();
     duplicateRoutine(routine.id);
@@ -463,7 +458,6 @@ export function PlansScreen({ navigation, route }: Props) {
                   onOpenRoutineOptions={routineActions}
                   onStartRoutine={startRoutine}
                   onDeleteRoutine={(routine) => requestDeleteRoutine(routine)}
-                  onRename={(name) => renamePlan(plan.id, name)}
                   onOpenOptions={() => { lightHaptic(); setPlanTarget(plan); }}
                   onDelete={() => requestDeletePlan(plan)}
                 />
@@ -710,7 +704,6 @@ function PlanCard({
   onOpenRoutineOptions,
   onStartRoutine,
   onDeleteRoutine,
-  onRename,
   onOpenOptions,
   onDelete,
 }: {
@@ -728,37 +721,14 @@ function PlanCard({
   onOpenRoutineOptions: (routine: WorkoutRoutine) => void;
   onStartRoutine: (routine: WorkoutRoutine) => void;
   onDeleteRoutine: (routine: WorkoutRoutine) => void;
-  onRename: (name: string) => void;
   onOpenOptions: () => void;
   onDelete: () => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const [renaming, setRenaming] = useState(false);
-  const [draftName, setDraftName] = useState(plan.name);
-  const commitRename = (): void => {
-    setRenaming(false);
-    const trimmed = draftName.trim();
-    if (trimmed && trimmed !== plan.name) onRename(trimmed);
-    else setDraftName(plan.name);
-  };
   const count = `${plan.routines.length} ${plan.routines.length === 1 ? 'routine' : 'routines'}`;
   const description = plan.description?.trim();
-  const header = renaming ? (
-    <View style={[styles.planHeader, styles.planOptions]}>
-      <ForgeTextInput
-        autoFocus
-        value={draftName}
-        onChangeText={setDraftName}
-        onSubmitEditing={commitRename}
-        onBlur={commitRename}
-        returnKeyType="done"
-        selectTextOnFocus
-        accessibilityLabel={`Rename ${plan.name}`}
-        style={styles.planNameInput}
-      />
-    </View>
-  ) : editing ? (
+  const header = editing ? (
     <View style={[styles.planHeader, styles.planOptions]}>
       {/* Plans reorder one slot at a time (inline drag would re-nest the routine
           lists). Up/down sit where a drag handle would, keeping routine drag. */}
@@ -790,16 +760,17 @@ function PlanCard({
         <Text style={styles.planName} numberOfLines={1}>{plan.name}</Text>
         <Text style={styles.planCount}>{count}</Text>
       </View>
-      {/* Rename lives only in edit mode; the normal card header is a clean label. */}
+      {/* Edit mode opens the same options popup as the resting card, so plan
+          editing (name + description) always runs through 'Edit plan'. */}
       <Pressable
-        testID={`plan-header-${plan.id}`}
+        testID={`plan-options-${plan.id}`}
         accessibilityRole="button"
-        accessibilityLabel={`Rename ${plan.name}`}
+        accessibilityLabel={`Options for ${plan.name}`}
         hitSlop={8}
-        onPress={() => { selectionHaptic(); setDraftName(plan.name); setRenaming(true); }}
+        onPress={onOpenOptions}
         style={({ pressed }) => [styles.planEditTitle, pressed && pressedFeedbackSubtle]}
       >
-        <Icon name="note" size={18} color={theme.slate} />
+        <Icon name="ellipsis-horizontal" size={20} color={theme.slate} />
       </Pressable>
     </View>
   ) : (
@@ -1068,7 +1039,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       // its routine rows.
       minWidth: 0,
       paddingHorizontal: 16,
-      paddingVertical: 14,
+      paddingVertical: 11,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -1090,7 +1061,6 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     // A confident card header: bolder and a step larger than the routine rows it
     // owns and the section label above it, so the plan reads as their parent.
     planName: { flexShrink: 1, fontFamily: typography.bold, fontSize: 20, lineHeight: 25, fontWeight: '700', letterSpacing: -0.3, color: theme.ink },
-    planNameInput: { flex: 1, fontFamily: typography.bold, fontSize: 20, lineHeight: 25, fontWeight: '700', letterSpacing: -0.3, color: theme.ink, paddingVertical: 0, margin: 0 },
     planCount: { ...typeScale.caption, color: theme.muted },
     moveList: { marginHorizontal: 20, marginTop: 4, overflow: 'hidden', borderWidth: 1, borderColor: theme.border, borderRadius: 16, backgroundColor: theme.surface },
     moveRow: { minHeight: 56, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },

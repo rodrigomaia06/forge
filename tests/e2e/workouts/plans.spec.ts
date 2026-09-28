@@ -357,7 +357,7 @@ test.describe('Plans and routines', () => {
     await page.getByRole('button', { name: 'Edit plans' }).click();
     await expect(page.getByRole('button', { name: 'Create workout, routine, or plan' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Add routine to New plan' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Rename New plan' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Options for New plan' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Delete Swipe routine' })).toHaveCount(1);
     await expect(page.getByRole('button', { name: 'Delete New plan' })).toHaveCount(1);
   });
@@ -779,13 +779,13 @@ test.describe('Plans and routines', () => {
     // controls (those are edit-mode only).
     await expect(page.getByText('New plan', { exact: true })).toBeVisible();
     await expect(page.getByText('0 routines', { exact: true })).toHaveCount(0);
-    await expect(page.getByTestId(/^plan-header-/)).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Options for New plan' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Add routine to New plan' })).toHaveCount(0);
 
-    // Edit mode reveals the rename pencil (plan-header) and the add-routine
-    // control; a routine attaches to the plan only after Save.
+    // Edit mode keeps the same options button (which opens 'Edit plan') and adds
+    // the add-routine control; a routine attaches to the plan only after Save.
     await page.getByRole('button', { name: 'Edit plans' }).click();
-    await expect(page.getByTestId(/^plan-header-/)).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Options for New plan' })).toBeVisible();
     await page.getByRole('button', { name: 'Add routine to New plan' }).click();
     await typeRoutineName(page, 'Plan draft');
     await expect(page.getByRole('button', { name: 'Start Plan draft' })).toHaveCount(0);
