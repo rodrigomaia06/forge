@@ -737,17 +737,12 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                 >
                   {formView === 'family' ? (
                     <>
-                      <View style={styles.categorySearch}>
-                        <Icon name="search" size={19} color={theme.slate} />
-                        <TextInput
-                          accessibilityLabel="Search exercise groups"
-                          value={group}
-                          onChangeText={(value) => { setGroup(value); setCategorySource(null); }}
-                          placeholder="Search or add an exercise group"
-                          placeholderTextColor={theme.muted}
-                          style={styles.categorySearchInput}
-                        />
-                      </View>
+                      <ForgeSearchField
+                        value={group}
+                        onChangeText={(value) => { setGroup(value); setCategorySource(null); }}
+                        accessibilityLabel="Search exercise groups"
+                        placeholder="Search or add an exercise group"
+                      />
                       <ExerciseFormOptionList
                         options={categoryMatches.length ? categoryMatches : categoryOptions.map((label) => ({ label, source: sourceForCategory(label) }))}
                         selected={group}
@@ -1387,9 +1382,11 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     searchFlex: { flex: 1 },
     filters: {
-      minHeight: 48,
-      paddingHorizontal: 13,
-      borderRadius: 14,
+      // Matches the adjacent ForgeSearchField silhouette (height/radius) so the
+      // search row reads as one control cluster.
+      minHeight: 52,
+      paddingHorizontal: 14,
+      borderRadius: 16,
       gap: 6,
       alignItems: 'center',
       justifyContent: 'center',
@@ -1516,18 +1513,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     },
     customEquipmentCard: { padding: 14, gap: 8, borderRadius: 18 },
     customEquipmentLabel: { ...typeScale.label, color: theme.textSecondary },
-    categorySearch: {
-      minHeight: 48,
-      paddingHorizontal: 14,
-      borderRadius: 14,
-      gap: 8,
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: theme.input,
-      borderWidth: 1,
-      borderColor: theme.divider,
-    },
-    categorySearchInput: { flex: 1, paddingVertical: 0, color: theme.ink, ...typeScale.body },
     fieldHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 5 },
     fieldLabel: { ...typeScale.label, color: theme.slate },
     fieldRequired: { ...typeScale.supporting, color: theme.textSecondary },
