@@ -287,7 +287,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
         <View style={styles.exerciseRow}>
           <ReadOnlyExerciseSection
             exercise={asWorkoutExercise(viewingExercises?.[index] ?? exercise, completedRoutineSetIds)}
-            minimal
+            showCompletion={false}
           />
         </View>
       );

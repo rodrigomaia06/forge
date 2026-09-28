@@ -467,12 +467,12 @@ export const ExerciseSection = React.memo(function ExerciseSection({
 
 export function ReadOnlyExerciseSection({
   exercise,
-  minimal = false,
+  showCompletion = true,
   workoutId,
 }: {
   exercise: WorkoutExercise;
-  /** Routine Visualize keeps the expanded set table visually inside its card. */
-  minimal?: boolean;
+  /** Recorded workouts show a completion tick; routine Visualize has none. */
+  showCompletion?: boolean;
   /** Enables read-only exercise actions when rendered inside workout history. */
   workoutId?: string;
 }) {
@@ -523,7 +523,7 @@ export function ReadOnlyExerciseSection({
           animateLayout(reducedMotion);
           setExpanded((current) => !current);
         }}
-        style={[styles.readOnlyExerciseHeader, styles.readOnlyExerciseHeaderPressable, minimal && styles.readOnlyMinimalExerciseHeader]}
+        style={[styles.readOnlyExerciseHeader, styles.readOnlyExerciseHeaderPressable]}
       >
         <View style={styles.readOnlyExerciseCopy}>
           <View style={styles.readOnlyExerciseTitleRow}>
@@ -551,14 +551,14 @@ export function ReadOnlyExerciseSection({
       {workoutId ? <Pressable accessibilityRole="button" accessibilityLabel={`More options for ${exercise.name}`} onPress={() => { selectionHaptic(); setOptionsRestoreInstant(false); setOptionsOpen(true); setOptionsVisible(true); }} style={styles.readOnlyMoreButton}><Icon name="ellipsis-horizontal" size={20} color={theme.ink} /></Pressable> : null}
       </View>
       {expanded && (
-        <View style={[styles.readOnlySets, minimal && styles.readOnlyMinimalSets]}>
-          <View style={[styles.setHeader, minimal && styles.readOnlyMinimalSetHeader]}>
+        <View style={styles.readOnlySets}>
+          <View style={styles.setHeader}>
             <Text style={[styles.setHeaderText, styles.setColumn]}>Set</Text>
             <Text style={[styles.setHeaderText, styles.previousColumn]}>Previous</Text>
             {trackingFields[trackingType].map((kind) => (
               <Text key={kind} style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>{trackingFieldLabel(trackingType, kind)}</Text>
             ))}
-            <View style={styles.checkColumn} />
+            {showCompletion ? <View style={styles.checkColumn} /> : null}
           </View>
           {exercise.sets.map((set, index) => (
             <HistorySetRow
@@ -568,6 +568,7 @@ export function ReadOnlyExerciseSection({
               isLast={index === exercise.sets.length - 1}
               trackingType={trackingType}
               showPrevious
+              showCompletion={showCompletion}
               onOpenDetails={() => setOpenSetIndex(index)}
             />
           ))}
@@ -701,9 +702,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       paddingHorizontal: 12,
       paddingVertical: 8,
     },
-    // Routine Visualize is a read-only summary. Keep its rows compact while
-    // retaining the 44 pt tap target on the expandable exercise header.
-    readOnlyMinimalExerciseHeader: { minHeight: 48, paddingVertical: 4 },
     readOnlyExerciseCopy: {
       flex: 1,
       minWidth: 0,
@@ -728,7 +726,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       ...typeScale.label,
     },
     readOnlySets: { paddingHorizontal: 12, paddingBottom: 0 },
-    readOnlyMinimalSets: { paddingBottom: 0 },
     exerciseHeader: {
       minHeight: 30,
       flexDirection: 'row',
@@ -780,7 +777,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       borderBottomWidth: 1,
       borderBottomColor: dashboardTheme.divider,
     },
-    readOnlyMinimalSetHeader: { minHeight: 28, borderBottomWidth: 0 },
     setHeaderLarge: { minHeight: 34 },
     setHeaderText: { color: dashboardTheme.slate, ...typeScale.label, textAlign: 'center' },
     setColumn: { width: 46 },
