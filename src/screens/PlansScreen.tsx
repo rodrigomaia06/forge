@@ -841,6 +841,7 @@ function PlanCard({
       >
         <View style={styles.planCardSurface}>
           {header}
+          {plan.routines.length > 0 ? <View style={styles.planHeaderDivider} /> : null}
           <RoutineReorderGroup
             data={plan.routines}
             enabled={editing}
@@ -1074,9 +1075,12 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     },
     planHeadText: { flex: 1, minWidth: 0, gap: 2 },
     planHeadRow: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 },
-    // The description sits to the right of the name as a secondary label, so it
-    // truncates from the right and yields the left space to the name.
-    planDescription: { flex: 1, minWidth: 0, textAlign: 'right', ...typeScale.supporting, color: theme.slate },
+    // The description sits just after the name as a secondary label — close to
+    // the title, not pushed against the options button.
+    planDescription: { flexShrink: 1, minWidth: 0, ...typeScale.supporting, color: theme.slate },
+    // A full-width hairline under the plan header, separating it from its
+    // routines like the inset separators between the routine rows.
+    planHeaderDivider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.divider },
     editSheet: { paddingBottom: 28 },
     editSheetBody: { paddingHorizontal: 20, paddingTop: 6, gap: 12 },
     editFieldCard: { paddingHorizontal: 14, paddingVertical: 4 },
