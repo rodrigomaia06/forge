@@ -1205,9 +1205,9 @@ const Movement = React.memo(function Movement({
             onDelete={() => onRemove(item)}
             deleteAccessibilityLabel={`Delete ${group}`}
             contentBackgroundColor={theme.surface}
-            insetDeleteButton
+            borderRadius={24}
             deleteWidth={64}
-            deleteIconSize={22}
+            deleteIconSize={20}
           >
             <SettingsRow
               title={group}
@@ -1299,9 +1299,8 @@ const Movement = React.memo(function Movement({
                     onDelete={() => onRemove(item)}
                     deleteAccessibilityLabel={`Delete ${label}`}
                     contentBackgroundColor={theme.surface}
-                    insetDeleteButton
                     deleteWidth={64}
-                    deleteIconSize={22}
+                    deleteIconSize={20}
                   >
                     {variation(() => { lightHaptic(); onOpen(item); })}
                   </SwipeToDeleteRow>
