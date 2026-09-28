@@ -123,9 +123,12 @@ export function ForgeDurationWheel({
         windowSize={9}
         removeClippedSubviews
         showsVerticalScrollIndicator={false}
-        snapToInterval={ROW_HEIGHT}
+        snapToOffsets={options.map((_, index) => index * ROW_HEIGHT)}
         snapToAlignment="start"
-        decelerationRate={0.9}
+        // The iOS default deceleration ("normal") gives the long, smooth glide of
+        // the Clock-app drum (matching @quidone's wheel), rather than the abrupt
+        // stop of a fast deceleration; snapToOffsets settles it on an item.
+        decelerationRate="normal"
         scrollEventThrottle={16}
         contentContainerStyle={styles.content}
         onScroll={handleScroll}

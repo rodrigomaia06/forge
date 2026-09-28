@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { LayoutAnimation, Platform, Pressable, StyleSheet, UIManager, useWindowDimensions, View } from 'react-native';
+import { useForgeReducedMotion } from '../theme/motion';
 
 import { ForgeAttributeRow, ForgeCard, ForgeText as Text, Icon, pressedFeedbackSubtle, selectionHaptic } from './ui';
 import { countWorkoutSets, formatCompactDuration, getWorkoutTypePresentation } from '../domain/workouts/presentation';
@@ -24,6 +25,7 @@ export function WorkoutSummaryCard({
   const styles = useThemedStyles(createStyles);
   const { width } = useWindowDimensions();
   const [detailsExpanded, setDetailsExpanded] = useState(false);
+  const reducedMotion = useForgeReducedMotion();
   const isNarrowPhone = width <= 390;
   const isCompactPhone = width <= 340;
   const type = getWorkoutTypePresentation(workout.type, workoutTypes, theme, 0.16);
@@ -108,6 +110,12 @@ export function WorkoutSummaryCard({
               accessibilityState={{ expanded: detailsExpanded }}
               onPress={() => {
                 selectionHaptic();
+                // Ease the accordion open/closed instead of snapping the card's
+                // height, matching the app's other expand/collapse rows.
+                if (Platform.OS !== 'web' && !reducedMotion) {
+                  if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
+                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                }
                 setDetailsExpanded((current) => !current);
               }}
               style={({ pressed }) => [styles.detailsTrigger, pressed && pressedFeedbackSubtle]}

@@ -223,7 +223,10 @@ export function ForgeBottomSheet({
       return undefined;
     }
     const frame = requestAnimationFrame(() => {
-      translateY.value = withSpring(0, forgeMotion.sheetSpring);
+      // A timed ease-out (not a spring) so the open starts at full speed and
+      // decelerates into place — no spring "accelerate from rest" lag. The spring
+      // stays for the interactive drag snap-back below.
+      translateY.value = withTiming(0, { duration: forgeMotion.sheetEnter, easing: forgeMotion.easing });
       backdropOpacity.value = withTiming(1, { duration: forgeMotion.transition });
     });
     return () => cancelAnimationFrame(frame);

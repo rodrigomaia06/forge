@@ -902,6 +902,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
           accessibilityLabel="Close exercise details"
           backdropTestID="exercise-detail-sheet-backdrop"
           surfaceTestID="exercise-detail-sheet-surface"
+          animateContentLayout
         >
           {(close) =>
             detail &&
@@ -1508,6 +1509,12 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     restTimeDefaultAction: {
       minWidth: 112,
       paddingHorizontal: 12,
+      // On a sheet the surfaceElevated `secondary` fill matches the sheet
+      // itself (identical in dark), so the pill vanishes. Use the muted layer —
+      // the same visible grey the active-workout rest sheet's Default uses — so
+      // it reads as a button.
+      backgroundColor: theme.surfaceMuted,
+      borderColor: theme.border,
     },
     restTimeDefaultActionSelected: { borderColor: theme.success, backgroundColor: theme.successSurface },
     restTimePickerContent: { paddingHorizontal: 20, paddingBottom: 24, gap: 10 },

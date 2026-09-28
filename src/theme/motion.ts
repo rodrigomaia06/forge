@@ -8,7 +8,11 @@ export const forgeMotion = {
   feedback: 120,
   state: 160,
   transition: 180,
-  sheetExit: 190,
+  // Modal-sheet timings (per Material/HIG: ~300ms enter, slightly quicker exit,
+  // both ease-out so they start moving at full speed rather than accelerating
+  // from rest like a spring — which read as "slow at first").
+  sheetEnter: 300,
+  sheetExit: 220,
   easing: Easing.out(Easing.cubic),
   // A dismiss must start moving immediately, not ease in-and-out (Reanimated's
   // withTiming default, which starts slow and feels frozen). Ease-out drops the

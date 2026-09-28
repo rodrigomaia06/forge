@@ -410,6 +410,9 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                   haptic="none"
                   onPress={() => {
                     lightHaptic();
+                    // Ease the new row in, mirroring the animated set removal so
+                    // the list does not jump when a set is added.
+                    animateLayout(reducedMotion);
                     addSet(exercise.id);
                   }}
                   style={[styles.addSet, size === 'large' && styles.addSetLarge]}
