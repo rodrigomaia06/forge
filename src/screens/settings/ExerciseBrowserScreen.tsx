@@ -475,7 +475,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
             <HeaderAction
               accessibilityLabel="Create custom exercise"
               icon="add"
-              label="Add"
+              iconOnly
               onPress={() => openCreate(null)}
             />
           }
@@ -572,7 +572,9 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
             <View style={[
               styles.formSheet,
               formView === 'details'
-                ? { height: detailFormHeight }
+                // Size to content and only scroll past this cap, so a short
+                // form is not a tall half-empty sheet.
+                ? { maxHeight: detailFormHeight }
                 : { height: selectorIsLong ? activeSelectorMaxHeight : compactSelectorHeight },
             ]}>
               <ForgeBottomSheetHandle />
@@ -598,6 +600,10 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                             : 'Secondary muscles'}
                 onClose={close}
                 closeAccessibilityLabel="Close custom exercise form"
+                // On the main form the close sits on the left and Save (the
+                // success check) on the right, matching the app's edit forms;
+                // sub-views keep Back on the left and close on the right.
+                closePosition={formView === 'details' ? 'left' : 'right'}
                 titleNumberOfLines={2}
                 leading={formView !== 'details' ? (
                   <ForgeBackButton
@@ -605,12 +611,24 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                     onPress={() => transitionFormView('details')}
                   />
                 ) : undefined}
+                trailing={formView === 'details' ? (
+                  <HeaderAction
+                    accessibilityLabel="Save variation"
+                    icon="check"
+                    iconOnly
+                    variant="outline"
+                    tone="success"
+                    disabled={!name.trim()}
+                    haptic="none"
+                    onPress={() => { if (save()) close(); }}
+                  />
+                ) : undefined}
               />
               {formView === 'details' ? (
                 <>
                   <ScrollView
-                    style={styles.formScroll}
-                    contentContainerStyle={[styles.form, { paddingBottom: floatingCtaClearance }]}
+                    style={styles.formScrollDetails}
+                    contentContainerStyle={styles.form}
                     keyboardShouldPersistTaps="handled"
                     keyboardDismissMode="on-drag"
                     directionalLockEnabled
@@ -704,13 +722,6 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                       ) : null}
                     </ForgeCard>
                   </ScrollView>
-                  <ForgeFloatingCta
-                    label={editing ? 'Save variation' : 'Add exercise'}
-                    accessibilityLabel="Save variation"
-                    disabled={!name.trim()}
-                    tone="success"
-                    onPress={() => { if (save()) close(); }}
-                  />
                 </>
               ) : (
                 <>
@@ -1423,6 +1434,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     restTimePickerContent: { paddingHorizontal: 20, paddingBottom: 24, gap: 10 },
     restTimeChoiceCard: { overflow: 'hidden', borderRadius: 18 },
     formScroll: { flex: 1, minHeight: 0 },
+    // Grows with content, then scrolls once the sheet hits its max height.
+    formScrollDetails: { flexShrink: 1, minHeight: 0 },
     form: { padding: 20, gap: 18 },
     formPickerContent: { padding: 20, gap: 12, paddingBottom: 36 },
     formNameCard: { padding: 14, gap: 8, borderRadius: 18 },
