@@ -382,7 +382,7 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       backgroundColor: dashboardTheme.actionPrimary,
     },
     // Compact primary pill that lives in the sheet header's trailing slot.
-    restStartAction: { minWidth: 0, height: 44, paddingHorizontal: 20 },
+    restStartAction: { minWidth: 0, height: 44, paddingHorizontal: 22, borderRadius: 22 },
     restStartText: { color: dashboardTheme.surface, ...typeScale.supporting },
     swipeRow: { position: 'relative', overflow: 'hidden' },
     swipeContent: { zIndex: 1, backgroundColor: dashboardTheme.surface },
