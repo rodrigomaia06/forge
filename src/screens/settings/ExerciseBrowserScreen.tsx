@@ -1222,7 +1222,7 @@ const Movement = React.memo(function Movement({
                 subtitle={`${item.equipment} · ${item.category}`}
                 accessibilityLabel={`Open ${group}`}
                 onPress={onPress}
-                trailing={<Icon name="note" size={17} color={theme.textSecondary} />}
+                trailing={<Icon name="sparkles" size={16} color={theme.textSecondary} />}
                 disclosure
               />
             )}
@@ -1285,7 +1285,7 @@ const Movement = React.memo(function Movement({
                   >
                     <Text style={styles.variationName}>{label}</Text>
                     <View style={styles.variationIcons}>
-                      {isCustom(item) && <Icon name="note" size={16} color={theme.textSecondary} />}
+                      {isCustom(item) && <Icon name="sparkles" size={15} color={theme.textSecondary} />}
                       <Icon name="chevron-forward" size={17} color={theme.slate} />
                     </View>
                   </Pressable>
