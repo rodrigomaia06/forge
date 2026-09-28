@@ -10,8 +10,8 @@ import { ForgeBottomSheet, ForgeBottomSheetHandle } from './ForgeBottomSheet';
 import { ForgeSheetHeader } from './ForgeSheetHeader';
 import { selectionHaptic } from './haptics';
 
-const ITEM_HEIGHT = 44;
-const VISIBLE_ITEMS = 5;
+const ITEM_HEIGHT = 48;
+const VISIBLE_ITEMS = 7;
 
 /** mm:ss for a duration in seconds. */
 export function formatDurationValue(seconds: number): string {
