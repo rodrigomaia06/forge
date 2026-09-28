@@ -5,7 +5,7 @@ import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { AppScreen, ForgeSelectionSheet, ForgeText as Text, Icon, pressedFeedback, selectionHaptic } from '../components/ui';
+import { AppScreen, ForgeText as Text, Icon, pressedFeedback, selectionHaptic } from '../components/ui';
 import { SettingsDetailHeader } from './settings/SettingsScreenChrome';
 import { useWorkouts } from '../state/WorkoutContext';
 import { useSettings } from '../state/SettingsContext';
@@ -63,7 +63,6 @@ export function CalendarScreen({ navigation }: Props) {
   useEffect(() => navigation.addListener('focus', () => setToday(new Date())), [navigation]);
   const todayKey = calendarDateKey(today);
   const [view, setView] = useState<CalendarView>('month');
-  const [viewSheetOpen, setViewSheetOpen] = useState(false);
   const [elevated, setElevated] = useState(false);
   // Defer the (heavy) month/year grid mount until the navigation transition has
   // settled, so opening the Calendar from a tile feels instant.
@@ -156,12 +155,16 @@ export function CalendarScreen({ navigation }: Props) {
             <View collapsable={false}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Calendar view: ${VIEW_LABEL[view]}. Change`}
-                onPress={() => setViewSheetOpen(true)}
-                style={({ pressed }) => [styles.viewSelect, pressed && pressedFeedback]}
+                accessibilityLabel={`Calendar view: ${VIEW_LABEL[view]}. Toggle`}
+                onPress={() => {
+                  selectionHaptic();
+                  const next: CalendarView = view === 'month' ? 'year' : 'month';
+                  if (next === 'month') { scrollTarget.current = { year: today.getFullYear(), month: today.getMonth() }; scrolledRef.current = false; }
+                  setView(next);
+                }}
+                style={({ pressed }) => [styles.viewToggle, pressed && pressedFeedback]}
               >
-                <Text style={styles.viewSelectText}>{VIEW_LABEL[view]}</Text>
-                <Icon name="chevron-down" size={16} color={theme.textPrimary} />
+                <Text style={styles.viewToggleText}>{VIEW_LABEL[view]}</Text>
               </Pressable>
             </View>
           }
@@ -249,19 +252,6 @@ export function CalendarScreen({ navigation }: Props) {
           )}
         </ScrollView>
 
-        <ForgeSelectionSheet
-          visible={viewSheetOpen}
-          onClose={() => setViewSheetOpen(false)}
-          accessibilityLabel="Close calendar view picker"
-          title="Calendar view"
-          options={(['month', 'year'] as CalendarView[]).map((v) => ({ value: v, label: VIEW_LABEL[v] }))}
-          selectedValue={view}
-          onSelect={(v) => {
-            if (v === 'month') { scrollTarget.current = { year: today.getFullYear(), month: today.getMonth() }; scrolledRef.current = false; }
-            setView(v);
-          }}
-          testID="calendar-view-sheet"
-        />
       </View>
     </AppScreen>
   );
@@ -327,8 +317,8 @@ function MiniMonth({ label, year, month, weekStart, colorFor, onPress, theme, st
 
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   screen: { flex: 1 },
-  viewSelect: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 14, height: 40, borderRadius: 20, backgroundColor: theme.surfaceMuted },
-  viewSelectText: { ...typeScale.controlLabel, color: theme.textPrimary },
+  viewToggle: { minWidth: 68, paddingHorizontal: 16, height: 40, borderRadius: 20, backgroundColor: theme.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+  viewToggleText: { ...typeScale.controlLabel, color: theme.textPrimary },
   dropdownItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 12, height: 44, borderRadius: 12 },
   dropdownText: { ...typeScale.controlLabel, color: theme.textPrimary },
   scroll: { flex: 1 },
