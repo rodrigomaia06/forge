@@ -81,7 +81,7 @@ test('captures primary Forge surfaces in Dark appearance', async ({ page }) => {
   await page.getByRole('radiogroup', { name: 'Appearance' }).getByRole('radio', { name: 'Dark' }).click();
   await page.getByRole('button', { name: 'Default rest time' }).click();
   await capture(page, 'general-default-rest-picker');
-  await page.getByRole('button', { name: 'Close default rest time picker' }).first().click();
+  await page.getByRole('button', { name: 'Close default rest time picker' }).click();
   await page.getByRole('switch', { name: 'Unfinished workout reminder' }).click();
   await page.getByRole('button', { name: 'Remind after' }).click();
   await capture(page, 'general-reminder-picker');

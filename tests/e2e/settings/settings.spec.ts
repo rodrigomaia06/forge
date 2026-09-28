@@ -484,7 +484,7 @@ test.describe('Settings', () => {
     await page.waitForTimeout(120);
     // 01:40 sits two rows below the 01:30 default, within the wheel's window.
     await restSheet.getByRole('button', { name: 'Rest duration 01:40' }).click();
-    await page.getByRole('button', { name: 'Close default rest time picker' }).first().click();
+    await page.getByRole('button', { name: 'Close default rest time picker' }).click();
     await expect(page.getByRole('button', { name: 'Default rest time' })).toContainText('01:40');
 
     // Discrete reminder options use the shared single-select list in a sheet.

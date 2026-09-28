@@ -88,7 +88,7 @@ test.describe('Forge screen captures', () => {
     await page.getByRole('radiogroup', { name: 'Appearance' }).getByRole('radio', { name: 'Light' }).click();
     await page.getByRole('button', { name: 'Default rest time' }).click();
     await capture(page, 'general-default-rest-picker');
-    await page.getByRole('button', { name: 'Close default rest time picker' }).first().click();
+    await page.getByRole('button', { name: 'Close default rest time picker' }).click();
     await page.getByRole('switch', { name: 'Unfinished workout reminder' }).click();
     await page.getByRole('button', { name: 'Remind after' }).click();
     await capture(page, 'general-reminder-picker');
