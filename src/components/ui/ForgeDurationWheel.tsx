@@ -63,6 +63,7 @@ export function ForgeRestDurationSheet({
       onClose={onClose}
       accessibilityLabel={`Dismiss ${title.toLowerCase()} picker`}
       testID={testID}
+      initialOffset={420}
       dragEnabled={false}
     >
       {(close) => (
@@ -77,7 +78,10 @@ export function ForgeRestDurationSheet({
 }
 
 const sheetStyles = StyleSheet.create({
-  sheet: { paddingHorizontal: 16 },
+  // A defined minimum height gives the wheel a stable frame from the first
+  // render (matching the rest-timer sheet), so it positions on the selected
+  // row rather than measuring mid-entrance.
+  sheet: { paddingHorizontal: 16, minHeight: 440 },
 });
 
 const styles = StyleSheet.create({
