@@ -744,7 +744,6 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                       <View style={styles.categorySearch}>
                         <Icon name="search" size={19} color={theme.slate} />
                         <TextInput
-                          autoFocus
                           accessibilityLabel="Search exercise groups"
                           value={group}
                           onChangeText={(value) => { setGroup(value); setCategorySource(null); }}
@@ -819,7 +818,6 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                     <ForgeCard variant="nested" style={styles.customEquipmentCard}>
                       <Text style={styles.customEquipmentLabel}>Equipment name</Text>
                       <TextInput
-                        autoFocus
                         accessibilityLabel="Custom equipment"
                         value={usesCustomEquipment ? equipmentValue : ''}
                         onChangeText={(value) => {
