@@ -282,7 +282,9 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     setFinishConfirmationOpen(false);
     const routine = activeWorkout.routineId ? findRoutine(activeWorkout.routineId) : undefined;
     if (routine && hasRoutineStructureChanged(activeWorkout)) {
-      setRoutineUpdateConfirmationOpen(true);
+      // Chain confirmation → confirmation: let the first dialog dismiss before
+      // presenting the next, or iOS drops the second Modal.
+      setTimeout(() => setRoutineUpdateConfirmationOpen(true), 280);
       return;
     }
     completeWorkout();

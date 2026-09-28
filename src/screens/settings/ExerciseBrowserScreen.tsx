@@ -90,6 +90,13 @@ function customVariationFacets(value: string): import('../../types').ExerciseVar
 }
 
 const EMPTY_ITEMS: ExerciseCatalogItem[] = [];
+// A shared height floor for every detail-sheet sub-view (details / options /
+// rest wheel). The sheet snaps between views without an animated relayout, and
+// a native Modal reliably grows but only intermittently SHRINKS its surface —
+// so returning from the tall rest-wheel view to a shorter one could leave the
+// content sitting low with dead space. Keeping all sub-views at or above one
+// floor means the surface never has to shrink, which removes that race.
+const DETAIL_SHEET_MIN_HEIGHT = 400;
 // A picker's first synchronous render is capped to a screenful; the rest fill
 // in on the next frame so a long list can't stall the sheet's open animation.
 const FORM_OPTION_INITIAL_RENDER = 40;
@@ -950,7 +957,10 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                       divider
                       onPress={() => {
                         close();
-                        openEdit(detail);
+                        // Let the detail sheet finish dismissing before the form
+                        // sheet presents; iOS drops a Modal presented while
+                        // another is still closing.
+                        setTimeout(() => openEdit(detail), 280);
                       }}
                     />
                     <ExerciseOptionRow
@@ -1425,13 +1435,13 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     },
     empty: { paddingTop: 60, alignItems: 'center' },
     formSheet: { alignSelf: 'stretch', flexShrink: 1 },
-    detailSheet: {},
+    detailSheet: { minHeight: DETAIL_SHEET_MIN_HEIGHT },
     uniSectionLabel: { marginTop: 8, marginLeft: 6, color: theme.textPrimary, ...typeScale.sectionTitle },
     uniCard: { overflow: 'hidden', borderRadius: 18 },
     uniRow: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 12 },
     uniRowIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
     uniRowTitle: { flex: 1, color: theme.textPrimary, ...typeScale.cardTitle },
-    restTimeSheet: { minHeight: 400 },
+    restTimeSheet: { minHeight: DETAIL_SHEET_MIN_HEIGHT },
     restTimeDefaultAction: {
       minWidth: 112,
       paddingHorizontal: 12,

@@ -62,12 +62,14 @@ export function useWorkoutStarter(): WorkoutStarter {
 
   const startBlankWorkout = React.useCallback(() => {
     setWorkoutSourceOpen(false);
-    guardStart(() => {
+    // Let the source sheet dismiss before guardStart may present its
+    // "workout in progress" dialog; iOS drops a Modal shown while another closes.
+    setTimeout(() => guardStart(() => {
       startWorkout();
       // The destination mounts the picker as visible, so it still makes its normal
       // bottom-sheet entrance instead of flashing an empty workout.
       navigation.navigate('ActiveWorkout', { openAddExercises: 'open' });
-    });
+    }), 280);
   }, [guardStart, navigation, startWorkout]);
 
   const startRoutine = React.useCallback(
@@ -75,7 +77,9 @@ export function useWorkoutStarter(): WorkoutStarter {
       selectionHaptic();
       setRoutineSourceStep(null);
       setWorkoutSourceOpen(false);
-      guardStart(() => {
+      // Defer past the source sheet's dismissal so guardStart's "workout in
+      // progress" dialog isn't dropped while the sheet is still closing.
+      setTimeout(() => guardStart(() => {
         startWorkout({
           name: plan ? `${plan.name} - ${routine.name}` : routine.name,
           type: routine.type,
@@ -89,7 +93,7 @@ export function useWorkoutStarter(): WorkoutStarter {
           exercises: routineExercisesWithNextSessionTargets(routine, completedWorkouts),
         });
         navigation.navigate('ActiveWorkout');
-      });
+      }), 280);
     },
     [completedWorkouts, guardStart, navigation, startWorkout],
   );

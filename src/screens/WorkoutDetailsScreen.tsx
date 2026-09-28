@@ -129,7 +129,9 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
           actions={[
             { label: 'Share workout', icon: 'share', onPress: () => shareItemFromSheet({ kind: 'workout', id: workout.id }) },
             { label: 'Edit workout', icon: 'note', onPress: () => navigation.navigate('HistoryWorkoutEditor', { mode: 'edit', workoutId: workout.id }) },
-            { label: 'Delete workout', icon: 'trash', tone: 'destructive', onPress: () => setConfirmDelete(true) },
+            // Defer past the options sheet's dismissal; iOS drops a Modal
+            // presented while another is still closing.
+            { label: 'Delete workout', icon: 'trash', tone: 'destructive', onPress: () => setTimeout(() => setConfirmDelete(true), 280) },
           ]}
         />
         <ForgeConfirmationDialog

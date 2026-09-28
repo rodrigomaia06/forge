@@ -602,7 +602,9 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                   change((current) => ({ ...current, planId: current.planId ? undefined : plans[0]?.id })),
               },
               { label: 'Share routine', icon: 'share', onPress: () => shareItemFromSheet({ kind: 'routine', id: draft.id }) },
-              { label: 'Delete routine', icon: 'trash', tone: 'destructive', onPress: confirmDelete },
+              // Defer past the options sheet's dismissal; iOS drops a Modal
+              // presented while another is still closing.
+              { label: 'Delete routine', icon: 'trash', tone: 'destructive', onPress: () => setTimeout(confirmDelete, 280) },
             ]}
           />
         )}
