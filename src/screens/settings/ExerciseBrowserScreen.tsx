@@ -479,7 +479,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
           rightAction={
             <HeaderAction
               accessibilityLabel="Create custom exercise"
-              icon="add"
+              icon="sparkles"
               iconOnly
               onPress={() => openCreate(null)}
             />
