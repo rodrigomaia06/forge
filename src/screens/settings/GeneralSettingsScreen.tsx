@@ -296,7 +296,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
         <ForgeRestDurationSheet
           visible={unilateralRestSheetOpen}
           onClose={() => setUnilateralRestSheetOpen(false)}
-          title="Rest between sides"
+          title="Side rest"
           selectedDuration={preferences.defaultUnilateralRestSeconds}
           onSelect={(value) => updatePreferences({ defaultUnilateralRestSeconds: value })}
           testID="unilateral-rest-sheet"

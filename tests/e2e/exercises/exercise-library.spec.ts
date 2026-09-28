@@ -337,6 +337,10 @@ test.describe('Exercise library', () => {
     const restTimeTitle = page.getByText('Duration', { exact: true });
     const defaultAction = page.getByRole('button', { name: 'Use default rest time' });
     await expect(defaultAction).toBeVisible();
+    // Let the sheet's content-layout animation settle before measuring: the
+    // header positions shift while the surface eases to its new height, so an
+    // immediate boundingBox catches a transient mid-flight offset.
+    await page.waitForTimeout(300);
     expect(Math.abs(((await defaultAction.boundingBox())?.y ?? 0) - ((await restTimeTitle.boundingBox())?.y ?? Infinity))).toBeLessThan(12);
     const restPicker = page.getByTestId('exercise-rest-selection-list');
     await page.waitForTimeout(250);

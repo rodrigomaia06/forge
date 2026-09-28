@@ -76,6 +76,17 @@ export function RestTimerSheet({
             title="Rest timer"
             onClose={closeSheet}
             closeAccessibilityLabel="Close rest timer"
+            closePosition="left"
+            trailing={running ? undefined : (
+              <Button
+                accessibilityLabel="Start rest timer"
+                label="Start"
+                variant="primary"
+                haptic="none"
+                onPress={onStart}
+                style={styles.restStartAction}
+              />
+            )}
           />
           {running ? (
             <ActiveRestTimer
@@ -89,16 +100,7 @@ export function RestTimerSheet({
               }}
             />
           ) : (
-            <>
-              <ForgeDurationWheel selectedDuration={selectedDuration} onSelect={onSelect} />
-              <Button
-                accessibilityLabel="Start rest timer"
-                label="Start"
-                haptic="none"
-                onPress={onStart}
-                style={styles.restStartButton}
-              />
-            </>
+            <ForgeDurationWheel selectedDuration={selectedDuration} onSelect={onSelect} />
           )}
     </>}</ForgeBottomSheet>
   );

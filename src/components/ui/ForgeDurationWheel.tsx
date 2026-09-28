@@ -81,5 +81,7 @@ const sheetStyles = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-  wheel: { marginTop: 8, marginHorizontal: 20 },
+  // A little breathing room below the wheel so the last row never sits flush
+  // against the sheet's bottom edge.
+  wheel: { marginTop: 8, marginBottom: 16, marginHorizontal: 20 },
 });
