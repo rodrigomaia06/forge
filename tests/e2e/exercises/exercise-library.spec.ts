@@ -376,7 +376,10 @@ test.describe('Exercise library', () => {
     await expect(page.getByRole('button', { name: 'Save variation' })).toBeDisabled();
     await page.getByRole('button', { name: 'Equipment' }).click();
     const compactSelectorBox = await formSurface.boundingBox();
-    expect(compactSelectorBox?.height ?? Infinity).toBeLessThan(formBox?.height ?? -Infinity);
+    // The equipment picker sizes to its content (hug-then-scroll) but stays
+    // capped at its own max so it never balloons to the details form's 0.82vh
+    // cap and stays above the keyboard.
+    expect(compactSelectorBox?.height ?? Infinity).toBeLessThanOrEqual(Math.min(windowHeight * 0.72, 620) + 1);
     await expect(page.getByRole('checkbox', { checked: true })).toHaveCount(1);
     await page.getByRole('button', { name: 'Add custom equipment' }).click();
     await expect(page.getByText('Custom equipment', { exact: true })).toBeVisible();

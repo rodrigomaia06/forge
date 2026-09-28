@@ -404,9 +404,13 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     if (restOverride(item) === seconds) return;
     setRestOverride(item, seconds);
   };
-  // The detail sheet animates its own height via `animateContentLayout`
-  // (reanimated LinearTransition), so its view swap must NOT also run RN's
-  // LayoutAnimation — the two fought and left the sheet at the wrong height.
+  // The detail sheet is a multi-view sheet whose views differ a lot in height
+  // (a tall scrollable details body, a short options list, a 400pt rest wheel).
+  // Per ForgeActionSheet's guidance, the reanimated `layout` transition can
+  // fail to shrink a native Modal surface back for cases like this, leaving the
+  // shorter view sitting low with dead space — so this sheet snaps between views
+  // (animateContentLayout off) rather than easing, and its swap runs no
+  // LayoutAnimation either.
   const transitionDetailSheet = (nextView: DetailSheetView) => {
     setDetailSheetView(nextView);
   };
@@ -428,24 +432,9 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     selectionHaptic();
     setShowOptionalDetails((current) => !current);
   };
-  const selectorOptionCount = formView === 'family'
-    ? Math.max(categoryMatches.length, categoryOptions.length)
-    : formView === 'category'
-    ? filteredCategoryOptions.length
-    : formView === 'equipment'
-        ? filteredEquipmentOptions.length + 1
-        : formView === 'customEquipment'
-          ? 1
-        : formView === 'workoutTypes'
-          ? visibleTypes.length
-          : formView === 'primaryMuscle'
-            ? muscles.length
-            : formView === 'secondaryMuscles'
-              ? Math.max(0, muscles.length - 1)
-              : 0;
-  const selectorIsLong = formView !== 'details' && selectorOptionCount > 6;
-  // A searchable selector must remain above the keyboard instead of expanding
-  // the parent sheet to the top of the viewport.
+  // A searchable selector caps its height so it stays above the keyboard and
+  // never grows to the top of the viewport. It sizes to its content up to this
+  // cap (hug-then-scroll, ADR 0005), so a short picker has no trailing gap.
   const compactSelectorMaxHeight = Math.min(viewportHeight * 0.52, 440);
   // Equipment is commonly the longest Add variation picker. Give its list
   // enough context to compare choices while keeping the confirmation action
@@ -454,13 +443,6 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const activeSelectorMaxHeight = formView === 'equipment'
     ? equipmentSelectorMaxHeight
     : compactSelectorMaxHeight;
-  const compactSelectorHeight = Math.min(
-    compactSelectorMaxHeight,
-    // Handle + header + picker padding + the actual choice rows. This keeps a
-    // short replacement view compact without asking ScrollView to infer a
-    // height from a flex parent on web.
-    92 + (formView === 'family' || formView === 'category' || formView === 'equipment' ? 64 : 0) + Math.max(1, selectorOptionCount) * 56 + 36,
-  );
   // The form sizes to its content (no trailing empty space) up to this cap,
   // past which it scrolls. Content stays anchored at the top.
   const detailFormHeight = Math.min(viewportHeight * 0.82, 620);
@@ -574,7 +556,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
               styles.formSheet,
               formView === 'details'
                 ? { maxHeight: detailFormHeight }
-                : { height: selectorIsLong ? activeSelectorMaxHeight : compactSelectorHeight },
+                : { maxHeight: activeSelectorMaxHeight },
             ]}>
               <ForgeBottomSheetHandle />
               <ForgeSheetHeader
@@ -897,7 +879,6 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
           accessibilityLabel="Close exercise details"
           backdropTestID="exercise-detail-sheet-backdrop"
           surfaceTestID="exercise-detail-sheet-surface"
-          animateContentLayout
         >
           {(close) =>
             detail &&
@@ -1464,7 +1445,11 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     restTimeDefaultActionSelected: { borderColor: theme.success, backgroundColor: theme.successSurface },
     restTimePickerContent: { paddingHorizontal: 20, paddingBottom: 24, gap: 10 },
     restTimeChoiceCard: { overflow: 'hidden', borderRadius: 18 },
-    formScroll: { flex: 1, minHeight: 0 },
+    // Hug-then-scroll (ADR 0005): size to content and top-align, only scrolling
+    // once the wrapper's maxHeight cap is reached — so a short picker (e.g. a few
+    // equipment options) hugs the header instead of filling a tall fixed height
+    // and leaving dead space above the docked Apply action.
+    formScroll: { flexShrink: 1, minHeight: 0 },
     // Size to content (top-aligned) and only scroll once the sheet hits its cap.
     formScrollDetails: { flexGrow: 0, flexShrink: 1, minHeight: 0 },
     form: { padding: 20, gap: 18 },

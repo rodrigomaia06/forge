@@ -186,7 +186,10 @@ export function ForgeCatalogFilterContent({
   return (
     <View testID="catalog-filter-content" style={[
       fill ? styles.sheetFill : activeFacet ? styles.sheetTall : styles.sheetCompact,
-      !fill && activeFacet ? { height: Math.min(viewportHeight * 0.82, 640) } : undefined,
+      // Size an open facet to its rows and only cap when they overflow (ADR
+      // 0005), so a short facet list hugs the header instead of filling a fixed
+      // height and leaving dead space above the docked Apply action.
+      !fill && activeFacet ? { maxHeight: Math.min(viewportHeight * 0.82, 640) } : undefined,
       // Size the summary to its rows; only constrain it when space runs out.
       !fill && !activeFacet ? { maxHeight: Math.min(viewportHeight * 0.82, 640) } : undefined,
     ]}>

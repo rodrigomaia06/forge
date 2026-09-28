@@ -730,9 +730,12 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   // outlined ring, which reads as visual noise against the dark background.
   darkHeaderAction: { backgroundColor: theme.surfaceMuted },
   historyFilterSheet: { alignSelf: 'stretch', flexShrink: 1, maxHeight: 620 },
-  historyFilterSheetTall: { alignSelf: 'stretch', height: 620 },
+  // Cap, don't fix: the types/date views hug their content up to this height
+  // and only scroll past it (ADR 0005), so a short workout-type list doesn't
+  // leave dead space above the docked Apply action.
+  historyFilterSheetTall: { alignSelf: 'stretch', maxHeight: 620 },
   historyFilterClear: { minHeight: 38, paddingHorizontal: 12, borderRadius: 14 },
-  historyFilterScroll: { flex: 1, minHeight: 0 },
+  historyFilterScroll: { flexShrink: 1, minHeight: 0 },
   // Hug-then-scroll (ADR 0005) for the summary/date views whose sheet hugs its
   // content under a maxHeight cap (not the definite-height "…Tall" variant).
   historyFilterShrink: { flexShrink: 1 },
