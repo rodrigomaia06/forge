@@ -35,6 +35,7 @@ export type RootStackParamList = {
     | { mode: 'create'; draftId: string; initialColor: string };
   BackupExport: undefined;
   ImportSelection: undefined;
+  ImportConflict: undefined;
   Logs: undefined;
   About: undefined;
   MuscleHeatmapDetail: undefined;

@@ -404,11 +404,13 @@ test.describe('Settings', () => {
     const second = page.getByTestId('data-merged-summary');
     await expect(second).toContainText('already on this device');
     await second.getByRole('button', { name: 'Done' }).click();
-    // A same-named but genuinely different routine is now a conflict; Keep both
-    // preserves the on-device copy behaviour (a numbered "Push Day 2").
-    const thirdSheet = await openPushDayImport(page, [{ id: 'e1', name: 'Bench Press', sets: [] }]);
-    await thirdSheet.getByRole('button', { name: 'Keep both' }).click();
-    const third = page.getByTestId('data-merged-summary');
+    // A same-named but genuinely different routine is now a conflict, which
+    // routes to the dedicated review screen instead of the in-sheet popup. Keep
+    // both preserves the on-device copy behaviour (a numbered "Push Day 2").
+    await openPushDayImport(page, [{ id: 'e1', name: 'Bench Press', sets: [] }]);
+    await expect(page.getByTestId('settings-detail-title').last()).toHaveText('Review update');
+    await page.getByRole('button', { name: 'Keep both' }).click();
+    const third = page.getByTestId('import-conflict-summary');
     await expect(third).toContainText('Kept as a separate copy');
     await expect(third).toContainText('Push Day 2');
     await third.getByRole('button', { name: 'Done' }).click();
@@ -418,23 +420,29 @@ test.describe('Settings', () => {
     await expect(page.getByText('Push Day 2', { exact: true })).toBeVisible();
   });
 
-  test('offers Update for a changed shared routine and replaces it in place', async ({ page }) => {
+  test('offers Update for a changed shared routine and replaces it in place on a dedicated screen', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Backup & Export' }).click();
-    // Seed a Push Day routine on device.
+    // Seed a Push Day routine on device (new item → plain in-sheet review).
     const seedSheet = await openPushDayImport(page, [{ id: 'e1', name: 'Bench Press', sets: [] }]);
     await seedSheet.getByRole('button', { name: 'Import selected data' }).click();
     await page.getByTestId('data-merged-summary').getByRole('button', { name: 'Done' }).click();
-    // Import a same-named routine with a DIFFERENT exercise: the review offers a
-    // decision, with the change summary and an Update primary action.
-    const changedSheet = await openPushDayImport(page, [{ id: 'e2', name: 'Overhead Press', sets: [] }]);
-    await expect(changedSheet.getByText('Updates a routine already on this device')).toBeVisible();
-    await expect(changedSheet.getByRole('button', { name: 'View changes' })).toBeVisible();
-    await expect(changedSheet.getByRole('button', { name: 'Keep both' })).toBeVisible();
-    await expect(changedSheet.getByRole('button', { name: 'Skip' })).toBeVisible();
-    await changedSheet.getByRole('button', { name: 'Update' }).click();
-    const updated = page.getByTestId('data-merged-summary');
+    // Import a same-named routine with a DIFFERENT exercise: the conflict is the
+    // only "problem" case, so it leaves the sheet and opens a dedicated review
+    // screen with the change list and an Update / Keep both / Skip decision.
+    await openPushDayImport(page, [{ id: 'e2', name: 'Overhead Press', sets: [] }]);
+    await expect(page.getByTestId('settings-detail-title').last()).toHaveText('Review update');
+    const conflictScreen = page.getByTestId('import-conflict-screen');
+    await expect(conflictScreen.getByText('This replaces the routine already on this device.')).toBeVisible();
+    // A scannable change list, grouped, shows the swapped exercise (added + removed).
+    await expect(conflictScreen.getByText('Exercises', { exact: true })).toBeVisible();
+    await expect(conflictScreen.getByText('Overhead Press', { exact: true })).toBeVisible();
+    await expect(conflictScreen.getByText('Bench Press', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Keep both' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Skip' })).toBeVisible();
+    await page.getByRole('button', { name: 'Update' }).click();
+    const updated = page.getByTestId('import-conflict-summary');
     await expect(updated).toContainText('Updated');
     await updated.getByRole('button', { name: 'Done' }).click();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
@@ -445,10 +453,11 @@ test.describe('Settings', () => {
     // A further different import, resolved with Keep both, yields the copy instead.
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Backup & Export' }).click();
-    const keepBothSheet = await openPushDayImport(page, [{ id: 'e3', name: 'Lateral Raise', sets: [] }]);
-    await keepBothSheet.getByRole('button', { name: 'Keep both' }).click();
-    await expect(page.getByTestId('data-merged-summary')).toContainText('Push Day 2');
-    await page.getByTestId('data-merged-summary').getByRole('button', { name: 'Done' }).click();
+    await openPushDayImport(page, [{ id: 'e3', name: 'Lateral Raise', sets: [] }]);
+    await expect(page.getByTestId('settings-detail-title').last()).toHaveText('Review update');
+    await page.getByRole('button', { name: 'Keep both' }).click();
+    await expect(page.getByTestId('import-conflict-summary')).toContainText('Push Day 2');
+    await page.getByTestId('import-conflict-summary').getByRole('button', { name: 'Done' }).click();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('tab', { name: 'Plans' }).click();
     await expect(page.getByText('Push Day 2', { exact: true })).toBeVisible();

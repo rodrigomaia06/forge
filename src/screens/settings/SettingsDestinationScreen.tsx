@@ -4,8 +4,9 @@ import { Alert, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Vie
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { setPendingImport } from '../../state/pendingImport';
+import { setPendingConflict } from '../../state/pendingConflict';
 import * as Clipboard from 'expo-clipboard';
-import { AppScreen, Button, ForgeBackButton, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeCard, ForgeConfirmationDialog, ForgeFloatingCta, ForgeSelectionSheet, ForgeSheetHeader, ForgeText as Text, Icon, pressedFeedback } from '../../components/ui';
+import { AppScreen, ForgeBackButton, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeCard, ForgeConfirmationDialog, ForgeFloatingCta, ForgeSelectionSheet, ForgeSheetHeader, ForgeText as Text, Icon, pressedFeedback } from '../../components/ui';
 import type { ForgeSingleSelectOption } from '../../components/ui';
 import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
 import { dashboardTheme } from '../../theme/dashboardTheme';
@@ -18,7 +19,6 @@ import { allDataTransferSelection, createSqliteBackup, databaseStatus, eraseAllF
 import { clearDiagnostics, exportDiagnostics, loadDiagnostics, recordDiagnostic, type DiagnosticEntry, type DiagnosticKind } from '../../data/diagnosticsRepository';
 import { loadBackupHistory, recordBackupEvent, type BackupHistory } from '../../data/backupHistory';
 import { freshenSharedIds } from '../../data/sharedImport';
-import type { ShareChange, ShareConflict, ShareResolution } from '../../data/importDiff';
 import { readForgeTransferFromUri } from '../../data/readForgeTransferFile';
 import { takePendingFileImport, subscribePendingFileImport } from '../../state/pendingFileImport';
 import { relativeTime } from '../../utils/relativeTime';
@@ -95,18 +95,26 @@ function BackupExport() {
     stopRestTimer();
     await Promise.all([reloadSettings(), reloadPlans(), reloadWorkouts(), reloadExercises()]);
   }, [reloadExercises, reloadPlans, reloadSettings, reloadWorkouts, stopRestTimer]);
+  // A synchronous re-entry lock. Driving the guard off a ref (not the `busy`
+  // state) means a completed operation always frees the button on the next tap,
+  // immune to a batched state update or a stale `run` closure. `busy` state is
+  // only the "Working…" hint.
+  const busyRef = React.useRef(false);
+  const reportFailure = React.useCallback(async (error: unknown) => {
+    await recordDiagnostic('operation-failed', error instanceof Error && /compatible|valid|SQLite/.test(error.message) ? 'invalid-file' : 'unknown');
+    setNotice({
+      title: 'Could not complete this action',
+      message: localDataErrorMessage(error),
+    });
+  }, []);
   const run = React.useCallback(async (work: () => Promise<void>) => {
-    if (busy) return;
+    if (busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
     try { await work(); }
-    catch (error) {
-      await recordDiagnostic('operation-failed', error instanceof Error && /compatible|valid|SQLite/.test(error.message) ? 'invalid-file' : 'unknown');
-      setNotice({
-        title: 'Could not complete this action',
-        message: localDataErrorMessage(error),
-      });
-    } finally { setBusy(false); }
-  }, [busy]);
+    catch (error) { await reportFailure(error); }
+    finally { busyRef.current = false; setBusy(false); }
+  }, [reportFailure]);
   const openTransfer = async (picked: ForgeDataTransfer): Promise<void> => {
     // A shared item always imports as a copy — freshen its ids so the review
     // shows it as new and the merge reconciles it (skip identical, copy the rest).
@@ -117,22 +125,47 @@ function BackupExport() {
     const nextSelection = incoming.selection ?? allDataTransferSelection();
     setSelection(nextSelection);
     if (incoming.share) {
-      // A single shared item skips the generic category grid — straight to a
-      // review of exactly what it carries.
-      setInspection(await inspectDataTransfer(incoming, nextSelection));
+      const nextInspection = await inspectDataTransfer(incoming, nextSelection);
+      if (nextInspection.conflict) {
+        // A shared item that updates one already on device (same name, different
+        // content) is the only "problem" case: resolve it on a dedicated full
+        // screen rather than the in-sheet review.
+        setPendingConflict({ transfer: incoming, conflict: nextInspection.conflict, selection: nextSelection });
+        setTransfer(null);
+        setInspection(null);
+        navigation.navigate('ImportConflict');
+        return;
+      }
+      // A problem-free single shared item skips the generic category grid —
+      // straight to an in-sheet review of exactly what it carries.
+      setInspection(nextInspection);
       setTransferStep('import-review');
     } else {
       // A full data dump opens the dedicated per-item selection screen.
       setPendingImport(incoming);
+      setTransfer(null);
+      setInspection(null);
       navigation.navigate('ImportSelection');
     }
   };
   const importData = (): void => {
-    void run(async () => {
-      const picked = await pickJsonTransfer();
+    // The document picker is user interaction of unbounded duration, and on
+    // native its cancel/dismiss can fail to resolve. Never hold the busy lock
+    // across it — a picker that never returns would otherwise strand `busy` and
+    // disable Import until the screen is re-mounted. Guard re-entry without
+    // taking the lock, then acquire it only once a file is in hand.
+    if (busyRef.current) return;
+    void (async () => {
+      let picked: ForgeDataTransfer | null;
+      try {
+        picked = await pickJsonTransfer();
+      } catch (error) {
+        await reportFailure(error);
+        return;
+      }
       if (!picked) return;
-      await openTransfer(picked);
-    });
+      await run(async () => { await openTransfer(picked as ForgeDataTransfer); });
+    })();
   };
   // A .forge file opened from outside the app (AirDrop, Files, Mail, a VIEW
   // intent) is routed to this screen by useForgeFileOpen, which stores its URI.
@@ -159,19 +192,6 @@ function BackupExport() {
     if (!transfer) return;
     void run(async () => {
       const result = await mergeDataTransfer(transfer, selection);
-      await refresh();
-      await recordDiagnostic('data-imported');
-      setTransferStep(null);
-      setTransfer(null);
-      setMergeSummary(result);
-    });
-  };
-  // A shared item that updates one already on device: apply the user's choice
-  // (replace in place, keep both as a copy, or skip) and close the review.
-  const resolveConflict = (resolution: ShareResolution): void => {
-    if (!transfer) return;
-    void run(async () => {
-      const result = await mergeDataTransfer(transfer, selection, resolution);
       await refresh();
       await recordDiagnostic('data-imported');
       setTransferStep(null);
@@ -244,7 +264,6 @@ function BackupExport() {
         selection={selection}
         inspection={inspection}
         share={transferStep?.startsWith('import') ? transfer?.share : undefined}
-        conflict={transferStep === 'import-review' ? inspection?.conflict : undefined}
         onChangeSelection={setSelection}
         onClose={() => { setTransferStep(null); setInspection(null); setTransfer(null); }}
         onBack={() => { setInspection(null); setTransferStep('import-selection'); }}
@@ -252,7 +271,6 @@ function BackupExport() {
         onExportText={() => void run(async () => { await exportText(selection); await recordBackupEvent('data-export'); setTransferStep(null); reloadHistory(); })}
         onReviewImport={reviewImport}
         onImport={mergeSelected}
-        onResolve={resolveConflict}
         busy={busy}
       />
       <ForgeConfirmationDialog
@@ -296,8 +314,8 @@ function BackupExport() {
         confirmLabel="Done"
         confirmTone="success"
         showCancel={false}
-        onCancel={() => setMergeSummary(null)}
-        onConfirm={() => setMergeSummary(null)}
+        onCancel={() => { setMergeSummary(null); setInspection(null); setTransfer(null); setTransferStep(null); }}
+        onConfirm={() => { setMergeSummary(null); setInspection(null); setTransfer(null); setTransferStep(null); }}
         testID="data-merged-summary"
       />
       <ForgeConfirmationDialog
@@ -326,7 +344,7 @@ function localDataErrorMessage(error: unknown): string {
   return 'Your local data was not changed. Try again.';
 }
 
-function mergeSummaryMessage(result: DataTransferMergeResult): string {
+export function mergeSummaryMessage(result: DataTransferMergeResult): string {
   // A resolved single-item conflict leads with the applied decision — an update
   // and a skip both net zero new records, so the generic tally would misread.
   if (result.resolution?.action === 'updated') {
@@ -371,13 +389,12 @@ const transferCategories: Array<{ key: DataTransferCategory; title: string; deta
 ];
 
 function DataTransferSheet({
-  step, selection, inspection, share, conflict, onChangeSelection, onClose, onBack, onExportJson, onExportText, onReviewImport, onImport, onResolve, busy,
+  step, selection, inspection, share, onChangeSelection, onClose, onBack, onExportJson, onExportText, onReviewImport, onImport, busy,
 }: {
   step: 'export-json' | 'export-text' | 'import-selection' | 'import-review' | null;
   selection: DataTransferSelection;
   inspection: DataTransferInspection | null;
   share?: ShareDescriptor;
-  conflict?: ShareConflict;
   onChangeSelection: (selection: DataTransferSelection) => void;
   onClose: () => void;
   onBack: () => void;
@@ -385,7 +402,6 @@ function DataTransferSheet({
   onExportText: () => void;
   onReviewImport: () => void;
   onImport: () => void;
-  onResolve: (resolution: ShareResolution) => void;
   busy: boolean;
 }) {
   const theme = useForgeTheme();
@@ -394,9 +410,6 @@ function DataTransferSheet({
   const exporting = step === 'export-json' || step === 'export-text';
   const reviewing = step === 'import-review';
   const importing = step === 'import-selection' || reviewing;
-  // A shared item that updates one already on device gets a decision (Update /
-  // Keep both / Skip) instead of the plain review + Import.
-  const conflicting = reviewing && Boolean(conflict);
   const title = exporting ? 'Export data' : reviewing ? 'Review import' : 'Choose import data';
   const toggle = (key: DataTransferCategory): void => onChangeSelection({ ...selection, [key]: !selection[key] });
   // Nothing new to add means the file is already on this device — surface that
@@ -434,7 +447,7 @@ function DataTransferSheet({
         onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
         onContentSizeChange={(_width, height) => setContentHeight(height)}
       >
-        {share && !conflicting ? (
+        {share ? (
           <ForgeCard variant="nested" size="compact" style={styles.shareBanner}>
             <Icon name="share" size={20} color={theme.textSecondary} />
             <View style={styles.transferOptionText}>
@@ -445,9 +458,7 @@ function DataTransferSheet({
             </View>
           </ForgeCard>
         ) : null}
-        {conflicting && conflict ? (
-          <ConflictReview conflict={conflict} onResolve={onResolve} busy={busy} />
-        ) : reviewing ? (
+        {reviewing ? (
           <ImportReview inspection={inspection} selection={selection} nothingNew={nothingNew} />
         ) : (
           <>
@@ -484,12 +495,12 @@ function DataTransferSheet({
         )}
       </ScrollView>
       <ForgeFloatingCta
-        label={conflicting ? 'Update' : reviewing ? 'Import selected data' : importing ? 'Review selected data' : 'Export selected data'}
-        accessibilityLabel={conflicting ? 'Update' : reviewing ? 'Import selected data' : importing ? 'Review selected data' : 'Export selected data'}
-        disabled={conflicting ? busy : !selectedCount || busy || nothingNew}
+        label={reviewing ? 'Import selected data' : importing ? 'Review selected data' : 'Export selected data'}
+        accessibilityLabel={reviewing ? 'Import selected data' : importing ? 'Review selected data' : 'Export selected data'}
+        disabled={!selectedCount || busy || nothingNew}
         tone={reviewing ? 'success' : 'neutral'}
         icon={reviewing ? 'check' : undefined}
-        onPress={conflicting ? () => onResolve('update') : reviewing ? onImport : importing ? onReviewImport : step === 'export-json' ? onExportJson : onExportText}
+        onPress={reviewing ? onImport : importing ? onReviewImport : step === 'export-json' ? onExportJson : onExportText}
       />
     </ForgeBottomSheet>
   );
@@ -525,70 +536,6 @@ function ImportReview({ inspection, selection, nothingNew }: { inspection: DataT
   );
 }
 
-function shareKindNoun(kind: ShareConflict['kind']): string {
-  return { routine: 'routine', plan: 'plan', workout: 'workout', exercise: 'exercise' }[kind];
-}
-
-const changeMarker: Record<ShareChange['type'], string> = { added: '+', removed: '−', changed: '~' };
-
-/**
- * The decision surface for a shared item that updates one already on device.
- * Update stays on the sheet's primary CTA (the common choice, visible without
- * expanding); a compact card carries the change rollup and a "View changes"
- * disclosure, with Keep both / Skip below it.
- */
-function ConflictReview({ conflict, onResolve, busy }: { conflict: ShareConflict; onResolve: (resolution: ShareResolution) => void; busy: boolean }) {
-  const theme = useForgeTheme();
-  const [expanded, setExpanded] = React.useState(false);
-  const changeColor: Record<ShareChange['type'], string> = {
-    added: theme.success,
-    removed: theme.textDestructive,
-    changed: theme.textSecondary,
-  };
-  return (
-    <View style={styles.reviewStack}>
-      <ForgeCard variant="nested" size="compact" style={styles.conflictCard}>
-        <View style={styles.conflictHead}>
-          <Icon name="share" size={20} color={theme.textSecondary} />
-          <View style={styles.transferOptionText}>
-            <Text style={[styles.transferOptionTitle, { color: theme.textPrimary }]}>{conflict.name}</Text>
-            <Text style={[styles.transferOptionDetail, { color: theme.textSecondary }]}>Updates a {shareKindNoun(conflict.kind)} already on this device</Text>
-          </View>
-        </View>
-        <Text style={[styles.conflictSummary, { color: theme.textPrimary }]}>{conflict.summary}</Text>
-        {conflict.changes.length ? (
-          <>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={expanded ? 'Hide changes' : 'View changes'}
-              accessibilityState={{ expanded }}
-              onPress={() => setExpanded((value) => !value)}
-              style={({ pressed }) => [styles.conflictDisclosure, pressed && pressedFeedback]}
-            >
-              <Text style={[styles.conflictDisclosureLabel, { color: theme.textSecondary }]}>{expanded ? 'Hide changes' : 'View changes'}</Text>
-              <Icon name={expanded ? 'chevron-down' : 'chevron-forward'} size={16} color={theme.textSecondary} />
-            </Pressable>
-            {expanded ? (
-              <View style={styles.conflictChanges}>
-                {conflict.changes.map((change, index) => (
-                  <View key={`${change.type}-${change.label}-${index}`} style={styles.conflictChangeRow}>
-                    <Text style={[styles.conflictChangeMarker, { color: changeColor[change.type] }]}>{changeMarker[change.type]}</Text>
-                    <Text style={[styles.conflictChangeLabel, { color: theme.textPrimary }]}>{change.label}</Text>
-                    {change.detail ? <Text style={[styles.conflictChangeDetail, { color: theme.textSecondary }]} numberOfLines={1}>{change.detail}</Text> : null}
-                  </View>
-                ))}
-              </View>
-            ) : null}
-          </>
-        ) : null}
-      </ForgeCard>
-      <View style={styles.conflictActions}>
-        <Button label="Keep both" variant="outline" onPress={() => onResolve('keepBoth')} disabled={busy} style={styles.conflictActionButton} />
-        <Button label="Skip" variant="ghost" tone="destructive" onPress={() => onResolve('skip')} disabled={busy} style={styles.conflictActionButton} />
-      </View>
-    </View>
-  );
-}
 
 const logFilterOptions: readonly ForgeSingleSelectOption<DiagnosticKind | 'all'>[] = [
   { value: 'all', label: 'All events' },
@@ -820,18 +767,6 @@ const styles = StyleSheet.create({
   transferNote: { ...typeScale.caption, lineHeight: 19, paddingHorizontal: 2 },
   reviewNoticeCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
   reviewNotice: { flex: 1, ...typeScale.supporting, lineHeight: 20 },
-  conflictCard: { padding: 16, gap: 12 },
-  conflictHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  conflictSummary: { ...typeScale.controlLabel },
-  conflictDisclosure: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', minHeight: 32 },
-  conflictDisclosureLabel: { ...typeScale.caption },
-  conflictChanges: { gap: 8 },
-  conflictChangeRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-  conflictChangeMarker: { ...typeScale.controlLabel, width: 12, textAlign: 'center' },
-  conflictChangeLabel: { ...typeScale.supporting },
-  conflictChangeDetail: { flex: 1, ...typeScale.caption, textAlign: 'right' },
-  conflictActions: { flexDirection: 'row', gap: 12 },
-  conflictActionButton: { flex: 1 },
   unavailable: { textAlign: 'center', color: dashboardTheme.slate, ...typeScale.supporting },
   brand: {
     paddingHorizontal: 8,
