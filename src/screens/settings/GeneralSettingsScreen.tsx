@@ -202,6 +202,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
               <>
                 <SettingsRow
                   title="Default rest time"
+                  subtitle="Timer length after each completed set"
                   trailing={
                     <Text style={[styles.value, { color: theme.textSecondary }]}>
                       {formatRestDuration(preferences.defaultRestSeconds)}
@@ -225,6 +226,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
                 />
                 <Toggle
                   title="Keep rest timer running"
+                  subtitle="Keep counting after you leave the workout screen"
                   value={preferences.keepRestTimerRunning}
                   onPress={() =>
                     choose({ keepRestTimerRunning: !preferences.keepRestTimerRunning })
@@ -268,6 +270,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
             {preferences.unfinishedWorkoutReminderEnabled && (
               <SettingsRow
                 title="Remind after"
+                subtitle="How long an open workout waits before the reminder"
                 trailing={
                   <Text style={[styles.value, { color: theme.textSecondary }]}>
                     {formatSeconds(preferences.unfinishedWorkoutReminderDelay)}
@@ -346,11 +349,13 @@ function ChoiceCheck() {
 }
 function Toggle({
   title,
+  subtitle,
   value,
   onPress,
   divider = false,
 }: {
   title: string;
+  subtitle?: string;
   value: boolean;
   onPress: () => void;
   divider?: boolean;
@@ -358,6 +363,7 @@ function Toggle({
   return (
     <SettingsRow
       title={title}
+      subtitle={subtitle}
       accessibilityRole="switch"
       accessibilityLabel={title}
       accessibilityState={{ checked: value }}
