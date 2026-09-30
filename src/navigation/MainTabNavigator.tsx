@@ -32,6 +32,16 @@ export function MainTabNavigator() {
     <PrimaryDockProvider value={dockContext}>
       <Tab.Navigator
         initialRouteName={activeWorkoutId ? 'ActiveWorkout' : 'Dashboard'}
+        screenListeners={{
+          // The dock compacts on scroll only within the Active Workout tab. Reset
+          // it whenever another tab becomes focused, so the shrunken dock never
+          // bleeds onto Dashboard/History/Plans/Settings while a workout runs.
+          state: (event) => {
+            const navState = event.data.state as { index: number; routes: { name: string }[] } | undefined;
+            const focused = navState?.routes?.[navState.index]?.name;
+            if (focused && focused !== 'ActiveWorkout') setCompact(false);
+          },
+        }}
         screenOptions={{
           headerShown: false,
           // Warm every tab scene up front and keep it live so switching is a

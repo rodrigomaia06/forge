@@ -77,8 +77,19 @@ export function BottomNavigation({
   const activeRoute = state.routes[state.index]?.name as BottomNavigationScreen;
   const currentActiveIndex = items.findIndex(([, , screen]) => screen === activeRoute);
 
+  const pillInitialized = useRef(false);
   useEffect(() => {
     const next = Math.max(0, currentActiveIndex);
+    // On first mount, place the pill on the active tab without animating — otherwise
+    // a cold launch onto a non-Dashboard tab (e.g. a workout in progress) shows the
+    // pill sliding in from the Dashboard slot.
+    if (!pillInitialized.current) {
+      pillInitialized.current = true;
+      activeIndex.value = next;
+      indicatorOpacity.value = 1;
+      setPreviewIndex(null);
+      return;
+    }
     activeIndex.value = reducedMotion ? next : withTiming(next, { duration: forgeMotion.state, easing: forgeMotion.easing });
     indicatorOpacity.value = reducedMotion ? 1 : withTiming(1, { duration: forgeMotion.state, easing: forgeMotion.easing });
     // Once a navigation lands (from a tap or a committed scrub), the real active
@@ -142,7 +153,8 @@ export function BottomNavigation({
     .activeOffsetX([-8, 8])
     .onStart(() => {
       lastScrubIndex.value = -1;
-      dragScale.value = withSpring(1.12, forgeMotion.dockSpring);
+      // Reduce Motion: jump to the final scale/position instead of springing.
+      dragScale.value = reducedMotion ? 1.12 : withSpring(1.12, forgeMotion.dockSpring);
     })
     .onUpdate((event) => {
       if (!surfaceWidth) return;
@@ -151,7 +163,7 @@ export function BottomNavigation({
       if (slotWidth <= 0) return;
       const index = Math.min(itemCount - 1, Math.max(0, Math.floor(event.x / slotWidth)));
       // Glide the pill toward the slot under the finger rather than teleporting.
-      activeIndex.value = withSpring(index, forgeMotion.dockSpring);
+      activeIndex.value = reducedMotion ? index : withSpring(index, forgeMotion.dockSpring);
       if (index !== lastScrubIndex.value) {
         lastScrubIndex.value = index;
         dragIndex.value = index;
@@ -162,11 +174,11 @@ export function BottomNavigation({
     .onEnd(() => {
       // Settle on the committed slot; the preview highlight holds there until the
       // navigation lands and the real active tab takes over (see the effect).
-      activeIndex.value = withSpring(dragIndex.value, forgeMotion.dockSpring);
+      activeIndex.value = reducedMotion ? dragIndex.value : withSpring(dragIndex.value, forgeMotion.dockSpring);
       runOnJS(commitScrub)(dragIndex.value);
     })
     .onFinalize(() => {
-      dragScale.value = withSpring(1, forgeMotion.dockSpring);
+      dragScale.value = reducedMotion ? 1 : withSpring(1, forgeMotion.dockSpring);
     });
 
   return (
