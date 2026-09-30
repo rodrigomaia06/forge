@@ -26,6 +26,7 @@ import {
   addWarmupSetsToWorkout,
   updateWorkoutExercise,
   updateWorkoutSet,
+  recordRestTimerSample,
 } from './workoutMutations';
 import { exercisesWithAddedPrevious } from '../domain/workouts/nextSessionTargets';
 
@@ -222,13 +223,15 @@ export function WorkoutProvider({ children }: ChildrenProps) {
   const finishWorkout = useCallback((): Workout | null => {
     const current = activeWorkoutRef.current;
     if (!current) return null;
-    const finished = {
+    // Recompute the rest-average from the final completed sets so an uncheck or a
+    // set/exercise removal after the last completion can't leave a stale stat.
+    const finished = recordRestTimerSample({
       ...current,
       completedAt: Date.now(),
       durationSeconds: current.automaticTimeTracking === false
         ? Math.max(1, current.durationSeconds ?? 0)
         : Math.max(1, Math.round((Date.now() - current.startedAt) / 1000)),
-    };
+    }, 0);
     // Finishing appends one row to the archive rather than rewriting all of it.
     void appendCompletedWorkout(finished);
     setCompletedWorkouts((workouts) => [finished, ...workouts]);

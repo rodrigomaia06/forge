@@ -80,6 +80,9 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   // has fully closed, so it can't race the sheet's dismissal.
   const { runAfterClose, onClosed: onOptionsClosed } = useAfterSheetClose();
   const [openSetId, setOpenSetId] = useState<string | null>(null);
+  // Guards against a rapid double-tap on a set's completion control reading the
+  // stale pre-toggle state and starting the rest timer / recording a sample twice.
+  const lastToggleAtRef = useRef<Record<string, number>>({});
   const [expanded, setExpanded] = useState(!collapsible);
   const cardTranslateX = useSharedValue(deleteRevealed ? -deleteActionWidth : 0);
   const cardOpen = useSharedValue(deleteRevealed);
@@ -348,6 +351,11 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     index={setIndex}
                     onChange={(changes) => updateSet(exercise.id, set.id, changes)}
                     onToggle={() => {
+                      const now = Date.now();
+                      // Ignore a second tap within the render window; it would read
+                      // the stale `set.completed` and double-fire the rest timer.
+                      if (now - (lastToggleAtRef.current[set.id] ?? 0) < 300) return;
+                      lastToggleAtRef.current[set.id] = now;
                       lightHaptic();
                       toggleSet(exercise.id, set.id);
                       // The rest timer must observe the completed transition,
