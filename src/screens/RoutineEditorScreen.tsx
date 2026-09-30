@@ -37,6 +37,7 @@ import {
   lightHaptic,
   selectionHaptic,
   successHaptic,
+  useAfterSheetClose,
 } from '../components/ui';
 import type { ForgeAttributeDraft } from '../components/ui';
 import { AddExerciseSheet } from './activeWorkout/WorkoutSheets';
@@ -104,6 +105,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
   const [addingExercises, setAddingExercises] = useState(false);
   const [replacingExerciseIndex, setReplacingExerciseIndex] = useState<number | null>(null);
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const { runAfterClose, onClosed: onOptionsClosed } = useAfterSheetClose();
   const [attributeSheet, setAttributeSheet] = useState<AttributeSheetState>(null);
   const [error, setError] = useState<string | null>(null);
   const [canLeave, setCanLeave] = useState(false);
@@ -590,6 +592,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           <ForgeActionSheet
             visible={optionsOpen}
             onClose={() => setOptionsOpen(false)}
+            onClosed={onOptionsClosed}
             accessibilityLabel="Close routine options"
             title="Routine options"
             testID="routine-options-sheet"
@@ -602,9 +605,9 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                   change((current) => ({ ...current, planId: current.planId ? undefined : plans[0]?.id })),
               },
               { label: 'Share routine', icon: 'share', onPress: () => shareItemFromSheet({ kind: 'routine', id: draft.id }) },
-              // Defer past the options sheet's dismissal; iOS drops a Modal
-              // presented while another is still closing.
-              { label: 'Delete routine', icon: 'trash', tone: 'destructive', onPress: () => setTimeout(confirmDelete, 280) },
+              // Confirm only after the options sheet has dismissed; iOS drops a
+              // Modal presented while another is still closing.
+              { label: 'Delete routine', icon: 'trash', tone: 'destructive', onPress: () => runAfterClose(confirmDelete) },
             ]}
           />
         )}

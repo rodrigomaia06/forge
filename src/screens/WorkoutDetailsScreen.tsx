@@ -12,6 +12,7 @@ import {
   HeaderAction,
   HeaderEdge,
   selectionHaptic,
+  useAfterSheetClose,
 } from '../components/ui';
 import { WorkoutSummaryCard } from '../components/WorkoutSummaryCard';
 import { ReadOnlyExerciseSection } from './activeWorkout/ExerciseSection';
@@ -34,6 +35,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
   const { preferences } = useSettings();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const { runAfterClose, onClosed: onOptionsClosed } = useAfterSheetClose();
   const [headerElevated, setHeaderElevated] = useState(false);
   const workout = completedWorkouts.find((item) => item.id === route.params.workoutId);
   // "Previous" is derived live from earlier sessions so imported/legacy workouts
@@ -123,15 +125,16 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
         <ForgeActionSheet
           visible={optionsOpen}
           onClose={() => setOptionsOpen(false)}
+          onClosed={onOptionsClosed}
           accessibilityLabel="Close workout options"
           title={workout.name}
           titleNumberOfLines={1}
           actions={[
             { label: 'Share workout', icon: 'share', onPress: () => shareItemFromSheet({ kind: 'workout', id: workout.id }) },
             { label: 'Edit workout', icon: 'note', onPress: () => navigation.navigate('HistoryWorkoutEditor', { mode: 'edit', workoutId: workout.id }) },
-            // Defer past the options sheet's dismissal; iOS drops a Modal
-            // presented while another is still closing.
-            { label: 'Delete workout', icon: 'trash', tone: 'destructive', onPress: () => setTimeout(() => setConfirmDelete(true), 280) },
+            // Confirm only after the options sheet has dismissed; iOS drops a
+            // Modal presented while another is still closing.
+            { label: 'Delete workout', icon: 'trash', tone: 'destructive', onPress: () => runAfterClose(() => setConfirmDelete(true)) },
           ]}
         />
         <ForgeConfirmationDialog

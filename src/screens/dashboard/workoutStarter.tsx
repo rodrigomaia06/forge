@@ -13,6 +13,7 @@ import {
   lightHaptic,
   pressedFeedbackSubtle,
   selectionHaptic,
+  useAfterSheetClose,
 } from '../../components/ui';
 import { useSettings } from '../../state/SettingsContext';
 import { useWorkouts } from '../../state/WorkoutContext';
@@ -52,6 +53,7 @@ export function useWorkoutStarter(): WorkoutStarter {
   const { startWorkout, completedWorkouts } = useWorkouts();
   const { plans, standaloneRoutines } = usePlans();
   const { guardStart, notice } = useStartWorkoutGuard();
+  const { runAfterClose, onClosed } = useAfterSheetClose();
   const [workoutSourceOpen, setWorkoutSourceOpen] = React.useState(false);
   const [routineSourceStep, setRoutineSourceStep] = React.useState<RoutineSourceStep>(null);
 
@@ -61,25 +63,21 @@ export function useWorkoutStarter(): WorkoutStarter {
   }, []);
 
   const startBlankWorkout = React.useCallback(() => {
-    setWorkoutSourceOpen(false);
-    // Let the source sheet dismiss before guardStart may present its
-    // "workout in progress" dialog; iOS drops a Modal shown while another closes.
-    setTimeout(() => guardStart(() => {
+    // Run guardStart (which may present the "workout in progress" dialog) only
+    // once the source sheet has fully closed; iOS drops a Modal shown while
+    // another is dismissing.
+    runAfterClose(() => guardStart(() => {
       startWorkout();
       // The destination mounts the picker as visible, so it still makes its normal
       // bottom-sheet entrance instead of flashing an empty workout.
       navigation.navigate('ActiveWorkout', { openAddExercises: 'open' });
-    }), 280);
-  }, [guardStart, navigation, startWorkout]);
+    }));
+    setWorkoutSourceOpen(false);
+  }, [guardStart, navigation, runAfterClose, startWorkout]);
 
-  const startRoutine = React.useCallback(
+  const startRoutineImmediate = React.useCallback(
     (routine: WorkoutRoutine, plan?: WorkoutPlan) => {
-      selectionHaptic();
-      setRoutineSourceStep(null);
-      setWorkoutSourceOpen(false);
-      // Defer past the source sheet's dismissal so guardStart's "workout in
-      // progress" dialog isn't dropped while the sheet is still closing.
-      setTimeout(() => guardStart(() => {
+      guardStart(() => {
         startWorkout({
           name: plan ? `${plan.name} - ${routine.name}` : routine.name,
           type: routine.type,
@@ -93,9 +91,29 @@ export function useWorkoutStarter(): WorkoutStarter {
           exercises: routineExercisesWithNextSessionTargets(routine, completedWorkouts),
         });
         navigation.navigate('ActiveWorkout');
-      }), 280);
+      });
     },
     [completedWorkouts, guardStart, navigation, startWorkout],
+  );
+
+  // Direct entry (e.g. the suggested-workout hero) has no chooser sheet to wait on.
+  const startRoutine = React.useCallback(
+    (routine: WorkoutRoutine, plan?: WorkoutPlan) => {
+      selectionHaptic();
+      startRoutineImmediate(routine, plan);
+    },
+    [startRoutineImmediate],
+  );
+
+  // Chosen from the chooser sheet: defer until it has fully closed.
+  const startRoutineFromChooser = React.useCallback(
+    (routine: WorkoutRoutine, plan?: WorkoutPlan) => {
+      selectionHaptic();
+      runAfterClose(() => startRoutineImmediate(routine, plan));
+      setRoutineSourceStep(null);
+      setWorkoutSourceOpen(false);
+    },
+    [runAfterClose, startRoutineImmediate],
   );
 
   const sheet = (
@@ -106,6 +124,7 @@ export function useWorkoutStarter(): WorkoutStarter {
         setWorkoutSourceOpen(false);
         setRoutineSourceStep(null);
       }}
+      onClosed={onClosed}
       accessibilityLabel="Dismiss workout source chooser"
       title="Start workout"
       testID="dashboard-workout-source-chooser"
@@ -140,7 +159,7 @@ export function useWorkoutStarter(): WorkoutStarter {
             )
           }
           onChoosePlan={(planId) => setRoutineSourceStep({ planId })}
-          onSelectRoutine={startRoutine}
+          onSelectRoutine={startRoutineFromChooser}
         />
       ) : null}
     />

@@ -25,6 +25,7 @@ import {
   pressedFeedbackSubtle,
   selectionHaptic,
   successHaptic,
+  useAfterSheetClose,
 } from '../components/ui';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
@@ -74,6 +75,9 @@ export function PlansScreen({ navigation, route }: Props) {
   const [createSheetOpen, setCreateSheetOpen] = useState(false);
   const [routineTarget, setRoutineTarget] = useState<WorkoutRoutine | null>(null);
   const [planTarget, setPlanTarget] = useState<WorkoutPlan | null>(null);
+  // Present delete/edit follow-ups only after the options sheet has fully closed,
+  // so iOS never drops the second Modal.
+  const { runAfterClose, onClosed: onOptionsClosed } = useAfterSheetClose();
   const [planEditTarget, setPlanEditTarget] = useState<WorkoutPlan | null>(null);
   const [routinePendingDelete, setRoutinePendingDelete] = useState<WorkoutRoutine | null>(null);
   const [planPendingDelete, setPlanPendingDelete] = useState<WorkoutPlan | null>(null);
@@ -289,10 +293,9 @@ export function PlansScreen({ navigation, route }: Props) {
           label: 'Delete',
           icon: 'trash',
           tone: 'destructive' as const,
-          // Defer the confirmation until the options sheet has dismissed; iOS
-          // drops a Modal presented while another is mid-dismiss (same reason
-          // as the Edit action's deferred open).
-          onPress: () => { const target = routine; setTimeout(() => requestDeleteRoutine(target), 280); },
+          // Confirm only after the options sheet has dismissed; iOS drops a Modal
+          // presented while another is mid-dismiss.
+          onPress: () => { const target = routine; runAfterClose(() => requestDeleteRoutine(target)); },
         },
       ];
     }
@@ -481,6 +484,7 @@ export function PlansScreen({ navigation, route }: Props) {
         <ForgeActionSheet
           visible={routineTarget !== null}
           onClose={() => { setRoutineTarget(null); setMoveMode(false); }}
+          onClosed={onOptionsClosed}
           accessibilityLabel="Dismiss routine options"
           title={routineTarget?.name ?? 'Routine options'}
           titleNumberOfLines={1}
@@ -503,6 +507,7 @@ export function PlansScreen({ navigation, route }: Props) {
         <ForgeActionSheet
           visible={planTarget !== null}
           onClose={() => setPlanTarget(null)}
+          onClosed={onOptionsClosed}
           accessibilityLabel="Dismiss plan options"
           title={planTarget?.name ?? 'Plan options'}
           titleNumberOfLines={1}
@@ -512,10 +517,10 @@ export function PlansScreen({ navigation, route }: Props) {
               label: 'Edit plan',
               icon: 'note',
               onPress: () => {
-                // Let the options sheet finish dismissing before the edit sheet
-                // presents, so the two modals never overlap on iOS.
+                // Open the edit sheet only after the options sheet has dismissed,
+                // so the two modals never overlap on iOS.
                 const target = planTarget;
-                setTimeout(() => setPlanEditTarget(target), 280);
+                runAfterClose(() => setPlanEditTarget(target));
               },
             },
             { label: 'Share', icon: 'share', onPress: () => shareItemFromSheet({ kind: 'plan', id: planTarget.id }) },
@@ -523,9 +528,9 @@ export function PlansScreen({ navigation, route }: Props) {
               label: 'Delete',
               icon: 'trash',
               tone: 'destructive' as const,
-              // Defer the confirmation until the options sheet has dismissed; iOS
-              // drops a Modal presented while another is mid-dismiss.
-              onPress: () => { const target = planTarget; setTimeout(() => requestDeletePlan(target), 280); },
+              // Confirm only after the options sheet has dismissed; iOS drops a
+              // Modal presented while another is mid-dismiss.
+              onPress: () => { const target = planTarget; runAfterClose(() => requestDeletePlan(target)); },
             },
           ] : []}
         />

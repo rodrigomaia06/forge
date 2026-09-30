@@ -31,6 +31,8 @@ export interface ForgeActionSheetAction {
 interface ForgeActionSheetProps {
   visible: boolean;
   onClose: () => void;
+  /** Fires one frame after the sheet has fully dismissed; see ForgeBottomSheet. */
+  onClosed?: () => void;
   accessibilityLabel: string;
   title: string;
   titleNumberOfLines?: number;
@@ -63,6 +65,7 @@ interface ForgeActionSheetProps {
 export function ForgeActionSheet({
   visible,
   onClose,
+  onClosed,
   accessibilityLabel,
   title,
   titleNumberOfLines,
@@ -88,6 +91,7 @@ export function ForgeActionSheet({
     <ForgeBottomSheet
       visible={visible}
       onClose={onClose}
+      onClosed={onClosed}
       accessibilityLabel={accessibilityLabel}
       surfaceTestID={testID}
       initialOffset={initialOffset}

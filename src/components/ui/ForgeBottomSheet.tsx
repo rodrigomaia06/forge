@@ -50,6 +50,13 @@ interface ForgeBottomSheetProps {
   initialOffset?: number;
   dismissThreshold?: number;
   onCloseStart?: () => void;
+  /**
+   * Fires one frame after the sheet has fully dismissed and its Modal has
+   * unmounted. Present a follow-up Modal (a confirmation, an editor) from here
+   * rather than a fixed timer, so iOS never drops it for racing this sheet's
+   * dismissal.
+   */
+  onClosed?: () => void;
   onBackRequest?: () => boolean;
   keyboardAvoiding?: boolean;
   dismissTextKeyboardOnTap?: boolean;
@@ -94,6 +101,7 @@ export function ForgeBottomSheet({
   initialOffset = closeDistance,
   dismissThreshold = 190,
   onCloseStart,
+  onClosed,
   onBackRequest,
   keyboardAvoiding = true,
   dismissTextKeyboardOnTap = true,
@@ -132,6 +140,11 @@ export function ForgeBottomSheet({
   const entryOffsetRef = useRef(initialOffset);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  // Fire onClosed exactly once per open→close, one frame after the Modal has
+  // unmounted, so a follow-up Modal presents only when this sheet is fully gone.
+  const onClosedRef = useRef(onClosed);
+  onClosedRef.current = onClosed;
+  const closedFiredRef = useRef(true);
   // Keep the last visible content mounted through the slide-out. `close()` fires
   // the parent's onClose synchronously, which usually clears the state the
   // children read (e.g. the selected item, or a sub-view), so re-rendering the
@@ -157,6 +170,13 @@ export function ForgeBottomSheet({
     closing.value = false;
     setExiting(false);
     setRendered(false);
+    // The Modal unmounts with this render; give it one frame to tear down before
+    // notifying, so any follow-up Modal is presented into a clear screen.
+    if (!closedFiredRef.current) {
+      closedFiredRef.current = true;
+      const notify = onClosedRef.current;
+      if (notify) requestAnimationFrame(() => notify());
+    }
   }, [clearExitTimer, closing]);
 
   // Bounded internal exit. An interrupted or dropped Reanimated completion must
@@ -205,6 +225,8 @@ export function ForgeBottomSheet({
     clearExitTimer();
     closingRef.current = false;
     closing.value = false;
+    // Arm onClosed for this open→close cycle.
+    closedFiredRef.current = false;
     setExiting(false);
     setRendered(true);
     translateY.value = waitForContentLayoutBeforeEnter && entryContentReady

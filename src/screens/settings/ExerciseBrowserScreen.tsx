@@ -36,6 +36,7 @@ import {
   selectionHaptic,
   SwipeToDeleteRow,
   UnilateralBadge,
+  useAfterSheetClose,
 } from '../../components/ui';
 import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
 import { ExerciseDetailBody, UnilateralDetailSection } from '../../components/ExerciseDetailBody';
@@ -137,6 +138,8 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const [editing, setEditing] = useState<ExerciseCatalogItem | null>(null);
   const [detail, setDetail] = useState<ExerciseCatalogItem | null>(null);
   const [detailSheetView, setDetailSheetView] = useState<DetailSheetView>('details');
+  // Open the edit form only after the detail sheet has fully dismissed.
+  const { runAfterClose, onClosed: onDetailClosed } = useAfterSheetClose();
   const savingVariation = useRef(false);
   const source = customOnly ? catalog.customExercises : catalog.exercises;
   // The header, Back, and search field mount immediately. The full-catalogue
@@ -918,6 +921,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
             setDetail(null);
             setDetailSheetView('details');
           }}
+          onClosed={onDetailClosed}
           onBackRequest={() => {
             if (detailSheetView === 'details') return false;
             transitionDetailSheet('details');
@@ -1033,11 +1037,12 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                       label="Edit exercise"
                       divider
                       onPress={() => {
+                        // Open the edit form only after the detail sheet has fully
+                        // dismissed; iOS drops a Modal presented while another is
+                        // still closing.
+                        const target = detail;
+                        runAfterClose(() => openEdit(target));
                         close();
-                        // Let the detail sheet finish dismissing before the form
-                        // sheet presents; iOS drops a Modal presented while
-                        // another is still closing.
-                        setTimeout(() => openEdit(detail), 280);
                       }}
                     />
                     <ExerciseOptionRow
