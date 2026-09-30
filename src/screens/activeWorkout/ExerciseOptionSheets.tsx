@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import {
   Button,
@@ -14,7 +14,7 @@ import {
   pressedFeedback,
   pressedFeedbackSubtle,
 } from '../../components/ui';
-import { ExerciseDetailBody } from '../../components/ExerciseDetailBody';
+import { ExerciseDetailBody, UnilateralDetailSection } from '../../components/ExerciseDetailBody';
 import { useSettings } from '../../state/SettingsContext';
 import { exerciseCatalog, taxonomyLabel, type ExerciseCatalogItem } from '../../data/exerciseCatalog';
 import { measurementText, trackingFieldLabel, trackingFields } from '../../domain/exercises/tracking';
@@ -237,58 +237,10 @@ export function ExerciseInfoContent({
           ? { title: 'Between sides', value: unilateralRestLabel, onPress: onPressUnilateralRest }
           : undefined}
         footer={unilateral ? (
-          <>
-            <Text style={styles.uniSectionLabel}>Unilateral</Text>
-            <ForgeCard variant="nested" style={styles.uniCard}>
-              <View style={styles.uniRow}>
-                <View style={styles.uniRowIcon}>
-                  <Icon name="square-rounded-letter-s" size={20} color={theme.textSecondary} />
-                </View>
-                <Text style={styles.uniRowTitle}>Leading side</Text>
-                {onToggleLeadSide ? (
-                  <LeadingSideToggle value={leadSide} onChange={(side) => { if (side !== leadSide) onToggleLeadSide(); }} />
-                ) : (
-                  <Text style={styles.uniRowValue}>{leadSide === 'right' ? 'Right' : 'Left'}</Text>
-                )}
-              </View>
-            </ForgeCard>
-          </>
+          <UnilateralDetailSection leadSide={leadSide} onToggleLeadSide={onToggleLeadSide} />
         ) : undefined}
       />
     </Animated.ScrollView>
-  );
-}
-
-/** A two-option segmented control whose selected pill slides between sides. */
-function LeadingSideToggle({ value, onChange }: { value: WorkoutSide; onChange: (side: WorkoutSide) => void }) {
-  const styles = useThemedStyles(createStyles);
-  const [innerWidth, setInnerWidth] = useState(0);
-  const progress = useSharedValue(value === 'right' ? 1 : 0);
-  useEffect(() => {
-    progress.value = withTiming(value === 'right' ? 1 : 0, { duration: 190 });
-  }, [progress, value]);
-  const pillStyle = useAnimatedStyle(() => ({ transform: [{ translateX: progress.value * (innerWidth / 2) }] }));
-  return (
-    <View
-      style={styles.sideToggle}
-      onLayout={(event) => setInnerWidth(event.nativeEvent.layout.width - 4)}
-    >
-      {innerWidth > 0 ? <Animated.View style={[styles.sidePill, { width: innerWidth / 2 }, pillStyle]} /> : null}
-      {(['left', 'right'] as const).map((side) => (
-        <Pressable
-          key={side}
-          accessibilityRole="button"
-          accessibilityState={{ selected: value === side }}
-          accessibilityLabel={`Lead with the ${side} side`}
-          onPress={() => onChange(side)}
-          style={styles.sideOption}
-        >
-          <Text style={[styles.sideOptionText, value === side && styles.sideOptionTextActive]}>
-            {side === 'left' ? 'Left' : 'Right'}
-          </Text>
-        </Pressable>
-      ))}
-    </View>
   );
 }
 
@@ -436,17 +388,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   // space beneath it. Never put a height/maxHeight on the scroll view itself.
   infoScrollView: { flexShrink: 1 },
   infoScroll: { paddingTop: 4, paddingBottom: 30 },
-  uniSectionLabel: { marginTop: 8, marginLeft: 6, color: theme.textPrimary, ...typeScale.sectionTitle },
-  uniCard: { overflow: 'hidden', borderRadius: 18 },
-  uniRow: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 12 },
-  uniRowIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
-  uniRowTitle: { flex: 1, color: theme.textPrimary, ...typeScale.cardTitle },
-  uniRowValue: { color: theme.textSecondary, ...typeScale.body },
-  sideToggle: { width: 132, flexDirection: 'row', borderRadius: 10, padding: 2, position: 'relative', backgroundColor: theme.surfaceMuted, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border },
-  sidePill: { position: 'absolute', top: 2, bottom: 2, left: 2, borderRadius: 8, backgroundColor: theme.surface },
-  sideOption: { flex: 1, paddingVertical: 7, alignItems: 'center' },
-  sideOptionText: { color: theme.textSecondary, ...typeScale.label },
-  sideOptionTextActive: { color: theme.ink, fontWeight: '600' },
   // Let the list occupy all remaining sheet height. The former percentage cap
   // left an inert band under the final card and could clip Show more.
   previousSessionsScroll: { flexShrink: 1 },

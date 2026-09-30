@@ -37,7 +37,7 @@ import {
   UnilateralBadge,
 } from '../../components/ui';
 import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
-import { ExerciseDetailBody } from '../../components/ExerciseDetailBody';
+import { ExerciseDetailBody, UnilateralDetailSection } from '../../components/ExerciseDetailBody';
 import {
   catalogFilterCount,
   emptyCatalogFilters,
@@ -52,7 +52,7 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useForgeReducedMotion } from '../../theme/motion';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import type { IconName, RootStackParamList } from '../../types';
+import type { IconName, RootStackParamList, WorkoutSide } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { workoutTypeIcon } from './workoutTypeIcon';
 import {
@@ -65,7 +65,7 @@ import { shareItemFromSheet } from '../../utils/shareItem';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseBrowser'>;
-type DetailSheetView = 'details' | 'restTime' | 'options';
+type DetailSheetView = 'details' | 'restTime' | 'restTimeUnilateral' | 'options';
 type ExerciseFormView =
   | 'details'
   | 'category'
@@ -410,6 +410,30 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const chooseRestOverride = (item: ExerciseCatalogItem, seconds: number | undefined) => {
     if (restOverride(item) === seconds) return;
     setRestOverride(item, seconds);
+  };
+  // Unilateral defaults (between-sides rest and leading side) are global
+  // per-exercise preferences keyed by exercise id — the same values the live
+  // workout's Exercise info edits, so the library and workout stay in sync.
+  const unilateralRestOverride = (item: ExerciseCatalogItem) => preferences.exerciseUnilateralRestSeconds[item.id];
+  const unilateralRestLabel = (item: ExerciseCatalogItem) => {
+    const value = unilateralRestOverride(item);
+    return value === undefined
+      ? 'Default'
+      : `${Math.floor(value / 60)}:${String(value % 60).padStart(2, '0')}`;
+  };
+  const chooseUnilateralRestOverride = (item: ExerciseCatalogItem, seconds: number | undefined) => {
+    if (unilateralRestOverride(item) === seconds) return;
+    const next = { ...preferences.exerciseUnilateralRestSeconds };
+    if (seconds === undefined) delete next[item.id];
+    else next[item.id] = seconds;
+    updatePreferences({ exerciseUnilateralRestSeconds: next });
+  };
+  const leadSide = (item: ExerciseCatalogItem): WorkoutSide => preferences.exerciseLeadSide[item.id] ?? 'left';
+  const toggleLeadSide = (item: ExerciseCatalogItem) => {
+    selectionHaptic();
+    updatePreferences({
+      exerciseLeadSide: { ...preferences.exerciseLeadSide, [item.id]: leadSide(item) === 'left' ? 'right' : 'left' },
+    });
   };
   // The detail sheet is a multi-view sheet whose views differ a lot in height
   // (a tall scrollable details body, a short options list, a 400pt rest wheel).
@@ -926,6 +950,43 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   />
                 </View>
               </View>
+            ) : detailSheetView === 'restTimeUnilateral' ? (
+              <View testID="exercise-unilateral-rest-selection-view" style={styles.restTimeSheet}>
+                <ForgeBottomSheetHandle />
+                <ForgeSheetHeader
+                  title="Side rest"
+                  leading={
+                    <ForgeBackButton
+                      accessibilityLabel="Back to exercise details"
+                      onPress={() => transitionDetailSheet('details')}
+                    />
+                  }
+                  trailing={
+                    <HeaderAction
+                      accessibilityLabel="Use default between-sides rest"
+                      label="Default"
+                      icon="time-outline"
+                      variant="secondary"
+                      haptic="none"
+                      onPress={() => {
+                        selectionHaptic();
+                        chooseUnilateralRestOverride(detail, undefined);
+                        transitionDetailSheet('details');
+                      }}
+                      style={[
+                        styles.restTimeDefaultAction,
+                        unilateralRestOverride(detail) === undefined && styles.restTimeDefaultActionSelected,
+                      ]}
+                    />
+                  }
+                />
+                <View testID="exercise-unilateral-rest-selection-list" style={styles.restTimePickerContent}>
+                  <ForgeDurationWheel
+                    selectedDuration={unilateralRestOverride(detail) ?? preferences.defaultUnilateralRestSeconds}
+                    onSelect={(value) => chooseUnilateralRestOverride(detail, value)}
+                  />
+                </View>
+              </View>
             ) : detailSheetView === 'options' ? (
               <View style={styles.detailSheet}>
                 <ForgeBottomSheetHandle />
@@ -1006,18 +1067,16 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   restLabel={restLabel(detail)}
                   onPressRest={() => transitionDetailSheet('restTime')}
                   bottomPadding={Math.max(30, bottomInset + 20)}
+                  secondaryRest={detail.laterality === 'unilateral' ? {
+                    title: 'Between sides',
+                    value: unilateralRestLabel(detail),
+                    onPress: () => transitionDetailSheet('restTimeUnilateral'),
+                  } : undefined}
                   footer={detail.laterality === 'unilateral' ? (
-                    <>
-                      <Text style={styles.uniSectionLabel}>Unilateral</Text>
-                      <ForgeCard variant="nested" style={styles.uniCard}>
-                        <View style={styles.uniRow}>
-                          <View style={styles.uniRowIcon}>
-                            <UnilateralBadge size={20} color={theme.textSecondary} />
-                          </View>
-                          <Text style={styles.uniRowTitle}>Complete one side at a time</Text>
-                        </View>
-                      </ForgeCard>
-                    </>
+                    <UnilateralDetailSection
+                      leadSide={leadSide(detail)}
+                      onToggleLeadSide={() => toggleLeadSide(detail)}
+                    />
                   ) : undefined}
                 />
               </View>
@@ -1240,7 +1299,12 @@ const Movement = React.memo(function Movement({
               <SettingsRow
                 title={group}
                 subtitle={`${item.equipment} · ${item.category}`}
-                trailing={<Icon name="sparkles" size={19} color={theme.textSecondary} />}
+                trailing={
+                  <View style={styles.variationIcons}>
+                    {item.laterality === 'unilateral' ? <UnilateralBadge size={18} color={theme.textSecondary} /> : null}
+                    <Icon name="sparkles" size={19} color={theme.textSecondary} />
+                  </View>
+                }
                 disclosure
               />
               <Button
@@ -1262,6 +1326,7 @@ const Movement = React.memo(function Movement({
               subtitle={`${item.equipment} · ${item.category}`}
               accessibilityLabel={`Open ${group}`}
               onPress={() => onOpen(item)}
+              trailing={item.laterality === 'unilateral' ? <UnilateralBadge size={18} color={theme.textSecondary} /> : undefined}
               disclosure
             />
             <Button
@@ -1315,6 +1380,7 @@ const Movement = React.memo(function Movement({
                   >
                     <Text style={styles.variationName}>{label}</Text>
                     <View style={styles.variationIcons}>
+                      {item.laterality === 'unilateral' && <UnilateralBadge size={18} color={theme.textSecondary} />}
                       {isCustom(item) && <Icon name="sparkles" size={18} color={theme.textSecondary} />}
                       <Icon name="chevron-forward" size={17} color={theme.slate} />
                     </View>
@@ -1436,11 +1502,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     empty: { paddingTop: 60, alignItems: 'center' },
     formSheet: { alignSelf: 'stretch', flexShrink: 1 },
     detailSheet: { minHeight: DETAIL_SHEET_MIN_HEIGHT },
-    uniSectionLabel: { marginTop: 8, marginLeft: 6, color: theme.textPrimary, ...typeScale.sectionTitle },
-    uniCard: { overflow: 'hidden', borderRadius: 18 },
-    uniRow: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 12 },
-    uniRowIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
-    uniRowTitle: { flex: 1, color: theme.textPrimary, ...typeScale.cardTitle },
     restTimeSheet: { minHeight: DETAIL_SHEET_MIN_HEIGHT },
     restTimeDefaultAction: {
       minWidth: 112,

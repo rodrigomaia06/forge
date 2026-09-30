@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import type { ExerciseCatalogItem } from '../data/exerciseCatalog';
-import type { ForgeTheme } from '../types';
+import type { ForgeTheme, WorkoutSide } from '../types';
 import type { WorkoutTypePreference } from '../types/settings';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
 import { workoutTypeIcon } from '../screens/settings/workoutTypeIcon';
-import { ForgeCard, ForgeText as Text, Icon, lightHaptic, pressedFeedback } from './ui';
+import { ForgeCard, ForgeText as Text, Icon, UnilateralBadge, lightHaptic, pressedFeedback } from './ui';
 
 /** Human tracking label, e.g. "Weight + reps". Shared with the exercise library. */
 export function formatTrackingType(type: ExerciseCatalogItem['trackingType']): string {
@@ -143,6 +144,82 @@ function Fact({ label, value }: { label: string; value: string }) {
   );
 }
 
+/**
+ * The shared unilateral section appended to a unilateral exercise's detail — the
+ * `UnilateralBadge`, a "complete one side at a time" note, and a leading-side
+ * choice. Rendered identically by the Exercise Library detail and the live-workout
+ * "Exercise info" so the two read the same. Pass `onToggleLeadSide` to make the
+ * side choice editable; omit it for a static readout.
+ */
+export function UnilateralDetailSection({
+  leadSide,
+  onToggleLeadSide,
+}: {
+  leadSide: WorkoutSide;
+  onToggleLeadSide?: () => void;
+}) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  return (
+    <>
+      <Text style={styles.detailSectionLabel}>Unilateral</Text>
+      <ForgeCard variant="nested" style={styles.uniCard}>
+        <View style={styles.uniRow}>
+          <View style={styles.uniRowIcon}>
+            <UnilateralBadge size={20} color={theme.textSecondary} />
+          </View>
+          <Text style={styles.uniRowTitle}>Complete one side at a time</Text>
+        </View>
+        <View style={styles.uniRowDivider} />
+        <View style={styles.uniRow}>
+          <View style={styles.uniRowIcon}>
+            <Icon name="square-rounded-letter-s" size={20} color={theme.textSecondary} />
+          </View>
+          <Text style={styles.uniRowTitle}>Leading side</Text>
+          {onToggleLeadSide ? (
+            <LeadingSideToggle value={leadSide} onChange={(side) => { if (side !== leadSide) onToggleLeadSide(); }} />
+          ) : (
+            <Text style={styles.uniRowValue}>{leadSide === 'right' ? 'Right' : 'Left'}</Text>
+          )}
+        </View>
+      </ForgeCard>
+    </>
+  );
+}
+
+/** A two-option segmented control whose selected pill slides between sides. */
+function LeadingSideToggle({ value, onChange }: { value: WorkoutSide; onChange: (side: WorkoutSide) => void }) {
+  const styles = useThemedStyles(createStyles);
+  const [innerWidth, setInnerWidth] = useState(0);
+  const progress = useSharedValue(value === 'right' ? 1 : 0);
+  useEffect(() => {
+    progress.value = withTiming(value === 'right' ? 1 : 0, { duration: 190 });
+  }, [progress, value]);
+  const pillStyle = useAnimatedStyle(() => ({ transform: [{ translateX: progress.value * (innerWidth / 2) }] }));
+  return (
+    <View
+      style={styles.sideToggle}
+      onLayout={(event) => setInnerWidth(event.nativeEvent.layout.width - 4)}
+    >
+      {innerWidth > 0 ? <Animated.View style={[styles.sidePill, { width: innerWidth / 2 }, pillStyle]} /> : null}
+      {(['left', 'right'] as const).map((side) => (
+        <Pressable
+          key={side}
+          accessibilityRole="button"
+          accessibilityState={{ selected: value === side }}
+          accessibilityLabel={`Lead with the ${side} side`}
+          onPress={() => onChange(side)}
+          style={styles.sideOption}
+        >
+          <Text style={[styles.sideOptionText, value === side && styles.sideOptionTextActive]}>
+            {side === 'left' ? 'Left' : 'Right'}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 const createStyles = (theme: ForgeTheme) =>
   StyleSheet.create({
     detailContent: { paddingHorizontal: 20, paddingBottom: 30, paddingTop: 2, gap: 8 },
@@ -166,4 +243,15 @@ const createStyles = (theme: ForgeTheme) =>
     sectionTypes: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8, flexShrink: 1, marginLeft: 16 },
     sectionType: { flexDirection: 'row', alignItems: 'center', gap: 5 },
     sectionTypeName: { ...typeScale.body, color: theme.ink },
+    uniCard: { overflow: 'hidden', borderRadius: 18 },
+    uniRow: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 12 },
+    uniRowDivider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.divider, marginLeft: 64 },
+    uniRowIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
+    uniRowTitle: { flex: 1, color: theme.textPrimary, ...typeScale.cardTitle },
+    uniRowValue: { color: theme.textSecondary, ...typeScale.body },
+    sideToggle: { width: 132, flexDirection: 'row', borderRadius: 10, padding: 2, position: 'relative', backgroundColor: theme.surfaceMuted, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border },
+    sidePill: { position: 'absolute', top: 2, bottom: 2, left: 2, borderRadius: 8, backgroundColor: theme.surface },
+    sideOption: { flex: 1, paddingVertical: 7, alignItems: 'center' },
+    sideOptionText: { color: theme.textSecondary, ...typeScale.label },
+    sideOptionTextActive: { color: theme.ink, fontWeight: '600' },
   });

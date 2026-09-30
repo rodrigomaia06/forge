@@ -24,6 +24,7 @@ import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import type { ExerciseCatalogItem } from '../../data/exerciseCatalog';
+import { exerciseCatalogById } from '../../data/exerciseCatalog';
 import { useExerciseCatalog } from '../../state/ExerciseCatalogContext';
 import { useSettings } from '../../state/SettingsContext';
 import { CompletionCheck } from './CompletionCheck';
@@ -784,7 +785,10 @@ export function ExerciseOptionsSheet({
   };
   // Unilateral exercises additionally carry a between-sides rest and a leading
   // side, both editable here and both keyed by the same exercise identity.
-  const unilateral = isUnilateralExercise(exercise);
+  // Match the exercise card's robust detection: fall back to the live catalog so
+  // a legacy snapshot without laterality still surfaces the unilateral options.
+  const unilateral = isUnilateralExercise(exercise)
+    || exerciseCatalogById.get(exercise.exerciseId ?? '')?.laterality === 'unilateral';
   const unilateralRestOverride = preferences.exerciseUnilateralRestSeconds[restKey];
   const applyUnilateralRest = (seconds: number | undefined): void => {
     const next = { ...preferences.exerciseUnilateralRestSeconds };
