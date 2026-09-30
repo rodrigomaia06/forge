@@ -127,12 +127,11 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
   const { onSetInputFocus, onScrollOffsetChange } = useFocusedSetKeyboardLift(exerciseListRef);
 
   const leaveEditor = (completedAt?: number): void => {
-    if (isCreating) {
-      navigation.popTo('MainTabs', { screen: 'History' });
-      return;
-    }
+    // Every mode is now guarded (see usePreventRemove below), so a deliberate
+    // leave (Save, or a confirmed discard) must flag itself as allowed or the
+    // guard would re-prompt on the way out.
+    allowNavigationRef.current = true;
     if (isActive) {
-      allowNavigationRef.current = true;
       navigation.goBack();
       return;
     }
@@ -169,7 +168,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
   // Read the allow-navigation ref inside the callback rather than folding it into
   // the prevent flag: a ref change does not re-render, so a stale `true` flag was
   // showing the discard prompt on the first Save after an edit (e.g. reordering).
-  usePreventRemove(isActive && dirty, ({ data }) => {
+  usePreventRemove(dirty, ({ data }) => {
     if (allowNavigationRef.current) {
       navigation.dispatch(data.action);
       return;
