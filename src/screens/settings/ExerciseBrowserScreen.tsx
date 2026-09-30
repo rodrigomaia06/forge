@@ -25,6 +25,7 @@ import {
   ForgeFloatingCta,
   ForgeSearchField,
   ForgeSheetHeader,
+  ForgeSwitch,
   ForgeDurationWheel,
   ForgeText as Text,
   ForgeTextInput as TextInput,
@@ -132,6 +133,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const [exerciseCategory, setExerciseCategory] = useState('Full Body');
   const [secondaryMuscles, setSecondaryMuscles] = useState<string[]>([]);
   const [workoutTypeIds, setWorkoutTypeIds] = useState<string[]>(['strength']);
+  const [unilateral, setUnilateral] = useState(false);
   const [editing, setEditing] = useState<ExerciseCatalogItem | null>(null);
   const [detail, setDetail] = useState<ExerciseCatalogItem | null>(null);
   const [detailSheetView, setDetailSheetView] = useState<DetailSheetView>('details');
@@ -316,6 +318,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     setExerciseCategory(inherited?.category ?? 'Full Body');
     setSecondaryMuscles(inherited?.secondaryMuscles ?? []);
     setWorkoutTypeIds(inherited?.workoutTypeIds ?? (fixedTypeId ? [fixedTypeId] : ['strength']));
+    setUnilateral(inherited?.laterality === 'unilateral');
     setFormParent(parent);
   }, [catalog.exercises, catalog.customExercises, fixedTypeId, forgeCategoryOptions]);
   const handleToggleMovement = useCallback((movement: string) => {
@@ -350,6 +353,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     setExerciseCategory(item.category);
     setSecondaryMuscles(item.secondaryMuscles);
     setWorkoutTypeIds(item.workoutTypeIds);
+    setUnilateral(item.laterality === 'unilateral');
     setFormParent(item.group);
   };
   const save = (): boolean => {
@@ -370,6 +374,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
       workoutTypeIds,
       primaryMuscle,
       secondaryMuscles,
+      laterality: unilateral ? 'unilateral' : 'bilateral',
       restSeconds: editing?.restSeconds,
     };
     if (editing) catalog.updateCustomExercise(exercise);
@@ -728,8 +733,19 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                             title="Secondary muscles"
                             trailing={<Text style={styles.formValue}>{secondaryMuscles.length ? `${secondaryMuscles.length} selected` : 'None'}</Text>}
                             disclosure
-                              onPress={() => transitionFormView('secondaryMuscles')}
-                            />
+                            showDivider
+                            onPress={() => transitionFormView('secondaryMuscles')}
+                          />
+                          <SettingsRow
+                            title="Unilateral"
+                            subtitle="Trained one side at a time"
+                            accessibilityRole="switch"
+                            accessibilityLabel="Unilateral"
+                            accessibilityState={{ checked: unilateral }}
+                            haptic="none"
+                            onPress={() => { selectionHaptic(); setUnilateral((current) => !current); }}
+                            trailing={<ForgeSwitch value={unilateral} testID="exercise-form-unilateral-switch" />}
+                          />
                         </View>
                       ) : null}
                     </ForgeCard>
