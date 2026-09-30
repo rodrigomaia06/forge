@@ -408,8 +408,15 @@ export function volumeSeries(
   for (const workout of completedWorkouts) {
     const at = completedAt(workout);
     if (at < firstStart) continue;
-    const idx = Math.floor((at - firstStart) / (7 * 24 * 3600_000));
-    if (idx < 0 || idx >= weeks.length) continue;
+    // Bucket against the actual (DST-correct) week-start timestamps rather than a
+    // fixed 7×24h division, which drifts by ±1h across a DST transition and can
+    // land a boundary workout in the adjacent week.
+    let idx = -1;
+    for (let i = 0; i < weeks.length; i += 1) {
+      if (at >= weeks[i].weekStart) idx = i;
+      else break;
+    }
+    if (idx < 0) continue;
     weeks[idx].volume += computeWorkoutVolume(workout);
   }
   const currentKg = weeks[weeks.length - 1]?.volume ?? 0;
@@ -457,7 +464,9 @@ export function measurementSeries(
   windowDays: number,
   now: Date = new Date(),
 ): MeasurementSeries {
-  const cutoff = localDateKey(addDays(now, -windowDays));
+  // Inclusive of today: a 7-day window is today plus the previous 6 days, matching
+  // the half-open windows the other dashboard selectors use.
+  const cutoff = localDateKey(addDays(now, -(windowDays - 1)));
   const inWindow = entries
     .filter((entry) => entry.definitionId === definitionId && entry.date >= cutoff)
     .sort((a, b) => a.date.localeCompare(b.date));

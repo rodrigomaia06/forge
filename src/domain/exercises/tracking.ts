@@ -10,7 +10,15 @@ export function trackingFieldLabel(type: TrackingType, kind: SetMeasurementKind)
 }
 export function measurementsFor(mode: TrackingType | undefined, set: WorkoutSet): SetMeasurement[] {
   if (set.measurements?.length) return set.measurements;
-  return trackingFields[mode ?? 'weight-reps'].flatMap((kind) => { const legacy = kind === 'reps' ? set.reps : set.weight; const value = Number(String(legacy).replace(',', '.')); return Number.isFinite(value) && String(legacy).trim() ? [{ id: `${set.id}-${kind}`, kind, unit: measurementUnit[kind], value }] : []; });
+  return trackingFields[mode ?? 'weight-reps'].flatMap((kind) => {
+    // Legacy sets only ever stored reps + a single weight. Never fabricate a
+    // distance/duration/rpe value from the weight column for multi-field types
+    // (e.g. weight-distance, distance-duration).
+    const legacy = kind === 'reps' ? set.reps : (kind === 'weight' || kind === 'addedWeight') ? set.weight : undefined;
+    if (legacy === undefined) return [];
+    const value = Number(String(legacy).replace(',', '.'));
+    return Number.isFinite(value) && String(legacy).trim() ? [{ id: `${set.id}-${kind}`, kind, unit: measurementUnit[kind], value }] : [];
+  });
 }
 export function updateMeasurement(set: WorkoutSet, kind: SetMeasurementKind, text: string): SetMeasurement[] {
   const existing = measurementsFor(undefined, set).filter((entry) => entry.kind !== kind); const value = Number(text.replace(',', '.'));
