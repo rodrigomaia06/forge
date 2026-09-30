@@ -9,7 +9,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { Button, ForgeConfirmationDialog, ForgeText as Text, Icon, pressedFeedback, UnilateralBadge } from '../../components/ui';
+import { Button, ForgeConfirmationDialog, ForgeText as Text, Icon, pressedFeedback, UnilateralBadge, useAfterSheetClose } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
@@ -76,7 +76,9 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   // sheet's pop-up entrance. Only the return path sets this.
   const [optionsRestoreInstant, setOptionsRestoreInstant] = useState(false);
   const [removeConfirmationOpen, setRemoveConfirmationOpen] = useState(false);
-  const optionTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Present the remove/off-session/replace follow-up only after the options sheet
+  // has fully closed, so it can't race the sheet's dismissal.
+  const { runAfterClose, onClosed: onOptionsClosed } = useAfterSheetClose();
   const [openSetId, setOpenSetId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(!collapsible);
   const cardTranslateX = useSharedValue(deleteRevealed ? -deleteActionWidth : 0);
@@ -103,13 +105,6 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   const showPrevious = true;
   const canBuildWarmups = showWarmupSets && Boolean(addWarmupSets) && trackingFields[trackingType].includes('weight');
 
-  useEffect(
-    () => () => {
-      if (optionTransitionTimer.current) clearTimeout(optionTransitionTimer.current);
-    },
-    [],
-  );
-
   useEffect(() => {
     if (!screenIsFocused) {
       if (previousSessionPushStarted) setPreviousSessionPushStarted(false);
@@ -125,25 +120,6 @@ export const ExerciseSection = React.memo(function ExerciseSection({
       });
     }
   }, [previousSessionPushStarted, restorePreviousSessions, screenIsFocused]);
-
-  const afterOptionsClose = (action: () => void): void => {
-    if (optionTransitionTimer.current) clearTimeout(optionTransitionTimer.current);
-    // ForgeActionSheet owns a short close animation. Defer its next surface so
-    // two bottom sheets never compete visually or for touch handling.
-    optionTransitionTimer.current = setTimeout(() => {
-      optionTransitionTimer.current = null;
-      action();
-    }, reducedMotion ? 0 : forgeMotion.sheetExit);
-  };
-
-  // If the options sheet is reopened before its deferred unmount fires, cancel
-  // that unmount so the freshly-reopened sheet is not torn down under the user.
-  useEffect(() => {
-    if (optionsVisible && optionTransitionTimer.current) {
-      clearTimeout(optionTransitionTimer.current);
-      optionTransitionTimer.current = null;
-    }
-  }, [optionsVisible]);
 
   useEffect(() => {
     cardOpen.value = deleteRevealed;
@@ -434,14 +410,18 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 visible={optionsVisible}
                 enterInstant={optionsRestoreInstant}
                 onClose={() => {
-                  // Flip visible so the sheet plays its slide-out, and defer the
-                  // unmount past the exit so it isn't torn down mid-slide (which
-                  // would make it vanish instead of sliding down).
+                  // Flip visible so the sheet plays its slide-out; onClosed unmounts
+                  // it (and runs any pending follow-up) once the exit completes.
                   setOptionsVisible(false);
-                  afterOptionsClose(() => setOptionsOpen(false));
+                }}
+                onClosed={() => {
+                  // Keep the sheet mounted across a previous-sessions push so it can
+                  // restore in place on return; otherwise unmount it now.
+                  if (!restorePreviousSessions) setOptionsOpen(false);
+                  onOptionsClosed();
                 }}
                 onEditNote={updateExercise ? (note) => updateExercise(exercise.id, { note }) : undefined}
-                onToggleOffSession={updateExercise ? () => afterOptionsClose(() => updateExercise(exercise.id, { offSession: !exercise.offSession })) : undefined}
+                onToggleOffSession={updateExercise ? () => runAfterClose(() => updateExercise(exercise.id, { offSession: !exercise.offSession })) : undefined}
                 onOpenPreviousSessions={() => undefined}
                 addWarmupSets={canBuildWarmups && addWarmupSets ? (sets) => addWarmupSets(exercise.id, sets) : undefined}
                 onOpenExerciseInfo={hasExerciseInfo ? () => undefined : undefined}
@@ -455,9 +435,9 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                   navigation.push('WorkoutDetails', { workoutId, returnTo: 'ActiveWorkout', returnContext: 'previous-sessions' });
                 }}
                 onRemove={() => {
-                  afterOptionsClose(() => setRemoveConfirmationOpen(true));
+                  runAfterClose(() => setRemoveConfirmationOpen(true));
                 }}
-                onReplaceExercise={onReplaceExercise ? () => afterOptionsClose(() => onReplaceExercise(exercise.id)) : undefined}
+                onReplaceExercise={onReplaceExercise ? () => runAfterClose(() => onReplaceExercise(exercise.id)) : undefined}
               />
             )}
             <ForgeConfirmationDialog
@@ -502,22 +482,6 @@ export function ReadOnlyExerciseSection({
   const [previousSessionPushStarted, setPreviousSessionPushStarted] = useState(false);
   // Restore in place (no pop-up) when returning from a pushed workout detail.
   const [optionsRestoreInstant, setOptionsRestoreInstant] = useState(false);
-  const optionTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Defer the sheet's unmount past its slide-out so a dismiss doesn't tear it
-  // down mid-slide (which reads as vanishing rather than sliding down).
-  const afterOptionsClose = (action: () => void): void => {
-    if (optionTransitionTimer.current) clearTimeout(optionTransitionTimer.current);
-    optionTransitionTimer.current = setTimeout(() => {
-      optionTransitionTimer.current = null;
-      action();
-    }, reducedMotion ? 0 : forgeMotion.sheetExit);
-  };
-  useEffect(() => {
-    if (optionsVisible && optionTransitionTimer.current) {
-      clearTimeout(optionTransitionTimer.current);
-      optionTransitionTimer.current = null;
-    }
-  }, [optionsVisible]);
   const { completedWorkouts } = useWorkouts();
   const navigation = useNavigation<RootNavigationProp>();
   const screenIsFocused = useIsFocused();
@@ -625,10 +589,13 @@ export function ReadOnlyExerciseSection({
         completedWorkouts={completedWorkouts}
         excludeWorkoutId={workoutId}
         onClose={() => {
-          // Slide out, then unmount after the exit (see the note on the other
-          // ExerciseOptionsSheet) so it doesn't vanish mid-slide.
+          // Slide out; onClosed unmounts it once the exit completes so it doesn't
+          // vanish mid-slide.
           setOptionsVisible(false);
-          afterOptionsClose(() => setOptionsOpen(false));
+        }}
+        onClosed={() => {
+          // Stay mounted across a previous-sessions push to restore in place.
+          if (!restorePreviousSessions) setOptionsOpen(false);
         }}
         onOpenPreviousSessions={() => undefined}
         onOpenExerciseInfo={() => undefined}

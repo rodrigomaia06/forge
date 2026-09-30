@@ -12,12 +12,3 @@ export function shareItem(scope: ShareScope): void {
     Alert.alert('Could not share', message || 'Sharing is not available on this device.');
   });
 }
-
-/**
- * Share from inside a Forge sheet or menu. iOS will not present the share sheet
- * while another modal is dismissing, so wait for the sheet's close animation to
- * finish before presenting — otherwise the share silently never appears.
- */
-export function shareItemFromSheet(scope: ShareScope): void {
-  setTimeout(() => shareItem(scope), 450);
-}

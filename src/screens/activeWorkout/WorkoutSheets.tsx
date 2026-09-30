@@ -715,6 +715,7 @@ export function ExerciseOptionsSheet({
   visible,
   exercise,
   onClose,
+  onClosed,
   onEditNote,
   onOpenPreviousSessions,
   addWarmupSets,
@@ -731,6 +732,8 @@ export function ExerciseOptionsSheet({
   visible: boolean;
   exercise: WorkoutExercise;
   onClose: () => void;
+  /** Fires once the sheet has fully dismissed; use to present a follow-up modal. */
+  onClosed?: () => void;
   onEditNote?: (note: string) => void;
   onOpenPreviousSessions?: () => void;
   /** Present when warm-up ramps apply; opens an in-place warm-up view. */
@@ -838,6 +841,7 @@ export function ExerciseOptionsSheet({
       visible={visible}
       enterInstant={enterInstant}
       onClose={close}
+      onClosed={onClosed}
       accessibilityLabel="Close options"
       title="Exercise options"
       initialOffset={420}

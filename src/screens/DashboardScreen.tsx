@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { LayoutAnimation, Platform, Pressable, StyleSheet, UIManager, View } from 'react-native';
-import { runWhenIdle } from '../utils/idle';
 import { useNavigation } from '@react-navigation/native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -9,6 +8,7 @@ import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 
 import {
   AppScreen,
   ForgeActionSheet,
+  useAfterSheetClose,
   ForgeCard,
   ForgeText as Text,
   HeaderEdge,
@@ -128,6 +128,8 @@ export function DashboardScreen() {
   const [editing, setEditing] = useState(false);
   const [addTileOpen, setAddTileOpen] = useState(false);
   const [settingsTileId, setSettingsTileId] = useState<string | null>(null);
+  // Open a new tile's settings only after the add-tile sheet has fully closed.
+  const { runAfterClose: runAfterAddTileClose, onClosed: onAddTileClosed } = useAfterSheetClose();
   const [headerElevated, setHeaderElevated] = useState(false);
   const reducedMotion = useForgeReducedMotion();
   // Smoothly reflow the tile list when a tile is added/removed or edit mode
@@ -256,16 +258,14 @@ export function DashboardScreen() {
       ...layout.filter((tile) => tile.id !== config.id),
       { ...config, visible: true },
     ]);
-    setAddTileOpen(false);
     // A fresh measurement card opens its settings so you can pick the metric(s)
-    // and window straight away, rather than staring at an empty tile. Wait for
-    // the add-tile sheet to finish closing first — opening a second bottom sheet
-    // in the same frame deadlocks the overlay/gesture layer on native.
+    // and window straight away, rather than staring at an empty tile — but only
+    // once the add-tile sheet has fully closed, so the two bottom sheets never
+    // overlap on native.
     if (tileHasSettings(config.kind)) {
-      runWhenIdle(() => {
-        setTimeout(() => setSettingsTileId(config.id), 320);
-      });
+      runAfterAddTileClose(() => setSettingsTileId(config.id));
     }
+    setAddTileOpen(false);
   };
 
   const updateTileSettings = (id: string, settings: DashboardTileSettings) =>
@@ -500,6 +500,7 @@ export function DashboardScreen() {
         <ForgeActionSheet
           visible={addTileOpen}
           onClose={() => setAddTileOpen(false)}
+          onClosed={onAddTileClosed}
           accessibilityLabel="Dismiss add tile chooser"
           title="Add tile"
           testID="add-tile-sheet"

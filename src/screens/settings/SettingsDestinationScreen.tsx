@@ -6,7 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import { setPendingImport } from '../../state/pendingImport';
 import { setPendingConflict } from '../../state/pendingConflict';
 import * as Clipboard from 'expo-clipboard';
-import { AppScreen, ForgeBackButton, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeCard, ForgeConfirmationDialog, ForgeFloatingCta, ForgeSelectionSheet, ForgeSheetHeader, ForgeText as Text, Icon, pressedFeedback } from '../../components/ui';
+import { AppScreen, ForgeBackButton, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeCard, ForgeConfirmationDialog, ForgeFloatingCta, ForgeSelectionSheet, ForgeSheetHeader, ForgeText as Text, Icon, pressedFeedback, useAfterSheetClose } from '../../components/ui';
 import type { ForgeSingleSelectOption } from '../../components/ui';
 import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
 import { dashboardTheme } from '../../theme/dashboardTheme';
@@ -82,6 +82,8 @@ function BackupExport() {
   const [restoreInspection, setRestoreInspection] = React.useState<Awaited<ReturnType<typeof pickSqliteBackup>>>(null);
   const [notice, setNotice] = React.useState<{ title: string; message: string; tone?: 'neutral' | 'success' } | null>(null);
   const [mergeSummary, setMergeSummary] = React.useState<DataTransferMergeResult | null>(null);
+  // Present the merge-summary dialog only after the transfer sheet has fully closed.
+  const { runAfterClose: runAfterTransferClose, onClosed: onTransferSheetClosed } = useAfterSheetClose();
   const [history, setHistory] = React.useState<BackupHistory>({});
   const reloadHistory = React.useCallback(() => { void loadBackupHistory().then(setHistory); }, []);
   React.useEffect(() => { reloadHistory(); }, [reloadHistory]);
@@ -194,10 +196,12 @@ function BackupExport() {
       const result = await mergeDataTransfer(transfer, selection);
       await refresh();
       await recordDiagnostic('data-imported');
+      // Present the "Data merged" summary only after the transfer sheet has fully
+      // closed; presenting it in the same batch drops it on iOS.
+      runAfterTransferClose(() => setMergeSummary(result));
       setTransferStep(null);
       setTransfer(null);
       setInspection(null);
-      setMergeSummary(result);
     });
   };
   const restore = (): void => {
@@ -266,6 +270,7 @@ function BackupExport() {
         share={transferStep?.startsWith('import') ? transfer?.share : undefined}
         onChangeSelection={setSelection}
         onClose={() => { setTransferStep(null); setInspection(null); setTransfer(null); }}
+        onClosed={onTransferSheetClosed}
         onBack={() => { setInspection(null); setTransferStep('import-selection'); }}
         onExportJson={() => void run(async () => { await exportJson(selection); await recordBackupEvent('data-export'); await recordDiagnostic('data-exported'); setTransferStep(null); reloadHistory(); })}
         onExportText={() => void run(async () => { await exportText(selection); await recordBackupEvent('data-export'); setTransferStep(null); reloadHistory(); })}
@@ -389,7 +394,7 @@ const transferCategories: Array<{ key: DataTransferCategory; title: string; deta
 ];
 
 function DataTransferSheet({
-  step, selection, inspection, share, onChangeSelection, onClose, onBack, onExportJson, onExportText, onReviewImport, onImport, busy,
+  step, selection, inspection, share, onChangeSelection, onClose, onClosed, onBack, onExportJson, onExportText, onReviewImport, onImport, busy,
 }: {
   step: 'export-json' | 'export-text' | 'import-selection' | 'import-review' | null;
   selection: DataTransferSelection;
@@ -397,6 +402,7 @@ function DataTransferSheet({
   share?: ShareDescriptor;
   onChangeSelection: (selection: DataTransferSelection) => void;
   onClose: () => void;
+  onClosed?: () => void;
   onBack: () => void;
   onExportJson: () => void;
   onExportText: () => void;
@@ -427,6 +433,7 @@ function DataTransferSheet({
     <ForgeBottomSheet
       visible={step !== null}
       onClose={onClose}
+      onClosed={onClosed}
       accessibilityLabel={title}
       closeDistance={680}
       dragEnabled={false}

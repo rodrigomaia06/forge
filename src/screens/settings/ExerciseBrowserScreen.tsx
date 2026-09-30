@@ -63,7 +63,7 @@ import {
   groupCatalogByMovement,
 } from '../../domain/exercises/catalogSelectors';
 import { formatCatalogVariation } from '../../domain/exercises/exercisePresentation';
-import { shareItemFromSheet } from '../../utils/shareItem';
+import { shareItem } from '../../utils/shareItem';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseBrowser'>;
@@ -1026,10 +1026,11 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                       icon="share"
                       label="Share exercise"
                       onPress={() => {
-                        // Close the whole sheet first — iOS won't present the
-                        // share sheet while this modal is still up.
+                        // Present the OS share sheet only after this sheet has fully
+                        // closed — iOS won't present it while a modal is dismissing.
+                        const target = detail;
+                        runAfterClose(() => shareItem({ kind: 'exercise', id: target.id }));
                         close();
-                        shareItemFromSheet({ kind: 'exercise', id: detail.id });
                       }}
                     />
                     <ExerciseOptionRow

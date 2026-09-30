@@ -47,7 +47,7 @@ import { resolveWorkoutTypeIcon } from './settings/workoutTypeIcon';
 import { useForgeDockScrollInset } from '../components/DockChrome';
 import { RoutineDragHandle, RoutineReorderGroup } from './plans/RoutineReorderGroup';
 import { useStartWorkoutGuard } from './useStartWorkoutGuard';
-import { shareItemFromSheet } from '../utils/shareItem';
+import { shareItem } from '../utils/shareItem';
 
 type Props = RootTabScreenProps<'Plans'>;
 const ROUTINE_ROW_HEIGHT = 76;
@@ -288,7 +288,7 @@ export function PlansScreen({ navigation, route }: Props) {
           : []),
         { label: 'Edit', icon: 'note', onPress: () => openRoutine(routine, false) },
         { label: 'Duplicate', icon: 'duplicate', onPress: () => duplicate(routine) },
-        { label: 'Share', icon: 'share', onPress: () => shareItemFromSheet({ kind: 'routine', id: routine.id }) },
+        { label: 'Share', icon: 'share', onPress: () => runAfterClose(() => shareItem({ kind: 'routine', id: routine.id })) },
         {
           label: 'Delete',
           icon: 'trash',
@@ -303,7 +303,7 @@ export function PlansScreen({ navigation, route }: Props) {
       { label: 'Start', icon: 'play', onPress: () => startRoutine(routine, false) },
       { label: 'Visualize', icon: 'info', onPress: () => viewRoutine(routine, false) },
       { label: 'Edit', icon: 'note', onPress: () => openRoutine(routine, false) },
-      { label: 'Share', icon: 'share', onPress: () => shareItemFromSheet({ kind: 'routine', id: routine.id }) },
+      { label: 'Share', icon: 'share', onPress: () => runAfterClose(() => shareItem({ kind: 'routine', id: routine.id })) },
     ];
   };
   const addPlan = (): void => {
@@ -523,7 +523,7 @@ export function PlansScreen({ navigation, route }: Props) {
                 runAfterClose(() => setPlanEditTarget(target));
               },
             },
-            { label: 'Share', icon: 'share', onPress: () => shareItemFromSheet({ kind: 'plan', id: planTarget.id }) },
+            { label: 'Share', icon: 'share', onPress: () => runAfterClose(() => shareItem({ kind: 'plan', id: planTarget.id })) },
             {
               label: 'Delete',
               icon: 'trash',

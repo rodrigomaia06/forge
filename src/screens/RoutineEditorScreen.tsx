@@ -54,7 +54,7 @@ import { routineExercisesWithNextSessionTargets } from '../domain/workouts/nextS
 import { useSettings } from '../state/SettingsContext';
 import { makeWorkoutId } from '../state/workoutMutations';
 import { createExerciseSnapshot } from '../domain/exercises/exerciseSnapshot';
-import { shareItemFromSheet } from '../utils/shareItem';
+import { shareItem } from '../utils/shareItem';
 import type { ExerciseCatalogItem } from '../data/exerciseCatalog';
 import type {
   RootStackParamList,
@@ -604,7 +604,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                 onPress: () =>
                   change((current) => ({ ...current, planId: current.planId ? undefined : plans[0]?.id })),
               },
-              { label: 'Share routine', icon: 'share', onPress: () => shareItemFromSheet({ kind: 'routine', id: draft.id }) },
+              { label: 'Share routine', icon: 'share', onPress: () => runAfterClose(() => shareItem({ kind: 'routine', id: draft.id })) },
               // Confirm only after the options sheet has dismissed; iOS drops a
               // Modal presented while another is still closing.
               { label: 'Delete routine', icon: 'trash', tone: 'destructive', onPress: () => runAfterClose(confirmDelete) },
