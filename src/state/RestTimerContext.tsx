@@ -42,6 +42,9 @@ export interface RestTimerContextValue {
   start: (duration: number) => void;
   adjust: (seconds: number) => void;
   stop: () => void;
+  /** Mark real workout activity (e.g. a completed set) so the unfinished-workout
+   * reminder is deferred even when the rest timer display is off. */
+  noteActivity: () => void;
 }
 
 const RestTimerContext = createContext<RestTimerContextValue | null>(null);
@@ -306,6 +309,13 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
     setEndAt(null);
   }, []);
 
+  // Advance the activity marker without touching the timer, so the
+  // unfinished-workout reminder is pushed out on every completed set even when
+  // the visible rest timer is disabled (start() otherwise owns this bump).
+  const noteActivity = useCallback((): void => {
+    setLastActivityAt(synchronizeNow());
+  }, []);
+
   useEffect(() => {
     if (!preferences.showRestTimer && endAt) stop();
   }, [endAt, preferences.showRestTimer, stop]);
@@ -321,7 +331,8 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
     start,
     adjust,
     stop,
-  }), [adjust, duration, endAt, remaining, running, start, stop]);
+    noteActivity,
+  }), [adjust, duration, endAt, noteActivity, remaining, running, start, stop]);
 
   return <RestTimerContext.Provider value={value}>{children}</RestTimerContext.Provider>;
 }

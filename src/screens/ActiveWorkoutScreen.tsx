@@ -117,9 +117,12 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     // Completion timestamps, not the configured countdown, own the actual
     // rest metric. Keep collecting them when the visible rest timer is off.
     updateActiveWorkout((current) => recordRestTimerSample(current, duration));
+    // Completing a set is real activity — defer the unfinished-workout reminder
+    // from here even when the rest timer display (and thus start()) is off.
+    restTimer.noteActivity();
     if (!preferences.showRestTimer) return;
     startRestTimer(duration);
-  }, [preferences.showRestTimer, restDurationForExercise, startRestTimer, updateActiveWorkout]);
+  }, [preferences.showRestTimer, restDurationForExercise, restTimer, startRestTimer, updateActiveWorkout]);
   const handleSetSideCompleted = useCallback((exercise: WorkoutExercise): void => {
     // The first side of a unilateral set is done: rest between sides before the
     // other. This is a shorter, separate countdown from the between-sets rest,
@@ -564,8 +567,11 @@ const RestTimerHeaderAction = React.memo(function RestTimerHeaderAction({
   return <Pressable
     accessibilityRole="button"
     accessibilityLabel={running ? `Rest timer, ${Math.abs(displayRemaining)} seconds remaining` : 'Start rest timer'}
-    onPress={() => { if (longPress.current) { longPress.current = false; return; } onOpen(); }}
+    onPress={() => { if (longPress.current) return; onOpen(); }}
     onLongPress={() => { longPress.current = true; onRestart(); }}
+    // RN does not fire onPress after a long-press, so reset the guard on release
+    // instead — otherwise the next genuine tap is swallowed.
+    onPressOut={() => { longPress.current = false; }}
     delayLongPress={450}
     accessibilityHint="Tap to open the rest timer or hold to restart it"
     style={({ pressed }) => [style, pressed && pressedFeedback]}
