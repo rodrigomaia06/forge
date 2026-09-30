@@ -78,7 +78,11 @@ export function GeneralSettingsScreen({ navigation }: Props) {
     selectionHaptic();
     updatePreferences(changes);
   };
-  const setWeight = (value: string) => {
+  // A local draft holds the raw text while the field is focused, so a trailing
+  // decimal point (e.g. "70.") survives instead of being stripped by the
+  // controlled value re-deriving from the committed number every keystroke.
+  const [weightDraft, setWeightDraft] = React.useState<string | null>(null);
+  const commitWeight = (value: string) => {
     const number = Number(value.replace(',', '.'));
     updatePreferences({
       bodyweightKg:
@@ -88,6 +92,10 @@ export function GeneralSettingsScreen({ navigation }: Props) {
             : number
           : 0,
     });
+  };
+  const onChangeWeight = (value: string) => {
+    setWeightDraft(value);
+    commitWeight(value);
   };
   return (
     <AppScreen edges={['top']} backgroundColor={theme.background}>
@@ -160,8 +168,9 @@ export function GeneralSettingsScreen({ navigation }: Props) {
                 <View style={styles.inputAction}>
                   <TextInput
                     accessibilityLabel="Bodyweight"
-                    value={displayedWeight ? String(displayedWeight) : ''}
-                    onChangeText={setWeight}
+                    value={weightDraft ?? (displayedWeight ? String(displayedWeight) : '')}
+                    onChangeText={onChangeWeight}
+                    onBlur={() => setWeightDraft(null)}
                     keyboardType="decimal-pad"
                     placeholder="0"
                     placeholderTextColor={theme.textDisabled}
