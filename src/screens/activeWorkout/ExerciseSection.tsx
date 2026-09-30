@@ -410,16 +410,12 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 visible={optionsVisible}
                 enterInstant={optionsRestoreInstant}
                 onClose={() => {
-                  // Flip visible so the sheet plays its slide-out; onClosed unmounts
-                  // it (and runs any pending follow-up) once the exit completes.
+                  // Flip visible so the sheet plays its slide-out. It stays mounted
+                  // (rendering nothing while closed) so a previous-sessions push can
+                  // restore it in place, and so nothing has to time an unmount.
                   setOptionsVisible(false);
                 }}
-                onClosed={() => {
-                  // Keep the sheet mounted across a previous-sessions push so it can
-                  // restore in place on return; otherwise unmount it now.
-                  if (!restorePreviousSessions) setOptionsOpen(false);
-                  onOptionsClosed();
-                }}
+                onClosed={onOptionsClosed}
                 onEditNote={updateExercise ? (note) => updateExercise(exercise.id, { note }) : undefined}
                 onToggleOffSession={updateExercise ? () => runAfterClose(() => updateExercise(exercise.id, { offSession: !exercise.offSession })) : undefined}
                 onOpenPreviousSessions={() => undefined}
@@ -589,13 +585,9 @@ export function ReadOnlyExerciseSection({
         completedWorkouts={completedWorkouts}
         excludeWorkoutId={workoutId}
         onClose={() => {
-          // Slide out; onClosed unmounts it once the exit completes so it doesn't
-          // vanish mid-slide.
+          // Slide out but stay mounted (renders nothing while closed) so a
+          // previous-sessions push can restore it in place without timing an unmount.
           setOptionsVisible(false);
-        }}
-        onClosed={() => {
-          // Stay mounted across a previous-sessions push to restore in place.
-          if (!restorePreviousSessions) setOptionsOpen(false);
         }}
         onOpenPreviousSessions={() => undefined}
         onOpenExerciseInfo={() => undefined}
