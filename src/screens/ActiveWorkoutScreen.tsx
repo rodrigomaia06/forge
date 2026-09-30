@@ -78,8 +78,11 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
   const [durationSheetOpen, setDurationSheetOpen] = useState(false);
   const [discardConfirmationOpen, setDiscardConfirmationOpen] = useState(false);
   const [emptyFinishConfirmationOpen, setEmptyFinishConfirmationOpen] = useState(false);
-  const [finishConfirmationOpen, setFinishConfirmationOpen] = useState(false);
-  const [routineUpdateConfirmationOpen, setRoutineUpdateConfirmationOpen] = useState(false);
+  // The finish decision is one dialog with two possible stages. Swapping this
+  // single Modal's content (finish → optional routine update) avoids presenting
+  // a second Modal while the first dismisses — the iOS race that could drop the
+  // routine prompt and leave the workout unable to finish.
+  const [finishStage, setFinishStage] = useState<'none' | 'finish' | 'routine'>('none');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [replacingExerciseId, setReplacingExerciseId] = useState<string | null>(null);
   const [addExerciseSession, setAddExerciseSession] = useState(0);
@@ -270,7 +273,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
       setEmptyFinishConfirmationOpen(true);
       return;
     }
-    setFinishConfirmationOpen(true);
+    setFinishStage('finish');
   };
 
   const completeWorkout = (): void => {
@@ -279,14 +282,21 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
   };
 
   const confirmFinish = (): void => {
-    setFinishConfirmationOpen(false);
     const routine = activeWorkout.routineId ? findRoutine(activeWorkout.routineId) : undefined;
     if (routine && hasRoutineStructureChanged(activeWorkout)) {
-      // Chain confirmation → confirmation: let the first dialog dismiss before
-      // presenting the next, or iOS drops the second Modal.
-      setTimeout(() => setRoutineUpdateConfirmationOpen(true), 280);
+      // Keep the same dialog up and swap it to the routine question — no second
+      // Modal is ever presented, so nothing can race the dismissal.
+      setFinishStage('routine');
       return;
     }
+    setFinishStage('none');
+    completeWorkout();
+  };
+
+  const updateRoutineAndFinish = (): void => {
+    const routine = activeWorkout.routineId ? findRoutine(activeWorkout.routineId) : undefined;
+    if (routine) updateRoutine(routine.id, (current) => applyWorkoutStructureToRoutine(current, activeWorkout));
+    setFinishStage('none');
     completeWorkout();
   };
 
@@ -445,32 +455,26 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
         onResetStartTime={resetWorkoutStartTime}
       />
       <ForgeConfirmationDialog
-        visible={finishConfirmationOpen}
-        title="Finish workout?"
-        message="Your recorded workout will be saved to History."
-        cancelLabel="Keep working out"
-        confirmLabel="Finish workout"
-        onCancel={() => setFinishConfirmationOpen(false)}
-        onConfirm={confirmFinish}
-        testID="finish-workout-confirmation"
-      />
-      <ForgeConfirmationDialog
-        visible={routineUpdateConfirmationOpen}
-        title="Update routine?"
-        message="Your exercise and set structure changed during this workout."
-        cancelLabel="Keep routine"
-        confirmLabel="Update routine"
+        visible={finishStage !== 'none'}
+        title={finishStage === 'routine' ? 'Update routine?' : 'Finish workout?'}
+        message={finishStage === 'routine'
+          ? 'Your exercise and set structure changed during this workout.'
+          : 'Your recorded workout will be saved to History.'}
+        cancelLabel={finishStage === 'routine' ? 'Keep routine' : 'Keep working out'}
+        confirmLabel={finishStage === 'routine' ? 'Update routine' : 'Finish workout'}
         onCancel={() => {
-          setRoutineUpdateConfirmationOpen(false);
-          completeWorkout();
+          // On the routine stage, "Keep routine" still finishes the workout — it
+          // just leaves the routine untouched. On the finish stage, cancelling
+          // simply keeps working out.
+          if (finishStage === 'routine') {
+            setFinishStage('none');
+            completeWorkout();
+            return;
+          }
+          setFinishStage('none');
         }}
-        onConfirm={() => {
-          const routine = activeWorkout.routineId ? findRoutine(activeWorkout.routineId) : undefined;
-          if (routine) updateRoutine(routine.id, (current) => applyWorkoutStructureToRoutine(current, activeWorkout));
-          setRoutineUpdateConfirmationOpen(false);
-          completeWorkout();
-        }}
-        testID="update-routine-confirmation"
+        onConfirm={finishStage === 'routine' ? updateRoutineAndFinish : confirmFinish}
+        testID={finishStage === 'routine' ? 'update-routine-confirmation' : 'finish-workout-confirmation'}
       />
       <ForgeConfirmationDialog
         visible={discardConfirmationOpen}
