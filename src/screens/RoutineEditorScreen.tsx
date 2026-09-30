@@ -124,12 +124,27 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
     });
   };
 
-  // A pure content comparison: reverting an edit, or a no-op change such as
-  // re-selecting the current type, clears it — so cancelling a routine that
-  // still matches how it opened never raises the discard prompt.
-  const dirty = Boolean(
-    draft && initialDraft && JSON.stringify(draft) !== JSON.stringify(initialDraft),
-  );
+  // A pure content comparison against the SAVED shape: reverting an edit, or a
+  // no-op change (re-selecting the current type, typing then clearing the note so
+  // it goes '' vs the original undefined), matches how it opened and never raises
+  // the discard prompt.
+  const dirty = React.useMemo(() => {
+    const comparable = (routine: WorkoutRoutine | null): string | null =>
+      routine
+        ? JSON.stringify({
+            name: routine.name.trim(),
+            type: routine.type.trim(),
+            planId: routine.planId,
+            note: optional(routine.note),
+            exercises: routine.exercises.map((exercise) => ({
+              ...exercise,
+              sets: (exercise.sets ?? []).map(normalizeRoutineSet),
+            })),
+            ...normalizeAttributes(routine.attributes, routine.attributeIcons),
+          })
+        : null;
+    return Boolean(draft && initialDraft && comparable(draft) !== comparable(initialDraft));
+  }, [draft, initialDraft]);
   const noteHeight = routineNoteHeight(draft?.note);
   const leave = (action: () => void): void => {
     setCanLeave(true);
@@ -626,7 +641,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           testID="routine-type-sheet"
         />
         {attributeSheet ? (
-          <ForgeBottomSheet visible onClose={() => setAttributeSheet(null)} accessibilityLabel="Close attribute editor" surfaceTestID="routine-attribute-sheet" style={styles.attributeSheet} animateContentLayout>
+          <ForgeBottomSheet visible onClose={() => setAttributeSheet(null)} accessibilityLabel="Close attribute editor" surfaceTestID="routine-attribute-sheet" style={styles.attributeSheet} animateContentLayout={false}>
             {() => <ForgeAttributeEditorSheet value={attributeSheet} onClose={() => setAttributeSheet(null)} onSave={saveAttribute} onDelete={attributeSheet.original ? removeAttribute : undefined} />}
           </ForgeBottomSheet>
         ) : null}

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { PanResponder, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { LayoutAnimation, PanResponder, Platform, Pressable, ScrollView, StyleSheet, UIManager, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import type { IconName, WorkoutTypePreference } from '../../types';
@@ -43,8 +43,22 @@ export function ForgeAttributeEditorSheet({
   onDelete?: () => void;
 }) {
   const theme = useForgeTheme();
+  const reducedMotion = useForgeReducedMotion();
   const [draft, setDraft] = useState(value);
   const [selectingIcon, setSelectingIcon] = useState(false);
+  // Ease the sheet height with a classic LayoutAnimation as the icon grid expands
+  // and collapses. The host sheets disable the reanimated layout transition, which
+  // fails to shrink a native Modal surface back and left dead space beneath.
+  const easeIconGrid = (): void => {
+    if (reducedMotion || Platform.OS === 'web') return;
+    if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
+    LayoutAnimation.configureNext({
+      duration: forgeMotion.transition,
+      create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+      update: { type: LayoutAnimation.Types.easeInEaseOut },
+      delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+    });
+  };
   return (
     <>
       <ForgeBottomSheetHandle />
@@ -58,7 +72,7 @@ export function ForgeAttributeEditorSheet({
       <ScrollView style={styles.editorScroll} contentContainerStyle={styles.editorContent} keyboardShouldPersistTaps="handled">
         <View style={styles.attributeEditorLayout}>
           <ForgeCard variant="nested" style={styles.iconFieldCard}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Choose attribute icon" onPress={() => { lightHaptic(); setSelectingIcon((current) => !current); }} style={styles.iconFieldButton}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Choose attribute icon" onPress={() => { lightHaptic(); easeIconGrid(); setSelectingIcon((current) => !current); }} style={styles.iconFieldButton}>
               <View testID="attribute-editor-icon-preview" style={styles.iconFieldPreview}>
                 <View testID="attribute-editor-icon-glyph" style={styles.iconFieldGlyph}>
                   <Icon name={draft.icon} size={38} color={theme.textPrimary} />
@@ -81,7 +95,7 @@ export function ForgeAttributeEditorSheet({
         </View>
         {selectingIcon ? <ForgeCard variant="nested">
           <View style={styles.iconChoices} accessibilityRole="radiogroup">
-            {attributeIcons.map((icon) => <Pressable key={icon} testID={icon === draft.icon ? `attribute-icon-choice-${icon}-selected` : `attribute-icon-choice-${icon}`} accessibilityRole="radio" accessibilityLabel={`Use ${icon} icon`} accessibilityState={{ checked: icon === draft.icon }} onPress={() => { selectionHaptic(); setDraft((current) => ({ ...current, icon })); setSelectingIcon(false); }} style={({ pressed }) => [styles.iconChoice, pressed && pressedFeedback]}><Icon name={icon} size={22} color={theme.textPrimary} />{icon === draft.icon ? <Icon name="check" size={16} color={theme.selectionIndicator} weight="bold" /> : null}</Pressable>)}
+            {attributeIcons.map((icon) => <Pressable key={icon} testID={icon === draft.icon ? `attribute-icon-choice-${icon}-selected` : `attribute-icon-choice-${icon}`} accessibilityRole="radio" accessibilityLabel={`Use ${icon} icon`} accessibilityState={{ checked: icon === draft.icon }} onPress={() => { selectionHaptic(); easeIconGrid(); setDraft((current) => ({ ...current, icon })); setSelectingIcon(false); }} style={({ pressed }) => [styles.iconChoice, pressed && pressedFeedback]}><Icon name={icon} size={22} color={theme.textPrimary} />{icon === draft.icon ? <Icon name="check" size={16} color={theme.selectionIndicator} weight="bold" /> : null}</Pressable>)}
           </View>
         </ForgeCard> : null}
         <Button label="Save attribute" accessibilityLabel="Save attribute" icon="check" onPress={() => onSave(draft)} disabled={!draft.label.trim()} tone="success" variant="outline" style={styles.inlineSaveButton} />

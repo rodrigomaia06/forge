@@ -795,7 +795,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
         }
       />
       {attributeDraft ? (
-        <ForgeBottomSheet visible onClose={() => setAttributeDraft(null)} accessibilityLabel="Close attribute editor" animateContentLayout>
+        <ForgeBottomSheet visible onClose={() => setAttributeDraft(null)} accessibilityLabel="Close attribute editor" animateContentLayout={false}>
           {() => <ForgeAttributeEditorSheet value={attributeDraft} onClose={() => setAttributeDraft(null)} onSave={saveLiveAttribute} onDelete={() => deleteLiveAttribute(attributeDraft.original ?? attributeDraft.label)} />}
         </ForgeBottomSheet>
       ) : null}

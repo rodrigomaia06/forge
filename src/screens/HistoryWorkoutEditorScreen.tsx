@@ -620,7 +620,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         initialOffset={420}
         closeDistance={460}
         style={styles.editorSheet}
-        animateContentLayout
+        animateContentLayout={false}
       >
         {() => attributeDraft ? (
           <ForgeAttributeEditorSheet
