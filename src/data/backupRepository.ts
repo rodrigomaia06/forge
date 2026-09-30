@@ -662,6 +662,10 @@ export async function eraseAllForgeData(): Promise<void> {
     '@forge/plans-v1',
     '@forge/settings-preferences',
     '@forge/custom-exercises',
+    // Also clear the dashboard layout (holds user note-tile text) and the
+    // backup-history footer, so "Delete all data" leaves no user data behind.
+    '@forge/dashboard-layout-v1',
+    '@forge/backup-history-v1',
   ]);
 }
 
