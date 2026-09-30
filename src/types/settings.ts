@@ -39,6 +39,8 @@ export interface SettingsPreferences {
   defaultRestSeconds: number;
   /** Default between-sides rest for unilateral exercises (fired after the first side). */
   defaultUnilateralRestSeconds: number;
+  /** Skip the between-sides rest on unilateral exercises; the normal between-set rest still fires. */
+  disableUnilateralBetweenSidesRest: boolean;
   keepRestTimerRunning: boolean;
   restTimerSound: boolean;
   restTimerHaptic: boolean;

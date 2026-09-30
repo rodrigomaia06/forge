@@ -122,9 +122,9 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     // other. This is a shorter, separate countdown from the between-sets rest,
     // and it deliberately does not record a rest-stats sample (that measures
     // between-set rest, which lands only once both sides finish).
-    if (!preferences.showRestTimer) return;
+    if (!preferences.showRestTimer || preferences.disableUnilateralBetweenSidesRest) return;
     startRestTimer(unilateralRestForExercise(exercise));
-  }, [preferences.showRestTimer, startRestTimer, unilateralRestForExercise]);
+  }, [preferences.disableUnilateralBetweenSidesRest, preferences.showRestTimer, startRestTimer, unilateralRestForExercise]);
   const openRestTimer = () => {
     lightHaptic();
     if (restRunning) setRestSelection(restDuration);

@@ -212,17 +212,28 @@ export function GeneralSettingsScreen({ navigation }: Props) {
                   onPress={() => setRestSheetOpen(true)}
                   showDivider
                 />
-                <SettingsRow
-                  title="Rest between sides"
-                  subtitle="Unilateral exercises, after the first side"
-                  trailing={
-                    <Text style={[styles.value, { color: theme.textSecondary }]}>
-                      {formatRestDuration(preferences.defaultUnilateralRestSeconds)}
-                    </Text>
+                {!preferences.disableUnilateralBetweenSidesRest && (
+                  <SettingsRow
+                    title="Rest between sides"
+                    subtitle="Unilateral exercises, after the first side"
+                    trailing={
+                      <Text style={[styles.value, { color: theme.textSecondary }]}>
+                        {formatRestDuration(preferences.defaultUnilateralRestSeconds)}
+                      </Text>
+                    }
+                    disclosure
+                    onPress={() => setUnilateralRestSheetOpen(true)}
+                    showDivider
+                  />
+                )}
+                <Toggle
+                  title="Skip rest between sides"
+                  subtitle="No rest timer between the two sides of a unilateral exercise"
+                  value={preferences.disableUnilateralBetweenSidesRest}
+                  onPress={() =>
+                    choose({ disableUnilateralBetweenSidesRest: !preferences.disableUnilateralBetweenSidesRest })
                   }
-                  disclosure
-                  onPress={() => setUnilateralRestSheetOpen(true)}
-                  showDivider
+                  divider
                 />
                 <Toggle
                   title="Keep rest timer running"

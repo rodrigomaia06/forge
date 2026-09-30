@@ -73,6 +73,7 @@ export function parseSettingsPreferences(value: string | null): SettingsPreferen
     showRestTimer: parsed.showRestTimer !== false,
     defaultRestSeconds: typeof parsed.defaultRestSeconds === 'number' && parsed.defaultRestSeconds >= 0 ? parsed.defaultRestSeconds : 90,
     defaultUnilateralRestSeconds: typeof parsed.defaultUnilateralRestSeconds === 'number' && parsed.defaultUnilateralRestSeconds >= 0 ? parsed.defaultUnilateralRestSeconds : 30,
+    disableUnilateralBetweenSidesRest: parsed.disableUnilateralBetweenSidesRest === true,
     // Match Forge's established timer behavior for saved settings predating
     // this flag: an elapsed rest remains visible in destructive red until it
     // is stopped or extended. An explicit false is still respected.

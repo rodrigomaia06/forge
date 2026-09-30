@@ -10,6 +10,7 @@ export const defaultSettingsPreferences: SettingsPreferences = {
   showRestTimer: true,
   defaultRestSeconds: 90,
   defaultUnilateralRestSeconds: 30,
+  disableUnilateralBetweenSidesRest: false,
   keepRestTimerRunning: true,
   restTimerSound: true,
   restTimerHaptic: true,
