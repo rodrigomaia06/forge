@@ -143,9 +143,14 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     if (!preferences.showRestTimer) setRestSheetOpen(false);
   }, [preferences.showRestTimer]);
   useEffect(() => {
-    if (route.params?.openRestTimer !== 'open') return;
-    openRestTimer();
+    if (route.params?.openRestTimer == null) return;
+    // Always clear the param (even a non-"open" deep-link segment), and only open
+    // the timer when there is a live workout with the rest timer enabled — never
+    // over the "No active workout" state.
+    const shouldOpen = route.params.openRestTimer === 'open' && Boolean(activeWorkout) && preferences.showRestTimer;
     navigation.setParams({ openRestTimer: undefined });
+    if (shouldOpen) openRestTimer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigation, route.params?.openRestTimer]);
   useEffect(() => {
     if (route.params?.openAddExercises !== 'open') return;

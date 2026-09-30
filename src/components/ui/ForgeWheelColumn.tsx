@@ -116,6 +116,10 @@ export function ForgeWheelColumn({
     onSelect(options[nextIndex]);
     scrollOffset.value = nextIndex * WHEEL_ROW_HEIGHT;
     scrollToIndex(nextIndex, true);
+    // An animated scrollTo does not reliably emit onMomentumScrollEnd on Android,
+    // which would otherwise leave programmaticScroll latched and freeze external
+    // re-centering. Clear it after the animation as a fallback.
+    setTimeout(() => { programmaticScroll.current = false; }, 350);
   };
 
   return (
