@@ -9,7 +9,7 @@ import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
 import { workoutTypeIcon } from '../screens/settings/workoutTypeIcon';
-import { ForgeCard, ForgeText as Text, Icon, UnilateralBadge, lightHaptic, pressedFeedback } from './ui';
+import { ForgeCard, ForgeText as Text, Icon, lightHaptic, pressedFeedback } from './ui';
 
 /** Human tracking label, e.g. "Weight + reps". Shared with the exercise library. */
 export function formatTrackingType(type: ExerciseCatalogItem['trackingType']): string {
@@ -166,13 +166,6 @@ export function UnilateralDetailSection({
       <ForgeCard variant="nested" style={styles.uniCard}>
         <View style={styles.uniRow}>
           <View style={styles.uniRowIcon}>
-            <UnilateralBadge size={20} color={theme.textSecondary} />
-          </View>
-          <Text style={styles.uniRowTitle}>Complete one side at a time</Text>
-        </View>
-        <View style={styles.uniRowDivider} />
-        <View style={styles.uniRow}>
-          <View style={styles.uniRowIcon}>
             <Icon name="square-rounded-letter-s" size={20} color={theme.textSecondary} />
           </View>
           <Text style={styles.uniRowTitle}>Leading side</Text>
@@ -245,7 +238,6 @@ const createStyles = (theme: ForgeTheme) =>
     sectionTypeName: { ...typeScale.body, color: theme.ink },
     uniCard: { overflow: 'hidden', borderRadius: 18 },
     uniRow: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 12 },
-    uniRowDivider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.divider, marginLeft: 64 },
     uniRowIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
     uniRowTitle: { flex: 1, color: theme.textPrimary, ...typeScale.cardTitle },
     uniRowValue: { color: theme.textSecondary, ...typeScale.body },
