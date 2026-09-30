@@ -937,20 +937,24 @@ export function ExerciseOptionsSheet({
             />
           ) : null}
           {view === 'rest' ? (
-            <Animated.View style={styles.restPickerContent} entering={viewEntering} exiting={viewExiting}>
+            // The wheel must measure against a settled frame to land on the
+            // selected row: a reserved min-height plus a plain (non-entering)
+            // container, exactly like the settings/library duration wheels. A
+            // FadeIn/exiting wrapper here left the drum pinned at the top.
+            <View style={styles.restPickerContent}>
               <ForgeDurationWheel
                 selectedDuration={restOverride ?? preferences.defaultRestSeconds}
                 onSelect={applyRest}
               />
-            </Animated.View>
+            </View>
           ) : null}
           {view === 'rest-unilateral' ? (
-            <Animated.View style={styles.restPickerContent} entering={viewEntering} exiting={viewExiting}>
+            <View style={styles.restPickerContent}>
               <ForgeDurationWheel
                 selectedDuration={unilateralRestOverride ?? preferences.defaultUnilateralRestSeconds}
                 onSelect={applyUnilateralRest}
               />
-            </Animated.View>
+            </View>
           ) : null}
           {view === 'note' && readOnly ? <ExerciseNoteView note={exercise.note ?? ''} /> : null}
           {view === 'note' && !readOnly ? <Animated.View style={styles.exerciseNoteContent} entering={viewEntering} exiting={viewExiting}>
@@ -1259,7 +1263,10 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     exerciseOptionCopy: { flex: 1, gap: 2, alignSelf: 'center', justifyContent: 'center' },
     exerciseOptionName: { color: dashboardTheme.ink, ...typeScale.cardTitle },
     exerciseOptionEquipment: { color: '#4F625A', ...typeScale.label },
-    restPickerContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 32 },
+    // A reserved min-height (matching the settings/library duration sheets) gives
+    // the wheel a stable frame from the first render so it positions on the
+    // selected row rather than measuring mid-entrance.
+    restPickerContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 32, minHeight: 400 },
     restChoiceCard: { overflow: 'hidden', borderRadius: 16 },
     restDefaultAction: { paddingHorizontal: 14, backgroundColor: theme.surfaceMuted, borderColor: theme.border, borderWidth: 1 },
     exerciseNoteContent: { paddingHorizontal: 20, paddingBottom: 32 },
