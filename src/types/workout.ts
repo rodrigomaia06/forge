@@ -224,7 +224,7 @@ export interface WorkoutContextValue extends Omit<WorkoutState, 'activeWorkout'>
   toggleSet: (exerciseId: string, setId: string) => void;
   updateActiveWorkout: (update: (workout: Workout) => Workout) => void;
   cancelWorkout: () => void;
-  finishWorkout: () => Workout | null;
+  finishWorkout: () => Promise<Workout | null>;
   createCompletedWorkout: (workout: Workout) => Promise<void>;
   deleteCompletedWorkout: (workoutId: string) => void;
   updateCompletedWorkout: (workoutId: string, update: (workout: Workout) => Workout) => Promise<void>;

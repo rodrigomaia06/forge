@@ -41,24 +41,42 @@ export async function loadWorkoutState(): Promise<WorkoutState> {
 export async function saveActiveWorkout(workout: Workout | null): Promise<void> {
   await AsyncStorage.setItem(ACTIVE_KEY, JSON.stringify(workout ? normalizePersistedWorkout(workout) : null));
 }
-export async function saveCompletedWorkouts(workouts: Workout[]): Promise<void> {
+// The completed archive is one AsyncStorage blob, so every write (full replace or
+// an incremental read-modify-write) must be serialized — otherwise two operations
+// issued close together (e.g. finishing then deleting) both read the same blob and
+// the last write silently drops the other. Native gets this ordering for free from
+// SQLite; here a single in-flight promise chain provides it.
+let completedWriteQueue: Promise<void> = Promise.resolve();
+function queueCompletedWrite(op: () => Promise<void>): Promise<void> {
+  const run = completedWriteQueue.then(op, op);
+  completedWriteQueue = run.then(() => undefined, () => undefined);
+  return run;
+}
+async function writeCompleted(workouts: Workout[]): Promise<void> {
   await AsyncStorage.setItem(COMPLETED_KEY, JSON.stringify(uniqueById(workouts.map(normalizePersistedWorkout))));
 }
-export async function appendCompletedWorkout(workout: Workout): Promise<void> {
-  const current = parse<Workout[]>(await AsyncStorage.getItem(COMPLETED_KEY), []);
-  await saveCompletedWorkouts([workout, ...current.filter((item) => item.id !== workout.id)]);
+export function saveCompletedWorkouts(workouts: Workout[]): Promise<void> {
+  return queueCompletedWrite(() => writeCompleted(workouts));
 }
-// Web persistence keeps the archive as a single AsyncStorage blob, so an
-// incremental write is a read-modify-write of that one key rather than a full
-// repository replacement, and it preserves the existing order for an in-place edit.
-export async function updateCompletedWorkoutRecord(workout: Workout): Promise<void> {
-  const current = parse<Workout[]>(await AsyncStorage.getItem(COMPLETED_KEY), []);
-  const next = current.some((item) => item.id === workout.id)
-    ? current.map((item) => (item.id === workout.id ? workout : item))
-    : [workout, ...current];
-  await saveCompletedWorkouts(next);
+export function appendCompletedWorkout(workout: Workout): Promise<void> {
+  return queueCompletedWrite(async () => {
+    const current = parse<Workout[]>(await AsyncStorage.getItem(COMPLETED_KEY), []);
+    await writeCompleted([workout, ...current.filter((item) => item.id !== workout.id)]);
+  });
 }
-export async function deleteCompletedWorkoutRecord(workoutId: string): Promise<void> {
-  const current = parse<Workout[]>(await AsyncStorage.getItem(COMPLETED_KEY), []);
-  await saveCompletedWorkouts(current.filter((item) => item.id !== workoutId));
+// A read-modify-write of the single archive key that preserves order for edits.
+export function updateCompletedWorkoutRecord(workout: Workout): Promise<void> {
+  return queueCompletedWrite(async () => {
+    const current = parse<Workout[]>(await AsyncStorage.getItem(COMPLETED_KEY), []);
+    const next = current.some((item) => item.id === workout.id)
+      ? current.map((item) => (item.id === workout.id ? workout : item))
+      : [workout, ...current];
+    await writeCompleted(next);
+  });
+}
+export function deleteCompletedWorkoutRecord(workoutId: string): Promise<void> {
+  return queueCompletedWrite(async () => {
+    const current = parse<Workout[]>(await AsyncStorage.getItem(COMPLETED_KEY), []);
+    await writeCompleted(current.filter((item) => item.id !== workoutId));
+  });
 }

@@ -285,8 +285,13 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
   };
 
   const completeWorkout = (): void => {
-    successHaptic();
-    returnToDashboard(finishWorkout());
+    // Navigate only once the workout is safely archived; if the write fails,
+    // finishWorkout keeps the session active rather than losing it.
+    void finishWorkout().then((finished) => {
+      if (!finished) return;
+      successHaptic();
+      returnToDashboard(finished);
+    });
   };
 
   const confirmFinish = (): void => {
@@ -506,8 +511,11 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
         onCancel={() => setEmptyFinishConfirmationOpen(false)}
         onConfirm={() => {
           setEmptyFinishConfirmationOpen(false);
-          successHaptic();
-          returnToDashboard(finishWorkout());
+          void finishWorkout().then((finished) => {
+            if (!finished) return;
+            successHaptic();
+            returnToDashboard(finished);
+          });
         }}
         testID="finish-empty-workout-confirmation"
       />

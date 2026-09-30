@@ -220,7 +220,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
     setActiveWorkout(null);
   }, [persistActiveWorkoutNow]);
 
-  const finishWorkout = useCallback((): Workout | null => {
+  const finishWorkout = useCallback(async (): Promise<Workout | null> => {
     const current = activeWorkoutRef.current;
     if (!current) return null;
     // Recompute the rest-average from the final completed sets so an uncheck or a
@@ -232,8 +232,14 @@ export function WorkoutProvider({ children }: ChildrenProps) {
         ? Math.max(1, current.durationSeconds ?? 0)
         : Math.max(1, Math.round((Date.now() - current.startedAt) / 1000)),
     }, 0);
-    // Finishing appends one row to the archive rather than rewriting all of it.
-    void appendCompletedWorkout(finished);
+    // Only clear the live workout once it is safely in the archive: finishing
+    // appends one row, and if that write fails we keep the active session rather
+    // than dropping it between the active slot and history.
+    try {
+      await appendCompletedWorkout(finished);
+    } catch {
+      return null;
+    }
     setCompletedWorkouts((workouts) => [finished, ...workouts]);
     persistActiveWorkoutNow(null);
     setActiveWorkout(null);
