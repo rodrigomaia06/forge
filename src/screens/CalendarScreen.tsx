@@ -83,6 +83,10 @@ export function CalendarScreen({ navigation }: Props) {
 
   const goToMonth = (year: number, month: number) => {
     selectionHaptic();
+    // Ensure the month list renders far enough back to include this target — the
+    // year grid can offer months older than the default render cap.
+    const back = (today.getFullYear() - year) * 12 + (today.getMonth() - month);
+    if (back > monthsBack) setMonthsBack(back);
     scrollTarget.current = { year, month };
     scrolledRef.current = false;
     setFlashKey(`${year}-${month}`);
@@ -111,6 +115,10 @@ export function CalendarScreen({ navigation }: Props) {
     return Number.isFinite(min) ? new Date(min) : null;
   }, [completedWorkouts]);
 
+  // How many months back the month list renders. Defaults to 35; a year-grid tap
+  // on an older month raises it (see goToMonth) so the target is reachable.
+  const [monthsBack, setMonthsBack] = useState(35);
+
   // Chronological month list from the first workout (capped) through next month.
   const months = useMemo(() => {
     const end = new Date(today.getFullYear(), today.getMonth() + 1, 1);
@@ -119,7 +127,7 @@ export function CalendarScreen({ navigation }: Props) {
       const e = new Date(earliest.getFullYear(), earliest.getMonth(), 1);
       if (e < start) start = e;
     }
-    const cap = new Date(today.getFullYear(), today.getMonth() - 35, 1);
+    const cap = new Date(today.getFullYear(), today.getMonth() - monthsBack, 1);
     if (start < cap) start = cap;
     const list: { year: number; month: number }[] = [];
     const cur = new Date(start);
@@ -128,7 +136,7 @@ export function CalendarScreen({ navigation }: Props) {
       cur.setMonth(cur.getMonth() + 1);
     }
     return list;
-  }, [earliest, today]);
+  }, [earliest, monthsBack, today]);
 
   const years = useMemo(() => {
     const startYear = earliest ? earliest.getFullYear() : today.getFullYear();

@@ -21,7 +21,7 @@ import {
   type ShareConflict,
   type ShareResolution,
 } from './importDiff';
-import { normalizeDataTransfer } from './dataTransferNormalization';
+import { normalizeDataTransfer, reconcileMeasurements } from './dataTransferNormalization';
 import type { PlansState, SettingsPreferences, WorkoutState } from '../types';
 import {
   FORGE_TRANSFER_VERSION,
@@ -422,23 +422,21 @@ export async function mergeDataTransfer(
   const exercises = selection.exercises
     ? mergeById(baseExercises, incomingExercises)
     : baseExercises;
+  const measurements = selection.measurements
+    ? reconcileMeasurements(
+        currentSettings.dailyMeasurementDefinitions,
+        currentSettings.dailyMeasurementEntries,
+        incoming.settings.dailyMeasurementDefinitions ?? [],
+        incoming.settings.dailyMeasurementEntries ?? [],
+      )
+    : { definitions: currentSettings.dailyMeasurementDefinitions, entries: currentSettings.dailyMeasurementEntries };
   const settings: SettingsPreferences = {
     ...currentSettings,
     workoutTypes: selection.workoutTypes
       ? mergeById(currentSettings.workoutTypes, incoming.settings.workoutTypes ?? [])
       : currentSettings.workoutTypes,
-    dailyMeasurementDefinitions: selection.measurements
-      ? mergeById(
-          currentSettings.dailyMeasurementDefinitions,
-          incoming.settings.dailyMeasurementDefinitions ?? [],
-        )
-      : currentSettings.dailyMeasurementDefinitions,
-    dailyMeasurementEntries: selection.measurements
-      ? mergeById(
-          currentSettings.dailyMeasurementEntries,
-          incoming.settings.dailyMeasurementEntries ?? [],
-        )
-      : currentSettings.dailyMeasurementEntries,
+    dailyMeasurementDefinitions: measurements.definitions,
+    dailyMeasurementEntries: measurements.entries,
   };
   const active = currentWorkouts.activeWorkout ?? importedActive;
   const completedWithoutActive = active

@@ -13,7 +13,7 @@ import {
   type ShareConflict,
   type ShareResolution,
 } from './importDiff';
-import { normalizeDataTransfer } from './dataTransferNormalization';
+import { normalizeDataTransfer, reconcileMeasurements } from './dataTransferNormalization';
 import { loadPlansState, savePlansState } from './plansRepository';
 import { loadSettingsPreferences, saveSettingsPreferences } from './settingsRepository';
 import { uniqueById } from './uniqueById';
@@ -346,20 +346,21 @@ export async function mergeDataTransfer(
   const mergedPlanState = selection.plans ? mergeImportedPlans(plans, incoming.plans, renamed, skipped, planUpdate) : plans;
   const mergedPlans = mergedPlanState.plans;
   const mergedStandaloneRoutines = mergedPlanState.standaloneRoutines;
+  const measurements = selection.measurements
+    ? reconcileMeasurements(
+        settings.dailyMeasurementDefinitions,
+        settings.dailyMeasurementEntries,
+        incoming.settings.dailyMeasurementDefinitions ?? [],
+        incoming.settings.dailyMeasurementEntries ?? [],
+      )
+    : { definitions: settings.dailyMeasurementDefinitions, entries: settings.dailyMeasurementEntries };
   const mergedSettings = {
     ...settings,
     workoutTypes: selection.workoutTypes
       ? merge(settings.workoutTypes, incoming.settings.workoutTypes ?? [])
       : settings.workoutTypes,
-    dailyMeasurementDefinitions: selection.measurements
-      ? merge(
-          settings.dailyMeasurementDefinitions,
-          incoming.settings.dailyMeasurementDefinitions ?? [],
-        )
-      : settings.dailyMeasurementDefinitions,
-    dailyMeasurementEntries: selection.measurements
-      ? merge(settings.dailyMeasurementEntries, incoming.settings.dailyMeasurementEntries ?? [])
-      : settings.dailyMeasurementEntries,
+    dailyMeasurementDefinitions: measurements.definitions,
+    dailyMeasurementEntries: measurements.entries,
   };
   await Promise.all([
     saveSettingsPreferences(mergedSettings),

@@ -1,5 +1,50 @@
 import { uniqueById } from './uniqueById';
 import { canonicalizeExerciseRecord } from './exerciseCanonicalization';
+import type { DailyMeasurementDefinition, DailyMeasurementEntry } from '../types';
+
+/**
+ * Merges imported daily-measurement definitions and entries into the current
+ * ones without producing duplicates across devices: definitions reconcile by
+ * normalized name (so two independently-created "Weight" metrics collapse), and
+ * entries reconcile by (definition, date) after remapping to the surviving
+ * definition id. Existing records always win, matching the rest of import.
+ */
+export function reconcileMeasurements(
+  currentDefinitions: readonly DailyMeasurementDefinition[],
+  currentEntries: readonly DailyMeasurementEntry[],
+  incomingDefinitions: readonly DailyMeasurementDefinition[],
+  incomingEntries: readonly DailyMeasurementEntry[],
+): { definitions: DailyMeasurementDefinition[]; entries: DailyMeasurementEntry[] } {
+  const normalizeName = (name: string): string => name.trim().toLocaleLowerCase();
+  const definitions = [...currentDefinitions];
+  const currentIds = new Set(definitions.map((definition) => definition.id));
+  const idByName = new Map(definitions.map((definition) => [normalizeName(definition.name), definition.id]));
+  const idRemap = new Map<string, string>();
+  for (const incoming of incomingDefinitions) {
+    if (currentIds.has(incoming.id)) continue; // same id already on device — existing wins
+    const existingId = idByName.get(normalizeName(incoming.name));
+    if (existingId) {
+      idRemap.set(incoming.id, existingId); // same metric under a different id
+      continue;
+    }
+    definitions.push(incoming);
+    currentIds.add(incoming.id);
+    idByName.set(normalizeName(incoming.name), incoming.id);
+  }
+  const entries = [...currentEntries];
+  const entryIds = new Set(entries.map((entry) => entry.id));
+  const dateKeys = new Set(entries.map((entry) => `${entry.definitionId}\u0000${entry.date}`));
+  for (const incoming of incomingEntries) {
+    if (entryIds.has(incoming.id)) continue;
+    const definitionId = idRemap.get(incoming.definitionId) ?? incoming.definitionId;
+    const key = `${definitionId}\u0000${incoming.date}`;
+    if (dateKeys.has(key)) continue; // one value per definition per day — existing wins
+    entries.push({ ...incoming, definitionId });
+    entryIds.add(incoming.id);
+    dateKeys.add(key);
+  }
+  return { definitions, entries };
+}
 
 type TransferRecord = Record<string, unknown>;
 
