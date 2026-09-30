@@ -7,8 +7,10 @@ import type { ChildrenProps } from '../types';
 type ExerciseCatalogContextValue = {
   exercises: ExerciseCatalogItem[];
   customExercises: ExerciseCatalogItem[];
-  addCustomExercise: (exercise: ExerciseCatalogItem) => void;
-  updateCustomExercise: (exercise: ExerciseCatalogItem) => void;
+  /** Returns false when the item was dropped as a duplicate variation (nothing persisted). */
+  addCustomExercise: (exercise: ExerciseCatalogItem) => boolean;
+  /** Returns false when the edit would collide with another variation (nothing persisted). */
+  updateCustomExercise: (exercise: ExerciseCatalogItem) => boolean;
   removeCustomExercise: (id: string) => void;
   reload: () => Promise<void>;
 };
@@ -51,29 +53,30 @@ export function ExerciseCatalogProvider({ children }: ChildrenProps) {
   useEffect(() => {
     warmCatalogIndex(exerciseCatalog);
   }, []);
-  const addCustomExercise = (exercise: ExerciseCatalogItem) => {
-    setCustomExercises((current) => {
-      const next = withoutDuplicateVariations([...current, exercise]);
-      if (next.length === current.length) return current;
-      void saveCustomExercises(next);
-      return next;
-    });
+  // Persistence is computed and dispatched outside the state updater so it isn't
+  // double-invoked under StrictMode/concurrent rendering, and so the caller can
+  // learn whether the write actually happened (duplicate → dropped).
+  const addCustomExercise = (exercise: ExerciseCatalogItem): boolean => {
+    const next = withoutDuplicateVariations([...customExercises, exercise]);
+    if (next.length === customExercises.length) return false;
+    setCustomExercises(next);
+    void saveCustomExercises(next);
+    return true;
   };
-  const updateCustomExercise = (exercise: ExerciseCatalogItem) => {
-    setCustomExercises((current) => {
-      const next = withoutDuplicateVariations(
-        current.map((item) => (item.id === exercise.id ? exercise : item)),
-      );
-      void saveCustomExercises(next);
-      return next;
-    });
+  const updateCustomExercise = (exercise: ExerciseCatalogItem): boolean => {
+    const mapped = customExercises.map((item) => (item.id === exercise.id ? exercise : item));
+    const next = withoutDuplicateVariations(mapped);
+    // The edit would collide with another existing variation, which the dedup
+    // would silently drop — reject it instead of destroying a record.
+    if (next.length !== mapped.length) return false;
+    setCustomExercises(next);
+    void saveCustomExercises(next);
+    return true;
   };
   const removeCustomExercise = (id: string) => {
-    setCustomExercises((current) => {
-      const next = current.filter((item) => item.id !== id);
-      void saveCustomExercises(next);
-      return next;
-    });
+    const next = customExercises.filter((item) => item.id !== id);
+    setCustomExercises(next);
+    void saveCustomExercises(next);
   };
   const value = useMemo(
     () => ({

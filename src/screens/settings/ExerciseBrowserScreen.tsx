@@ -135,6 +135,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const [secondaryMuscles, setSecondaryMuscles] = useState<string[]>([]);
   const [workoutTypeIds, setWorkoutTypeIds] = useState<string[]>(['strength']);
   const [unilateral, setUnilateral] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [editing, setEditing] = useState<ExerciseCatalogItem | null>(null);
   const [detail, setDetail] = useState<ExerciseCatalogItem | null>(null);
   const [detailSheetView, setDetailSheetView] = useState<DetailSheetView>('details');
@@ -308,6 +309,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     setFormView('details');
     setShowOptionalDetails(false);
     setName('');
+    setSaveError(null);
     setGroup(parent ?? '');
     setCategorySource(parent
       ? (forgeCategoryOptions.some((item) => item.toLocaleLowerCase() === parent.toLocaleLowerCase()) ? 'forge' : 'custom')
@@ -344,6 +346,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     setFormView('details');
     setEditing(item);
     setName(item.variation || item.name);
+    setSaveError(null);
     setShowOptionalDetails(true);
     setGroup(item.group);
     setCategorySource(sourceForCategory(item.group));
@@ -380,8 +383,15 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
       laterality: unilateral ? 'unilateral' : 'bilateral',
       restSeconds: editing?.restSeconds,
     };
-    if (editing) catalog.updateCustomExercise(exercise);
-    else catalog.addCustomExercise(exercise);
+    const persisted = editing ? catalog.updateCustomExercise(exercise) : catalog.addCustomExercise(exercise);
+    if (!persisted) {
+      // A variation with the same group + name/facets + equipment already exists;
+      // keep the form open and tell the user instead of silently closing.
+      savingVariation.current = false;
+      setSaveError('An exercise with these details already exists.');
+      return false;
+    }
+    setSaveError(null);
     return true;
   };
   const toggleSecondary = (value: string) => {
@@ -661,11 +671,14 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                       <TextInput
                         accessibilityLabel="Exercise name"
                         value={name}
-                        onChangeText={setName}
+                        onChangeText={(value) => { setName(value); if (saveError) setSaveError(null); }}
                         placeholder={formParent ? 'Variation name' : 'Exercise name'}
                         placeholderTextColor={theme.muted}
                         style={styles.formNameInput}
                       />
+                      {saveError ? (
+                        <Text style={[styles.fieldRequired, { color: theme.textDestructive }]}>{saveError}</Text>
+                      ) : null}
                     </ForgeCard>
                     <View style={styles.formEssentialsGrid}>
                       <FormLinkCard
