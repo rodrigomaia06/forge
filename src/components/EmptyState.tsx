@@ -70,18 +70,17 @@ export function PlansArt() {
   );
 }
 
-/** A timeline of logged sessions — past workout history. */
+/** An upward progress line — training history trending up. */
 export function HistoryArt() {
   const { line, fill, accent } = useArtColors();
   return (
     <Svg width={150} height={112} viewBox="0 0 150 112" fill="none">
-      <Line x1={40} y1={30} x2={40} y2={82} stroke={line} strokeWidth={2} strokeLinecap="round" />
-      <Circle cx={40} cy={30} r={6} fill={accent} />
-      <Circle cx={40} cy={56} r={6} fill={fill} stroke={line} strokeWidth={2} />
-      <Circle cx={40} cy={82} r={6} fill={fill} stroke={line} strokeWidth={2} />
-      <Rect x={58} y={22} width={72} height={16} rx={6} fill={fill} stroke={line} strokeWidth={2} />
-      <Rect x={58} y={48} width={72} height={16} rx={6} fill={fill} stroke={line} strokeWidth={2} />
-      <Rect x={58} y={74} width={72} height={16} rx={6} fill={fill} stroke={line} strokeWidth={2} />
+      <Path d="M34 24 L34 88 L120 88" stroke={line} strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M46 76 L68 62 L90 68 L112 40" stroke={line} strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <Circle cx={46} cy={76} r={4} fill={fill} stroke={line} strokeWidth={2} />
+      <Circle cx={68} cy={62} r={4} fill={fill} stroke={line} strokeWidth={2} />
+      <Circle cx={90} cy={68} r={4} fill={fill} stroke={line} strokeWidth={2} />
+      <Circle cx={112} cy={40} r={6} fill={accent} />
     </Svg>
   );
 }
