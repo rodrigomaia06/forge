@@ -141,7 +141,10 @@ export const typeScale = {
   screenTitle: {
     fontFamily: typography.bold,
     fontSize: 31,
-    lineHeight: 36,
+    // Headroom for the bold ascenders: a tighter line height clips the glyph
+    // tops once Android's includeFontPadding is off (and on web), so keep it
+    // comfortably above the font's own box.
+    lineHeight: 42,
     fontWeight: '700',
     letterSpacing: -0.6,
   },

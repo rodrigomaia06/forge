@@ -410,6 +410,11 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     borderRadius: 8,
     ...typeScale.body,
     textAlign: 'center',
+    // Center the value within the cell on Android, where the default font
+    // padding otherwise pushes it off-centre and inflates the row.
+    textAlignVertical: 'center',
+    includeFontPadding: false,
+    paddingVertical: 0,
     paddingHorizontal: 3,
   },
   inputFilled: {
