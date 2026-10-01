@@ -39,6 +39,7 @@ import {
   DashboardVolumeChartTile,
 } from './dashboard/DashboardWidgetTiles';
 import { DashboardTileSettingsSheet } from './dashboard/DashboardTileSettingsSheet';
+import { EmptyState, DashboardArt } from '../components/EmptyState';
 import {
   consistency as consistencyMetric,
   measurementSeries,
@@ -441,26 +442,28 @@ export function DashboardScreen() {
           onScrollOffsetChange={(offset) => setHeaderElevated(offset > 1)}
           ListEmptyComponent={
             editing ? null : (
-              <View style={styles.emptyDash}>
-                <Text style={styles.emptyDashTitle}>Build your dashboard</Text>
-                <Text style={styles.emptyDashText}>
-                  Add the widgets you want to see — stats, streaks, measurements and more.
-                </Text>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Add widgets"
-                  onPress={() => {
-                    lightHaptic();
-                    reflowTiles();
-                    setEditing(true);
-                    setAddTileOpen(true);
-                  }}
-                  style={({ pressed }) => [styles.addWidgetsButton, pressed && pressedFeedback]}
-                >
-                  <Icon name="add" size={20} color={theme.onActionPrimary} />
-                  <Text style={styles.addWidgetsLabel}>Add widgets</Text>
-                </Pressable>
-              </View>
+              <EmptyState
+                style={styles.emptyDash}
+                illustration={<DashboardArt />}
+                title="Build your dashboard"
+                subtitle="Add the widgets you want to see — stats, streaks, measurements and more."
+                action={(
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Add widgets"
+                    onPress={() => {
+                      lightHaptic();
+                      reflowTiles();
+                      setEditing(true);
+                      setAddTileOpen(true);
+                    }}
+                    style={({ pressed }) => [styles.addWidgetsButton, pressed && pressedFeedback]}
+                  >
+                    <Icon name="add" size={20} color={theme.onActionPrimary} />
+                    <Text style={styles.addWidgetsLabel}>Add widgets</Text>
+                  </Pressable>
+                )}
+              />
             )
           }
           ListFooterComponent={
@@ -735,12 +738,7 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   tileMissing: { color: theme.muted, ...typeScale.body },
   emptyDash: {
     marginTop: 48,
-    marginHorizontal: 20,
-    alignItems: 'center',
-    gap: 10,
   },
-  emptyDashTitle: { color: theme.ink, ...typeScale.sectionTitle, textAlign: 'center' },
-  emptyDashText: { color: theme.slate, ...typeScale.body, textAlign: 'center', maxWidth: 300 },
   addWidgetsButton: {
     marginTop: 8,
     minHeight: 48,

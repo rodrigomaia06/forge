@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, Image, LayoutAnimation, Platform, Pressable, StyleSheet, UIManager, View } from 'react-native';
+import { FlatList, LayoutAnimation, Platform, Pressable, StyleSheet, UIManager, View } from 'react-native';
 import type { PanGesture } from 'react-native-gesture-handler';
 import { useSharedValue, type SharedValue } from 'react-native-reanimated';
 
@@ -45,6 +45,7 @@ import type {
 } from '../types';
 import { resolveWorkoutTypeIcon } from './settings/workoutTypeIcon';
 import { useForgeDockScrollInset } from '../components/DockChrome';
+import { EmptyState, PlansArt } from '../components/EmptyState';
 import { RoutineDragHandle, RoutineReorderGroup } from './plans/RoutineReorderGroup';
 import { useStartWorkoutGuard } from './useStartWorkoutGuard';
 import { shareItem } from '../utils/shareItem';
@@ -972,23 +973,15 @@ function RoutineRow({
 }
 
 function EmptyPlans() {
-  const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   return (
-    <View style={styles.empty}>
-      <Image
-        testID="plans-empty-illustration"
-        source={require('../../assets/illustrations/empty-plans.png')}
-        style={styles.emptyIllustration}
-        tintColor={theme.muted}
-        resizeMode="contain"
-        accessible={false}
-      />
-      <Text style={styles.emptyTitle}>Build your first routine</Text>
-      <Text style={styles.emptyText}>
-        Use the add button above to create a routine or workout plan.
-      </Text>
-    </View>
+    <EmptyState
+      style={styles.empty}
+      illustrationTestID="plans-empty-illustration"
+      illustration={<PlansArt />}
+      title="Build your first routine"
+      subtitle="Use the add button above to create a routine or workout plan."
+    />
   );
 }
 
@@ -1122,13 +1115,5 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       borderTopColor: theme.divider,
     },
     addToPlanText: { ...typeScale.controlLabel, color: theme.slate },
-    empty: { alignItems: 'center', paddingHorizontal: 28, paddingTop: 79, gap: 8 },
-    emptyIllustration: { width: 210, height: 150, marginBottom: -14, opacity: 0.78 },
-    emptyTitle: { ...typeScale.sectionTitle, color: theme.ink },
-    emptyText: {
-      ...typeScale.body,
-      color: theme.slate,
-      textAlign: 'center',
-      marginBottom: 8,
-    },
+    empty: { paddingTop: 79 },
   });

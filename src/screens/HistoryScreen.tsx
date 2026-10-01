@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import ReanimatedSwipeable, {
   type SwipeableMethods,
 } from 'react-native-gesture-handler/ReanimatedSwipeable';
@@ -37,6 +37,7 @@ import { typeScale } from '../theme/tokens';
 import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
 import type { RootTabScreenProps, Workout } from '../types';
 import { useForgeDockScrollInset } from '../components/DockChrome';
+import { EmptyState, HistoryArt } from '../components/EmptyState';
 
 interface HistoryGroup {
   key: string;
@@ -275,24 +276,15 @@ export function HistoryScreen({
             windowSize={7}
             removeClippedSubviews={Platform.OS !== 'web'}
             ListEmptyComponent={(
-              <View style={styles.empty}>
-                <Image
-                  testID="history-empty-illustration"
-                  source={require('../../assets/illustrations/empty-history.png')}
-                  style={styles.emptyIllustration}
-                  tintColor={theme.muted}
-                  resizeMode="contain"
-                  accessible={false}
-                />
-                <Text style={styles.emptyTitle}>
-                  {activeFilterCount ? 'No matching workouts' : 'No completed workouts'}
-                </Text>
-                <Text style={styles.emptySubtitle}>
-                  {activeFilterCount
-                    ? 'Try changing or clearing the filter.'
-                    : 'Finish a workout and it will appear here.'}
-                </Text>
-                {activeFilterCount ? (
+              <EmptyState
+                style={styles.empty}
+                illustrationTestID="history-empty-illustration"
+                illustration={<HistoryArt />}
+                title={activeFilterCount ? 'No matching workouts' : 'No completed workouts'}
+                subtitle={activeFilterCount
+                  ? 'Try changing or clearing the filter.'
+                  : 'Finish a workout and it will appear here.'}
+                action={activeFilterCount ? (
                   <Button
                     label="Clear filters"
                     variant="secondary"
@@ -311,7 +303,7 @@ export function HistoryScreen({
                     style={styles.emptyAction}
                   />
                 )}
-              </View>
+              />
             )}
           />
         <HistoryFilterSheet
@@ -896,14 +888,6 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     backgroundColor: theme.surfaceMuted,
   },
   durationText: { color: theme.ink, ...typeScale.caption },
-  empty: { alignItems: 'center', paddingVertical: 52, gap: 8 },
-  emptyIllustration: { width: 250, height: 179, marginBottom: -18, opacity: 0.78 },
-  emptyTitle: { color: theme.ink, ...typeScale.sectionTitle },
-  emptySubtitle: {
-    ...typeScale.body,
-    color: theme.slate,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
+  empty: { paddingVertical: 52 },
   emptyAction: { marginTop: 14 },
 });
