@@ -235,9 +235,10 @@ export function parseDataTransfer(raw: string): ForgeDataTransfer {
 }
 
 async function pickTextFile(): Promise<string | null> {
-  // `.forge` has no registered MIME/UTI yet (that arrives with the native
-  // open-in-Forge work), so accept any file and gate on the extension here plus
-  // the content check in parseDataTransfer. Only Forge's own `.forge` exports
+  // Accept any file and gate on the extension here plus the content check in
+  // parseDataTransfer. (The `.forge` UTI/MIME registered by the native
+  // open-in-Forge config applies to files opened from outside the app; the
+  // in-app picker still browses all files.) Only Forge's own `.forge` exports
   // are accepted — a plain `.json` is rejected by name.
   const result = await DocumentPicker.getDocumentAsync({ type: '*/*', copyToCacheDirectory: true });
   if (result.canceled) return null;

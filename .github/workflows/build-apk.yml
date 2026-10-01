@@ -1,0 +1,72 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-apk-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  build-apk:
+    name: Build Android APK
+    # A plain Ubuntu runner already ships the Android SDK + NDK, so this builds a
+    # standalone, installable APK directly with Gradle — no EAS quota and no Expo
+    # account/token needed (mirrors the direct macOS IPA build).
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.x
+          cache: npm
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install JavaScript dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Generate the Android project
+        # Prebuild also runs Forge's local config plugins, including the rest-timer
+        # module and the .forge file-association intent filters.
+        run: npx expo prebuild --no-install --platform android
+      - name: Build release APK
+        # The Expo-generated release buildType is signed with the bundled debug
+        # keystore and embeds the JS bundle, so the APK installs and runs on a
+        # device without Metro — exactly what's needed for sideloaded testing.
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+      - name: Collect and validate the APK
+        run: |
+          set -euo pipefail
+          APK="$(find android/app/build/outputs/apk/release -name '*.apk' -print -quit)"
+          test -n "$APK"
+          # A valid APK is a zip holding the manifest and compiled dex.
+          unzip -t "$APK" >/dev/null
+          unzip -Z1 "$APK" | grep -qx 'AndroidManifest.xml'
+          unzip -Z1 "$APK" | grep -qx 'classes.dex'
+          mkdir -p artifacts
+          cp "$APK" artifacts/Forge-release.apk
+          {
+            echo '## Android APK built on GitHub'
+            echo
+            echo "Commit: \`${GITHUB_SHA}\`"
+            echo "APK: \`$(basename "$APK")\` ($(du -h "$APK" | cut -f1))"
+            echo 'Signing: Expo debug keystore — installable for testing, not for store release.'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload APK to GitHub
+        uses: actions/upload-artifact@v6
+        with:
+          name: Forge-android-apk
+          path: artifacts/Forge-release.apk
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
