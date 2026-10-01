@@ -35,13 +35,16 @@ export function DashboardStartCard({
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const routine = suggestion?.routine;
+  const plan = suggestion?.plan;
   const presentation = getWorkoutTypePresentation(routine?.type ?? 'strength', workoutTypes, theme, 0.14);
   const exerciseCount = routine?.exercises.length ?? 0;
   const setCount = suggestion ? routineSetCount(suggestion) : 0;
   const meta = routine
     ? `${exerciseCount} ${exerciseCount === 1 ? 'exercise' : 'exercises'} · ${setCount} ${setCount === 1 ? 'set' : 'sets'}`
     : 'Blank or from a routine';
-  const title = routine?.name ?? 'Start a workout';
+  // Name the plan alongside the routine, the same "Plan - Routine" form the
+  // history timeline uses for plan-based sessions, so the suggestion reads the same.
+  const title = routine ? (plan ? `${plan.name} - ${routine.name}` : routine.name) : 'Start a workout';
 
   return (
     <View style={styles.startInner}>

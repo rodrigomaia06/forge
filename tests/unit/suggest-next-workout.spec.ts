@@ -116,3 +116,51 @@ test('cold-starts on the first plan routine when there is no history', () => {
   expect(suggestion?.routine.id).toBe('a');
   expect(suggestion?.plan?.id).toBe('p1');
 });
+
+test('weights by how overdue a routine is across plans, not the most recent plan', () => {
+  const plans = [plan('p1', [routine('a', 'A', 'p1')]), plan('p2', [routine('x', 'X', 'p2')])];
+  // p1 was trained most recently, but p2's routine is more overdue → suggest it.
+  const completed = [
+    workout({ completedAt: day(-1), planId: 'p1', routineId: 'a' }),
+    workout({ completedAt: day(-5), planId: 'p2', routineId: 'x' }),
+  ];
+  const suggestion = suggestNextWorkout({ completedWorkouts: completed, plans, standaloneRoutines: [], now: MON });
+  expect(suggestion?.routine.id).toBe('x');
+  expect(suggestion?.plan?.id).toBe('p2');
+});
+
+test('a never-trained routine in another plan wins over a recently trained one', () => {
+  const plans = [plan('p1', [routine('a', 'A', 'p1')]), plan('p2', [routine('y', 'Y', 'p2')])];
+  const completed = [workout({ completedAt: day(-1), planId: 'p1', routineId: 'a' })];
+  const suggestion = suggestNextWorkout({ completedWorkouts: completed, plans, standaloneRoutines: [], now: MON });
+  expect(suggestion?.routine.id).toBe('y');
+});
+
+test('never re-suggests the just-finished routine (null when nothing else remains)', () => {
+  const a = routine('a', 'A');
+  const completed = [workout({ completedAt: day(0), routineId: 'a' })];
+  expect(suggestNextWorkout({ completedWorkouts: completed, plans: [], standaloneRoutines: [a], now: MON })).toBeNull();
+});
+
+test('suggests a not-done-today routine over one finished today', () => {
+  const completed = [workout({ completedAt: day(0), routineId: 'a' })];
+  const suggestion = suggestNextWorkout({
+    completedWorkouts: completed, plans: [], standaloneRoutines: [routine('a', 'A'), routine('b', 'B')], now: MON,
+  });
+  expect(suggestion?.routine.id).toBe('b');
+});
+
+test('returns null when every routine was already done today', () => {
+  const plans = [plan('p1', [routine('a', 'A', 'p1'), routine('b', 'B', 'p1')])];
+  const completed = [
+    workout({ completedAt: day(0), planId: 'p1', routineId: 'a' }),
+    workout({ completedAt: day(0, 11), planId: 'p1', routineId: 'b' }),
+  ];
+  expect(suggestNextWorkout({ completedWorkouts: completed, plans, standaloneRoutines: [], now: MON })).toBeNull();
+});
+
+test('cold-starts standalone-first when both standalone and plan exist', () => {
+  const plans = [plan('p1', [routine('a', 'A', 'p1')])];
+  const suggestion = suggestNextWorkout({ completedWorkouts: [], plans, standaloneRoutines: [routine('s', 'S')], now: MON });
+  expect(suggestion?.routine.id).toBe('s');
+});

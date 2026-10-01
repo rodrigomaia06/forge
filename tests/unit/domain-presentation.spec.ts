@@ -591,6 +591,45 @@ test('ranks exercise search by relevance and tolerates a single typo', () => {
   expect(filterCatalog([incline, fly], { query: 'inclie' }).map((item) => item.id)).toEqual(['incline']);
 });
 
+test('expands abbreviations/synonyms and tolerates one unknown word in a multi-word query', () => {
+  const ohp = {
+    id: 'ohp', name: 'Overhead Press', group: 'Overhead Press', equipment: 'Barbell', equipmentIds: ['barbell'],
+    primaryEquipment: 'barbell', category: 'Shoulders', primaryMuscle: 'Shoulders', secondaryMuscles: [], aliases: [], workoutTypeIds: ['strength'],
+  };
+  const rdl = {
+    id: 'rdl', name: 'Romanian Deadlift', group: 'Deadlift', equipment: 'Barbell', equipmentIds: ['barbell'],
+    primaryEquipment: 'barbell', category: 'Legs', primaryMuscle: 'Hamstrings', secondaryMuscles: [], aliases: [], workoutTypeIds: ['strength'],
+  };
+  const benchPress = {
+    id: 'bench', name: 'Bench Press', group: 'Bench Press', equipment: 'Barbell', equipmentIds: ['barbell'],
+    primaryEquipment: 'barbell', category: 'Chest', primaryMuscle: 'Chest', secondaryMuscles: ['Triceps'], aliases: [], workoutTypeIds: ['strength'],
+  };
+  const cableFly = {
+    id: 'fly', name: 'Cable Fly', group: 'Cable Fly', equipment: 'Cable', equipmentIds: ['cable'],
+    primaryEquipment: 'cable', category: 'Chest', primaryMuscle: 'Chest', secondaryMuscles: [], aliases: ['bench assist'], workoutTypeIds: ['strength'],
+  };
+  const items = [ohp, rdl, benchPress, cableFly];
+
+  // Abbreviation → canonical phrase.
+  expect(filterCatalog(items, { query: 'ohp' }).map((i) => i.id)).toContain('ohp');
+  expect(filterCatalog(items, { query: 'rdl' }).map((i) => i.id)).toContain('rdl');
+  // Multi-word with an abbreviation token ("bb" → "barbell") still finds the barbell bench press.
+  expect(filterCatalog(items, { query: 'bb bench' }).map((i) => i.id)).toContain('bench');
+
+  // A word the catalogue has nothing for ("xyzzy") is ignored rather than wiping out
+  // the result; the discriminating word ("bench") still narrows it.
+  expect(filterCatalog(items, { query: 'bench xyzzy' }).map((i) => i.id)).toContain('bench');
+
+  // Every discriminating word must still match: "press" is known, so the cable fly
+  // (which only matches "bench" via its alias) is excluded, leaving the bench press.
+  const ranked = filterCatalog([cableFly, benchPress], { query: 'bench press' }).map((i) => i.id);
+  expect(ranked).toEqual(['bench']);
+
+  // A single unknown token, or an all-unknown multi-word query, still returns nothing.
+  expect(filterCatalog(items, { query: 'xyzzy' })).toHaveLength(0);
+  expect(filterCatalog(items, { query: 'xyzzy qwerty' })).toHaveLength(0);
+});
+
 test('ships the validated v5 compact Strength baseline, unique picker identities, and all built-in workout types', () => {
   expect(bundledCatalogVersion).toBe(5);
   expect(bundledExercises).toHaveLength(608);

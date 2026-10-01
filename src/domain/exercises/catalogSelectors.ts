@@ -21,6 +21,30 @@ export function catalogSearchKey(value: string): string {
     .join(' ');
 }
 
+// Query abbreviations/synonyms → canonical phrase(s), expanded at query time so a
+// short token like "ohp" also matches "Overhead Press" without having to add a
+// searchTerm to every catalogue item. Keys and values are normalized through the
+// same catalogSearchKey as the item index so they match its text exactly.
+//
+// Deliberately only equipment and specific-movement abbreviations: these map to a
+// precise phrase a user actually types as shorthand. Muscle-group abbreviations
+// (lat, tri, pec, quad…) are left out on purpose — they are literal words in real
+// exercise names ("Lat Pulldown", "Pec Deck", "Quad Stretch") and would expand one
+// keystroke into the whole muscle group, flooding the list instead of narrowing it.
+const SYNONYM_SOURCE: Record<string, string[]> = {
+  ohp: ['overhead press'], rdl: ['romanian deadlift'], sldl: ['stiff leg deadlift'],
+  dl: ['deadlift'], bp: ['bench press'], bss: ['bulgarian split squat'],
+  gm: ['good morning'], ghr: ['glute ham raise'], cg: ['close grip'],
+  ssb: ['safety squat bar'], ht: ['hip thrust'], bb: ['barbell'], db: ['dumbbell'],
+  kb: ['kettlebell'], bw: ['bodyweight'],
+};
+const SEARCH_SYNONYMS: Record<string, string[]> = Object.fromEntries(
+  Object.entries(SYNONYM_SOURCE).map(([abbr, expansions]) => [
+    catalogSearchKey(abbr),
+    expansions.map((value) => catalogSearchKey(value)).filter(Boolean),
+  ]),
+);
+
 /**
  * Search and facet projection of one catalogue item, normalized once and reused
  * across every screen, query, and filter sheet. The catalogue is immutable for a
@@ -122,18 +146,17 @@ function tokenScore(index: CatalogItemIndex, token: string, includeGroup: boolea
   return 0;
 }
 
-/** Total relevance of an item for a query, or null when any token fails to match. */
-function itemScore(index: CatalogItemIndex, terms: string[], query: string, includeGroup: boolean): number | null {
-  let total = 0;
-  for (const term of terms) {
-    const score = tokenScore(index, term, includeGroup);
-    if (score === 0) return null;
-    total += score;
-  }
-  // Whole-query exactness and specificity break ties toward the tightest match.
-  if (index.name === query) total += 200;
-  else if (index.name.startsWith(`${query} `)) total += 40;
-  return total;
+/**
+ * Best match score per query term (each term is its variants: the raw token plus
+ * any synonym expansions), index-aligned with `expandedTerms`. A term scores 0 when
+ * nothing in the item matches it.
+ */
+function scoreTerms(index: CatalogItemIndex, expandedTerms: string[][], includeGroup: boolean): number[] {
+  return expandedTerms.map((variants) => {
+    let best = 0;
+    for (const variant of variants) best = Math.max(best, tokenScore(index, variant, includeGroup));
+    return best;
+  });
 }
 
 /**
@@ -156,6 +179,8 @@ export function warmCatalogIndex(items: ExerciseCatalogItem[], chunkSize = 40): 
 export function filterCatalog(items: ExerciseCatalogItem[], filters: CatalogFilters): ExerciseCatalogItem[] {
   const query = catalogSearchKey(filters.query ?? '');
   const terms = query ? query.split(' ') : [];
+  // Each term carries its synonym/abbreviation expansions; scored as best variant.
+  const expandedTerms = terms.map((term) => [term, ...(SEARCH_SYNONYMS[term] ?? [])]);
   const includeGroup = Boolean(filters.includeGroupInSearch);
   const passesFacets = (item: ExerciseCatalogItem, index: CatalogItemIndex): boolean => {
     if (filters.types?.length && !item.workoutTypeIds.some((id) => filters.types?.includes(id))) return false;
@@ -173,14 +198,37 @@ export function filterCatalog(items: ExerciseCatalogItem[], filters: CatalogFilt
   // With a query, rank by relevance so the best match surfaces first. Facets and
   // token matching (tag-aware, order-independent, one-typo tolerant) narrow the
   // set; the score then sorts it, with the original order as a stable tiebreak.
-  const ranked: { item: ExerciseCatalogItem; score: number; order: number }[] = [];
+  const n = expandedTerms.length;
+  const candidates: { item: ExerciseCatalogItem; index: CatalogItemIndex; order: number; scores: number[] }[] = [];
   items.forEach((item, order) => {
     const index = catalogItemIndex(item);
     if (!passesFacets(item, index)) return;
-    const score = itemScore(index, terms, query, includeGroup);
-    if (score === null) return;
-    ranked.push({ item, score, order });
+    candidates.push({ item, index, order, scores: scoreTerms(index, expandedTerms, includeGroup) });
   });
+  // A term is "known" when at least one in-scope item matches it. An unknown term
+  // (a typo or stray word the catalogue has nothing for) is ignored so it cannot
+  // wipe out the results — but every term that *does* discriminate must still
+  // match, so a real qualifier like "barbell" keeps narrowing the set instead of
+  // being silently dropped. With all terms known this is the usual strict AND.
+  const termKnown = Array.from({ length: n }, (_, i) => candidates.some((candidate) => candidate.scores[i] > 0));
+  const ranked: { item: ExerciseCatalogItem; score: number; order: number }[] = [];
+  for (const candidate of candidates) {
+    let total = 0;
+    let matched = 0;
+    let missedKnown = false;
+    for (let i = 0; i < n; i += 1) {
+      const score = candidate.scores[i];
+      if (score > 0) { matched += 1; total += score; }
+      else if (termKnown[i]) { missedKnown = true; break; }
+    }
+    // Drop an item that missed a discriminating term, or that matched nothing at
+    // all (an all-unknown query surfaces no results rather than the whole list).
+    if (missedKnown || matched === 0) continue;
+    // Whole-query exactness and specificity break ties toward the tightest match.
+    if (candidate.index.name === query) total += 200;
+    else if (candidate.index.name.startsWith(`${query} `)) total += 40;
+    ranked.push({ item: candidate.item, score: total, order: candidate.order });
+  }
   ranked.sort((a, b) => {
     if (b.score !== a.score) return b.score - a.score;
     const nameLength = catalogItemIndex(a.item).name.length - catalogItemIndex(b.item).name.length;

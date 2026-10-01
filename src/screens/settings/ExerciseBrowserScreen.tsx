@@ -556,6 +556,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
               group={group}
               items={items}
               expanded={expanded === group}
+              searching={Boolean(query)}
               onToggle={handleToggleMovement}
               onOpen={handleOpenExercise}
               onAdd={openCreate}
@@ -1078,7 +1079,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                 <ForgeBottomSheetHandle />
                 <ForgeSheetHeader
                   title={detail.name}
-                  titleNumberOfLines={2}
+                  autoShrinkTitle
                   onClose={close}
                   closeAccessibilityLabel="Close exercise details"
                   // Custom exercises get a "..." that opens an in-sheet options
@@ -1290,6 +1291,7 @@ const Movement = React.memo(function Movement({
   group,
   items,
   expanded,
+  searching,
   onToggle,
   onOpen,
   onAdd,
@@ -1299,6 +1301,8 @@ const Movement = React.memo(function Movement({
   group: string;
   items: ExerciseCatalogItem[];
   expanded: boolean;
+  /** A search is active, so a single collapsed result names the matched variation. */
+  searching: boolean;
   onToggle: (group: string) => void;
   onOpen: (item: ExerciseCatalogItem) => void;
   onAdd: (group: string) => void;
@@ -1315,6 +1319,13 @@ const Movement = React.memo(function Movement({
   );
   if (items.length === 1) {
     const item = items[0];
+    // When a search narrowed this group to a single variation, lead the subtitle
+    // with the matched variation (e.g. "Leaning") so the row says which one it is,
+    // rather than only the group name + equipment/category.
+    const matchedVariation = searching ? formatCatalogVariation(item.name, item.variation) : null;
+    const singleSubtitle = matchedVariation
+      ? `${matchedVariation} · ${item.equipment} · ${item.category}`
+      : `${item.equipment} · ${item.category}`;
     return (
       <SettingsSection>
         {isCustom(item) ? (
@@ -1340,7 +1351,7 @@ const Movement = React.memo(function Movement({
             >
               <SettingsRow
                 title={group}
-                subtitle={`${item.equipment} · ${item.category}`}
+                subtitle={singleSubtitle}
                 trailing={
                   <View style={styles.variationIcons}>
                     {item.laterality === 'unilateral' ? <UnilateralBadge size={18} color={theme.textSecondary} /> : null}
@@ -1365,7 +1376,7 @@ const Movement = React.memo(function Movement({
           <>
             <SettingsRow
               title={group}
-              subtitle={`${item.equipment} · ${item.category}`}
+              subtitle={singleSubtitle}
               accessibilityLabel={`Open ${group}`}
               onPress={() => onOpen(item)}
               trailing={item.laterality === 'unilateral' ? <UnilateralBadge size={18} color={theme.textSecondary} /> : undefined}
