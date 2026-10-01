@@ -64,7 +64,6 @@ export function ForgeRestDurationSheet({
       accessibilityLabel={`Dismiss ${title.toLowerCase()} picker`}
       testID={testID}
       initialOffset={420}
-      dragEnabled={false}
     >
       {(close) => (
         <View testID={`${testID}-surface`} style={[sheetStyles.sheet, { paddingBottom: Math.max(insets.bottom, 24) }]}>

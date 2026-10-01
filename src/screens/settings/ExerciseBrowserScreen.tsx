@@ -18,6 +18,7 @@ import {
   AppScreen,
   Button,
   ForgeBottomSheet,
+  ForgeBottomSheetDragArea,
   ForgeBottomSheetHandle,
   ForgeBackButton,
   ForgeCard,
@@ -1077,6 +1078,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                 <ForgeBottomSheetHandle />
                 <ForgeSheetHeader
                   title={detail.name}
+                  titleNumberOfLines={2}
                   onClose={close}
                   closeAccessibilityLabel="Close exercise details"
                   // Custom exercises get a "..." that opens an in-sheet options
@@ -1096,24 +1098,29 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                     ) : undefined
                   }
                 />
-                <ExerciseDetailBody
-                  detail={detail}
-                  workoutTypes={preferences.workoutTypes}
-                  restLabel={restLabel(detail)}
-                  onPressRest={() => transitionDetailSheet('restTime')}
-                  bottomPadding={Math.max(30, bottomInset + 20)}
-                  secondaryRest={detail.laterality === 'unilateral' ? {
-                    title: 'Between sides',
-                    value: unilateralRestLabel(detail),
-                    onPress: () => transitionDetailSheet('restTimeUnilateral'),
-                  } : undefined}
-                  footer={detail.laterality === 'unilateral' ? (
-                    <UnilateralDetailSection
-                      leadSide={leadSide(detail)}
-                      onToggleLeadSide={() => toggleLeadSide(detail)}
-                    />
-                  ) : undefined}
-                />
+                {/* The detail body does not scroll, so the whole card is a
+                    drag-to-dismiss target (taps on the rest rows and the
+                    leading-side toggle still win; only a vertical drag dismisses). */}
+                <ForgeBottomSheetDragArea>
+                  <ExerciseDetailBody
+                    detail={detail}
+                    workoutTypes={preferences.workoutTypes}
+                    restLabel={restLabel(detail)}
+                    onPressRest={() => transitionDetailSheet('restTime')}
+                    bottomPadding={Math.max(30, bottomInset + 20)}
+                    secondaryRest={detail.laterality === 'unilateral' ? {
+                      title: 'Between sides',
+                      value: unilateralRestLabel(detail),
+                      onPress: () => transitionDetailSheet('restTimeUnilateral'),
+                    } : undefined}
+                    footer={detail.laterality === 'unilateral' ? (
+                      <UnilateralDetailSection
+                        leadSide={leadSide(detail)}
+                        onToggleLeadSide={() => toggleLeadSide(detail)}
+                      />
+                    ) : undefined}
+                  />
+                </ForgeBottomSheetDragArea>
               </View>
             ))
           }
