@@ -305,11 +305,8 @@ test.describe('Dashboard', () => {
       .getByTestId('dashboard-workout-source-chooser')
       .getByRole('button', { name: 'Blank workout' })
       .click();
-    await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
-    await page
-      .getByTestId('add-exercise-sheet-surface')
-      .getByRole('button', { name: 'Close add exercises' })
-      .click();
+    // A blank workout now lands on the empty session (no auto-opened picker).
+    await expect(page.getByRole('button', { name: 'Add exercise', exact: true })).toBeVisible();
 
     const indicator = page.getByTestId('dashboard-nav-selection-pill');
     for (const tabName of ['Dashboard', 'History', 'Workout', 'Plans', 'Settings']) {

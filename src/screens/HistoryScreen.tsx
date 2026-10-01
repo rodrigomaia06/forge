@@ -420,10 +420,13 @@ function HistoryFilterSheet({
                   return <Pressable key={type.value} accessibilityRole="checkbox" accessibilityLabel={`Filter Workout type: ${type.label}`} accessibilityState={{ checked: selected }} unstable_pressDelay={80} onPress={() => {
                     selectionHaptic();
                     setDraft((current) => ({ ...current, types: selected ? current.types.filter((value) => value !== type.value) : [...current.types, type.value] }));
-                  }} style={({ pressed }) => [styles.historyFilterChoice, selected && { backgroundColor: theme.successSurface }, pressed && styles.pressed]}>
+                  }} style={({ pressed }) => [styles.historyFilterChoice, pressed && styles.pressed]}>
+                    {/* Inset, self-rounded highlight so a selected row reads the same
+                        regardless of its position in the card (see ForgeCatalogFilters). */}
+                    {selected ? <View pointerEvents="none" style={[styles.historyFilterChoiceSelected, { backgroundColor: theme.successSurface }]} /> : null}
                     <Text style={styles.historyFilterChoiceText}>{type.label}</Text>
                     {selected ? <Icon name="check" size={20} color={theme.selectionIndicator} weight="bold" /> : null}
-                    {index < visibleTypes.length - 1 ? <View style={[styles.historyFilterDivider, { backgroundColor: theme.divider }]} /> : null}
+                    {index < visibleTypes.length - 1 && !selected ? <View style={[styles.historyFilterDivider, { backgroundColor: theme.divider }]} /> : null}
                   </Pressable>;
                 })}
                 {!visibleTypes.length ? <Text style={styles.historyFilterEmpty}>No matching workout types.</Text> : null}
@@ -761,6 +764,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   historyFilterDivider: { position: 'absolute', right: 16, bottom: 0, left: 16, height: StyleSheet.hairlineWidth, pointerEvents: 'none' },
   historyFilterSummaryDivider: { left: 64 },
   historyFilterChoice: { minHeight: 56, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  historyFilterChoiceSelected: { position: 'absolute', top: 4, bottom: 4, left: 8, right: 8, borderRadius: 14 },
   historyFilterChoiceText: { flex: 1, color: theme.textPrimary, ...typeScale.cardTitle },
   historyFilterEmpty: { padding: 20, color: theme.textSecondary, ...typeScale.supporting },
   historyDateModeRow: { minHeight: 64, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },

@@ -6,10 +6,7 @@ export async function startBlankWorkout(page: Page): Promise<void> {
   await page.getByTestId('dashboard-workout-source-chooser')
     .getByRole('button', { name: 'Blank workout' })
     .click();
-  await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
-  await page.getByTestId('add-exercise-sheet-surface')
-    .getByRole('button', { name: 'Close add exercises' })
-    .click();
+  // A blank workout lands on the empty session; the picker is opened explicitly.
   await expect(page.getByRole('button', { name: 'Add exercise', exact: true })).toBeVisible();
 }
 

@@ -5,6 +5,7 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import {
   Button,
   ForgeBottomSheet,
+  ForgeBottomSheetDragArea,
   ForgeBottomSheetHandle,
   ForgeCard,
   ForgeSheetHeader,
@@ -211,7 +212,30 @@ export function ExerciseInfoContent({
   const exerciseId = exercise.exerciseId ?? exercise.exerciseSnapshot?.id ?? detail.id;
   const restLabel = restReadout(preferences.exerciseRestSeconds[exerciseId]);
   const unilateralRestLabel = restReadout(unilateralRestOverride);
-  const scrollable = contentHeight > viewportHeight + 1;
+  // Only scroll once a real viewport has been measured AND the content overflows
+  // it. Guarding on `viewportHeight > 0` matters on the view-swap frame when this
+  // card remounts after returning from the duration wheel: the viewport momentarily
+  // measures ~0, and without the guard `scrollable` would flip true, so the
+  // ScrollView would claim the vertical pan and the body could not be dragged to
+  // dismiss. See the drag-area note below.
+  const scrollable = viewportHeight > 0 && contentHeight > viewportHeight + 1;
+  const body = (
+    <ExerciseDetailBody
+      detail={detail}
+      workoutTypes={preferences.workoutTypes}
+      restLabel={restLabel}
+      onPressRest={onPressRest}
+      // The sheet already provides bottom clearance; keep the content's own
+      // padding small so it doesn't stack into dead space under the last card.
+      bottomPadding={2}
+      secondaryRest={unilateral
+        ? { title: 'Between sides', value: unilateralRestLabel, onPress: onPressUnilateralRest }
+        : undefined}
+      footer={unilateral ? (
+        <UnilateralDetailSection leadSide={leadSide} onToggleLeadSide={onToggleLeadSide} />
+      ) : undefined}
+    />
+  );
   // Reuse the exact Exercise Library detail card so the two read identically.
   return (
     <Animated.ScrollView
@@ -225,21 +249,12 @@ export function ExerciseInfoContent({
       entering={reducedMotion ? undefined : FadeIn.duration(forgeMotion.state)}
       exiting={reducedMotion ? undefined : FadeOut.duration(forgeMotion.feedback)}
     >
-      <ExerciseDetailBody
-        detail={detail}
-        workoutTypes={preferences.workoutTypes}
-        restLabel={restLabel}
-        onPressRest={onPressRest}
-        // The sheet already provides bottom clearance; keep the content's own
-        // padding small so it doesn't stack into dead space under the last card.
-        bottomPadding={2}
-        secondaryRest={unilateral
-          ? { title: 'Between sides', value: unilateralRestLabel, onPress: onPressUnilateralRest }
-          : undefined}
-        footer={unilateral ? (
-          <UnilateralDetailSection leadSide={leadSide} onToggleLeadSide={onToggleLeadSide} />
-        ) : undefined}
-      />
+      {/* When the card fits (does not scroll) the whole body is a drag-to-dismiss
+          target, mirroring the Exercise Library detail — so a vertical drag off the
+          header still dismisses, including right after returning from the wheel.
+          Once the content overflows, the ScrollView owns the pan and dismissal is
+          via the header handle instead. */}
+      {scrollable ? body : <ForgeBottomSheetDragArea>{body}</ForgeBottomSheetDragArea>}
     </Animated.ScrollView>
   );
 }
@@ -386,7 +401,11 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   // Hug-then-scroll (ADR 0005): flexShrink lets the body size to its content and
   // scroll within the surface cap instead of parking content high with dead
   // space beneath it. Never put a height/maxHeight on the scroll view itself.
-  infoScrollView: { flexShrink: 1 },
+  // A min-height floor keeps the info card at full height when it remounts after
+  // returning from the duration wheel — without it the ScrollView measures ~0 on
+  // the swap frame and the native sheet collapses to the header. Matches the rest
+  // view's restPickerContent and the library detail's DETAIL_SHEET_MIN_HEIGHT.
+  infoScrollView: { flexShrink: 1, minHeight: 400 },
   infoScroll: { paddingTop: 4, paddingBottom: 30 },
   // Let the list occupy all remaining sheet height. The former percentage cap
   // left an inert band under the final card and could clip Show more.

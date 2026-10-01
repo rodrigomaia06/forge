@@ -292,7 +292,13 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
       // immediately. Measure first so the complete card enters from below
       // rather than being visible before its Forge sheet animation begins.
       waitForContentLayoutBeforeEnter
-      style={styles.pickerSheet}
+      // Ease the surface height when swapping the tall catalogue for the compact
+      // filter (and back), so the shrink is a smooth transition, not a jump.
+      animateContentLayout
+      // The catalogue needs a tall fixed height for its virtualised list; the
+      // in-place filter hugs its content so the sheet shrinks to it like the
+      // library's own filter sheet instead of leaving a large empty gap.
+      style={filtersOpen ? styles.pickerSheetAuto : styles.pickerSheet}
     >
       {(closeSheet) => (
         <>
@@ -304,12 +310,12 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
               onConfirm={(choices) => commit([...variationResolution.direct, ...choices])}
             />
           ) : filtersOpen ? (
-            <View style={styles.filterSheetFill}>
+            <View style={styles.filterSheetHug}>
               <ForgeCatalogFilterContent
                 filters={filters}
                 facets={filterFacets}
-                fill
                 headerWithDragHandle
+                onBack={() => setFiltersOpen(false)}
                 onCancel={() => setFiltersOpen(false)}
                 onApply={(next) => {
                   setFilters(next);
@@ -1060,6 +1066,18 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       backgroundColor: dashboardTheme.surface,
       position: 'relative',
     },
+    // The in-place filter view hugs its content, so the sheet drops its fixed
+    // catalogue height and shrinks to fit (eased by animateContentLayout).
+    pickerSheetAuto: {
+      width: '100%',
+      paddingTop: 12,
+      paddingHorizontal: 20,
+      paddingBottom: 12,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      backgroundColor: dashboardTheme.surface,
+      position: 'relative',
+    },
     pickerHeader: {
       height: forgeSheetHeader.height,
       flexDirection: 'row',
@@ -1068,7 +1086,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     },
     // Normal flow deliberately shares the Add Exercises header origin, which
     // keeps both X controls in the exact same screen position.
-    filterSheetFill: { flex: 1, alignSelf: 'stretch', marginHorizontal: -20, marginBottom: -12 },
+    // Counteract the sheet's own padding so the hugging filter rows span full
+    // width and its docked Apply sits at the sheet's bottom edge, like the library.
+    filterSheetHug: { alignSelf: 'stretch', marginHorizontal: -20, marginBottom: -12 },
     pickerTitle: { color: dashboardTheme.ink, ...typeScale.headerTitle },
     searchRow: {
       flexDirection: 'row',

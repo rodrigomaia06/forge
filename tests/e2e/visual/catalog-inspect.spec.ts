@@ -4,6 +4,7 @@ test('presents imported triceps movements through the Forge hierarchy', async ({
   await page.goto('/');
   await page.getByRole('button', { name: 'Start workout' }).click();
   await page.getByTestId('dashboard-workout-source-chooser').getByRole('button', { name: 'Blank workout' }).click();
+  await page.getByRole('button', { name: 'Add exercise', exact: true }).click();
   await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
   await page.waitForTimeout(260);
   const search = page.getByLabel('Search exercises');
@@ -26,6 +27,7 @@ test('keeps Strength families concise and names leg movements correctly', async 
     .getByTestId('dashboard-workout-source-chooser')
     .getByRole('button', { name: 'Blank workout' })
     .click();
+  await page.getByRole('button', { name: 'Add exercise', exact: true }).click();
   await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
   await page.getByLabel('Search exercises').fill('lateral raise');
   await expect(page.getByRole('button', { name: /Lateral Raise & 4 variations/ })).toBeVisible();
@@ -55,6 +57,7 @@ test('presents no-equipment trunk rotation as Bodyweight', async ({ page }, test
     .getByTestId('dashboard-workout-source-chooser')
     .getByRole('button', { name: 'Blank workout' })
     .click();
+  await page.getByRole('button', { name: 'Add exercise', exact: true }).click();
   await page.getByLabel('Search exercises').fill('trunk rotation');
   const family = page.getByRole('button', { name: /Trunk Rotation & 5 variations/ });
   await expect(family).toBeVisible();
@@ -71,6 +74,7 @@ test('finds and selects a curated compound variation from the default workout-ty
   await page.goto('/');
   await page.getByRole('button', { name: 'Start workout' }).click();
   await page.getByTestId('dashboard-workout-source-chooser').getByRole('button', { name: 'Blank workout' }).click();
+  await page.getByRole('button', { name: 'Add exercise', exact: true }).click();
 
   const catalogue = page.getByTestId('add-exercise-catalogue');
   await expect(catalogue).toBeVisible();
@@ -102,6 +106,7 @@ test('combines compatible modifiers directly and resolves conflicting choices', 
   await page.goto('/');
   await page.getByRole('button', { name: 'Start workout' }).click();
   await page.getByTestId('dashboard-workout-source-chooser').getByRole('button', { name: 'Blank workout' }).click();
+  await page.getByRole('button', { name: 'Add exercise', exact: true }).click();
   await page.waitForTimeout(260);
   await page.getByLabel('Search exercises').fill('pull up');
   const pullUps = page.getByRole('button', { name: /Pull-Up & \d+ variations/ }).first();
@@ -139,6 +144,7 @@ test('reveals assistance methods only after selecting the assisted load mode', a
   await page.goto('/');
   await page.getByRole('button', { name: 'Start workout' }).click();
   await page.getByTestId('dashboard-workout-source-chooser').getByRole('button', { name: 'Blank workout' }).click();
+  await page.getByRole('button', { name: 'Add exercise', exact: true }).click();
   await page.getByLabel('Search exercises').fill('pull up');
   await page.getByRole('button', { name: /Pull-Up & \d+ variations/ }).first().click();
   await expect(page.getByRole('checkbox', { name: 'Pull-Up, Band' })).toHaveCount(0);
@@ -151,6 +157,7 @@ test('asks before joining wide and neutral as one movement', async ({ page }, te
   await page.goto('/');
   await page.getByRole('button', { name: 'Start workout' }).click();
   await page.getByTestId('dashboard-workout-source-chooser').getByRole('button', { name: 'Blank workout' }).click();
+  await page.getByRole('button', { name: 'Add exercise', exact: true }).click();
   await page.getByLabel('Search exercises').fill('pull up');
   await page.getByRole('button', { name: /Pull-Up & \d+ variations/ }).first().click();
   await page.getByRole('checkbox', { name: 'Pull-Up, Wide' }).click();

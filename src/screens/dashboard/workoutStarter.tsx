@@ -68,9 +68,9 @@ export function useWorkoutStarter(): WorkoutStarter {
     // another is dismissing.
     runAfterClose(() => guardStart(() => {
       startWorkout();
-      // The destination mounts the picker as visible, so it still makes its normal
-      // bottom-sheet entrance instead of flashing an empty workout.
-      navigation.navigate('ActiveWorkout', { openAddExercises: 'open' });
+      // Land on the empty workout and let the user open the picker explicitly via
+      // "Add exercise" — starting a blank session should not force the picker open.
+      navigation.navigate('ActiveWorkout');
     }));
     setWorkoutSourceOpen(false);
   }, [guardStart, navigation, runAfterClose, startWorkout]);

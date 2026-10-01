@@ -92,6 +92,7 @@ export function ForgeCatalogFilterContent({
   facets,
   onApply,
   onCancel,
+  onBack,
   fill = false,
   headerWithDragHandle = false,
   title = 'Filters',
@@ -101,6 +102,13 @@ export function ForgeCatalogFilterContent({
   facets: CatalogFilterFacet[];
   onApply: (filters: CatalogFilterState) => void;
   onCancel: () => void;
+  /**
+   * Embedded (in-place) use: the filter is a sub-view of a parent sheet rather
+   * than its own modal. When set, the header leads with a Back button (returning
+   * to the parent view) instead of the close X, and Clear moves to the trailing
+   * slot — the affordance users expect from the catalogue's other in-place swaps.
+   */
+  onBack?: () => void;
   /** Fill a parent sheet instead of creating a second sheet-sized region. */
   fill?: boolean;
   /** Make the handle and header one safe downward-drag target. */
@@ -161,26 +169,32 @@ export function ForgeCatalogFilterContent({
       option.label.toLocaleLowerCase().includes(normalizedQuery),
     );
   }, [activeFacet, deferredChoiceQuery, draft]);
+  const clearButton = count > 0 ? (
+    <Button
+      accessibilityLabel="Clear filters"
+      label="Clear"
+      variant="outline"
+      tone="destructive"
+      onPress={() => setDraft(emptyCatalogFilters())}
+      style={styles.headerClearAction}
+    />
+  ) : undefined;
   const header = (
     <ForgeSheetHeader
       title={activeFacet?.title ?? title}
-      onClose={onCancel}
+      // Embedded (onBack): the leading Back button is the dismissal, so there is no
+      // close X; Clear moves to the trailing slot. As its own sheet, keep the X.
+      onClose={onBack ? undefined : onCancel}
       closeAccessibilityLabel={closeAccessibilityLabel}
       leading={activeFacet ? (
         <ForgeBackButton
           accessibilityLabel="Back to filters"
           onPress={() => { setChoiceQuery(''); setActiveFacetKey(null); }}
         />
-      ) : count > 0 ? (
-        <Button
-          accessibilityLabel="Clear filters"
-          label="Clear"
-          variant="outline"
-          tone="destructive"
-          onPress={() => setDraft(emptyCatalogFilters())}
-          style={styles.headerClearAction}
-        />
-      ) : undefined}
+      ) : onBack ? (
+        <ForgeBackButton accessibilityLabel="Back to exercises" onPress={onBack} />
+      ) : clearButton}
+      trailing={onBack && !activeFacet ? clearButton : undefined}
     />
   );
   return (
@@ -227,15 +241,15 @@ export function ForgeCatalogFilterContent({
                   accessibilityState={{ checked: selected }}
                   unstable_pressDelay={80}
                   onPress={() => toggle(activeFacet.key, option.value)}
-                  style={({ pressed }) => [
-                    styles.choice,
-                    selected && { backgroundColor: theme.successSurface },
-                    pressed && pressedFeedback,
-                  ]}
+                  style={({ pressed }) => [styles.choice, pressed && pressedFeedback]}
                 >
+                  {/* An inset, self-rounded highlight so a selected row looks the
+                      same wherever it sits — the full-bleed fill otherwise clipped
+                      to the card's rounded corners only on the first/last rows. */}
+                  {selected ? <View pointerEvents="none" style={[styles.choiceSelected, { backgroundColor: theme.successSurface }]} /> : null}
                   <Text style={styles.choiceText}>{option.label}</Text>
                   {selected ? <Icon name="check" size={20} color={theme.selectionIndicator} weight="bold" /> : null}
-                  {index < options.length - 1 ? <View style={[styles.separator, { backgroundColor: theme.divider }]} /> : null}
+                  {index < options.length - 1 && !selected ? <View style={[styles.separator, { backgroundColor: theme.divider }]} /> : null}
                 </Pressable>
               );
             })}
@@ -396,6 +410,8 @@ const createStyles = (theme: ReturnType<typeof useForgeTheme>) => StyleSheet.cre
   facetSummary: { ...typeScale.supporting, color: theme.textSecondary, marginTop: 1 },
   choiceCard: { overflow: 'hidden', borderRadius: 20, backgroundColor: theme.surface },
   choice: { minHeight: 56, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  // Inset highlight for a selected row: uniform rounded rectangle, position-independent.
+  choiceSelected: { position: 'absolute', top: 4, bottom: 4, left: 8, right: 8, borderRadius: 14 },
   choiceText: { flex: 1, ...typeScale.cardTitle, color: theme.textPrimary },
   separator: { position: 'absolute', right: 16, bottom: 0, left: 16, height: StyleSheet.hairlineWidth, pointerEvents: 'none' },
   facetSeparator: { left: 64 },

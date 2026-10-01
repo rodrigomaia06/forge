@@ -95,6 +95,7 @@ test.describe('Plans and routines', () => {
     await expect(sourceChooser.getByRole('button', { name: 'From routine or plan' })).toBeVisible();
     await sourceChooser.getByRole('button', { name: 'Blank workout' }).click();
     await expect(page.getByRole('tab', { name: 'Workout', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Add exercise', exact: true }).click();
     await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
     await expect(page.getByTestId('plans-creation-popover')).toHaveCount(0);
   });

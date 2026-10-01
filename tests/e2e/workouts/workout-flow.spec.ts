@@ -106,9 +106,7 @@ async function scrollCatalogueUp(page: Page): Promise<void> {
 async function startBlankWorkout(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Start workout' }).click();
   await page.getByTestId('dashboard-workout-source-chooser').getByRole('button', { name: 'Blank workout' }).click();
-  await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
-  await page.getByTestId('add-exercise-sheet-surface').getByRole('button', { name: 'Close add exercises' }).click();
-  await expect(page.getByTestId('add-exercise-sheet-surface')).toHaveCount(0);
+  // A blank workout lands on the empty session; the picker is opened explicitly.
   await expect(page.getByRole('button', { name: 'Add exercise', exact: true })).toBeVisible();
 }
 
@@ -442,19 +440,17 @@ test.describe('Active workout flow', () => {
     await page.mouse.move(196, 790, { steps: 10 });
     await page.mouse.up();
     await expect(addExerciseSheet).toHaveCount(1);
-    const addCloseBox = await addExerciseSheet
-      .getByRole('button', { name: 'Close add exercises' })
-      .boundingBox();
     await page.getByRole('button', { name: 'Filters' }).click();
     const apply = page.getByRole('button', { name: 'Apply filters' });
     await expect(apply).toBeVisible();
     await expect(apply).toBeDisabled();
     await expect(page.getByRole('button', { name: 'Cancel', exact: true })).toHaveCount(0);
     await expect(addExerciseSheet).toHaveCount(1);
-    const filterClose = page.getByRole('button', { name: 'Cancel exercise filters' });
-    const filterCloseBox = await filterClose.boundingBox();
-    expect(filterCloseBox?.x ?? Infinity).toBeCloseTo(addCloseBox?.x ?? -Infinity, 0);
-    expect(filterCloseBox?.y ?? Infinity).toBeCloseTo(addCloseBox?.y ?? -Infinity, 0);
+    // The in-place filter is a sub-view of the picker: it leads with a Back button
+    // that returns to the catalogue (no close X), and the sheet hugs the filter so
+    // the docked Apply stays pinned at the bottom edge.
+    const filterBack = page.getByRole('button', { name: 'Back to exercises' });
+    await expect(filterBack).toBeVisible();
     const applyBox = await apply.boundingBox();
     expect((page.viewportSize()?.height ?? Infinity) - ((applyBox?.y ?? 0) + (applyBox?.height ?? 0))).toBeLessThanOrEqual(24);
     await page.screenshot({ path: testInfo.outputPath('live-workout-filter-sheet.png') });
@@ -462,7 +458,10 @@ test.describe('Active workout flow', () => {
     await page.getByRole('checkbox', { name: 'Filter Equipment: Machine' }).click();
     await expect(page.getByRole('button', { name: 'Apply (1)' })).toBeEnabled();
     await page.screenshot({ path: testInfo.outputPath('live-workout-filter-apply-selected.png') });
-    await filterClose.click();
+    // Leave without applying: back out of the facet, then back to the catalogue;
+    // the unapplied draft is discarded.
+    await page.getByRole('button', { name: 'Back to filters' }).click();
+    await filterBack.click();
     await expect(page.getByLabel('Filters')).toBeVisible();
     await expect(addExerciseSheet).toHaveCount(1);
 

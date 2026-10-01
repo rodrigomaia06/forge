@@ -135,6 +135,8 @@ export function ForgeBottomSheet({
   // immediately usable — an interrupted exit can never swallow the next tap.
   const [exiting, setExiting] = useState(false);
   const closingRef = useRef(false);
+  // Tracks the open transition so we dismiss the keyboard exactly once on open.
+  const wasVisibleRef = useRef(false);
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const entryFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const entryOffsetRef = useRef(initialOffset);
@@ -220,8 +222,15 @@ export function ForgeBottomSheet({
     if (!visible) {
       entryOffsetRef.current = initialOffset;
       setEntryContentReady(false);
+      wasVisibleRef.current = false;
       return undefined;
     }
+    // Dismiss the keyboard once as the sheet opens over the screen below. Without
+    // this, iOS restores the previous first responder (e.g. the search field)
+    // when this Modal later unmounts, so the keyboard reopens by itself. None of
+    // Forge's sheets auto-focus a field on open, so this is safe.
+    if (!wasVisibleRef.current) Keyboard.dismiss();
+    wasVisibleRef.current = true;
     clearExitTimer();
     closingRef.current = false;
     closing.value = false;

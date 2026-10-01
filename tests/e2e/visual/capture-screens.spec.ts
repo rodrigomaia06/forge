@@ -242,8 +242,7 @@ test.describe('Forge screen captures', () => {
     await page.getByRole('button', { name: 'Start workout' }).first().click();
     await capture(page, 'dashboard-workout-source-chooser');
     await page.getByTestId('dashboard-workout-source-chooser').getByRole('button', { name: 'Blank workout' }).click();
-    await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
-    await page.getByTestId('forge-sheet-drag-area').getByRole('button', { name: 'Close add exercises' }).click();
+    // A blank workout now lands on the empty session (no auto-opened picker).
     await expect(page.getByRole('button', { name: 'Finish workout' })).toBeVisible();
     await capture(page, 'live-workout');
 
