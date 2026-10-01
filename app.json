@@ -19,7 +19,11 @@
       }
     },
     "android": {
-      "package": "com.forge.training"
+      "package": "com.forge.training",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/forge-adaptive-foreground.png",
+        "backgroundColor": "#F6F7F8"
+      }
     },
     "web": {
       "headers": {
