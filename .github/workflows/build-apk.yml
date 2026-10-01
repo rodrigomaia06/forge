@@ -32,18 +32,25 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Set up Gradle with caching
+        # Caches the Gradle distribution, downloaded dependencies, and the build
+        # cache across runs so repeat builds skip most of the Java/Gradle work.
+        uses: gradle/actions/setup-gradle@v4
       - name: Install JavaScript dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Generate the Android project
         # Prebuild also runs Forge's local config plugins, including the rest-timer
         # module and the .forge file-association intent filters.
         run: npx expo prebuild --no-install --platform android
-      - name: Build release APK
-        # The Expo-generated release buildType is signed with the bundled debug
-        # keystore and embeds the JS bundle, so the APK installs and runs on a
-        # device without Metro — exactly what's needed for sideloaded testing.
+      - name: Build release APK (arm64 only)
+        # Most of the build time is native C++ (Hermes-adjacent libs, reanimated,
+        # worklets, …) compiled once per ABI. A sideload-to-phone test build only
+        # needs arm64-v8a — the ABI of every modern physical Android device — so we
+        # skip the three other architectures (x86/x86_64 emulators, armeabi-v7a).
+        # The Expo release buildType is signed with the bundled debug keystore and
+        # embeds the JS bundle, so the APK installs and runs without Metro.
         working-directory: android
-        run: ./gradlew assembleRelease --no-daemon
+        run: ./gradlew assembleRelease --no-daemon --build-cache --parallel -PreactNativeArchitectures=arm64-v8a
       - name: Collect and validate the APK
         run: |
           set -euo pipefail
@@ -60,6 +67,7 @@ jobs:
             echo
             echo "Commit: \`${GITHUB_SHA}\`"
             echo "APK: \`$(basename "$APK")\` ($(du -h "$APK" | cut -f1))"
+            echo 'ABI: arm64-v8a only — installs on physical phones, not x86 emulators.'
             echo 'Signing: Expo debug keystore — installable for testing, not for store release.'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Upload APK to GitHub
