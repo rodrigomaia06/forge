@@ -34,6 +34,8 @@
       [
         "expo-splash-screen",
         {
+          "image": "./assets/forge-app-icon.png",
+          "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#F6F7F8"
         }
