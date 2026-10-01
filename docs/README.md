@@ -60,3 +60,16 @@ installation. The sideload archive does not depend on an App Group when
 iLoader re-signs it. The IPA and `xcodebuild` log remain separate GitHub
 Actions artifacts for 30 days. The repository's `EXPO_TOKEN` may remain stored
 for other Expo operations, but this workflow does not read it.
+
+## Android APK build
+
+The manual **Build Android APK** GitHub workflow runs on a standard
+`ubuntu-latest` runner: it generates the Android project with `expo prebuild`
+(including Forge's config plugins) and builds a release APK with Gradle. The
+Expo release build type is signed with the bundled debug keystore and embeds
+the JS bundle, so the APK installs and runs on a device without Metro — it is a
+sideload test build, not a Play Store release. To keep the build fast it
+compiles only the `arm64-v8a` architecture, which every modern physical phone
+uses; the APK therefore does **not** install on x86/x86_64 emulators. Gradle,
+its dependencies, and the build cache are cached between runs. The signed
+`Forge-release.apk` is uploaded as a GitHub Actions artifact for 30 days.

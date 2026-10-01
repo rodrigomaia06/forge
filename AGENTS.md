@@ -59,82 +59,37 @@ Before finishing, follow the knowledge-impact procedure in `rules/maintenance.md
 
 Any change to a Forge rule must be called out explicitly in the completion response.
 
-## Project tree
+## Project map
 
-docs/
-├── decisions
-│   └── README.md
-├── product
-│   └── README.md
-├── README.md
-└── research
-    └── README.md
-rules/
-├── architecture.md
-├── core.md
-├── design.md
-├── external.md
-├── maintenance.md
-└── README.md
-src/
-├── components
-│   ├── BottomNavigation.tsx
-│   ├── calendar
-│   ├── Calendar.tsx
-│   ├── DashboardHeader.tsx
-│   ├── DockChrome.tsx
-│   ├── DockSurface.tsx
-│   ├── IconButton.tsx
-│   ├── NavigationFooter.tsx
-│   ├── ui
-│   └── WorkoutRow.tsx
-├── domain
-│   ├── exercises
-│   ├── rest
-│   └── workouts
-├── data
-│   ├── backupHistory.ts
-│   ├── backupRepository.ts
-│   ├── diagnosticsRepository.ts
-│   ├── mockWorkouts.ts
-│   ├── scopedTransfer.ts
-│   ├── scopedTransferCore.ts
-│   ├── transferFormat.ts
-│   └── workoutRepository.ts
-├── debug
-│   └── layoutProbe.ts
-├── navigation
-│   └── AppNavigator.tsx
-├── screens
-│   ├── activeWorkout
-│   ├── ActiveWorkoutScreen.tsx
-│   ├── dashboard
-│   ├── DashboardScreen.tsx
-│   ├── HistoryScreen.tsx
-│   └── PlaceholderScreen.tsx
-├── state
-│   ├── RestTimerContext.tsx
-│   ├── WorkoutContext.tsx
-│   ├── dashboardLayout.ts
-│   ├── restTimerLiveActivity.ts
-│   └── workoutMutations.ts
-├── theme
-│   ├── dashboardTheme.ts
-│   └── tokens.ts
-├── types
-│   ├── icons.ts
-│   ├── navigation.ts
-│   ├── theme.ts
-│   ├── ui.ts
-│   └── workout.ts
-├── types.ts
-├── utils
-│   ├── idle.ts
-│   ├── relativeTime.ts
-│   └── shareItem.ts
-└── widgets
-    └── RestTimerLiveActivity.tsx
-tests/
+A directory-level map for routing. It is deliberately not a per-file inventory —
+list contents with the file tools instead, so this never drifts as files change.
 
-This section should be updated as files are created for an updated overview of the project.
-Tests directory doesn't need to be expanded.
+- `rules/` — active Forge rules; start at `rules/README.md` (the router), which
+  points to `core.md`, `maintenance.md`, `architecture.md`, `design.md`, `external.md`.
+- `docs/` — `product/` (accepted requirements), `decisions/` (ADRs),
+  `research/` (non-canonical), and `docs/README.md` (data transfer, legacy
+  migration, and the build workflows).
+- `src/`
+  - `components/` — shared UI, including `components/ui/` (the Forge primitives:
+    sheets, buttons, fields, filters) and feature cards.
+  - `screens/` — one file per screen, with `activeWorkout/`, `dashboard/`, and
+    `settings/` holding their sub-sheets and parts.
+  - `navigation/` — the navigator, tab bar, primary-dock context, and the
+    opened-file (`.forge`) handoff.
+  - `state/` — React context providers (workout, plans, settings, exercise
+    catalogue, rest timer) plus their mutation and pending-handoff modules.
+  - `data/` — persistence and portable transfer: SQLite repositories (with
+    `*.web.ts` mirrors for the web build), the exercise catalogue, and the
+    import/export/merge pipeline.
+  - `domain/` — pure logic (`exercises/`, `workouts/`, `rest/`, trends); no
+    React or storage.
+  - `theme/` — tokens, typography, motion, and the theme provider.
+  - `types/` — shared TypeScript types (plus `src/types.ts`).
+  - `utils/`, `debug/` — small helpers and development probes.
+- `modules/forge-rest-timer/` — the native rest-timer module (iOS Live Activity
+  and numeric keyboard), wired via its config plugin.
+- `plugins/` — Expo config plugins (disable shake-to-edit, `.forge` file
+  association).
+- `tests/` — `tests/unit/` and Playwright `tests/e2e/`.
+- `.github/workflows/` — manual build workflows: `build-ipa.yml` (iOS) and
+  `build-apk.yml` (Android).
