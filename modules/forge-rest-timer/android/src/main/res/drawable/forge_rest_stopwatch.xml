@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Tabler "stopwatch" outline glyph (node_modules/@tabler/icons/icons/outline/stopwatch.svg),
+  the same mark the in-app rest timer uses. Stroke-based, 24x24 viewport, white strokes so a
+  RemoteViews setColorFilter recolors it per tint state. The transparent bg path is dropped.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+  <path
+      android:strokeColor="#FFFFFFFF"
+      android:strokeWidth="2"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"
+      android:pathData="M5 13a7 7 0 1 0 14 0a7 7 0 0 0 -14 0" />
+  <path
+      android:strokeColor="#FFFFFFFF"
+      android:strokeWidth="2"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"
+      android:pathData="M14.5 10.5l-2.5 2.5" />
+  <path
+      android:strokeColor="#FFFFFFFF"
+      android:strokeWidth="2"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"
+      android:pathData="M17 8l1 -1" />
+  <path
+      android:strokeColor="#FFFFFFFF"
+      android:strokeWidth="2"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"
+      android:pathData="M14 3h-4" />
+</vector>

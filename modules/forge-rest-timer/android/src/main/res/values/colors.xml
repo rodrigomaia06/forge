@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Rest-timer live notification palette. Mirrors the iOS Live Activity tints so the
+  Android ongoing countdown reads as the same Forge surface:
+    normal  = white             (Color.white)
+    warning = rgb(.773,.541,.271)  #C58A45
+    overdue = rgb(.784,.361,.361)  #C85C5C
+    card    = black @ 60%          #99000000 (activityBackgroundTint)
+  All names are prefixed forge_rest_* to stay unique in the merged library namespace.
+-->
+<resources>
+  <color name="forge_rest_normal">#FFFFFFFF</color>
+  <color name="forge_rest_warning">#FFC58A45</color>
+  <color name="forge_rest_overdue">#FFC85C5C</color>
+  <color name="forge_rest_card_bg">#99000000</color>
+  <color name="forge_rest_track">#33FFFFFF</color>
+  <color name="forge_rest_accent">#FF4D7B67</color>
+</resources>

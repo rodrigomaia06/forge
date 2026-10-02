@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Collapsed live-countdown content view. One row: stopwatch glyph + "Rest" label on the
+  leading edge, the system-ticked countdown on the trailing edge. Mirrors the iOS Live
+  Activity header row. Kept compact to fit the collapsed notification content height.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/forge_rest_card_bg"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="12dp">
+
+  <ImageView
+      android:id="@+id/forge_rest_icon"
+      android:layout_width="22dp"
+      android:layout_height="22dp"
+      android:src="@drawable/forge_rest_stopwatch"
+      android:contentDescription="@null" />
+
+  <TextView
+      android:id="@+id/forge_rest_label"
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:layout_weight="1"
+      android:layout_marginStart="7dp"
+      android:text="Rest"
+      android:textSize="18sp"
+      android:textColor="@color/forge_rest_normal"
+      android:fontFamily="@font/manrope_semibold"
+      android:includeFontPadding="false" />
+
+  <Chronometer
+      android:id="@+id/forge_rest_time"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_marginStart="8dp"
+      android:textSize="26sp"
+      android:textColor="@color/forge_rest_normal"
+      android:fontFamily="@font/manrope_semibold"
+      android:fontFeatureSettings="tnum"
+      android:includeFontPadding="false"
+      android:gravity="end" />
+</LinearLayout>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Horizontal progress rail for the live countdown. Translucent white track with a solid
+  white fill, echoing the iOS ProgressView(timerInterval:) rail draining toward empty.
+  The fill stays white (the iOS "normal" tint); the glyph/label/number carry the warning
+  and overdue tints, which is the state signal a RemoteViews rail cannot retint pre-API 31.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+  <item android:id="@android:id/background">
+    <shape android:shape="rectangle">
+      <corners android:radius="3dp" />
+      <solid android:color="@color/forge_rest_track" />
+    </shape>
+  </item>
+  <item android:id="@android:id/progress">
+    <clip>
+      <shape android:shape="rectangle">
+        <corners android:radius="3dp" />
+        <solid android:color="@color/forge_rest_normal" />
+      </shape>
+    </clip>
+  </item>
+</layer-list>
