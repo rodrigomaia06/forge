@@ -11,10 +11,6 @@ import { adjustRestTimer } from '../domain/rest/restTimerAdjustment';
 import { synchronizeNow } from '../domain/rest/synchronizedClock';
 
 const restTimerNotificationId = 'forge-rest-timer-complete';
-// A persistent "rest in progress" notification — the Android stand-in for the iOS
-// Live Activity. It is posted while resting and cleared through the same single
-// code path that manages the completion alert, so it can never be left stuck.
-const restTimerOngoingId = 'forge-rest-timer-ongoing';
 // Android notification-channel sound is immutable once installed. A versioned
 // ID ensures existing installs receive the bundled Forge alarm after update.
 const restTimerAudibleChannelId = 'forge-rest-timer-audible-v2';
@@ -27,22 +23,14 @@ const restTimerSound = 'alarm.wav';
 
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
-    handleNotification: async (notification) => {
-      // The persistent "rest in progress" notification must post to the tray/lock
-      // screen even if rest begins while the app is foregrounded (so it is there
-      // when the phone is locked), but never as an intrusive banner or sound.
-      if (notification.request.content.data?.forgeTimer === 'rest-ongoing') {
-        return { shouldShowBanner: false, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false };
-      }
+    handleNotification: async (notification) => ({
       // The active rest sheet already communicates completion. Keep foreground
       // feedback tactile/audible without layering a stock notification banner on it.
-      return {
-        shouldShowBanner: false,
-        shouldShowList: false,
-        shouldPlaySound: Boolean(notification.request.content.sound),
-        shouldSetBadge: false,
-      };
-    },
+      shouldShowBanner: false,
+      shouldShowList: false,
+      shouldPlaySound: Boolean(notification.request.content.sound),
+      shouldSetBadge: false,
+    }),
   });
 }
 
@@ -91,11 +79,6 @@ async function replaceRestTimerNotification(
   // rest schedules a fresh notification while the previous one still sits in the
   // tray, so the lock screen appears not to update after the first rest sounded.
   await Notifications.dismissNotificationAsync(restTimerNotificationId).catch(() => undefined);
-  // Always clear the persistent "rest in progress" notification first; it is
-  // re-posted below only while a rest is active. Clearing it on every call is
-  // what guarantees the ongoing notification can never be left stuck.
-  await Notifications.cancelScheduledNotificationAsync(restTimerOngoingId).catch(() => undefined);
-  await Notifications.dismissNotificationAsync(restTimerOngoingId).catch(() => undefined);
   if (!endAt || endAt <= Date.now() || !(await canScheduleNotifications())) return;
   await Notifications.scheduleNotificationAsync({
     identifier: restTimerNotificationId,
@@ -120,31 +103,9 @@ async function replaceRestTimerNotification(
       channelId: Platform.OS === 'android' ? (soundEnabled ? restTimerAudibleChannelId : restTimerSilentChannelId) : undefined,
     },
   });
-  // Android has no Live Activity, so post a persistent (ongoing) "rest in
-  // progress" notification for the lock screen until the rest ends. iOS shows the
-  // Live Activity instead. expo-notifications can't render a per-second countdown,
-  // so it shows the fixed end time; the completion alert above still fires at zero.
-  if (Platform.OS === 'android') {
-    const endsAt = new Date(endAt);
-    const endsLabel = `${endsAt.getHours()}:${String(endsAt.getMinutes()).padStart(2, '0')}`;
-    await Notifications.scheduleNotificationAsync({
-      identifier: restTimerOngoingId,
-      content: {
-        title: 'Rest in progress',
-        body: `Ends at ${endsLabel} · tap to return to your workout.`,
-        sound: false,
-        color: '#4D7B67',
-        sticky: true,
-        autoDismiss: false,
-        data: { forgeTimer: 'rest-ongoing' },
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-        seconds: 1,
-        channelId: restTimerSilentChannelId,
-      },
-    }).catch(() => undefined);
-  }
+  // The live during-rest countdown is owned by the native ForgeRestTimerLiveActivity
+  // module on both platforms (ActivityKit on iOS, an ongoing chronometer
+  // notification on Android) via syncRestTimerLiveActivity — not scheduled here.
 }
 
 async function replaceUnfinishedWorkoutReminder(

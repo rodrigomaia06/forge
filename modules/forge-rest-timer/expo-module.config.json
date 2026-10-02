@@ -1,6 +1,9 @@
 {
-  "platforms": ["apple"],
+  "platforms": ["apple", "android"],
   "apple": {
     "modules": ["ForgeRestTimerLiveActivityModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.forgeresttimer.ForgeRestTimerLiveActivityModule"]
   }
 }

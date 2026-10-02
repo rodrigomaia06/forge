@@ -7,11 +7,13 @@ type ForgeRestTimerLiveActivityModule = {
 };
 
 /**
- * Expo Go deliberately has no local Forge module. The optional lookup keeps
- * the normal timer and notification fallback fully usable there.
+ * The same native contract backs both platforms: ActivityKit on iOS and an
+ * ongoing chronometer-countdown notification on Android. Expo Go has no local
+ * Forge module, so the optional lookup returns null there and the ordinary timer
+ * (and the completion alert) remain fully usable.
  */
 function getRestTimerLiveActivityModule(): ForgeRestTimerLiveActivityModule | null {
-  if (Platform.OS !== 'ios') return null;
+  if (Platform.OS === 'web') return null;
   return requireOptionalNativeModule<ForgeRestTimerLiveActivityModule>('ForgeRestTimerLiveActivity');
 }
 
