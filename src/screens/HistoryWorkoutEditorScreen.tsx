@@ -15,7 +15,6 @@ import DraggableFlatList from 'react-native-draggable-flatlist';
 
 import {
   AppScreen,
-  Button,
   ForgeActionSheet,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
@@ -584,24 +583,31 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
             <ForgeSheetHeader
               title={picker === 'date' ? 'Date' : picker === 'start' ? 'Start time' : 'End time'}
               onClose={close}
+              closePosition="left"
               closeAccessibilityLabel="Close date and time picker"
+              trailing={
+                <HeaderAction
+                  accessibilityLabel="Save selected date and time"
+                  label="Done"
+                  icon="check"
+                  variant="primary"
+                  haptic="light"
+                  onPress={() => {
+                    savePicker();
+                    close();
+                  }}
+                />
+              }
             />
-            <ForgeDateTimePicker
-              mode={picker === 'date' ? 'date' : 'time'}
-              value={new Date(pickerDraft)}
-              onChange={(next) => setPickerDraft(next.getTime())}
-              weekStartsOn={preferences.weekStartsOn}
-              testID={`history-${picker}-picker`}
-            />
-            <Button
-              accessibilityLabel="Save selected date and time"
-              label="Done"
-              onPress={() => {
-                savePicker();
-                close();
-              }}
-              style={styles.pickerDone}
-            />
+            <View style={styles.pickerBody}>
+              <ForgeDateTimePicker
+                mode={picker === 'date' ? 'date' : 'time'}
+                value={new Date(pickerDraft)}
+                onChange={(next) => setPickerDraft(next.getTime())}
+                weekStartsOn={preferences.weekStartsOn}
+                testID={`history-${picker}-picker`}
+              />
+            </View>
           </>
         ) : null}
       </ForgeBottomSheet>
@@ -1109,6 +1115,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   sourceRowLabel: { color: theme.ink, ...typeScale.label },
   sourceRowDetail: { color: theme.slate, ...typeScale.caption },
   emptySourceText: { paddingHorizontal: 4, color: theme.slate, ...typeScale.supporting },
-  // Keep Done at the shared Button height rather than giving picker actions a local size.
-  pickerDone: { marginTop: 4 },
+  // The picker carries its own internal spacing; just give it a little headroom under
+  // the header. The commit action now lives top-right in the header (Forge sheet pattern).
+  pickerBody: { marginTop: 8 },
 });
