@@ -4,6 +4,7 @@ import { ForgeNumericRangeInput, ForgeText as Text, ForgeTextInput as TextInput 
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
+import { scaleUI } from '../../theme/scale';
 import { forgeMotion, forgeMotionDuration, useForgeReducedMotion } from '../../theme/motion';
 import { errorHaptic } from './activeWorkoutFeedback';
 import { CompletionCheck, SplitCompletionCheck } from './CompletionCheck';
@@ -130,7 +131,7 @@ export function SetRow({
       outputRange: [theme.divider, theme.textDestructive],
     }),
     borderWidth: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 2] }),
-    borderRadius: progress.interpolate({ inputRange: [0, 1], outputRange: [9, 8] }),
+    borderRadius: progress.interpolate({ inputRange: [0, 1], outputRange: [scaleUI(9), scaleUI(8)] }),
   });
   const reportInputFocus = (): void => {
     onInputFocus?.((onMeasured) => {
@@ -374,23 +375,24 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   return StyleSheet.create({
   setRow: {
     position: 'relative',
-    minHeight: 48,
+    minHeight: scaleUI(48),
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: scaleUI(6),
   },
   setCompleted: {},
+  // The 46x44 wrap is the set-number tap target and stays at the accessible size.
   setNumberWrap: { position: 'relative', width: 46, height: 44, alignItems: 'center', justifyContent: 'center' },
-  setNumberChip: { position: 'relative', width: 32, height: 32 },
+  setNumberChip: { position: 'relative', width: scaleUI(32), height: scaleUI(32) },
   setNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 9,
+    width: scaleUI(32),
+    height: scaleUI(32),
+    borderRadius: scaleUI(9),
     textAlign: 'center',
     backgroundColor: dashboardTheme.surfaceMuted,
     color: dashboardTheme.ink,
     ...typeScale.controlLabel,
-    lineHeight: 32,
+    lineHeight: scaleUI(32),
   },
   previous: {
     flex: 1,
@@ -398,16 +400,16 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     // Previous performance is a primary scanning value, not compact metadata,
     // so it reads a step larger than the body text elsewhere.
     ...typeScale.body,
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: scaleUI(16),
+    lineHeight: scaleUI(22),
     textAlign: 'center',
   },
-  inputColumn: { width: 60 },
+  inputColumn: { width: scaleUI(60) },
   firstInputWithoutPrevious: { marginLeft: 'auto' },
   input: {
-    minHeight: 36,
+    minHeight: scaleUI(36),
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: scaleUI(8),
     ...typeScale.body,
     textAlign: 'center',
     // Center the value within the cell on Android, where the default font
@@ -437,18 +439,18 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     position: 'absolute',
     right: 1,
     bottom: 1,
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    width: scaleUI(7),
+    height: scaleUI(7),
+    borderRadius: scaleUI(3.5),
     backgroundColor: dashboardTheme.ink,
   },
   targetIndicator: {
     position: 'absolute',
     top: 1,
     left: 1,
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    width: scaleUI(7),
+    height: scaleUI(7),
+    borderRadius: scaleUI(3.5),
     backgroundColor: dashboardTheme.setTargetIndicator,
   },
   rpeIndicator: {

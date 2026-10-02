@@ -91,6 +91,20 @@ Custom interactive controls must provide a visible pressed state. Reuse Forge's 
 
 Each interaction has one haptic owner: the reusable primitive that performs the interaction, or the screen when no reusable owner exists. Do not trigger haptics from both layers. Use haptics sparingly for discrete causal actions, never typing, scrolling, or continuous gestures.
 
+### Device sizing scale
+
+Forge is authored against the iPhone Air canvas and adapts to other devices through
+`src/theme/scale.ts`. The reference device — and anything wider — renders the authored
+dp 1:1; only narrower devices scale down (the ratios are clamped at 1, never up), so the
+iPhone Air look is never inflated. Type, spacing, radii and most fixed sizes flow through
+`moderateScale` (already applied by the `typeScale`/`spacing` tokens); component dp (card,
+chip, button sizes) flow through `scaleUI`, so a narrower phone is a proportional copy of
+the reference rather than full-size boxes against shrunk text. Touch targets keep their
+accessible size (≥44 dp) instead of scaling below it. Scaling is native-only: the web build
+and the Playwright device profiles render at the authored base, so the e2e layout stays
+canonical. Do not hand-author raw dp for new component sizing that should scale, and do not
+rebase the guideline width away from the reference device.
+
 ## Platform guidance is behavioral guidance
 
 Apple/Android guidance may inform native expectations, system components, accessibility, modality, input, haptics, and system integration. It does not override Forge's product hierarchy, brand, or shared visual system unless the user explicitly decides otherwise.

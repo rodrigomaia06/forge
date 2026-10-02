@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useForgeTheme } from '../../theme/ThemeProvider';
+import { scaleUI } from '../../theme/scale';
 
 /**
  * The one Forge card surface. Separation is tone-first (see rules/design.md):
@@ -56,10 +57,10 @@ export function ForgeCard({
 const styles = StyleSheet.create({
   card: {
     overflow: 'hidden',
-    borderRadius: 24,
+    borderRadius: scaleUI(24),
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
   },
-  compact: { borderRadius: 18 },
+  compact: { borderRadius: scaleUI(18) },
 });
