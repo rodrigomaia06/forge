@@ -479,7 +479,9 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
             iconOnly
             onPress={discard}
           />
-          <View style={styles.headerSpacer} />
+          <Text numberOfLines={1} style={styles.headerTitle}>
+            {draft.name.trim() || draft.type}
+          </Text>
           <HeaderAction
             accessibilityLabel="Save workout"
             icon="check"
@@ -1025,7 +1027,9 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  headerSpacer: { width: 44, height: 44 },
+  // Fill the header gap between Cancel and Save with the workout's name (mirrors the
+  // name field in the form below), centred and truncating clear of the 44dp controls.
+  headerTitle: { flex: 1, textAlign: 'center', marginHorizontal: 8, color: theme.ink, ...typeScale.headerTitle },
   keyboardArea: { flex: 1 },
   listViewport: { flex: 1 },
   content: { padding: 16, paddingBottom: 32, gap: 10 },
