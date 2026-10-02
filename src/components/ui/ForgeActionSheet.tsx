@@ -1,5 +1,5 @@
 import React, { type ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import type { IconName } from '../../types';
 import { useForgeTheme } from '../../theme/ThemeProvider';
@@ -152,12 +152,18 @@ export function ForgeActionSheet({
               </View>
             ) : null}
             {neutralActions.length > 0 && (
-              <View
+              // Hug-then-scroll (ADR 0005): the list sizes to its rows but, when
+              // there are more actions than fit (a long "Add tile" list on a short
+              // phone), it scrolls within the sheet's capped height instead of
+              // being clipped.
+              <ScrollView
                 style={[
                   styles.actionList,
                   emphasis === 'prominent' && styles.prominentActionList,
                   { borderColor: theme.border, backgroundColor: theme.surface },
                 ]}
+                showsVerticalScrollIndicator={false}
+                bounces={false}
               >
                 {neutralActions.map((action, index) => (
                   <ActionRow
@@ -167,7 +173,7 @@ export function ForgeActionSheet({
                     divider={index < neutralActions.length - 1}
                   />
                 ))}
-              </View>
+              </ScrollView>
             )}
             {destructiveActions.length > 1 && (
               <View
@@ -254,7 +260,9 @@ function ActionRow({
 }
 
 const styles = StyleSheet.create({
-  sheet: { paddingBottom: 30 },
+  // flexShrink + minHeight:0 let the action list bound against the sheet's capped
+  // height so it can scroll (ADR 0005) instead of overflowing on short screens.
+  sheet: { paddingBottom: 30, flexShrink: 1, minHeight: 0 },
   prominentSheet: { paddingBottom: 34 },
   descriptionCard: {
     marginHorizontal: 20,
@@ -270,6 +278,9 @@ const styles = StyleSheet.create({
     // Keep the compact list close to the title after removing the contextual card.
     // This changes its position, not the row density.
     marginTop: 4,
+    // Hug the rows, but shrink (and scroll) when they exceed the sheet's cap.
+    flexGrow: 0,
+    flexShrink: 1,
     overflow: 'hidden',
     borderWidth: 1,
     borderRadius: 16,
