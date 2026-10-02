@@ -25,6 +25,7 @@ import Animated, {
 
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
+import { scaleUI } from '../../theme/scale';
 import { lightHaptic } from './haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -32,7 +33,7 @@ const SheetDragContext = createContext<ReturnType<typeof Gesture.Pan> | null>(nu
 const SheetDragAreaContext = createContext(false);
 /** Shared sheet-header geometry keeps titles and close actions aligned. */
 export const forgeSheetHeader = {
-  height: 56,
+  height: scaleUI(56),
   horizontalPadding: 20,
   closeSize: 44,
 } as const;
@@ -489,8 +490,8 @@ const styles = StyleSheet.create({
   keyboardSurfaceFill: { position: 'absolute', right: 0, bottom: 0, left: 0 },
   sheet: {
     overflow: 'hidden',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: scaleUI(28),
+    borderTopRightRadius: scaleUI(28),
     shadowOpacity: 0.22,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: -8 },
@@ -514,13 +515,13 @@ const styles = StyleSheet.create({
   // Enlarges the drag tab's target without changing the visible handle or header geometry.
   handleTouchArea: {
     width: 120,
-    height: 29,
+    height: scaleUI(29),
     alignSelf: 'center',
     alignItems: 'center',
     paddingTop: 10,
     marginTop: 0,
     marginBottom: -10,
   },
-  handle: { width: 48, height: 5, borderRadius: 3 },
+  handle: { width: scaleUI(48), height: scaleUI(5), borderRadius: scaleUI(3) },
   dragArea: { alignSelf: 'stretch' },
 });

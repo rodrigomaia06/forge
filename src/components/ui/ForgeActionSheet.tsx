@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { IconName } from '../../types';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
+import { scaleUI } from '../../theme/scale';
 import { ForgeBottomSheet, ForgeBottomSheetHandle } from './ForgeBottomSheet';
 import { ForgeText as Text } from './ForgeText';
 import { HeaderAction } from './HeaderAction';
@@ -262,19 +263,19 @@ function ActionRow({
 const styles = StyleSheet.create({
   // flexShrink + minHeight:0 let the action list bound against the sheet's capped
   // height so it can scroll (ADR 0005) instead of overflowing on short screens.
-  sheet: { paddingBottom: 30, flexShrink: 1, minHeight: 0 },
-  prominentSheet: { paddingBottom: 34 },
+  sheet: { paddingBottom: scaleUI(30), flexShrink: 1, minHeight: 0 },
+  prominentSheet: { paddingBottom: scaleUI(34) },
   descriptionCard: {
-    marginHorizontal: 20,
+    marginHorizontal: scaleUI(20),
     marginTop: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
+    paddingHorizontal: scaleUI(16),
+    paddingVertical: scaleUI(13),
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: scaleUI(16),
   },
   description: { ...typeScale.body },
   actionList: {
-    marginHorizontal: 20,
+    marginHorizontal: scaleUI(20),
     // Keep the compact list close to the title after removing the contextual card.
     // This changes its position, not the row density.
     marginTop: 4,
@@ -283,36 +284,36 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     overflow: 'hidden',
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: scaleUI(16),
   },
-  prominentActionList: { marginTop: 12 },
+  prominentActionList: { marginTop: scaleUI(12) },
   destructiveList: {
-    marginHorizontal: 20,
-    marginTop: 14,
+    marginHorizontal: scaleUI(20),
+    marginTop: scaleUI(14),
     overflow: 'hidden',
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: scaleUI(16),
   },
   actionRow: {
-    minHeight: 62,
-    paddingHorizontal: 12,
+    minHeight: Math.max(44, scaleUI(62)),
+    paddingHorizontal: scaleUI(12),
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: scaleUI(12),
   },
-  descriptiveActionRow: { minHeight: 76, paddingVertical: 11 },
-  destructiveAction: { minHeight: 64 },
+  descriptiveActionRow: { minHeight: Math.max(44, scaleUI(76)), paddingVertical: scaleUI(11) },
+  destructiveAction: { minHeight: Math.max(44, scaleUI(64)) },
   disabledAction: { opacity: 0.68 },
   actionCopy: { flex: 1, gap: 2 },
   actionLabel: { ...typeScale.controlLabel },
   actionDescription: { ...typeScale.caption },
   iconTile: {
-    width: 38,
-    height: 38,
+    width: scaleUI(38),
+    height: scaleUI(38),
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 11,
+    borderRadius: scaleUI(11),
   },
-  divider: { height: StyleSheet.hairlineWidth, marginLeft: 62 },
+  divider: { height: StyleSheet.hairlineWidth, marginLeft: scaleUI(62) },
 });

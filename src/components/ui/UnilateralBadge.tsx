@@ -2,6 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { useForgeTheme } from '../../theme/ThemeProvider';
+import { scaleUI } from '../../theme/scale';
 import { Icon } from './Icon';
 
 /**
@@ -9,7 +10,7 @@ import { Icon } from './Icon';
  * side at a time" without a language label. Used on the live-workout exercise
  * header and the exercise-library detail so the two stay consistent.
  */
-export function UnilateralBadge({ size = 19, color }: { size?: number; color?: string }) {
+export function UnilateralBadge({ size = scaleUI(19), color }: { size?: number; color?: string }) {
   const theme = useForgeTheme();
   return (
     <View accessible accessibilityLabel="Unilateral, complete one side at a time">

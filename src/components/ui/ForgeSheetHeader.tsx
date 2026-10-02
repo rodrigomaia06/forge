@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
+import { scaleUI } from '../../theme/scale';
 import { ForgeBottomSheetDragArea } from './ForgeBottomSheet';
 import { ForgeText as Text } from './ForgeText';
 import { SheetCloseButton } from './SheetCloseButton';
@@ -44,7 +45,7 @@ export function ForgeSheetHeader({
   leading,
   trailing,
   testID,
-  horizontalInset = 20,
+  horizontalInset = scaleUI(20),
 }: ForgeSheetHeaderProps) {
   const theme = useForgeTheme();
   return (
@@ -83,8 +84,8 @@ export function ForgeSheetHeader({
 
 const styles = StyleSheet.create({
   header: {
-    minHeight: 56,
-    paddingHorizontal: 20,
+    minHeight: scaleUI(56),
+    paddingHorizontal: scaleUI(20),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
     // overflows to the container edge, sliding under the trailing control
     // instead of truncating clear of it.
     alignSelf: 'stretch',
-    marginHorizontal: 74,
+    marginHorizontal: scaleUI(74),
   },
   compactTitle: { ...typeScale.sectionTitle },
   leading: {
@@ -117,6 +118,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: scaleUI(8),
   },
 });

@@ -11,6 +11,7 @@ import {
 import { Icon } from './Icon';
 import { ForgeText as Text } from './ForgeText';
 import { colors, radii, typeScale } from '../../theme/tokens';
+import { scaleUI } from '../../theme/scale';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { lightHaptic, mediumHaptic } from './haptics';
 import type { ForgeTheme, IconName, IconWeight } from '../../types';
@@ -42,7 +43,7 @@ export function Button({
   onPress,
   variant = 'primary',
   icon,
-  iconSize = 20,
+  iconSize = scaleUI(20),
   iconWeight = 'regular',
   loading = false,
   disabled = false,
@@ -108,11 +109,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 7,
-    paddingHorizontal: 14,
+    gap: scaleUI(7),
+    paddingHorizontal: scaleUI(14),
     borderRadius: radii.control,
   },
-  primary: { minWidth: 92 },
+  primary: { minWidth: scaleUI(92) },
   secondary: { borderWidth: 1 },
   outline: { borderWidth: 2 },
   ghost: { borderWidth: 0 },

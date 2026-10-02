@@ -8,6 +8,7 @@ import type { WorkoutTypePreference } from '../types/settings';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
+import { scaleUI } from '../theme/scale';
 import { workoutTypeIcon } from '../screens/settings/workoutTypeIcon';
 import { ForgeCard, ForgeText as Text, Icon, lightHaptic, pressedFeedback } from './ui';
 
@@ -79,7 +80,7 @@ export function ExerciseDetailBody({
                 const type = workoutTypes.find((item) => item.id === id);
                 return (
                   <View key={id} testID={`exercise-section-type-${id}`} style={styles.sectionType}>
-                    <Icon name={type ? workoutTypeIcon(type) : 'layers'} size={17} color={theme.textSecondary} />
+                    <Icon name={type ? workoutTypeIcon(type) : 'layers'} size={scaleUI(17)} color={theme.textSecondary} />
                     <Text style={styles.sectionTypeName}>{type?.name ?? id}</Text>
                   </View>
                 );
@@ -121,14 +122,14 @@ function RestRow({ title, value, onPress }: { title: string; value: string; onPr
       style={({ pressed }) => [styles.restTimeCardPressable, pressed && onPress && pressedFeedback]}
     >
       <View style={styles.restTimeCardIcon}>
-        <Icon name="stopwatch-outline" size={20} color={theme.textSecondary} />
+        <Icon name="stopwatch-outline" size={scaleUI(20)} color={theme.textSecondary} />
       </View>
       <View style={styles.restTimeCardCopy}>
         <Text style={styles.restTimeCardTitle}>{title}</Text>
       </View>
       <View style={styles.detailAction}>
         <Text style={styles.detailSelectableValue}>{value}</Text>
-        {onPress ? <Icon name="chevron-forward" size={21} color={theme.textSecondary} /> : null}
+        {onPress ? <Icon name="chevron-forward" size={scaleUI(21)} color={theme.textSecondary} /> : null}
       </View>
     </Pressable>
   );
@@ -166,7 +167,7 @@ export function UnilateralDetailSection({
       <ForgeCard variant="nested" style={styles.uniCard}>
         <View style={styles.uniRow}>
           <View style={styles.uniRowIcon}>
-            <Icon name="square-rounded-letter-s" size={20} color={theme.textSecondary} />
+            <Icon name="square-rounded-letter-s" size={scaleUI(20)} color={theme.textSecondary} />
           </View>
           <Text style={styles.uniRowTitle}>Leading side</Text>
           {onToggleLeadSide ? (
@@ -217,33 +218,33 @@ const createStyles = (theme: ForgeTheme) =>
   StyleSheet.create({
     detailContent: { paddingHorizontal: 20, paddingBottom: 30, paddingTop: 2, gap: 8 },
     detailSectionLabel: { marginTop: 8, marginLeft: 6, color: theme.textPrimary, ...typeScale.sectionTitle },
-    restTimeCard: { overflow: 'hidden', borderRadius: 18 },
+    restTimeCard: { overflow: 'hidden', borderRadius: scaleUI(18) },
     restRowDivider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.divider, marginLeft: 64 },
-    restTimeCardPressable: { minHeight: 64, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
-    restTimeCardIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
+    restTimeCardPressable: { minHeight: Math.max(44, scaleUI(64)), paddingHorizontal: scaleUI(14), flexDirection: 'row', alignItems: 'center', gap: 12 },
+    restTimeCardIcon: { width: scaleUI(38), height: scaleUI(38), borderRadius: scaleUI(12), alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
     restTimeCardCopy: { flex: 1, minWidth: 0 },
     restTimeCardTitle: { ...typeScale.cardTitle, color: theme.textPrimary },
     detailAction: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
     detailSelectableValue: { ...typeScale.body, color: theme.textSecondary, textAlign: 'right', flexShrink: 1, marginLeft: 16 },
     detailFactGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 2, padding: 8 },
-    detailFact: { flexBasis: '48%', flexGrow: 1, minWidth: 124, minHeight: 56, padding: 8, gap: 1, justifyContent: 'flex-start' },
+    detailFact: { flexBasis: '48%', flexGrow: 1, minWidth: scaleUI(124), minHeight: scaleUI(56), padding: scaleUI(8), gap: 1, justifyContent: 'flex-start' },
     detailFactLabel: { ...typeScale.body, color: theme.textSecondary },
     detailFactValue: { ...typeScale.body, color: theme.textPrimary },
-    detailProfileCard: { overflow: 'hidden', borderRadius: 18, paddingVertical: 2 },
-    detailProfileRow: { minHeight: 42, paddingHorizontal: 14, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
+    detailProfileCard: { overflow: 'hidden', borderRadius: scaleUI(18), paddingVertical: 2 },
+    detailProfileRow: { minHeight: scaleUI(42), paddingHorizontal: 14, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
     detailProfileLabel: { flex: 1, ...typeScale.body, color: theme.textSecondary },
     detailProfileValue: { flexShrink: 1, maxWidth: '62%', textAlign: 'right', ...typeScale.body, color: theme.textPrimary },
     sectionTypes: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8, flexShrink: 1, marginLeft: 16 },
     sectionType: { flexDirection: 'row', alignItems: 'center', gap: 5 },
     sectionTypeName: { ...typeScale.body, color: theme.ink },
-    uniCard: { overflow: 'hidden', borderRadius: 18 },
-    uniRow: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 12 },
-    uniRowIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
+    uniCard: { overflow: 'hidden', borderRadius: scaleUI(18) },
+    uniRow: { minHeight: scaleUI(64), flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 12 },
+    uniRowIcon: { width: scaleUI(38), height: scaleUI(38), borderRadius: scaleUI(12), alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
     uniRowTitle: { flex: 1, color: theme.textPrimary, ...typeScale.cardTitle },
     uniRowValue: { color: theme.textSecondary, ...typeScale.body },
-    sideToggle: { width: 132, flexDirection: 'row', borderRadius: 10, padding: 2, position: 'relative', backgroundColor: theme.surfaceMuted, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border },
-    sidePill: { position: 'absolute', top: 2, bottom: 2, left: 2, borderRadius: 8, backgroundColor: theme.surface },
-    sideOption: { flex: 1, paddingVertical: 7, alignItems: 'center' },
+    sideToggle: { width: scaleUI(132), flexDirection: 'row', borderRadius: scaleUI(10), padding: scaleUI(2), position: 'relative', backgroundColor: theme.surfaceMuted, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border },
+    sidePill: { position: 'absolute', top: 2, bottom: 2, left: 2, borderRadius: scaleUI(8), backgroundColor: theme.surface },
+    sideOption: { flex: 1, paddingVertical: scaleUI(7), alignItems: 'center' },
     sideOptionText: { color: theme.textSecondary, ...typeScale.label },
     sideOptionTextActive: { color: theme.ink, fontWeight: '600' },
   });

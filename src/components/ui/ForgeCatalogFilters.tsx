@@ -4,6 +4,7 @@ import type { IconName } from '../../types';
 import { typeScale } from '../../theme/tokens';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
+import { scaleUI } from '../../theme/scale';
 import { Button } from './Button';
 import { ForgeBackButton } from './HeaderAction';
 import { ForgeBottomSheet, ForgeBottomSheetHandle } from './ForgeBottomSheet';
@@ -248,7 +249,7 @@ export function ForgeCatalogFilterContent({
                       to the card's rounded corners only on the first/last rows. */}
                   {selected ? <View pointerEvents="none" style={[styles.choiceSelected, { backgroundColor: theme.successSurface }]} /> : null}
                   <Text style={styles.choiceText}>{option.label}</Text>
-                  {selected ? <Icon name="check" size={20} color={theme.selectionIndicator} weight="bold" /> : null}
+                  {selected ? <Icon name="check" size={scaleUI(20)} color={theme.selectionIndicator} weight="bold" /> : null}
                   {index < options.length - 1 && !selected ? <View style={[styles.separator, { backgroundColor: theme.divider }]} /> : null}
                 </Pressable>
               );
@@ -314,13 +315,13 @@ function FilterFacetSummary({
               style={({ pressed }) => [styles.facetRow, pressed && pressedFeedback]}
             >
               <View style={[styles.facetIcon, { backgroundColor: theme.surfaceMuted }]}>
-                <Icon name={facet.icon} size={19} color={theme.textPrimary} />
+                <Icon name={facet.icon} size={scaleUI(19)} color={theme.textPrimary} />
               </View>
               <View style={styles.facetCopy}>
                 <Text style={styles.facetTitle}>{facet.title}</Text>
                 <Text style={styles.facetSummary}>{summary}</Text>
               </View>
-              <Icon name="chevron-forward" size={19} color={theme.textSecondary} />
+              <Icon name="chevron-forward" size={scaleUI(19)} color={theme.textSecondary} />
               {index < facets.length - 1 ? <View style={[styles.separator, styles.facetSeparator, { backgroundColor: theme.divider }]} /> : null}
             </Pressable>
           );
@@ -369,7 +370,7 @@ export function ForgeCatalogFilterTokens({
             accessibilityLabel={`Remove ${token.label} filter`}
             label={token.label}
             icon="close"
-            iconSize={14}
+            iconSize={scaleUI(14)}
             variant="ghost"
             onPress={() => onRemove(token.key, token.value)}
             style={styles.token}
@@ -396,32 +397,32 @@ const createStyles = (theme: ReturnType<typeof useForgeTheme>) => StyleSheet.cre
   // React Native retains percentage dimensions in some native style merges.
   sheetFill: { flex: 1, alignSelf: 'stretch' },
   scroll: { flexGrow: 0, flexShrink: 1 },
-  content: { paddingHorizontal: 20, paddingTop: 8, gap: 10 },
+  content: { paddingHorizontal: scaleUI(20), paddingTop: scaleUI(8), gap: scaleUI(10) },
   summaryScroll: { flexGrow: 0, flexShrink: 1, minHeight: 0 },
   summaryFill: { flex: 1, minHeight: 0 },
   // A root summary is normally compact, but remains a real bounded scroll
   // container when text scaling or future facets exceed that compact sheet.
-  rootSummary: { paddingHorizontal: 20, paddingTop: 8 },
-  facetCard: { overflow: 'hidden', borderRadius: 20, backgroundColor: theme.surface },
-  facetRow: { minHeight: 68, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  facetIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  rootSummary: { paddingHorizontal: scaleUI(20), paddingTop: scaleUI(8) },
+  facetCard: { overflow: 'hidden', borderRadius: scaleUI(20), backgroundColor: theme.surface },
+  facetRow: { minHeight: Math.max(44, scaleUI(68)), paddingHorizontal: scaleUI(14), flexDirection: 'row', alignItems: 'center', gap: scaleUI(12) },
+  facetIcon: { width: scaleUI(38), height: scaleUI(38), borderRadius: scaleUI(12), alignItems: 'center', justifyContent: 'center' },
   facetCopy: { flex: 1, minWidth: 0 },
   facetTitle: { ...typeScale.cardTitle, color: theme.textPrimary },
   facetSummary: { ...typeScale.supporting, color: theme.textSecondary, marginTop: 1 },
-  choiceCard: { overflow: 'hidden', borderRadius: 20, backgroundColor: theme.surface },
-  choice: { minHeight: 56, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  choiceCard: { overflow: 'hidden', borderRadius: scaleUI(20), backgroundColor: theme.surface },
+  choice: { minHeight: Math.max(44, scaleUI(56)), paddingHorizontal: scaleUI(16), flexDirection: 'row', alignItems: 'center', gap: scaleUI(12) },
   // Inset highlight for a selected row: uniform rounded rectangle, position-independent.
-  choiceSelected: { position: 'absolute', top: 4, bottom: 4, left: 8, right: 8, borderRadius: 14 },
+  choiceSelected: { position: 'absolute', top: scaleUI(4), bottom: scaleUI(4), left: scaleUI(8), right: scaleUI(8), borderRadius: scaleUI(14) },
   choiceText: { flex: 1, ...typeScale.cardTitle, color: theme.textPrimary },
-  separator: { position: 'absolute', right: 16, bottom: 0, left: 16, height: StyleSheet.hairlineWidth, pointerEvents: 'none' },
-  facetSeparator: { left: 64 },
-  emptyChoices: { padding: 20, ...typeScale.supporting, color: theme.textSecondary },
-  headerClearAction: { minHeight: 38, paddingHorizontal: 12, borderRadius: 14 },
-  tokenBar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  separator: { position: 'absolute', right: scaleUI(16), bottom: 0, left: scaleUI(16), height: StyleSheet.hairlineWidth, pointerEvents: 'none' },
+  facetSeparator: { left: scaleUI(64) },
+  emptyChoices: { padding: scaleUI(20), ...typeScale.supporting, color: theme.textSecondary },
+  headerClearAction: { minHeight: scaleUI(38), paddingHorizontal: scaleUI(12), borderRadius: scaleUI(14) },
+  tokenBar: { flexDirection: 'row', alignItems: 'center', gap: scaleUI(8) },
   tokenScroll: { flex: 1 },
-  tokens: { gap: 8, alignItems: 'center', paddingVertical: 2 },
+  tokens: { gap: scaleUI(8), alignItems: 'center', paddingVertical: scaleUI(2) },
   token: { borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surfaceMuted },
-  lockedToken: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, borderWidth: 1, borderColor: theme.border, borderRadius: 18, backgroundColor: theme.surfaceMuted },
+  lockedToken: { minHeight: 44, justifyContent: 'center', paddingHorizontal: scaleUI(14), borderWidth: 1, borderColor: theme.border, borderRadius: scaleUI(18), backgroundColor: theme.surfaceMuted },
   lockedTokenText: { ...typeScale.label, color: theme.slate },
-  clearAll: { flexShrink: 0, minHeight: 40, paddingHorizontal: 12, borderRadius: 20 },
+  clearAll: { flexShrink: 0, minHeight: scaleUI(40), paddingHorizontal: scaleUI(12), borderRadius: scaleUI(20) },
 });
