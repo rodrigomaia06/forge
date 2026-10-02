@@ -342,7 +342,7 @@ test.describe('Dashboard', () => {
     await expect(sectionTitle).toBeVisible();
     expect(await readTextMetrics(page.getByTestId('dashboard-header-title'))).toEqual({
       fontSize: '31px',
-      lineHeight: '36px',
+      lineHeight: '42px',
     });
     expect(await readTextMetrics(sectionTitle)).toEqual({
       fontSize: '18px',
@@ -351,7 +351,7 @@ test.describe('Dashboard', () => {
     await page.getByRole('tab', { name: 'History' }).click();
     expect(await readTextMetrics(page.getByTestId('history-title'))).toEqual({
       fontSize: '31px',
-      lineHeight: '36px',
+      lineHeight: '42px',
     });
   });
 });

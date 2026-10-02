@@ -1,5 +1,14 @@
 import type { TextStyle } from 'react-native';
 import type { ForgeTheme } from '../types';
+import { moderateScale } from './scale';
+
+// Round to a whole pixel so scaled type/spacing never land on fractional dp.
+const scaleTextStyle = <T extends TextStyle>(style: T): T => ({
+  ...style,
+  ...(typeof style.fontSize === 'number' ? { fontSize: Math.round(moderateScale(style.fontSize)) } : {}),
+  ...(typeof style.lineHeight === 'number' ? { lineHeight: Math.round(moderateScale(style.lineHeight)) } : {}),
+  ...(typeof style.letterSpacing === 'number' ? { letterSpacing: moderateScale(style.letterSpacing) } : {}),
+});
 
 const shared = {
   actionPrimary: '#1D252D',
@@ -124,8 +133,8 @@ export const radii = {
 };
 
 export const spacing = {
-  screen: 20,
-  section: 28,
+  screen: Math.round(moderateScale(20)),
+  section: Math.round(moderateScale(28)),
 };
 
 export const typography = {
@@ -136,7 +145,7 @@ export const typography = {
 };
 
 /** Forge's semantic type scale. Use these roles instead of raw text metrics. */
-export const typeScale = {
+const baseTypeScale = {
   display: { fontFamily: typography.bold, fontSize: 32, lineHeight: 38, fontWeight: '700' },
   screenTitle: {
     fontFamily: typography.bold,
@@ -170,5 +179,12 @@ export const typeScale = {
   },
 } as const satisfies Record<string, TextStyle>;
 
-export type ForgeTextRole = keyof typeof typeScale;
+export type ForgeTextRole = keyof typeof baseTypeScale;
+
+// The exported scale is the base metrics run through the responsive UI scale, so
+// every `typeScale.role` consumer tightens on smaller canvases automatically.
+export const typeScale = Object.fromEntries(
+  Object.entries(baseTypeScale).map(([role, style]) => [role, scaleTextStyle(style)]),
+) as typeof baseTypeScale;
+
 export const maxFontSizeMultiplier = 1.5;
