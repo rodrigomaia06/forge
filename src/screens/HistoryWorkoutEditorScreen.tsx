@@ -585,16 +585,26 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
               onClose={close}
               closePosition="left"
               closeAccessibilityLabel="Close date and time picker"
+              // The sheet surface already insets 20; keep the header's own inset at 0
+              // so Close and the commit action sit on that same gutter, aligned with
+              // the calendar below (see pickerBody).
+              horizontalInset={0}
               trailing={
+                // Match the Close affordance exactly — the shared tonal circle Forge
+                // uses for sheet Close and the dashboard "Done" — so the two read as a
+                // balanced pair instead of a heavy primary pill.
                 <HeaderAction
                   accessibilityLabel="Save selected date and time"
-                  label="Done"
                   icon="check"
-                  variant="primary"
+                  iconOnly
                   haptic="light"
                   onPress={() => {
                     savePicker();
                     close();
+                  }}
+                  style={{
+                    backgroundColor: theme.colorScheme === 'dark' ? theme.surfaceMuted : theme.surfaceElevated,
+                    borderColor: theme.border,
                   }}
                 />
               }
@@ -1116,6 +1126,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   sourceRowDetail: { color: theme.slate, ...typeScale.caption },
   emptySourceText: { paddingHorizontal: 4, color: theme.slate, ...typeScale.supporting },
   // The picker carries its own internal spacing; just give it a little headroom under
-  // the header. The commit action now lives top-right in the header (Forge sheet pattern).
-  pickerBody: { marginTop: 8 },
+  // the header. The -4 counteracts ForgeDateTimePicker's own 4px gutter so the calendar's
+  // Sep/Nov pills and grid line up exactly with the header's Close/commit controls (20dp).
+  pickerBody: { marginTop: 8, marginHorizontal: -4 },
 });
