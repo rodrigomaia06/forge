@@ -64,6 +64,14 @@ export function ForgeWheelColumn({
   const selectedIndex = Math.max(0, options.indexOf(selectedValue));
   const programmaticScroll = useRef(false);
   const userScrolled = useRef(false);
+  // The initial scroll position, captured once. `contentOffset` must NOT be a
+  // controlled prop: if it tracked `selectedIndex`, every selection change would
+  // re-apply it on iOS and reposition the ScrollView mid-gesture, so a swipe
+  // would "stick" until nudged. Later positioning is done imperatively below.
+  const initialScrollOffset = useRef(selectedIndex * WHEEL_ROW_HEIGHT).current;
+  // Set when a value change originates from the user's own scroll settle, so the
+  // external re-center effect doesn't issue a redundant scrollTo over the gesture.
+  const settledFromScroll = useRef(false);
   const scrollOffset = useSharedValue(selectedIndex * WHEEL_ROW_HEIGHT);
   const hapticIndex = useSharedValue(selectedIndex);
   const padding = WHEEL_ROW_HEIGHT * ((visibleRows - 1) / 2);
@@ -85,6 +93,12 @@ export function ForgeWheelColumn({
   // Re-align when the selection is changed from outside (not by our own scroll).
   useEffect(() => {
     if (programmaticScroll.current) return;
+    // The user's own scroll already left the drum in place; don't scrollTo over
+    // the gesture (that is what made the next swipe intermittently stick).
+    if (settledFromScroll.current) {
+      settledFromScroll.current = false;
+      return;
+    }
     scrollOffset.value = selectedIndex * WHEEL_ROW_HEIGHT;
     hapticIndex.value = selectedIndex;
     scrollToIndex(selectedIndex, false);
@@ -104,6 +118,7 @@ export function ForgeWheelColumn({
   const settleAtOffset = (offsetY: number): void => {
     const index = Math.max(0, Math.min(options.length - 1, Math.round(offsetY / WHEEL_ROW_HEIGHT)));
     programmaticScroll.current = false;
+    settledFromScroll.current = true;
     onSelect(options[index]);
   };
 
@@ -139,7 +154,7 @@ export function ForgeWheelColumn({
           decelerationRate="normal"
           scrollEventThrottle={16}
           contentContainerStyle={{ paddingVertical: padding }}
-          contentOffset={{ x: 0, y: selectedIndex * WHEEL_ROW_HEIGHT }}
+          contentOffset={{ x: 0, y: initialScrollOffset }}
           onLayout={handleLayout}
           onScroll={handleScroll}
           onScrollBeginDrag={() => { userScrolled.current = true; }}
