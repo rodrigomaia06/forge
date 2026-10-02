@@ -11,9 +11,15 @@ import { adjustRestTimer } from '../domain/rest/restTimerAdjustment';
 import { synchronizeNow } from '../domain/rest/synchronizedClock';
 
 const restTimerNotificationId = 'forge-rest-timer-complete';
-// Android notification-channel sound is immutable once installed. A versioned
-// ID ensures existing installs receive the bundled Forge alarm after update.
-const restTimerAudibleChannelId = 'forge-rest-timer-audible-v2';
+// Android notification-channel sound/vibration are immutable once installed. A
+// versioned ID ensures existing installs pick up changes after update — here the
+// bundled Forge alarm (v2) and dropping the channel vibration (v3) so the alert's
+// tactile feedback is owned solely by the restTimerHaptic-gated JS haptic, exactly
+// like iOS (notification carries sound; successHaptic carries the buzz). Without
+// this the channel buzzed on every alert even with haptics off, and double-buzzed
+// alongside the JS haptic when on.
+const restTimerAudibleChannelId = 'forge-rest-timer-audible-v3';
+const restTimerAudibleLegacyChannelIds = ['forge-rest-timer-audible-v2'];
 const restTimerSilentChannelId = 'forge-rest-timer-silent';
 const unfinishedWorkoutReminderId = 'forge-unfinished-workout-reminder';
 const restTimerStorageKey = '@forge/rest-timer-v1';
@@ -155,8 +161,16 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
       name: 'Rest timer alerts',
       importance: Notifications.AndroidImportance.HIGH,
       sound: restTimerSound,
-      vibrationPattern: [0, 180, 90, 180],
+      // No channel vibration: the completion haptic is fired from JS (successHaptic,
+      // gated by restTimerHaptic) so Android matches iOS — sound here, buzz there.
+      enableVibrate: false,
+      vibrationPattern: null,
     }).catch(() => undefined);
+    // Retire superseded channels so a stale, always-vibrating variant doesn't linger
+    // in the system notification settings after an update.
+    restTimerAudibleLegacyChannelIds.forEach((id) => {
+      void Notifications.deleteNotificationChannelAsync(id).catch(() => undefined);
+    });
     void Notifications.setNotificationChannelAsync(restTimerSilentChannelId, {
       name: 'Forge reminders',
       importance: Notifications.AndroidImportance.DEFAULT,
