@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet } from 'react-native';
-import { useForgeTheme } from './ThemeProvider';
+import { useForgeTheme } from './ThemeContext';
 import type { ForgeTheme } from '../types';
 
 export function makeStyles<T extends StyleSheet.NamedStyles<T> | StyleSheet.NamedStyles<any>>(

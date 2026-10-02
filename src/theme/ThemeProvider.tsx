@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Appearance, Platform, useColorScheme } from 'react-native';
 import { runWhenIdle } from '../utils/idle';
 import * as SystemUI from 'expo-system-ui';
@@ -7,8 +7,11 @@ import type { ChildrenProps, ForgeTheme } from '../types';
 import { darkTheme, lightTheme } from './tokens';
 import { setDashboardTheme, setWebThemeVariables } from './dashboardTheme';
 import { warmThemedStyles } from './useThemedStyles';
+import { ForgeThemeContext } from './ThemeContext';
 
-const ForgeThemeContext = createContext<ForgeTheme>(lightTheme);
+// Re-exported so the ~70 existing `useForgeTheme` imports from ThemeProvider keep
+// working; the hook itself now lives in ThemeContext to break the require cycle.
+export { useForgeTheme } from './ThemeContext';
 
 export function ForgeThemeProvider({ children }: ChildrenProps) {
   const { preferences } = useSettings();
@@ -44,5 +47,3 @@ export function ForgeThemeProvider({ children }: ChildrenProps) {
 
 /** Compatibility alias while app entry points migrate to the explicit name. */
 export const ThemeProvider = ForgeThemeProvider;
-
-export function useForgeTheme(): ForgeTheme { return useContext(ForgeThemeContext); }

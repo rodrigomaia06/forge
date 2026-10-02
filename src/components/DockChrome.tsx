@@ -10,14 +10,7 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useSharedValue, withSpring } from 'react-native-reanimated';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { moderateVerticalScale } from '../theme/scale';
 import { DockSurface } from './DockSurface';
-
-// The floating dock is a self-contained widget, so it rides the shared responsive
-// scale as one uniform transform rather than threading the factor through its
-// many internal sizes. 1.0 on the ~852 dp design canvas; gently smaller on
-// shorter/older phones.
-const DOCK_SCALE = moderateVerticalScale(100) / 100;
 import { useWorkouts } from '../state/WorkoutContext';
 import { dashboardTheme } from '../theme/dashboardTheme';
 import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
@@ -118,7 +111,6 @@ export function DockChrome({
         <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${gradientId})`} />
       </Svg>
       <View style={[styles.dockLayer, styles.pointerEventsBoxNone, { bottom: bottomOffset }]}>
-        <View style={DOCK_SCALE === 1 ? undefined : { transform: [{ scale: DOCK_SCALE }] }} pointerEvents="box-none">
         <DockSurface
           theme={theme}
           compact={compact}
@@ -130,7 +122,6 @@ export function DockChrome({
           onLayout={cylinderOnLayout}
           testID={cylinderTestID}
         />
-        </View>
       </View>
       {(indicatorTestID || !slotTestID) && (
         <View
