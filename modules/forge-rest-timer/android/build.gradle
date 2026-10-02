@@ -1,14 +1,15 @@
-apply plugin: 'com.android.library'
-apply plugin: 'org.jetbrains.kotlin.android'
-apply plugin: 'expo-module-gradle-plugin'
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
 
 group = 'expo.modules.forgeresttimer'
 version = '1.0.0'
 
 android {
-  namespace = "expo.modules.forgeresttimer"
+  namespace "expo.modules.forgeresttimer"
   defaultConfig {
-    // setChronometerCountDown (live countdown notification) is API 24+.
-    minSdkVersion 24
+    versionCode 1
+    versionName "1.0.0"
   }
 }
