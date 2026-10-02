@@ -151,11 +151,15 @@ struct ForgeRestTimerLiveActivity: Widget {
           .multilineTextAlignment(.trailing)
           .frame(width: 48)
       } minimal: {
+        // The minimal presentation is a ~37pt circle beside the camera. Fill and
+        // center the live countdown within it — a fixed narrow width left the value
+        // visually off-centre in the dot — and let a wide value shrink to fit.
         RestCount(state: context.state, isOverrun: context.forgeIsOverrun, color: context.forgeTimerTint)
-          .font(.forgeTimer(12, relativeTo: .caption2).monospacedDigit())
+          .font(.forgeTimer(13, relativeTo: .caption2).monospacedDigit())
           .lineLimit(1)
-          .minimumScaleFactor(0.6)
-          .frame(width: 32)
+          .minimumScaleFactor(0.5)
+          .multilineTextAlignment(.center)
+          .frame(maxWidth: .infinity, alignment: .center)
       }
       .keylineTint(context.forgeTimerTint)
       .widgetURL(URL(string: "forge://rest-timer/open"))
