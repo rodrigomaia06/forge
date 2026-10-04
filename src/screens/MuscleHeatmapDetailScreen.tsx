@@ -227,7 +227,7 @@ const createStyles = (theme: ForgeTheme) => {
     justifyContent: 'center',
     backgroundColor: isDark ? theme.surfaceMuted : theme.surfaceElevated,
     borderColor: theme.border,
-    borderWidth: isDark ? 0 : 1,
+    borderWidth: 0,
   },
   segmented: { flexDirection: 'row', gap: 8 },
   segment: { flex: 1, minHeight: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

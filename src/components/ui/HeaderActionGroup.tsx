@@ -25,7 +25,7 @@ export function HeaderActionGroup({
       style={[
         styles.group,
         {
-          borderWidth: theme.colorScheme === 'dark' ? 0 : 1,
+          borderWidth: 0,
           borderColor: theme.border,
           backgroundColor: theme.colorScheme === 'dark' ? theme.surfaceMuted : theme.surfaceElevated,
         },

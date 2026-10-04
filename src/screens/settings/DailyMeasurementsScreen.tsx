@@ -746,7 +746,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   rangeControl: { minWidth: 34, minHeight: 30, borderRadius: 9, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
   rangeControlActive: {
     backgroundColor: isDark ? theme.divider : theme.surfaceElevated,
-    borderWidth: isDark ? 0 : StyleSheet.hairlineWidth,
+    borderWidth: 0,
     borderColor: theme.border,
     shadowColor: '#000',
     shadowOpacity: isDark ? 0.3 : 0.12,
@@ -834,7 +834,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     overflow: 'hidden',
     backgroundColor: isDark ? theme.surfaceMuted : theme.surfaceElevated,
     borderColor: theme.border,
-    borderWidth: isDark ? 0 : 1,
+    borderWidth: 0,
   },
 });
 };

@@ -7,9 +7,9 @@ import { scaleUI } from '../../theme/scale';
  * The one Forge card surface. Separation is tone-first (see .agents/rules/design.md):
  * - `base` (default): a card on a screen background or a sheet. Its surface tone
  *   alone separates it — no outline in either theme.
- * - `nested`: a card placed inside another card. It steps one tone up and adds a
- *   single hairline border, because tone contrast against a sibling surface is
- *   too weak on its own.
+ * - `nested`: a card placed inside another card. It steps one tone up and is
+ *   borderless like the base card — separated by tone in Dark and by a soft shadow
+ *   in Light, so it never shows a grey outline.
  * Screens must not hand-roll a card border/background; use this primitive.
  */
 export type ForgeCardVariant = 'base' | 'nested';
@@ -38,13 +38,13 @@ export function ForgeCard({
         size === 'compact' && styles.compact,
         {
           backgroundColor: nested ? theme.surfaceElevated : theme.surface,
-          borderColor: theme.border,
-          borderWidth: nested ? 1 : 0,
-          // The base card floats on its own soft shadow (Light) or pure tone
-          // (Dark, where cardShadowOpacity is 0). A nested card is defined by its
-          // hairline border instead, so it carries no shadow.
+          // Borderless in both themes (no grey outline, matching Dark's feel). A
+          // nested card separates by tone in Dark (surfaceElevated steps up from
+          // surface) and by its soft shadow in Light (cardShadowOpacity > 0, where
+          // the two surface tones are equal). Base cards already separate the same way.
+          borderWidth: 0,
           shadowColor: theme.shadow,
-          shadowOpacity: nested ? 0 : theme.cardShadowOpacity ?? 0.06,
+          shadowOpacity: theme.cardShadowOpacity ?? 0.06,
         },
         style,
       ]}

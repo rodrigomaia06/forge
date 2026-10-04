@@ -30,7 +30,7 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       height: 44,
       flexDirection: 'row',
       alignItems: 'center',
-      borderWidth: dashboardTheme.colorScheme === 'dark' ? 0 : 1,
+      borderWidth: 0,
       borderColor: dashboardTheme.border,
       borderRadius: 22,
       overflow: 'hidden',

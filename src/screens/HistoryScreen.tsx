@@ -495,9 +495,9 @@ function HistoryDateRangeControls({ filters, onSetMode, onPreviousMonth, onNextM
       })}
     </View>
     {filters.dateMode === 'month' ? <View testID="history-filter-month" style={[styles.historyMonthCard, { backgroundColor: theme.surface }]}>
-      <HeaderAction accessibilityLabel="Previous filter month" icon="chevron-back" iconOnly variant={theme.colorScheme === 'dark' ? 'ghost' : 'outline'} onPress={onPreviousMonth} style={theme.colorScheme === 'dark' ? { backgroundColor: theme.surfaceMuted } : undefined} />
+      <HeaderAction accessibilityLabel="Previous filter month" icon="chevron-back" iconOnly variant="ghost" onPress={onPreviousMonth} style={{ backgroundColor: theme.colorScheme === 'dark' ? theme.surfaceMuted : theme.surfaceElevated }} />
       <View style={styles.historyMonthCopy}><Text style={styles.historyFilterTitle}>{new Date(filters.month).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</Text><Text style={styles.historyFilterSummaryText}>{historyDateSummary(filters)}</Text></View>
-      <HeaderAction accessibilityLabel="Next filter month" icon="chevron-forward" iconOnly variant={theme.colorScheme === 'dark' ? 'ghost' : 'outline'} onPress={onNextMonth} style={theme.colorScheme === 'dark' ? { backgroundColor: theme.surfaceMuted } : undefined} />
+      <HeaderAction accessibilityLabel="Next filter month" icon="chevron-forward" iconOnly variant="ghost" onPress={onNextMonth} style={{ backgroundColor: theme.colorScheme === 'dark' ? theme.surfaceMuted : theme.surfaceElevated }} />
     </View> : null}
     {filters.dateMode === 'dates' ? <View style={[styles.historyFilterCard, { backgroundColor: theme.surface }]}>
       <HistoryFilterRow icon="calendar" title="From" summary={formatHistoryDate(filters.from)} onPress={onOpenFrom} />

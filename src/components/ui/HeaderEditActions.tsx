@@ -69,7 +69,7 @@ export function HeaderEditActions({
               {
                 backgroundColor: isDark ? theme.surfaceMuted : theme.surfaceElevated,
                 borderColor: theme.border,
-                borderWidth: isDark ? 0 : 1,
+                borderWidth: 0,
               },
               pressed && pressedFeedback,
             ]}

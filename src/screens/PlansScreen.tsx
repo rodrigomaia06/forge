@@ -382,8 +382,8 @@ export function PlansScreen({ navigation, route }: Props) {
                 icon="add"
                 iconOnly
                 onPress={() => setCreateSheetOpen(true)}
-                variant={theme.colorScheme === 'dark' ? 'ghost' : 'secondary'}
-                style={theme.colorScheme === 'dark' ? styles.darkHeaderAction : undefined}
+                variant="ghost"
+                style={{ backgroundColor: theme.colorScheme === 'dark' ? theme.surfaceMuted : theme.surfaceElevated }}
               />
             )}
           </View>
