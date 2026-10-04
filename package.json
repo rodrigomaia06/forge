@@ -6,6 +6,12 @@
   "engines": {
     "node": ">=22.13.0"
   },
+  "prettier": {
+    "singleQuote": true,
+    "trailingComma": "all",
+    "printWidth": 100,
+    "semi": true
+  },
   "main": "expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
