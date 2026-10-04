@@ -52,6 +52,14 @@ function withForgeDocumentTypeIOS(config) {
     }
     infoPlist.CFBundleDocumentTypes = documentTypes;
 
+    // Opt out of in-place opening so iOS COPIES an opened/shared `.forge` into the
+    // app's Documents/Inbox and hands a sandbox-local file:// URL. In place, iOS
+    // delivers a security-scoped URL that a plain read (expo-file-system File.text)
+    // cannot open without startAccessingSecurityScopedResource — the "you don't have
+    // permission to view it" failure. Copying sidesteps the scope entirely.
+    infoPlist.LSSupportsOpeningDocumentsInPlace = false;
+    infoPlist.UISupportsDocumentBrowser = false;
+
     return config;
   });
 }

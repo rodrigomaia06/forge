@@ -3,8 +3,10 @@ import { readAsStringAsync } from 'expo-file-system/legacy';
 import { parseDataTransfer, type ForgeDataTransfer } from './backupRepository';
 
 /**
- * Reads the raw text of a launched `.forge` file. iOS hands the OS an
- * app-owned `file://` copy (the app Inbox), which the current file API reads
+ * Reads the raw text of a launched `.forge` file. iOS hands an app-owned
+ * `file://` copy in the app Inbox — the file-association plugin opts out of
+ * in-place opening (LSSupportsOpeningDocumentsInPlace=false) so the URL is
+ * sandbox-local and readable without a security scope — which the file API reads
  * directly. Android VIEW intents commonly deliver a Storage Access Framework
  * `content://` URI, which the new `File` API cannot open in read mode — the
  * legacy `readAsStringAsync` still resolves those, so route them there.
