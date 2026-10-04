@@ -113,6 +113,8 @@ export function HeaderAction({
       <GlassView
         style={[styles.base, styles.iconOnly, styles.glassSurface, style]}
         glassEffectStyle="regular"
+        // Match Forge's theme toggle rather than the device's system scheme.
+        colorScheme={theme.colorScheme === 'dark' ? 'dark' : 'light'}
         isInteractive
       >
         {control}

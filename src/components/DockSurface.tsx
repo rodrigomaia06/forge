@@ -112,6 +112,9 @@ export function DockSurface({
           pointerEvents="none"
           style={StyleSheet.absoluteFill}
           glassEffectStyle="regular"
+          // Forge has its own theme toggle, so pin the glass appearance to it rather
+          // than the device's system scheme.
+          colorScheme={theme.colorScheme === 'dark' ? 'dark' : 'light'}
           tintColor={theme.colorScheme === 'dark' ? 'rgba(23,25,28,0.28)' : 'rgba(250,250,248,0.28)'}
         />
       ) : (

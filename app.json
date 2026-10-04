@@ -50,12 +50,22 @@
         {
           "icon": "./assets/forge-rest-notification-icon.png",
           "color": "#1D252D",
-          "sounds": ["./assets/sounds/alarm.wav"]
+          "sounds": [
+            "./assets/sounds/alarm.wav"
+          ]
         }
       ],
       "./modules/forge-rest-timer/app.plugin.js",
       "./plugins/withDisableShakeToEdit.js",
-      "./plugins/withForgeFileAssociation.js"
+      "./plugins/withForgeFileAssociation.js",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "16.4"
+          }
+        }
+      ]
     ],
     "owner": "pristine6589"
   }
