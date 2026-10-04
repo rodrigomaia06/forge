@@ -252,8 +252,8 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       minHeight: 52,
       alignSelf: 'stretch',
       width: '100%',
-      borderStyle: 'dashed',
-      borderWidth: 2,
+      // Borderless tonal (no dashed ring) to match the rest of the system; the
+      // white elevated fill + "+" icon carry the affordance.
       marginTop: 2,
     },
     muted: { color: dashboardTheme.slate, ...typeScale.label, textAlign: 'center' },

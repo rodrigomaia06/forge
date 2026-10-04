@@ -67,7 +67,9 @@ const createStyles = (theme: ReturnType<typeof useForgeTheme>) => StyleSheet.cre
     borderWidth: 1,
     borderColor: theme.border,
     borderRadius: 16,
-    backgroundColor: theme.input,
+    // Elevated (white on Light) rather than the near-page `input` tone so the field
+    // reads on the page/base surface; the deepened `border` gives it a clear edge.
+    backgroundColor: theme.surfaceElevated,
   },
   input: { flex: 1, minWidth: 0, color: theme.textPrimary, ...typeScale.body },
 });

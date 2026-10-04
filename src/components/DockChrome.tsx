@@ -20,7 +20,7 @@ import type { ForgeTheme } from '../types';
 export const forgeDockGeometry = {
   surfaceHeight: 64,
   compactSurfaceHeight: 48,
-  minimumBottomClearance: 12,
+  minimumBottomClearance: 16,
   surfaceToContentGap: 12,
 } as const;
 
@@ -30,10 +30,10 @@ export const forgeDockGeometry = {
  */
 export function useForgeDockBottomOffset(): number {
   const insets = useSafeAreaInsets();
-  return Math.max(
-    forgeDockGeometry.minimumBottomClearance,
-    insets.bottom - forgeDockGeometry.minimumBottomClearance,
-  );
+  // Float fully above the home indicator with a comfortable gap, rather than
+  // dipping into the safe area (the old `insets.bottom - clearance` sat the dock
+  // too low, overlapping the content above it on home-indicator devices).
+  return Math.max(forgeDockGeometry.minimumBottomClearance, insets.bottom);
 }
 
 /**

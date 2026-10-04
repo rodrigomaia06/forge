@@ -72,9 +72,11 @@ export function HeaderAction({
   // separate by their tonal surface against the header, never a grey ring. (Light
   // used to keep a fine border; removed so Light matches Dark's borderless feel.)
   const isBorderlessSheetCircle = iconOnly;
-  // iOS 26 Liquid Glass for neutral circular controls; destructive/success keep their
+  // iOS 26 Liquid Glass for neutral SECONDARY circular controls only. Primary CTAs
+  // (e.g. the live-workout Finish check) keep their solid fill — glass would strip it
+  // and the icon would vanish into the backdrop. Destructive/success keep their
   // semantic surfaces (red/green), and non-iOS-26 keeps the tonal fill.
-  const glass = iconOnly && LIQUID_GLASS && tone === 'neutral';
+  const glass = iconOnly && LIQUID_GLASS && tone === 'neutral' && variant !== 'primary';
   const control = (
     <Button
       accessibilityLabel={accessibilityLabel}

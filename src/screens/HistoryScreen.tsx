@@ -90,6 +90,7 @@ const HistoryGroupBlock = React.memo(function HistoryGroupBlock({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const railColor = theme.colorScheme === 'dark' ? theme.divider : theme.muted;
   const previousTail = previousLastWorkout && hasWorkoutExerciseSummary(previousLastWorkout)
     ? styles.periodRailConnectorDetailed
     : styles.periodRailConnectorCompact;
@@ -104,11 +105,12 @@ const HistoryGroupBlock = React.memo(function HistoryGroupBlock({
           <Svg width={1} height="100%">
             <Defs>
               <LinearGradient id={`history-period-rail-${group.key}`} x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor={theme.divider} stopOpacity={0.48} />
-                <Stop offset="0.28" stopColor={theme.divider} stopOpacity={0.28} />
-                <Stop offset="0.5" stopColor={theme.divider} stopOpacity={0.08} />
-                <Stop offset="0.72" stopColor={theme.divider} stopOpacity={0.28} />
-                <Stop offset="1" stopColor={theme.divider} stopOpacity={0.48} />
+                {/* Match the solid rail tone (muted on Light) so the bridge is visible there. */}
+                <Stop offset="0" stopColor={railColor} stopOpacity={0.48} />
+                <Stop offset="0.28" stopColor={railColor} stopOpacity={0.28} />
+                <Stop offset="0.5" stopColor={railColor} stopOpacity={0.08} />
+                <Stop offset="0.72" stopColor={railColor} stopOpacity={0.28} />
+                <Stop offset="1" stopColor={railColor} stopOpacity={0.48} />
               </LinearGradient>
             </Defs>
             <Rect width="1" height="100%" fill={`url(#history-period-rail-${group.key})`} />
@@ -775,8 +777,10 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     top: historyGroupRailTop,
     left: historyRailCenter - 0.5,
     width: 1,
-    backgroundColor: theme.divider,
-    opacity: 0.78,
+    // `divider` sits within ~6 of the Light page tone, so the timeline path was
+    // invisible there. Use the mid `muted` tone on Light; Dark keeps the divider.
+    backgroundColor: theme.colorScheme === 'dark' ? theme.divider : theme.muted,
+    opacity: theme.colorScheme === 'dark' ? 0.78 : 0.55,
   },
   groupRailDetailed: { bottom: 35 },
   groupRailCompact: { bottom: 30 },
@@ -811,7 +815,8 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     width: 14,
     height: 14,
     borderWidth: 1.5,
-    borderColor: theme.divider,
+    // Empty markers need a visible ring on Light (divider blended into the page).
+    borderColor: theme.colorScheme === 'dark' ? theme.divider : theme.muted,
     borderRadius: 7,
     backgroundColor: theme.background,
   },

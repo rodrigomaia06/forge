@@ -1548,8 +1548,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       minHeight: 38,
       width: '100%',
       marginTop: 0,
-      borderWidth: 1,
-      borderStyle: 'dashed',
       borderRadius: 12,
     },
     empty: { paddingTop: 60, alignItems: 'center' },
@@ -1631,8 +1629,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       minHeight: 38,
       margin: 12,
       width: 'auto',
-      borderWidth: 1,
-      borderStyle: 'dashed',
       borderRadius: 12,
     },
   });

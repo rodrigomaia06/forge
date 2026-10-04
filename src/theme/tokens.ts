@@ -45,7 +45,10 @@ export const lightTheme: ForgeTheme = {
   input: '#E8E9E6',
   dock: '#FAFAF8',
   overlay: 'rgba(23,25,28,0.24)',
-  surfaceMuted: '#E8E9E6',
+  // The raised-control / selection / nested tone. Deepened from #E8E9E6 so a
+  // borderless tonal control reads on the base surface and on white cards
+  // (the old value sat within ~5 of the page tones and vanished).
+  surfaceMuted: '#DEDFDB',
   ink: '#17191C',
   textPrimary: '#17191C',
   textSecondary: '#55585C',
@@ -55,8 +58,10 @@ export const lightTheme: ForgeTheme = {
   destructiveSurfacePressed: '#E9AEB2',
   slate: '#55585C',
   muted: '#8A969E',
+  // Divider stays a hairline tone for row separators; `border` is deepened so the
+  // few elements that keep an outline (search/text fields) actually show one on light.
   divider: '#E2E3E0',
-  border: '#E2E3E0',
+  border: '#CDCFC9',
   pressed: 'rgba(23,25,28,0.08)',
   focus: '#1D252D',
   shadow: '#17191C',

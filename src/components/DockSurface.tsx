@@ -98,7 +98,9 @@ export function DockSurface({
         styles.dock,
         surfaceAnimatedStyle,
         {
-          borderColor: theme.border ?? theme.dockBorder,
+          // Liquid Glass supplies its own specular edge; a painted border on top
+          // reads as a hard ring and kills the "real glass" look, so drop it there.
+          borderColor: LIQUID_GLASS ? 'transparent' : (theme.border ?? theme.dockBorder),
           shadowColor: theme.shadow,
         },
       ]}
@@ -115,7 +117,10 @@ export function DockSurface({
           // Forge has its own theme toggle, so pin the glass appearance to it rather
           // than the device's system scheme.
           colorScheme={theme.colorScheme === 'dark' ? 'dark' : 'light'}
-          tintColor={theme.colorScheme === 'dark' ? 'rgba(23,25,28,0.28)' : 'rgba(250,250,248,0.28)'}
+          // Only a whisper of brand tint. The old 0.28 film masked the material and
+          // made real Liquid Glass look like the flat BlurView fallback; let the
+          // system glass (refraction/specular) carry the look.
+          tintColor={theme.colorScheme === 'dark' ? 'rgba(23,25,28,0.08)' : 'rgba(255,255,255,0.10)'}
         />
       ) : (
         <>

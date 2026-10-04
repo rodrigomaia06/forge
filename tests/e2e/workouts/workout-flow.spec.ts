@@ -571,8 +571,9 @@ test.describe('Active workout flow', () => {
     await page.getByRole('button', { name: 'Increase rest by 10 seconds' }).click();
     await expect.poll(parseRestSeconds).toBeGreaterThan(remainingBeforeAdjustment);
     const stopTimer = page.getByRole('button', { name: 'Stop rest timer' });
+    // Borderless + tonal (design.md): destructive reads as a soft-red fill, not a red ring.
     await expect(stopTimer).toHaveCSS('background-color', 'rgb(246, 220, 221)');
-    await expect(stopTimer).toHaveCSS('border-color', 'rgb(214, 72, 72)');
+    await expect(stopTimer).toHaveCSS('border-width', '0px');
     await stopTimer.click();
     await expect(page.getByRole('button', { name: 'Start rest timer' }).first()).toBeVisible();
   });
@@ -841,7 +842,9 @@ test.describe('Active workout flow', () => {
       page.getByLabel('Set 1 RPE 8').boundingBox(),
     ]);
     if (!targetChipBox || !targetDotBox || !rpeBox) throw new Error('Expected target and RPE set indicators to be measurable');
-    await expect(page.getByLabel('Set 1 has a next session target')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+    // The next-session target dot uses setTargetIndicator, which in Light is a dark
+    // tone (#55585C) so it reads on the light set-number chip (white only in Dark).
+    await expect(page.getByLabel('Set 1 has a next session target')).toHaveCSS('background-color', 'rgb(85, 88, 92)');
     expect(targetDotBox.x).toBeLessThan(targetChipBox.x + targetChipBox.width / 2);
     expect(targetDotBox.y).toBeLessThan(targetChipBox.y + targetChipBox.height / 2);
     expect(rpeBox.x).toBeLessThan(targetChipBox.x + targetChipBox.width / 2);
@@ -980,12 +983,13 @@ test.describe('Active workout flow', () => {
     expect(activeDock.width).toBeLessThanOrEqual(390);
   });
 
-  test('uses a dashed outline for Add exercise', async ({ page }) => {
+  test('renders Add exercise as a borderless tonal control', async ({ page }) => {
     await page.goto('/');
     await startBlankWorkout(page);
     const addExercise = page.getByRole('button', { name: 'Add exercise' });
-    await expect(addExercise).toHaveCSS('border-style', 'dashed');
-    await expect(addExercise).toHaveCSS('border-width', '2px');
+    // Borderless + tonal system (design.md): no ring, separates by its elevated
+    // fill + the "+" icon. The old dashed-outline affordance was removed.
+    await expect(addExercise).toHaveCSS('border-width', '0px');
   });
 
   test('keeps the workout dock item available with the active selection indicator', async ({

@@ -1103,7 +1103,11 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       gap: 8,
       paddingHorizontal: 12,
       borderRadius: 12,
-      backgroundColor: dashboardTheme.surfaceMuted,
+      borderWidth: 1,
+      borderColor: dashboardTheme.border,
+      // Elevated fill + visible border so the field reads on the sheet surface,
+      // matching ForgeSearchField (the old surfaceMuted fill blended on Light).
+      backgroundColor: dashboardTheme.surfaceElevated,
     },
     searchClear: {
       width: 28,
@@ -1235,7 +1239,10 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       alignItems: 'center',
       borderTopWidth: 1,
       borderTopColor: dashboardTheme.divider,
-      backgroundColor: dashboardTheme.surfaceMuted,
+      // Expanded rows are one clean elevated tone separated by indentation + dividers,
+      // not a third grey. The muted tone is reserved for the selected state below, so
+      // the hierarchy reads as surface header -> white list -> grey selection.
+      backgroundColor: dashboardTheme.surfaceElevated,
     },
     equipmentRowSelected: {
       backgroundColor: dashboardTheme.surfaceMuted,
