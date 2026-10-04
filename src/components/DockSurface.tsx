@@ -100,7 +100,12 @@ export function DockSurface({
         {
           // Liquid Glass supplies its own specular edge; a painted border on top
           // reads as a hard ring and kills the "real glass" look, so drop it there.
-          borderColor: LIQUID_GLASS ? 'transparent' : (theme.border ?? theme.dockBorder),
+          // The blur fallback keeps only a soft hairline (the raised dock reads by its
+          // shadow + tint) — the field-oriented `border` tone is too hard here and
+          // left a visible double-edge at the rounded ends.
+          borderColor: LIQUID_GLASS
+            ? 'transparent'
+            : (theme.colorScheme === 'dark' ? (theme.dockBorder ?? theme.border) : theme.divider),
           shadowColor: theme.shadow,
         },
       ]}
