@@ -687,7 +687,7 @@ function FacetPickerRows({ family, familyKey, selected, onToggle }: {
   return <View style={styles.facetPicker}>
     {groups.map(({ axis, inputs }) => <View key={axis} style={styles.facetGroup}>
       <Text style={styles.facetGroupTitle}>{variationAxisLabel(axis)}</Text>
-      <ForgeCard variant="base" style={styles.facetGroupCard}>
+      <ForgeCard variant="nested" style={styles.facetGroupCard}>
         {inputs.map((input, index) => {
           const checked = selected.has(input.id);
           return <Pressable key={input.id} accessibilityRole="checkbox" accessibilityLabel={`${family.group}, ${input.label}`} accessibilityState={{ checked }} onPress={() => onToggle(familyKey, input.id)} style={({ pressed }) => [styles.facetRow, index > 0 && styles.groupRowDivider, checked && styles.subVariationRowSelected, pressed && styles.exerciseOptionPressed]}>
@@ -1290,7 +1290,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     // platform stretches the flex child to the full row height.
     exerciseOptionCopy: { flex: 1, gap: 2, alignSelf: 'center', justifyContent: 'center' },
     exerciseOptionName: { color: dashboardTheme.ink, ...typeScale.cardTitle },
-    exerciseOptionEquipment: { color: '#4F625A', ...typeScale.label },
+    exerciseOptionEquipment: { color: theme.textSecondary, ...typeScale.label },
     // A reserved min-height (matching the settings/library duration sheets) gives
     // the wheel a stable frame from the first render so it positions on the
     // selected row rather than measuring mid-entrance.

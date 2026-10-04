@@ -184,7 +184,7 @@ function SessionNoteEffortSection({
     <View style={styles.section}>
       <Text style={styles.sectionLabel}>Session note &amp; effort</Text>
       <View testID="set-session-note-effort-card">
-      <ForgeCard variant="base" style={styles.sessionCard}>
+      <ForgeCard variant="nested" style={styles.sessionCard}>
         <View style={styles.sessionNoteSection}>
           <Text style={styles.subsectionLabel}>Comment</Text>
           {editable ? (
@@ -264,7 +264,9 @@ function EffortSelector({ set, onChange }: { set: WorkoutSet; onChange: (changes
               style={({ pressed }) => [
                 styles.effortChoice,
                 { borderColor: isSelected ? (theme.marker ?? theme.success) : theme.border },
-                isSelected && { backgroundColor: theme.successSurface },
+                // Unselected chips get a tonal fill so they read on the white nested card
+                // (a bare border was too faint); selected keeps the success tint.
+                isSelected ? { backgroundColor: theme.successSurface } : { backgroundColor: theme.surfaceMuted },
                 pressed && pressedFeedbackSubtle,
               ]}
             >
@@ -296,7 +298,7 @@ function SetKindSection({
     <View style={styles.section}>
       <Text style={styles.sectionLabel}>Set kind</Text>
       {editable ? (
-        <ForgeCard variant="base" style={styles.setKindCard}>
+        <ForgeCard variant="nested" style={styles.setKindCard}>
           <View style={styles.setKindSummary}>
             <View style={[styles.typeDot, { backgroundColor: recordedType?.color ?? theme.slate }]} />
             <Text style={styles.setKindValue}>{value || 'No type'}</Text>
@@ -323,7 +325,7 @@ function SetKindSection({
           </View>
         </ForgeCard>
       ) : (
-        <ForgeCard variant="base" style={styles.recordedCard}>
+        <ForgeCard variant="nested" style={styles.recordedCard}>
           <View style={styles.recordedTypeRow}>
             <View
               style={[
@@ -368,7 +370,7 @@ function SetKindPicker({
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        <ForgeCard variant="base" style={styles.typeCard}>
+        <ForgeCard variant="nested" style={styles.typeCard}>
           <View accessibilityRole="radiogroup" accessibilityLabel="Set type">
             {SET_TYPES.map((type, typeIndex) => (
               <SetTypeOption
@@ -471,7 +473,7 @@ function TargetsSection({
   return (
     <View testID="set-next-session-section" style={[styles.section, styles.targetSection]}>
       <Text style={styles.sectionLabel}>{isRoutineInterval ? 'Routine interval' : 'Next session'}</Text>
-      <ForgeCard variant="base" style={styles.targetCardGroup}>
+      <ForgeCard variant="nested" style={styles.targetCardGroup}>
         {applicableFields.map((kind, index) => (
           <TargetRow
             key={kind}

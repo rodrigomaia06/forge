@@ -42,7 +42,7 @@ export const lightTheme: ForgeTheme = {
   surface: '#F4F5F2',
   surfaceElevated: '#FFFFFF',
   surfaceInset: '#DEDFDC',
-  input: '#F8F8F6',
+  input: '#E8E9E6',
   dock: '#FAFAF8',
   overlay: 'rgba(23,25,28,0.24)',
   surfaceMuted: '#E8E9E6',
@@ -61,6 +61,9 @@ export const lightTheme: ForgeTheme = {
   focus: '#1D252D',
   shadow: '#17191C',
   ...shared,
+  // The shared default is white (for dark chips); in light the next-session target dot
+  // needs a dark tone to read on the light set-number chip. (After the 2nd `...shared`.)
+  setTargetIndicator: '#55585C',
   calendarDay: '#FFFFFF',
   calendarSelectionRing: '#1D252D',
   selected: '#1D252D',

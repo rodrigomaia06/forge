@@ -82,7 +82,7 @@ export function WarmupSetsContent({
       exiting={reducedMotion ? undefined : FadeOut.duration(forgeMotion.feedback)}
     >
       <Text style={styles.sectionLabel}>Working set</Text>
-      <ForgeCard variant="base" style={styles.workingCard}>
+      <ForgeCard variant="nested" style={styles.workingCard}>
         <View style={styles.workingRow}>
           <Text style={styles.workingLabel}>Weight</Text>
           <TextInput accessibilityLabel="Working weight" value={weight} selection={{ start: weight.length, end: weight.length }} selectTextOnFocus={false} onChangeText={setWeight} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={theme.textDisabled} style={styles.workingInput} />
@@ -96,7 +96,7 @@ export function WarmupSetsContent({
         </View>
       </ForgeCard>
       <Text style={styles.sectionLabel}>Warm-up sets</Text>
-      <ForgeCard variant="base" style={styles.planCard}>
+      <ForgeCard variant="nested" style={styles.planCard}>
         {plan.length ? plan.map((set, index) => (
           <View key={`${set.weight}-${set.reps}`} style={[styles.planRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
             <Text style={styles.planIndex}>{index + 1}</Text>
@@ -323,14 +323,14 @@ export function PreviousSessionsContent({
     exiting={reducedMotion ? undefined : FadeOut.duration(forgeMotion.feedback)}
   >{sessions.length ? <>
     {visibleSessions.map(({ workout, exercise: sessionExercise }) => <View key={workout.id}>
-      <ForgeCard testID={`previous-session-card-${workout.id}`} variant="base" style={styles.previousSessionCard}>
+      <ForgeCard testID={`previous-session-card-${workout.id}`} variant="nested" style={styles.previousSessionCard}>
       <Pressable accessibilityRole={onOpenWorkout ? 'button' : undefined} accessibilityLabel={onOpenWorkout ? `Open ${workout.name}` : undefined} onPress={() => onOpenWorkout?.(workout.id)} style={({ pressed }) => [styles.previousSessionHeader, pressed && pressedFeedbackSubtle]}>
         <View style={styles.sessionCopy}><Text style={styles.sessionTitle} numberOfLines={1}>{workout.name}</Text><Text style={[styles.sessionDate, { color: theme.textSecondary }]}>{sessionDateTime(workout)}</Text></View>{onOpenWorkout ? <Icon name="chevron-forward" size={22} color={theme.textSecondary} /> : null}
       </Pressable>
       {sessionExercise.sets.map((set, index) => <HistorySetRow key={set.id} set={set} index={index} compact isLast={index === sessionExercise.sets.length - 1} trackingType={sessionExercise.exerciseSnapshot?.trackingType ?? sessionExercise.trackingType ?? 'weight-reps'} onOpenDetails={() => setOpenSet({ set, index, trackingType: sessionExercise.exerciseSnapshot?.trackingType ?? sessionExercise.trackingType ?? 'weight-reps' })} />)}
       </ForgeCard>
     </View>)}
-    {!showAll && sessions.length > 3 ? <Pressable accessibilityRole="button" accessibilityLabel={`Show ${sessions.length - 3} more sessions`} onPress={revealAll} style={({ pressed }) => [styles.showMoreSessions, { backgroundColor: theme.surface }, pressed && pressedFeedbackSubtle]}><Text style={styles.showMoreText}>{`Show ${sessions.length - 3} more`}</Text></Pressable> : null}
+    {!showAll && sessions.length > 3 ? <Pressable accessibilityRole="button" accessibilityLabel={`Show ${sessions.length - 3} more sessions`} onPress={revealAll} style={({ pressed }) => [styles.showMoreSessions, { backgroundColor: theme.surfaceElevated }, pressed && pressedFeedbackSubtle]}><Text style={styles.showMoreText}>{`Show ${sessions.length - 3} more`}</Text></Pressable> : null}
   </> : <View style={[styles.emptyCard, { borderColor: theme.border, backgroundColor: theme.surfaceMuted }]}><Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>No completed sessions for this exercise yet.</Text></View>}</Animated.ScrollView>{openSet ? <SetDetailsCard visible set={openSet.set} index={openSet.index} editable={false} onChange={() => undefined} onDelete={() => undefined} onDone={() => setOpenSet(null)} trackingType={openSet.trackingType} /> : null}</>;
 }
 

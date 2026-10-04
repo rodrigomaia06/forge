@@ -125,6 +125,10 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: dashboardTheme.slate,
+    // A filled tonal surface (like the row's inputs/chips) so the empty check reads as a
+    // clear button rather than a faint ring that blends into the card. Selected tones
+    // (success/interactive/selection) override this below.
+    backgroundColor: dashboardTheme.surfaceMuted,
     borderRadius: scaleUI(15),
   },
   success: { backgroundColor: dashboardTheme.success, borderColor: dashboardTheme.success },
@@ -144,6 +148,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: dashboardTheme.slate,
+    backgroundColor: dashboardTheme.surfaceMuted,
   },
   // One side done: green ring with one half filled, reading as "half done". The
   // filled half is the leading side, so it names which side is already complete.
