@@ -103,7 +103,9 @@ export function DockSurface({
           rather than plain clear glass. Falls back to the tint film alone where
           a platform cannot blur. */}
       <BlurView
-        intensity={36}
+        // Light backdrops are low-contrast, so the same blur reads weaker than in Dark —
+        // raise the intensity and thin the tint film in Light so the frost actually shows.
+        intensity={theme.colorScheme === 'dark' ? 36 : 60}
         tint={theme.colorScheme === 'dark' ? 'dark' : 'light'}
         blurMethod="dimezisBlurView"
         pointerEvents="none"
@@ -111,7 +113,7 @@ export function DockSurface({
       />
       <View
         pointerEvents="none"
-        style={[StyleSheet.absoluteFill, styles.dockTint, { backgroundColor: theme.dock ?? theme.dockSurface }]}
+        style={[StyleSheet.absoluteFill, { opacity: theme.colorScheme === 'dark' ? 0.55 : 0.38, backgroundColor: theme.dock ?? theme.dockSurface }]}
       />
       {children || (
         <BottomNavigation
@@ -139,7 +141,4 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 7 },
     elevation: 6,
   },
-  // A translucent dock-coloured film over the blur so the surface stays on-brand
-  // instead of reading as generic clear glass.
-  dockTint: { opacity: 0.55 },
 });
