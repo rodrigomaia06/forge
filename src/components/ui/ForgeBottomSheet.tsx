@@ -173,12 +173,22 @@ export function ForgeBottomSheet({
     closing.value = false;
     setExiting(false);
     setRendered(false);
-    // The Modal unmounts with this render; give it one frame to tear down before
-    // notifying, so any follow-up Modal is presented into a clear screen.
+    // The Modal unmounts with this render; wait until it has torn down before
+    // notifying, so any follow-up Modal (e.g. a confirmation) is presented into a
+    // clear screen. On web one frame suffices; on native a single frame is too
+    // short — iOS can drop the second modal if it is presented while the first is
+    // still dismissing — so give it a short beat. (A deeper fix would gate this on
+    // the Modal's onDismiss, which needs a mount-lifecycle change.)
     if (!closedFiredRef.current) {
       closedFiredRef.current = true;
       const notify = onClosedRef.current;
-      if (notify) requestAnimationFrame(() => notify());
+      if (notify) {
+        if (Platform.OS === 'web') {
+          requestAnimationFrame(() => notify());
+        } else {
+          setTimeout(() => notify(), 120);
+        }
+      }
     }
   }, [clearExitTimer, closing]);
 

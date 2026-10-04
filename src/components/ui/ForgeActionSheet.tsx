@@ -131,9 +131,11 @@ export function ForgeActionSheet({
                     haptic="none"
                     disabled={headerDestructiveAction.disabled}
                     onPress={() => {
+                      // Run the handler before dismissing (matching the action rows below);
+                      // closing first can drop a chained follow-up (e.g. a confirmation modal).
                       errorHaptic();
-                      close();
                       headerDestructiveAction.onPress();
+                      close();
                     }}
                   />
                 ) : undefined
