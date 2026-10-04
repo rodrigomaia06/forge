@@ -90,7 +90,7 @@ final height while the content eased inside it. The surface's own `overflow:
 hidden` clips the content cleanly while the surface height eases.
 
 The content itself **cross-fades** across the swap (a hierarchical drill-in, per
-`rules/design.md` Motion — never a lateral slide). The fade goes on **each view's
+`.agents/rules/design.md` Motion — never a lateral slide). The fade goes on **each view's
 own content root** (an `Animated.ScrollView` for a scroll body, an `Animated.View`
 for a static body) via reduced-motion-aware `FadeIn`/`FadeOut`, **never on a
 wrapping `View`**: a wrapper would reintroduce the hugging intermediate that

@@ -762,7 +762,7 @@ export function ExerciseOptionsSheet({
   const { preferences, updatePreferences } = useSettings();
   const [view, setView] = useState<'actions' | 'note' | 'history' | 'info' | 'rest' | 'rest-unilateral' | 'warmup'>('actions');
   // Cross-fade each view's content while the surface height eases (ADR 0005 /
-  // rules/design Motion): a hierarchical drill-in, never a lateral slide.
+  // .agents/rules/design Motion): a hierarchical drill-in, never a lateral slide.
   const viewEntering = reducedMotion ? undefined : FadeIn.duration(forgeMotion.state);
   const viewExiting = reducedMotion ? undefined : FadeOut.duration(forgeMotion.feedback);
   const [noteDraft, setNoteDraft] = useState(exercise.note ?? '');

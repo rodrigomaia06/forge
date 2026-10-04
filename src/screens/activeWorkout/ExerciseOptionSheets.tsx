@@ -311,7 +311,7 @@ export function PreviousSessionsContent({
   return <><Animated.ScrollView
     ref={scrollViewRef}
     // Hug the content and scroll only once it exceeds the sheet's own max
-    // height. See docs/decisions/0005 — a maxHeight ON the ScrollView parks it
+    // height. See .agents/docs/decisions/0005 — a maxHeight ON the ScrollView parks it
     // at that height and creates dead space; the sheet surface already caps it.
     style={styles.previousSessionsScroll}
     contentContainerStyle={styles.previousSessionsContent}

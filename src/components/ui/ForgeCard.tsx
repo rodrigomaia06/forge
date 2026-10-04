@@ -4,7 +4,7 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 import { scaleUI } from '../../theme/scale';
 
 /**
- * The one Forge card surface. Separation is tone-first (see rules/design.md):
+ * The one Forge card surface. Separation is tone-first (see .agents/rules/design.md):
  * - `base` (default): a card on a screen background or a sheet. Its surface tone
  *   alone separates it — no outline in either theme.
  * - `nested`: a card placed inside another card. It steps one tone up and adds a

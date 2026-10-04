@@ -16,10 +16,10 @@ Before finishing, review the complete change and ask whether it introduced or ch
 
 Update the smallest canonical file in the same task.
 
-- Explicit product behavior -> relevant active file under `docs/product/`.
-- Architecture policy/boundary -> `rules/architecture.md` when it is a general invariant, or an ADR under `docs/decisions/` when a meaningful decision/trade-off should be preserved.
-- Forge-wide design invariant -> `rules/design.md`.
-- Agent/process policy -> the smallest relevant file under `rules/`.
+- Explicit product behavior -> relevant active file under `.agents/docs/product/`.
+- Architecture policy/boundary -> `.agents/rules/architecture.md` when it is a general invariant, or an ADR under `.agents/docs/decisions/` when a meaningful decision/trade-off should be preserved.
+- Forge-wide design invariant -> `.agents/rules/design.md`.
+- Agent/process policy -> the smallest relevant file under `.agents/rules/`.
 
 Do not create a document just to narrate the implementation.
 

@@ -10,7 +10,7 @@ JS-thread spikes on tab switches and live-workout set entry, and higher-than-nee
 RAM. The causes were structural, not incidental, so the fixes are durable
 decisions that later work must not silently reverse. This ADR records them and
 the constraints they impose. The user-facing rule is the responsiveness
-invariant in `rules/design.md`; this ADR is the mechanism and rationale.
+invariant in `.agents/rules/design.md`; this ADR is the mechanism and rationale.
 
 ## Decision
 

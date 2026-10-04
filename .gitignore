@@ -15,8 +15,8 @@ test-results/
 playwright-report/
 artifacts/
 
-# Locally installed agent skills/tooling — not part of the app source.
-# (Track skills-lock.json instead if you want a reproducible skill set.)
-.agents/
+# Locally installed agent skills (reinstallable) and Claude Code's local mirror —
+# not app source. The hand-authored .agents/rules and .agents/docs ARE tracked.
+.agents/skills/
 .claude/
 skills-lock.json

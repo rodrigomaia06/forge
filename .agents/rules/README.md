@@ -35,10 +35,10 @@ Use this file to load the minimum useful context for a task.
 
 ## Product requirements
 
-Read only relevant active files under `docs/product/` when the task touches product behavior that has already been explicitly promoted there.
+Read only relevant active files under `.agents/docs/product/` when the task touches product behavior that has already been explicitly promoted there.
 
-Do not infer requirements from `docs/archive/` or `docs/research/`.
+Do not infer requirements from `.agents/docs/archive/` or `.agents/docs/research/`.
 
 ## Decisions
 
-Read relevant accepted ADRs under `docs/decisions/` when changing an architectural boundary they cover.
+Read relevant accepted ADRs under `.agents/docs/decisions/` when changing an architectural boundary they cover.

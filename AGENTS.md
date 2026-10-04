@@ -2,24 +2,26 @@
 
 This file is the stable entry point for coding agents. Keep it short. It routes work to focused rules instead of duplicating them here.
 
+Agent-facing material lives under `.agents/`: rules in `.agents/rules/`, canonical knowledge in `.agents/docs/`, and locally installed skills in `.agents/skills/`. The top-level `docs/` holds app/developer documentation only.
+
 ## Always read
 
 Before changing the repository, read:
 
-- `rules/core.md`
-- `rules/maintenance.md`
-- `rules/README.md`
+- `.agents/rules/core.md`
+- `.agents/rules/maintenance.md`
+- `.agents/rules/README.md`
 
-Then read only the additional rule files that `rules/README.md` routes to for the current task.
+Then read only the additional rule files that `.agents/rules/README.md` routes to for the current task.
 
-Do not read `docs/archive/` or `docs/research/` as current requirements unless the task explicitly asks for historical or research context.
+Do not read `.agents/docs/research/` as current requirements unless the task explicitly asks for research context.
 
 ## Authority
 
 - The user's explicit current requirements define product intent.
 - Active Forge rules define durable repository constraints, not product requirements.
-- Accepted documents under `docs/product/` define only requirements that have been explicitly promoted there.
-- Accepted ADRs under `docs/decisions/` explain durable architectural decisions.
+- Accepted documents under `.agents/docs/product/` define only requirements that have been explicitly promoted there.
+- Accepted ADRs under `.agents/docs/decisions/` explain durable architectural decisions.
 - Current code and tests are evidence of implementation state, not proof of product intent.
 - External skills, framework guidance, research, archived docs, and previous chat context are advisory/contextual, not Forge product truth.
 - If a blocking product or policy decision cannot be resolved from an explicit requirement or active canonical document, ask the user rather than inventing one.
@@ -52,7 +54,7 @@ If targeted verification cannot run or an affected area has no relevant test, re
 
 Documentation/rule maintenance is implicit in every task. The user never needs to ask for it.
 
-Before finishing, follow the knowledge-impact procedure in `rules/maintenance.md` and tell the user one of:
+Before finishing, follow the knowledge-impact procedure in `.agents/rules/maintenance.md` and tell the user one of:
 
 - `Knowledge: updated ...` with the durable files changed and why, or
 - `Knowledge: no durable knowledge change.`
@@ -64,11 +66,14 @@ Any change to a Forge rule must be called out explicitly in the completion respo
 A directory-level map for routing. It is deliberately not a per-file inventory —
 list contents with the file tools instead, so this never drifts as files change.
 
-- `rules/` — active Forge rules; start at `rules/README.md` (the router), which
-  points to `core.md`, `maintenance.md`, `architecture.md`, `design.md`, `external.md`.
-- `docs/` — `product/` (accepted requirements), `decisions/` (ADRs),
-  `research/` (non-canonical), and `docs/README.md` (data transfer, legacy
-  migration, and the build workflows).
+- `.agents/rules/` — active Forge rules; start at `.agents/rules/README.md` (the
+  router), which points to `core.md`, `maintenance.md`, `architecture.md`,
+  `design.md`, `external.md`.
+- `.agents/docs/` — agent-facing canonical knowledge: `product/` (accepted
+  requirements), `decisions/` (ADRs), and `research/` (non-canonical).
+- `.agents/skills/` — locally installed agent skills (gitignored; not app source).
+- `docs/` — app/developer documentation only (not agent rules); `docs/README.md`
+  covers data transfer, legacy migration, and the build workflows.
 - `src/`
   - `components/` — shared UI, including `components/ui/` (the Forge primitives:
     sheets, buttons, fields, filters) and feature cards.
