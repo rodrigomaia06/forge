@@ -72,8 +72,8 @@ list contents with the file tools instead, so this never drifts as files change.
 - `.agents/docs/` — agent-facing canonical knowledge: `product/` (accepted
   requirements), `decisions/` (ADRs), and `research/` (non-canonical).
 - `.agents/skills/` — locally installed agent skills (gitignored; not app source).
-- `docs/` — app/developer documentation only (not agent rules); `docs/README.md`
-  covers data transfer, legacy migration, and the build workflows.
+- `docs/` — app/developer documentation (not agent rules). Empty for now; app-facing
+  docs will be added here.
 - `src/`
   - `components/` — shared UI, including `components/ui/` (the Forge primitives:
     sheets, buttons, fields, filters) and feature cards.
