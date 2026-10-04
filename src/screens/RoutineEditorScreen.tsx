@@ -146,6 +146,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
     return Boolean(draft && initialDraft && comparable(draft) !== comparable(initialDraft));
   }, [draft, initialDraft]);
   const noteHeight = routineNoteHeight(draft?.note);
+  const [saveChoice, setSaveChoice] = useState<{ onAfter: () => void } | null>(null);
   const leave = (action: () => void): void => {
     setCanLeave(true);
     setTimeout(action, 0);
@@ -157,8 +158,14 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
       confirmLabel: 'Discard changes',
       onConfirm: () => leave(onDiscard),
     });
+  // Leaving a changed EXISTING routine offers three choices (Update / Save as new /
+  // Discard); a brand-new routine keeps the simple discard confirmation.
+  const onLeaveAttempt = (onAfter: () => void): void => {
+    if (creating) confirmDiscard(onAfter);
+    else setSaveChoice({ onAfter });
+  };
   usePreventRemove(dirty && !canLeave, ({ data }) => {
-    confirmDiscard(() => navigation.dispatch(data.action));
+    onLeaveAttempt(() => navigation.dispatch(data.action));
   });
 
   if (!draft || !initialDraft || (!creating && !source)) {
@@ -213,19 +220,21 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
   };
   const discard = (): void => {
     if (!dirty) return navigation.goBack();
-    confirmDiscard(() => navigation.goBack());
+    onLeaveAttempt(() => navigation.goBack());
   };
-  const save = (): void => {
+  // Validate + normalise the draft into a saveable routine (or null + an error).
+  const buildSaved = (): WorkoutRoutine | null => {
     const name = draft.name.trim();
     const type = draft.type.trim();
-    if (!name || !type) return setError('Routine name and workout type are required.');
+    if (!name || !type) {
+      setError('Routine name and workout type are required.');
+      return null;
+    }
     if (draft.planId && !plans.some((plan) => plan.id === draft.planId)) {
-      return setError('This plan is no longer available. Choose another destination before saving.');
+      setError('This plan is no longer available. Choose another destination before saving.');
+      return null;
     }
-    if ((route.params.mode === 'edit' || route.params.mode === 'view') && !findRoutine(route.params.routineId)) {
-      return setError('This routine is no longer available.');
-    }
-    const saved: WorkoutRoutine = {
+    return {
       ...draft,
       name,
       type,
@@ -236,14 +245,54 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
       })),
       ...normalizeAttributes(draft.attributes, draft.attributeIcons),
     };
-    if (creating) {
-      createRoutine(saved);
-    } else {
-      if (saved.planId !== initialDraft.planId) moveRoutine(saved.id, saved.planId);
-      updateRoutine(saved.id, () => saved);
+  };
+  // Overwrite the existing routine in place.
+  const doUpdate = (onAfter: () => void): void => {
+    if ((route.params.mode === 'edit' || route.params.mode === 'view') && !findRoutine(route.params.routineId)) {
+      return setError('This routine is no longer available.');
     }
+    const saved = buildSaved();
+    if (!saved) return;
+    if (saved.planId !== initialDraft.planId) moveRoutine(saved.id, saved.planId);
+    updateRoutine(saved.id, () => saved);
     successHaptic();
-    leave(() => navigation.goBack());
+    leave(onAfter);
+  };
+  // Create a separate new routine from the edits, in the same place as the original
+  // (same plan or standalone), with a fresh id/name — the original is left untouched.
+  const doSaveAsNew = (onAfter: () => void): void => {
+    const saved = buildSaved();
+    if (!saved) return;
+    const baseName = saved.name;
+    const newName = source && baseName === source.name.trim() ? `${baseName} - copy` : baseName;
+    createRoutine({
+      ...saved,
+      id: undefined,
+      name: newName,
+      planId: saved.planId,
+      exercises: saved.exercises.map((exercise) => ({
+        ...exercise,
+        id: makeWorkoutId('routine-exercise'),
+        sets: (exercise.sets ?? []).map((set) => ({ ...set, id: makeWorkoutId('routine-set') })),
+      })),
+    });
+    successHaptic();
+    leave(onAfter);
+  };
+  const save = (): void => {
+    if (creating) {
+      const saved = buildSaved();
+      if (!saved) return;
+      createRoutine(saved);
+      successHaptic();
+      leave(() => navigation.goBack());
+      return;
+    }
+    if (!dirty) {
+      leave(() => navigation.goBack());
+      return;
+    }
+    setSaveChoice({ onAfter: () => navigation.goBack() });
   };
   const confirmDelete = (): void =>
     setConfirmation({
@@ -623,6 +672,20 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
               // Confirm only after the options sheet has dismissed; iOS drops a
               // Modal presented while another is still closing.
               { label: 'Delete routine', icon: 'trash', tone: 'destructive', onPress: () => runAfterClose(confirmDelete) },
+            ]}
+          />
+        )}
+        {!creating && (
+          <ForgeActionSheet
+            visible={saveChoice !== null}
+            onClose={() => setSaveChoice(null)}
+            accessibilityLabel="Close save options"
+            title="Save changes?"
+            testID="routine-save-choice-sheet"
+            actions={[
+              { label: 'Update routine', icon: 'check', onPress: () => { if (saveChoice) doUpdate(saveChoice.onAfter); } },
+              { label: 'Save as new routine', icon: 'copy', onPress: () => { if (saveChoice) doSaveAsNew(saveChoice.onAfter); } },
+              { label: "Don't save changes", icon: 'trash', tone: 'destructive', onPress: () => { if (saveChoice) leave(saveChoice.onAfter); } },
             ]}
           />
         )}
