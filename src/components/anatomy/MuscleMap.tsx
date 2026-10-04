@@ -37,13 +37,24 @@ function mix(a: string, b: string, t: number): string {
 }
 
 /** A light→hot 5-step ramp built from a base accent, for intensity 1..5. */
-function heatRamp(base: string): string[] {
+function heatRamp(base: string, dark: boolean): string[] {
+  if (dark) {
+    return [
+      mix(base, '#FFFFFF', 0.6),
+      mix(base, '#FFFFFF', 0.32),
+      base,
+      mix(base, '#000000', 0.14),
+      mix(base, '#000000', 0.3),
+    ];
+  }
+  // Light: the low end must not fade into the white card and the hot end must not go
+  // muddy-dark on it — keep every step saturated and readable over #F8F8F6.
   return [
-    mix(base, '#FFFFFF', 0.6),
-    mix(base, '#FFFFFF', 0.32),
+    mix(base, '#FFFFFF', 0.45),
+    mix(base, '#FFFFFF', 0.22),
     base,
-    mix(base, '#000000', 0.14),
-    mix(base, '#000000', 0.3),
+    mix(base, '#000000', 0.08),
+    mix(base, '#000000', 0.18),
   ];
 }
 
@@ -67,7 +78,8 @@ export function MuscleMap({
   gender?: 'male' | 'female';
 }) {
   const theme = useForgeTheme();
-  const colors = heatRamp(color);
+  const dark = theme.colorScheme === 'dark';
+  const colors = heatRamp(color, dark);
   // Collapse Forge slugs onto highlighter slugs, keeping the hottest contributor.
   const hlHeat = new Map<Slug, number>();
   for (const [forgeSlug, h] of Object.entries(heat)) {
@@ -87,8 +99,11 @@ export function MuscleMap({
       gender={gender}
       scale={height / 400}
       colors={colors}
-      border={theme.colorScheme === 'dark' ? theme.surfaceInset : theme.border}
-      defaultFill={theme.surfaceMuted}
+      // The theme greys are near-white on the light card, which made the untrained body
+      // read as a featureless white blob; use clearly visible neutral greys in Light so
+      // the anatomy reads. Dark keeps its subtle tonal muscles.
+      border={dark ? theme.surfaceInset : '#B4B8B4'}
+      defaultFill={dark ? theme.surfaceMuted : '#D4D7D2'}
     />
   );
 }
