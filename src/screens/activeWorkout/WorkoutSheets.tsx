@@ -1103,11 +1103,11 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       gap: 8,
       paddingHorizontal: 12,
       borderRadius: 12,
-      borderWidth: 1,
-      borderColor: dashboardTheme.border,
-      // Elevated fill + visible border so the field reads on the sheet surface,
-      // matching ForgeSearchField (the old surfaceMuted fill blended on Light).
-      backgroundColor: dashboardTheme.surfaceElevated,
+      // Dark (reference, unchanged): surfaceMuted fill, no border. Light: elevated fill
+      // + visible border so the field reads on the sheet surface (its muted fill blended).
+      ...(dashboardTheme.colorScheme === 'light'
+        ? { borderWidth: 1, borderColor: dashboardTheme.border, backgroundColor: dashboardTheme.surfaceElevated }
+        : { backgroundColor: dashboardTheme.surfaceMuted }),
     },
     searchClear: {
       width: 28,
@@ -1239,10 +1239,10 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       alignItems: 'center',
       borderTopWidth: 1,
       borderTopColor: dashboardTheme.divider,
-      // Expanded rows are one clean elevated tone separated by indentation + dividers,
-      // not a third grey. The muted tone is reserved for the selected state below, so
-      // the hierarchy reads as surface header -> white list -> grey selection.
-      backgroundColor: dashboardTheme.surfaceElevated,
+      // Dark (reference, unchanged): surfaceMuted. Light: one clean elevated tone so the
+      // expanded region isn't a third grey — muted is reserved there for the selected
+      // state, giving surface header -> white list -> grey selection.
+      backgroundColor: dashboardTheme.colorScheme === 'light' ? dashboardTheme.surfaceElevated : dashboardTheme.surfaceMuted,
     },
     equipmentRowSelected: {
       backgroundColor: dashboardTheme.surfaceMuted,

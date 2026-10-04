@@ -58,8 +58,12 @@ export function Button({
   const contextTheme = useForgeTheme();
   const resolvedTheme = theme ?? contextTheme ?? colors;
   const isPrimary = variant === 'primary';
+  const isOutline = variant === 'outline';
   const isGhost = variant === 'ghost';
   const resolvedTone = tone ?? 'neutral';
+  // Borderless + tonal is a LIGHT-only treatment: it fixes Light's compressed tones.
+  // Dark keeps its original semantic outlines (it was already the reference look).
+  const borderless = resolvedTheme.colorScheme === 'light';
   const textColor = disabled || loading
     ? resolvedTheme.textDisabled
     : foregroundFor(resolvedTone, isPrimary, resolvedTheme);
@@ -82,10 +86,10 @@ export function Button({
         styles.base,
         isPrimary && styles.primary,
         buttonSurface(variant, resolvedTone, resolvedTheme),
-        // Borderless + tonal: a non-primary, non-ghost control separates by its fill
-        // (plus the light elevation shadow), never a ring. On Light a white neutral
-        // fill needs the card shadow to read on same-tone surfaces.
-        !isPrimary && !isGhost && (resolvedTheme.cardShadowOpacity ?? 0) > 0 && styles.tonalShadow,
+        // Dark keeps the outline variant's 2px semantic ring. Light drops all rings
+        // and instead separates non-primary tonal controls by fill + the card shadow.
+        !borderless && isOutline && styles.outline,
+        borderless && !isPrimary && !isGhost && styles.tonalShadow,
         isGhost && styles.ghost,
         (disabled || loading) && [styles.disabled, { backgroundColor: resolvedTheme.surfaceMuted, borderColor: resolvedTheme.surfaceMuted }],
         pressed && !(disabled || loading) && pressedSurface(variant, resolvedTone, resolvedTheme),
@@ -116,6 +120,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.control,
   },
   primary: { minWidth: scaleUI(92) },
+  outline: { borderWidth: 2 },
   ghost: { borderWidth: 0 },
   // Light-only raised-control shadow (dark sets cardShadowOpacity 0, so this stays
   // flat there). Matches ForgeCard so borderless buttons separate like nested cards.
@@ -153,15 +158,32 @@ function buttonSurface(
     if (tone === 'destructive') return { backgroundColor: theme.textDestructive, borderColor: theme.textDestructive };
     return { backgroundColor: theme.surfaceElevated, borderColor: theme.surfaceElevated };
   }
-  // Borderless + tonal for every secondary/outline control: colour carries the
-  // meaning (soft red = destructive, soft green = success, white/elevated = neutral),
-  // and there is no ring in either theme. `outline` is now an alias of `secondary`.
-  const backgroundColor = tone === 'destructive'
-    ? theme.destructiveSurface
-    : tone === 'success'
-      ? theme.successSurface
-      : theme.surfaceElevated;
-  return { backgroundColor, borderColor: backgroundColor };
+  // LIGHT: borderless + tonal — colour carries the meaning (soft red = destructive,
+  // soft green = success, white/elevated = neutral), no ring; `outline` == `secondary`.
+  if (theme.colorScheme === 'light') {
+    const backgroundColor = tone === 'destructive'
+      ? theme.destructiveSurface
+      : tone === 'success'
+        ? theme.successSurface
+        : theme.surfaceElevated;
+    return { backgroundColor, borderColor: backgroundColor };
+  }
+  // DARK (reference, unchanged): outline keeps a 2px semantic ring (via styles.outline),
+  // secondary is borderless by tone. These match the pre-change Dark appearance.
+  if (variant === 'outline') {
+    return {
+      backgroundColor: tone === 'destructive'
+        ? theme.destructiveSurface
+        : tone === 'success'
+          ? theme.successSurface
+          : theme.surface,
+      borderColor: tone === 'destructive' ? theme.textDestructive : tone === 'success' ? theme.success : theme.border,
+    };
+  }
+  return {
+    backgroundColor: tone === 'destructive' ? theme.destructiveSurface : theme.surfaceElevated,
+    borderColor: tone === 'destructive' ? theme.textDestructive : theme.border,
+  };
 }
 
 function pressedSurface(
@@ -172,7 +194,7 @@ function pressedSurface(
   // The solid destructive button darkens by dimming; the tinted ones deepen.
   if (variant === 'primary' && tone === 'destructive') return { opacity: 0.82 };
   if (tone === 'destructive') return { backgroundColor: theme.destructiveSurfacePressed };
-  if (tone === 'success' && variant !== 'primary') return { backgroundColor: theme.successSurfacePressed };
+  if (tone === 'success' && variant === 'outline') return { backgroundColor: theme.successSurfacePressed };
   if (variant === 'ghost') return { backgroundColor: theme.pressed };
   return { opacity: 0.76 };
 }

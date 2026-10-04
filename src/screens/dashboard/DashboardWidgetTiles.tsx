@@ -761,11 +761,11 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: 12,
     borderRadius: 14,
-    borderWidth: 1,
-    borderColor: theme.border,
-    // Elevated fill so the field separates from the measurement tile (which is
-    // itself surfaceMuted — the old same-tone fill was invisible on Light).
-    backgroundColor: theme.surfaceElevated,
+    // Dark (reference, unchanged): surfaceMuted fill + hairline border. Light: elevated
+    // fill + border so the field separates from the surfaceMuted tile (same-tone on Light).
+    ...(theme.colorScheme === 'light'
+      ? { borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surfaceElevated }
+      : { borderWidth: StyleSheet.hairlineWidth, backgroundColor: theme.surfaceMuted }),
   },
   logInput: { flex: 1, color: theme.ink, padding: 0, ...typeScale.body },
   logUnit: { color: theme.muted, ...typeScale.caption },
