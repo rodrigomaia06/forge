@@ -222,7 +222,6 @@ export function CalendarScreen({ navigation }: Props) {
                         const dayWorkouts = byDay.get(key) ?? [];
                         const has = dayWorkouts.length > 0;
                         const isToday = key === todayKey;
-                        const color = has ? getWorkoutTypePresentation(dayWorkouts[0].type, preferences.workoutTypes, theme, 0.16).color : undefined;
                         return (
                           <Pressable
                             key={di}
@@ -232,9 +231,25 @@ export function CalendarScreen({ navigation }: Props) {
                             onPress={() => openWorkout(dayWorkouts)}
                             style={styles.dayCell}
                           >
-                            <View style={[styles.dayCircle, has && color ? { backgroundColor: color } : null, isToday && !has ? { borderWidth: 1.5, borderColor: theme.border } : null]}>
-                              <Text style={[styles.dayNum, has ? styles.dayNumOn : null, isToday && !has ? { color: theme.textPrimary, fontWeight: '800' } : null]}>{date.getDate()}</Text>
-                              {dayWorkouts.length > 1 ? <View style={styles.dayMulti} /> : null}
+                            <View style={[
+                              styles.dayCircle,
+                              // Today reads as a filled dark chip (the shared selection tone) — a faint
+                              // border was nearly invisible on the light page. When today also has a
+                              // workout, keep the type segments and add a selection ring around them.
+                              isToday && !has ? { backgroundColor: theme.selected } : null,
+                              isToday && has ? { borderWidth: 2, borderColor: theme.calendarSelectionRing } : null,
+                            ]}>
+                              {has ? (
+                                // One segment per workout, splitting the circle like the dashboard week
+                                // widget; each segment is its workout-type colour. A single workout fills
+                                // the whole circle (unchanged look); several split it evenly.
+                                <View style={styles.daySegments}>
+                                  {dayWorkouts.map((w, i) => (
+                                    <View key={i} style={{ flex: 1, backgroundColor: getWorkoutTypePresentation(w.type, preferences.workoutTypes, theme, 1).color }} />
+                                  ))}
+                                </View>
+                              ) : null}
+                              <Text style={[styles.dayNum, has ? styles.dayNumOn : null, isToday && !has ? { color: theme.selectedText, fontWeight: '800' } : null]}>{date.getDate()}</Text>
                             </View>
                           </Pressable>
                         );
@@ -325,7 +340,9 @@ function MiniMonth({ label, year, month, weekStart, colorFor, onPress, theme, st
 
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   screen: { flex: 1 },
-  viewToggle: { minWidth: 68, paddingHorizontal: 16, height: 40, borderRadius: 20, backgroundColor: theme.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+  // Raised control surface: pick the lighter tone per theme (like the Back button) so
+  // the pill pops against the header in both — surfaceMuted read too faint on the light header.
+  viewToggle: { minWidth: 68, paddingHorizontal: 16, height: 40, borderRadius: 20, backgroundColor: theme.colorScheme === 'dark' ? theme.surfaceMuted : theme.surfaceElevated, alignItems: 'center', justifyContent: 'center' },
   viewToggleText: { ...typeScale.controlLabel, color: theme.textPrimary },
   dropdownItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 12, height: 44, borderRadius: 12 },
   dropdownText: { ...typeScale.controlLabel, color: theme.textPrimary },
@@ -342,7 +359,9 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   dayCircle: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   dayNum: { fontSize: 15, lineHeight: 18, color: theme.textPrimary, fontVariant: ['tabular-nums'] },
   dayNumOn: { color: '#FFFFFF', fontWeight: '700' },
-  dayMulti: { position: 'absolute', bottom: 2, width: 3.5, height: 3.5, borderRadius: 2, backgroundColor: '#FFFFFF' },
+  // Split-circle overlay: equal-width type-colour segments, each carrying the circle's
+  // own clip (iOS doesn't reliably clip abs-positioned children to the parent radius).
+  daySegments: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, flexDirection: 'row', borderRadius: 18, overflow: 'hidden' },
   yearSection: { paddingTop: 14, alignItems: 'center' },
   yearTitle: { ...typeScale.sectionTitle, color: theme.textPrimary, marginBottom: 12, alignSelf: 'flex-start' },
   miniGridWrap: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 20, width: '100%' },
