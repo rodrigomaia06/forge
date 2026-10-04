@@ -28,7 +28,7 @@ test.describe('Interactive control consistency', () => {
 
     await page.getByRole('tab', { name: 'Plans' }).click();
     const create = page.getByRole('button', { name: 'Create workout, routine, or plan' });
-    const neutralBackground = 'rgb(248, 248, 246)';
+    const neutralBackground = 'rgb(255, 255, 255)';
     expect(await dimensions(create)).toMatchObject({
       width: 44,
       height: 44,

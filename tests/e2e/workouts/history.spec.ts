@@ -30,7 +30,7 @@ test.describe('History screen', () => {
     await expect(page.getByRole('button', { name: 'Filter' })).toBeVisible();
     await expect(page.getByTestId('history-header')).toHaveCSS(
       'background-color',
-      'rgb(232, 232, 232)',
+      'rgb(227, 228, 225)',
     );
     await expect(page.getByText('Last week', { exact: true })).toBeVisible();
     await expect(page.getByText('2 weeks ago', { exact: true })).toBeVisible();

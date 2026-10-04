@@ -267,10 +267,10 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       borderRadius: 16,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: theme.surfaceMuted,
-      // Circular header/sheet controls drop their outline in Dark (design.md).
+      // Borderless in both themes; use the raised-control surface (lighter than the
+      // page) so the circle reads on the light background, not just in Dark (design.md).
+      backgroundColor: theme.colorScheme === 'dark' ? theme.surfaceMuted : theme.surfaceElevated,
       borderWidth: 0,
-      borderColor: theme.border,
     },
     sectionTitle: { ...typeScale.sectionTitle },
     footer: { ...typeScale.caption, paddingHorizontal: 6 },

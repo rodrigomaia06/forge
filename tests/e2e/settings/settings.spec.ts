@@ -199,7 +199,7 @@ test.describe('Settings', () => {
     await page.getByRole('button', { name: 'Bench Press & 3 variations' }).click();
 
     const expansion = page.getByTestId('exercise-variations-Bench Press');
-    await expect(expansion).toHaveCSS('background-color', 'rgb(248, 248, 246)');
+    await expect(expansion).toHaveCSS('background-color', 'rgb(255, 255, 255)');
     await expect(expansion).toHaveCSS('border-top-width', '1px');
   });
 

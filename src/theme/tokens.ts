@@ -33,15 +33,19 @@ const shared = {
 export const lightTheme: ForgeTheme = {
   ...shared,
   colorScheme: 'light',
-  background: '#E8E8E8',
-  header: '#E8E8E8',
-  surface: '#F8F8F6',
-  surfaceElevated: '#F8F8F6',
-  surfaceInset: '#E7E8E5',
+  // Light elevation ramp (mirrors Dark's distinct tone steps so borderless surfaces
+  // separate by tone, not outlines): page < base surface < elevated. Sheets are painted
+  // the base `surface`, so elevated controls/nested cards (surfaceElevated = white) pop
+  // on them and on the darker header.
+  background: '#E3E4E1',
+  header: '#E3E4E1',
+  surface: '#F4F5F2',
+  surfaceElevated: '#FFFFFF',
+  surfaceInset: '#DEDFDC',
   input: '#F8F8F6',
   dock: '#FAFAF8',
   overlay: 'rgba(23,25,28,0.24)',
-  surfaceMuted: '#ECEDEB',
+  surfaceMuted: '#E8E9E6',
   ink: '#17191C',
   textPrimary: '#17191C',
   textSecondary: '#55585C',
@@ -63,7 +67,7 @@ export const lightTheme: ForgeTheme = {
   selectedText: '#FFFFFF',
   calendarWorkoutDay: 'rgba(31,41,50,0.07)',
   calendarWorkoutBorder: 'rgba(31,41,50,0.1)',
-  cardShadowOpacity: 0.06,
+  cardShadowOpacity: 0.08,
   dockSelected: '#1D252D',
   dockForeground: '#FFFFFF',
   dockMuted: '#687078',

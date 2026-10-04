@@ -431,7 +431,9 @@ export function ForgeBottomSheet({
               onResponderRelease={() => Keyboard.dismiss()}
               style={[
                 styles.sheet,
-                { backgroundColor: theme.surfaceElevated, shadowColor: theme.shadow },
+                // The sheet is a base surface; elevated controls and nested cards
+                // (surfaceElevated) then separate from it by tone in both themes.
+                { backgroundColor: theme.surface, shadowColor: theme.shadow },
                 style,
                 { maxHeight: maximumSheetHeight },
                 keyboardVisible && (compactSheetFitsAboveKeyboard
