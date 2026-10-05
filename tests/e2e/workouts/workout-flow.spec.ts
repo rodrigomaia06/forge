@@ -571,9 +571,9 @@ test.describe('Active workout flow', () => {
     await page.getByRole('button', { name: 'Increase rest by 10 seconds' }).click();
     await expect.poll(parseRestSeconds).toBeGreaterThan(remainingBeforeAdjustment);
     const stopTimer = page.getByRole('button', { name: 'Stop rest timer' });
-    // Borderless + tonal (design.md): destructive reads as a soft-red fill, not a red ring.
+    // Destructive outline keeps its red ring in both themes (design.md).
     await expect(stopTimer).toHaveCSS('background-color', 'rgb(246, 220, 221)');
-    await expect(stopTimer).toHaveCSS('border-width', '0px');
+    await expect(stopTimer).toHaveCSS('border-color', 'rgb(214, 72, 72)');
     await stopTimer.click();
     await expect(page.getByRole('button', { name: 'Start rest timer' }).first()).toBeVisible();
   });
@@ -983,13 +983,14 @@ test.describe('Active workout flow', () => {
     expect(activeDock.width).toBeLessThanOrEqual(390);
   });
 
-  test('renders Add exercise as a borderless tonal control', async ({ page }) => {
+  test('uses a dashed outline for Add exercise', async ({ page }) => {
     await page.goto('/');
     await startBlankWorkout(page);
     const addExercise = page.getByRole('button', { name: 'Add exercise' });
-    // Borderless + tonal system (design.md): no ring, separates by its elevated
-    // fill + the "+" icon. The old dashed-outline affordance was removed.
-    await expect(addExercise).toHaveCSS('border-width', '0px');
+    // Outline buttons keep their ring in both themes (design.md): Add exercise is a
+    // dashed outline. (Deepened Light `border` keeps the neutral ring visible.)
+    await expect(addExercise).toHaveCSS('border-style', 'dashed');
+    await expect(addExercise).toHaveCSS('border-width', '2px');
   });
 
   test('keeps the workout dock item available with the active selection indicator', async ({

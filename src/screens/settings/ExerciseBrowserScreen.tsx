@@ -1549,8 +1549,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       width: '100%',
       marginTop: 0,
       borderRadius: 12,
-      // Dark (reference, unchanged): dashed add-outline. Light: borderless tonal.
-      ...(theme.colorScheme === 'light' ? null : { borderWidth: 1, borderStyle: 'dashed' as const }),
+      // Dashed add-outline in both themes (outlined in Dark, so Light matches).
+      borderWidth: 1,
+      borderStyle: 'dashed',
     },
     empty: { paddingTop: 60, alignItems: 'center' },
     formSheet: { alignSelf: 'stretch', flexShrink: 1 },
@@ -1632,7 +1633,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       margin: 12,
       width: 'auto',
       borderRadius: 12,
-      // Dark (reference, unchanged): dashed add-outline. Light: borderless tonal.
-      ...(theme.colorScheme === 'light' ? null : { borderWidth: 1, borderStyle: 'dashed' as const }),
+      // Dashed add-outline in both themes (outlined in Dark, so Light matches).
+      borderWidth: 1,
+      borderStyle: 'dashed',
     },
   });

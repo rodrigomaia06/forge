@@ -253,9 +253,9 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       alignSelf: 'stretch',
       width: '100%',
       marginTop: 2,
-      // Dark (reference, unchanged): the dashed add-outline. Light: borderless tonal —
-      // the elevated fill + "+" icon carry the affordance.
-      ...(dashboardTheme.colorScheme === 'light' ? null : { borderStyle: 'dashed' as const, borderWidth: 2 }),
+      // Dashed add-outline in both themes (it has an outline in Dark, so Light matches).
+      borderStyle: 'dashed',
+      borderWidth: 2,
     },
     muted: { color: dashboardTheme.slate, ...typeScale.label, textAlign: 'center' },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },

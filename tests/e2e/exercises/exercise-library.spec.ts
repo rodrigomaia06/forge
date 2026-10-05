@@ -242,8 +242,8 @@ test.describe('Exercise library', () => {
     await page.getByRole('button', { name: 'Back to filters' }).click();
     const clearFilters = page.getByRole('button', { name: 'Clear filters' });
     await expect(clearFilters).toBeVisible();
-    // Borderless tonal (design.md): destructive now reads as a soft-red fill, not a ring.
-    await expect(clearFilters).toHaveCSS('border-width', '0px');
+    // Destructive outline keeps its red ring in both themes (design.md).
+    await expect(clearFilters).toHaveCSS('border-width', '2px');
     await clearFilters.click();
     await expect(page.getByRole('button', { name: 'Clear filters' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Edit Equipment filter, Any' }).click();
@@ -364,8 +364,9 @@ test.describe('Exercise library', () => {
     await expect(page.getByRole('button', { name: 'Open Chest Fly' })).toBeVisible();
     const addVariation = page.getByRole('button', { name: 'Add variation to Chest Fly' });
     await expect(addVariation).toHaveCSS('height', '38px');
-    // Borderless tonal (design.md): the dashed add-outline affordance was removed.
-    await expect(addVariation).toHaveCSS('border-width', '0px');
+    // Outline buttons keep their ring in both themes (design.md): a dashed add-outline.
+    await expect(addVariation).toHaveCSS('border-width', '1px');
+    await expect(addVariation).toHaveCSS('border-top-style', 'dashed');
     await addVariation.click();
 
     const formSurface = page.getByTestId('custom-exercise-form-surface');

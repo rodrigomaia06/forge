@@ -86,10 +86,12 @@ export function Button({
         styles.base,
         isPrimary && styles.primary,
         buttonSurface(variant, resolvedTone, resolvedTheme),
-        // Dark keeps the outline variant's 2px semantic ring. Light drops all rings
-        // and instead separates non-primary tonal controls by fill + the card shadow.
-        !borderless && isOutline && styles.outline,
-        borderless && !isPrimary && !isGhost && styles.tonalShadow,
+        // The `outline` variant keeps its 2px ring in BOTH themes — if a button is
+        // outlined in Dark it is outlined in Light too (the deepened Light `border`
+        // token makes the neutral ring visible). `secondary`/ghost stay borderless;
+        // Light secondary separates by its elevated fill + the card shadow.
+        isOutline && styles.outline,
+        borderless && !isPrimary && !isGhost && !isOutline && styles.tonalShadow,
         isGhost && styles.ghost,
         (disabled || loading) && [styles.disabled, { backgroundColor: resolvedTheme.surfaceMuted, borderColor: resolvedTheme.surfaceMuted }],
         pressed && !(disabled || loading) && pressedSurface(variant, resolvedTone, resolvedTheme),
@@ -158,18 +160,9 @@ function buttonSurface(
     if (tone === 'destructive') return { backgroundColor: theme.textDestructive, borderColor: theme.textDestructive };
     return { backgroundColor: theme.surfaceElevated, borderColor: theme.surfaceElevated };
   }
-  // LIGHT: borderless + tonal — colour carries the meaning (soft red = destructive,
-  // soft green = success, white/elevated = neutral), no ring; `outline` == `secondary`.
-  if (theme.colorScheme === 'light') {
-    const backgroundColor = tone === 'destructive'
-      ? theme.destructiveSurface
-      : tone === 'success'
-        ? theme.successSurface
-        : theme.surfaceElevated;
-    return { backgroundColor, borderColor: backgroundColor };
-  }
-  // DARK (reference, unchanged): outline keeps a 2px semantic ring (via styles.outline),
-  // secondary is borderless by tone. These match the pre-change Dark appearance.
+  // `outline` keeps its 2px semantic ring in BOTH themes (same colours): soft fill +
+  // a toned border (red destructive / green success / neutral `border`). So a button
+  // outlined in Dark is outlined in Light too.
   if (variant === 'outline') {
     return {
       backgroundColor: tone === 'destructive'
@@ -179,6 +172,16 @@ function buttonSurface(
           : theme.surface,
       borderColor: tone === 'destructive' ? theme.textDestructive : tone === 'success' ? theme.success : theme.border,
     };
+  }
+  // `secondary` is borderless in both themes. LIGHT separates it by an elevated/tonal
+  // fill (colour = meaning); DARK separates it by tone.
+  if (theme.colorScheme === 'light') {
+    const backgroundColor = tone === 'destructive'
+      ? theme.destructiveSurface
+      : tone === 'success'
+        ? theme.successSurface
+        : theme.surfaceElevated;
+    return { backgroundColor, borderColor: backgroundColor };
   }
   return {
     backgroundColor: tone === 'destructive' ? theme.destructiveSurface : theme.surfaceElevated,
