@@ -98,58 +98,55 @@ export function DockSurface({
         styles.dock,
         surfaceAnimatedStyle,
         {
-          // Liquid Glass supplies its own specular edge; a painted border on top
-          // reads as a hard ring and kills the "real glass" look, so drop it there.
-          // The blur fallback keeps the original dock rim: Light uses the soft hairline
-          // (`divider` == the pre-deepening border tone, so the edge looks like before),
-          // Dark keeps `theme.border` (unchanged there).
-          borderColor: LIQUID_GLASS
-            ? 'transparent'
-            : (theme.colorScheme === 'dark' ? theme.border : theme.divider),
-          // Solid dock-tone base UNDER the blur fallback (as the dock had before the
-          // frosted rewrite). Without it the translucent BlurView + border + rounded
-          // overflow leave a see-through seam at the corners on iOS — the "weird edges".
-          // The base fills that seam so the rim reads as one clean surface; the blur
-          // still frosts the centre. Liquid Glass stays transparent (it is the surface).
+          // Solid dock-tone base lives on the OUTER view so iOS casts the shadow from
+          // it (an `overflow:hidden` view clips its own shadow) and so the rim reads as
+          // one clean surface. Glass is its own surface, so stays transparent there.
           backgroundColor: LIQUID_GLASS ? 'transparent' : (theme.dock ?? theme.dockSurface),
           shadowColor: theme.shadow,
         },
       ]}
     >
-      {/* Frosted translucency: the system blur samples the content behind the
-          dock, and a low-opacity dock-coloured film keeps it recognisably Forge
-          rather than plain clear glass. Falls back to the tint film alone where
-          a platform cannot blur. */}
-      {LIQUID_GLASS ? (
-        <GlassView
-          pointerEvents="none"
-          style={StyleSheet.absoluteFill}
-          glassEffectStyle="regular"
-          // Forge has its own theme toggle, so pin the glass appearance to it rather
-          // than the device's system scheme.
-          colorScheme={theme.colorScheme === 'dark' ? 'dark' : 'light'}
-          // Only a whisper of brand tint. The old 0.28 film masked the material and
-          // made real Liquid Glass look like the flat BlurView fallback; let the
-          // system glass (refraction/specular) carry the look.
-          tintColor={theme.colorScheme === 'dark' ? 'rgba(23,25,28,0.08)' : 'rgba(255,255,255,0.10)'}
-        />
-      ) : (
-        <>
-          <BlurView
-            // Light backdrops are low-contrast, so the same blur reads weaker than in Dark —
-            // raise the intensity and thin the tint film in Light so the frost actually shows.
-            intensity={theme.colorScheme === 'dark' ? 36 : 60}
-            tint={theme.colorScheme === 'dark' ? 'dark' : 'light'}
-            blurMethod="dimezisBlurView"
-            pointerEvents="none"
+      {/* Clip layer: the frosted surface, rounded and clipped — kept separate from the
+          outer shadow and from the border overlay. Putting the border + rounded blur +
+          overflow all on one view is what left the native "weird edges" (the border
+          seams against the clipped corner and the shadow gets clipped). */}
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.dockClip]}>
+        {LIQUID_GLASS ? (
+          <GlassView
             style={StyleSheet.absoluteFill}
+            glassEffectStyle="regular"
+            // Forge has its own theme toggle, so pin the glass appearance to it rather
+            // than the device's system scheme.
+            colorScheme={theme.colorScheme === 'dark' ? 'dark' : 'light'}
+            // Only a whisper of brand tint; let the system glass carry the look.
+            tintColor={theme.colorScheme === 'dark' ? 'rgba(23,25,28,0.08)' : 'rgba(255,255,255,0.10)'}
           />
-          <View
-            pointerEvents="none"
-            style={[StyleSheet.absoluteFill, { opacity: theme.colorScheme === 'dark' ? 0.55 : 0.38, backgroundColor: theme.dock ?? theme.dockSurface }]}
-          />
-        </>
-      )}
+        ) : (
+          <>
+            <BlurView
+              // Light backdrops are low-contrast, so the same blur reads weaker than in Dark —
+              // raise the intensity and thin the tint film in Light so the frost actually shows.
+              intensity={theme.colorScheme === 'dark' ? 36 : 60}
+              tint={theme.colorScheme === 'dark' ? 'dark' : 'light'}
+              blurMethod="dimezisBlurView"
+              style={StyleSheet.absoluteFill}
+            />
+            <View
+              style={[StyleSheet.absoluteFill, { opacity: theme.colorScheme === 'dark' ? 0.55 : 0.38, backgroundColor: theme.dock ?? theme.dockSurface }]}
+            />
+          </>
+        )}
+      </View>
+      {/* Crisp border ring on top of the clipped surface — a plain overlay, so it never
+          seams against the blur. None under Liquid Glass (the glass supplies its edge). */}
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          styles.dockRing,
+          { borderColor: LIQUID_GLASS ? 'transparent' : (theme.colorScheme === 'dark' ? theme.border : theme.divider) },
+        ]}
+      />
       {children || (
         <BottomNavigation
           tabBarProps={tabBarProps}
@@ -165,10 +162,10 @@ export function DockSurface({
 
 const styles = StyleSheet.create({
   dock: {
+    // Outer = shadow caster only: NO overflow (so iOS doesn't clip the shadow) and NO
+    // border (the ring is a separate overlay). The solid base + radius come from here.
     alignSelf: 'center',
-    overflow: 'hidden',
     borderRadius: 1000,
-    borderWidth: 1,
     paddingHorizontal: 6,
     shadowColor: '#172431',
     shadowOpacity: 0.16,
@@ -176,4 +173,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 7 },
     elevation: 6,
   },
+  // Rounded clip for the frosted/glass surface — overflow:hidden, no border.
+  dockClip: { borderRadius: 1000, overflow: 'hidden' },
+  // Crisp 1px border ring drawn over the clipped surface.
+  dockRing: { borderRadius: 1000, borderWidth: 1 },
 });
