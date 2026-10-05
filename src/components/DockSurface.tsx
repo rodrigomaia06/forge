@@ -106,6 +106,12 @@ export function DockSurface({
           borderColor: LIQUID_GLASS
             ? 'transparent'
             : (theme.colorScheme === 'dark' ? theme.border : theme.divider),
+          // Solid dock-tone base UNDER the blur fallback (as the dock had before the
+          // frosted rewrite). Without it the translucent BlurView + border + rounded
+          // overflow leave a see-through seam at the corners on iOS — the "weird edges".
+          // The base fills that seam so the rim reads as one clean surface; the blur
+          // still frosts the centre. Liquid Glass stays transparent (it is the surface).
+          backgroundColor: LIQUID_GLASS ? 'transparent' : (theme.dock ?? theme.dockSurface),
           shadowColor: theme.shadow,
         },
       ]}
