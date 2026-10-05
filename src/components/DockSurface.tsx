@@ -106,37 +106,38 @@ export function DockSurface({
         },
       ]}
     >
-      {/* Clip layer: the frosted surface, rounded and clipped — kept separate from the
-          outer shadow and from the border overlay. Putting the border + rounded blur +
-          overflow all on one view is what left the native "weird edges" (the border
-          seams against the clipped corner and the shadow gets clipped). */}
-      <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.dockClip]}>
-        {LIQUID_GLASS ? (
-          <GlassView
+      {LIQUID_GLASS ? (
+        // Liquid Glass must own its rounded shape: the system renders the glass edge
+        // for the view's OWN bounds, so clipping a square GlassView to a capsule with
+        // an external overflow mangles that edge (the "weird edges"). Give the GlassView
+        // its own borderRadius and let it be the rounded surface directly — no clip.
+        <GlassView
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, styles.glassSurface]}
+          glassEffectStyle="regular"
+          // Forge has its own theme toggle, so pin the glass appearance to it rather
+          // than the device's system scheme.
+          colorScheme={theme.colorScheme === 'dark' ? 'dark' : 'light'}
+          // Only a whisper of brand tint; let the system glass carry the look.
+          tintColor={theme.colorScheme === 'dark' ? 'rgba(23,25,28,0.08)' : 'rgba(255,255,255,0.10)'}
+        />
+      ) : (
+        // Fallback (Android / iOS < 26): the BlurView can't self-round reliably, so it
+        // lives in a rounded overflow:hidden clip, over a solid dock-tone base.
+        <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.dockClip]}>
+          <BlurView
+            // Light backdrops are low-contrast, so the same blur reads weaker than in Dark —
+            // raise the intensity and thin the tint film in Light so the frost actually shows.
+            intensity={theme.colorScheme === 'dark' ? 36 : 60}
+            tint={theme.colorScheme === 'dark' ? 'dark' : 'light'}
+            blurMethod="dimezisBlurView"
             style={StyleSheet.absoluteFill}
-            glassEffectStyle="regular"
-            // Forge has its own theme toggle, so pin the glass appearance to it rather
-            // than the device's system scheme.
-            colorScheme={theme.colorScheme === 'dark' ? 'dark' : 'light'}
-            // Only a whisper of brand tint; let the system glass carry the look.
-            tintColor={theme.colorScheme === 'dark' ? 'rgba(23,25,28,0.08)' : 'rgba(255,255,255,0.10)'}
           />
-        ) : (
-          <>
-            <BlurView
-              // Light backdrops are low-contrast, so the same blur reads weaker than in Dark —
-              // raise the intensity and thin the tint film in Light so the frost actually shows.
-              intensity={theme.colorScheme === 'dark' ? 36 : 60}
-              tint={theme.colorScheme === 'dark' ? 'dark' : 'light'}
-              blurMethod="dimezisBlurView"
-              style={StyleSheet.absoluteFill}
-            />
-            <View
-              style={[StyleSheet.absoluteFill, { opacity: theme.colorScheme === 'dark' ? 0.55 : 0.38, backgroundColor: theme.dock ?? theme.dockSurface }]}
-            />
-          </>
-        )}
-      </View>
+          <View
+            style={[StyleSheet.absoluteFill, { opacity: theme.colorScheme === 'dark' ? 0.55 : 0.38, backgroundColor: theme.dock ?? theme.dockSurface }]}
+          />
+        </View>
+      )}
       {/* Crisp border ring on top of the clipped surface — a plain overlay, so it never
           seams against the blur. None under Liquid Glass (the glass supplies its edge). */}
       <View
@@ -181,8 +182,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 7 },
     elevation: 6,
   },
-  // Rounded clip for the frosted/glass surface — overflow:hidden, no border.
+  // Rounded clip for the BlurView fallback — overflow:hidden, no border.
   dockClip: { borderRadius: 1000, overflow: 'hidden' },
+  // Liquid Glass self-rounds via its own borderRadius (no external clip).
+  glassSurface: { borderRadius: 1000 },
   // Crisp 1px border ring drawn over the clipped surface.
   dockRing: { borderRadius: 1000, borderWidth: 1 },
   // Carries the content inset the dock padding used to provide (6pt pad + 1pt border).
