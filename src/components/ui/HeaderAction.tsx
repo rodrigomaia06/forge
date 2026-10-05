@@ -84,7 +84,10 @@ export function HeaderAction({
       icon={icon}
       iconSize={iconSize}
       iconWeight={iconWeight}
-      variant={variant}
+      // Under glass, render as a true ghost: transparent at rest (so the glass is the
+      // surface) but it keeps its pressed tint (theme.pressed) ON TOP of the glass.
+      // Forcing a transparent fill via an override used to clobber that press feedback.
+      variant={glass ? 'ghost' : variant}
       onPress={onPress}
       disabled={disabled}
       haptic={haptic}
@@ -106,14 +109,16 @@ export function HeaderAction({
         // Standard Save, Delete, Clear and labelled actions retain the semantic
         // border supplied by the shared Button primitive.
         isBorderlessSheetCircle && styles.borderlessDarkCircle,
-        glass && styles.glassControl,
       ]}
     />
   );
   if (glass) {
     return (
       <GlassView
-        style={[styles.base, styles.iconOnly, styles.glassSurface, style]}
+        // The GlassView self-rounds via its own borderRadius (styles.iconOnly) — NO
+        // overflow clip, which is what preserves the native squircle + rim lighting
+        // (an RN clip mangles the glass edge).
+        style={[styles.base, styles.iconOnly, style]}
         glassEffectStyle="regular"
         // Match Forge's theme toggle rather than the device's system scheme.
         colorScheme={theme.colorScheme === 'dark' ? 'dark' : 'light'}
@@ -139,8 +144,4 @@ const styles = StyleSheet.create({
     borderRadius: 22,
   },
   borderlessDarkCircle: { borderWidth: 0, borderColor: 'transparent' },
-  // Liquid Glass control: the GlassView is the circular surface; the Button sits on
-  // top transparent, and the surface clips to the circle.
-  glassControl: { backgroundColor: 'transparent', borderWidth: 0 },
-  glassSurface: { overflow: 'hidden' },
 });
