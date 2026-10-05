@@ -1,14 +1,10 @@
 import React from 'react';
-import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
+import { BlurView } from 'expo-blur';
 import type { IconName, IconWeight } from '../../types';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { Button } from './Button';
-
-// Native iOS 26 Liquid Glass for neutral circular controls when available; otherwise
-// the tonal borderless surface (Android / iOS < 26). Capability is static — read once.
-const LIQUID_GLASS = isLiquidGlassAvailable();
 
 interface HeaderActionProps {
   accessibilityLabel: string;
@@ -69,14 +65,12 @@ export function HeaderAction({
   const theme = useForgeTheme();
   const isBackControl = iconOnly && icon === 'chevron-back';
   // Icon-only circular header/sheet controls are borderless in BOTH themes — they
-  // separate by their tonal surface against the header, never a grey ring. (Light
-  // used to keep a fine border; removed so Light matches Dark's borderless feel.)
+  // separate by their tonal/frosted surface against the header, never a grey ring.
   const isBorderlessSheetCircle = iconOnly;
-  // iOS 26 Liquid Glass for neutral SECONDARY circular controls only. Primary CTAs
-  // (e.g. the live-workout Finish check) keep their solid fill — glass would strip it
-  // and the icon would vanish into the backdrop. Destructive/success keep their
-  // semantic surfaces (red/green), and non-iOS-26 keeps the tonal fill.
-  const glass = iconOnly && LIQUID_GLASS && tone === 'neutral' && variant !== 'primary';
+  // Neutral circular controls get a frosted "glass-like" surface (blur + a soft tint),
+  // the same feel on every device — no native Liquid Glass. Primary CTAs keep their
+  // solid fill; destructive/success keep their semantic surfaces.
+  const frosted = iconOnly && tone === 'neutral' && variant !== 'primary';
   const control = (
     <Button
       accessibilityLabel={accessibilityLabel}
@@ -84,10 +78,9 @@ export function HeaderAction({
       icon={icon}
       iconSize={iconSize}
       iconWeight={iconWeight}
-      // Under glass, render as a true ghost: transparent at rest (so the glass is the
-      // surface) but it keeps its pressed tint (theme.pressed) ON TOP of the glass.
-      // Forcing a transparent fill via an override used to clobber that press feedback.
-      variant={glass ? 'ghost' : variant}
+      // On a frosted control render a true ghost: transparent at rest (the frost is the
+      // surface) but it keeps its pressed tint (theme.pressed) on top of the blur.
+      variant={frosted ? 'ghost' : variant}
       onPress={onPress}
       disabled={disabled}
       haptic={haptic}
@@ -95,37 +88,42 @@ export function HeaderAction({
       style={[
         styles.base,
         iconOnly && styles.iconOnly,
-        isBackControl && {
+        isBackControl && !frosted && {
           // Back is a peer of the neutral header action, not a disabled or
           // inset control. Dark headers need the muted layer to retain the
           // same clear silhouette that the light elevated surface provides.
           backgroundColor: theme.colorScheme === 'dark' ? theme.surfaceMuted : theme.surfaceElevated,
           borderColor: theme.border,
         },
-        // Under glass the caller's tonal fill is dropped (the glass is the surface);
-        // otherwise the caller style (incl. background) applies as before.
-        !glass && style,
-        // Circular icon-only header/sheet controls drop their outline in both themes.
-        // Standard Save, Delete, Clear and labelled actions retain the semantic
-        // border supplied by the shared Button primitive.
+        // On a frosted control the frost is the surface, so the caller's tonal fill is
+        // dropped; otherwise the caller style (incl. background) applies as before.
+        !frosted && style,
         isBorderlessSheetCircle && styles.borderlessDarkCircle,
       ]}
     />
   );
-  if (glass) {
+  if (frosted) {
     return (
-      <GlassView
-        // The GlassView self-rounds via its own borderRadius (styles.iconOnly) — NO
-        // overflow clip, which is what preserves the native squircle + rim lighting
-        // (an RN clip mangles the glass edge).
-        style={[styles.base, styles.iconOnly, style]}
-        glassEffectStyle="regular"
-        // Match Forge's theme toggle rather than the device's system scheme.
-        colorScheme={theme.colorScheme === 'dark' ? 'dark' : 'light'}
-        isInteractive
-      >
+      <View style={[styles.base, styles.iconOnly, styles.frostedCircle, style]}>
+        <BlurView
+          pointerEvents="none"
+          intensity={theme.colorScheme === 'dark' ? 36 : 60}
+          tint={theme.colorScheme === 'dark' ? 'dark' : 'light'}
+          blurMethod="dimezisBlurView"
+          style={StyleSheet.absoluteFill}
+        />
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              opacity: theme.colorScheme === 'dark' ? 0.6 : 0.55,
+              backgroundColor: theme.colorScheme === 'dark' ? theme.surfaceMuted : theme.surfaceElevated,
+            },
+          ]}
+        />
         {control}
-      </GlassView>
+      </View>
     );
   }
   return control;
@@ -144,4 +142,6 @@ const styles = StyleSheet.create({
     borderRadius: 22,
   },
   borderlessDarkCircle: { borderWidth: 0, borderColor: 'transparent' },
+  // Frosted circular control: blur + soft tint clipped to the circle, icon on top.
+  frostedCircle: { overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
 });

@@ -10,15 +10,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
-import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { BottomNavigation } from './BottomNavigation';
 import { dashboardTheme } from '../theme/dashboardTheme';
 import { forgeMotion, forgeMotionDuration, useForgeReducedMotion } from '../theme/motion';
 import type { ForgeTheme } from '../types';
-
-// Native iOS 26 Liquid Glass when available; otherwise the BlurView + tonal film
-// fallback below (Android and iOS < 26). Capability is static, so read it once.
-const LIQUID_GLASS = isLiquidGlassAvailable();
 
 interface DockSurfaceProps {
   theme?: ForgeTheme;
@@ -103,37 +98,22 @@ export function DockSurface({
         },
       ]}
     >
-      {/* Frosted translucency: the system blur samples the content behind the
-          dock, and a low-opacity dock-coloured film keeps it recognisably Forge
-          rather than plain clear glass. Falls back to the tint film alone where
-          a platform cannot blur. */}
-      {LIQUID_GLASS ? (
-        <GlassView
-          pointerEvents="none"
-          style={StyleSheet.absoluteFill}
-          glassEffectStyle="regular"
-          // Forge has its own theme toggle, so pin the glass appearance to it rather
-          // than the device's system scheme.
-          colorScheme={theme.colorScheme === 'dark' ? 'dark' : 'light'}
-          tintColor={theme.colorScheme === 'dark' ? 'rgba(23,25,28,0.28)' : 'rgba(250,250,248,0.28)'}
-        />
-      ) : (
-        <>
-          <BlurView
-            // Light backdrops are low-contrast, so the same blur reads weaker than in Dark —
-            // raise the intensity and thin the tint film in Light so the frost actually shows.
-            intensity={theme.colorScheme === 'dark' ? 36 : 60}
-            tint={theme.colorScheme === 'dark' ? 'dark' : 'light'}
-            blurMethod="dimezisBlurView"
-            pointerEvents="none"
-            style={StyleSheet.absoluteFill}
-          />
-          <View
-            pointerEvents="none"
-            style={[StyleSheet.absoluteFill, { opacity: theme.colorScheme === 'dark' ? 0.55 : 0.38, backgroundColor: theme.dock ?? theme.dockSurface }]}
-          />
-        </>
-      )}
+      {/* Frosted translucency (same treatment on every device — no native Liquid
+          Glass): the system blur samples the content behind the dock, and a
+          low-opacity dock-coloured film keeps it recognisably Forge. */}
+      <BlurView
+        // Light backdrops are low-contrast, so the same blur reads weaker than in Dark —
+        // raise the intensity and thin the tint film in Light so the frost actually shows.
+        intensity={theme.colorScheme === 'dark' ? 36 : 60}
+        tint={theme.colorScheme === 'dark' ? 'dark' : 'light'}
+        blurMethod="dimezisBlurView"
+        pointerEvents="none"
+        style={StyleSheet.absoluteFill}
+      />
+      <View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, { opacity: theme.colorScheme === 'dark' ? 0.55 : 0.38, backgroundColor: theme.dock ?? theme.dockSurface }]}
+      />
       {children || (
         <BottomNavigation
           tabBarProps={tabBarProps}

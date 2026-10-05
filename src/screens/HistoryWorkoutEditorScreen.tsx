@@ -455,8 +455,8 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         <View style={styles.cardDivider} />
         <PickerButton label="Date" value={dateInput(startedAt)} onPress={() => openPicker('date')} />
         <View style={styles.formRow}>
-          <PickerButton label="Start time" value={startTimeChosen ? timeInput(startedAt) : 'Choose time'} onPress={() => openPicker('start')} />
-          <PickerButton label="End time" value={endTimeChosen ? timeInput(completedAt) : 'Choose time'} onPress={() => openPicker('end')} />
+          <PickerButton label="Start time" required={isCreating} value={startTimeChosen ? timeInput(startedAt) : 'Choose time'} onPress={() => openPicker('start')} />
+          <PickerButton label="End time" required={isCreating} value={endTimeChosen ? timeInput(completedAt) : 'Choose time'} onPress={() => openPicker('end')} />
         </View>
       </>}
       {validationMessage && (
@@ -927,20 +927,26 @@ function PickerButton({
   label,
   value,
   onPress,
+  required = false,
 }: {
   label: string;
   value: string;
   onPress: () => void;
+  /** Marks the field required (needed before the save check can finish). */
+  required?: boolean;
 }) {
   const styles = useThemedStyles(createStyles);
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Select ${label}`}
+      accessibilityLabel={required ? `Select ${label}, required` : `Select ${label}`}
       onPress={onPress}
       style={({ pressed }) => [styles.field, styles.halfField, pressed && pressedFeedbackSubtle]}
     >
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <Text style={styles.fieldLabel}>
+        {label}
+        {required ? <Text style={styles.requiredMark}> *</Text> : null}
+      </Text>
       <Text style={styles.pickerValue}>{value}</Text>
     </Pressable>
   );
@@ -1066,6 +1072,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   targetToggleCopy: { flex: 1, gap: 3 },
   targetToggleHint: { color: theme.slate, ...typeScale.caption },
   fieldLabel: { color: theme.slate, ...typeScale.label },
+  requiredMark: { color: theme.textDestructive },
   input: {
     minHeight: 40,
     borderWidth: 1,

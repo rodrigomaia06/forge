@@ -221,6 +221,8 @@ test.describe('Plans and routines', () => {
     await typeRoutineName(page, 'Upper body updated');
     await expect(page.getByLabel('Routine name')).toHaveValue('Upper body updated');
     await page.getByRole('button', { name: 'Save routine' }).click();
+    // Saving an edited existing routine offers Update / Save as new / Discard; keep editing it.
+    await page.getByRole('button', { name: 'Update routine' }).click();
     await expect(page.getByText('Upper body updated', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Start Upper body updated' }).click();
     await expect(page.getByLabel('Finish workout')).toBeVisible();

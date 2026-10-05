@@ -28,11 +28,14 @@ test.describe('Interactive control consistency', () => {
 
     await page.getByRole('tab', { name: 'Plans' }).click();
     const create = page.getByRole('button', { name: 'Create workout, routine, or plan' });
-    const neutralBackground = 'rgb(255, 255, 255)';
+    // Neutral circular header controls are frosted (BlurView + a soft tint): the button
+    // itself is transparent and the frosted surface is a sibling layer, so the measured
+    // button background is transparent. Consistency = they are all frosted + 44pt.
+    const frostedBackground = 'rgba(0, 0, 0, 0)';
     expect(await dimensions(create)).toMatchObject({
       width: 44,
       height: 44,
-      background: neutralBackground,
+      background: frostedBackground,
     });
 
     await page.getByRole('tab', { name: 'Settings' }).click();
@@ -41,13 +44,13 @@ test.describe('Interactive control consistency', () => {
     expect(backToSettings).toMatchObject({
       width: 44,
       height: 44,
-      background: neutralBackground,
+      background: frostedBackground,
     });
     const addWorkoutType = page.getByRole('button', { name: 'Add workout type' });
     expect(await dimensions(addWorkoutType)).toMatchObject({
       width: 44,
       height: 44,
-      background: neutralBackground,
+      background: frostedBackground,
     });
     await addWorkoutType.click();
 
@@ -67,7 +70,8 @@ test.describe('Interactive control consistency', () => {
     const workoutTypesScroll = page.getByTestId('workout-types-scroll').last();
     await workoutTypesScroll.getByRole('button', { name: 'Strength workout type' }).click();
     const expandedType = workoutTypesScroll.getByTestId('workout-type-visibility-surface');
-    await expect(expandedType).toHaveCSS('background-color', neutralBackground);
+    // The expanded row surface is a real elevated surface (not a frosted control).
+    await expect(expandedType).toHaveCSS('background-color', 'rgb(255, 255, 255)');
     await expect(expandedType).toHaveCSS('border-top-width', '1px');
     const typeSwitch = page.getByTestId('workout-type-list-visibility-switch');
     expect(await dimensions(typeSwitch)).toMatchObject({ width: 48, height: 28 });
@@ -112,7 +116,8 @@ test.describe('Interactive control consistency', () => {
 
     await page.getByRole('tab', { name: 'Plans' }).click();
     const create = await dimensions(page.getByRole('button', { name: 'Create workout, routine, or plan' }));
-    expect(create.background).toBe('rgb(43, 47, 52)');
+    // Frosted neutral header control: transparent button over a sibling frost layer.
+    expect(create.background).toBe('rgba(0, 0, 0, 0)');
     expect(create.borderWidth).toBe('0px');
 
     await page.getByRole('tab', { name: 'Dashboard' }).click();
@@ -140,7 +145,8 @@ test.describe('Interactive control consistency', () => {
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('button', { name: 'Workout types' }).click();
     const back = await dimensions(page.getByRole('button', { name: 'Back to Settings' }));
-    expect(back.background).toBe('rgb(43, 47, 52)');
+    // Frosted neutral header control: transparent button over a sibling frost layer.
+    expect(back.background).toBe('rgba(0, 0, 0, 0)');
     expect(back.borderWidth).toBe('0px');
     const strengthColors = await page
       .getByRole('button', { name: 'Strength workout type' })
