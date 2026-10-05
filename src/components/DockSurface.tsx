@@ -98,96 +98,66 @@ export function DockSurface({
         styles.dock,
         surfaceAnimatedStyle,
         {
-          // Solid dock-tone base lives on the OUTER view so iOS casts the shadow from
-          // it (an `overflow:hidden` view clips its own shadow) and so the rim reads as
-          // one clean surface. Glass is its own surface, so stays transparent there.
-          backgroundColor: LIQUID_GLASS ? 'transparent' : (theme.dock ?? theme.dockSurface),
+          borderColor: theme.border ?? theme.dockBorder,
           shadowColor: theme.shadow,
         },
       ]}
     >
+      {/* Frosted translucency: the system blur samples the content behind the
+          dock, and a low-opacity dock-coloured film keeps it recognisably Forge
+          rather than plain clear glass. Falls back to the tint film alone where
+          a platform cannot blur. */}
       {LIQUID_GLASS ? (
-        // Liquid Glass must own its rounded shape: the system renders the glass edge
-        // for the view's OWN bounds, so clipping a square GlassView to a capsule with
-        // an external overflow mangles that edge (the "weird edges"). Give the GlassView
-        // its own borderRadius and let it be the rounded surface directly — no clip.
         <GlassView
           pointerEvents="none"
-          style={[StyleSheet.absoluteFill, styles.glassSurface]}
+          style={StyleSheet.absoluteFill}
           glassEffectStyle="regular"
           // Forge has its own theme toggle, so pin the glass appearance to it rather
           // than the device's system scheme.
           colorScheme={theme.colorScheme === 'dark' ? 'dark' : 'light'}
-          // Only a whisper of brand tint; let the system glass carry the look.
-          tintColor={theme.colorScheme === 'dark' ? 'rgba(23,25,28,0.08)' : 'rgba(255,255,255,0.10)'}
+          tintColor={theme.colorScheme === 'dark' ? 'rgba(23,25,28,0.28)' : 'rgba(250,250,248,0.28)'}
         />
       ) : (
-        // Fallback (Android / iOS < 26): the BlurView can't self-round reliably, so it
-        // lives in a rounded overflow:hidden clip, over a solid dock-tone base.
-        <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.dockClip]}>
+        <>
           <BlurView
             // Light backdrops are low-contrast, so the same blur reads weaker than in Dark —
             // raise the intensity and thin the tint film in Light so the frost actually shows.
             intensity={theme.colorScheme === 'dark' ? 36 : 60}
             tint={theme.colorScheme === 'dark' ? 'dark' : 'light'}
             blurMethod="dimezisBlurView"
+            pointerEvents="none"
             style={StyleSheet.absoluteFill}
           />
           <View
+            pointerEvents="none"
             style={[StyleSheet.absoluteFill, { opacity: theme.colorScheme === 'dark' ? 0.55 : 0.38, backgroundColor: theme.dock ?? theme.dockSurface }]}
           />
-        </View>
+        </>
       )}
-      {/* Crisp border ring on top of the clipped surface — a plain overlay, so it never
-          seams against the blur. None under Liquid Glass (the glass supplies its edge). */}
-      <View
-        pointerEvents="none"
-        style={[
-          StyleSheet.absoluteFill,
-          styles.dockRing,
-          { borderColor: LIQUID_GLASS ? 'transparent' : (theme.colorScheme === 'dark' ? theme.border : theme.divider) },
-        ]}
-      />
-      {/* Content is inset here (not via the dock's own padding): on native iOS the
-          absolute surface/border layers above are inset by the parent's padding, which
-          left the frosted surface short of the rounded ends — the real "weird edges".
-          Insetting the content instead lets those layers fill edge-to-edge. The 7pt
-          matches the previous 6pt padding + 1pt border, so the tab/pill geometry
-          (BottomNavigation's `surfaceWidth - 14`) is unchanged. */}
-      <View style={styles.dockContent}>
-        {children || (
-          <BottomNavigation
-            tabBarProps={tabBarProps}
-            theme={{ ...theme, surface: theme.surface }}
-            compact={compact}
-            surfaceWidth={surfaceWidth}
-            onNavigate={onNavigate}
-          />
-        )}
-      </View>
+      {children || (
+        <BottomNavigation
+          tabBarProps={tabBarProps}
+          theme={{ ...theme, surface: theme.surface }}
+          compact={compact}
+          surfaceWidth={surfaceWidth}
+          onNavigate={onNavigate}
+        />
+      )}
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   dock: {
-    // Outer = shadow caster only: NO overflow (so iOS doesn't clip the shadow), NO
-    // border (the ring is a separate overlay) and NO padding (padding would inset the
-    // absolute surface layers on native). The solid base + radius come from here.
     alignSelf: 'center',
+    overflow: 'hidden',
     borderRadius: 1000,
+    borderWidth: 1,
+    paddingHorizontal: 6,
     shadowColor: '#172431',
     shadowOpacity: 0.16,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 7 },
     elevation: 6,
   },
-  // Rounded clip for the BlurView fallback — overflow:hidden, no border.
-  dockClip: { borderRadius: 1000, overflow: 'hidden' },
-  // Liquid Glass self-rounds via its own borderRadius (no external clip).
-  glassSurface: { borderRadius: 1000 },
-  // Crisp 1px border ring drawn over the clipped surface.
-  dockRing: { borderRadius: 1000, borderWidth: 1 },
-  // Carries the content inset the dock padding used to provide (6pt pad + 1pt border).
-  dockContent: { paddingHorizontal: 7 },
 });
