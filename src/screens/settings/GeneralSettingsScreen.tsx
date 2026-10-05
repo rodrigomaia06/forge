@@ -1,5 +1,5 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import React, { useMemo } from 'react';
+import React, { startTransition, useMemo } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -76,7 +76,14 @@ export function GeneralSettingsScreen({ navigation }: Props) {
   );
   const choose = (changes: Partial<SettingsPreferences>) => {
     selectionHaptic();
-    updatePreferences(changes);
+    // An appearance switch re-renders every themed consumer at once. Mark it as a
+    // non-urgent transition so React schedules that cascade cooperatively instead of
+    // blocking one frame (the "lag spike"); the app stays responsive during the swap.
+    if ('appearance' in changes) {
+      startTransition(() => updatePreferences(changes));
+    } else {
+      updatePreferences(changes);
+    }
   };
   // A local draft holds the raw text while the field is focused, so a trailing
   // decimal point (e.g. "70.") survives instead of being stripped by the
