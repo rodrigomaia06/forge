@@ -147,26 +147,34 @@ export function DockSurface({
           { borderColor: LIQUID_GLASS ? 'transparent' : (theme.colorScheme === 'dark' ? theme.border : theme.divider) },
         ]}
       />
-      {children || (
-        <BottomNavigation
-          tabBarProps={tabBarProps}
-          theme={{ ...theme, surface: theme.surface }}
-          compact={compact}
-          surfaceWidth={surfaceWidth}
-          onNavigate={onNavigate}
-        />
-      )}
+      {/* Content is inset here (not via the dock's own padding): on native iOS the
+          absolute surface/border layers above are inset by the parent's padding, which
+          left the frosted surface short of the rounded ends — the real "weird edges".
+          Insetting the content instead lets those layers fill edge-to-edge. The 7pt
+          matches the previous 6pt padding + 1pt border, so the tab/pill geometry
+          (BottomNavigation's `surfaceWidth - 14`) is unchanged. */}
+      <View style={styles.dockContent}>
+        {children || (
+          <BottomNavigation
+            tabBarProps={tabBarProps}
+            theme={{ ...theme, surface: theme.surface }}
+            compact={compact}
+            surfaceWidth={surfaceWidth}
+            onNavigate={onNavigate}
+          />
+        )}
+      </View>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   dock: {
-    // Outer = shadow caster only: NO overflow (so iOS doesn't clip the shadow) and NO
-    // border (the ring is a separate overlay). The solid base + radius come from here.
+    // Outer = shadow caster only: NO overflow (so iOS doesn't clip the shadow), NO
+    // border (the ring is a separate overlay) and NO padding (padding would inset the
+    // absolute surface layers on native). The solid base + radius come from here.
     alignSelf: 'center',
     borderRadius: 1000,
-    paddingHorizontal: 6,
     shadowColor: '#172431',
     shadowOpacity: 0.16,
     shadowRadius: 18,
@@ -177,4 +185,6 @@ const styles = StyleSheet.create({
   dockClip: { borderRadius: 1000, overflow: 'hidden' },
   // Crisp 1px border ring drawn over the clipped surface.
   dockRing: { borderRadius: 1000, borderWidth: 1 },
+  // Carries the content inset the dock padding used to provide (6pt pad + 1pt border).
+  dockContent: { paddingHorizontal: 7 },
 });
