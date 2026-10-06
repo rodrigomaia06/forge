@@ -1,3 +1,4 @@
+import { ForgeSheetScrollView } from '../../components/ui/ForgeSheetScrollView';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -87,6 +88,7 @@ export function useWorkoutStarter(): WorkoutStarter {
             : undefined,
           attributeIcons: routine.attributeIcons,
           routineId: routine.id,
+          routineTemplate: routine,
           planId: plan?.id ?? routine.planId,
           exercises: routineExercisesWithNextSessionTargets(routine, completedWorkouts),
         });
@@ -204,7 +206,7 @@ function RoutineSourceContent({
           />
         }
       />
-      <ScrollView
+      <ForgeSheetScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -246,7 +248,7 @@ function RoutineSourceContent({
             {!standaloneRoutines.length && !plans.length ? <Text style={styles.empty}>Create a routine first, then start it from here.</Text> : null}
           </>
         )}
-      </ScrollView>
+      </ForgeSheetScrollView>
     </View>
   );
 }

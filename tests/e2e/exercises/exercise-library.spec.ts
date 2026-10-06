@@ -149,12 +149,12 @@ test.describe('Exercise library', () => {
     await setSafeArea(page, 62, 34);
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Exercises', exact: true }).click();
-    await page.getByRole('button', { name: 'Strength, 265 exercises' }).click();
+    await page.getByRole('button', { name: /^Strength, \d+ exercises$/ }).click();
     await page.getByRole('button', { name: 'Filters' }).click();
     await waitForFilterSheet(page);
     const sheet = page.getByTestId('catalog-filter-content');
     const first = sheet.getByRole('button', { name: 'Edit Equipment filter, Any' });
-    const header = sheet.getByTestId('forge-sheet-drag-area');
+    const header = sheet.getByTestId('forge-sheet-drag-area').first();
     await expect(first).toBeVisible();
     await expect.poll(async () => {
       const firstBox = await first.boundingBox();

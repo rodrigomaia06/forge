@@ -1,3 +1,4 @@
+import { ForgeSheetScrollView } from './ForgeSheetScrollView';
 import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import type { IconName } from '../../types';
@@ -215,7 +216,7 @@ export function ForgeCatalogFilterContent({
         </>
       ) : header}
       {activeFacet ? (
-        <ScrollView
+        <ForgeSheetScrollView
           style={styles.scroll}
           contentContainerStyle={[styles.content, { paddingBottom: floatingCtaClearance }]}
           showsVerticalScrollIndicator={false}
@@ -259,9 +260,9 @@ export function ForgeCatalogFilterContent({
             ) : null}
           </View>
           </>
-        </ScrollView>
+        </ForgeSheetScrollView>
       ) : (
-        <ScrollView
+        <ForgeSheetScrollView
           testID="catalog-filter-summary-scroll"
           style={fill ? styles.summaryFill : styles.summaryScroll}
           contentContainerStyle={[styles.rootSummary, { paddingBottom: floatingCtaClearance }]}
@@ -273,7 +274,7 @@ export function ForgeCatalogFilterContent({
             facets={facets}
             onOpen={(key) => { selectionHaptic(); setChoiceQuery(''); setActiveFacetKey(key); }}
           />
-        </ScrollView>
+        </ForgeSheetScrollView>
       )}
       <ForgeFloatingCta
         label={count ? `Apply (${count})` : 'Apply'}

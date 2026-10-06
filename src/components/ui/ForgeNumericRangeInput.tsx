@@ -58,12 +58,13 @@ export function ForgeNumericRangeInput({
   return (
     <ForgeTextInput
       ref={fallbackRef}
+      lockCursorToEnd
       accessibilityLabel={accessibilityLabel}
       editable={editable}
       // React Native Web otherwise renders `numbers-and-punctuation` as a
       // text input. Native retains its keypad so range punctuation remains
       // available, while web receives a decimal number keypad as well.
-      inputMode={Platform.OS === 'web' ? 'decimal' : undefined}
+      inputMode={Platform.OS === 'web' ? keyboardType === 'number-pad' ? 'numeric' : 'decimal' : undefined}
       keyboardType={keyboardType}
       onBlur={onBlur}
       onChangeText={onChangeText}

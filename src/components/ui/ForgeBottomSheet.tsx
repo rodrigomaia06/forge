@@ -51,6 +51,8 @@ interface ForgeBottomSheetProps {
   initialOffset?: number;
   dismissThreshold?: number;
   onCloseStart?: () => void;
+  /** Return false while a durable action must retain the sheet and its drafts. */
+  onBeforeClose?: () => boolean;
   /**
    * Fires one frame after the sheet has fully dismissed and its Modal has
    * unmounted. Present a follow-up Modal (a confirmation, an editor) from here
@@ -102,6 +104,7 @@ export function ForgeBottomSheet({
   initialOffset = closeDistance,
   dismissThreshold = 190,
   onCloseStart,
+  onBeforeClose,
   onClosed,
   onBackRequest,
   keyboardAvoiding = true,
@@ -219,7 +222,7 @@ export function ForgeBottomSheet({
   }, [backdropOpacity, clearExitTimer, closeDistance, closing, completeExit, reducedMotion, translateY]);
 
   const close = useCallback((withHaptic = false) => {
-    if (closingRef.current) return;
+    if (closingRef.current || onBeforeClose?.() === false) return;
     onCloseStart?.();
     if (withHaptic) lightHaptic();
     // Notify the parent synchronously on every close intent (close button,
@@ -227,7 +230,7 @@ export function ForgeBottomSheet({
     // parent close state must never wait on Reanimated completing.
     onCloseRef.current();
     beginExit();
-  }, [beginExit, onCloseStart]);
+  }, [beginExit, onBeforeClose, onCloseStart]);
 
   useEffect(() => {
     if (!visible) {
@@ -472,9 +475,10 @@ export function ForgeBottomSheetHandle() {
   return pan && !isInsideDragArea ? <GestureDetector gesture={pan}>{handle}</GestureDetector> : handle;
 }
 
-export function ForgeBottomSheetDragArea({ children }: { children: React.ReactNode }) {
+export function ForgeBottomSheetDragArea({ children, enabled = true }: { children: React.ReactNode; enabled?: boolean }) {
   const pan = useContext(SheetDragContext);
   const isInsideDragArea = useContext(SheetDragAreaContext);
+  const inactivePan = React.useMemo(() => Gesture.Pan().enabled(false), []);
   const area = (
     <SheetDragAreaContext.Provider value>
       <View testID="forge-sheet-drag-area" collapsable={false} style={styles.dragArea}>
@@ -482,7 +486,7 @@ export function ForgeBottomSheetDragArea({ children }: { children: React.ReactNo
       </View>
     </SheetDragAreaContext.Provider>
   );
-  return pan && !isInsideDragArea ? <GestureDetector gesture={pan}>{area}</GestureDetector> : area;
+  return pan && !isInsideDragArea ? <GestureDetector gesture={enabled ? pan : inactivePan}>{area}</GestureDetector> : area;
 }
 
 const styles = StyleSheet.create({

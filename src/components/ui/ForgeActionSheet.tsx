@@ -1,5 +1,6 @@
+import { ForgeSheetScrollView } from './ForgeSheetScrollView';
 import React, { type ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { IconName } from '../../types';
 import { useForgeTheme } from '../../theme/ThemeProvider';
@@ -159,7 +160,7 @@ export function ForgeActionSheet({
               // there are more actions than fit (a long "Add tile" list on a short
               // phone), it scrolls within the sheet's capped height instead of
               // being clipped.
-              <ScrollView
+              <ForgeSheetScrollView
                 style={[
                   styles.actionList,
                   emphasis === 'prominent' && styles.prominentActionList,
@@ -176,7 +177,7 @@ export function ForgeActionSheet({
                     divider={index < neutralActions.length - 1}
                   />
                 ))}
-              </ScrollView>
+              </ForgeSheetScrollView>
             )}
             {destructiveActions.length > 1 && (
               <View

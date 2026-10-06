@@ -2,6 +2,7 @@ import React from 'react';
 import { FlatList, Pressable, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 
 import { useForgeTheme } from '../../theme/ThemeProvider';
+import { scaleUI } from '../../theme/scale';
 import { typeScale } from '../../theme/tokens';
 import { ForgeBottomSheet, ForgeBottomSheetHandle } from './ForgeBottomSheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -152,6 +153,7 @@ function ForgeSelectionRow<T extends SelectionValue>({
       }}
       style={({ pressed }) => [
         styles.selectionRow,
+        option.description && styles.describedSelectionRow,
         rounded && styles.selectionRowRounded,
         // Selection is shown by the checkmark (and bold label), not a persistent
         // fill — matching platform select menus. Success tone keeps its tint for
@@ -262,6 +264,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  describedSelectionRow: {
+    height: 'auto',
+    minHeight: SELECTION_ROW_HEIGHT,
+    paddingVertical: scaleUI(12),
   },
   selectionRowRounded: { height: 46, paddingHorizontal: 12, borderRadius: 12 },
   selectionCopy: { flex: 1, minWidth: 0, gap: 2 },

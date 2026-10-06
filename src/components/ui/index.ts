@@ -54,3 +54,5 @@ export { NavigationItem } from './NavigationItem';
 export { ScreenTitle } from './ScreenTitle';
 export { SectionHeader } from './SectionHeader';
 export { errorHaptic, lightHaptic, mediumHaptic, selectionHaptic, successHaptic } from './haptics';
+
+export { ForgeSheetScrollView } from './ForgeSheetScrollView';

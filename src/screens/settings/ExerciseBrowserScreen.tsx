@@ -1,3 +1,4 @@
+import { ForgeSheetScrollView } from '../../components/ui/ForgeSheetScrollView';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -658,7 +659,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
               />
               {formView === 'details' ? (
                 <>
-                  <ScrollView
+                  <ForgeSheetScrollView
                     style={styles.formScrollDetails}
                     contentContainerStyle={styles.form}
                     keyboardShouldPersistTaps="handled"
@@ -767,11 +768,11 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                         </View>
                       ) : null}
                     </ForgeCard>
-                  </ScrollView>
+                  </ForgeSheetScrollView>
                 </>
               ) : (
                 <>
-                <ScrollView
+                <ForgeSheetScrollView
                   testID={formView === 'equipment' ? 'exercise-equipment-selector-scroll' : undefined}
                   style={styles.formScroll}
                   contentContainerStyle={[
@@ -912,7 +913,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                       </ForgeCard>
                     </View>
                   ) : null}
-                </ScrollView>
+                </ForgeSheetScrollView>
                 {formView === 'equipment' ? (
                   <ForgeFloatingCta
                     label={`Apply${equipmentDraft.length ? ` (${equipmentDraft.length})` : ''}`}

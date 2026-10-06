@@ -1,7 +1,8 @@
+import { ForgeSheetScrollView } from './ForgeSheetScrollView';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { scheduleOnRN } from 'react-native-worklets';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, UIManager, View } from 'react-native';
+import { LayoutAnimation, Platform, Pressable, StyleSheet, UIManager, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import type { IconName, WorkoutTypePreference } from '../../types';
@@ -71,7 +72,7 @@ export function ForgeAttributeEditorSheet({
         leading={<ForgeEditorBackButton onPress={onClose} />}
         trailing={onDelete ? <HeaderAction accessibilityLabel="Remove attribute" icon="trash" iconOnly tone="destructive" haptic="none" onPress={() => { errorHaptic(); onDelete(); }} /> : undefined}
       />
-      <ScrollView style={styles.editorScroll} contentContainerStyle={styles.editorContent} keyboardShouldPersistTaps="handled">
+      <ForgeSheetScrollView style={styles.editorScroll} contentContainerStyle={styles.editorContent} keyboardShouldPersistTaps="handled">
         <View style={styles.attributeEditorLayout}>
           <ForgeCard variant="nested" style={styles.iconFieldCard}>
             <Pressable accessibilityRole="button" accessibilityLabel="Choose attribute icon" onPress={() => { lightHaptic(); easeIconGrid(); setSelectingIcon((current) => !current); }} style={styles.iconFieldButton}>
@@ -101,7 +102,7 @@ export function ForgeAttributeEditorSheet({
           </View>
         </ForgeCard> : null}
         <Button label="Save attribute" accessibilityLabel="Save attribute" icon="check" onPress={() => onSave(draft)} disabled={!draft.label.trim()} tone="success" variant="outline" style={styles.inlineSaveButton} />
-      </ScrollView>
+      </ForgeSheetScrollView>
     </>
   );
 }
@@ -256,7 +257,7 @@ export function ForgeWorkoutTypePicker({
     <>
       <ForgeBottomSheetHandle />
       <ForgeSheetHeader title="Workout type" onClose={onClose} closeAccessibilityLabel="Close workout type picker" leading={<ForgeEditorBackButton onPress={onBack} />} />
-      <ScrollView style={styles.editorScroll} contentContainerStyle={styles.typePickerContent} showsVerticalScrollIndicator={false}>
+      <ForgeSheetScrollView style={styles.editorScroll} contentContainerStyle={styles.typePickerContent} showsVerticalScrollIndicator={false}>
         <View accessibilityRole="radiogroup">
           <ForgeCard variant="nested">
             {workoutTypes.map((type, index) => {
@@ -269,7 +270,7 @@ export function ForgeWorkoutTypePicker({
             })}
           </ForgeCard>
         </View>
-      </ScrollView>
+      </ForgeSheetScrollView>
     </>
   );
 }
@@ -306,7 +307,7 @@ export function ForgeWorkoutTypeSheet({
         <View testID={`${testID}-surface`} style={[styles.typeSheet, { paddingBottom: Math.max(insets.bottom, 24) }]}>
           <ForgeBottomSheetHandle />
           <ForgeSheetHeader title="Workout type" onClose={close} closeAccessibilityLabel="Close workout type picker" />
-          <ScrollView testID={`${testID}-scroll`} style={styles.editorScroll} contentContainerStyle={styles.typeSheetContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ForgeSheetScrollView testID={`${testID}-scroll`} style={styles.editorScroll} contentContainerStyle={styles.typeSheetContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             <ForgeCard variant="nested">
               <View accessibilityRole="radiogroup">
                 {types.map((type, index) => {
@@ -328,7 +329,7 @@ export function ForgeWorkoutTypeSheet({
                 })}
               </View>
             </ForgeCard>
-          </ScrollView>
+          </ForgeSheetScrollView>
         </View>
       )}
     </ForgeBottomSheet>

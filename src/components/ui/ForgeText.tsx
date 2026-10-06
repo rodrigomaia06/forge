@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   StyleSheet,
+  Platform,
   Text as NativeText,
   TextInput as NativeTextInput,
   type TextInputProps,
@@ -21,13 +22,30 @@ export function ForgeText({ maxFontSizeMultiplier: _max, style, ...props }: Text
   return <NativeText {...props} style={[androidText.base, style]} maxFontSizeMultiplier={maxFontSizeMultiplier} />;
 }
 
-export const ForgeTextInput = React.forwardRef<NativeTextInput, TextInputProps>(
-  ({ maxFontSizeMultiplier: _max, keyboardAppearance, style, ...props }, ref) => {
+export const ForgeTextInput = React.forwardRef<NativeTextInput, TextInputProps & { lockCursorToEnd?: boolean }>(
+  ({ maxFontSizeMultiplier: _max, keyboardAppearance, style, lockCursorToEnd = false, ...props }, ref) => {
     const theme = useForgeTheme();
+    const inputRef = React.useRef<NativeTextInput>(null);
+    React.useImperativeHandle(ref, () => inputRef.current!);
+    const end = props.value?.length ?? 0;
+    const endSelection = React.useMemo(() => ({ start: end, end }), [end]);
     return (
       <NativeTextInput
-        ref={ref}
+        ref={inputRef}
         {...props}
+        selection={lockCursorToEnd ? endSelection : props.selection}
+        onSelectionChange={(event) => {
+          // Keep the insertion caret at the end. A deliberate text selection
+          // still permits replacing/clearing the value from a hardware keyboard.
+          if (lockCursorToEnd && event.nativeEvent.selection.start === event.nativeEvent.selection.end && event.nativeEvent.selection.end !== end) {
+            if (Platform.OS === 'web') {
+              (inputRef.current as unknown as HTMLInputElement | null)?.setSelectionRange(end, end);
+            } else {
+              inputRef.current?.setNativeProps({ selection: { start: end, end } });
+            }
+          }
+          props.onSelectionChange?.(event);
+        }}
         style={[androidText.base, style]}
         keyboardAppearance={keyboardAppearance ?? theme.colorScheme}
         maxFontSizeMultiplier={maxFontSizeMultiplier}

@@ -85,6 +85,8 @@ Accessibility fixes may alter layout or interaction; do not treat them as option
 
 ## Stable interaction
 
+Sheet bodies enable page scrolling only when their measured content exceeds the available viewport. Fitting content does not bounce or claim a scroll gesture and remains a drag-to-dismiss target; genuine overflow stays reachable, including above the keyboard. Value wheels retain their own scrolling behavior.
+
 Prefer stable, predictable layouts during active input and repeated interactions. Avoid unnecessary focus stealing, surprise scrolling, or decorative motion that interferes with task completion.
 
 ### Responsiveness invariant
