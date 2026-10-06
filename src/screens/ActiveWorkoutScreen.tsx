@@ -1,3 +1,7 @@
+import { exercisesWithAddedPrevious } from '../domain/workouts/nextSessionTargets';
+import { FinishWorkoutSheet } from './activeWorkout/FinishWorkoutSheet';
+import { changeExerciseTracking } from '../domain/exercises/trackingChanges';
+import { makeWorkoutId } from '../state/workoutMutations';
 import { scheduleOnRN } from 'react-native-worklets';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
@@ -47,7 +51,6 @@ import { useFocusedSetKeyboardLift } from './activeWorkout/useFocusedSetKeyboard
 import { calendarDateKey } from '../domain/workouts/calendarDate';
 import { createExerciseSnapshot } from '../domain/exercises/exerciseSnapshot';
 import { recordRestTimerSample } from '../state/workoutMutations';
-import { applyWorkoutStructureToRoutine, hasRoutineStructureChanged } from '../domain/workouts/routineStructure';
 import { useSynchronizedNow } from '../domain/rest/synchronizedClock';
 
 type ActiveWorkoutScreenProps = RootTabScreenProps<'ActiveWorkout'>;
@@ -77,18 +80,13 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
   const [restSheetOpen, setRestSheetOpen] = useState(false);
   const [durationSheetOpen, setDurationSheetOpen] = useState(false);
   const [discardConfirmationOpen, setDiscardConfirmationOpen] = useState(false);
-  const [emptyFinishConfirmationOpen, setEmptyFinishConfirmationOpen] = useState(false);
-  // The finish decision is one dialog with two possible stages. Swapping this
-  // single Modal's content (finish → optional routine update) avoids presenting
-  // a second Modal while the first dismisses — the iOS race that could drop the
-  // routine prompt and leave the workout unable to finish.
-  const [finishStage, setFinishStage] = useState<'none' | 'finish' | 'routine'>('none');
+  const [finishOpen, setFinishOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [replacingExerciseId, setReplacingExerciseId] = useState<string | null>(null);
   const [addExerciseSession, setAddExerciseSession] = useState(0);
   const [headerElevated, setHeaderElevated] = useState(false);
   const { preferences } = useSettings();
-  const { findRoutine, updateRoutine } = usePlans();
+  const { findRoutine, plans, reload: reloadPlans } = usePlans();
   const restTimer = useRestTimer();
 
   const restRemaining = restTimer.remaining;
@@ -276,41 +274,17 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
       </AppScreen>
     );
 
-  const handleFinish = () => {
-    if (!activeWorkout.exercises.length) {
-      setEmptyFinishConfirmationOpen(true);
-      return;
-    }
-    setFinishStage('finish');
-  };
-
-  const completeWorkout = (): void => {
-    // Navigate only once the workout is safely archived; if the write fails,
-    // finishWorkout keeps the session active rather than losing it.
-    void finishWorkout().then((finished) => {
-      if (!finished) return;
+  const handleFinish = () => setFinishOpen(true);
+  const completeWorkout = async (
+    choice: import('../types').FinishRoutineChoice,
+  ): Promise<boolean> => {
+    const finished = await finishWorkout(choice);
+    if (!finished) return false;
+    await reloadPlans().catch(() => undefined);
+    setFinishOpen(false);
       successHaptic();
       returnToDashboard(finished);
-    });
-  };
-
-  const confirmFinish = (): void => {
-    const routine = activeWorkout.routineId ? findRoutine(activeWorkout.routineId) : undefined;
-    if (routine && hasRoutineStructureChanged(activeWorkout)) {
-      // Keep the same dialog up and swap it to the routine question — no second
-      // Modal is ever presented, so nothing can race the dismissal.
-      setFinishStage('routine');
-      return;
-    }
-    setFinishStage('none');
-    completeWorkout();
-  };
-
-  const updateRoutineAndFinish = (): void => {
-    const routine = activeWorkout.routineId ? findRoutine(activeWorkout.routineId) : undefined;
-    if (routine) updateRoutine(routine.id, (current) => applyWorkoutStructureToRoutine(current, activeWorkout));
-    setFinishStage('none');
-    completeWorkout();
+    return true;
   };
 
   const discardWorkout = (): void => {
@@ -467,28 +441,14 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
         onStartedAtChange={setWorkoutStartTime}
         onResetStartTime={resetWorkoutStartTime}
       />
-      <ForgeConfirmationDialog
-        visible={finishStage !== 'none'}
-        title={finishStage === 'routine' ? 'Update routine?' : 'Finish workout?'}
-        message={finishStage === 'routine'
-          ? 'Your exercise and set structure changed during this workout.'
-          : 'Your recorded workout will be saved to History.'}
-        cancelLabel={finishStage === 'routine' ? 'Keep routine' : 'Keep working out'}
-        confirmLabel={finishStage === 'routine' ? 'Update routine' : 'Finish workout'}
-        onCancel={() => {
-          // On the routine stage, "Keep routine" still finishes the workout — it
-          // just leaves the routine untouched. On the finish stage, cancelling
-          // simply keeps working out.
-          if (finishStage === 'routine') {
-            setFinishStage('none');
-            completeWorkout();
-            return;
-          }
-          setFinishStage('none');
-        }}
-        onConfirm={finishStage === 'routine' ? updateRoutineAndFinish : confirmFinish}
-        testID={finishStage === 'routine' ? 'update-routine-confirmation' : 'finish-workout-confirmation'}
-      />
+      <FinishWorkoutSheet
+        visible={finishOpen}
+          workout={activeWorkout}
+          source={activeWorkout.routineId ? findRoutine(activeWorkout.routineId) : undefined}
+          plans={plans}
+          onClose={() => setFinishOpen(false)}
+          onFinish={completeWorkout}
+        />
       <ForgeConfirmationDialog
         visible={discardConfirmationOpen}
         title="Discard workout?"
@@ -501,23 +461,6 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
           discardWorkout();
         }}
         testID="discard-live-workout-confirmation"
-      />
-      <ForgeConfirmationDialog
-        visible={emptyFinishConfirmationOpen}
-        title="Finish empty workout?"
-        message="This workout has no exercises. It will still be saved to your history."
-        cancelLabel="Keep working out"
-        confirmLabel="Finish workout"
-        onCancel={() => setEmptyFinishConfirmationOpen(false)}
-        onConfirm={() => {
-          setEmptyFinishConfirmationOpen(false);
-          void finishWorkout().then((finished) => {
-            if (!finished) return;
-            successHaptic();
-            returnToDashboard(finished);
-          });
-        }}
-        testID="finish-empty-workout-confirmation"
       />
       {preferences.showRestTimer && restSheetOpen && (
         <RestTimerSheet
@@ -704,10 +647,29 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
       attributes: { ...(current.attributes ?? {}), [label]: value },
     }));
   }, [updateActiveWorkout]);
+  const { completedWorkouts } = useWorkouts();
+  const changeTracking = useCallback(
+    (exerciseId: string, mode: import('../types').TrackingType) => {
+      updateActiveWorkout((current) => {
+        const exercises = changeExerciseTracking(current.exercises, exerciseId, mode, () =>
+          makeWorkoutId('tracking'),
+        );
+        const matched = exercisesWithAddedPrevious(exercises, completedWorkouts);
+        return {
+          ...current,
+          exercises: exercises.map((exercise, index) =>
+            current.exercises.includes(exercise) ? exercise : matched[index],
+          ),
+        };
+      });
+    },
+    [updateActiveWorkout, completedWorkouts],
+  );
   const renderExercise = useCallback(
     ({ item, index }: { item: WorkoutExercise; index: number }) => (
       <ExtractedExerciseSection
         exercise={item}
+        onTrackingChange={changeTracking}
         index={index}
         addSet={addSet}
         removeSet={removeSet}
@@ -726,7 +688,22 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
         onDeleteRevealChange={handleExerciseDeleteReveal}
       />
     ),
-    [addSet, addWarmupSets, handleExerciseDeleteReveal, onReplaceExercise, onSetCompleted, onSetSideCompleted, onSetInputFocus, openExerciseId, removeExercise, removeSet, toggleSet, updateExercise, updateSet],
+    [
+      addSet,
+      addWarmupSets,
+      handleExerciseDeleteReveal,
+      onReplaceExercise,
+      onSetCompleted,
+      onSetSideCompleted,
+      onSetInputFocus,
+      openExerciseId,
+      removeExercise,
+      removeSet,
+      toggleSet,
+      updateExercise,
+      updateSet,
+      changeTracking,
+    ],
   );
   const liveAttributeEntries = Object.entries(workout.attributes ?? {});
 

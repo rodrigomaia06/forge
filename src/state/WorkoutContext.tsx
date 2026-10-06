@@ -1,3 +1,4 @@
+import { persistWorkoutFinish } from '../data/workoutFinishRepository';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AppState } from 'react-native';
 import {
@@ -70,7 +71,8 @@ export function WorkoutProvider({ children }: ChildrenProps) {
   const queueActiveSave = useCallback((workout: Workout | null): Promise<void> => {
     pendingActiveRef.current = { value: workout };
     return drainActiveWrites();
-  }, [drainActiveWrites]);
+  }, [drainActiveWrites],
+  );
   const persistActiveWorkoutNow = useCallback(
     (workout: Workout | null): Promise<void> => {
       if (activeSaveTimerRef.current) {
@@ -165,18 +167,21 @@ export function WorkoutProvider({ children }: ChildrenProps) {
     const added = next.exercises.length - (previous?.exercises.length ?? 0);
     if (added <= 0) return next;
     const head = next.exercises.slice(0, next.exercises.length - added);
-    const filled = exercisesWithAddedPrevious(next.exercises.slice(-added), completedWorkoutsRef.current);
+    const filled = exercisesWithAddedPrevious(next.exercises, completedWorkoutsRef.current).slice(-added,
+    );
     return { ...next, exercises: [...head, ...filled] };
   };
 
   const addExercise = useCallback((exercise: WorkoutExerciseInput | string): void => {
     if (!(typeof exercise === 'string' ? exercise : exercise.name).trim()) return;
-    setActiveWorkout((current) => withAddedPrevious(current, addExerciseToWorkout(current, exercise)));
+    setActiveWorkout((current) => withAddedPrevious(current, addExerciseToWorkout(current, exercise)),
+    );
   }, []);
 
   const addExercises = useCallback((exercises: readonly WorkoutExerciseInput[]): void => {
     if (!exercises.length) return;
-    setActiveWorkout((current) => withAddedPrevious(current, addExercisesToWorkout(current, exercises)));
+    setActiveWorkout((current) => withAddedPrevious(current, addExercisesToWorkout(current, exercises)),
+    );
   }, []);
 
   const addSet = useCallback((exerciseId: string): void => {
@@ -193,12 +198,14 @@ export function WorkoutProvider({ children }: ChildrenProps) {
 
   const updateExercise = useCallback((exerciseId: string, changes: import('../types').WorkoutExerciseChanges): void => {
     setActiveWorkout((current) => updateWorkoutExercise(current, exerciseId, changes));
-  }, []);
+  }, [],
+  );
 
   const addWarmupSets = useCallback((exerciseId: string, sets: readonly { weight: string; reps: string }[]): void => {
     if (!sets.length) return;
     setActiveWorkout((current) => addWarmupSetsToWorkout(current, exerciseId, sets));
-  }, []);
+  }, [],
+  );
 
   const updateSet = useCallback(
     (exerciseId: string, setId: string, changes: WorkoutSetChanges): void => {
@@ -212,7 +219,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
   }, []);
 
   const updateActiveWorkout = useCallback((update: (workout: Workout) => Workout): void => {
-    setActiveWorkout((current) => current ? update(current) : current);
+    setActiveWorkout((current) => (current ? update(current) : current));
   }, []);
 
   const cancelWorkout = useCallback((): void => {
@@ -220,31 +227,53 @@ export function WorkoutProvider({ children }: ChildrenProps) {
     setActiveWorkout(null);
   }, [persistActiveWorkoutNow]);
 
-  const finishWorkout = useCallback(async (): Promise<Workout | null> => {
-    const current = activeWorkoutRef.current;
-    if (!current) return null;
-    // Recompute the rest-average from the final completed sets so an uncheck or a
-    // set/exercise removal after the last completion can't leave a stale stat.
-    const finished = recordRestTimerSample({
-      ...current,
-      completedAt: Date.now(),
-      durationSeconds: current.automaticTimeTracking === false
-        ? Math.max(1, current.durationSeconds ?? 0)
-        : Math.max(1, Math.round((Date.now() - current.startedAt) / 1000)),
-    }, 0);
-    // Only clear the live workout once it is safely in the archive: finishing
-    // appends one row, and if that write fails we keep the active session rather
-    // than dropping it between the active slot and history.
-    try {
-      await appendCompletedWorkout(finished);
-    } catch {
-      return null;
-    }
-    setCompletedWorkouts((workouts) => [finished, ...workouts]);
-    persistActiveWorkoutNow(null);
-    setActiveWorkout(null);
-    return finished;
-  }, [persistActiveWorkoutNow]);
+  const finishingRef = React.useRef(false);
+  const finishWorkout = useCallback(
+    async (choice: import('../types').FinishRoutineChoice): Promise<Workout | null> => {
+      const current = activeWorkoutRef.current;
+      if (!current || finishingRef.current) return null;
+      finishingRef.current = true;
+      // Recompute the rest-average from the final completed sets so an uncheck or a
+      // set/exercise removal after the last completion can't leave a stale stat.
+      let finished = recordRestTimerSample(
+        {
+          ...current,
+          completedAt: Date.now(),
+          durationSeconds:
+            current.automaticTimeTracking === false
+              ? Math.max(1, current.durationSeconds ?? 0)
+              : Math.max(1, Math.round((Date.now() - current.startedAt) / 1000)),
+        },
+        0,
+      );
+      // Only clear the live workout once it is safely in the archive: finishing
+      // appends one row, and if that write fails we keep the active session rather
+      // than dropping it between the active slot and history.
+      try {
+        if (activeSaveTimerRef.current) clearTimeout(activeSaveTimerRef.current);
+        activeSaveTimerRef.current = null;
+        pendingActiveRef.current = null;
+        await drainActiveWrites();
+        finished = await persistWorkoutFinish(finished, choice);
+      } catch {
+        // The final save cancelled the debounce; retain that newest draft for
+        // restoration too, rather than leaving an older active snapshot behind.
+        await queueActiveSave(current);
+        finishingRef.current = false;
+        return null;
+      }
+      activeWorkoutRef.current = null;
+      finishingRef.current = false;
+      setCompletedWorkouts((workouts) => [
+        finished,
+        ...workouts.filter((entry) => entry.id !== finished.id),
+      ]);
+      skipNextActivePersistenceRef.current = true;
+      setActiveWorkout(null);
+      return finished;
+    },
+    [drainActiveWrites, queueActiveSave],
+  );
 
   const createCompletedWorkout = useCallback(async (workout: Workout): Promise<void> => {
     await appendCompletedWorkout(workout);

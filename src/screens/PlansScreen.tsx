@@ -220,6 +220,7 @@ export function PlansScreen({ navigation, route }: Props) {
           : undefined,
         attributeIcons: routine.attributeIcons,
         routineId: routine.id,
+        routineTemplate: routine,
         planId: routine.planId,
         exercises: routineExercisesWithNextSessionTargets(routine, completedWorkouts),
       });
