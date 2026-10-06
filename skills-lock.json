@@ -25,18 +25,6 @@
       "skillPath": "plugins/expo/skills/expo-design-system/SKILL.md",
       "computedHash": "06ee277d251026168256c663648e3de5dda1fbed925a0fb69fb008d78fa54bfa"
     },
-    "expo-dom": {
-      "source": "expo/skills",
-      "sourceType": "github",
-      "skillPath": "plugins/expo/skills/expo-dom/SKILL.md",
-      "computedHash": "170214393fb1c6b5f80d60877ef516874b3e52e27c169b4d90507c1cf70307a4"
-    },
-    "expo-migrate-module": {
-      "source": "expo/skills",
-      "sourceType": "github",
-      "skillPath": "plugins/expo-experiments/skills/expo-migrate-module/SKILL.md",
-      "computedHash": "342ad5117ca857bde687d42ff83c6b41edbc4b4b4f02a88fdf1355446f45b669"
-    },
     "expo-module": {
       "source": "expo/skills",
       "sourceType": "github",
