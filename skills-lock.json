@@ -54,12 +54,6 @@
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-ui/SKILL.md",
       "computedHash": "b7cf8d50798a484d84d359c9361c08e80e74fa922a6cb4601e88ce2701f7c449"
-    },
-    "imagegen-frontend-mobile": {
-      "source": "Leonxlnx/taste-skill",
-      "sourceType": "github",
-      "skillPath": "skills/imagegen-frontend-mobile/SKILL.md",
-      "computedHash": "9ab7f4f6ce66a3cff02bbf5894e5bd5af50bf5d6ef0adffdc88e8fab772fe44f"
     }
   }
 }
