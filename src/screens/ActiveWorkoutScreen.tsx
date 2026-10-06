@@ -415,7 +415,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
               style={styles.timerReset}
               labelStyle={styles.timerLabel}
               onOpen={openRestTimer}
-              onRestart={() => startRestTimer(restDuration)}
+              onRestart={() => startRestTimer(preferences.defaultRestSeconds)}
             />
           </> : null}
         </View>

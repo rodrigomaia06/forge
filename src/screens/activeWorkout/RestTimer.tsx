@@ -6,6 +6,7 @@ import { useThemedStyles } from '../../theme/useThemedStyles';
 import { createActiveWorkoutStyles } from './activeWorkoutStyles';
 import { formatRest } from './activeWorkoutFormatters';
 import type { RestTimerSheetProps } from './activeWorkoutTypes';
+import { restTimerPhase, restTimerProgress } from '../../domain/rest/restTimerProgress';
 import { useSynchronizedNow } from '../../domain/rest/synchronizedClock';
 
 export function RestTimerIndicator({
@@ -25,15 +26,9 @@ export function RestTimerIndicator({
   const styles = useThemedStyles(createActiveWorkoutStyles);
   const liveRemaining = useLiveRemaining(endAt, remaining);
   useEffect(() => { onRemainingChange?.(liveRemaining); }, [liveRemaining, onRemainingChange]);
-  const contentColor = !running
-    ? theme.ink
-    : liveRemaining <= 0
-      ? '#C85C5C'
-      : liveRemaining <= duration * 0.2
-        ? '#C58A45'
-        : liveRemaining <= duration * 0.5
-          ? theme.selectionIndicator
-          : theme.ink;
+  const phase = restTimerPhase(liveRemaining, duration);
+  const contentColor = !running ? theme.ink : phase === 'overdue'
+    ? '#C85C5C' : phase === 'warning' ? '#C58A45' : theme.ink;
 
   return (
     <View style={styles.timerIndicator}>
@@ -122,9 +117,10 @@ function ActiveRestTimer({
   const theme = useForgeTheme();
   const styles = useThemedStyles(createActiveWorkoutStyles);
   const liveRemaining = useLiveRemaining(endAt, remaining);
-  const progress = duration > 0 ? Math.max(0, Math.min(1, liveRemaining / duration)) : 0;
+  const progress = restTimerProgress(liveRemaining, duration);
   const isOverdue = liveRemaining < 0;
-  const stateColor = isOverdue ? '#C85C5C' : liveRemaining <= duration * 0.2 ? '#C58A45' : theme.selectionIndicator;
+  const phase = restTimerPhase(liveRemaining, duration);
+  const stateColor = phase === 'overdue' ? '#C85C5C' : phase === 'warning' ? '#C58A45' : theme.selectionIndicator;
 
   return (
     <View style={styles.activeRestTimer}>
