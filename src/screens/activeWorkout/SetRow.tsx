@@ -9,7 +9,12 @@ import { forgeMotion, forgeMotionDuration, useForgeReducedMotion } from '../../t
 import { errorHaptic } from './activeWorkoutFeedback';
 import { CompletionCheck, SplitCompletionCheck } from './CompletionCheck';
 import type { SetRowProps } from './activeWorkoutTypes';
-import { measurementText, measurementUnit, trackingFieldLabel, trackingFields, updateMeasurement } from '../../domain/exercises/tracking';
+import {
+  missingTrackingFields,
+  formatDuration,
+  parseDuration,
+  measurementText, measurementUnit, trackingFieldLabel, trackingFields, updateMeasurement,
+} from '../../domain/exercises/tracking';
 import { hasNextSessionTarget, setTagPresentation } from '../../domain/workouts/setPresentation';
 
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
@@ -74,9 +79,11 @@ export function SetRow({
   };
 
   const validateForCompletion = (): boolean => {
-    const required = trackingFields[trackingType];
-    const missingWeight = required.some((kind) => kind !== 'reps' && !measurementText(set, kind).trim());
-    const missingReps = required.includes('reps') && !measurementText(set, 'reps').trim();
+    const missing = missingTrackingFields(trackingType, set);
+    const missingWeight =
+      missing.some((kind) => kind !== 'reps') ||
+      (routineRangeDrafts.duration !== undefined && !Number.isFinite(parseDuration(routineRangeDrafts.duration)));
+    const missingReps = missing.includes('reps');
     if (missingWeight || missingReps) {
       animateInvalidField('weight', missingWeight ? 1 : 0);
       animateInvalidField('reps', missingReps ? 1 : 0);
@@ -171,14 +178,20 @@ export function SetRow({
             <View accessibilityLabel={`Set ${index + 1} has a next session target`} style={styles.targetIndicator} />
           ) : null}
           {rpe ? (
-            <Text accessibilityLabel={`Set ${index + 1} RPE ${rpe}`} style={styles.rpeIndicator}>{rpe}</Text>
+            <Text accessibilityLabel={`Set ${index + 1} RPE ${rpe}`} style={styles.rpeIndicator}>
+              {rpe}
+            </Text>
           ) : null}
           {set.comment?.trim() ? (
             <View accessibilityLabel={`Set ${index + 1} has a comment`} style={styles.commentIndicator} />
           ) : null}
         </View>
       </Pressable>
-      {showPrevious ? <Text style={styles.previous} numberOfLines={1}>{previous}</Text> : null}
+      {showPrevious ? (
+        <Text style={styles.previous} numberOfLines={1}>
+          {previous}
+        </Text>
+      ) : null}
       {trackingFields[trackingType].map((kind) => {
         const planned = plannedIntervalText(set, kind);
         const allowsRange = setTargetMode === 'routine' && (kind === 'reps' || kind === 'duration');
@@ -187,9 +200,12 @@ export function SetRow({
         // trailing separator mid-entry. Fall back to the structured value only
         // when there is no legacy text (e.g. migrated, measurement-only data).
         const legacyRaw = kind === 'reps' ? set.reps : kind === 'weight' || kind === 'addedWeight' ? set.weight : '';
-        const storedValue = allowsRange ? planned : legacyRaw && legacyRaw.length ? legacyRaw : measurementText(set, kind);
+        const storedValue =
+          kind === 'duration' && !allowsRange && measurementText(set, kind)
+            ? formatDuration(Number(measurementText(set, kind)))
+            : allowsRange ? planned : legacyRaw && legacyRaw.length ? legacyRaw : measurementText(set, kind);
         const draftValue = routineRangeDrafts[kind];
-        const value = allowsRange && draftValue !== undefined ? draftValue : storedValue;
+        const value = draftValue !== undefined ? draftValue : storedValue;
         // Every set field keeps its normal neutral box. A live empty field is
         // guidance rather than a recorded value, so only its text hierarchy
         // changes; completion remains exclusively with the check control.
@@ -203,6 +219,10 @@ export function SetRow({
             onChange({ plannedTargets: updateRoutineRangeTargets(set.plannedTargets, set.id, kind, draft) });
             return;
           }
+          if (kind === 'duration') {
+            text = text.replace(/[,.]/g, ':').replace(/[^0-9:]/g, '');
+          }
+          setRoutineRangeDrafts((current) => ({ ...current, [kind]: text }));
           onChange({
             // Legacy rows still read weight/reps when their structured entry
             // is absent. Use the incoming text—not the previous rendered
@@ -220,7 +240,7 @@ export function SetRow({
           <React.Fragment key={kind}>
             {allowsRange ? (
               <ForgeNumericRangeInput
-                accessibilityLabel={`${trackingFieldLabel(trackingType, kind)} for set ${index + 1}${planned ? `, routine interval ${planned}` : ''}`}
+                accessibilityLabel={`${kind === 'duration' ? 'Sec' : trackingFieldLabel(trackingType, kind)} for set ${index + 1}${planned ? `, routine interval ${planned}` : ''}`}
                 value={value}
                 onChangeText={writeMeasurement}
                 onTouchStart={onInputTouchStart}
@@ -255,25 +275,25 @@ export function SetRow({
               <AnimatedTextInput
               accessibilityLabel={`${trackingFieldLabel(trackingType, kind)} for set ${index + 1}${planned ? `, routine interval ${planned}` : ''}`}
               value={value}
-              selection={{ start: value.length, end: value.length }}
+              lockCursorToEnd
               onChangeText={writeMeasurement}
               onTouchStart={onInputTouchStart}
               onTouchMove={onInputTouchMove}
               onTouchEnd={onInputTouchEnd}
               onFocus={() => {
-                setFocusedInputs((current) => ({ ...current, [kind]: true }));
-                reportInputFocus();
-              }}
+                  setFocusedInputs((current) => ({ ...current, [kind]: true }));
+                  reportInputFocus();
+                }}
               onBlur={() => {
                 setFocusedInputs((current) => ({ ...current, [kind]: false }));
-                if (!allowsRange) return;
                 setRoutineRangeDrafts((current) => {
-                  const next = { ...current };
-                  delete next[kind];
-                  return next;
-                });
+                    const next = { ...current };
+                    delete next[kind];
+                    return next;
+                  });
               }}
-              keyboardType={kind === 'duration' ? 'number-pad' : 'decimal-pad'}
+              inputMode={kind === 'reps' ? 'numeric' : 'decimal'}
+              keyboardType={kind === 'duration' ? 'decimal-pad' : kind === 'reps' ? 'number-pad' : 'decimal-pad'}
               selectTextOnFocus={false}
               placeholder={planned || '—'}
               placeholderTextColor={theme.textDisabled}

@@ -1,3 +1,5 @@
+import { ForgeSheetScrollView } from '../../components/ui/ForgeSheetScrollView';
+import { effectiveTracking } from '../../domain/exercises/tracking';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
@@ -18,7 +20,7 @@ import {
 import { ExerciseDetailBody, UnilateralDetailSection } from '../../components/ExerciseDetailBody';
 import { useSettings } from '../../state/SettingsContext';
 import { exerciseCatalog, taxonomyLabel, type ExerciseCatalogItem } from '../../data/exerciseCatalog';
-import { measurementText, trackingFieldLabel, trackingFields } from '../../domain/exercises/tracking';
+import { measurementDisplay, measurementText, trackingFieldLabel, trackingFields } from '../../domain/exercises/tracking';
 import { buildWarmupPlan } from '../../domain/workouts/warmup';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
@@ -103,7 +105,11 @@ export function WarmupSetsContent({
             <Text style={styles.planWeight}>{`${set.weight} kg`}</Text>
             <Text style={[styles.planReps, { color: theme.textSecondary }]}>{`× ${set.reps}`}</Text>
           </View>
-        )) : <Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>Enter a working weight to see a warm-up ramp.</Text>}
+        )) : (
+          <Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>
+            Enter a working weight to see a warm-up ramp.
+          </Text>
+        )}
       </ForgeCard>
       <Button
         label="Add warm-up sets"
@@ -259,6 +265,8 @@ export function ExerciseInfoContent({
   );
 }
 
+const AnimatedSheetScrollView = Animated.createAnimatedComponent(ForgeSheetScrollView);
+
 export function PreviousSessionsContent({
   exercise,
   workouts,
@@ -308,7 +316,9 @@ export function PreviousSessionsContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showAll]);
 
-  return <><Animated.ScrollView
+  return (
+    <>
+      <AnimatedSheetScrollView
     ref={scrollViewRef}
     // Hug the content and scroll only once it exceeds the sheet's own max
     // height. See .agents/docs/decisions/0005 — a maxHeight ON the ScrollView parks it
@@ -321,17 +331,56 @@ export function PreviousSessionsContent({
     // Cross-fade the drill-in/back swap while the surface height eases.
     entering={reducedMotion ? undefined : FadeIn.duration(forgeMotion.state)}
     exiting={reducedMotion ? undefined : FadeOut.duration(forgeMotion.feedback)}
-  >{sessions.length ? <>
-    {visibleSessions.map(({ workout, exercise: sessionExercise }) => <View key={workout.id}>
-      <ForgeCard testID={`previous-session-card-${workout.id}`} variant="nested" style={styles.previousSessionCard}>
-      <Pressable accessibilityRole={onOpenWorkout ? 'button' : undefined} accessibilityLabel={onOpenWorkout ? `Open ${workout.name}` : undefined} onPress={() => onOpenWorkout?.(workout.id)} style={({ pressed }) => [styles.previousSessionHeader, pressed && pressedFeedbackSubtle]}>
-        <View style={styles.sessionCopy}><Text style={styles.sessionTitle} numberOfLines={1}>{workout.name}</Text><Text style={[styles.sessionDate, { color: theme.textSecondary }]}>{sessionDateTime(workout)}</Text></View>{onOpenWorkout ? <Icon name="chevron-forward" size={22} color={theme.textSecondary} /> : null}
-      </Pressable>
-      {sessionExercise.sets.map((set, index) => <HistorySetRow key={set.id} set={set} index={index} compact isLast={index === sessionExercise.sets.length - 1} trackingType={sessionExercise.exerciseSnapshot?.trackingType ?? sessionExercise.trackingType ?? 'weight-reps'} onOpenDetails={() => setOpenSet({ set, index, trackingType: sessionExercise.exerciseSnapshot?.trackingType ?? sessionExercise.trackingType ?? 'weight-reps' })} />)}
-      </ForgeCard>
-    </View>)}
-    {!showAll && sessions.length > 3 ? <Pressable accessibilityRole="button" accessibilityLabel={`Show ${sessions.length - 3} more sessions`} onPress={revealAll} style={({ pressed }) => [styles.showMoreSessions, { backgroundColor: theme.surfaceElevated }, pressed && pressedFeedbackSubtle]}><Text style={styles.showMoreText}>{`Show ${sessions.length - 3} more`}</Text></Pressable> : null}
-  </> : <View style={[styles.emptyCard, { borderColor: theme.border, backgroundColor: theme.surfaceMuted }]}><Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>No completed sessions for this exercise yet.</Text></View>}</Animated.ScrollView>{openSet ? <SetDetailsCard visible set={openSet.set} index={openSet.index} editable={false} onChange={() => undefined} onDelete={() => undefined} onDone={() => setOpenSet(null)} trackingType={openSet.trackingType} /> : null}</>;
+  >
+        {sessions.length ? (
+          <>
+            {visibleSessions.map(({ workout, exercise: sessionExercise }) => (
+              <View key={workout.id}>
+                <ForgeCard testID={`previous-session-card-${workout.id}`} variant="nested" style={styles.previousSessionCard}>
+                  <Pressable accessibilityRole={onOpenWorkout ? 'button' : undefined} accessibilityLabel={onOpenWorkout ? `Open ${workout.name}` : undefined} onPress={() => onOpenWorkout?.(workout.id)} style={({ pressed }) => [styles.previousSessionHeader, pressed && pressedFeedbackSubtle]}>
+                    <View style={styles.sessionCopy}>
+                      <Text style={styles.sessionTitle} numberOfLines={1}>
+                        {workout.name}
+                      </Text>
+                      <Text style={[styles.sessionDate, { color: theme.textSecondary }]}>
+                        {sessionDateTime(workout)}
+                      </Text>
+                    </View>
+                    {onOpenWorkout ? <Icon name="chevron-forward" size={22} color={theme.textSecondary} /> : null}
+                  </Pressable>
+                  {sessionExercise.sets.map((set, index) => (
+                    <HistorySetRow
+                      key={set.id}
+                      set={set}
+                      index={index}
+                      compact
+                      isLast={index === sessionExercise.sets.length - 1}
+                      trackingType={effectiveTracking(sessionExercise)}
+                      onOpenDetails={() =>
+                        setOpenSet({ set, index, trackingType: effectiveTracking(sessionExercise) })
+                      }
+                    />
+                  ))}
+                </ForgeCard>
+              </View>
+            ))}
+            {!showAll && sessions.length > 3 ? (
+              <Pressable accessibilityRole="button" accessibilityLabel={`Show ${sessions.length - 3} more sessions`} onPress={revealAll} style={({ pressed }) => [styles.showMoreSessions, { backgroundColor: theme.surfaceElevated }, pressed && pressedFeedbackSubtle]}>
+                <Text style={styles.showMoreText}>{`Show ${sessions.length - 3} more`}</Text>
+              </Pressable>
+            ) : null}
+          </>
+        ) : (
+          <View style={[styles.emptyCard, { borderColor: theme.border, backgroundColor: theme.surfaceMuted }]}>
+            <Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>
+              No completed sessions for this exercise yet.
+            </Text>
+          </View>
+        )}
+      </AnimatedSheetScrollView>
+      {openSet ? <SetDetailsCard visible set={openSet.set} index={openSet.index} editable={false} onChange={() => undefined} onDelete={() => undefined} onDone={() => setOpenSet(null)} trackingType={openSet.trackingType} /> : null}
+    </>
+  );
 }
 
 function catalogueDetail(exercise: WorkoutExercise): ExerciseCatalogItem | undefined {
@@ -351,7 +400,7 @@ function catalogueDetail(exercise: WorkoutExercise): ExerciseCatalogItem | undef
       aliases: snapshot.aliases ?? [],
       searchTerms: snapshot.searchTerms,
       workoutTypeIds: snapshot.workoutTypeIds ?? [],
-      trackingType: snapshot.trackingType,
+      trackingType: effectiveTracking(exercise),
       movementPattern: snapshot.movementPattern,
     };
   }
@@ -365,7 +414,7 @@ export function findPreviousSessions(exercise: WorkoutExercise, workouts: readon
     .flatMap((workout) => workout.exercises.map((candidate) => ({ workout, exercise: candidate })))
     .filter(({ exercise: candidate }) => {
       const candidateId = candidate.exerciseSnapshot?.id ?? candidate.exerciseId;
-      return id ? candidateId === id : normalizeName(candidate.name) === normalizedName;
+      return effectiveTracking(candidate) === effectiveTracking(exercise) && (id ? candidateId === id : normalizeName(candidate.name) === normalizedName);
     })
     .sort((a, b) => (b.workout.completedAt ?? b.workout.startedAt) - (a.workout.completedAt ?? a.workout.startedAt));
 }
@@ -386,8 +435,8 @@ function sessionDateTime(workout: Workout): string {
 }
 
 function formatRecordedSet(set: WorkoutSet, exercise: WorkoutExercise): string {
-  const tracking = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType ?? 'weight-reps';
-  const values = trackingFields[tracking].map((kind) => measurementText(set, kind)).filter(Boolean);
+  const tracking = effectiveTracking(exercise);
+  const values = trackingFields[tracking].map((kind) => measurementDisplay(set, kind)).filter(Boolean);
   const recorded = values.length ? values.join(' × ') : 'Not recorded';
   const range = (set.plannedTargets ?? []).map((target) => target.maxValue !== undefined && target.maxValue !== target.minValue ? `${target.minValue}–${target.maxValue}` : String(target.minValue ?? target.maxValue ?? '')).filter(Boolean).join(' · ');
   return range ? `${recorded}   ${range}` : recorded;

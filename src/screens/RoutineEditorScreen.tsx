@@ -1,3 +1,4 @@
+import { changeExerciseTracking } from '../domain/exercises/trackingChanges';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useMemo, useState } from 'react';
 import {
@@ -368,6 +369,10 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
         index={index}
         testID={`routine-exercise-${exerciseId}`}
         exercise={asWorkoutExercise(exercise, completedRoutineSetIds)}
+        onTrackingChange={(_, mode) => change((current) => ({
+          ...current,
+          exercises: changeExerciseTracking(current.exercises.map((item) => asWorkoutExercise(item, [])), exerciseId, mode, () => makeWorkoutId('routine-tracking')),
+        }))}
         addSet={() => addRoutineSet(index, change)}
         removeSet={(_, setId) => removeRoutineSet(index, setId, change)}
         removeExercise={() =>
@@ -762,15 +767,18 @@ function asWorkoutExercise(
 ): WorkoutExercise {
   const exerciseId = exercise.id ?? makeWorkoutId('routine-exercise');
   return {
+    ...exercise,
     id: exerciseId,
     exerciseId: exercise.exerciseId,
     name: exercise.name,
     note: exercise.note,
     trackingType: exercise.trackingType,
+    trackingOverride: exercise.trackingOverride,
     exerciseSnapshot: exercise.exerciseSnapshot,
     sets: (exercise.sets ?? []).map((set, index) => {
       const id = set.id ?? `${exerciseId}-set-${index}`;
       return {
+        ...set,
         id,
         weight: set.weight ?? '',
         reps: set.reps ?? '',

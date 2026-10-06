@@ -278,8 +278,8 @@ test.describe('Active workout flow', () => {
     await page.getByLabel('Complete set 1').click();
 
     await page.getByRole('button', { name: 'Finish workout' }).click();
-    await expect(page.getByTestId('finish-workout-confirmation')).toBeVisible();
-    await page.getByTestId('finish-workout-confirmation').getByRole('button', { name: 'Finish workout' }).click();
+    await expect(page.getByTestId('finish-workout-sheet')).toBeVisible();
+    await page.getByTestId('finish-workout-sheet').getByRole('button', { name: /^Finish (workout|with)/ }).click();
     await expect(page.getByTestId('dashboard-header-title').last()).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Workout', exact: true })).toHaveCount(0);
   });
@@ -913,7 +913,7 @@ test.describe('Active workout flow', () => {
     const repsOnlyTarget = page.getByRole('textbox', { name: 'Next-time reps target for set 1' });
     await expect(repsOnlyTarget).toBeVisible();
     await expect(page.locator('input[aria-label^="Next-time"]')).toHaveCount(1);
-    await expect(repsOnlyTarget).toHaveAttribute('inputmode', 'decimal');
+    await expect(repsOnlyTarget).toHaveAttribute('inputmode', 'numeric');
     if (testInfo.project.use.isMobile) {
       await page.getByTestId('set-next-session-section').scrollIntoViewIfNeeded();
       await page.screenshot({ path: testInfo.outputPath('reps-only-next-session-targets.png') });
@@ -1253,7 +1253,7 @@ test.describe('Active workout flow', () => {
       await page.getByLabel('Kg for set 1').fill(kg);
       await page.getByLabel('Reps for set 1').fill('8');
       await page.getByRole('button', { name: 'Finish workout' }).click();
-      await page.getByTestId('finish-workout-confirmation').getByRole('button', { name: 'Finish workout' }).click();
+      await page.getByTestId('finish-workout-sheet').getByRole('button', { name: /^Finish (workout|with)/ }).click();
       await expect(page.getByRole('button', { name: 'Finish workout' })).toHaveCount(0);
     }
 

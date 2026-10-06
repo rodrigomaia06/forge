@@ -1,6 +1,7 @@
+import { effectiveTracking, trackingModeLabel } from '../../domain/exercises/tracking';
 import { scheduleOnRN } from 'react-native-worklets';
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Keyboard, Pressable, StyleSheet, View } from 'react-native';
 import { runWhenIdle } from '../../utils/idle';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -44,6 +45,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   removeSet,
   removeExercise,
   updateExercise,
+  onTrackingChange,
   addWarmupSets,
   updateSet,
   toggleSet,
@@ -96,7 +98,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   const navigation = useNavigation<RootNavigationProp>();
   const screenIsFocused = useIsFocused();
   const hasExerciseInfo = Boolean(exercise.exerciseSnapshot) || exerciseCatalogById.has(exercise.exerciseId ?? '');
-  const trackingType = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType ?? 'weight-reps';
+  const trackingType = effectiveTracking(exercise);
   // Unilateral exercises complete per side. Prefer the workout-owned snapshot,
   // falling back to the catalog for exercises added before laterality was captured.
   const unilateral = isUnilateralExercise(exercise)
@@ -107,7 +109,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   // Keep the live grid stable. A missing prior value is meaningful information,
   // not a reason to move all measurement fields into a different column.
   const showPrevious = true;
-  const canBuildWarmups = showWarmupSets && Boolean(addWarmupSets) && trackingFields[trackingType].includes('weight');
+  const canBuildWarmups = showWarmupSets && Boolean(addWarmupSets) && trackingFields[trackingType].includes('weight') && trackingFields[trackingType].includes('reps');
 
   useEffect(() => {
     if (!screenIsFocused) {
@@ -272,7 +274,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     ) : null}
                   </View>
                   <Text style={styles.collapsibleExerciseMeta}>
-                    {`${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'}`}
+                    {`${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'}${expanded ? '' : ` · ${trackingModeLabel(trackingType)}`}`}
                   </Text>
                 </View>
                 {showMoreOptions && (
@@ -281,9 +283,10 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     accessibilityLabel={`More options for ${exercise.name}`}
                     onPress={() => {
                       selectionHaptic();
+                      Keyboard.dismiss();
                       setOptionsRestoreInstant(false);
                       setOptionsOpen(true);
-                      setOptionsVisible(true);
+                      requestAnimationFrame(() => setOptionsVisible(true));
                     }}
                     style={({ pressed }) => [styles.moreButton, pressed && pressedFeedback]}
                   >
@@ -324,9 +327,10 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     accessibilityLabel={`More options for ${exercise.name}`}
                     onPress={() => {
                       selectionHaptic();
+                      Keyboard.dismiss();
                       setOptionsRestoreInstant(false);
                       setOptionsOpen(true);
-                      setOptionsVisible(true);
+                      requestAnimationFrame(() => setOptionsVisible(true));
                     }}
                     style={({ pressed }) => [styles.moreButton, pressed && pressedFeedback]}
                   >
@@ -341,7 +345,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                   <Text style={[styles.setHeaderText, styles.setColumn]}>Set</Text>
                   <Text style={[styles.setHeaderText, styles.previousColumn]}>Previous</Text>
                   {trackingFields[trackingType].map((kind) => (
-                    <Text key={kind} style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>{trackingFieldLabel(trackingType, kind)}</Text>
+                    <Text key={kind} style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>{kind === 'duration' && setTargetMode === 'routine' ? 'Sec' : trackingFieldLabel(trackingType, kind)}</Text>
                   ))}
                   <View style={styles.checkColumn} />
                 </View>
@@ -415,6 +419,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
             )}
             {showMoreOptions && optionsOpen && (
               <ExerciseOptionsSheet
+                onTrackingChange={onTrackingChange ? (mode) => onTrackingChange(exercise.id, mode) : undefined}
                 exercise={exercise}
                 visible={optionsVisible}
                 enterInstant={optionsRestoreInstant}
@@ -491,7 +496,7 @@ export function ReadOnlyExerciseSection({
   const navigation = useNavigation<RootNavigationProp>();
   const screenIsFocused = useIsFocused();
   const openSet = openSetIndex === null ? null : exercise.sets[openSetIndex];
-  const trackingType = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType ?? 'weight-reps';
+  const trackingType = effectiveTracking(exercise);
   const unilateral = isUnilateralExercise(exercise)
     || exerciseCatalogById.get(exercise.exerciseId ?? '')?.laterality === 'unilateral';
 
@@ -538,7 +543,7 @@ export function ReadOnlyExerciseSection({
               ) : null}
             </View>
             <Text style={styles.readOnlyExerciseCount}>
-              {`${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'}`}
+              {`${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'}${expanded ? '' : ` · ${trackingModeLabel(trackingType)}`}`}
             </Text>
           </View>
         </View>

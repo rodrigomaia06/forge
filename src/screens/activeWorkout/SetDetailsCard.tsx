@@ -1,3 +1,4 @@
+import { ForgeSheetScrollView } from '../../components/ui/ForgeSheetScrollView';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Pressable,
@@ -33,7 +34,7 @@ import { typeScale } from '../../theme/tokens';
 import { scaleUI } from '../../theme/scale';
 import type { SetMeasurementKind, TrackingType, WorkoutSet, WorkoutSetChanges } from '../../types';
 import { selectionHaptic } from './activeWorkoutFeedback';
-import { measurementText, measurementUnit, trackingFieldLabel, trackingFields, updateMeasurement } from '../../domain/exercises/tracking';
+import { formatDuration, parseDuration, measurementText, measurementUnit, trackingFieldLabel, trackingFields, updateMeasurement } from '../../domain/exercises/tracking';
 import { SET_TAG_PRESENTATIONS, setTagPresentation } from '../../domain/workouts/setPresentation';
 
 const SET_TYPES = SET_TAG_PRESENTATIONS;
@@ -124,7 +125,7 @@ export function SetDetailsCard({
                   ) : undefined
                 }
               />
-              <ScrollView
+              <ForgeSheetScrollView
                 style={styles.contentScroll}
                 contentContainerStyle={styles.sheetContent}
                 keyboardShouldPersistTaps="handled"
@@ -155,7 +156,7 @@ export function SetDetailsCard({
                   onChange={onChange}
                   onNumberFocus={() => setDismissTextKeyboardOnTap(false)}
                 />
-              </ScrollView>
+              </ForgeSheetScrollView>
             </Animated.View>
           )}
         </>
@@ -184,8 +185,8 @@ function SessionNoteEffortSection({
     <View style={styles.section}>
       <Text style={styles.sectionLabel}>Session note &amp; effort</Text>
       <View testID="set-session-note-effort-card">
-      <ForgeCard variant="nested" style={styles.sessionCard}>
-        <View style={styles.sessionNoteSection}>
+        <ForgeCard variant="nested" style={styles.sessionCard}>
+          <View style={styles.sessionNoteSection}>
           <Text style={styles.subsectionLabel}>Comment</Text>
           {editable ? (
             <TextInput
@@ -204,16 +205,18 @@ function SessionNoteEffortSection({
             <Text style={styles.recordedComment}>{set.comment || 'No comment recorded'}</Text>
           )}
         </View>
-        <View style={styles.sessionDivider} />
-        <View style={styles.sessionEffortSection}>
-          <Text style={styles.subsectionLabel}>Effort (RPE)</Text>
-          {editable ? (
+          <View style={styles.sessionDivider} />
+          <View style={styles.sessionEffortSection}>
+            <Text style={styles.subsectionLabel}>Effort (RPE)</Text>
+            {editable ? (
             <EffortSelector set={set} onChange={onChange} />
           ) : (
-            <Text style={styles.recordedValue}>{recorded ? `RPE ${recorded}` : 'No effort recorded'}</Text>
-          )}
-        </View>
-      </ForgeCard>
+              <Text style={styles.recordedValue}>
+                {recorded ? `RPE ${recorded}` : 'No effort recorded'}
+              </Text>
+            )}
+          </View>
+        </ForgeCard>
       </View>
     </View>
   );
@@ -270,7 +273,9 @@ function EffortSelector({ set, onChange }: { set: WorkoutSet; onChange: (changes
                 pressed && pressedFeedbackSubtle,
               ]}
             >
-              <Text style={[styles.effortValue, isSelected && { color: theme.selectionIndicator }]}>{value}</Text>
+              <Text style={[styles.effortValue, isSelected && { color: theme.selectionIndicator }]}>
+                {value}
+              </Text>
             </Pressable>
           );
         })}
@@ -363,7 +368,7 @@ function SetKindPicker({
         closeAccessibilityLabel={`Close ${setLabel}`}
         leading={<ForgeBackButton accessibilityLabel={`Back to ${setLabel}`} onPress={onBack} />}
       />
-      <ScrollView
+      <ForgeSheetScrollView
         style={styles.contentScroll}
         contentContainerStyle={styles.sheetContent}
         keyboardShouldPersistTaps="handled"
@@ -385,7 +390,7 @@ function SetKindPicker({
             ))}
           </View>
         </ForgeCard>
-      </ScrollView>
+      </ForgeSheetScrollView>
     </View>
   );
 }
@@ -472,20 +477,27 @@ function TargetsSection({
   const commaAsDecimal = !isRoutineInterval;
   return (
     <View testID="set-next-session-section" style={[styles.section, styles.targetSection]}>
-      <Text style={styles.sectionLabel}>{isRoutineInterval ? 'Routine interval' : 'Next session'}</Text>
+      <Text style={styles.sectionLabel}>
+        {isRoutineInterval ? 'Routine interval' : 'Next session'}
+      </Text>
       <ForgeCard variant="nested" style={styles.targetCardGroup}>
         {applicableFields.map((kind, index) => (
           <TargetRow
             key={kind}
             showDivider={index > 0}
-            label={isRoutineInterval ? `${trackingFieldLabel(trackingType, kind)} interval` : trackingFieldLabel(trackingType, kind)}
+            label={
+              isRoutineInterval
+                ? `${kind === 'duration' ? 'Sec' : trackingFieldLabel(trackingType, kind)} interval`
+                : trackingFieldLabel(trackingType, kind)
+            }
             value={targetText(targetList, set, kind, isRoutineInterval)}
             placeholder={isRoutineInterval ? 'e.g. 8–12' : '—'}
-            unit={targetUnitLabel(kind)}
+            unit={!isRoutineInterval && kind === 'duration' ? 'mm:ss' : targetUnitLabel(kind)}
             editable={editable}
             commaAsDecimal={commaAsDecimal}
-            keyboardType={isRoutineInterval ? 'numbers-and-punctuation' : 'decimal-pad'}
-            accessibilityLabel={`${isRoutineInterval ? 'Routine' : 'Next-time'} ${trackingFieldLabel(trackingType, kind).toLowerCase()} ${isRoutineInterval ? 'interval' : 'target'} for ${setLabel.toLowerCase()}`}
+            timeValue={!isRoutineInterval && kind === 'duration'}
+            keyboardType={isRoutineInterval ? 'numbers-and-punctuation' : kind === 'reps' ? 'number-pad' : 'decimal-pad'}
+            accessibilityLabel={`${isRoutineInterval ? 'Routine' : 'Next-time'} ${(isRoutineInterval && kind === 'duration' ? 'Sec' : trackingFieldLabel(trackingType, kind)).toLowerCase()} ${isRoutineInterval ? 'interval' : 'target'} for ${setLabel.toLowerCase()}`}
             onChangeText={(value) => onChange({
               ...(isRoutineInterval
                 ? { plannedTargets: updateTargets(targetList, set.id, kind, value, commaAsDecimal) }
@@ -509,6 +521,7 @@ function targetText(targets: WorkoutSet['targets'] | undefined, set: WorkoutSet,
   // is not silently rewritten to `82.5` when re-rendered from the number.
   const legacyRaw = kind === 'reps' ? set.targetReps : kind === 'weight' || kind === 'addedWeight' ? set.targetWeight : undefined;
   if (target?.minValue !== undefined) {
+    if (!isRoutineInterval && kind === 'duration') return formatTargetValues(target.minValue, target.maxValue, '.', true);
     return formatTargetValues(target.minValue, target.maxValue, isRoutineInterval ? '.' : decimalSeparatorOf(legacyRaw));
   }
   if (isRoutineInterval) return '';
@@ -518,7 +531,7 @@ function targetUnitLabel(kind: SetMeasurementKind): string {
   return kind === 'reps' ? 'reps' : measurementUnit[kind];
 }
 function updateTargets(targets: WorkoutSet['targets'] | undefined, setId: string, kind: SetMeasurementKind, text: string, commaAsDecimal: boolean): NonNullable<WorkoutSet['targets']> {
-  const values = targetValues(text, commaAsDecimal);
+  const values = targetValues(text, commaAsDecimal, commaAsDecimal && kind === 'duration');
   const retained = (targets ?? []).filter((target) => target.kind !== kind);
   if (!values.length) return retained;
   return [...retained, { id: `${setId}-target-${kind}`, kind, unit: measurementUnit[kind], minValue: values[0], maxValue: values[1] ?? values[0] }];
@@ -530,16 +543,16 @@ function updateTargets(targets: WorkoutSet['targets'] | undefined, setId: string
  * point (e.g. `82,5` → `82.5`) rather than a range separator, so a decimal
  * weight is never mangled into a `min–max` range.
  */
-function targetValues(text: string, commaAsDecimal: boolean): number[] {
+function targetValues(text: string, commaAsDecimal: boolean, timeValue = false): number[] {
   const separator = commaAsDecimal ? /[-–—]/ : /[,\-–—]/;
   return text
     .split(separator)
-    .map((part) => (commaAsDecimal ? part.replace(',', '.') : part).trim())
+    .map((part) => (timeValue ? part.replace(/[,.]/g, ':') : commaAsDecimal ? part.replace(',', '.') : part).trim())
     // `Number('')` is 0 and passes `isFinite`, so an empty side (a cleared field
     // or a half-typed range like "8-") would collapse the target to 0. Drop
     // empty parts first so clearing the field removes the target instead.
     .filter((part) => part.length > 0)
-    .map((value) => Number(value))
+    .map((value) => timeValue ? parseDuration(value) : Number(value))
     .filter(Number.isFinite);
 }
 
@@ -548,20 +561,20 @@ function decimalSeparatorOf(raw: string | undefined): ',' | '.' {
   return raw?.includes(',') && !raw.includes('.') ? ',' : '.';
 }
 
-function formatTargetValues(minValue: number, maxValue?: number, decimalSeparator: ',' | '.' = '.'): string {
+function formatTargetValues(minValue: number, maxValue?: number, decimalSeparator: ',' | '.' = '.', timeValue = false): string {
   const format = (value: number): string =>
-    decimalSeparator === ',' ? String(value).replace('.', ',') : String(value);
+    timeValue ? formatDuration(value) : decimalSeparator === ',' ? String(value).replace('.', ',') : String(value);
   return maxValue !== undefined && maxValue !== minValue
     ? `${format(minValue)}–${format(maxValue)}`
     : format(minValue);
 }
 
-function normalizedTargetText(text: string, commaAsDecimal: boolean): string {
-  const [minValue, maxValue] = targetValues(text, commaAsDecimal);
+function normalizedTargetText(text: string, commaAsDecimal: boolean, timeValue = false): string {
+  const [minValue, maxValue] = targetValues(text, commaAsDecimal, timeValue);
   if (minValue === undefined) return '';
   // Keep the separator the user actually entered (comma stays comma) for single
   // next-session targets; routine ranges always canonicalise to a period.
-  return formatTargetValues(minValue, maxValue, commaAsDecimal ? decimalSeparatorOf(text) : '.');
+  return formatTargetValues(minValue, maxValue, commaAsDecimal ? decimalSeparatorOf(text) : '.', timeValue);
 }
 
 function TargetRow({
@@ -571,6 +584,7 @@ function TargetRow({
   unit,
   editable,
   commaAsDecimal,
+  timeValue = false,
   keyboardType,
   accessibilityLabel,
   onChangeText,
@@ -583,6 +597,7 @@ function TargetRow({
   unit: string;
   editable: boolean;
   commaAsDecimal: boolean;
+  timeValue?: boolean;
   keyboardType: KeyboardTypeOptions;
   accessibilityLabel: string;
   onChangeText: (value: string) => void;
@@ -630,7 +645,7 @@ function TargetRow({
                 // The number keypad is the primary input path; keep pasted or
                 // hardware-keyboard text equally numeric so targets never
                 // retain alphabetic characters.
-                const numericValue = nextValue.replace(/[^0-9.,\-–—]/g, '');
+                const numericValue = timeValue ? nextValue.replace(/[,.]/g, ':').replace(/[^0-9:]/g, '') : nextValue.replace(/[^0-9.,\-–—]/g, '');
                 draftValueRef.current = numericValue;
                 setDraftValue(numericValue);
                 onChangeText(numericValue);
@@ -642,7 +657,7 @@ function TargetRow({
               onBlur={() => {
                 editingRef.current = false;
                 const rawValue = draftValueRef.current;
-                const canonicalValue = normalizedTargetText(rawValue, commaAsDecimal);
+                const canonicalValue = normalizedTargetText(rawValue, commaAsDecimal, timeValue);
                 // Preserve natural entry while focused, then use one canonical
                 // format after leaving the field (for example `8–12`).
                 draftValueRef.current = canonicalValue;
@@ -691,15 +706,13 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     setDetailsSheet: {
       minHeight: 0,
       maxHeight: '92%',
-      paddingBottom: 20,
+      paddingBottom: scaleUI(30),
     },
     sheetBody: { flexShrink: 1 },
     contentScroll: { flexShrink: 1 },
     sheetContent: {
       paddingHorizontal: 20,
-      // This breathing room also increases the natural sheet height, lifting
-      // the editor slightly while keeping its final rows clear of the bottom edge.
-      paddingBottom: 45,
+      paddingBottom: scaleUI(32),
     },
     section: { marginTop: 14 },
     targetSection: { marginTop: 8, paddingBottom: 4 },

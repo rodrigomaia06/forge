@@ -1,3 +1,6 @@
+import { ForgeSheetScrollView } from '../components/ui/ForgeSheetScrollView';
+import { makeWorkoutId } from '../state/workoutMutations';
+import { changeExerciseTracking } from '../domain/exercises/trackingChanges';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useMemo, useRef, useState } from 'react';
 import {
@@ -277,6 +280,14 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         key={exercise.id}
         exercise={exercise}
         index={index}
+        onTrackingChange={(_, mode) =>
+          updateDraft((current) => ({
+            ...current,
+            exercises: changeExerciseTracking(current.exercises, exercise.id, mode, () =>
+              makeWorkoutId('tracking'),
+            ),
+          }))
+        }
         addSet={(exerciseId) =>
           updateDraft((current) => addSetToWorkout(current, exerciseId) as Workout)
         }
@@ -783,22 +794,23 @@ function HistoryRoutineSourceContent({
         closeAccessibilityLabel="Close routine chooser"
         leading={<HistoryPickerBackButton onPress={onBack} />}
       />
-      <ScrollView style={styles.sourceScroll} contentContainerStyle={styles.sourceContent} showsVerticalScrollIndicator={false}>
-            {selectedPlan ? (
+      <ForgeSheetScrollView style={styles.sourceScroll} contentContainerStyle={styles.sourceContent} showsVerticalScrollIndicator={false}>
+        {selectedPlan ? (
               selectedPlan.routines.length ? (
                 <RoutineChoiceCard routines={selectedPlan.routines} onPress={(routine) => onSelectRoutine(routine, selectedPlan)} />
               ) : <Text style={styles.emptySourceText}>This plan has no routines yet.</Text>
             ) : (
-              <>
-                {standaloneRoutines.length ? <View style={styles.sourceGroup}>
+          <>
+            {standaloneRoutines.length ? <View style={styles.sourceGroup}>
                   <Text style={styles.sourceLabel}>Standalone routines</Text>
                   <RoutineChoiceCard routines={standaloneRoutines} onPress={(routine) => onSelectRoutine(routine)} />
                 </View> : null}
-                {plans.length ? <View style={styles.sourceGroup}>
-                  <Text style={styles.sourceLabel}>Plans</Text>
-                  <ForgeCard variant="nested" size="compact">
-                    {plans.map((plan, index) => (
-                      <Pressable
+            {plans.length ? (
+              <View style={styles.sourceGroup}>
+                <Text style={styles.sourceLabel}>Plans</Text>
+                <ForgeCard variant="nested" size="compact">
+                  {plans.map((plan, index) => (
+                    <Pressable
                         key={plan.id}
                         accessibilityRole="button"
                         accessibilityLabel={`Choose routine from ${plan.name}`}
@@ -809,20 +821,28 @@ function HistoryRoutineSourceContent({
                         }}
                         style={({ pressed }) => [styles.sourceRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }, pressed && pressedFeedbackSubtle]}
                       >
-                        <Icon name="layers" size={21} color={theme.ink} />
-                        <View style={styles.sourceRowText}>
-                          <Text style={styles.sourceRowLabel}>{plan.name}</Text>
-                          <Text style={styles.sourceRowDetail}>{plan.routines.length === 1 ? '1 routine' : `${plan.routines.length} routines`}</Text>
-                        </View>
-                        <Icon name="chevron-forward" size={20} color={theme.slate} />
-                      </Pressable>
-                    ))}
-                  </ForgeCard>
-                </View> : null}
-                {!standaloneRoutines.length && !plans.length ? <Text style={styles.emptySourceText}>Create a routine first, then use it as an editable historical-workout starting point.</Text> : null}
-              </>
-            )}
-      </ScrollView>
+                      <Icon name="layers" size={21} color={theme.ink} />
+                      <View style={styles.sourceRowText}>
+                        <Text style={styles.sourceRowLabel}>{plan.name}</Text>
+                        <Text style={styles.sourceRowDetail}>
+                          {plan.routines.length === 1 ? '1 routine' : `${plan.routines.length} routines`}
+                        </Text>
+                      </View>
+                      <Icon name="chevron-forward" size={20} color={theme.slate} />
+                    </Pressable>
+                  ))}
+                </ForgeCard>
+              </View>
+            ) : null}
+            {!standaloneRoutines.length && !plans.length ? (
+              <Text style={styles.emptySourceText}>
+                Create a routine first, then use it as an editable historical-workout starting
+                point.
+              </Text>
+            ) : null}
+          </>
+        )}
+      </ForgeSheetScrollView>
     </View>
   );
 }

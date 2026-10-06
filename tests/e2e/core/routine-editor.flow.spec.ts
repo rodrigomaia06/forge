@@ -59,6 +59,6 @@ test.describe('Core flow: routine editor', () => {
     await page.getByRole('tab', { name: 'Plans' }).click();
     await expect(page.getByText('Core intervals', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Start Core intervals' }).click();
-    await expect(page.getByLabel('Sec for set 1, routine interval 45–75')).toBeVisible();
+    await expect(page.getByLabel('Time for set 1, routine interval 45–75')).toBeVisible();
   });
 });

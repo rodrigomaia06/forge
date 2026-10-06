@@ -1,3 +1,5 @@
+import { scaleUI } from '../../theme/scale';
+import { TrackingChoices } from './TrackingChoices';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Keyboard, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
@@ -577,13 +579,27 @@ const CatalogCategory = React.memo(function CatalogCategory({
                 </View>
               </Pressable>
               {expanded && hasComposableInputs(family) ? <FacetPickerRows family={family} familyKey={familyKey} selected={selectedModifiers} onToggle={onToggleModifier} /> : null}
-              {expanded && hasComposableInputs(family) && family.standalone.map((exercise) => {
-                const isSelected = selected.has(exercise.id);
-                return <Pressable key={exercise.id} accessibilityRole="checkbox" accessibilityLabel={`${group}, ${exercise.name}`} accessibilityState={{ checked: isSelected }} onPress={() => onToggleExercise(exercise)} style={({ pressed }) => [styles.subVariationRow, isSelected && styles.subVariationRowSelected, pressed && styles.exerciseOptionPressed]}>
-                  <View style={styles.exerciseOptionCopy}><Text style={styles.variationName}>{exercise.name}</Text>{formatCatalogVariation(exercise.name, exercise.variation) ? <Text style={styles.equipmentMeta}>{formatCatalogVariation(exercise.name, exercise.variation)}</Text> : null}</View>
-                  <CompletionCheck selected={isSelected} tone="selection" testID={`exercise-selection-${exercise.id}`} />
-                </Pressable>;
-              })}
+              {expanded && hasComposableInputs(family) &&
+                family.standalone.map((exercise) => {
+                  const isSelected = selected.has(exercise.id);
+                  return (
+                    <Pressable key={exercise.id} accessibilityRole="checkbox" accessibilityLabel={`${group}, ${exercise.name}`} accessibilityState={{ checked: isSelected }} onPress={() => onToggleExercise(exercise)} style={({ pressed }) => [styles.subVariationRow, isSelected && styles.subVariationRowSelected, pressed && styles.exerciseOptionPressed]}>
+                      <View style={styles.exerciseOptionCopy}>
+                        <Text style={styles.variationName}>{exercise.name}</Text>
+                        {formatCatalogVariation(exercise.name, exercise.variation) ? (
+                          <Text style={styles.equipmentMeta}>
+                            {formatCatalogVariation(exercise.name, exercise.variation)}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <CompletionCheck
+                  selected={isSelected}
+                  tone="selection"
+                  testID={`exercise-selection-${exercise.id}`}
+                />
+                    </Pressable>
+                  );
+                })}
               {!hasComposableInputs(family) && equipmentGroups.map(({ equipment, exercises }) => {
                 const equipmentSelectedCount = exercises.filter((exercise) => selected.has(exercise.id)).length;
                 const hasSubVariations = exercises.length > 1;
@@ -690,7 +706,7 @@ function FacetPickerRows({ family, familyKey, selected, onToggle }: {
       <ForgeCard variant="nested" style={styles.facetGroupCard}>
         {inputs.map((input, index) => {
           const checked = selected.has(input.id);
-          return <Pressable key={input.id} accessibilityRole="checkbox" accessibilityLabel={`${family.group}, ${input.label}`} accessibilityState={{ checked }} onPress={() => onToggle(familyKey, input.id)} style={({ pressed }) => [styles.facetRow, index > 0 && styles.groupRowDivider, checked && styles.subVariationRowSelected, pressed && styles.exerciseOptionPressed]}>
+          return <Pressable key={input.id} accessibilityRole="checkbox" accessibilityLabel={`${family.group}, ${input.label}`} accessibilityState={{ checked }} aria-checked={checked} onPress={() => onToggle(familyKey, input.id)} style={({ pressed }) => [styles.facetRow, index > 0 && styles.groupRowDivider, checked && styles.subVariationRowSelected, pressed && styles.exerciseOptionPressed]}>
             <Text style={styles.variationName}>{input.label}</Text>
             <CompletionCheck selected={checked} tone="selection" />
           </Pressable>;
@@ -711,13 +727,12 @@ function AnimatedChevron({ expanded }: { expanded: boolean }) {
 function AnimatedCount({ count }: { count: number }) {
   const styles = useThemedStyles(createStyles);
   return (
-    <Text style={[styles.groupCountText, count > 0 && styles.groupCountTextActive]}>
-      {count}
-    </Text>
+    <Text style={[styles.groupCountText, count > 0 && styles.groupCountTextActive]}>{count}</Text>
   );
 }
 
 export function ExerciseOptionsSheet({
+  onTrackingChange,
   visible,
   exercise,
   onClose,
@@ -735,6 +750,7 @@ export function ExerciseOptionsSheet({
   onToggleOffSession,
   enterInstant = false,
 }: {
+  onTrackingChange?: (mode: import('../../types').TrackingType) => void;
   visible: boolean;
   exercise: WorkoutExercise;
   onClose: () => void;
@@ -760,7 +776,9 @@ export function ExerciseOptionsSheet({
   const styles = useThemedStyles(createStyles);
   const reducedMotion = useForgeReducedMotion();
   const { preferences, updatePreferences } = useSettings();
-  const [view, setView] = useState<'actions' | 'note' | 'history' | 'info' | 'rest' | 'rest-unilateral' | 'warmup'>('actions');
+  const [view, setView] = useState<
+    'actions' | 'note' | 'history' | 'info' | 'rest' | 'rest-unilateral' | 'warmup' | 'tracking'
+  >('actions');
   // Cross-fade each view's content while the surface height eases (ADR 0005 /
   // .agents/rules/design Motion): a hierarchical drill-in, never a lateral slide.
   const viewEntering = reducedMotion ? undefined : FadeIn.duration(forgeMotion.state);
@@ -816,7 +834,9 @@ export function ExerciseOptionsSheet({
   const commitNote = (): void => {
     onEditNote?.(noteDraft.trim());
   };
-  const openView = (nextView: 'note' | 'history' | 'info' | 'rest' | 'rest-unilateral' | 'warmup'): void => {
+  const openView = (
+    nextView: 'note' | 'history' | 'info' | 'rest' | 'rest-unilateral' | 'warmup' | 'tracking',
+  ): void => {
     // These destinations replace the action list in one Forge sheet. The
     // keyed-fragment remount cross-fades each view's content (its Animated root)
     // while ForgeActionSheet's animateContentLayout eases the surface height.
@@ -859,6 +879,16 @@ export function ExerciseOptionsSheet({
       // view (e.g. back on the action list) sitting low with dead space.
       animateContentLayout={false}
       actions={[
+        ...(!readOnly && onTrackingChange
+          ? [
+              {
+                icon: 'measure' as const,
+                label: 'Tracking',
+                dismiss: false,
+                onPress: () => openView('tracking'),
+              },
+            ]
+          : []),
         ...((onEditNote || (readOnly && exercise.note?.trim())) ? [{
           icon: 'note' as const,
           label: readOnly ? 'View note' : exercise.note?.trim() ? 'Edit note' : 'Add note',
@@ -885,21 +915,27 @@ export function ExerciseOptionsSheet({
           onPress: onRemove,
         }] : []),
       ]}
-      replacement={view !== 'actions' ? (closeSheet) => (
-        <React.Fragment key={view}>
-          <ForgeBottomSheetHandle />
-          <ForgeSheetHeader
-            title={view === 'note' ? 'Exercise note' : view === 'history' ? 'Previous sessions' : view === 'rest' ? 'Duration' : view === 'rest-unilateral' ? 'Side rest' : view === 'warmup' ? 'Warm-up sets' : 'Exercise info'}
-            // The Duration views drop the close X and give their right slot to
-            // Default; Back returns to the info card and the sheet closes there.
-            onClose={view === 'rest' || view === 'rest-unilateral' ? undefined : closeSheet}
-            closeAccessibilityLabel={`Close ${view === 'note' ? 'exercise note' : view === 'history' ? 'previous sessions' : view === 'warmup' ? 'warm-up sets' : 'exercise info'}`}
-            leading={
+      replacement={
+        view !== 'actions'
+          ? (closeSheet) => (
+              <React.Fragment key={view}>
+                <ForgeBottomSheetHandle />
+                <ForgeSheetHeader
+                  title={
+                    view === 'tracking'
+                      ? 'Tracking'
+                      : view === 'note' ? 'Exercise note' : view === 'history' ? 'Previous sessions' : view === 'rest' ? 'Duration' : view === 'rest-unilateral' ? 'Side rest' : view === 'warmup' ? 'Warm-up sets' : 'Exercise info'
+                  }
+                  // The Duration views drop the close X and give their right slot to
+                  // Default; Back returns to the info card and the sheet closes there.
+                  onClose={view === 'rest' || view === 'rest-unilateral' ? undefined : closeSheet}
+                  closeAccessibilityLabel={`Close ${view === 'note' ? 'exercise note' : view === 'history' ? 'previous sessions' : view === 'warmup' ? 'warm-up sets' : 'exercise info'}`}
+                  leading={
               view === 'rest' || view === 'rest-unilateral'
                 ? <ForgeEditorBackButton onPress={() => openView('info')} accessibilityLabel="Back to exercise info" />
                 : <ForgeEditorBackButton onPress={backToActions} accessibilityLabel="Back to exercise options" />
             }
-            trailing={
+                  trailing={
               (view === 'rest' || view === 'rest-unilateral') && !readOnly ? (
                 <HeaderAction
                   accessibilityLabel={view === 'rest-unilateral' ? 'Use default between-sides rest' : 'Use default rest time'}
@@ -912,8 +948,17 @@ export function ExerciseOptionsSheet({
                 />
               ) : undefined
             }
-          />
-          {view === 'history' ? <PreviousSessionsContent
+                />
+                {view === 'tracking' && onTrackingChange ? (
+                  <TrackingChoices
+                    exercise={exercise}
+                    onSelect={(mode) => {
+                      onTrackingChange(mode);
+                      closeSheet();
+                    }}
+                  />
+                ) : null}
+                {view === 'history' ? <PreviousSessionsContent
             exercise={exercise}
             workouts={completedWorkouts}
             excludeWorkoutId={excludeWorkoutId}
@@ -926,7 +971,7 @@ export function ExerciseOptionsSheet({
               closeSheet();
             }}
           /> : null}
-          {view === 'info' ? (
+                {view === 'info' ? (
             <ExerciseInfoContent
               exercise={exercise}
               onPressRest={readOnly ? undefined : () => openView('rest')}
@@ -937,7 +982,7 @@ export function ExerciseOptionsSheet({
               onToggleLeadSide={readOnly ? undefined : toggleLeadSide}
             />
           ) : null}
-          {view === 'warmup' && addWarmupSets ? (
+                {view === 'warmup' && addWarmupSets ? (
             <WarmupSetsContent
               exercise={exercise}
               workouts={completedWorkouts}
@@ -950,7 +995,7 @@ export function ExerciseOptionsSheet({
               }}
             />
           ) : null}
-          {view === 'rest' ? (
+                {view === 'rest' ? (
             // The wheel must measure against a settled frame to land on the
             // selected row: a reserved min-height plus a plain (non-entering)
             // container, exactly like the settings/library duration wheels. A
@@ -962,7 +1007,7 @@ export function ExerciseOptionsSheet({
               />
             </View>
           ) : null}
-          {view === 'rest-unilateral' ? (
+                {view === 'rest-unilateral' ? (
             <View style={styles.restPickerContent}>
               <ForgeDurationWheel
                 selectedDuration={unilateralRestOverride ?? preferences.defaultUnilateralRestSeconds}
@@ -970,8 +1015,8 @@ export function ExerciseOptionsSheet({
               />
             </View>
           ) : null}
-          {view === 'note' && readOnly ? <ExerciseNoteView note={exercise.note ?? ''} /> : null}
-          {view === 'note' && !readOnly ? <Animated.View style={styles.exerciseNoteContent} entering={viewEntering} exiting={viewExiting}>
+                {view === 'note' && readOnly ? <ExerciseNoteView note={exercise.note ?? ''} /> : null}
+                {view === 'note' && !readOnly ? <Animated.View style={styles.exerciseNoteContent} entering={viewEntering} exiting={viewExiting}>
             <ForgeCard variant="nested" style={styles.exerciseNoteCard}>
               <TextInput
                 accessibilityLabel="Exercise note"
@@ -994,8 +1039,10 @@ export function ExerciseOptionsSheet({
               />
             </ForgeCard>
           </Animated.View> : null}
-        </React.Fragment>
-      ) : null}
+              </React.Fragment>
+            )
+          : null
+      }
     />
   );
 }
@@ -1003,11 +1050,17 @@ export function ExerciseOptionsSheet({
 function ExerciseNoteView({ note }: { note: string }) {
   const styles = useThemedStyles(createStyles);
   const reducedMotion = useForgeReducedMotion();
-  return <Animated.View
+  return (
+    <Animated.View
     style={styles.exerciseNoteContent}
     entering={reducedMotion ? undefined : FadeIn.duration(forgeMotion.state)}
     exiting={reducedMotion ? undefined : FadeOut.duration(forgeMotion.feedback)}
-  ><ForgeCard variant="nested" style={styles.exerciseNoteCard}><Text style={styles.readOnlyExerciseNote}>{note}</Text></ForgeCard></Animated.View>;
+  >
+      <ForgeCard variant="nested" style={styles.exerciseNoteCard}>
+        <Text style={styles.readOnlyExerciseNote}>{note}</Text>
+      </ForgeCard>
+    </Animated.View>
+  );
 }
 
 export function WorkoutOptionsSheet({
@@ -1245,7 +1298,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       backgroundColor: dashboardTheme.colorScheme === 'light' ? dashboardTheme.surfaceElevated : dashboardTheme.surfaceMuted,
     },
     equipmentRowSelected: {
-      backgroundColor: dashboardTheme.surfaceMuted,
+      backgroundColor: dashboardTheme.successSurface,
       borderColor: dashboardTheme.selectionIndicator,
     },
     equipmentName: {
@@ -1267,7 +1320,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       backgroundColor: dashboardTheme.surfaceElevated,
     },
     subVariationRowSelected: {
-      backgroundColor: dashboardTheme.surfaceMuted,
+      backgroundColor: dashboardTheme.successSurface,
       borderColor: dashboardTheme.selectionIndicator,
     },
     variationName: {
@@ -1304,7 +1357,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     restPickerContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 32, minHeight: 400 },
     restChoiceCard: { overflow: 'hidden', borderRadius: 16 },
     restDefaultAction: { paddingHorizontal: 14, backgroundColor: theme.surfaceMuted, borderColor: theme.border, borderWidth: 1 },
-    exerciseNoteContent: { paddingHorizontal: 20, paddingBottom: 32 },
+    exerciseNoteContent: { paddingHorizontal: 20, paddingBottom: scaleUI(32) },
     exerciseNoteCard: { paddingHorizontal: 14, paddingVertical: 12, minHeight: 156 },
     readOnlyExerciseNote: { color: theme.textPrimary, ...typeScale.body },
     exerciseNoteInput: {

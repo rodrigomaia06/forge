@@ -2,7 +2,10 @@ import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ForgeText as Text } from '../../components/ui';
-import { measurementText, trackingFieldLabel, trackingFields } from '../../domain/exercises/tracking';
+import {
+  measurementDisplay,
+  measurementText, trackingFieldLabel, trackingFields,
+} from '../../domain/exercises/tracking';
 import { hasNextSessionTarget, setTagPresentation } from '../../domain/workouts/setPresentation';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
@@ -38,7 +41,7 @@ export function HistorySetRow({
   const tag = setTagPresentation(set.tag);
   const rpe = measurementText(set, 'rpe');
   const target = hasNextSessionTarget(set);
-  const values = trackingFields[trackingType].map((kind) => measurementText(set, kind)).filter(Boolean);
+  const values = trackingFields[trackingType].map((kind) => measurementDisplay(set, kind)).filter(Boolean);
   const planned = set.plannedTargets?.map((item) => item.maxValue !== undefined && item.maxValue !== item.minValue ? `${item.minValue}–${item.maxValue}` : String(item.minValue ?? item.maxValue ?? '')).filter(Boolean).join(' · ');
   const formatTarget = (item: NonNullable<WorkoutSet['plannedTargets']>[number]): string =>
     item.maxValue !== undefined && item.maxValue !== item.minValue
@@ -48,28 +51,68 @@ export function HistorySetRow({
   // have targets, not recordings) and fall back to a clean dash rather than a
   // wrapping "Not recorded" inside the narrow value box.
   const valueFor = (kind: SetMeasurementKind): string => {
-    const recorded = measurementText(set, kind);
+    const recorded = measurementDisplay(set, kind);
     if (recorded) return recorded;
     const targetForKind = set.plannedTargets?.find((item) => item.kind === kind)
       ?? set.targets?.find((item) => item.kind === kind);
     return targetForKind ? formatTarget(targetForKind) || '—' : '—';
   };
   if (compact) {
-    return <View style={[styles.compactRow, { borderTopColor: theme.divider }]}>
-      <View style={styles.compactCopy}>
-        <View style={styles.compactMetricsLine}>
-          <Text style={styles.metrics}>{values.length ? values.join(' × ') : 'Not recorded'}</Text>
-          {rpe ? <Text style={[styles.compactRpe, { color: theme.textSecondary }]}>{`RPE ${rpe}`}</Text> : null}
+    return (
+      <View style={[styles.compactRow, { borderTopColor: theme.divider }]}>
+        <View style={styles.compactCopy}>
+          <View style={styles.compactMetricsLine}>
+            <Text style={styles.metrics}>
+              {values.length ? values.join(' × ') : 'Not recorded'}
+            </Text>
+            {rpe ? <Text style={[styles.compactRpe, { color: theme.textSecondary }]}>{`RPE ${rpe}`}</Text> : null}
+          </View>
+          {planned ? <Text style={[styles.planned, { color: theme.textSecondary }]}>{planned}</Text> : null}
+          {set.comment?.trim() ? <Text numberOfLines={2} style={[styles.comment, { color: theme.textSecondary }]}>{`“${set.comment.trim()}”`}</Text> : null}
         </View>
-        {planned ? <Text style={[styles.planned, { color: theme.textSecondary }]}>{planned}</Text> : null}
-        {set.comment?.trim() ? <Text numberOfLines={2} style={[styles.comment, { color: theme.textSecondary }]}>{`“${set.comment.trim()}”`}</Text> : null}
+        <Pressable accessibilityRole="button" accessibilityLabel={`Open details for set ${index + 1}`} onPress={() => { selectionHaptic(); onOpenDetails(); }} style={({ pressed }) => [styles.compactChipButton, pressed && styles.compactChipPressed]}>
+          <View testID={`history-set-number-chip-${index + 1}`} style={styles.chipWrap}>
+            <Text style={[styles.chip, tag && { color: tag.color, backgroundColor: `${tag.color}20` }]}>
+              {tag?.letter ?? index + 1}
+            </Text>
+            {target ? <View accessibilityLabel={`Set ${index + 1} has a next session target`} style={[styles.targetDot, { backgroundColor: theme.setTargetIndicator }]} /> : null}
+            {set.comment?.trim() ? <View accessibilityLabel={`Set ${index + 1} has a comment`} style={[styles.commentDot, { backgroundColor: theme.ink }]} /> : null}
+          </View>
+        </Pressable>
       </View>
-      <Pressable accessibilityRole="button" accessibilityLabel={`Open details for set ${index + 1}`} onPress={() => { selectionHaptic(); onOpenDetails(); }} style={({ pressed }) => [styles.compactChipButton, pressed && styles.compactChipPressed]}>
-        <View testID={`history-set-number-chip-${index + 1}`} style={styles.chipWrap}><Text style={[styles.chip, tag && { color: tag.color, backgroundColor: `${tag.color}20` }]}>{tag?.letter ?? index + 1}</Text>{target ? <View accessibilityLabel={`Set ${index + 1} has a next session target`} style={[styles.targetDot, { backgroundColor: theme.setTargetIndicator }]} /> : null}{set.comment?.trim() ? <View accessibilityLabel={`Set ${index + 1} has a comment`} style={[styles.commentDot, { backgroundColor: theme.ink }]} /> : null}</View>
-      </Pressable>
-    </View>;
+    );
   }
-  return <View testID={`workout-details-set-${set.id}`} style={[styles.fullRow, !isLast && { borderBottomWidth: 1, borderBottomColor: theme.divider }]}><Pressable accessibilityRole="button" accessibilityLabel={`Open details for set ${index + 1}`} onPress={() => { selectionHaptic(); onOpenDetails(); }} style={styles.numberButton}><View testID={`history-set-number-chip-${index + 1}`} style={styles.chipWrap}><Text style={[styles.chip, tag && { color: tag.color, backgroundColor: `${tag.color}20` }]}>{tag?.letter ?? index + 1}</Text>{target ? <View accessibilityLabel={`Set ${index + 1} has a next session target`} style={[styles.targetDot, { backgroundColor: theme.setTargetIndicator }]} /> : null}{rpe ? <Text accessibilityLabel={`Set ${index + 1} RPE ${rpe}`} style={styles.rpe}>{rpe}</Text> : null}{set.comment?.trim() ? <View accessibilityLabel={`Set ${index + 1} has a comment`} style={[styles.commentDot, { backgroundColor: theme.ink }]} /> : null}</View></Pressable>{showPrevious ? <Text style={styles.previous}>{set.previous?.trim() || 'Not recorded'}</Text> : null}{trackingFields[trackingType].map((kind) => <View key={kind} accessibilityLabel={trackingFieldLabel(trackingType, kind)} style={[styles.value, { borderColor: theme.divider, backgroundColor: theme.surfaceMuted }]}><Text numberOfLines={1} style={styles.valueText}>{valueFor(kind)}</Text></View>)}{showCompletion ? <View style={styles.check}><CompletionCheck selected={set.completed} testID={`workout-details-set-completion-${set.id}`} /></View> : null}</View>;
+  return (
+    <View testID={`workout-details-set-${set.id}`} style={[styles.fullRow, !isLast && { borderBottomWidth: 1, borderBottomColor: theme.divider }]}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Open details for set ${index + 1}`} onPress={() => { selectionHaptic(); onOpenDetails(); }} style={styles.numberButton}>
+        <View testID={`history-set-number-chip-${index + 1}`} style={styles.chipWrap}>
+          <Text style={[styles.chip, tag && { color: tag.color, backgroundColor: `${tag.color}20` }]}>
+            {tag?.letter ?? index + 1}
+          </Text>
+          {target ? <View accessibilityLabel={`Set ${index + 1} has a next session target`} style={[styles.targetDot, { backgroundColor: theme.setTargetIndicator }]} /> : null}
+          {rpe ? (
+            <Text accessibilityLabel={`Set ${index + 1} RPE ${rpe}`} style={styles.rpe}>
+              {rpe}
+            </Text>
+          ) : null}
+          {set.comment?.trim() ? <View accessibilityLabel={`Set ${index + 1} has a comment`} style={[styles.commentDot, { backgroundColor: theme.ink }]} /> : null}
+        </View>
+      </Pressable>
+      {showPrevious ? <Text style={styles.previous}>{set.previous?.trim() || 'Not recorded'}</Text> : null}
+      {trackingFields[trackingType].map((kind) => (
+        <View key={kind} accessibilityLabel={trackingFieldLabel(trackingType, kind)} style={[styles.value, { borderColor: theme.divider, backgroundColor: theme.surfaceMuted }]}>
+          <Text numberOfLines={1} style={styles.valueText}>
+            {valueFor(kind)}
+          </Text>
+        </View>
+      ))}
+      {showCompletion ? (
+        <View style={styles.check}>
+          <CompletionCheck selected={set.completed} testID={`workout-details-set-completion-${set.id}`} />
+        </View>
+      ) : null}
+    </View>
+  );
 }
 
 const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.create({
