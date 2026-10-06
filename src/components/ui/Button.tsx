@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Icon } from './Icon';
 import { ForgeText as Text } from './ForgeText';
-import { colors, radii, typeScale } from '../../theme/tokens';
+import { colors, radii, shadows, typeScale } from '../../theme/tokens';
 import { scaleUI } from '../../theme/scale';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { lightHaptic, mediumHaptic } from './haptics';
@@ -72,7 +72,7 @@ export function Button({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel || label}
-      accessibilityState={{ disabled, busy: loading }}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
       disabled={disabled || loading}
       hitSlop={hitSlop}
       unstable_pressDelay={pressDelay}
@@ -91,7 +91,7 @@ export function Button({
         // token makes the neutral ring visible). `secondary`/ghost stay borderless;
         // Light secondary separates by its elevated fill + the card shadow.
         isOutline && styles.outline,
-        borderless && !isPrimary && !isGhost && !isOutline && styles.tonalShadow,
+        borderless && !isPrimary && !isGhost && !isOutline && [styles.tonalShadow, { shadowColor: resolvedTheme.shadow }],
         isGhost && styles.ghost,
         (disabled || loading) && [styles.disabled, { backgroundColor: resolvedTheme.surfaceMuted, borderColor: resolvedTheme.surfaceMuted }],
         pressed && !(disabled || loading) && pressedSurface(variant, resolvedTone, resolvedTheme),
@@ -126,13 +126,7 @@ const styles = StyleSheet.create({
   ghost: { borderWidth: 0 },
   // Light-only raised-control shadow (dark sets cardShadowOpacity 0, so this stays
   // flat there). Matches ForgeCard so borderless buttons separate like nested cards.
-  tonalShadow: {
-    shadowColor: '#17191C',
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
-  },
+  tonalShadow: { ...shadows.tonalControl },
   label: typeScale.controlLabel,
   disabled: { opacity: 1 },
 });

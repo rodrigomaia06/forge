@@ -1,3 +1,4 @@
+import { restTimerColors } from '../../theme/tokens';
 import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { Button, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeDurationWheel, ForgeSheetHeader, ForgeText as Text, Icon } from '../../components/ui';
@@ -28,7 +29,7 @@ export function RestTimerIndicator({
   useEffect(() => { onRemainingChange?.(liveRemaining); }, [liveRemaining, onRemainingChange]);
   const phase = restTimerPhase(liveRemaining, duration);
   const contentColor = !running ? theme.ink : phase === 'overdue'
-    ? '#C85C5C' : phase === 'warning' ? '#C58A45' : theme.ink;
+    ? restTimerColors.overdue : phase === 'warning' ? restTimerColors.warning : theme.ink;
 
   return (
     <View style={styles.timerIndicator}>
@@ -120,7 +121,7 @@ function ActiveRestTimer({
   const progress = restTimerProgress(liveRemaining, duration);
   const isOverdue = liveRemaining < 0;
   const phase = restTimerPhase(liveRemaining, duration);
-  const stateColor = phase === 'overdue' ? '#C85C5C' : phase === 'warning' ? '#C58A45' : theme.selectionIndicator;
+  const stateColor = phase === 'overdue' ? restTimerColors.overdue : phase === 'warning' ? restTimerColors.warning : theme.selectionIndicator;
 
   return (
     <View style={styles.activeRestTimer}>

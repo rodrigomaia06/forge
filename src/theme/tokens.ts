@@ -138,6 +138,7 @@ export const darkTheme: ForgeTheme = {
 export const colors = lightTheme;
 
 export const radii = {
+  capsule: 1000,
   control: 12,
   iconButton: 14,
   selectedDay: 13,
@@ -200,3 +201,12 @@ export const typeScale = Object.fromEntries(
 ) as typeof baseTypeScale;
 
 export const maxFontSizeMultiplier = 1.5;
+
+/** Fixed timer phases shared by header and sheet, matching the native activity. */
+export const restTimerColors = { warning: '#C58A45', overdue: '#C85C5C' } as const;
+
+/** Existing elevation geometry shared by Forge chrome and tonal controls. */
+export const shadows = {
+  dock: { shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 7 }, elevation: 6 },
+  tonalControl: { shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+} as const;
