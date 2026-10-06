@@ -14,5 +14,3 @@ tests/results/
 test-results/
 playwright-report/
 artifacts/
-
-# Agent skills, Claude's skill links, and skills-lock.json are shared in Git.
