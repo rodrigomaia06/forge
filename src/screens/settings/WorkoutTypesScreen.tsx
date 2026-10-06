@@ -1,10 +1,10 @@
+import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -270,7 +270,7 @@ function SwipeTypeRow({
     })
     .onEnd((event) => {
       const next = (open.value ? -width : 0) + event.translationX < -width * 0.55;
-      runOnJS(settle)(next, Math.abs(event.translationX) > 6);
+      scheduleOnRN(settle, next, Math.abs(event.translationX) > 6);
     });
   const animated = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
   const content = (

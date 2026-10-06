@@ -1,5 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { LayoutAnimation, PanResponder, Platform, Pressable, ScrollView, StyleSheet, UIManager, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { scheduleOnRN } from 'react-native-worklets';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, UIManager, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import type { IconName, WorkoutTypePreference } from '../../types';
@@ -130,31 +132,38 @@ export function ForgeSwipeableAttributeRow({
   const reducedMotion = useForgeReducedMotion();
   const [deleteRevealed, setDeleteRevealed] = useState(false);
   const translateX = useSharedValue(0);
+  const dragStart = useSharedValue(0);
+  const swipeActivated = useSharedValue(false);
   const deleteWidth = 56;
   useEffect(() => {
     translateX.value = reducedMotion
       ? (deleteRevealed ? -deleteWidth : 0)
       : withSpring(deleteRevealed ? -deleteWidth : 0, forgeMotion.swipeSpring);
   }, [deleteRevealed, reducedMotion, translateX]);
-  const settle = (shouldOpen: boolean): void => {
+  const settle = useCallback((shouldOpen: boolean): void => {
     if (shouldOpen !== deleteRevealed) mediumHaptic();
     setDeleteRevealed(shouldOpen);
-  };
-  const panResponder = useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponder: (_event, gesture) => Math.abs(gesture.dx) > 6 && Math.abs(gesture.dx) > Math.abs(gesture.dy) && (deleteRevealed || gesture.dx < 0),
-    onPanResponderMove: (_event, gesture) => {
-      const base = deleteRevealed ? -deleteWidth : 0;
-      translateX.value = Math.max(-deleteWidth, Math.min(0, base + gesture.dx));
-    },
-    onPanResponderRelease: (_event, gesture) => {
-      const offset = (deleteRevealed ? -deleteWidth : 0) + gesture.dx;
-      settle(Math.max(-deleteWidth, Math.min(0, offset)) < -deleteWidth * 0.58);
-    },
-    onPanResponderTerminate: () => settle(false),
-  }), [deleteRevealed, translateX]);
+  }, [deleteRevealed]);
+  const swipe = useMemo(() => Gesture.Pan()
+    .activeOffsetX([-6, 6])
+    .failOffsetY([-6, 6])
+    .onBegin(() => { swipeActivated.set(false); })
+    .onStart(() => { swipeActivated.set(true); dragStart.set(translateX.get()); })
+    .onUpdate((event) => {
+      translateX.set(Math.max(-deleteWidth, Math.min(0, dragStart.get() + event.translationX)));
+    })
+    .onEnd((event) => {
+      const shouldOpen = event.velocityX < -500 || (event.velocityX <= 500 && translateX.get() < -deleteWidth * 0.58);
+      translateX.set(reducedMotion ? (shouldOpen ? -deleteWidth : 0) : withSpring(shouldOpen ? -deleteWidth : 0, forgeMotion.swipeSpring));
+      scheduleOnRN(settle, shouldOpen);
+    })
+    .onFinalize((_event, success) => {
+      if (!success) translateX.set(reducedMotion ? (deleteRevealed ? -deleteWidth : 0) : withSpring(deleteRevealed ? -deleteWidth : 0, forgeMotion.swipeSpring));
+    }), [deleteRevealed, dragStart, reducedMotion, translateX, settle, swipeActivated]);
   const swipeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value }] }));
   return (
-    <View {...panResponder.panHandlers} style={styles.swipeAttributeRow}>
+    <GestureDetector gesture={swipe}>
+    <View style={styles.swipeAttributeRow}>
       <View style={[styles.attributeDeleteAction, { backgroundColor: theme.destructiveSurface, pointerEvents: deleteRevealed ? 'auto' : 'none' }]}>
         <Pressable accessibilityRole="button" accessibilityLabel={`Delete ${label} attribute`} onPress={() => { errorHaptic(); onDelete(); }} style={({ pressed }) => [styles.attributeDeleteButton, pressed && { backgroundColor: theme.destructiveSurfacePressed }]}>
           <Icon name="trash" size={18} color={theme.textDestructive} />
@@ -170,7 +179,7 @@ export function ForgeSwipeableAttributeRow({
             <View style={styles.directAttributeValue}>{valueInput}</View>
           </View>
         ) : (
-          <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${label} attribute`} onPress={() => { lightHaptic(); onEdit?.(); }} style={[styles.row, compact && styles.rowCompact, divider && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${label} attribute`} onPress={() => { if (swipeActivated.get()) return; lightHaptic(); onEdit?.(); }} style={[styles.row, compact && styles.rowCompact, divider && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
             <Icon name={icon} size={22} color={theme.textPrimary} />
             <ForgeText numberOfLines={2} style={[styles.rowLabel, { color: theme.textPrimary }]}>{label}</ForgeText>
             <ForgeText style={[styles.rowValue, { color: theme.slate }]}>{value || 'Add value'}</ForgeText>
@@ -179,6 +188,7 @@ export function ForgeSwipeableAttributeRow({
         )}
       </Animated.View>
     </View>
+    </GestureDetector>
   );
 }
 

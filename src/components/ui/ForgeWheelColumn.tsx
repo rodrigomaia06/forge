@@ -1,3 +1,4 @@
+import { scheduleOnRN } from 'react-native-worklets';
 import React, { useEffect, useRef } from 'react';
 import {
   Pressable,
@@ -10,7 +11,6 @@ import {
 import Animated, {
   Extrapolation,
   interpolate,
-  runOnJS,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
@@ -110,7 +110,7 @@ export function ForgeWheelColumn({
       scrollOffset.value = event.contentOffset.y;
       if (index !== hapticIndex.value) {
         hapticIndex.value = index;
-        runOnJS(selectionHaptic)();
+        scheduleOnRN(selectionHaptic);
       }
     },
   });

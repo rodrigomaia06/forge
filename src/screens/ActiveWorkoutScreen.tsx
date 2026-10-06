@@ -1,7 +1,7 @@
+import { scheduleOnRN } from 'react-native-worklets';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
 import Animated, {
-  runOnJS,
   useAnimatedScrollHandler,
   useSharedValue,
 } from 'react-native-reanimated';
@@ -636,16 +636,16 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
   const dockLastOffsetOnUi = useSharedValue(0);
   const dockDirectionDistanceOnUi = useSharedValue(0);
   const { setCompact: setDockCompact } = usePrimaryDock();
-  const { onSetInputFocus, onScrollOffsetChange: recordScrollOffset, keyboardSpacer } = useFocusedSetKeyboardLift(workoutListRef);
+  const scrollOffset = useSharedValue(0);
+  const { onSetInputFocus, keyboardSpacer } = useFocusedSetKeyboardLift(workoutListRef, scrollOffset);
   const handleDockCompactChange = useCallback((nextCompact: boolean): void => setDockCompact(nextCompact), [setDockCompact]);
-  const handleWorkoutScrollOffset = useCallback((offset: number): void => {
-    recordScrollOffset(offset);
-    onScrollOffsetChange(offset);
-  }, [onScrollOffsetChange, recordScrollOffset]);
   useEffect(() => () => setDockCompact(false), [setDockCompact]);
   const workoutScrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
-      runOnJS(handleWorkoutScrollOffset)(event.contentOffset.y);
+      const offset = event.contentOffset.y;
+      const wasElevated = scrollOffset.get() > 1;
+      scrollOffset.set(offset);
+      if ((offset > 1) !== wasElevated) scheduleOnRN(onScrollOffsetChange, offset);
       const nextOffset = Math.max(0, event.contentOffset.y);
       const delta = nextOffset - dockLastOffsetOnUi.value;
       dockLastOffsetOnUi.value = nextOffset;
@@ -657,11 +657,11 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
       if (movingDown && !dockCompactOnUi.value && dockDirectionDistanceOnUi.value >= 18) {
         dockCompactOnUi.value = true;
         dockDirectionDistanceOnUi.value = 0;
-        runOnJS(handleDockCompactChange)(true);
+        scheduleOnRN(handleDockCompactChange, true);
       } else if (!movingDown && dockCompactOnUi.value && dockDirectionDistanceOnUi.value <= -18) {
         dockCompactOnUi.value = false;
         dockDirectionDistanceOnUi.value = 0;
-        runOnJS(handleDockCompactChange)(false);
+        scheduleOnRN(handleDockCompactChange, false);
       }
     },
   });

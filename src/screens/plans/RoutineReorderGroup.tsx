@@ -1,8 +1,8 @@
+import { scheduleOnRN } from 'react-native-worklets';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { Gesture, GestureDetector, type PanGesture } from 'react-native-gesture-handler';
 import Animated, {
-  runOnJS,
   type SharedValue,
   useAnimatedReaction,
   useAnimatedStyle,
@@ -38,7 +38,7 @@ type Props<T> = {
   outerScrollOffset: SharedValue<number>;
   onReorder: (data: T[]) => void;
   onDragStateChange: (active: boolean) => void;
-  onDragPointerChange: (absoluteY: number | null) => void;
+  dragPointerY: SharedValue<number | null>;
   onDragBoundsChange: (canMoveUp: boolean, canMoveDown: boolean) => void;
   renderItem: (info: RoutineReorderRenderItem<T>) => React.ReactNode;
 };
@@ -71,7 +71,7 @@ export function RoutineReorderGroup<T>({
   outerScrollOffset,
   onReorder,
   onDragStateChange,
-  onDragPointerChange,
+  dragPointerY,
   onDragBoundsChange,
   renderItem,
 }: Props<T>) {
@@ -91,7 +91,7 @@ export function RoutineReorderGroup<T>({
     keyExtractor,
     onReorder,
     onDragStateChange,
-    onDragPointerChange,
+    dragPointerY,
     onDragBoundsChange,
   });
   latest.current = {
@@ -99,7 +99,7 @@ export function RoutineReorderGroup<T>({
     keyExtractor,
     onReorder,
     onDragStateChange,
-    onDragPointerChange,
+    dragPointerY,
     onDragBoundsChange,
   };
 
@@ -120,10 +120,10 @@ export function RoutineReorderGroup<T>({
     activeIndex.value = -1;
     rawTranslation.value = 0;
     dragStartScrollOffset.value = outerScrollOffset.value;
-    latest.current.onDragPointerChange(null);
+    dragPointerY.set(null);
     latest.current.onDragBoundsChange(false, false);
     latest.current.onDragStateChange(false);
-  }, [activeIndex, dragStartScrollOffset, outerScrollOffset, rawTranslation]);
+  }, [activeIndex, dragStartScrollOffset, outerScrollOffset, rawTranslation, dragPointerY]);
 
   // Reset the shared transforms right after the reordered data commits (before
   // paint), so the settled rows land at their new slots with translateY 0.
@@ -133,15 +133,10 @@ export function RoutineReorderGroup<T>({
     resetDrag();
   }, [renderedData, resetDrag]);
 
-  const beginDrag = useCallback((index: number, absoluteY: number) => {
+  const beginDrag = useCallback((index: number) => {
     selectionHaptic();
-    latest.current.onDragPointerChange(absoluteY);
     latest.current.onDragBoundsChange(index > 0, index < latest.current.renderedData.length - 1);
     latest.current.onDragStateChange(true);
-  }, []);
-
-  const updatePointer = useCallback((absoluteY: number) => {
-    latest.current.onDragPointerChange(absoluteY);
   }, []);
 
   const updateBounds = useCallback((index: number) => {
@@ -183,7 +178,7 @@ export function RoutineReorderGroup<T>({
   useAnimatedReaction(
     () => targetIndex.value,
     (current, previous) => {
-      if (current >= 0 && current !== previous) runOnJS(updateBounds)(current);
+      if (current >= 0 && current !== previous) scheduleOnRN(updateBounds, current);
     },
     [updateBounds],
   );
@@ -205,7 +200,7 @@ export function RoutineReorderGroup<T>({
           dragStartScrollOffset={dragStartScrollOffset}
           outerScrollOffset={outerScrollOffset}
           onBeginDrag={beginDrag}
-          onUpdatePointer={updatePointer}
+          dragPointerY={dragPointerY}
           onFinishDrag={finishDrag}
           onCancelDrag={cancelDrag}
         >
@@ -234,7 +229,7 @@ function RoutineReorderItem({
   dragStartScrollOffset,
   outerScrollOffset,
   onBeginDrag,
-  onUpdatePointer,
+  dragPointerY,
   onFinishDrag,
   onCancelDrag,
   children,
@@ -250,8 +245,8 @@ function RoutineReorderItem({
   effectiveTranslation: SharedValue<number>;
   dragStartScrollOffset: SharedValue<number>;
   outerScrollOffset: SharedValue<number>;
-  onBeginDrag: (index: number, absoluteY: number) => void;
-  onUpdatePointer: (absoluteY: number) => void;
+  onBeginDrag: (index: number) => void;
+  dragPointerY: SharedValue<number | null>;
   onFinishDrag: (from: number, to: number) => void;
   onCancelDrag: () => void;
   children: (dragGesture: PanGesture) => React.ReactNode;
@@ -302,28 +297,31 @@ function RoutineReorderItem({
       .activateAfterLongPress(140)
       .maxPointers(1)
       .onStart((event) => {
+        dragPointerY.set(event.absoluteY);
         activeIndex.value = index;
         rawTranslation.value = 0;
         dragStartScrollOffset.value = outerScrollOffset.value;
-        runOnJS(onBeginDrag)(index, event.absoluteY);
+        scheduleOnRN(onBeginDrag, index);
       })
       .onUpdate((event) => {
         rawTranslation.value = event.translationY;
-        runOnJS(onUpdatePointer)(event.absoluteY);
+        dragPointerY.set(event.absoluteY);
       })
       // Snap the held row to its destination slot and commit in the same commit
       // the data reorders (the layout effect resets transforms). Committing here
       // rather than in a settle-spring callback means an interrupted animation
       // can never silently drop the reorder.
       .onEnd(() => {
+        dragPointerY.set(null);
         const destination = targetIndex.value;
         const scrollDelta = outerScrollOffset.value - dragStartScrollOffset.value;
         rawTranslation.value = (destination - index) * rowHeight - scrollDelta;
-        runOnJS(onFinishDrag)(index, destination);
+        scheduleOnRN(onFinishDrag, index, destination);
       })
       .onFinalize((_event, success) => {
         if (success || activeIndex.value !== index) return;
-        runOnJS(onCancelDrag)();
+        dragPointerY.set(null);
+        scheduleOnRN(onCancelDrag);
       }),
     [
       activeIndex,
@@ -334,7 +332,7 @@ function RoutineReorderItem({
       onBeginDrag,
       onCancelDrag,
       onFinishDrag,
-      onUpdatePointer,
+      dragPointerY,
       outerScrollOffset,
       rawTranslation,
       reducedMotion,

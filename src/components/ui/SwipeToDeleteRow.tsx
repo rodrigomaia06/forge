@@ -1,7 +1,8 @@
+import { scheduleOnRN } from 'react-native-worklets';
 import React, { useEffect, useState } from 'react';
 import { LayoutAnimation, Platform, Pressable, StyleSheet, UIManager, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import { useForgeTheme } from '../../theme/ThemeProvider';
@@ -151,7 +152,7 @@ export function SwipeToDeleteRow({
     .onEnd((gesture) => {
       const offset = (open.value ? -deleteWidth : 0) + gesture.translationX;
       const shouldOpen = Math.max(-deleteWidth, Math.min(0, offset)) < -deleteWidth * 0.5;
-      runOnJS(settle)(shouldOpen);
+      scheduleOnRN(settle, shouldOpen);
     });
 
   return (

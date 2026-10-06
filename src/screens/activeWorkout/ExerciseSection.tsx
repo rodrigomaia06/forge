@@ -1,10 +1,10 @@
+import { scheduleOnRN } from 'react-native-worklets';
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { runWhenIdle } from '../../utils/idle';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -177,7 +177,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
     .activeOffsetX([-16, 16])
     .failOffsetY([-16, 16])
     .onStart(() => {
-      runOnJS(beginCardSwipe)();
+      scheduleOnRN(beginCardSwipe);
     })
     .onUpdate((gesture) => {
       if (!cardOpen.value && gesture.translationX >= 0) return;
@@ -187,10 +187,10 @@ export const ExerciseSection = React.memo(function ExerciseSection({
     })
     .onEnd((gesture) => {
       const offset = (cardOpen.value ? -deleteActionWidth : 0) + gesture.translationX;
-      runOnJS(settleCard)(Math.max(-deleteActionWidth, Math.min(0, offset)) < -42);
+      scheduleOnRN(settleCard, Math.max(-deleteActionWidth, Math.min(0, offset)) < -42);
     })
     .onFinalize(() => {
-      runOnJS(clearDeletePressGuard)();
+      scheduleOnRN(clearDeletePressGuard);
     });
   const swipeContentStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: cardTranslateX.value }],

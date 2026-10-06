@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, LayoutAnimation, Platform, Pressable, StyleSheet, UIManager, View } from 'react-native';
 import type { PanGesture } from 'react-native-gesture-handler';
-import { useSharedValue, type SharedValue } from 'react-native-reanimated';
+import Animated, { scrollTo, useAnimatedRef, useAnimatedScrollHandler, useFrameCallback, useSharedValue, type SharedValue } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import type { ForgeActionSheetAction } from '../components/ui';
 import {
@@ -61,7 +62,7 @@ type RoutineReorderCoordination = {
   reducedMotion: boolean;
   dragging: boolean;
   onDragStateChange: (active: boolean) => void;
-  onDragPointerChange: (absoluteY: number | null) => void;
+  dragPointerY: SharedValue<number | null>;
   onDragBoundsChange: (canMoveUp: boolean, canMoveDown: boolean) => void;
 };
 
@@ -89,18 +90,17 @@ export function PlansScreen({ navigation, route }: Props) {
   const [editing, setEditing] = useState(false);
   const [headerElevated, setHeaderElevated] = useState(false);
   const [routineDragging, setRoutineDragging] = useState(false);
-  const plansListRef = useRef<FlatList<WorkoutPlan>>(null);
+  const plansListRef = useAnimatedRef<FlatList<WorkoutPlan>>();
   const plansViewportRef = useRef<View>(null);
-  const plansScrollOffset = useRef(0);
-  const plansContentHeight = useRef(0);
-  const plansViewportTop = useRef(0);
-  const plansViewportHeight = useRef(0);
-  const dragPointerY = useRef<number | null>(null);
+  const plansContentHeight = useSharedValue(0);
+  const plansViewportTop = useSharedValue(0);
+  const plansViewportHeight = useSharedValue(0);
+  const dragPointerY = useSharedValue<number | null>(null);
   const dragCanMoveUp = useRef(false);
   const dragCanMoveDown = useRef(false);
   const dragActive = useRef(false);
-  const autoscrollFrame = useRef<number | null>(null);
   const animatedScrollOffset = useSharedValue(0);
+  const headerElevatedOnUi = useSharedValue(false);
   const hasContent = plans.length > 0 || standaloneRoutines.length > 0;
   const reducedMotion = useForgeReducedMotion();
   // Animate the list reflow when a plan/routine row is created or deleted.
@@ -112,85 +112,64 @@ export function PlansScreen({ navigation, route }: Props) {
       LayoutAnimation.create(forgeMotion.transition, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity),
     );
   };
-  const handlePlansScrollOffset = useCallback((offset: number): void => {
-    plansScrollOffset.current = offset;
-    animatedScrollOffset.value = offset;
-    setHeaderElevated(offset > 1);
-  }, [animatedScrollOffset]);
+  const plansScrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      const offset = event.contentOffset.y;
+      const wasElevated = headerElevatedOnUi.get();
+      animatedScrollOffset.set(offset);
+      if ((offset > 1) !== wasElevated) {
+        headerElevatedOnUi.set(offset > 1);
+        scheduleOnRN(setHeaderElevated, offset > 1);
+      }
+    },
+  });
 
   const measurePlansViewport = useCallback((): void => {
     requestAnimationFrame(() => {
       plansViewportRef.current?.measureInWindow((_x, y, _width, height) => {
-        plansViewportTop.current = y;
-        plansViewportHeight.current = height;
+        plansViewportTop.set(y);
+        plansViewportHeight.set(height);
       });
     });
   }, []);
 
-  const stopAutoscroll = useCallback((): void => {
-    if (autoscrollFrame.current != null) {
-      cancelAnimationFrame(autoscrollFrame.current);
-      autoscrollFrame.current = null;
-    }
-  }, []);
+  // Pointer, edge scrolling and held-row compensation stay on the UI runtime.
+  // Normalize the step to elapsed time so 120 Hz devices do not scroll twice as fast.
+  const autoscroll = useFrameCallback((frame) => {
+    const pointer = dragPointerY.get();
+    if (pointer == null) return;
+    const height = plansViewportHeight.get();
+    const top = plansViewportTop.get();
+    const maxOffset = Math.max(0, plansContentHeight.get() - height);
+    if (height <= 0 || maxOffset <= 0) return;
+    let intensity = 0;
+    if (pointer < top + AUTOSCROLL_EDGE) intensity = -Math.min(1, (top + AUTOSCROLL_EDGE - pointer) / AUTOSCROLL_EDGE);
+    else if (pointer > top + height - AUTOSCROLL_EDGE) intensity = Math.min(1, (pointer - top - height + AUTOSCROLL_EDGE) / AUTOSCROLL_EDGE);
+    if (intensity === 0) return;
+    const delta = AUTOSCROLL_MAX_STEP * intensity * Math.min(frame.timeSincePreviousFrame ?? 16.67, 32) / 16.67;
+    const current = animatedScrollOffset.get();
+    const next = Math.max(0, Math.min(maxOffset, current + delta));
+    if (next === current) return;
+    animatedScrollOffset.set(next);
+    scrollTo(plansListRef, 0, next, false);
+  }, false);
 
-  // Edge autoscroll for a handle drag: while the finger sits in a top/bottom
-  // edge zone, ramp the parent list offset so a drag can cross a group taller
-  // than the viewport. The reorder surface recomputes its target from the live
-  // scroll offset, so the held row stays glued to the finger as the list moves.
-  const runAutoscroll = useCallback((): void => {
-    autoscrollFrame.current = requestAnimationFrame(() => {
-      const pointer = dragPointerY.current;
-      if (!dragActive.current || pointer == null) {
-        autoscrollFrame.current = null;
-        return;
-      }
-      const viewportHeight = plansViewportHeight.current;
-      const top = plansViewportTop.current;
-      const bottom = top + viewportHeight;
-      const maxOffset = Math.max(0, plansContentHeight.current - viewportHeight);
-      let delta = 0;
-      // Only autoscroll once the viewport is measured; an unmeasured (0-height)
-      // viewport would read every pointer as past the bottom edge.
-      if (viewportHeight <= 0 || maxOffset <= 0) {
-        runAutoscroll();
-        return;
-      }
-      if (pointer < top + AUTOSCROLL_EDGE) {
-        const intensity = Math.min(1, (top + AUTOSCROLL_EDGE - pointer) / AUTOSCROLL_EDGE);
-        delta = -AUTOSCROLL_MAX_STEP * intensity;
-      } else if (pointer > bottom - AUTOSCROLL_EDGE) {
-        const intensity = Math.min(1, (pointer - (bottom - AUTOSCROLL_EDGE)) / AUTOSCROLL_EDGE);
-        delta = AUTOSCROLL_MAX_STEP * intensity;
-      }
-      if (delta !== 0 && maxOffset > 0) {
-        const next = Math.max(0, Math.min(maxOffset, plansScrollOffset.current + delta));
-        if (next !== plansScrollOffset.current) {
-          plansScrollOffset.current = next;
-          plansListRef.current?.scrollToOffset({ offset: next, animated: false });
-        }
-      }
-      runAutoscroll();
-    });
-  }, []);
+  useEffect(() => {
+    autoscroll.setActive(routineDragging);
+    return () => autoscroll.setActive(false);
+  }, [autoscroll, routineDragging]);
 
   const handleRoutineDragState = useCallback((active: boolean): void => {
     dragActive.current = active;
     setRoutineDragging(active);
     if (active) {
       measurePlansViewport();
-      stopAutoscroll();
-      runAutoscroll();
     } else {
-      dragPointerY.current = null;
+      dragPointerY.set(null);
       dragCanMoveUp.current = false;
       dragCanMoveDown.current = false;
-      stopAutoscroll();
     }
-  }, [measurePlansViewport, runAutoscroll, stopAutoscroll]);
-  const handleRoutineDragPointer = useCallback((absoluteY: number | null): void => {
-    dragPointerY.current = absoluteY;
-  }, []);
+  }, [measurePlansViewport, dragPointerY]);
   const handleRoutineDragBounds = useCallback((canMoveUp: boolean, canMoveDown: boolean): void => {
     dragCanMoveUp.current = canMoveUp;
     dragCanMoveDown.current = canMoveDown;
@@ -201,14 +180,14 @@ export function PlansScreen({ navigation, route }: Props) {
     if (editing) return;
     dragActive.current = false;
     setRoutineDragging(false);
-    stopAutoscroll();
-  }, [editing, stopAutoscroll]);
+    dragPointerY.set(null);
+  }, [editing, dragPointerY]);
   useEffect(() => navigation.addListener('blur', () => {
     dragActive.current = false;
     setRoutineDragging(false);
-    stopAutoscroll();
-  }), [navigation, stopAutoscroll]);
-  useEffect(() => () => stopAutoscroll(), [stopAutoscroll]);
+    dragPointerY.set(null);
+  }), [navigation, dragPointerY]);
+  useEffect(() => () => dragPointerY.set(null), [dragPointerY]);
 
   useEffect(() => {
     if (!route.params?.openCreation) return;
@@ -221,7 +200,7 @@ export function PlansScreen({ navigation, route }: Props) {
     reducedMotion,
     dragging: routineDragging,
     onDragStateChange: handleRoutineDragState,
-    onDragPointerChange: handleRoutineDragPointer,
+    dragPointerY,
     onDragBoundsChange: handleRoutineDragBounds,
   };
 
@@ -390,7 +369,7 @@ export function PlansScreen({ navigation, route }: Props) {
           {headerElevated ? <HeaderEdge /> : null}
         </View>
         <View ref={plansViewportRef} collapsable={false} style={styles.scrollView} onLayout={measurePlansViewport}>
-          <FlatList
+          <Animated.FlatList
             ref={plansListRef}
             testID="plans-scroll"
             style={styles.scrollView}
@@ -405,8 +384,8 @@ export function PlansScreen({ navigation, route }: Props) {
             // the offset while the drag is held, and scrolling is restored on drop.
             scrollEnabled={!routineDragging}
             keyboardShouldPersistTaps="handled"
-            onScroll={(event) => handlePlansScrollOffset(event.nativeEvent.contentOffset.y)}
-            onContentSizeChange={(_width, height) => { plansContentHeight.current = height; }}
+            onScroll={plansScrollHandler}
+            onContentSizeChange={(_width, height) => { plansContentHeight.set(height); }}
             scrollEventThrottle={16}
             ListHeaderComponent={(
               <View style={styles.listHeader}>
@@ -422,7 +401,7 @@ export function PlansScreen({ navigation, route }: Props) {
                         outerScrollOffset={coordination.outerScrollOffset}
                         onReorder={(routines) => reorderRoutines(routines, undefined)}
                         onDragStateChange={coordination.onDragStateChange}
-                        onDragPointerChange={coordination.onDragPointerChange}
+                        dragPointerY={coordination.dragPointerY}
                         onDragBoundsChange={coordination.onDragBoundsChange}
                         renderItem={({ item, last, dragGesture }) => (
                           <RoutineRow
@@ -837,7 +816,7 @@ function PlanCard({
             outerScrollOffset={coordination.outerScrollOffset}
             onReorder={onReorderRoutines}
             onDragStateChange={coordination.onDragStateChange}
-            onDragPointerChange={coordination.onDragPointerChange}
+            dragPointerY={coordination.dragPointerY}
             onDragBoundsChange={coordination.onDragBoundsChange}
             renderItem={({ item, last, dragGesture }) => (
               <RoutineRow

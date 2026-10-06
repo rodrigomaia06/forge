@@ -1,3 +1,4 @@
+import { scheduleOnRN } from 'react-native-worklets';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
   Keyboard,
@@ -16,7 +17,6 @@ import {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   LinearTransition,
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -212,7 +212,7 @@ export function ForgeBottomSheet({
       return;
     }
     translateY.value = withTiming(closeDistance, { duration: forgeMotion.sheetExit, easing: forgeMotion.sheetExitEasing }, (finished) => {
-      if (finished) runOnJS(completeExit)();
+      if (finished) scheduleOnRN(completeExit);
     });
     backdropOpacity.value = withTiming(0, { duration: forgeMotion.state });
     exitTimerRef.current = setTimeout(completeExit, forgeMotion.sheetExit + 160);
@@ -337,12 +337,12 @@ export function ForgeBottomSheet({
       if (projected >= dismissThreshold || event.velocityY > 900) {
         // Keep drag dismissal on the same JS path as the close button and backdrop.
         // It avoids web gesture callbacks bypassing parent state updates.
-        runOnJS(close)(false);
+        scheduleOnRN(close, false);
       } else {
         translateY.value = reducedMotion ? 0 : withSpring(0, forgeMotion.sheetSpring);
       }
     });
-  const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
+  const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: reducedMotion ? 0 : translateY.value }] }));
   const backdropStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value }));
   const keyboardBreathingRoom = 16;
   const compactSheetFitsAboveKeyboard =
@@ -423,7 +423,7 @@ export function ForgeBottomSheet({
                   // sheet visible before its first animation frame. Place the
                   // measured sheet entirely below the viewport first.
                   entryOffsetRef.current = Math.max(initialOffset, height + 16);
-                  translateY.value = entryOffsetRef.current;
+                  if (!reducedMotion && !enterInstantRef.current) translateY.value = entryOffsetRef.current;
                   setEntryContentReady(true);
                 }
               }}

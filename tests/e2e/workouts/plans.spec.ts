@@ -577,7 +577,7 @@ test.describe('Plans and routines', () => {
 
   test('adds, edits, and removes routine attributes in the local editor draft', async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Plans' }).click();
     await page.getByRole('button', { name: 'Create workout, routine, or plan' }).click();
@@ -593,7 +593,15 @@ test.describe('Plans and routines', () => {
     await page.getByRole('button', { name: 'Edit Mood attribute' }).click();
     await page.getByLabel('Attribute value').fill('Focused');
     await page.getByRole('button', { name: 'Save attribute' }).click();
-    await page.getByRole('button', { name: 'Edit Mood attribute' }).click();
+    const attribute = page.getByRole('button', { name: 'Edit Mood attribute' });
+    await swipeLeftFrom(page, attribute);
+    const deleteAttribute = page.getByRole('button', { name: 'Delete Mood attribute' });
+    await expect(deleteAttribute).toBeVisible();
+    await page.waitForTimeout(250);
+    await expect(page.getByLabel('Attribute value', { exact: true })).toHaveCount(0);
+    await page.screenshot({ path: testInfo.outputPath('attribute-swipe-delete.png') });
+    await swipeRightFrom(page, attribute);
+    await attribute.click();
     await page.getByRole('button', { name: 'Remove attribute' }).click();
     await expect(page.getByRole('button', { name: 'Edit Mood attribute' })).toHaveCount(0);
     // Re-focus the virtualized header field after nested sheets on compact web.
@@ -838,4 +846,36 @@ test.describe('Plans and routines', () => {
     // The description surfaces on the resting plan card, under the name.
     await expect(page.getByText('Twelve week strength block', { exact: true })).toBeVisible();
   });
+  test('autoscrolls a held routine at the list edge and stops on release', async ({ page }, testInfo) => {
+    await page.addInitScript(() => {
+      const now = Date.now();
+      localStorage.setItem('@forge/plans-v1', JSON.stringify({ plans: [], standaloneRoutines: Array.from({ length: 20 }, (_, index) => ({
+        id: `edge-${index}`, name: `Edge routine ${index}`, type: 'Strength', exercises: [], createdAt: now, updatedAt: now,
+      })) }));
+    });
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Plans' }).click();
+    await page.getByRole('button', { name: 'Edit plans' }).click();
+    const handle = await page.getByRole('button', { name: 'Reorder Edge routine 0', exact: true }).boundingBox();
+    const list = page.getByTestId('plans-scroll');
+    const viewport = await list.boundingBox();
+    if (!handle || !viewport) throw new Error('Missing routine drag geometry');
+    const x = handle.x + handle.width / 2;
+    await page.mouse.move(x, handle.y + handle.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(180);
+    await page.mouse.move(x, viewport.y + viewport.height - 24, { steps: 20 });
+    await expect.poll(() => list.evaluate((element) => element.scrollTop)).toBeGreaterThan(60);
+    await page.screenshot({ path: testInfo.outputPath('routine-edge-autoscroll.png') });
+    await page.mouse.up();
+    await page.waitForTimeout(250);
+    const stopped = await list.evaluate((element) => element.scrollTop);
+    await page.waitForTimeout(200);
+    expect(await list.evaluate((element) => element.scrollTop)).toBeCloseTo(stopped, 0);
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('@forge/plans-v1') ?? '{}').standaloneRoutines?.map((routine: { id: string }) => routine.id))).not.toEqual(Array.from({ length: 20 }, (_, index) => `edge-${index}`));
+    const ids = await page.evaluate(() => JSON.parse(localStorage.getItem('@forge/plans-v1') ?? '{}').standaloneRoutines.map((routine: { id: string }) => routine.id));
+    expect(ids).toHaveLength(20);
+    expect(new Set(ids).size).toBe(20);
+  });
+
 });

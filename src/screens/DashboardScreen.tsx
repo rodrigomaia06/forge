@@ -1,9 +1,10 @@
+import { scheduleOnRN } from 'react-native-worklets';
 import React, { useEffect, useMemo, useState } from 'react';
 import { LayoutAnimation, Platform, Pressable, StyleSheet, UIManager, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import {
   AppScreen,
@@ -585,7 +586,7 @@ function DashboardTileFrame({
     .onEnd((gesture) => {
       const offset = (open.value ? -TILE_DELETE_WIDTH : 0) + gesture.translationX;
       const shouldOpen = Math.max(-TILE_DELETE_WIDTH, Math.min(0, offset)) < -TILE_DELETE_WIDTH * 0.5;
-      runOnJS(settle)(shouldOpen);
+      scheduleOnRN(settle, shouldOpen);
     });
 
   return (

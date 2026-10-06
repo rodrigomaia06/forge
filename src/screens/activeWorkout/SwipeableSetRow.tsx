@@ -1,3 +1,4 @@
+import { scheduleOnRN } from 'react-native-worklets';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated as RNAnimated,
@@ -10,7 +11,6 @@ import {
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -148,7 +148,7 @@ function SwipeableSetRowComponent({
     })
     .onEnd((gesture) => {
       const offset = (deleteOpen.value ? -DELETE_ACTION_WIDTH : 0) + gesture.translationX;
-      runOnJS(settleDelete)(
+      scheduleOnRN(settleDelete,
         Math.max(-DELETE_ACTION_WIDTH, Math.min(0, offset)) < -DELETE_ACTION_WIDTH * 0.58,
       );
     });

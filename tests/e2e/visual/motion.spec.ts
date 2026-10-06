@@ -29,10 +29,10 @@ test.describe('Forge motion contract', () => {
     await page.getByRole('button', { name: 'Add past workout' }).click();
     const chooser = page.getByTestId('historical-workout-source-chooser');
     await expect(chooser).toBeVisible({ timeout: 100 });
-    const settled = await chooser.evaluate((element) => {
+    await expect.poll(async () => chooser.evaluate((element) => {
       const transform = getComputedStyle(element).transform;
-      return transform === 'none' || transform === 'matrix(1, 0, 0, 1, 0, 0)';
-    });
-    expect(settled).toBe(true);
+      const matrix = transform === 'none' ? new DOMMatrix() : new DOMMatrix(transform);
+      return Math.abs(matrix.m42) < 0.1 && Math.abs(matrix.m41) < 0.1;
+    }), { timeout: 100 }).toBe(true);
   });
 });

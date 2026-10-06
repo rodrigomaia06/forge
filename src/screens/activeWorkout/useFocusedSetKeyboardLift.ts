@@ -1,3 +1,4 @@
+import { useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, Platform, type KeyboardEvent } from 'react-native';
 
@@ -9,12 +10,14 @@ type OffsetScrollable = {
 
 /**
  * Keeps a set input clear of the number keyboard without permanently moving
- * the workout list. The caller owns the scroll view and reports its offset.
+ * the workout list. The caller owns the scroll view and its UI-thread offset.
  */
 export function useFocusedSetKeyboardLift(
   scrollRef: React.RefObject<OffsetScrollable | null>,
+  suppliedScrollOffset?: SharedValue<number>,
 ) {
-  const scrollOffsetRef = useRef(0);
+  const localScrollOffset = useSharedValue(0);
+  const scrollOffset = suppliedScrollOffset ?? localScrollOffset;
   const restoreScrollOffsetRef = useRef<number | null>(null);
   const preFocusScrollOffsetRef = useRef<number | null>(null);
   const focusedSetMeasureRef = useRef<MeasureSetInput | null>(null);
@@ -44,26 +47,26 @@ export function useFocusedSetKeyboardLift(
       const fieldBottom = y + height;
       if (fieldBottom <= keyboard.screenY - breathingRoom) return;
       if (restoreScrollOffsetRef.current === null) {
-        restoreScrollOffsetRef.current = preFocusScrollOffsetRef.current ?? scrollOffsetRef.current;
+        restoreScrollOffsetRef.current = preFocusScrollOffsetRef.current ?? scrollOffset.get();
       }
       // Keep the focused number field in the comfortable centre of the
       // visible area, rather than pinning it directly above the keyboard.
       const targetCenter = Math.max(118, (keyboard.screenY + 64) / 2);
       const nextOffset = Math.max(
         0,
-        scrollOffsetRef.current + y + height / 2 - targetCenter,
+        scrollOffset.get() + y + height / 2 - targetCenter,
       );
       scrollRef.current?.scrollToOffset({ offset: nextOffset, animated: true });
     });
-  }, [scrollRef]);
+  }, [scrollRef, scrollOffset]);
 
   const onSetInputFocus = useCallback((measure: MeasureSetInput): void => {
     if (preFocusScrollOffsetRef.current === null) {
-      preFocusScrollOffsetRef.current = scrollOffsetRef.current;
+      preFocusScrollOffsetRef.current = scrollOffset.get();
     }
     focusedSetMeasureRef.current = measure;
     requestAnimationFrame(liftFocusedSetInput);
-  }, [liftFocusedSetInput]);
+  }, [liftFocusedSetInput, scrollOffset]);
 
   useEffect(() => {
     const settleFocusedInput = (event: KeyboardEvent) => {
@@ -98,8 +101,8 @@ export function useFocusedSetKeyboardLift(
   }, [liftFocusedSetInput, restoreScrollPosition]);
 
   const onScrollOffsetChange = useCallback((offset: number): void => {
-    scrollOffsetRef.current = offset;
-  }, []);
+    scrollOffset.set(offset);
+  }, [scrollOffset]);
 
   return { onSetInputFocus, onScrollOffsetChange, keyboardSpacer };
 }
