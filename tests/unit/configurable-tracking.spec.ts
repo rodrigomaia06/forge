@@ -8,6 +8,8 @@ import {
   formatDuration,
   missingTrackingFields,
   trackingChoices,
+  trackingFields,
+  measurementUnit,
 } from '../../src/domain/exercises/tracking';
 import {
   changeExerciseTracking,
@@ -288,4 +290,31 @@ test('a deleted source uses original reusable intervals, never generated next-se
   expect(copied.exercises[0].sets![0].plannedTargets?.[0].minValue).toBe(8);
   expect(copied.exercises[0].sets![0].plannedTargets?.[0].id).toBe('t');
   expect(logged.routineStructureBaseline.routineName).toBe('Push');
+});
+
+test('all compatible mode transitions warn exactly for removed data and preserve compatible targets', () => {
+  const bases = ['weight-reps', 'bodyweight-reps', 'weighted-bodyweight', 'assisted-bodyweight', 'distance-duration', 'weight-distance'] as const;
+  for (const base of bases) for (const from of trackingChoices({ trackingType: base })) for (const to of trackingChoices({ trackingType: base })) {
+    if (from === to) continue;
+    const before: WorkoutExercise = {
+      ...exercise(), trackingType: base, trackingOverride: from,
+      sets: [{ id: 'set', weight: '', reps: '', completed: false,
+        measurements: trackingFields[from].map(kind => ({ id: kind, kind, unit: measurementUnit[kind], value: 15 })),
+        plannedTargets: trackingFields[from].map(kind => ({ id: kind, kind, unit: measurementUnit[kind], minValue: 15 })),
+      }],
+    };
+    const removed = trackingFields[from].filter(kind => !trackingFields[to].includes(kind));
+    expect(losesTrackingData(before, to), `${from} -> ${to}`).toBe(removed.length > 0);
+    const [after] = changeExerciseTracking([before], before.id, to, fresh);
+    expect(after.id).toBe(before.id);
+    expect(effectiveTracking(after)).toBe(to);
+    const preserved = trackingFields[from].filter(kind => trackingFields[to].includes(kind)).sort();
+    expect(after.sets[0].measurements!.map(entry => entry.kind).sort()).toEqual(preserved);
+    expect(after.sets[0].plannedTargets!.map(entry => entry.kind).sort()).toEqual(preserved);
+    expect(before.sets[0].measurements).toHaveLength(trackingFields[from].length);
+    const empty = { ...before, sets: [{ id: 'empty', weight: '', reps: '', completed: false }] };
+    expect(losesTrackingData(empty, to)).toBe(false);
+    const targetsOnly = { ...before, sets: [{ ...before.sets[0], measurements: [] }] };
+    expect(losesTrackingData(targetsOnly, to)).toBe(removed.length > 0);
+  }
 });

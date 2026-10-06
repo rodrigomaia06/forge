@@ -368,10 +368,10 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
       <ExerciseSection
         index={index}
         testID={`routine-exercise-${exerciseId}`}
-        exercise={asWorkoutExercise(exercise, completedRoutineSetIds)}
+        exercise={asWorkoutExercise(exercise, completedRoutineSetIds, exerciseId)}
         onTrackingChange={(_, mode) => change((current) => ({
           ...current,
-          exercises: changeExerciseTracking(current.exercises.map((item) => asWorkoutExercise(item, [])), exerciseId, mode, () => makeWorkoutId('routine-tracking')),
+          exercises: changeExerciseTracking(current.exercises.map((item, index) => asWorkoutExercise(item, [], `routine-exercise-${index}`)), exerciseId, mode, () => makeWorkoutId('routine-tracking')),
         }))}
         addSet={() => addRoutineSet(index, change)}
         removeSet={(_, setId) => removeRoutineSet(index, setId, change)}
@@ -764,8 +764,9 @@ function RoutineExerciseDragHandle({
 function asWorkoutExercise(
   exercise: WorkoutRoutine['exercises'][number],
   completedSetIds: string[],
+  fallbackId?: string,
 ): WorkoutExercise {
-  const exerciseId = exercise.id ?? makeWorkoutId('routine-exercise');
+  const exerciseId = exercise.id ?? fallbackId ?? makeWorkoutId('routine-exercise');
   return {
     ...exercise,
     id: exerciseId,

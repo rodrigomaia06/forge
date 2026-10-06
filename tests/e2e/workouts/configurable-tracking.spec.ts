@@ -59,9 +59,10 @@ async function seed(
   workout: Workout,
   plans: PlansState = { plans: [], standaloneRoutines: [] },
   appearance: 'light' | 'dark' = 'dark',
+  history: Workout[] = [],
 ) {
   await page.addInitScript(
-    ({ workout, plans, appearance }) => {
+    ({ workout, plans, appearance, history }) => {
       if (sessionStorage.getItem('tracking-seeded')) return;
       sessionStorage.setItem('tracking-seeded', 'yes');
       localStorage.setItem(
@@ -69,10 +70,10 @@ async function seed(
         JSON.stringify({ appearance, showRestTimer: false }),
       );
       localStorage.setItem('@forge/active-workout', JSON.stringify(workout));
-      localStorage.setItem('@forge/completed-workouts', '[]');
+      localStorage.setItem('@forge/completed-workouts', JSON.stringify(history));
       localStorage.setItem('@forge/plans-v1', JSON.stringify(plans));
     },
-    { workout, plans, appearance },
+    { workout, plans, appearance, history },
   );
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Finish workout', exact: true })).toBeVisible();
@@ -361,13 +362,62 @@ for (const appearance of ['light', 'dark'] as const) test(`weighted pull-up time
   await page.getByLabel('Time for set 1').fill('1,30');
   // Open options directly from a focused duration field, matching the iPhone report.
   await tracking(page, exercise.name);
-  await page.getByRole('radio', { name: 'Added weight + reps', exact: true }).click();
+  await page.getByRole('radio', { name: 'Added weight + reps', exact: true }).tap();
   await expect(page.getByRole('button', { name: 'Change tracking', exact: true })).toBeVisible();
   await page.waitForTimeout(350);
   await page.screenshot({ path: info.outputPath('weighted-pull-up-confirmation.png') });
-  await page.getByRole('button', { name: 'Keep current tracking', exact: true }).click();
-  await page.getByRole('radio', { name: 'Added weight + reps', exact: true }).click();
-  await page.getByRole('button', { name: 'Change tracking', exact: true }).click();
+  await page.getByRole('button', { name: 'Keep current tracking', exact: true }).tap();
+  await page.getByRole('radio', { name: 'Added weight + reps', exact: true }).tap();
+  await page.getByRole('button', { name: 'Change tracking', exact: true }).tap();
   await expect(page.getByLabel('Added kg for set 1')).toHaveValue('15');
   await expect(page.getByLabel('Reps for set 1')).toHaveValue('');
+  await expect.poll(async () => (await saved(page)).active.exercises[0].trackingOverride).toBe('weighted-bodyweight');
+  const persisted = (await saved(page)).active.exercises[0];
+  expect(persisted.sets[0].measurements.some((entry: { kind: string }) => entry.kind === 'duration')).toBe(false);
+  // The static test server has no route fallback; restart from its root.
+  await page.goto('/');
+  await expect(page.getByLabel('Reps for set 1')).toBeVisible();
+  await expect(page.getByLabel('Added kg for set 1')).toHaveValue('15');
+});
+
+test('legacy routine without exercise IDs can confirm timed weighted pull-up changes', async ({ page }, info) => {
+  const item = [...exerciseCatalogById.values()].find(item => item.trackingType === 'weighted-bodyweight' && /pull.up/i.test(item.name))!;
+  const exercise: WorkoutExercise = { ...movement(), exerciseId: item.id, name: item.name, trackingType: item.trackingType, exerciseSnapshot: createExerciseSnapshot(item), trackingOverride: 'weighted-bodyweight-duration' };
+  exercise.sets[0].plannedTargets = [{ id: 'duration-target', kind: 'duration', unit: 'sec', minValue: 30, maxValue: 60 }];
+  const plans = sourceState(exercise);
+  plans.plans[0].routines[0].exercises[0].id = undefined;
+  await seed(page, session([]), plans);
+  await page.getByRole('tab', { name: 'Plans', exact: true }).click();
+  await page.getByRole('button', { name: 'Routine actions for Push', exact: true }).click();
+  await page.getByTestId('plans-options-sheet').getByRole('button', { name: 'Edit', exact: true }).click();
+  await page.getByRole('button', { name: `Expand ${exercise.name}`, exact: true }).click();
+  await tracking(page, exercise.name);
+  await page.getByRole('radio', { name: 'Added weight + reps', exact: true }).tap();
+  await expect(page.getByRole('button', { name: 'Change tracking', exact: true })).toBeVisible();
+  await page.waitForTimeout(350);
+  await page.screenshot({ path: info.outputPath('routine-tracking-confirmation.png') });
+  await page.getByRole('button', { name: 'Change tracking', exact: true }).tap();
+  await expect(page.getByLabel('Reps for set 1')).toBeVisible();
+  await expect(page.getByLabel('Sec for set 1')).toHaveCount(0);
+});
+
+test('history tracking confirms removing duration and saves the selected mode', async ({ page }, info) => {
+  const item = [...exerciseCatalogById.values()].find(item => item.trackingType === 'weighted-bodyweight' && /pull.up/i.test(item.name))!;
+  const exercise: WorkoutExercise = { ...movement(), exerciseId: item.id, name: item.name, trackingType: item.trackingType, exerciseSnapshot: createExerciseSnapshot(item), trackingOverride: 'weighted-bodyweight-duration', sets: [{ id: 's', weight: '15', reps: '', completed: false, measurements: [{ id: 'time', kind: 'duration', unit: 'sec', value: 90 }] }] };
+  const history = { ...session([exercise]), id: 'past', name: 'Past Pull', completedAt: Date.now() };
+  await seed(page, session([]), { plans: [], standaloneRoutines: [] }, 'dark', [history]);
+  await page.getByRole('tab', { name: 'History', exact: true }).click();
+  await page.getByRole('button', { name: 'Open Past Pull', exact: true }).click();
+  await page.getByRole('button', { name: 'Workout options', exact: true }).click();
+  await page.getByRole('button', { name: 'Edit workout', exact: true }).click();
+  await tracking(page, exercise.name);
+  await page.getByRole('radio', { name: 'Added weight + reps', exact: true }).tap();
+  await expect(page.getByRole('button', { name: 'Change tracking', exact: true })).toBeVisible();
+  await page.waitForTimeout(350);
+  await page.screenshot({ path: info.outputPath('history-tracking-confirmation.png') });
+  await page.getByRole('button', { name: 'Change tracking', exact: true }).tap();
+  await expect(page.getByLabel('Reps for set 1')).toBeVisible();
+  await expect(page.getByLabel('Added kg for set 1')).toHaveValue('15');
+  await page.getByRole('button', { name: 'Save workout', exact: true }).click();
+  await expect.poll(async () => (await saved(page)).history.find((workout: Workout) => workout.id === 'past')?.exercises[0].trackingOverride).toBe('weighted-bodyweight');
 });
