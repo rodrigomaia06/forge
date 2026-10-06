@@ -1,4 +1,5 @@
-import { measurementsFor } from '../../domain/exercises/tracking';
+import { effectiveTracking } from '../../domain/exercises/tracking';
+import { trackingFields, measurementsFor } from '../../domain/exercises/tracking';
 import { calendarDateKey } from '../../domain/workouts/calendarDate';
 import type { Workout, WeekStartsOn } from '../../types';
 
@@ -31,7 +32,8 @@ function completedAt(workout: Workout): number {
 export function computeWorkoutVolume(workout: Pick<Workout, 'exercises'>): number {
   let volume = 0;
   for (const exercise of workout.exercises) {
-    const mode = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType;
+    const mode = effectiveTracking(exercise);
+    if (!trackingFields[mode].includes('reps')) continue;
     for (const set of exercise.sets) {
       if (!set.completed) continue;
       const measurements = measurementsFor(mode, set);

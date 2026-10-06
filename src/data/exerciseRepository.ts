@@ -67,7 +67,7 @@ function variationFacets(value: unknown): ExerciseVariationFacets | undefined {
 }
 
 function trackingType(value: unknown): TrackingType | undefined {
-  const types: TrackingType[] = ['weight-reps', 'bodyweight-reps', 'weighted-bodyweight', 'assisted-bodyweight', 'reps-only', 'duration', 'duration-weight', 'distance-duration', 'weight-distance'];
+  const types: TrackingType[] = ['weight-reps', 'bodyweight-reps', 'weighted-bodyweight', 'assisted-bodyweight', 'reps-only', 'duration', 'duration-weight', 'distance-duration', 'weight-distance', 'distance', 'weighted-bodyweight-duration', 'assisted-bodyweight-duration'];
   return typeof value === 'string' && types.includes(value as TrackingType) ? value as TrackingType : undefined;
 }
 

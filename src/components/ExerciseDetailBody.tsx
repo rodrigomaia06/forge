@@ -1,3 +1,4 @@
+import { trackingModeLabel } from '../domain/exercises/tracking';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -14,10 +15,7 @@ import { ForgeCard, ForgeText as Text, Icon, lightHaptic, pressedFeedback } from
 
 /** Human tracking label, e.g. "Weight + reps". Shared with the exercise library. */
 export function formatTrackingType(type: ExerciseCatalogItem['trackingType']): string {
-  return (type ?? 'weight-reps')
-    .split('-')
-    .map((part) => (part === 'reps' ? 'reps' : part[0].toUpperCase() + part.slice(1)))
-    .join(' + ');
+  return trackingModeLabel((type ?? 'weight-reps'));
 }
 
 /**
@@ -140,7 +138,9 @@ function Fact({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.detailFact}>
       <Text style={styles.detailFactLabel}>{label}</Text>
-      <Text numberOfLines={2} style={styles.detailFactValue}>{value}</Text>
+      <Text numberOfLines={2} style={styles.detailFactValue}>
+        {value}
+      </Text>
     </View>
   );
 }

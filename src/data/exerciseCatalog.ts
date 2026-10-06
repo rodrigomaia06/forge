@@ -1,5 +1,5 @@
-import { bundledExercises, bundledCatalogTaxonomies, type TrackingType } from './catalog/loadCatalog';
-import type { ExerciseVariationFacets } from '../types';
+import { bundledExercises, bundledCatalogTaxonomies } from './catalog/loadCatalog';
+import type { ExerciseVariationFacets, TrackingType } from '../types';
 export interface ExerciseCatalogItem {
   id: string; name: string; familyId?: string; group: string; equipment: string; equipmentIds?: string[]; primaryEquipment?: string;
   variation?: string; variationFacets?: ExerciseVariationFacets; category: string; bodyRegion?: string; primaryMuscle: string; secondaryMuscles: string[];

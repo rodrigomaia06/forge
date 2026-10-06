@@ -11,6 +11,7 @@ export interface ExerciseSectionProps {
   addSet: (exerciseId: string) => void;
   removeSet: (exerciseId: string, setId: string) => void;
   removeExercise: (exerciseId: string) => void;
+  onTrackingChange?: (exerciseId: string, mode: import('../../types').TrackingType) => void;
   updateExercise?: (exerciseId: string, changes: WorkoutExerciseChanges) => void;
   /** Active Workout alone can turn a calculated ramp into editable warm-up sets. */
   addWarmupSets?: (exerciseId: string, sets: readonly { weight: string; reps: string }[]) => void;

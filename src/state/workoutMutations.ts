@@ -22,7 +22,7 @@ export function createWorkout(options: StartWorkoutOptions): Workout {
     note: options.note || '',
     averageRestSeconds: options.averageRestSeconds,
     routineId: options.routineId,
-    routineStructureBaseline: isRoutineStart ? routineStructureBaseline(options.exercises ?? []) : undefined,
+    routineStructureBaseline: isRoutineStart ? routineStructureBaseline(options.exercises ?? [], options.routineTemplate) : undefined,
     planId: options.planId,
     attributes: options.attributes,
     attributeIcons: options.attributeIcons,
@@ -37,6 +37,7 @@ export function createWorkout(options: StartWorkoutOptions): Workout {
       // field, so prefer it when materialising a live workout.
       trackingType: exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType ?? 'weight-reps',
       exerciseSnapshot: exercise.exerciseSnapshot,
+      trackingOverride: exercise.trackingOverride,
       sets: (exercise.sets || []).map((set) => ({
         id: set.id || makeWorkoutId('set'),
         weight: set.weight || '',
@@ -115,6 +116,7 @@ export function addExercisesToWorkout(
       name: exercise.name.trim(),
       trackingType: exercise.trackingType ?? 'weight-reps',
       exerciseSnapshot: exercise.exerciseSnapshot,
+      trackingOverride: exercise.trackingOverride,
       sets: Array.from({ length: 3 }, () => ({
         id: makeWorkoutId('set'),
         weight: '',

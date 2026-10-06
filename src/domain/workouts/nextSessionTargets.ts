@@ -1,4 +1,5 @@
-import { measurementText, trackingFields } from '../exercises/tracking';
+import { effectiveTracking } from '../exercises/tracking';
+import { measurementDisplay, measurementText, trackingFields } from '../exercises/tracking';
 import type { SetMeasurementKind, SetTarget, Workout, WorkoutExercise, WorkoutExerciseInput, WorkoutRoutine, WorkoutSet, WorkoutSetInput } from '../../types';
 
 /**
@@ -17,8 +18,10 @@ export function exercisesWithHistoricalPrevious(
     .sort((left, right) => completedAt(right) - completedAt(left));
   if (!priorHistory.length) return workout.exercises;
   return workout.exercises.map((exercise) => {
-    const trackingType = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType;
-    const previousSets = latestSetsForExercise(exercise, priorHistory, true);
+    const trackingType = effectiveTracking(exercise);
+    const previousSets = latestSetsForExercise(exercise, priorHistory, true,
+      occurrence(workout.exercises, exercise),
+    );
     if (!previousSets) return exercise;
     return {
       ...exercise,
@@ -26,7 +29,7 @@ export function exercisesWithHistoricalPrevious(
         const previousSet = previousSets[index];
         if (!previousSet) return set;
         const values = trackingFields[trackingType ?? 'weight-reps']
-          .map((kind) => measurementText(previousSet, kind))
+          .map((kind) => measurementDisplay(previousSet, kind))
           .filter(Boolean);
         return values.length ? { ...set, previous: values.join(' × ') } : set;
       }),
@@ -49,8 +52,10 @@ export function exercisesWithAddedPrevious(
     .sort((left, right) => completedAt(right) - completedAt(left));
   if (!history.length) return exercises as WorkoutExercise[];
   return exercises.map((exercise) => {
-    const trackingType = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType;
-    const previousSets = latestSetsForExercise(exercise, history, true);
+    const trackingType = effectiveTracking(exercise);
+    const previousSets = latestSetsForExercise(exercise, history, true,
+      occurrence(exercises, exercise),
+    );
     if (!previousSets) return exercise;
     return {
       ...exercise,
@@ -58,7 +63,7 @@ export function exercisesWithAddedPrevious(
         const previousSet = previousSets[index];
         if (!previousSet) return set;
         const values = trackingFields[trackingType ?? 'weight-reps']
-          .map((kind) => measurementText(previousSet, kind))
+          .map((kind) => measurementDisplay(previousSet, kind))
           .filter(Boolean);
         return values.length ? { ...set, previous: values.join(' × ') } : set;
       }),
@@ -84,15 +89,19 @@ export function routineExercisesWithNextSessionTargets(
   if (!history.length) return routine.exercises;
 
   return routine.exercises.map((exercise) => {
-    const trackingType = exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType;
+    const trackingType = effectiveTracking(exercise);
     // Match by the movement itself, not by which routine authored the session,
     // so "previous" reflects the last time this exercise was actually done —
     // including workouts imported from JSON or logged under another routine.
     // The next-session target may progress from an off-session effort, but the
     // greyed "previous" placeholder must ignore off-session work — so the two
     // are sourced separately.
-    const targetSets = latestSetsForExercise(exercise, history, false);
-    const previousSets = latestSetsForExercise(exercise, history, true);
+    const targetSets = latestSetsForExercise(exercise, history, false,
+      occurrence(routine.exercises, exercise),
+    );
+    const previousSets = latestSetsForExercise(exercise, history, true,
+      occurrence(routine.exercises, exercise),
+    );
     if (!targetSets && !previousSets) return exercise;
     return {
       ...exercise,
@@ -113,13 +122,15 @@ function latestSetsForExercise(
   // Off-session exercises never seed the greyed "previous" placeholder, but may
   // still inform the next-session target — so the two lookups differ only here.
   skipOffSession: boolean,
+  ordinal: number,
 ): WorkoutSet[] | undefined {
   for (const workout of workoutsNewestFirst) {
-    const match = workout.exercises.find((candidate) =>
-      (!skipOffSession || !candidate.offSession)
-      && ((exercise.exerciseId && candidate.exerciseId === exercise.exerciseId)
-        || sameExerciseName(candidate.name, exercise.name)),
-    );
+    const match = workout.exercises.filter((candidate) =>
+        sameMovement(exercise, candidate)
+      &&
+        effectiveTracking(candidate) === effectiveTracking(exercise),
+    )[ordinal];
+    if (skipOffSession && match?.offSession) continue;
     if (match) return match.sets;
   }
   return undefined;
@@ -132,7 +143,7 @@ function withPreviousSessionData(
 ): WorkoutSetInput {
   if (!previousSet) return routineSet;
   const values = trackingFields[trackingType ?? 'weight-reps']
-    .map((kind) => measurementText(previousSet, kind))
+          .map((kind) => measurementDisplay(previousSet, kind))
     .filter(Boolean);
   return values.length ? { ...routineSet, previous: values.join(' × ') } : routineSet;
 }
@@ -196,4 +207,19 @@ function legacyTarget(setId: string, kind: 'reps' | 'weight', text: string | und
     minValue: values[0],
     maxValue: values[1] ?? values[0],
   };
+}
+
+function sameMovement(left: WorkoutExerciseInput, right: WorkoutExerciseInput): boolean {
+  const leftId = left.exerciseId ?? left.exerciseSnapshot?.id;
+  const rightId = right.exerciseId ?? right.exerciseSnapshot?.id;
+  return leftId && rightId ? leftId === rightId : sameExerciseName(left.name, right.name);
+}
+function occurrence(list: readonly WorkoutExerciseInput[], exercise: WorkoutExerciseInput): number {
+  const position = list.indexOf(exercise);
+  return list
+    .slice(0, position)
+    .filter(
+      (item) =>
+        sameMovement(item, exercise) && effectiveTracking(item) === effectiveTracking(exercise),
+    ).length;
 }

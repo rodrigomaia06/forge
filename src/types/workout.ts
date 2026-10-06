@@ -41,6 +41,7 @@ export interface WorkoutExercise {
   metric?: ExerciseSetMetric;
   exerciseSnapshot?: ExerciseSnapshot;
   trackingType?: TrackingType;
+  trackingOverride?: TrackingType;
   /**
    * Marked as done outside the tracked session (the per-exercise counterpart of
    * a workout's off-plan flag). It stays in history for the record but is
@@ -54,8 +55,13 @@ export interface WorkoutExercise {
 export interface WorkoutExerciseChanges {
   note?: string;
   offSession?: boolean;
+  trackingOverride?: TrackingType;
 }
-export type TrackingType = 'weight-reps' | 'bodyweight-reps' | 'weighted-bodyweight' | 'assisted-bodyweight' | 'reps-only' | 'duration' | 'duration-weight' | 'distance-duration' | 'weight-distance';
+export type TrackingType =
+  | 'weight-reps' | 'bodyweight-reps' | 'weighted-bodyweight' | 'assisted-bodyweight' | 'reps-only' | 'duration' | 'duration-weight' | 'distance-duration' | 'weight-distance'
+  | 'distance'
+  | 'weighted-bodyweight-duration'
+  | 'assisted-bodyweight-duration';
 export interface ExerciseVariationFacets {
   load?: string;
   /** Assistance method is meaningful only with the Assisted load mode. */
@@ -123,6 +129,7 @@ export interface WorkoutExerciseInput {
   metric?: ExerciseSetMetric;
   exerciseSnapshot?: ExerciseSnapshot;
   trackingType?: TrackingType;
+  trackingOverride?: TrackingType;
   excludeFromTargets?: boolean;
   sets?: WorkoutSetInput[];
 }
@@ -174,6 +181,8 @@ export interface PlansContextValue extends PlansState {
   findRoutine: (routineId: string) => WorkoutRoutine | undefined;
 }
 export interface StartWorkoutOptions {
+  /** Original template before history-derived next-session hints are applied. */
+  routineTemplate?: WorkoutRoutine;
   name?: string;
   type?: WorkoutType;
   exercises?: WorkoutExerciseInput[];
@@ -224,7 +233,7 @@ export interface WorkoutContextValue extends Omit<WorkoutState, 'activeWorkout'>
   toggleSet: (exerciseId: string, setId: string) => void;
   updateActiveWorkout: (update: (workout: Workout) => Workout) => void;
   cancelWorkout: () => void;
-  finishWorkout: () => Promise<Workout | null>;
+  finishWorkout: (choice: FinishRoutineChoice) => Promise<Workout | null>;
   createCompletedWorkout: (workout: Workout) => Promise<void>;
   deleteCompletedWorkout: (workoutId: string) => void;
   updateCompletedWorkout: (workoutId: string, update: (workout: Workout) => Workout) => Promise<void>;
@@ -243,3 +252,6 @@ export interface WorkoutSummary {
   averageRestSeconds?: number;
 }
 export type WorkoutMap = Record<string, WorkoutSummary[]>;
+
+export type FinishRoutineChoice =
+  { kind: 'keep' } | { kind: 'update' } | { kind: 'new'; name: string; };
