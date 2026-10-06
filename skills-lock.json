@@ -13,12 +13,6 @@
       "skillPath": "plugins/expo/skills/expo-animation/SKILL.md",
       "computedHash": "daf380553ca20b8c555f954e340b64dfa874d953a9e4e71891848562351e672f"
     },
-    "expo-brownfield": {
-      "source": "expo/skills",
-      "sourceType": "github",
-      "skillPath": "plugins/expo/skills/expo-brownfield/SKILL.md",
-      "computedHash": "0b1ad7dc7fca6e18b77341cccecbbf05ef80cc2283348b4efa74f707ddf2bbfb"
-    },
     "expo-data-fetching": {
       "source": "expo/skills",
       "sourceType": "github",
