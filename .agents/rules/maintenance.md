@@ -61,6 +61,18 @@ cohesive concern rather than committing the entire change as one mixed unit.
 - Do not create artificial commits for tiny or inseparable changes merely to increase the commit count.
 - Before splitting history, preserve the complete implementation and verify that the resulting commits together contain the same behavior.
 
+### Requested commit workflow
+
+The user prefers separate commits by cohesive concern, following the repository's
+existing scoped Conventional Commit style (`type(scope): concise description`).
+Keep each implementation change with its relevant tests and durable knowledge;
+keep imported skill packages and agent configuration separate from app fixes.
+
+When the user requests commits and a push before follow-up work, finish and verify
+that work, create the separate commits, and complete the normal push before
+starting the follow-up audit or task. Do not stop at preparing commit suggestions.
+This preference does not authorize unsolicited commits or pushes.
+
 ### Commit size review
 
 Do not create commits around 2,000 changed lines. Before committing, inspect `git diff --stat` and proactively look for a cohesive split when a commit exceeds roughly 750 changed lines or touches more than 15 files.
