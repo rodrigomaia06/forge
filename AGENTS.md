@@ -71,7 +71,7 @@ list contents with the file tools instead, so this never drifts as files change.
   `design.md`, `external.md`.
 - `.agents/docs/` — agent-facing canonical knowledge: `product/` (accepted
   requirements), `decisions/` (ADRs), and `research/` (non-canonical).
-- `.agents/skills/` — locally installed agent skills (gitignored; not app source).
+- `.agents/skills/` — shared agent skills, tracked with `skills-lock.json` and `.claude/skills/` links; not app source.
 - `docs/` — app/developer documentation (not agent rules). Empty for now; app-facing
   docs will be added here.
 - `src/`
