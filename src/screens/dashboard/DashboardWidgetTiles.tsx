@@ -5,7 +5,7 @@ import Svg, { Circle } from 'react-native-svg';
 
 import { ForgeText as Text, Icon, pressedFeedback, selectionHaptic } from '../../components/ui';
 import { ForgeLineChart } from '../../components/charts/ForgeLineChart';
-import { MuscleMap } from '../../components/anatomy/MuscleMap';
+import { MuscleMap, muscleHeatColors } from '../../components/anatomy/MuscleMap';
 import { computeWorkoutVolume, formatVolume } from './dashboardSummary';
 import { getWorkoutTypePresentation } from '../../domain/workouts/presentation';
 import { calendarDateKey } from '../../domain/workouts/calendarDate';
@@ -304,8 +304,8 @@ export function DashboardMuscleHeatmapTile({ heat, windowDays, gender = 'male', 
           </View>
           <View style={styles.legend}>
             <Text style={styles.sub}>Low</Text>
-            {[0.15, 0.4, 0.65, 1].map((a) => (
-              <View key={a} style={[styles.legendChip, { backgroundColor: hexToRgba(color, a) }]} />
+            {muscleHeatColors(color, theme.surfaceMuted).map((step) => (
+              <View key={step} style={[styles.legendChip, { backgroundColor: step }]} />
             ))}
             <Text style={styles.sub}>High</Text>
           </View>

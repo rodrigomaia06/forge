@@ -6,7 +6,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { AppScreen, ForgeCard, ForgeText as Text, HeaderAction, HeaderActionGroup, Icon, joinedHeaderAction, pressedFeedback, selectionHaptic } from '../components/ui';
 import { SettingsDetailHeader } from './settings/SettingsScreenChrome';
-import { MuscleMap } from '../components/anatomy/MuscleMap';
+import { MuscleMap, muscleHeatColors } from '../components/anatomy/MuscleMap';
 import { HEATMAP_ACCENT, MUSCLE_GROUP_COLORS } from './dashboard/DashboardWidgetTiles';
 import { muscleBalance, muscleBalanceByMuscle, muscleHeatBySlug, MUSCLES_BY_GROUP } from '../domain/dashboard/widgetMetrics';
 import { useWorkouts } from '../state/WorkoutContext';
@@ -21,14 +21,6 @@ import type { ForgeTheme, MuscleHeatmapView, RootStackParamList } from '../types
 type Props = NativeStackScreenProps<RootStackParamList, 'MuscleHeatmapDetail'>;
 
 const WINDOWS = TREND_DAY_OPTIONS;
-
-function hexToRgba(hex: string, alpha: number): string {
-  let h = hex.replace('#', '');
-  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
-  const int = parseInt(h, 16);
-  const r = (int >> 16) & 255, g = (int >> 8) & 255, b = int & 255;
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
 
 export function MuscleHeatmapDetailScreen({ navigation }: Props) {
   const theme = useForgeTheme();
@@ -157,8 +149,8 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
                 </View>
                 <View style={styles.legend}>
                   <Text style={styles.sub}>Low</Text>
-                  {[0.16, 0.4, 0.64, 0.85, 1].map((a) => (
-                    <View key={a} style={[styles.legendChip, { backgroundColor: hexToRgba(accent, a) }]} />
+                  {muscleHeatColors(accent, theme.surfaceMuted).map((color) => (
+                    <View key={color} style={[styles.legendChip, { backgroundColor: color }]} />
                   ))}
                   <Text style={styles.sub}>High</Text>
                 </View>

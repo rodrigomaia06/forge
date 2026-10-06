@@ -210,3 +210,9 @@ export const shadows = {
   dock: { shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 7 }, elevation: 6 },
   tonalControl: { shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
 } as const;
+
+/** Untrained anatomy remains legible against a Forge card in both themes. */
+export const muscleMapNeutrals = {
+  light: { fill: '#D4D7D2', border: '#B4B8B4' },
+  dark: { fill: darkTheme.surfaceMuted, border: darkTheme.surface },
+};
