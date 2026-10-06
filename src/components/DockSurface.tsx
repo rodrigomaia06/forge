@@ -14,6 +14,7 @@ import { BottomNavigation } from './BottomNavigation';
 import { dashboardTheme } from '../theme/dashboardTheme';
 import { forgeMotion, forgeMotionDuration, useForgeReducedMotion } from '../theme/motion';
 import type { ForgeTheme } from '../types';
+import { radii, shadows } from '../theme/tokens';
 
 interface DockSurfaceProps {
   theme?: ForgeTheme;
@@ -46,7 +47,7 @@ export function DockSurface({
   // Retaining that width also keeps the selection capsule proportional to the
   // original dock while the parent indicator moves between tabs.
   const regularWidth = Math.min(Math.max(viewportWidth * 0.86, 304), 360);
-  const activeWorkoutWidth = Math.min(Math.max(viewportWidth * 0.88, 320), 390);
+  const activeWorkoutWidth = Math.round(Math.min(Math.max(viewportWidth * 0.88, 320), 390));
   // Five tabs remain visible while a workout is active. Keep their 56 pt
   // hit targets inside the compact surface so the selection pill stays
   // centred on its measured slot instead of overflowing the dock.
@@ -77,67 +78,83 @@ export function DockSurface({
     });
   }, [activeWorkout, activeWorkoutProgress, reducedMotion]);
 
+  // Preserve the established intrinsic sizes (navigation, padding and border)
+  // while keeping tab children outside the resizing background.
+  const surfaceHeight = useDerivedValue(() => interpolate(progress.get(), [0, 1], [68, 50]));
   const surfaceAnimatedStyle = useAnimatedStyle(() => {
     return {
       width: surfaceWidth.value,
-      minHeight: interpolate(progress.value, [0, 1], [64, 48]),
+      height: surfaceHeight.get(),
+      transform: [{ translateX: (activeWorkoutWidth - surfaceWidth.get()) / 2 }],
     };
   }, [activeWorkoutWidth, compactWidth, regularWidth]);
 
   return (
-    <Animated.View
-      ref={dockRef}
-      onLayout={onLayout}
-      testID={testID}
-      style={[
-        styles.dock,
-        surfaceAnimatedStyle,
-        {
-          borderColor: theme.border ?? theme.dockBorder,
-          shadowColor: theme.shadow,
-        },
-      ]}
+    <View
+      pointerEvents="box-none"
+      style={{ width: activeWorkoutWidth, height: 68, alignSelf: 'center' }}
     >
-      {/* Frosted translucency (same treatment on every device — no native Liquid
+      <Animated.View
+        ref={dockRef}
+        onLayout={onLayout}
+        testID={testID}
+        style={[
+          styles.dock,
+          surfaceAnimatedStyle,
+          {
+            borderColor: theme.border ?? theme.dockBorder,
+            shadowColor: theme.shadow,
+          },
+        ]}
+      >
+        {/* Frosted translucency (same treatment on every device — no native Liquid
           Glass): the system blur samples the content behind the dock, and a
           low-opacity dock-coloured film keeps it recognisably Forge. */}
-      <BlurView
-        // Light backdrops are low-contrast, so the same blur reads weaker than in Dark —
-        // raise the intensity and thin the tint film in Light so the frost actually shows.
-        intensity={theme.colorScheme === 'dark' ? 36 : 60}
-        tint={theme.colorScheme === 'dark' ? 'dark' : 'light'}
-        blurMethod="dimezisBlurView"
-        pointerEvents="none"
-        style={StyleSheet.absoluteFill}
-      />
-      <View
-        pointerEvents="none"
-        style={[StyleSheet.absoluteFill, { opacity: theme.colorScheme === 'dark' ? 0.55 : 0.38, backgroundColor: theme.dock ?? theme.dockSurface }]}
-      />
+        <BlurView
+          // Light backdrops are low-contrast, so the same blur reads weaker than in Dark —
+          // raise the intensity and thin the tint film in Light so the frost actually shows.
+          intensity={theme.colorScheme === 'dark' ? 36 : 60}
+          tint={theme.colorScheme === 'dark' ? 'dark' : 'light'}
+          blurMethod="dimezisBlurView"
+          pointerEvents="none"
+          style={StyleSheet.absoluteFill}
+        />
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              opacity: theme.colorScheme === 'dark' ? 0.55 : 0.38,
+              backgroundColor: theme.dock ?? theme.dockSurface,
+            },
+          ]}
+        />
+      </Animated.View>
       {children || (
         <BottomNavigation
           tabBarProps={tabBarProps}
           theme={{ ...theme, surface: theme.surface }}
           compact={compact}
           surfaceWidth={surfaceWidth}
+          surfaceHeight={surfaceHeight}
+          canvasWidth={activeWorkoutWidth - 14}
+          controlWidth={(compactWidth - 14) / (activeWorkout ? 5 : 4)}
           onNavigate={onNavigate}
         />
       )}
-    </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   dock: {
-    alignSelf: 'center',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
     overflow: 'hidden',
-    borderRadius: 1000,
+    borderRadius: radii.capsule,
     borderWidth: 1,
     paddingHorizontal: 6,
-    shadowColor: '#172431',
-    shadowOpacity: 0.16,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 7 },
-    elevation: 6,
+    ...shadows.dock,
   },
 });

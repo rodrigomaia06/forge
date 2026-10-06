@@ -1,10 +1,10 @@
+import { scheduleOnRN } from 'react-native-worklets';
 import React, { useEffect, useRef } from 'react';
 import { LayoutAnimation, Platform, UIManager, View, StyleSheet } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   measure,
-  runOnJS,
   useAnimatedRef,
   useAnimatedStyle,
   useSharedValue,
@@ -15,7 +15,7 @@ import Animated, {
 
 import { NavigationItem, selectionHaptic } from './ui';
 import { getWorkoutTypePresentation } from '../domain/workouts/presentation';
-import { colors } from '../theme/tokens';
+import { colors, radii } from '../theme/tokens';
 import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
 import { useSettings } from '../state/SettingsContext';
 import { useActiveWorkout } from '../state/WorkoutContext';
@@ -27,6 +27,9 @@ interface BottomNavigationProps {
   compact?: boolean;
   /** UI-thread dock width; required while the surface is animating. */
   surfaceWidth?: SharedValue<number>;
+  surfaceHeight?: SharedValue<number>;
+  canvasWidth?: number;
+  controlWidth?: number;
   onNavigate?: () => void;
 }
 type BottomNavigationScreen = keyof RootTabParamList;
@@ -37,6 +40,9 @@ export function BottomNavigation({
   theme = colors,
   compact = false,
   surfaceWidth,
+  surfaceHeight,
+  canvasWidth,
+  controlWidth,
   onNavigate,
 }: BottomNavigationProps) {
   const { navigation, state } = tabBarProps;
@@ -90,8 +96,12 @@ export function BottomNavigation({
       setPreviewIndex(null);
       return;
     }
-    activeIndex.value = reducedMotion ? next : withTiming(next, { duration: forgeMotion.state, easing: forgeMotion.easing });
-    indicatorOpacity.value = reducedMotion ? 1 : withTiming(1, { duration: forgeMotion.state, easing: forgeMotion.easing });
+    activeIndex.value = reducedMotion
+      ? next
+      : withTiming(next, { duration: forgeMotion.state, easing: forgeMotion.easing });
+    indicatorOpacity.value = reducedMotion
+      ? 1
+      : withTiming(1, { duration: forgeMotion.state, easing: forgeMotion.easing });
     // Once a navigation lands (from a tap or a committed scrub), the real active
     // tab is authoritative again, so drop any scrub preview.
     setPreviewIndex(null);
@@ -119,12 +129,28 @@ export function BottomNavigation({
     return {
       opacity: indicatorOpacity.value,
       width: Math.max(0, slotWidth - 4),
+      height: (surfaceHeight?.get() ?? (compact ? 50 : 68)) - 2 - (compact ? 4 : 14),
       transform: [
-        { translateX: 2 + activeIndex.value * slotWidth },
+        {
+          translateX:
+            ((canvasWidth ?? navigationWidth) - navigationWidth) / 2 +
+            2 +
+            activeIndex.value * slotWidth,
+        },
         { scale: dragScale.value },
       ],
     };
-  }, [activeIndex, dragScale, indicatorOpacity, items.length, navigationRef, surfaceWidth]);
+  }, [
+    activeIndex,
+    dragScale,
+    indicatorOpacity,
+    items.length,
+    navigationRef,
+    surfaceWidth,
+    surfaceHeight,
+    canvasWidth,
+    compact,
+  ]);
 
   const goTo = (screen: BottomNavigationScreen): void => {
     const target = state.routes.find((route) => route.name === screen);
@@ -161,21 +187,31 @@ export function BottomNavigation({
       const navigationWidth = Math.max(0, surfaceWidth.value - 14);
       const slotWidth = itemCount > 0 ? navigationWidth / itemCount : 0;
       if (slotWidth <= 0) return;
-      const index = Math.min(itemCount - 1, Math.max(0, Math.floor(event.x / slotWidth)));
+      const index = Math.min(
+        itemCount - 1,
+        Math.max(
+          0,
+          Math.floor(
+            (event.x - ((canvasWidth ?? navigationWidth) - navigationWidth) / 2) / slotWidth,
+          ),
+        ),
+      );
       // Glide the pill toward the slot under the finger rather than teleporting.
       activeIndex.value = reducedMotion ? index : withSpring(index, forgeMotion.dockSpring);
       if (index !== lastScrubIndex.value) {
         lastScrubIndex.value = index;
         dragIndex.value = index;
-        runOnJS(selectionHaptic)();
-        runOnJS(setPreviewIndex)(index);
+        scheduleOnRN(selectionHaptic);
+        scheduleOnRN(setPreviewIndex, index);
       }
     })
     .onEnd(() => {
       // Settle on the committed slot; the preview highlight holds there until the
       // navigation lands and the real active tab takes over (see the effect).
-      activeIndex.value = reducedMotion ? dragIndex.value : withSpring(dragIndex.value, forgeMotion.dockSpring);
-      runOnJS(commitScrub)(dragIndex.value);
+      activeIndex.value = reducedMotion
+        ? dragIndex.value
+        : withSpring(dragIndex.value, forgeMotion.dockSpring);
+      scheduleOnRN(commitScrub, dragIndex.value);
     })
     .onFinalize(() => {
       dragScale.value = reducedMotion ? 1 : withSpring(1, forgeMotion.dockSpring);
@@ -183,59 +219,132 @@ export function BottomNavigation({
 
   return (
     <GestureDetector gesture={scrub}>
-    <Animated.View ref={navigationRef} style={[styles.navigation, compact && styles.navigationCompact]}>
       <Animated.View
-        testID="dashboard-nav-selection-pill"
+        ref={navigationRef}
+        pointerEvents="box-none"
         style={[
-          styles.selectionPill,
-          styles.pointerEventsNone,
-          compact && styles.selectionPillCompact,
-          selectionIndicatorStyle,
-          {
-            backgroundColor: theme.dockSelected || theme.slate,
+          styles.navigation,
+          canvasWidth != null && {
+            width: canvasWidth,
+            height: 66,
+            minHeight: 66,
+            marginHorizontal: 7,
+            position: 'absolute',
+            bottom: 1,
           },
+          !surfaceHeight && compact && styles.navigationCompact,
         ]}
-      />
-      {items.map(([icon, label, screen, emphasis], index) => {
-        const active = activeRoute === screen;
-        // While scrubbing, the previewed tab reads as selected so the icon
-        // matches the pill under the finger; icon size stays keyed to the real
-        // active tab so the row never resizes mid-scrub.
-        const highlighted = previewIndex != null ? index === previewIndex : active;
-        // The live-workout (emphasis) icon is larger (40) but wears the muted
-        // slate tint, so it stands out by size without the loud accent colour.
-        const iconSize = compact
-          ? active
-            ? emphasis
-              ? 34
-              : 27
-            : 23
-          : emphasis
-            ? 40
-            : hasActiveWorkout
-              ? 27
-              : 29;
-        return (
-          <View
-            key={label}
-            style={[styles.itemSlot, compact && styles.itemSlotCompact]}
-          >
-            <NavigationItem
-              icon={icon}
-              label={label}
-              active={highlighted}
-              emphasis={emphasis}
-              onPress={() => goTo(screen)}
-              theme={theme}
-              iconSize={iconSize}
+      >
+        <Animated.View
+          testID="dashboard-nav-selection-pill"
+          style={[
+            styles.selectionPill,
+            styles.pointerEventsNone,
+            compact && styles.selectionPillCompact,
+            selectionIndicatorStyle,
+            {
+              backgroundColor: theme.dockSelected || theme.slate,
+            },
+          ]}
+        />
+        {items.map(([icon, label, screen, emphasis], index) => {
+          const active = activeRoute === screen;
+          // While scrubbing, the previewed tab reads as selected so the icon
+          // matches the pill under the finger; icon size stays keyed to the real
+          // active tab so the row never resizes mid-scrub.
+          const highlighted = previewIndex != null ? index === previewIndex : active;
+          // The live-workout (emphasis) icon is larger (40) but wears the muted
+          // slate tint, so it stands out by size without the loud accent colour.
+          const iconSize = compact
+            ? active
+              ? emphasis
+                ? 34
+                : 27
+              : 23
+            : emphasis
+              ? 40
+              : hasActiveWorkout
+                ? 27
+                : 29;
+          return (
+            <DockItemSlot
+              key={label}
+              index={index}
+              itemCount={items.length}
+              surfaceWidth={surfaceWidth}
+              surfaceHeight={surfaceHeight}
+              canvasWidth={canvasWidth}
+              controlWidth={controlWidth}
               compact={compact}
-              accessibilityLabel={label}
-            />
-          </View>
-        );
-      })}
-    </Animated.View>
+            >
+              <NavigationItem
+                icon={icon}
+                label={label}
+                active={highlighted}
+                emphasis={emphasis}
+                onPress={() => goTo(screen)}
+                theme={theme}
+                iconSize={iconSize}
+                compact={compact}
+                accessibilityLabel={label}
+              />
+            </DockItemSlot>
+          );
+        })}
+      </Animated.View>
     </GestureDetector>
+  );
+}
+
+/** Keep tab content in a fixed layout; resizing only moves each slot's transform. */
+function DockItemSlot({
+  index,
+  itemCount,
+  surfaceWidth,
+  surfaceHeight,
+  canvasWidth,
+  controlWidth,
+  compact,
+  children,
+}: {
+  index: number;
+  itemCount: number;
+  surfaceWidth?: SharedValue<number>;
+  surfaceHeight?: SharedValue<number>;
+  canvasWidth?: number;
+  controlWidth?: number;
+  compact: boolean;
+  children: React.ReactNode;
+}) {
+  const position = useAnimatedStyle(() => {
+    if (canvasWidth == null || !surfaceWidth || controlWidth == null) return {};
+    const width = Math.max(0, surfaceWidth.get() - 14);
+    const slot = width / itemCount;
+    return {
+      transform: [
+        { translateX: (canvasWidth - width) / 2 + (index + 0.5) * slot - controlWidth / 2 },
+        { translateY: (68 - (surfaceHeight?.get() ?? 68)) / 2 },
+      ],
+    };
+  });
+  return (
+    <Animated.View
+      style={[
+        canvasWidth == null
+          ? styles.itemSlot
+          : {
+              position: 'absolute',
+              left: 0,
+              bottom: 0,
+              width: controlWidth,
+              height: 66,
+              justifyContent: 'center',
+            },
+        position,
+      ]}
+    >
+      <View style={{ width: '100%', height: compact ? 44 : 58 }}>{children}</View>
+    </Animated.View>
   );
 }
 
@@ -264,9 +373,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     // Match the former per-item pill: its Pressable had a 3 pt vertical
     // margin inside the 4 pt dock padding, making the visible capsule 50 pt.
-    top: 7,
     bottom: 7,
-    borderRadius: 1000,
+    borderRadius: radii.capsule,
   },
-  selectionPillCompact: { top: 2, bottom: 2 },
+  selectionPillCompact: { bottom: 2 },
 });
