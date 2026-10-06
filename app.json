@@ -21,8 +21,8 @@
     "android": {
       "package": "com.forge.training",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/forge-adaptive-foreground.png",
-        "backgroundColor": "#F6F7F8"
+        "foregroundImage": "./assets/forge-adaptive-foreground-clean.png",
+        "backgroundColor": "#FFFFFF"
       }
     },
     "web": {
@@ -41,7 +41,7 @@
           "image": "./assets/forge-app-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#F6F7F8"
+          "backgroundColor": "#FFFFFF"
         }
       ],
       "expo-sqlite",

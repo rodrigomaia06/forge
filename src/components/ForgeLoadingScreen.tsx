@@ -1,10 +1,11 @@
 import React from 'react';
-import { ActivityIndicator, Image, StyleSheet, View, useColorScheme } from 'react-native';
+import { ActivityIndicator, Image, StyleSheet, View } from 'react-native';
 
 export function ForgeLoadingScreen() {
-  const dark = useColorScheme() === 'dark';
-  const backgroundColor = dark ? '#101216' : '#E8E8E8';
-  const spinnerColor = dark ? '#F7F8F6' : '#1D252D';
+  // Match the opaque white logo and native splash so its corners never
+  // expose a contrasting grey tile while fonts and data are loading.
+  const backgroundColor = '#FFFFFF';
+  const spinnerColor = '#1D252D';
   return (
     <View accessibilityLabel="Loading Forge" style={[styles.screen, { backgroundColor }]}>
       <Image source={require('../../assets/forge-app-icon.png')} style={styles.icon} />
