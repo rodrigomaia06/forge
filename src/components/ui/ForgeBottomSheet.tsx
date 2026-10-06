@@ -29,7 +29,9 @@ import { scaleUI } from '../../theme/scale';
 import { lightHaptic } from './haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const SheetDragContext = createContext<ReturnType<typeof Gesture.Pan> | null>(null);
+// Detectors share motion state, never a gesture object: RNGH native handlers
+// attach one instance to one view. Handle/header/body each need their own pan.
+const SheetDragContext = createContext<(() => ReturnType<typeof Gesture.Pan>) | null>(null);
 const SheetDragAreaContext = createContext(false);
 /** Shared sheet-header geometry keeps titles and close actions aligned. */
 export const forgeSheetHeader = {
@@ -327,7 +329,7 @@ export function ForgeBottomSheet({
     };
   }, [keyboardAvoiding, reducedMotion, visible]);
 
-  const pan = Gesture.Pan()
+  const createPan = useCallback(() => Gesture.Pan()
     .enabled(dragEnabled)
     .hitSlop({ top: 12, bottom: 12, left: 0, right: 0 })
     .activeOffsetY([-6, 6])
@@ -344,7 +346,7 @@ export function ForgeBottomSheet({
       } else {
         translateY.value = reducedMotion ? 0 : withSpring(0, forgeMotion.sheetSpring);
       }
-    });
+    }), [dragEnabled, dragStart, translateY, closing, dismissThreshold, close, reducedMotion]);
   const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: reducedMotion ? 0 : translateY.value }] }));
   const backdropStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value }));
   const keyboardBreathingRoom = 16;
@@ -413,7 +415,7 @@ export function ForgeBottomSheet({
           />
         ) : null}
         <View style={[styles.keyboardArea, styles.pointerEventsBoxNone]}>
-          <SheetDragContext.Provider value={dragEnabled ? pan : null}>
+          <SheetDragContext.Provider value={dragEnabled ? createPan : null}>
             <Animated.View
               testID={surfaceTestID}
               layout={animateContentLayout && !reducedMotion ? LinearTransition.duration(240) : undefined}
@@ -465,7 +467,8 @@ export function ForgeBottomSheet({
 
 export function ForgeBottomSheetHandle() {
   const theme = useForgeTheme();
-  const pan = useContext(SheetDragContext);
+  const createPan = useContext(SheetDragContext);
+  const pan = React.useMemo(() => createPan?.() ?? null, [createPan]);
   const isInsideDragArea = useContext(SheetDragAreaContext);
   const handle = (
     <View testID="forge-sheet-drag-tab" collapsable={false} style={styles.handleTouchArea}>
@@ -476,7 +479,8 @@ export function ForgeBottomSheetHandle() {
 }
 
 export function ForgeBottomSheetDragArea({ children, enabled = true }: { children: React.ReactNode; enabled?: boolean }) {
-  const pan = useContext(SheetDragContext);
+  const createPan = useContext(SheetDragContext);
+  const pan = React.useMemo(() => createPan?.() ?? null, [createPan]);
   const isInsideDragArea = useContext(SheetDragAreaContext);
   const inactivePan = React.useMemo(() => Gesture.Pan().enabled(false), []);
   const area = (
