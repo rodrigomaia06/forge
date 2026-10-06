@@ -1,22 +1,29 @@
+import { trackingFields } from '../exercises/tracking';
+import { effectiveTracking } from '../exercises/tracking';
 import type { SetTarget, Workout, WorkoutExerciseInput, WorkoutRoutine } from '../../types';
 
 /** The reusable portion of a routine, deliberately excluding session logging data. */
 export interface RoutineStructureBaseline {
   exercises: WorkoutExerciseInput[];
+  routineName?: string;
+  /** Original reusable intervals, independent of generated session guidance. */
+  reusableExercises?: WorkoutExerciseInput[];
 }
 
 function copyTargets(targets: readonly SetTarget[] | undefined): SetTarget[] | undefined {
   return targets?.map((target) => ({ ...target }));
 }
 
-function copyExercises(exercises: readonly WorkoutExerciseInput[] | Workout['exercises']): WorkoutExerciseInput[] {
+function copyExercises(exercises: readonly WorkoutExerciseInput[] | Workout['exercises'],
+): WorkoutExerciseInput[] {
   return exercises.map((exercise) => ({
     id: exercise.id,
     exerciseId: exercise.exerciseId,
     name: exercise.name,
     supersetId: exercise.supersetId,
     metric: exercise.metric,
-    trackingType: exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType ?? 'weight-reps',
+    trackingType: exercise.trackingType,
+    trackingOverride: exercise.trackingOverride,
     exerciseSnapshot: exercise.exerciseSnapshot ? { ...exercise.exerciseSnapshot, equipment: exercise.exerciseSnapshot.equipment ? [...exercise.exerciseSnapshot.equipment] : undefined } : undefined,
     // Warm-up sets are session-only ramps, not part of the routine's structure, so
     // they neither count as a structural change nor get written back to the routine.
@@ -26,21 +33,29 @@ function copyExercises(exercises: readonly WorkoutExerciseInput[] | Workout['exe
   }));
 }
 
-export function routineStructureBaseline(exercises: readonly WorkoutExerciseInput[]): RoutineStructureBaseline {
-  return { exercises: copyExercises(exercises) };
+export function routineStructureBaseline(exercises: readonly WorkoutExerciseInput[], routine?: WorkoutRoutine): RoutineStructureBaseline {
+  return {
+    exercises: copyExercises(exercises),
+    routineName: routine?.name,
+    reusableExercises: routine ? copyExercises(routine.exercises).map((exercise, index) => ({
+      ...exercise, note: routine.exercises[index].note,
+    })) : undefined,
+  };
 }
 
-function structureComparable(exercises: readonly WorkoutExerciseInput[] | Workout['exercises']): string {
+function structureComparable(exercises: readonly WorkoutExerciseInput[] | Workout['exercises'],
+): string {
   return JSON.stringify(copyExercises(exercises).map((exercise) => ({
     id: exercise.id,
     exerciseId: exercise.exerciseId ?? exercise.exerciseSnapshot?.id ?? exercise.name,
     supersetId: exercise.supersetId,
-    trackingType: exercise.exerciseSnapshot?.trackingType ?? exercise.trackingType,
+    trackingType: effectiveTracking(exercise),
     sets: (exercise.sets ?? []).map((set) => ({
       id: set.id,
       plannedTargets: (set.plannedTargets ?? []).map(({ kind, unit, minValue, maxValue }) => ({ kind, unit, minValue, maxValue })),
     })),
-  })));
+  })),
+  );
 }
 
 export function hasRoutineStructureChanged(workout: Workout): boolean {
@@ -49,7 +64,8 @@ export function hasRoutineStructureChanged(workout: Workout): boolean {
 }
 
 /** Copies only reusable structure back to a routine; logged workout state is never retained. */
-export function applyWorkoutStructureToRoutine(routine: WorkoutRoutine, workout: Workout): WorkoutRoutine {
+export function applyWorkoutStructureToRoutine(routine: WorkoutRoutine, workout: Workout,
+): WorkoutRoutine {
   const priorById = new Map(routine.exercises.map((exercise) => [exercise.id, exercise]));
   const priorSetById = new Map(
     routine.exercises.flatMap((exercise) => (exercise.sets ?? []).map((set) => [set.id, set] as const)),
@@ -66,7 +82,9 @@ export function applyWorkoutStructureToRoutine(routine: WorkoutRoutine, workout:
       // targets into the template.
       sets: (exercise.sets ?? []).map((set) => ({
         ...set,
-        plannedTargets: copyTargets(priorSetById.get(set.id ?? '')?.plannedTargets),
+        plannedTargets: copyTargets(priorSetById.get(set.id ?? '')?.plannedTargets)?.filter(
+          (target) => trackingFields[effectiveTracking(exercise)].includes(target.kind),
+        ),
       })),
     })),
   };

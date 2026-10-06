@@ -2,7 +2,7 @@ import type { Workout, WorkoutState } from '../types';
 import { database, withDatabaseTransaction } from './database';
 import { normalizePersistedWorkout } from './workoutNormalization';
 
-const completedWorkoutUpsert = `
+export const completedWorkoutUpsert = `
   INSERT INTO workouts (id, is_active, completed_at, started_at, value_json)
   VALUES (?, 0, ?, ?, ?)
   ON CONFLICT(id) DO UPDATE SET

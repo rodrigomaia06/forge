@@ -16,3 +16,5 @@
 - Workout detail uses an icon-only Back action and a labeled More action; long workout names remain a single truncated centered line.
 - Opening a completed workout preserves the History route beneath it: the iOS edge swipe and the labeled Back action both return to History, while a direct/restored detail route falls back to History. Selecting History from its nested detail/editor route returns to the History root.
 - The existing workout-in-progress screen keeps its elapsed and rest timer behavior.
+
+- A finished session is saved exactly once even when submission is repeated. Unchecked and partially completed unilateral sets retain their current status. Recorded duration values display as mm:ss and persist in seconds. Exercise tracking overrides are part of the session contract and survive persistence and portable transfer; history matching distinguishes mode and repeated movement occurrence.
