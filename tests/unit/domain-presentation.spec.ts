@@ -630,8 +630,8 @@ test('expands abbreviations/synonyms and tolerates one unknown word in a multi-w
   expect(filterCatalog(items, { query: 'xyzzy qwerty' })).toHaveLength(0);
 });
 
-test('ships the validated v5 compact Strength baseline, unique picker identities, and all built-in workout types', () => {
-  expect(bundledCatalogVersion).toBe(5);
+test('ships the validated v7 compact Strength baseline, unique picker identities, and all built-in workout types', () => {
+  expect(bundledCatalogVersion).toBe(7);
   expect(bundledExercises).toHaveLength(608);
   expect(new Set(bundledExercises.map((exercise) => exercise.id)).size).toBe(608);
   expect(taxonomyLabel('equipment', 'none')).toBe('Bodyweight');

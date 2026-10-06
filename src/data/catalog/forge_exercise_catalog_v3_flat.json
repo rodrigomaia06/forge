@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 7,
   "schemaVersion": "5.0.0-flat",
   "description": "Forge flattened runtime exercise catalog. Compact strength curation from Forge v3 and the Kinetic Exercises Database source snapshot; do not hand-edit.",
   "generatedFrom": "forge_exercise_catalog_v3.json + data/catalog/source/kinetic-exercises-2026-09-15.json",
@@ -394,6 +394,10 @@
       {
         "id": "trap-bar",
         "label": "Trap Bar"
+      },
+      {
+        "id": "sledgehammer",
+        "label": "Sledgehammer"
       }
     ],
     "trackingTypes": [
@@ -1043,7 +1047,7 @@
       "workoutTypeIds": [
         "strength"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "scapular",
       "mechanics": "compound",
       "laterality": "bilateral",
@@ -1209,7 +1213,7 @@
       "workoutTypeIds": [
         "strength"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "shoulder-extension",
       "mechanics": "isolation",
       "laterality": "bilateral",
@@ -1675,8 +1679,7 @@
         "hamstrings"
       ],
       "workoutTypeIds": [
-        "strength",
-        "calisthenics"
+        "strength"
       ],
       "trackingType": "weight-reps",
       "movementPattern": "hip-extension",
@@ -2857,8 +2860,7 @@
         "obliques"
       ],
       "workoutTypeIds": [
-        "strength",
-        "calisthenics"
+        "strength"
       ],
       "trackingType": "weight-reps",
       "movementPattern": "trunk-flexion",
@@ -8037,8 +8039,7 @@
         "obliques"
       ],
       "workoutTypeIds": [
-        "strength",
-        "calisthenics"
+        "strength"
       ],
       "trackingType": "weight-reps",
       "movementPattern": "trunk-flexion",
@@ -13548,7 +13549,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -13578,7 +13579,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -13609,7 +13610,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -13639,7 +13640,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -13669,7 +13670,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -13699,7 +13700,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -13732,7 +13733,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -13767,7 +13768,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -13801,7 +13802,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -13842,8 +13843,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -13882,7 +13883,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -13914,8 +13915,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -13946,8 +13947,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -13977,7 +13978,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14013,8 +14014,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -14051,7 +14052,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14084,7 +14085,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14117,7 +14118,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14149,7 +14150,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14168,8 +14169,8 @@
       "name": "Lower Back Curl",
       "familyId": "lower-back-curl",
       "group": "Lower Back Curl",
-      "category": "mobility",
-      "bodyRegion": "full-body",
+      "category": "back",
+      "bodyRegion": "upper-body",
       "equipment": [
         "none"
       ],
@@ -14177,11 +14178,12 @@
       "primaryMuscle": "abs",
       "secondaryMuscles": [],
       "workoutTypeIds": [
-        "mobility"
+        "strength",
+        "calisthenics"
       ],
       "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
-      "mechanics": "mobility",
+      "movementPattern": "trunk-extension",
+      "mechanics": "isolation",
       "laterality": "bilateral",
       "aliases": [
         "Lower Back Curl"
@@ -14216,7 +14218,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14253,7 +14255,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14291,7 +14293,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14330,7 +14332,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14363,7 +14365,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14403,8 +14405,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -14438,7 +14440,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14478,7 +14480,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14519,7 +14521,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14558,7 +14560,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14591,7 +14593,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14624,8 +14626,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -14658,7 +14660,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14695,8 +14697,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -14729,7 +14731,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14762,7 +14764,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14800,7 +14802,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14839,7 +14841,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14878,7 +14880,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14918,7 +14920,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -14958,7 +14960,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -15000,7 +15002,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -15040,7 +15042,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -15075,8 +15077,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -15108,8 +15110,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -15145,8 +15147,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -15181,7 +15183,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -15208,8 +15210,8 @@
           "Squats"
         ]
       },
-      "category": "mobility",
-      "bodyRegion": "full-body",
+      "category": "plyometrics",
+      "bodyRegion": "lower-body",
       "equipment": [
         "none"
       ],
@@ -15221,11 +15223,11 @@
         "quads"
       ],
       "workoutTypeIds": [
-        "mobility"
+        "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
-      "mechanics": "mobility",
+      "trackingType": "reps-only",
+      "movementPattern": "jump",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Split Squat"
@@ -15264,7 +15266,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -15301,7 +15303,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -15337,7 +15339,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -15369,8 +15371,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "weight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -15402,7 +15404,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -15426,9 +15428,9 @@
       "category": "cardio",
       "bodyRegion": "cardio",
       "equipment": [
-        "machine"
+        "bike"
       ],
-      "primaryEquipment": "machine",
+      "primaryEquipment": "bike",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "calves",
@@ -15438,7 +15440,7 @@
       "workoutTypeIds": [
         "cardio"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "distance-duration",
       "movementPattern": "locomotion",
       "mechanics": "cardio",
       "laterality": "bilateral",
@@ -15463,9 +15465,9 @@
       "category": "cardio",
       "bodyRegion": "cardio",
       "equipment": [
-        "machine"
+        "elliptical"
       ],
-      "primaryEquipment": "machine",
+      "primaryEquipment": "elliptical",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "calves",
@@ -15475,7 +15477,7 @@
       "workoutTypeIds": [
         "cardio"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "distance-duration",
       "movementPattern": "locomotion",
       "mechanics": "cardio",
       "laterality": "bilateral",
@@ -15500,9 +15502,9 @@
       "category": "cardio",
       "bodyRegion": "cardio",
       "equipment": [
-        "machine"
+        "treadmill"
       ],
-      "primaryEquipment": "machine",
+      "primaryEquipment": "treadmill",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "glutes",
@@ -15511,7 +15513,7 @@
       "workoutTypeIds": [
         "cardio"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "distance-duration",
       "movementPattern": "locomotion",
       "mechanics": "cardio",
       "laterality": "bilateral",
@@ -15535,9 +15537,9 @@
       "category": "cardio",
       "bodyRegion": "cardio",
       "equipment": [
-        "machine"
+        "bike"
       ],
-      "primaryEquipment": "machine",
+      "primaryEquipment": "bike",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "calves",
@@ -15547,7 +15549,7 @@
       "workoutTypeIds": [
         "cardio"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "distance-duration",
       "movementPattern": "locomotion",
       "mechanics": "cardio",
       "laterality": "bilateral",
@@ -15572,9 +15574,9 @@
       "category": "cardio",
       "bodyRegion": "cardio",
       "equipment": [
-        "machine"
+        "rower"
       ],
-      "primaryEquipment": "machine",
+      "primaryEquipment": "rower",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "biceps",
@@ -15587,7 +15589,7 @@
       "workoutTypeIds": [
         "cardio"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "distance-duration",
       "movementPattern": "locomotion",
       "mechanics": "cardio",
       "laterality": "bilateral",
@@ -15615,9 +15617,9 @@
       "category": "cardio",
       "bodyRegion": "cardio",
       "equipment": [
-        "none"
+        "jump-rope"
       ],
-      "primaryEquipment": "none",
+      "primaryEquipment": "jump-rope",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "calves",
@@ -15626,7 +15628,7 @@
       "workoutTypeIds": [
         "cardio"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "locomotion",
       "mechanics": "cardio",
       "laterality": "bilateral",
@@ -15650,9 +15652,9 @@
       "category": "cardio",
       "bodyRegion": "cardio",
       "equipment": [
-        "machine"
+        "treadmill"
       ],
-      "primaryEquipment": "machine",
+      "primaryEquipment": "treadmill",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "calves",
@@ -15662,7 +15664,7 @@
       "workoutTypeIds": [
         "cardio"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "distance-duration",
       "movementPattern": "locomotion",
       "mechanics": "cardio",
       "laterality": "bilateral",
@@ -15701,7 +15703,7 @@
       "workoutTypeIds": [
         "cardio"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "distance-duration",
       "movementPattern": "locomotion",
       "mechanics": "cardio",
       "laterality": "bilateral",
@@ -15728,9 +15730,9 @@
       "category": "cardio",
       "bodyRegion": "cardio",
       "equipment": [
-        "machine"
+        "stair-climber"
       ],
-      "primaryEquipment": "machine",
+      "primaryEquipment": "stair-climber",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "calves",
@@ -15740,7 +15742,7 @@
       "workoutTypeIds": [
         "cardio"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "duration",
       "movementPattern": "locomotion",
       "mechanics": "cardio",
       "laterality": "bilateral",
@@ -15765,9 +15767,9 @@
       "category": "cardio",
       "bodyRegion": "cardio",
       "equipment": [
-        "machine"
+        "stair-climber"
       ],
-      "primaryEquipment": "machine",
+      "primaryEquipment": "stair-climber",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "calves",
@@ -15777,7 +15779,7 @@
       "workoutTypeIds": [
         "cardio"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "duration",
       "movementPattern": "locomotion",
       "mechanics": "cardio",
       "laterality": "bilateral",
@@ -15814,7 +15816,7 @@
       "workoutTypeIds": [
         "cardio"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "distance-duration",
       "movementPattern": "locomotion",
       "mechanics": "cardio",
       "laterality": "bilateral",
@@ -15839,9 +15841,9 @@
       "category": "cardio",
       "bodyRegion": "cardio",
       "equipment": [
-        "machine"
+        "treadmill"
       ],
-      "primaryEquipment": "machine",
+      "primaryEquipment": "treadmill",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "calves",
@@ -15851,7 +15853,7 @@
       "workoutTypeIds": [
         "cardio"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "distance-duration",
       "movementPattern": "locomotion",
       "mechanics": "cardio",
       "laterality": "bilateral",
@@ -15873,8 +15875,8 @@
       "name": "Carioca Quick Step",
       "familyId": "carioca-quick-step",
       "group": "Carioca Quick Step",
-      "category": "plyometrics",
-      "bodyRegion": "full-body",
+      "category": "cardio",
+      "bodyRegion": "cardio",
       "equipment": [
         "none"
       ],
@@ -15889,11 +15891,11 @@
         "quads"
       ],
       "workoutTypeIds": [
-        "plyometrics"
+        "cardio"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "trackingType": "duration",
+      "movementPattern": "locomotion",
+      "mechanics": "cardio",
       "laterality": "bilateral",
       "aliases": [
         "Carioca Quick Step"
@@ -15916,8 +15918,8 @@
       "name": "Linear Acceleration Wall Drill",
       "familyId": "linear-acceleration-wall-drill",
       "group": "Linear Acceleration Wall Drill",
-      "category": "plyometrics",
-      "bodyRegion": "full-body",
+      "category": "cardio",
+      "bodyRegion": "cardio",
       "equipment": [
         "none"
       ],
@@ -15929,11 +15931,11 @@
         "quads"
       ],
       "workoutTypeIds": [
-        "plyometrics"
+        "cardio"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "trackingType": "duration",
+      "movementPattern": "locomotion",
+      "mechanics": "cardio",
       "laterality": "bilateral",
       "aliases": [
         "Linear Acceleration Wall Drill"
@@ -15953,8 +15955,8 @@
       "name": "Moving Claw Series",
       "familyId": "moving-claw-series",
       "group": "Moving Claw Series",
-      "category": "plyometrics",
-      "bodyRegion": "full-body",
+      "category": "cardio",
+      "bodyRegion": "cardio",
       "equipment": [
         "none"
       ],
@@ -15965,11 +15967,11 @@
         "quads"
       ],
       "workoutTypeIds": [
-        "plyometrics"
+        "cardio"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "trackingType": "distance-duration",
+      "movementPattern": "locomotion",
+      "mechanics": "cardio",
       "laterality": "bilateral",
       "aliases": [
         "Moving Claw Series"
@@ -15995,8 +15997,8 @@
           "Arm"
         ]
       },
-      "category": "plyometrics",
-      "bodyRegion": "full-body",
+      "category": "cardio",
+      "bodyRegion": "cardio",
       "equipment": [
         "none"
       ],
@@ -16006,11 +16008,11 @@
         "abs"
       ],
       "workoutTypeIds": [
-        "plyometrics"
+        "cardio"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "trackingType": "duration",
+      "movementPattern": "locomotion",
+      "mechanics": "cardio",
       "laterality": "bilateral",
       "aliases": [
         "Drill"
@@ -16035,8 +16037,8 @@
       "variationFacets": {
         "laterality": "Single"
       },
-      "category": "plyometrics",
-      "bodyRegion": "full-body",
+      "category": "cardio",
+      "bodyRegion": "cardio",
       "equipment": [
         "none"
       ],
@@ -16048,11 +16050,11 @@
         "hamstrings"
       ],
       "workoutTypeIds": [
-        "plyometrics"
+        "cardio"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "trackingType": "duration",
+      "movementPattern": "locomotion",
+      "mechanics": "cardio",
       "laterality": "bilateral",
       "aliases": [
         "Cone Sprint Drill"
@@ -16089,7 +16091,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -16121,8 +16123,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -16151,7 +16153,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -16181,7 +16183,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -16211,7 +16213,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -16249,7 +16251,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -16282,7 +16284,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -16312,7 +16314,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -16351,11 +16353,12 @@
         "hamstrings"
       ],
       "workoutTypeIds": [
-        "plyometrics"
+        "plyometrics",
+        "cardio"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Hop Sprint"
@@ -16397,7 +16400,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -16432,7 +16435,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -16463,7 +16466,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -16499,9 +16502,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Alternate Leg Diagonal Bound"
@@ -16534,8 +16537,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -16572,8 +16575,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -16606,8 +16609,8 @@
         "plyometrics"
       ],
       "trackingType": "weight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "movementPattern": "throw",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Backward Medicine Throw"
@@ -16637,7 +16640,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -16676,7 +16679,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -16701,9 +16704,9 @@
       "category": "plyometrics",
       "bodyRegion": "full-body",
       "equipment": [
-        "none"
+        "bench"
       ],
-      "primaryEquipment": "none",
+      "primaryEquipment": "bench",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "calves",
@@ -16713,9 +16716,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Jump"
@@ -16738,9 +16741,9 @@
       "category": "plyometrics",
       "bodyRegion": "full-body",
       "equipment": [
-        "none"
+        "bench"
       ],
-      "primaryEquipment": "none",
+      "primaryEquipment": "bench",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "calves",
@@ -16750,9 +16753,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Sprint"
@@ -16785,8 +16788,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -16808,9 +16811,9 @@
       "category": "cardio",
       "bodyRegion": "cardio",
       "equipment": [
-        "none"
+        "bike"
       ],
-      "primaryEquipment": "none",
+      "primaryEquipment": "bike",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "calves",
@@ -16820,7 +16823,7 @@
       "workoutTypeIds": [
         "cardio"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "distance-duration",
       "movementPattern": "locomotion",
       "mechanics": "cardio",
       "laterality": "bilateral",
@@ -16845,9 +16848,9 @@
       "category": "plyometrics",
       "bodyRegion": "full-body",
       "equipment": [
-        "none"
+        "box"
       ],
-      "primaryEquipment": "none",
+      "primaryEquipment": "box",
       "primaryMuscle": "hamstrings",
       "secondaryMuscles": [
         "abductors",
@@ -16859,9 +16862,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Box Jump Multiple Response"
@@ -16886,9 +16889,9 @@
       "category": "plyometrics",
       "bodyRegion": "full-body",
       "equipment": [
-        "none"
+        "box"
       ],
-      "primaryEquipment": "none",
+      "primaryEquipment": "box",
       "primaryMuscle": "hamstrings",
       "secondaryMuscles": [
         "abductors",
@@ -16900,9 +16903,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Box Skip"
@@ -16937,7 +16940,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -16968,7 +16971,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -16998,7 +17001,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -17037,8 +17040,8 @@
         "plyometrics"
       ],
       "trackingType": "weight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "movementPattern": "throw",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Catch Throw"
@@ -17079,8 +17082,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -17117,8 +17120,8 @@
         "plyometrics"
       ],
       "trackingType": "weight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "movementPattern": "throw",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Chest Push From 3 Point Stance"
@@ -17154,8 +17157,8 @@
         "plyometrics"
       ],
       "trackingType": "weight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "movementPattern": "throw",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Chest Push Multiple Response"
@@ -17195,8 +17198,8 @@
         "plyometrics"
       ],
       "trackingType": "weight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "movementPattern": "throw",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Chest Push Response"
@@ -17234,8 +17237,8 @@
         "plyometrics"
       ],
       "trackingType": "weight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "movementPattern": "throw",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Chest Push Run Release"
@@ -17266,7 +17269,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -17427,9 +17430,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Leg Butt Kick"
@@ -17456,9 +17459,9 @@
       "category": "plyometrics",
       "bodyRegion": "full-body",
       "equipment": [
-        "none"
+        "box"
       ],
-      "primaryEquipment": "none",
+      "primaryEquipment": "box",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "abductors",
@@ -17470,9 +17473,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Depth Jump Leap"
@@ -17508,9 +17511,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Drop Push"
@@ -17550,7 +17553,7 @@
       ],
       "trackingType": "weight-reps",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Box Jump"
@@ -17585,7 +17588,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -17622,9 +17625,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Fast Skipping"
@@ -17646,8 +17649,8 @@
       "name": "Frog Hops",
       "familyId": "frog-hops",
       "group": "Frog Hops",
-      "category": "mobility",
-      "bodyRegion": "full-body",
+      "category": "plyometrics",
+      "bodyRegion": "lower-body",
       "equipment": [
         "none"
       ],
@@ -17659,11 +17662,11 @@
         "hamstrings"
       ],
       "workoutTypeIds": [
-        "mobility"
+        "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
-      "mechanics": "mobility",
+      "trackingType": "reps-only",
+      "movementPattern": "jump",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Frog Hops"
@@ -17731,9 +17734,9 @@
       "category": "plyometrics",
       "bodyRegion": "full-body",
       "equipment": [
-        "none"
+        "box"
       ],
-      "primaryEquipment": "none",
+      "primaryEquipment": "box",
       "primaryMuscle": "hamstrings",
       "secondaryMuscles": [
         "abductors",
@@ -17745,9 +17748,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Box Jump"
@@ -17794,9 +17797,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Cone Hops Or Hurdle Hops"
@@ -17831,8 +17834,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -17861,8 +17864,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -17936,7 +17939,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -18018,9 +18021,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Hurdle Hops"
@@ -18088,9 +18091,9 @@
       "category": "plyometrics",
       "bodyRegion": "full-body",
       "equipment": [
-        "none"
+        "heavy-bag"
       ],
-      "primaryEquipment": "none",
+      "primaryEquipment": "heavy-bag",
       "primaryMuscle": "chest",
       "secondaryMuscles": [
         "abs",
@@ -18100,9 +18103,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "trackingType": "reps-only",
+      "movementPattern": "horizontal-push",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Heavy Bag Thrust"
@@ -18135,8 +18138,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -18169,7 +18172,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -18201,7 +18204,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -18233,7 +18236,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -18274,9 +18277,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Push Depth Jump"
@@ -18309,8 +18312,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -18328,8 +18331,8 @@
       "name": "Isometric Chest Squeezes",
       "familyId": "isometric-chest-squeezes",
       "group": "Isometric Chest Squeezes",
-      "category": "plyometrics",
-      "bodyRegion": "full-body",
+      "category": "chest",
+      "bodyRegion": "upper-body",
       "equipment": [
         "none"
       ],
@@ -18340,11 +18343,11 @@
         "triceps"
       ],
       "workoutTypeIds": [
-        "plyometrics"
+        "strength"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "trackingType": "duration",
+      "movementPattern": "horizontal-push",
+      "mechanics": "isometric",
       "laterality": "bilateral",
       "aliases": [
         "Isometric Chest Squeezes"
@@ -18451,8 +18454,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -18489,9 +18492,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Knee Tuck Jump"
@@ -18564,7 +18567,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -18600,7 +18603,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -18626,8 +18629,8 @@
       "variationFacets": {
         "setup": "Kneeling"
       },
-      "category": "olympic",
-      "bodyRegion": "full-body",
+      "category": "plyometrics",
+      "bodyRegion": "lower-body",
       "equipment": [
         "barbell"
       ],
@@ -18639,11 +18642,11 @@
         "quads"
       ],
       "workoutTypeIds": [
-        "olympic-weightlifting"
+        "plyometrics"
       ],
       "trackingType": "weight-reps",
-      "movementPattern": "olympic",
-      "mechanics": "compound",
+      "movementPattern": "jump",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Jump Squat"
@@ -18668,9 +18671,9 @@
       "category": "plyometrics",
       "bodyRegion": "full-body",
       "equipment": [
-        "none"
+        "box"
       ],
-      "primaryEquipment": "none",
+      "primaryEquipment": "box",
       "primaryMuscle": "adductors",
       "secondaryMuscles": [
         "abductors",
@@ -18682,9 +18685,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Lateral Box Jump"
@@ -18723,9 +18726,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Lateral Cone Hops"
@@ -18758,7 +18761,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -18794,7 +18797,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -18815,8 +18818,8 @@
       "name": "Linear 3-Part Start Technique",
       "familyId": "linear-3-part-start-technique",
       "group": "Linear 3 Part Start Technique",
-      "category": "plyometrics",
-      "bodyRegion": "full-body",
+      "category": "cardio",
+      "bodyRegion": "cardio",
       "equipment": [
         "none"
       ],
@@ -18827,11 +18830,11 @@
         "quads"
       ],
       "workoutTypeIds": [
-        "plyometrics"
+        "cardio"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "trackingType": "distance-duration",
+      "movementPattern": "locomotion",
+      "mechanics": "cardio",
       "laterality": "bilateral",
       "aliases": [
         "Linear 3 Part Start Technique"
@@ -18865,9 +18868,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Linear Depth Jump"
@@ -18903,8 +18906,8 @@
         "plyometrics"
       ],
       "trackingType": "weight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "movementPattern": "throw",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Medicine Scoop Throw"
@@ -18939,7 +18942,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -18975,8 +18978,8 @@
         "plyometrics"
       ],
       "trackingType": "weight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "movementPattern": "throw",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Medicine Full Twist"
@@ -19083,7 +19086,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -19119,7 +19122,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -19157,7 +19160,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -19198,7 +19201,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -19237,8 +19240,8 @@
         "plyometrics"
       ],
       "trackingType": "weight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "movementPattern": "throw",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Slam"
@@ -19328,7 +19331,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -19364,7 +19367,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -19403,9 +19406,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Plyo Push"
@@ -19437,7 +19440,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -19543,7 +19546,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "weight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -19654,12 +19657,12 @@
       "name": "Prowler Sprint",
       "familyId": "prowler-sprint",
       "group": "Prowler Sprint",
-      "category": "cardio",
-      "bodyRegion": "cardio",
+      "category": "full-body",
+      "bodyRegion": "full-body",
       "equipment": [
-        "none"
+        "sled"
       ],
-      "primaryEquipment": "none",
+      "primaryEquipment": "sled",
       "primaryMuscle": "hamstrings",
       "secondaryMuscles": [
         "calves",
@@ -19669,11 +19672,12 @@
         "side-delts"
       ],
       "workoutTypeIds": [
+        "functional",
         "cardio"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "weight-distance",
       "movementPattern": "locomotion",
-      "mechanics": "cardio",
+      "mechanics": "compound",
       "laterality": "bilateral",
       "aliases": [
         "Prowler Sprint"
@@ -19709,9 +19713,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Quick Leap"
@@ -19780,8 +19784,8 @@
         "plyometrics"
       ],
       "trackingType": "weight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "movementPattern": "throw",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Return Push From Stance"
@@ -19814,9 +19818,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Rocket Jump"
@@ -19835,8 +19839,8 @@
       "name": "Romanian Deadlift from Deficit",
       "familyId": "romanian-deadlift-from-deficit",
       "group": "Romanian Deadlift From Deficit",
-      "category": "olympic",
-      "bodyRegion": "full-body",
+      "category": "hamstrings",
+      "bodyRegion": "lower-body",
       "equipment": [
         "barbell"
       ],
@@ -19849,10 +19853,10 @@
         "traps"
       ],
       "workoutTypeIds": [
-        "olympic-weightlifting"
+        "strength"
       ],
       "trackingType": "weight-reps",
-      "movementPattern": "olympic",
+      "movementPattern": "hinge",
       "mechanics": "compound",
       "laterality": "bilateral",
       "aliases": [
@@ -19874,8 +19878,8 @@
       "name": "Scissor Kick",
       "familyId": "scissor-kick",
       "group": "Scissor Kick",
-      "category": "mobility",
-      "bodyRegion": "full-body",
+      "category": "core",
+      "bodyRegion": "core",
       "equipment": [
         "none"
       ],
@@ -19883,11 +19887,12 @@
       "primaryMuscle": "abs",
       "secondaryMuscles": [],
       "workoutTypeIds": [
-        "mobility"
+        "strength",
+        "calisthenics"
       ],
       "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
-      "mechanics": "mobility",
+      "movementPattern": "anti-extension",
+      "mechanics": "compound",
       "laterality": "bilateral",
       "aliases": [
         "Scissor Kick"
@@ -19918,9 +19923,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Scissors Jump"
@@ -19957,7 +19962,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -19991,7 +19996,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -20028,7 +20033,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -20070,7 +20075,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -20110,7 +20115,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -20153,9 +20158,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Long Jump"
@@ -20198,7 +20203,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -20230,9 +20235,9 @@
       "category": "plyometrics",
       "bodyRegion": "full-body",
       "equipment": [
-        "none"
+        "box"
       ],
-      "primaryEquipment": "none",
+      "primaryEquipment": "box",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "abductors",
@@ -20243,9 +20248,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Box Shuffle"
@@ -20288,9 +20293,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Leg Hop Progression"
@@ -20333,9 +20338,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Leg Lateral Hop"
@@ -20365,9 +20370,9 @@
       "category": "plyometrics",
       "bodyRegion": "full-body",
       "equipment": [
-        "none"
+        "box"
       ],
-      "primaryEquipment": "none",
+      "primaryEquipment": "box",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "abductors",
@@ -20378,9 +20383,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Leg Stride Jump"
@@ -20421,9 +20426,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Leg Butt Kick"
@@ -20451,9 +20456,9 @@
       "category": "plyometrics",
       "bodyRegion": "full-body",
       "equipment": [
-        "none"
+        "box"
       ],
-      "primaryEquipment": "none",
+      "primaryEquipment": "box",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "calves",
@@ -20462,9 +20467,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Leg Push Off"
@@ -20485,12 +20490,12 @@
       "name": "Sledgehammer Swings",
       "familyId": "sledgehammer-swings",
       "group": "Sledgehammer Swings",
-      "category": "plyometrics",
+      "category": "full-body",
       "bodyRegion": "full-body",
       "equipment": [
-        "none"
+        "sledgehammer"
       ],
-      "primaryEquipment": "none",
+      "primaryEquipment": "sledgehammer",
       "primaryMuscle": "abs",
       "secondaryMuscles": [
         "calves",
@@ -20500,11 +20505,12 @@
         "side-delts"
       ],
       "workoutTypeIds": [
-        "plyometrics"
+        "functional",
+        "cardio"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "trackingType": "weight-reps",
+      "movementPattern": "conditioning",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Sledgehammer Swings"
@@ -20707,8 +20713,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -20790,9 +20796,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Split Jump"
@@ -20863,9 +20869,9 @@
       "category": "plyometrics",
       "bodyRegion": "full-body",
       "equipment": [
-        "none"
+        "box"
       ],
-      "primaryEquipment": "none",
+      "primaryEquipment": "box",
       "primaryMuscle": "quads",
       "secondaryMuscles": [
         "abductors",
@@ -20876,9 +20882,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Stride Jump Crossover"
@@ -20917,7 +20923,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -20957,8 +20963,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -20994,7 +21000,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -21034,9 +21040,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Long Jump"
@@ -21073,7 +21079,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -21111,7 +21117,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -21155,8 +21161,8 @@
         "plyometrics"
       ],
       "trackingType": "weight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "movementPattern": "throw",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Throw"
@@ -21194,9 +21200,9 @@
       "workoutTypeIds": [
         "plyometrics"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "reps-only",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Star Jump"
@@ -21217,8 +21223,8 @@
       "name": "Stomach Vacuum",
       "familyId": "stomach-vacuum",
       "group": "Stomach Vacuum",
-      "category": "mobility",
-      "bodyRegion": "full-body",
+      "category": "core",
+      "bodyRegion": "core",
       "equipment": [
         "none"
       ],
@@ -21226,11 +21232,12 @@
       "primaryMuscle": "abs",
       "secondaryMuscles": [],
       "workoutTypeIds": [
-        "mobility"
+        "strength",
+        "calisthenics"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
-      "mechanics": "mobility",
+      "trackingType": "duration",
+      "movementPattern": "anti-extension",
+      "mechanics": "isometric",
       "laterality": "bilateral",
       "aliases": [
         "Stomach Vacuum"
@@ -21247,7 +21254,7 @@
       "name": "Superman",
       "familyId": "superman",
       "group": "Superman",
-      "category": "mobility",
+      "category": "back",
       "bodyRegion": "full-body",
       "equipment": [
         "none"
@@ -21259,11 +21266,12 @@
         "hamstrings"
       ],
       "workoutTypeIds": [
-        "mobility"
+        "strength",
+        "calisthenics"
       ],
       "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
-      "mechanics": "mobility",
+      "movementPattern": "trunk-extension",
+      "mechanics": "compound",
       "laterality": "bilateral",
       "aliases": [
         "Superman"
@@ -21297,8 +21305,8 @@
         "plyometrics"
       ],
       "trackingType": "weight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "movementPattern": "throw",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Supine Chest Throw"
@@ -21340,8 +21348,8 @@
         "plyometrics"
       ],
       "trackingType": "weight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "movementPattern": "throw",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Supine Throw"
@@ -21387,8 +21395,8 @@
         "plyometrics"
       ],
       "trackingType": "weight-reps",
-      "movementPattern": "jump",
-      "mechanics": "compound",
+      "movementPattern": "throw",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Supine Throw"
@@ -21425,7 +21433,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -21446,8 +21454,8 @@
       "name": "Toe Touchers",
       "familyId": "toe-touchers",
       "group": "Toe Touchers",
-      "category": "mobility",
-      "bodyRegion": "full-body",
+      "category": "core",
+      "bodyRegion": "core",
       "equipment": [
         "none"
       ],
@@ -21455,11 +21463,12 @@
       "primaryMuscle": "abs",
       "secondaryMuscles": [],
       "workoutTypeIds": [
-        "mobility"
+        "strength",
+        "calisthenics"
       ],
       "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
-      "mechanics": "mobility",
+      "movementPattern": "trunk-flexion",
+      "mechanics": "isolation",
       "laterality": "bilateral",
       "aliases": [
         "Toe Touchers"
@@ -21487,7 +21496,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -21524,7 +21533,7 @@
       ],
       "trackingType": "weight-reps",
       "movementPattern": "jump",
-      "mechanics": "compound",
+      "mechanics": "power",
       "laterality": "bilateral",
       "aliases": [
         "Vertical Swing"
@@ -21558,7 +21567,7 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
+      "trackingType": "duration",
       "movementPattern": "stretch",
       "mechanics": "mobility",
       "laterality": "bilateral",
@@ -21590,8 +21599,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [
@@ -21613,8 +21622,8 @@
       "variationFacets": {
         "stance": "Wide"
       },
-      "category": "olympic",
-      "bodyRegion": "full-body",
+      "category": "hamstrings",
+      "bodyRegion": "lower-body",
       "equipment": [
         "barbell"
       ],
@@ -21626,10 +21635,10 @@
         "lower-back"
       ],
       "workoutTypeIds": [
-        "olympic-weightlifting"
+        "strength"
       ],
       "trackingType": "weight-reps",
-      "movementPattern": "olympic",
+      "movementPattern": "hinge",
       "mechanics": "compound",
       "laterality": "bilateral",
       "aliases": [
@@ -21667,8 +21676,8 @@
       "workoutTypeIds": [
         "mobility"
       ],
-      "trackingType": "bodyweight-reps",
-      "movementPattern": "stretch",
+      "trackingType": "reps-only",
+      "movementPattern": "mobility",
       "mechanics": "mobility",
       "laterality": "bilateral",
       "aliases": [

@@ -22,7 +22,7 @@
     "postinstall": "patch-package",
     "typecheck": "tsc --noEmit",
     "catalog:curate": "node scripts/curate-kinetic-catalog.mjs",
-    "catalog:audit": "node scripts/audit-catalog-variations.mjs",
+    "catalog:audit": "node scripts/audit-catalog-variations.mjs && node scripts/audit-catalog-classification.mjs",
     "verify": "npm run typecheck && npm run test:visual",
     "format": "prettier --write \"App.tsx\" \"index.ts\" \"playwright.config.ts\" \"src/**/*.{ts,tsx}\" \"tests/**/*.ts\"",
     "test:visual": "playwright test",

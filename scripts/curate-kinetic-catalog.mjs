@@ -1,9 +1,11 @@
 import { readFile, writeFile } from 'node:fs/promises';
+import { applyReviewedClassification } from './catalog-classification.mjs';
 
 const sourcePath = new URL('../data/catalog/source/kinetic-exercises-2026-09-15.json', import.meta.url);
 const outputPath = new URL('../src/data/catalog/forge_exercise_catalog_v3_flat.json', import.meta.url);
 const source = JSON.parse(await readFile(sourcePath, 'utf8'));
 const catalog = JSON.parse(await readFile(outputPath, 'utf8'));
+const releaseOrder = new Map(catalog.exercises.map((exercise, index) => [exercise.id, index]));
 const bodyweightEquipment = catalog.taxonomies?.equipment?.find((entry) => entry.id === 'none');
 if (bodyweightEquipment) bodyweightEquipment.label = 'Bodyweight';
 const normalize = (value) => String(value ?? '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -33,6 +35,23 @@ const categoryFor = (value, category) => {
 };
 const workoutTypes = { strength: ['strength'], olympicWeightlifting: ['olympic-weightlifting'], stretching: ['mobility'], cardio: ['cardio'], plyometrics: ['plyometrics'], powerlifting: ['strength'] };
 const bodyRegion = (category) => ({ chest: 'upper-body', back: 'upper-body', shoulders: 'upper-body', biceps: 'upper-body', triceps: 'upper-body', forearms: 'upper-body', neck: 'upper-body', quads: 'lower-body', hamstrings: 'lower-body', glutes: 'lower-body', calves: 'lower-body', core: 'core', cardio: 'cardio', mobility: 'full-body', olympic: 'full-body', plyometrics: 'full-body', 'full-body': 'full-body' })[category];
+// Reviewed cardio tracking must not inherit the source's generic strength type.
+const cardioTracking = {
+  'kinetic-stairmaster': 'duration',
+  'kinetic-step-mill': 'duration',
+  'kinetic-rope-jumping': 'duration',
+  'kinetic-bicycling-stationary': 'distance-duration',
+  'kinetic-elliptical-trainer': 'distance-duration',
+  'kinetic-jogging-treadmill': 'distance-duration',
+  'kinetic-recumbent-bike': 'distance-duration',
+  'kinetic-rowing-stationary': 'distance-duration',
+  'kinetic-running-treadmill': 'distance-duration',
+  'kinetic-skating': 'distance-duration',
+  'kinetic-trail-running-walking': 'distance-duration',
+  'kinetic-walking-treadmill': 'distance-duration',
+  'kinetic-bicycling': 'distance-duration',
+  'kinetic-prowler-sprint': 'weight-distance',
+};
 const included = new Set(['strength', 'olympicWeightlifting', 'stretching', 'cardio', 'plyometrics', 'powerlifting']);
 const titleCase = (value) => value.split(' ').filter(Boolean).map((word) => ['ez', 'db'].includes(word) ? word.toUpperCase() : word === 'id' ? 'ID' : `${word[0].toUpperCase()}${word.slice(1)}`).join(' ');
 // `curl` is a movement, never equipment. Treating it as equipment produced
@@ -146,7 +165,14 @@ for (const exercise of source) {
   catalog.exercises.push({ id, name: exercise.name.trim(), familyId: identity.familyId, group: identity.group, variation, variationFacets: Object.keys(variationFacets).length ? variationFacets : undefined, category, bodyRegion: bodyRegion(category), equipment: exerciseEquipment.length ? exerciseEquipment : ['none'], primaryEquipment, primaryMuscle, secondaryMuscles, workoutTypeIds: workoutTypes[exercise.category], trackingType, movementPattern, mechanics, laterality: 'bilateral', aliases: [identity.group], searchTerms: [exercise.name.trim(), identity.group, ...(variation ? [variation] : []), ...Object.values(variationFacets).flatMap((value) => Array.isArray(value) ? value : value ? [value] : []), ...exercise.equipment.map((item) => item.name), ...exercise.muscleGroups.map((item) => item.name)] });
   existingNames.add(canonicalNameKey(exercise.name));
 }
-catalog.version = 5;
+for (const exercise of catalog.exercises) {
+  if (cardioTracking[exercise.id]) exercise.trackingType = cardioTracking[exercise.id];
+}
+catalog.exercises = catalog.exercises.map(applyReviewedClassification);
+if (!catalog.taxonomies.equipment.some((entry) => entry.id === 'sledgehammer')) {
+  catalog.taxonomies.equipment.push({ id: 'sledgehammer', label: 'Sledgehammer' });
+}
+catalog.version = 7;
 catalog.schemaVersion = '5.0.0-flat';
 catalog.description = 'Forge flattened runtime exercise catalog. Compact strength curation from Forge v3 and the Kinetic Exercises Database source snapshot; do not hand-edit.';
 catalog.generatedFrom = 'forge_exercise_catalog_v3.json + data/catalog/source/kinetic-exercises-2026-09-15.json';
@@ -175,5 +201,7 @@ const releaseIds = new Set(catalog.exercises.map((exercise) => exercise.id));
 catalog.legacyIdMap = Object.fromEntries(
   Object.entries(catalog.legacyIdMap).filter(([, current]) => releaseIds.has(current)),
 );
+// Retain published ordering when correcting metadata; append genuinely new entries.
+catalog.exercises.sort((a, b) => (releaseOrder.get(a.id) ?? Infinity) - (releaseOrder.get(b.id) ?? Infinity));
 catalog.counts.exercises = catalog.exercises.length;
 await writeFile(outputPath, `${JSON.stringify(catalog, null, 2)}\n`);
