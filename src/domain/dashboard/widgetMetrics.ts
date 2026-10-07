@@ -1,3 +1,4 @@
+import { dateFormatter } from '../../utils/dateFormatters';
 import type { Workout, WorkoutExercise, WorkoutSet } from '../../types';
 import type { WeekStartsOn } from '../../types';
 import { exerciseCatalogById } from '../../data/exerciseCatalog';
@@ -427,7 +428,7 @@ export function volumeSeries(
 }
 
 function shortDate(date: Date): string {
-  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(date);
+  return dateFormatter({ month: 'short', day: 'numeric' }).format(date);
 }
 
 // ---------------------------------------------------------------------------

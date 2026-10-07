@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { AppState, Platform } from 'react-native';
 import { useFonts } from 'expo-font';
 import { embeddedFontsReady } from './src/theme/fonts';
+import { refreshDateFormatters } from './src/utils/dateFormatters';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
@@ -30,6 +32,18 @@ export default function App() {
           Manrope_700Bold,
         },
   );
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshDateFormatters();
+    });
+    if (Platform.OS === 'web') window.addEventListener('languagechange', refreshDateFormatters);
+    return () => {
+      subscription.remove();
+      if (Platform.OS === 'web')
+        window.removeEventListener('languagechange', refreshDateFormatters);
+    };
+  }, []);
 
   if (!fontsLoaded) return <ForgeLoadingScreen />;
 

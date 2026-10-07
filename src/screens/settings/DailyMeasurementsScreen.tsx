@@ -37,6 +37,7 @@ import { typeScale } from '../../theme/tokens';
 import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import { TREND_DAY_OPTIONS, trendDayLabel, type TrendDays } from '../../domain/trends';
 import type { DailyMeasurementDefinition, DailyMeasurementEntry, IconName, RootStackParamList } from '../../types';
+import { dateFormatter } from '../../utils/dateFormatters';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { settingsLayout } from './SettingsRow';
 import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
@@ -64,19 +65,19 @@ function localDateKey(date = new Date()): string {
 
 function displayDate(key: string): string {
   const [year, month, day] = key.split('-').map(Number);
-  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' })
+  return dateFormatter({ month: 'short', day: 'numeric' })
     .format(new Date(year, month - 1, day));
 }
 
 function displayHistoryDate(key: string): string {
   const [year, month, day] = key.split('-').map(Number);
-  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+  return dateFormatter({ month: 'short', day: 'numeric', year: 'numeric' })
     .format(new Date(year, month - 1, day));
 }
 
 function historyMonthLabel(key: string): string {
   const [year, month] = key.split('-').map(Number);
-  return new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' })
+  return dateFormatter({ month: 'long', year: 'numeric' })
     .format(new Date(year, month - 1, 1));
 }
 
