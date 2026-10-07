@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { AppState, Platform } from 'react-native';
+import { AppState, InteractionManager, Platform } from 'react-native';
 import { useFonts } from 'expo-font';
 import { embeddedFontsReady } from './src/theme/fonts';
 import { refreshDateFormatters } from './src/utils/dateFormatters';
@@ -34,6 +34,9 @@ export default function App() {
   );
 
   useEffect(() => {
+    // RN Web's virtualized lists queue work through InteractionManager. A bounded
+    // timer budget prevents idle callbacks from starving after continuous gestures.
+    if (Platform.OS === 'web') InteractionManager.setDeadline(8);
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') refreshDateFormatters();
     });

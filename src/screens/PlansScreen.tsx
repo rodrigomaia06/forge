@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, LayoutAnimation, Platform, Pressable, StyleSheet, UIManager, View } from 'react-native';
 import type { PanGesture } from 'react-native-gesture-handler';
-import Animated, { scrollTo, useAnimatedRef, useAnimatedScrollHandler, useFrameCallback, useSharedValue, type SharedValue } from 'react-native-reanimated';
+import Animated, { scrollTo, useAnimatedRef, useAnimatedScrollHandler, useFrameCallback, useSharedValue, type SharedValue, type FrameInfo } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import type { ForgeActionSheetAction } from '../components/ui';
@@ -135,24 +135,40 @@ export function PlansScreen({ navigation, route }: Props) {
 
   // Pointer, edge scrolling and held-row compensation stay on the UI runtime.
   // Normalize the step to elapsed time so 120 Hz devices do not scroll twice as fast.
-  const autoscroll = useFrameCallback((frame) => {
-    const pointer = dragPointerY.get();
-    if (pointer == null) return;
-    const height = plansViewportHeight.get();
-    const top = plansViewportTop.get();
-    const maxOffset = Math.max(0, plansContentHeight.get() - height);
-    if (height <= 0 || maxOffset <= 0) return;
-    let intensity = 0;
-    if (pointer < top + AUTOSCROLL_EDGE) intensity = -Math.min(1, (top + AUTOSCROLL_EDGE - pointer) / AUTOSCROLL_EDGE);
-    else if (pointer > top + height - AUTOSCROLL_EDGE) intensity = Math.min(1, (pointer - top - height + AUTOSCROLL_EDGE) / AUTOSCROLL_EDGE);
-    if (intensity === 0) return;
-    const delta = AUTOSCROLL_MAX_STEP * intensity * Math.min(frame.timeSincePreviousFrame ?? 16.67, 32) / 16.67;
-    const current = animatedScrollOffset.get();
-    const next = Math.max(0, Math.min(maxOffset, current + delta));
-    if (next === current) return;
-    animatedScrollOffset.set(next);
-    scrollTo(plansListRef, 0, next, false);
-  }, false);
+  const autoscrollFrame = useCallback(
+    (frame: FrameInfo) => {
+      'worklet';
+      const pointer = dragPointerY.get();
+      if (pointer == null) return;
+      const height = plansViewportHeight.get();
+      const top = plansViewportTop.get();
+      const maxOffset = Math.max(0, plansContentHeight.get() - height);
+      if (height <= 0 || maxOffset <= 0) return;
+      let intensity = 0;
+      if (pointer < top + AUTOSCROLL_EDGE)
+        intensity = -Math.min(1, (top + AUTOSCROLL_EDGE - pointer) / AUTOSCROLL_EDGE);
+      else if (pointer > top + height - AUTOSCROLL_EDGE)
+        intensity = Math.min(1, (pointer - top - height + AUTOSCROLL_EDGE) / AUTOSCROLL_EDGE);
+      if (intensity === 0) return;
+      const delta =
+        (AUTOSCROLL_MAX_STEP * intensity * Math.min(frame.timeSincePreviousFrame ?? 16.67, 32)) /
+        16.67;
+      const current = animatedScrollOffset.get();
+      const next = Math.max(0, Math.min(maxOffset, current + delta));
+      if (next === current) return;
+      animatedScrollOffset.set(next);
+      scrollTo(plansListRef, 0, next, false);
+    },
+    [
+      dragPointerY,
+      plansViewportHeight,
+      plansViewportTop,
+      plansContentHeight,
+      animatedScrollOffset,
+      plansListRef,
+    ],
+  );
+  const autoscroll = useFrameCallback(autoscrollFrame, false);
 
   useEffect(() => {
     autoscroll.setActive(routineDragging);

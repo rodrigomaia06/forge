@@ -1,6 +1,6 @@
 import { scheduleOnRN } from 'react-native-worklets';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { FlatList, StyleSheet, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector, type PanGesture } from 'react-native-gesture-handler';
 import Animated, {
   type SharedValue,
@@ -57,11 +57,7 @@ function sameKeys<T>(before: T[], after: T[], keyExtractor: (item: T) => string)
   return beforeKeys.every((key, index) => key === afterKeys[index]);
 }
 
-/**
- * A fixed-height, non-virtualized reorder surface for the small routine groups
- * on Plans. Keeping every row mounted and in normal flow preserves the grouped
- * card's exact height while transforms provide the Dashboard-style hover.
- */
+/** Nested FlatLists inherit the Plans list's scroll metrics without adding a scroller. */
 export function RoutineReorderGroup<T>({
   data,
   enabled,
@@ -85,7 +81,8 @@ export function RoutineReorderGroup<T>({
   const rawTranslation = useSharedValue(0);
   const dragStartScrollOffset = useSharedValue(0);
   const pendingReset = useRef(false);
-
+  const { height: viewportHeight } = useWindowDimensions();
+  const [windowSize, setWindowSize] = useState(7);
   const latest = useRef({
     renderedData,
     keyExtractor,
@@ -123,6 +120,7 @@ export function RoutineReorderGroup<T>({
     dragPointerY.set(null);
     latest.current.onDragBoundsChange(false, false);
     latest.current.onDragStateChange(false);
+    setWindowSize(7);
   }, [activeIndex, dragStartScrollOffset, outerScrollOffset, rawTranslation, dragPointerY]);
 
   // Reset the shared transforms right after the reordered data commits (before
@@ -143,33 +141,36 @@ export function RoutineReorderGroup<T>({
     latest.current.onDragBoundsChange(index > 0, index < latest.current.renderedData.length - 1);
   }, []);
 
-  const finishDrag = useCallback((from: number, to: number) => {
-    const current = latest.current.renderedData;
-    if (from === to) {
-      resetDrag();
-      return;
-    }
+  const finishDrag = useCallback(
+    (from: number, to: number) => {
+      const current = latest.current.renderedData;
+      if (from === to) {
+        resetDrag();
+        return;
+      }
 
-    const next = moveItem(current, from, to);
-    const valid = sameKeys(current, next, latest.current.keyExtractor);
-    if (__DEV__) {
-      console.assert(valid, 'Routine reorder must preserve every routine id.', {
-        before: current.map(latest.current.keyExtractor),
-        after: next.map(latest.current.keyExtractor),
-      });
-    }
-    if (!valid) {
-      resetDrag();
-      return;
-    }
+      const next = moveItem(current, from, to);
+      const valid = sameKeys(current, next, latest.current.keyExtractor);
+      if (__DEV__) {
+        console.assert(valid, 'Routine reorder must preserve every routine id.', {
+          before: current.map(latest.current.keyExtractor),
+          after: next.map(latest.current.keyExtractor),
+        });
+      }
+      if (!valid) {
+        resetDrag();
+        return;
+      }
 
-    // Commit the reordered data and reset the transforms together: the layout
-    // effect above fires on this renderedData change and zeroes the shared
-    // transforms before paint, so the rows land at their new slots.
-    pendingReset.current = true;
-    setRenderedData(next);
-    latest.current.onReorder(next);
-  }, [resetDrag]);
+      // Commit the reordered data and reset the transforms together: the layout
+      // effect above fires on this renderedData change and zeroes the shared
+      // transforms before paint, so the rows land at their new slots.
+      pendingReset.current = true;
+      setRenderedData(next);
+      latest.current.onReorder(next);
+    },
+    [resetDrag],
+  );
 
   const cancelDrag = useCallback(() => {
     resetDrag();
@@ -183,9 +184,37 @@ export function RoutineReorderGroup<T>({
     [updateBounds],
   );
 
+  // Keep the held gesture cell mounted during edge scrolling. Expand only the
+  // traversed window, then restore the ordinary window when the drag ends.
+  useAnimatedReaction(
+    () =>
+      activeIndex.value < 0
+        ? 7
+        : 7 +
+          2 *
+            Math.ceil(
+              Math.abs(outerScrollOffset.value - dragStartScrollOffset.value) /
+                (viewportHeight / 2),
+            ),
+    (current, previous) => {
+      if (current !== previous) scheduleOnRN(setWindowSize, current);
+    },
+    [viewportHeight],
+  );
+
   return (
-    <>
-      {renderedData.map((item, index) => (
+    <FlatList
+      data={renderedData}
+      keyExtractor={keyExtractor}
+      scrollEnabled={false}
+      style={{ height: renderedData.length * rowHeight }}
+      getItemLayout={(_data, index) => ({ length: rowHeight, offset: rowHeight * index, index })}
+      initialNumToRender={8}
+      maxToRenderPerBatch={8}
+      windowSize={windowSize}
+      removeClippedSubviews={false}
+      extraData={enabled}
+      renderItem={({ item, index }) => (
         <RoutineReorderItem
           key={keyExtractor(item)}
           index={index}
@@ -204,15 +233,17 @@ export function RoutineReorderGroup<T>({
           onFinishDrag={finishDrag}
           onCancelDrag={cancelDrag}
         >
-          {(dragGesture) => renderItem({
-            item,
-            index,
-            last: index === renderedData.length - 1,
-            dragGesture,
-          })}
+          {(dragGesture) =>
+            renderItem({
+              item,
+              index,
+              last: index === renderedData.length - 1,
+              dragGesture,
+            })
+          }
         </RoutineReorderItem>
-      ))}
-    </>
+      )}
+    />
   );
 }
 
@@ -283,46 +314,49 @@ function RoutineReorderItem({
       zIndex: 0,
       elevation: 0,
       opacity: 1,
-      transform: [{
-        translateY: reducedMotion
-          ? destination
-          : withSpring(destination, DASHBOARD_REORDER_SPRING),
-      }],
+      transform: [
+        {
+          translateY: reducedMotion
+            ? destination
+            : withSpring(destination, DASHBOARD_REORDER_SPRING),
+        },
+      ],
     };
   }, [index, itemCount, reducedMotion, rowHeight]);
 
   const dragGesture = useMemo(
-    () => Gesture.Pan()
-      .enabled(enabled && itemCount > 1)
-      .activateAfterLongPress(140)
-      .maxPointers(1)
-      .onStart((event) => {
-        dragPointerY.set(event.absoluteY);
-        activeIndex.value = index;
-        rawTranslation.value = 0;
-        dragStartScrollOffset.value = outerScrollOffset.value;
-        scheduleOnRN(onBeginDrag, index);
-      })
-      .onUpdate((event) => {
-        rawTranslation.value = event.translationY;
-        dragPointerY.set(event.absoluteY);
-      })
-      // Snap the held row to its destination slot and commit in the same commit
-      // the data reorders (the layout effect resets transforms). Committing here
-      // rather than in a settle-spring callback means an interrupted animation
-      // can never silently drop the reorder.
-      .onEnd(() => {
-        dragPointerY.set(null);
-        const destination = targetIndex.value;
-        const scrollDelta = outerScrollOffset.value - dragStartScrollOffset.value;
-        rawTranslation.value = (destination - index) * rowHeight - scrollDelta;
-        scheduleOnRN(onFinishDrag, index, destination);
-      })
-      .onFinalize((_event, success) => {
-        if (success || activeIndex.value !== index) return;
-        dragPointerY.set(null);
-        scheduleOnRN(onCancelDrag);
-      }),
+    () =>
+      Gesture.Pan()
+        .enabled(enabled && itemCount > 1)
+        .activateAfterLongPress(140)
+        .maxPointers(1)
+        .onStart((event) => {
+          dragPointerY.set(event.absoluteY);
+          activeIndex.value = index;
+          rawTranslation.value = 0;
+          dragStartScrollOffset.value = outerScrollOffset.value;
+          scheduleOnRN(onBeginDrag, index);
+        })
+        .onUpdate((event) => {
+          rawTranslation.value = event.translationY;
+          dragPointerY.set(event.absoluteY);
+        })
+        // Snap the held row to its destination slot and commit in the same commit
+        // the data reorders (the layout effect resets transforms). Committing here
+        // rather than in a settle-spring callback means an interrupted animation
+        // can never silently drop the reorder.
+        .onEnd(() => {
+          dragPointerY.set(null);
+          const destination = targetIndex.value;
+          const scrollDelta = outerScrollOffset.value - dragStartScrollOffset.value;
+          rawTranslation.value = (destination - index) * rowHeight - scrollDelta;
+          scheduleOnRN(onFinishDrag, index, destination);
+        })
+        .onFinalize((_event, success) => {
+          if (success || activeIndex.value !== index) return;
+          dragPointerY.set(null);
+          scheduleOnRN(onCancelDrag);
+        }),
     [
       activeIndex,
       dragStartScrollOffset,
@@ -344,15 +378,17 @@ function RoutineReorderItem({
   // The animated style is always applied; at rest its worklet returns
   // translateY 0. Never swap it for a static style — on native that leaves the
   // last animated transform stuck on the view and blanks the card.
-  return (
-    <Animated.View style={[styles.row, animatedStyle]}>
-      {children(dragGesture)}
-    </Animated.View>
-  );
+  return <Animated.View style={[styles.row, animatedStyle]}>{children(dragGesture)}</Animated.View>;
 }
 
 /** Keeps the drag GestureDetector local to the visible handle. */
-export function RoutineDragHandle({ gesture, children }: { gesture: PanGesture; children: React.ReactNode }) {
+export function RoutineDragHandle({
+  gesture,
+  children,
+}: {
+  gesture: PanGesture;
+  children: React.ReactNode;
+}) {
   return <GestureDetector gesture={gesture}>{children}</GestureDetector>;
 }
 
