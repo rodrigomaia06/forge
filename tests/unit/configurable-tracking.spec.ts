@@ -88,7 +88,7 @@ test('finish review is required only for incomplete work or a routine decision',
   const completed = workout();
   completed.exercises[0].sets[0].completed = true;
   expect(workoutNeedsFinishReview(completed, source)).toBe(false);
-  expect(workoutNeedsFinishReview({ ...completed, routineId: undefined })).toBe(false);
+  expect(workoutNeedsFinishReview({ ...completed, routineId: undefined })).toBe(true);
   expect(workoutNeedsFinishReview(completed)).toBe(true);
   expect(workoutNeedsFinishReview(workout(), source)).toBe(true);
   expect(workoutNeedsFinishReview({ ...completed, exercises: [] })).toBe(false);

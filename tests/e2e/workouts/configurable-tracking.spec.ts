@@ -327,6 +327,8 @@ test('running supports distance, time and both with deterministic completion', a
   await page.getByLabel('KM for set 1').fill('1');
   await page.getByRole('checkbox', { name: 'Complete set 1', exact: true }).click();
   await page.getByRole('button', { name: 'Finish workout', exact: true }).click();
+  await page.getByRole('radio', { name: 'History only', exact: true }).click();
+  await page.getByRole('button', { name: 'Finish workout', exact: true }).click();
   await expect.poll(async () => (await saved(page)).history.length).toBe(1);
   await expect(page.getByTestId('finish-workout-sheet')).toHaveCount(0);
   await page.screenshot({ path: info.outputPath('completed-without-prompt.png') });
@@ -531,6 +533,7 @@ test('partially completed unilateral sets finish without marking the other side 
   await page.getByRole('button', { name: 'Finish workout', exact: true }).click();
   const sheet = page.getByTestId('finish-workout-sheet');
   await expect(sheet.getByTestId('finish-incomplete-count')).toBeVisible();
+  await sheet.getByRole('radio', { name: 'History only', exact: true }).click();
   await sheet.getByRole('button', { name: 'Finish with 1 incomplete set', exact: true }).click();
   await expect.poll(async () => (await saved(page)).history.length).toBe(1);
   expect((await saved(page)).history[0].exercises[0].sets[0].sideCompletion).toEqual({
@@ -681,3 +684,114 @@ test('history tracking confirms removing duration and saves the selected mode', 
     )
     .toBe('weighted-bodyweight');
 });
+
+for (const appearance of ['light', 'dark'] as const) {
+  test(`${appearance} unchanged routine with incomplete sets uses a centered warning`, async ({
+    page,
+  }, info) => {
+    const original = movement();
+    const exercise = {
+      ...original,
+      sets: [
+        {
+          ...original.sets[0],
+          weight: '20',
+          reps: '8',
+          sideCompletion: { left: true, right: false },
+        },
+      ],
+    };
+    const workout = {
+      ...session([exercise]),
+      routineId: 'routine',
+      planId: 'plan',
+      routineStructureBaseline: routineStructureBaseline([original]),
+    };
+    await seed(page, workout, sourceState(original), appearance);
+    await page.getByRole('button', { name: 'Finish workout', exact: true }).click();
+    const warning = page.getByTestId('finish-incomplete-confirmation');
+    await expect(warning).toBeVisible();
+    await expect(page.getByTestId('finish-workout-sheet')).toHaveCount(0);
+    const bounds = await warning.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(Math.abs(bounds!.y + bounds!.height / 2 - page.viewportSize()!.height / 2)).toBeLessThan(
+      3,
+    );
+    await page.waitForTimeout(350);
+    await page.screenshot({ path: info.outputPath('incomplete-centered-warning.png') });
+    await warning.getByRole('button', { name: 'Keep working out', exact: true }).click();
+    expect((await saved(page)).active.exercises[0].sets[0].sideCompletion).toEqual({
+      left: true,
+      right: false,
+    });
+    await expect(warning).toHaveCount(0);
+    await page.getByRole('button', { name: 'Finish workout', exact: true }).click();
+    await page.evaluate(() => {
+      const write = Storage.prototype.setItem;
+      let fail = true;
+      Storage.prototype.setItem = function (key, value) {
+        if (key === '@forge/completed-workouts' && fail) {
+          fail = false;
+          throw new Error('Injected failure');
+        }
+        return write.call(this, key, value);
+      };
+    });
+    const finish = warning.getByRole('button', {
+      name: 'Finish with 1 incomplete set',
+      exact: true,
+    });
+    await finish.click();
+    await expect(warning.getByText(/could not be saved/)).toBeVisible();
+    expect((await saved(page)).history).toHaveLength(0);
+    await finish.evaluate((element) => {
+      (element as HTMLElement).click();
+      (element as HTMLElement).click();
+    });
+    await expect.poll(async () => (await saved(page)).history.length).toBe(1);
+    await expectDirectDashboard(page);
+    expect((await saved(page)).history[0].exercises[0].sets[0].sideCompletion).toEqual({
+      left: true,
+      right: false,
+    });
+    expect((await saved(page)).plans).toEqual(sourceState(original));
+  });
+
+  for (const outcome of ['History only', 'Save as routine']) {
+    test(`${appearance} blank-source workout offers ${outcome} even when complete`, async ({
+      page,
+    }, info) => {
+      const original = movement();
+      original.sets[0] = { ...original.sets[0], weight: '50', reps: '8', completed: true };
+      await seed(page, session([original]), undefined, appearance);
+      await page.getByRole('button', { name: 'Finish workout', exact: true }).click();
+      const sheet = page.getByTestId('finish-workout-sheet');
+      const finish = sheet.getByRole('button', { name: 'Finish workout', exact: true });
+      await expect(finish).toBeDisabled();
+      await expect(sheet.getByRole('radio', { name: 'Update existing routine' })).toHaveCount(0);
+      await sheet.getByRole('radio', { name: outcome, exact: true }).click();
+      if (outcome === 'Save as routine') {
+        await expect(sheet.getByLabel('New routine name')).toHaveValue('Push (new)');
+        await sheet.getByLabel('New routine name').fill('New push');
+        await sheet.getByLabel('New routine name').blur();
+        await expect(sheet.getByText('Destination: Standalone routines')).toBeVisible();
+      }
+      await page.screenshot({ path: info.outputPath('normal-workout-saving-choices.png') });
+      await finish.evaluate((element) => {
+        (element as HTMLElement).click();
+        (element as HTMLElement).click();
+      });
+      await expect.poll(async () => (await saved(page)).history.length).toBe(1);
+      await expectDirectDashboard(page);
+      const state = await saved(page);
+      expect(state.plans.standaloneRoutines).toHaveLength(outcome === 'Save as routine' ? 1 : 0);
+      if (outcome === 'Save as routine') {
+        const routine = state.plans.standaloneRoutines[0];
+        expect(routine.name).toBe('New push');
+        expect(routine.exercises[0].sets[0].completed).not.toBe(true);
+        expect(routine.exercises[0].sets[0].weight).toBeUndefined();
+        expect(routine.exercises[0].sets[0].measurements).toBeUndefined();
+      }
+    });
+  }
+}

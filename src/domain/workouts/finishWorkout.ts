@@ -12,6 +12,7 @@ export function workoutFinishSummary(workout: Workout) {
 export function workoutNeedsFinishReview(workout: Workout, source?: WorkoutRoutine): boolean {
   if (!workout.exercises.length) return false;
   return (
+    !workout.routineId ||
     workoutFinishSummary(workout).incomplete > 0 ||
     Boolean(workout.routineId && (hasRoutineStructureChanged(workout) || !source))
   );

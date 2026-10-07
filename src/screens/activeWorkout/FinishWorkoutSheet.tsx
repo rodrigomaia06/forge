@@ -7,6 +7,7 @@ import {
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
   ForgeCard,
+  ForgeConfirmationDialog,
   ForgeSheetHeader,
   ForgeSingleSelectList,
   ForgeText as Text,
@@ -55,6 +56,7 @@ export function FinishWorkoutSheet({
   const [error, setError] = useState('');
   const summary = workoutFinishSummary(workout);
   const changed = Boolean(workout.routineId && (hasRoutineStructureChanged(workout) || !source));
+  const requiresRoutineChoice = changed || !workout.routineId;
   const destination = plans.find((plan) => plan.id === (workout.planId ?? source?.planId));
   const close = () => {
     if (!locked.current) onClose();
@@ -90,6 +92,23 @@ export function FinishWorkoutSheet({
       setBusy(false);
     }
   };
+  if (!requiresRoutineChoice && summary.incomplete > 0) {
+    return (
+      <ForgeConfirmationDialog
+        visible={visible}
+        title={`${summary.incomplete} ${summary.incomplete === 1 ? 'set is' : 'sets are'} incomplete`}
+        message={`Finish ${workout.name}? ${summary.completed}/${summary.total} sets are complete. Partially completed sides will keep their progress.`}
+        cancelLabel="Keep working out"
+        confirmLabel={finishLabel}
+        confirmTone="success"
+        busy={busy}
+        error={error}
+        onCancel={close}
+        onConfirm={() => void submit()}
+        testID="finish-incomplete-confirmation"
+      />
+    );
+  }
   return (
     <ForgeBottomSheet
       visible={visible}
@@ -112,7 +131,7 @@ export function FinishWorkoutSheet({
               <ForgeWorkoutFinishAction
                 accessibilityLabel={finishLabel}
                 loading={busy}
-                disabled={(changed && !choice) || (choice === 'new' && !name.trim())}
+                disabled={(requiresRoutineChoice && !choice) || (choice === 'new' && !name.trim())}
                 onPress={() => void submit()}
               />
             }
@@ -168,10 +187,10 @@ export function FinishWorkoutSheet({
                 </View>
               ) : null}
             </View>
-            {changed ? (
+            {requiresRoutineChoice ? (
               <View style={{ gap: scaleUI(8) }}>
-                <Text style={title}>Routine changes</Text>
-                {!source ? (
+                <Text style={title}>{changed ? 'Routine changes' : 'Save workout'}</Text>
+                {changed && !source ? (
                   <Text style={{ ...typeScale.supporting, color: theme.textSecondary }}>
                     The original routine was deleted.
                   </Text>
@@ -184,12 +203,17 @@ export function FinishWorkoutSheet({
                     options={[
                       {
                         value: 'keep',
-                        label: source ? 'Keep original routine' : 'Save workout only',
-                        description: source
-                          ? 'Leave the template unchanged'
-                          : 'Save this session to History',
+                        label: changed
+                          ? source
+                            ? 'Keep original routine'
+                            : 'Save workout only'
+                          : 'History only',
+                        description:
+                          changed && source
+                            ? 'Leave the template unchanged'
+                            : 'Save this session to History',
                       },
-                      ...(source
+                      ...(changed && source
                         ? [
                             {
                               value: 'update',
@@ -200,8 +224,10 @@ export function FinishWorkoutSheet({
                         : []),
                       {
                         value: 'new',
-                        label: 'Save as new routine',
-                        description: 'Keep the original and create a copy',
+                        label: changed ? 'Save as new routine' : 'Save as routine',
+                        description: changed
+                          ? 'Keep the original and create a copy'
+                          : 'Save to History and create a reusable routine',
                       },
                     ]}
                   />

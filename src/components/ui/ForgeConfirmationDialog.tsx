@@ -8,8 +8,12 @@ import { Button } from './Button';
 import { ForgeText as Text } from './ForgeText';
 import { mediumHaptic } from './haptics';
 
-interface ForgeConfirmationDialogProps {
+export interface ForgeConfirmationDialogProps {
   visible: boolean;
+  /** Render above content in an existing modal host. */
+  presentation?: 'modal' | 'embedded';
+  busy?: boolean;
+  error?: string;
   title: string;
   message: string;
   cancelLabel: string;
@@ -24,6 +28,9 @@ interface ForgeConfirmationDialogProps {
 /** A centred Forge decision card for choices that should interrupt the current flow. */
 export function ForgeConfirmationDialog({
   visible,
+  presentation = 'modal',
+  busy = false,
+  error,
   title,
   message,
   cancelLabel,
@@ -42,7 +49,14 @@ export function ForgeConfirmationDialog({
   // and keep showing the last content so the text does not blank out mid-fade
   // when the caller clears its state.
   const [rendered, setRendered] = React.useState(visible);
-  const [shown, setShown] = React.useState({ title, message, cancelLabel, confirmLabel, confirmTone, showCancel });
+  const [shown, setShown] = React.useState({
+    title,
+    message,
+    cancelLabel,
+    confirmLabel,
+    confirmTone,
+    showCancel,
+  });
 
   React.useEffect(() => {
     if (visible) {
@@ -62,51 +76,76 @@ export function ForgeConfirmationDialog({
   }, [visible, title, message, cancelLabel, confirmLabel, confirmTone, showCancel]);
 
   if (!rendered) return null;
-  return (
-    <Modal transparent animationType="fade" visible={visible} onRequestClose={onCancel} onDismiss={() => setRendered(false)}>
-      <View style={styles.backdrop}>
-        <Pressable
-          accessible={false}
-          onPress={onCancel}
-          style={StyleSheet.absoluteFill}
-        />
-        <View
-          testID={testID}
-          accessibilityRole="alert"
-          accessibilityViewIsModal
-          style={[
-            styles.card,
-            {
-              backgroundColor: theme.surfaceElevated,
-              borderColor: theme.border,
-              shadowColor: theme.shadow,
-              borderRadius: theme.cardRadius,
-            },
-          ]}
-        >
-          <Text style={[styles.title, { color: theme.textPrimary }]}>{shown.title}</Text>
-          <Text style={[styles.message, { color: theme.slate }]}>{shown.message}</Text>
-          <View style={styles.actions}>
-            {shown.showCancel ? <Button
-                accessibilityLabel={shown.cancelLabel}
-                label={shown.cancelLabel}
-                variant="primary"
-                onPress={onCancel}
-                haptic="light"
-                style={styles.action}
-              /> : null}
+  const cancel = () => {
+    if (!busy) onCancel();
+  };
+  const content = (
+    <View
+      style={[styles.backdrop, presentation === 'embedded' && StyleSheet.absoluteFill]}
+      pointerEvents={visible ? 'auto' : 'none'}
+    >
+      <Pressable accessible={false} onPress={cancel} style={StyleSheet.absoluteFill} />
+      <View
+        testID={testID}
+        accessibilityRole="alert"
+        accessibilityViewIsModal
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.surfaceElevated,
+            borderColor: theme.border,
+            shadowColor: theme.shadow,
+            borderRadius: theme.cardRadius,
+          },
+        ]}
+      >
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{shown.title}</Text>
+        <Text style={[styles.message, { color: theme.slate }]}>{shown.message}</Text>
+        {error ? (
+          <Text
+            accessibilityRole="alert"
+            style={[styles.message, { color: theme.textDestructive }]}
+          >
+            {error}
+          </Text>
+        ) : null}
+        <View style={styles.actions}>
+          {shown.showCancel ? (
             <Button
-              accessibilityLabel={shown.confirmLabel}
-              label={shown.confirmLabel}
+              accessibilityLabel={shown.cancelLabel}
+              label={shown.cancelLabel}
+              disabled={busy}
               variant="primary"
-              tone={shown.confirmTone}
-              onPress={onConfirm}
-              haptic="medium"
+              onPress={cancel}
+              haptic="light"
               style={styles.action}
             />
-          </View>
+          ) : null}
+          <Button
+            accessibilityLabel={shown.confirmLabel}
+            label={shown.confirmLabel}
+            loading={busy}
+            disabled={busy}
+            variant="primary"
+            tone={shown.confirmTone}
+            onPress={onConfirm}
+            haptic="medium"
+            style={styles.action}
+          />
         </View>
       </View>
+    </View>
+  );
+  if (presentation === 'embedded') return content;
+  return (
+    <Modal
+      transparent
+      animationType="fade"
+      visible={visible}
+      onRequestClose={cancel}
+      onDismiss={() => setRendered(false)}
+    >
+      {content}
     </Modal>
   );
 }

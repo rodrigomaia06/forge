@@ -279,6 +279,7 @@ test.describe('Active workout flow', () => {
 
     await page.getByRole('button', { name: 'Finish workout' }).click();
     await expect(page.getByTestId('finish-workout-sheet')).toBeVisible();
+    await page.getByTestId('finish-workout-sheet').getByRole('radio', { name: 'History only', exact: true }).click();
     await page.getByTestId('finish-workout-sheet').getByRole('button', { name: /^Finish (workout|with)/ }).click();
     await expect(page.getByTestId('dashboard-header-title').last()).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Workout', exact: true })).toHaveCount(0);
@@ -1253,6 +1254,7 @@ test.describe('Active workout flow', () => {
       await page.getByLabel('Kg for set 1').fill(kg);
       await page.getByLabel('Reps for set 1').fill('8');
       await page.getByRole('button', { name: 'Finish workout' }).click();
+      await page.getByTestId('finish-workout-sheet').getByRole('radio', { name: 'History only', exact: true }).click();
       await page.getByTestId('finish-workout-sheet').getByRole('button', { name: /^Finish (workout|with)/ }).click();
       await expect(page.getByRole('button', { name: 'Finish workout' })).toHaveCount(0);
     }
