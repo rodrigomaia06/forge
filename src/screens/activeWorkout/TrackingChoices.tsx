@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { View } from 'react-native';
 import {
   Button,
-  ForgeText as Text,
   ForgeSingleSelectList,
   ForgeCard,
   ForgeSheetScrollView,
@@ -13,10 +12,10 @@ import {
   effectiveTracking,
   trackingChoices,
   trackingModeLabel,
+  trackingFields,
 } from '../../domain/exercises/tracking';
 import { hasRecordedSets, losesTrackingData } from '../../domain/exercises/trackingChanges';
-import { spacing, typeScale } from '../../theme/tokens';
-import { useForgeTheme } from '../../theme/ThemeProvider';
+import { spacing } from '../../theme/tokens';
 
 export function TrackingChoices({
   exercise,
@@ -25,9 +24,29 @@ export function TrackingChoices({
   exercise: WorkoutExercise;
   onSelect: (mode: TrackingType) => void;
 }) {
-  const theme = useForgeTheme();
   const [pending, setPending] = useState<TrackingType | null>(null);
   const recorded = hasRecordedSets(exercise);
+  const current = effectiveTracking(exercise);
+  const fields = {
+    weight: 'weight',
+    addedWeight: 'load',
+    reps: 'reps',
+    duration: 'time',
+    distance: 'distance',
+    rpe: 'effort',
+  };
+  const cleared = pending
+    ? trackingFields[current]
+        .filter((kind) => !trackingFields[pending].includes(kind))
+        .map((kind) => fields[kind])
+        .join(' and ')
+    : '';
+  const next = pending
+    ? trackingFields[pending]
+        .filter((kind) => kind !== 'weight' && kind !== 'addedWeight')
+        .map((kind) => fields[kind])
+        .join(' and ')
+    : '';
   return (
     <ForgeSheetScrollView
       keyboardShouldPersistTaps="handled"
@@ -35,22 +54,17 @@ export function TrackingChoices({
         paddingHorizontal: spacing.screen,
         paddingTop: scaleUI(4),
         paddingBottom: scaleUI(32),
-        gap: spacing.section,
       }}
     >
-      {recorded ? (
-        <Text style={{ ...typeScale.supporting, color: theme.textSecondary }}>
-          Completed sets stay here. A new block starts with three empty sets.
-        </Text>
-      ) : null}
       {!pending ? (
         <ForgeCard variant="nested" size="compact">
           <ForgeSingleSelectList
+            showSeparators={false}
             options={trackingChoices(exercise).map((value) => ({
               value,
               label: trackingModeLabel(value),
             }))}
-            selectedValue={effectiveTracking(exercise)}
+            selectedValue={current}
             onSelect={(mode) => {
               if (!recorded && losesTrackingData(exercise, mode)) setPending(mode);
               else onSelect(mode);
@@ -59,13 +73,15 @@ export function TrackingChoices({
         </ForgeCard>
       ) : null}
       {pending ? (
-        <View style={{ gap: spacing.section }}>
-          <Text accessibilityRole="alert" style={{ ...typeScale.body, color: theme.textPrimary }}>
-            Change to {trackingModeLabel(pending)}? Incompatible draft values and targets will be
-            cleared.
-          </Text>
+        <View
+          accessibilityRole="alert"
+          accessibilityLabel={`Change to ${trackingModeLabel(pending)}? ${cleared} values and targets will be cleared.`}
+          style={{ gap: scaleUI(12) }}
+        >
           <Button
-            label="Change tracking"
+            label={`Clear ${cleared} and use ${next}`}
+            accessibilityLabel="Change tracking"
+            accessibilityHint={`Switch to ${trackingModeLabel(pending)}. Clears ${cleared} values and targets.`}
             variant="outline"
             tone="destructive"
             onPress={() => onSelect(pending)}

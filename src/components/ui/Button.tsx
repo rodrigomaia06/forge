@@ -19,6 +19,7 @@ import type { ForgeTheme, IconName, IconWeight } from '../../types';
 interface ButtonProps {
   label?: string;
   accessibilityLabel?: string;
+  accessibilityHint?: string;
   onPress: () => void;
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
   icon?: IconName;
@@ -40,6 +41,7 @@ interface ButtonProps {
 export function Button({
   label,
   accessibilityLabel,
+  accessibilityHint,
   onPress,
   variant = 'primary',
   icon,
@@ -72,6 +74,7 @@ export function Button({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel || label}
+      accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: disabled || loading, busy: loading }}
       disabled={disabled || loading}
       hitSlop={hitSlop}

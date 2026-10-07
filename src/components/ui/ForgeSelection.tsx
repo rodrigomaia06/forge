@@ -39,6 +39,8 @@ interface ForgeSingleSelectListProps<T extends SelectionValue> {
   /** Rounds and insets the selected-row highlight into a pill and drops the row
    * separators — the treatment for anchored dropdown menus. */
   rounded?: boolean;
+  /** Compact choices can rely on row spacing instead of hairline dividers. */
+  showSeparators?: boolean;
   testID?: string;
 }
 
@@ -52,6 +54,7 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
   disableVirtualization = false,
   selectedTone = 'neutral',
   rounded = false,
+  showSeparators = true,
   testID,
 }: ForgeSingleSelectListProps<T>) {
   const hasDescriptions = options.some((option) => option.description);
@@ -77,7 +80,7 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
       rounded={rounded}
       onSelect={onSelect}
       onSelectedPress={onSelectedPress}
-      showSeparator={!rounded && index < options.length - 1}
+      showSeparator={showSeparators && !rounded && index < options.length - 1}
     />
   );
 
@@ -178,7 +181,14 @@ function ForgeSelectionRow<T extends SelectionValue>({
           </Text>
         )}
       </View>
-      {selected && <Icon name="check" size={22} color={selectedTone === 'success' ? theme.success : theme.selectionIndicator} weight="bold" />}
+      {selected && (
+        <Icon
+          name="check"
+          size={22}
+          color={selectedTone === 'success' ? theme.success : theme.selectionIndicator}
+          weight="bold"
+        />
+      )}
       {showSeparator && (
         <View
           style={[
@@ -235,7 +245,12 @@ export function ForgeSelectionSheet<T extends SelectionValue>({
         >
           <ForgeBottomSheetHandle />
           <ForgeSheetHeader title={title} onClose={close} />
-          <View style={[styles.optionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View
+            style={[
+              styles.optionCard,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+          >
             <ForgeSingleSelectList
               testID={listTestID}
               options={options}
