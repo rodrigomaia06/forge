@@ -1,14 +1,12 @@
 import { exercisesWithAddedPrevious } from '../domain/workouts/nextSessionTargets';
 import { FinishWorkoutSheet } from './activeWorkout/FinishWorkoutSheet';
+import { workoutNeedsFinishReview } from '../domain/workouts/finishWorkout';
 import { changeExerciseTracking } from '../domain/exercises/trackingChanges';
 import { makeWorkoutId } from '../state/workoutMutations';
 import { scheduleOnRN } from 'react-native-worklets';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
-import Animated, {
-  useAnimatedScrollHandler,
-  useSharedValue,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import {
   AppScreen,
   Button,
@@ -17,6 +15,7 @@ import {
   ForgeAttributeEditorSheet,
   ForgeBottomSheet,
   HeaderAction,
+  ForgeWorkoutFinishAction,
   HeaderEdge,
   ForgeCard,
   ForgeConfirmationDialog,
@@ -60,7 +59,9 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
   const styles = useThemedStyles(createActiveWorkoutStyles);
   const reducedMotion = useForgeReducedMotion();
   const dockScrollInset = useForgeDockScrollInset();
-  const activeWorkout = useActiveWorkout();
+  const currentWorkout = useActiveWorkout();
+  const [finishSnapshot, setFinishSnapshot] = useState<Workout | null>(null);
+  const activeWorkout = currentWorkout ?? finishSnapshot;
   const {
     ready,
     addExercises,
@@ -81,6 +82,9 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
   const [durationSheetOpen, setDurationSheetOpen] = useState(false);
   const [discardConfirmationOpen, setDiscardConfirmationOpen] = useState(false);
   const [finishOpen, setFinishOpen] = useState(false);
+  const [finishingDirect, setFinishingDirect] = useState(false);
+  const [finishError, setFinishError] = useState('');
+  const directFinishLocked = useRef(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [replacingExerciseId, setReplacingExerciseId] = useState<string | null>(null);
   const [addExerciseSession, setAddExerciseSession] = useState(0);
@@ -88,6 +92,15 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
   const { preferences } = useSettings();
   const { findRoutine, plans, reload: reloadPlans } = usePlans();
   const restTimer = useRestTimer();
+
+  useEffect(
+    () =>
+      navigation.addListener('focus', () => {
+        setFinishSnapshot(null);
+        setFinishError('');
+      }),
+    [navigation],
+  );
 
   const restRemaining = restTimer.remaining;
   const restRunning = restTimer.running;
@@ -145,7 +158,8 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     // Always clear the param (even a non-"open" deep-link segment), and only open
     // the timer when there is a live workout with the rest timer enabled — never
     // over the "No active workout" state.
-    const shouldOpen = route.params.openRestTimer === 'open' && Boolean(activeWorkout) && preferences.showRestTimer;
+    const shouldOpen =
+      route.params.openRestTimer === 'open' && Boolean(activeWorkout) && preferences.showRestTimer;
     navigation.setParams({ openRestTimer: undefined });
     if (shouldOpen) openRestTimer();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -274,17 +288,49 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
       </AppScreen>
     );
 
-  const handleFinish = () => setFinishOpen(true);
   const completeWorkout = async (
     choice: import('../types').FinishRoutineChoice,
   ): Promise<boolean> => {
-    const finished = await finishWorkout(choice);
-    if (!finished) return false;
-    await reloadPlans().catch(() => undefined);
+    // Retain the outgoing scene while persistence clears the active slot.
+    setFinishSnapshot(activeWorkout);
+    let finished: Workout | null;
+    try {
+      finished = await finishWorkout(choice);
+    } catch (error) {
+      setFinishSnapshot(null);
+      throw error;
+    }
+    if (!finished) {
+      setFinishSnapshot(null);
+      return false;
+    }
     setFinishOpen(false);
-      successHaptic();
-      returnToDashboard(finished);
+    successHaptic();
+    returnToDashboard(finished);
+    void reloadPlans().catch(() => undefined);
     return true;
+  };
+  const handleFinish = async (): Promise<void> => {
+    if (directFinishLocked.current || finishSnapshot) return;
+    setFinishError('');
+    const source = activeWorkout.routineId ? findRoutine(activeWorkout.routineId) : undefined;
+    if (workoutNeedsFinishReview(activeWorkout, source)) {
+      setFinishOpen(true);
+      return;
+    }
+    directFinishLocked.current = true;
+    setFinishingDirect(true);
+    setFinishError('');
+    try {
+      if (!(await completeWorkout({ kind: 'keep' }))) {
+        setFinishError('The workout could not be saved. Try again.');
+      }
+    } catch {
+      setFinishError('The workout could not be saved. Try again.');
+    } finally {
+      directFinishLocked.current = false;
+      setFinishingDirect(false);
+    }
   };
 
   const discardWorkout = (): void => {
@@ -309,13 +355,15 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
       ),
     );
   const handleCancel = (): void => {
+    if (finishSnapshot || directFinishLocked.current) return;
     if (workoutUntouched) {
       discardWorkout();
       return;
     }
     setDiscardConfirmationOpen(true);
   };
-  const openWorkoutEditor = (): void => navigation.navigate('HistoryWorkoutEditor', { mode: 'active' });
+  const openWorkoutEditor = (): void =>
+    navigation.navigate('HistoryWorkoutEditor', { mode: 'active' });
   return (
     <AppScreen
       backgroundColor={theme.background}
@@ -331,6 +379,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
               label="Cancel"
               iconOnly
               onPress={handleCancel}
+              disabled={Boolean(finishSnapshot)}
               variant="ghost"
               style={styles.joinedHeaderAction}
             />
@@ -340,6 +389,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
               icon="note"
               iconOnly
               onPress={openWorkoutEditor}
+              disabled={Boolean(finishSnapshot)}
               variant="ghost"
               style={styles.joinedHeaderAction}
             />
@@ -354,17 +404,13 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
               </Text>
             </View>
           </View>
-          <HeaderAction
-            accessibilityLabel="Finish workout"
-            icon="check"
-            iconSize={24}
-            iconOnly
-            onPress={handleFinish}
-            variant="primary"
-            haptic="none"
-            style={styles.finishAction}
-          />
+          <ForgeWorkoutFinishAction onPress={() => void handleFinish()} loading={finishingDirect} />
         </View>
+        {finishError ? (
+          <Text accessibilityRole="alert" style={{ ...styles.muted, color: theme.textDestructive }}>
+            {finishError}
+          </Text>
+        ) : null}
         <View style={styles.elapsedPanel}>
         <Pressable
           accessibilityRole="button"
@@ -443,12 +489,12 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
       />
       <FinishWorkoutSheet
         visible={finishOpen}
-          workout={activeWorkout}
-          source={activeWorkout.routineId ? findRoutine(activeWorkout.routineId) : undefined}
-          plans={plans}
-          onClose={() => setFinishOpen(false)}
-          onFinish={completeWorkout}
-        />
+        workout={activeWorkout}
+        source={activeWorkout.routineId ? findRoutine(activeWorkout.routineId) : undefined}
+        plans={plans}
+        onClose={() => setFinishOpen(false)}
+        onFinish={completeWorkout}
+      />
       <ForgeConfirmationDialog
         visible={discardConfirmationOpen}
         title="Discard workout?"

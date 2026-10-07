@@ -8,7 +8,7 @@ const bench = [...exerciseCatalogById.values()].find(
   (item) => item.name === 'Barbell Bench Press',
 )!;
 for (const appearance of ['light', 'dark'] as const) {
-  for (const state of ['tracking', 'complete', 'incomplete', 'empty'] as const) {
+  for (const state of ['tracking', 'complete', 'incomplete'] as const) {
     test(`${appearance} ${state} uses compact Forge presentation`, async ({ page }, info) => {
       const exercise: WorkoutExercise = {
         id: 'exercise',
@@ -34,8 +34,8 @@ for (const appearance of ['light', 'dark'] as const) {
         note: '',
         startedAt: Date.now() - 90000,
         completedAt: null,
-        exercises: state === 'empty' ? [] : [exercise],
-        ...(state === 'incomplete'
+        exercises: [exercise],
+        ...(state !== 'tracking'
           ? { routineId: source.id, routineStructureBaseline: routineStructureBaseline([], source) }
           : {}),
       };
@@ -104,7 +104,30 @@ for (const appearance of ['light', 'dark'] as const) {
         const sheet = page.getByTestId('finish-workout-sheet');
         await expect(sheet.getByText('Finish workout', { exact: true }).first()).toBeVisible();
         await page.waitForTimeout(350);
-        await expect(sheet.getByRole('button', { name: state === 'empty' ? 'Save empty workout' : state === 'incomplete' ? 'Finish with 1 incomplete set' : 'Finish workout', exact: true })).toBeInViewport({ ratio: 1 });
+        await expect(
+          sheet.getByRole('button', {
+            name: state === 'incomplete' ? 'Finish with 1 incomplete set' : 'Finish workout',
+            exact: true,
+          }),
+        ).toBeInViewport({ ratio: 1 });
+        const header = sheet.getByTestId('finish-workout-header');
+        const closeBounds = await header
+          .getByRole('button', { name: 'Close Finish workout' })
+          .boundingBox();
+        const finishBounds = await header
+          .getByRole('button', {
+            name: state === 'incomplete' ? 'Finish with 1 incomplete set' : 'Finish workout',
+            exact: true,
+          })
+          .boundingBox();
+        expect(closeBounds!.x).toBeLessThan(finishBounds!.x);
+        expect(Math.abs(closeBounds!.y - finishBounds!.y)).toBeLessThan(2);
+        await expect(
+          header.getByRole('button', {
+            name: state === 'incomplete' ? 'Finish with 1 incomplete set' : 'Finish workout',
+            exact: true,
+          }),
+        ).toHaveText('');
         await page.screenshot({ path: info.outputPath(`${state}-finish.png`) });
         if (state !== 'incomplete') {
           await expect(sheet.getByTestId('finish-workout-scroll')).toHaveCSS(
@@ -119,18 +142,35 @@ for (const appearance of ['light', 'dark'] as const) {
           const sheetBounds = await sheet.boundingBox();
           expect(countBounds!.x).toBeGreaterThan(sheetBounds!.x + sheetBounds!.width / 2);
 
+          const choices = sheet.getByTestId('finish-routine-choices');
+          const collapsedBounds = await choices.boundingBox();
           await sheet.getByRole('radio', { name: 'Save as new routine', exact: true }).click();
-          await expect(sheet.getByLabel('New routine name')).toHaveValue('Push (copy)');
+          await expect(sheet.getByLabel('New routine name')).toHaveValue('Push (new)');
+          const details = choices.getByTestId('new-routine-details');
+          await expect(details.getByLabel('New routine name')).toBeVisible();
+          await expect(details.getByText('Destination: Standalone routines')).toBeVisible();
+          await expect(choices.getByLabel('New routine name')).toBeVisible();
+          const expandedBounds = await choices.boundingBox();
+          expect(expandedBounds!.height).toBeGreaterThan(collapsedBounds!.height);
+          await choices.getByLabel('New routine name').fill('Push variation');
+          await choices.getByLabel('New routine name').blur();
+          await choices.getByRole('radio', { name: 'Keep original routine', exact: true }).click();
+          await expect(sheet.getByLabel('New routine name')).toHaveCount(0);
+          await choices.getByRole('radio', { name: 'Save as new routine', exact: true }).click();
+          await expect(choices.getByLabel('New routine name')).toHaveValue('Push variation');
+          await expect(choices.getByText('Destination: Standalone routines')).toBeVisible();
           await sheet.getByText('Destination: Standalone routines').scrollIntoViewIfNeeded();
           await page.waitForTimeout(350);
           await page.screenshot({ path: info.outputPath('new-routine.png') });
           await page.setViewportSize({ width: page.viewportSize()!.width, height: 440 });
-          const action = sheet.getByRole('button', { name: 'Finish with 1 incomplete set', exact: true });
+          const action = sheet.getByRole('button', {
+            name: 'Finish with 1 incomplete set',
+            exact: true,
+          });
           await expect(action).toBeInViewport({ ratio: 1 });
           await expect(sheet.getByTestId('finish-workout-scroll')).toHaveCSS('overflow-y', 'auto');
           await page.waitForTimeout(350);
           await page.screenshot({ path: info.outputPath('short-viewport-finish.png') });
-
         }
       }
     });

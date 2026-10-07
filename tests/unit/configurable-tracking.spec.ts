@@ -15,7 +15,11 @@ import {
   changeExerciseTracking,
   losesTrackingData,
 } from '../../src/domain/exercises/trackingChanges';
-import { workoutFinishSummary, finishRoutineState } from '../../src/domain/workouts/finishWorkout';
+import {
+  workoutFinishSummary,
+  workoutNeedsFinishReview,
+  finishRoutineState,
+} from '../../src/domain/workouts/finishWorkout';
 import {
   hasRoutineStructureChanged,
   routineStructureBaseline,
@@ -78,6 +82,24 @@ const plans = (): PlansState => ({
 });
 let id = 0;
 const fresh = () => `fresh-${++id}`;
+
+test('finish review is required only for incomplete work or a routine decision', () => {
+  const source = plans().plans[0].routines[0];
+  const completed = workout();
+  completed.exercises[0].sets[0].completed = true;
+  expect(workoutNeedsFinishReview(completed, source)).toBe(false);
+  expect(workoutNeedsFinishReview({ ...completed, routineId: undefined })).toBe(false);
+  expect(workoutNeedsFinishReview(completed)).toBe(true);
+  expect(workoutNeedsFinishReview(workout(), source)).toBe(true);
+  expect(workoutNeedsFinishReview({ ...completed, exercises: [] })).toBe(false);
+  const changed = {
+    ...completed,
+    exercises: [{ ...completed.exercises[0], trackingOverride: 'duration-weight' as const }],
+  };
+  expect(workoutNeedsFinishReview(changed, source)).toBe(true);
+  completed.exercises[0].sets[0].sideCompletion = { left: true, right: false };
+  expect(workoutNeedsFinishReview(completed, source)).toBe(true);
+});
 
 test('resolution, catalogue normalization and compatible choices preserve an explicit override', () => {
   const saved = { ...exercise(), trackingOverride: 'duration-weight' as const };
@@ -293,28 +315,60 @@ test('a deleted source uses original reusable intervals, never generated next-se
 });
 
 test('all compatible mode transitions warn exactly for removed data and preserve compatible targets', () => {
-  const bases = ['weight-reps', 'bodyweight-reps', 'weighted-bodyweight', 'assisted-bodyweight', 'distance-duration', 'weight-distance'] as const;
-  for (const base of bases) for (const from of trackingChoices({ trackingType: base })) for (const to of trackingChoices({ trackingType: base })) {
-    if (from === to) continue;
-    const before: WorkoutExercise = {
-      ...exercise(), trackingType: base, trackingOverride: from,
-      sets: [{ id: 'set', weight: '', reps: '', completed: false,
-        measurements: trackingFields[from].map(kind => ({ id: kind, kind, unit: measurementUnit[kind], value: 15 })),
-        plannedTargets: trackingFields[from].map(kind => ({ id: kind, kind, unit: measurementUnit[kind], minValue: 15 })),
-      }],
-    };
-    const removed = trackingFields[from].filter(kind => !trackingFields[to].includes(kind));
-    expect(losesTrackingData(before, to), `${from} -> ${to}`).toBe(removed.length > 0);
-    const [after] = changeExerciseTracking([before], before.id, to, fresh);
-    expect(after.id).toBe(before.id);
-    expect(effectiveTracking(after)).toBe(to);
-    const preserved = trackingFields[from].filter(kind => trackingFields[to].includes(kind)).sort();
-    expect(after.sets[0].measurements!.map(entry => entry.kind).sort()).toEqual(preserved);
-    expect(after.sets[0].plannedTargets!.map(entry => entry.kind).sort()).toEqual(preserved);
-    expect(before.sets[0].measurements).toHaveLength(trackingFields[from].length);
-    const empty = { ...before, sets: [{ id: 'empty', weight: '', reps: '', completed: false }] };
-    expect(losesTrackingData(empty, to)).toBe(false);
-    const targetsOnly = { ...before, sets: [{ ...before.sets[0], measurements: [] }] };
-    expect(losesTrackingData(targetsOnly, to)).toBe(removed.length > 0);
-  }
+  const bases = [
+    'weight-reps',
+    'bodyweight-reps',
+    'weighted-bodyweight',
+    'assisted-bodyweight',
+    'distance-duration',
+    'weight-distance',
+  ] as const;
+  for (const base of bases)
+    for (const from of trackingChoices({ trackingType: base }))
+      for (const to of trackingChoices({ trackingType: base })) {
+        if (from === to) continue;
+        const before: WorkoutExercise = {
+          ...exercise(),
+          trackingType: base,
+          trackingOverride: from,
+          sets: [
+            {
+              id: 'set',
+              weight: '',
+              reps: '',
+              completed: false,
+              measurements: trackingFields[from].map((kind) => ({
+                id: kind,
+                kind,
+                unit: measurementUnit[kind],
+                value: 15,
+              })),
+              plannedTargets: trackingFields[from].map((kind) => ({
+                id: kind,
+                kind,
+                unit: measurementUnit[kind],
+                minValue: 15,
+              })),
+            },
+          ],
+        };
+        const removed = trackingFields[from].filter((kind) => !trackingFields[to].includes(kind));
+        expect(losesTrackingData(before, to), `${from} -> ${to}`).toBe(removed.length > 0);
+        const [after] = changeExerciseTracking([before], before.id, to, fresh);
+        expect(after.id).toBe(before.id);
+        expect(effectiveTracking(after)).toBe(to);
+        const preserved = trackingFields[from]
+          .filter((kind) => trackingFields[to].includes(kind))
+          .sort();
+        expect(after.sets[0].measurements!.map((entry) => entry.kind).sort()).toEqual(preserved);
+        expect(after.sets[0].plannedTargets!.map((entry) => entry.kind).sort()).toEqual(preserved);
+        expect(before.sets[0].measurements).toHaveLength(trackingFields[from].length);
+        const empty = {
+          ...before,
+          sets: [{ id: 'empty', weight: '', reps: '', completed: false }],
+        };
+        expect(losesTrackingData(empty, to)).toBe(false);
+        const targetsOnly = { ...before, sets: [{ ...before.sets[0], measurements: [] }] };
+        expect(losesTrackingData(targetsOnly, to)).toBe(removed.length > 0);
+      }
 });

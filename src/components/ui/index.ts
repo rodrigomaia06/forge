@@ -6,6 +6,7 @@ export { ForgeText, ForgeTextInput } from './ForgeText';
 export { ForgeNumericRangeInput } from './ForgeNumericRangeInput';
 export { ForgeSearchField } from './ForgeSearchField';
 export { ForgeBackButton, HeaderAction } from './HeaderAction';
+export { ForgeWorkoutFinishAction } from './ForgeWorkoutFinishAction';
 export { HeaderActionGroup, joinedHeaderAction } from './HeaderActionGroup';
 export { HeaderEditActions } from './HeaderEditActions';
 export { ForgeSwitch } from './ForgeSwitch';

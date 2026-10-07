@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  Button,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
   ForgeCard,
@@ -13,6 +12,7 @@ import {
   ForgeText as Text,
   ForgeTextInput,
   Icon,
+  ForgeWorkoutFinishAction,
 } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { spacing, typeScale, restTimerColors, radii } from '../../theme/tokens';
@@ -40,10 +40,10 @@ export function FinishWorkoutSheet({
   const insets = useSafeAreaInsets();
   const [choice, setChoice] = useState('');
   const [name, setName] = useState(
-    `${source?.name ?? workout.routineStructureBaseline?.routineName ?? workout.name} (copy)`,
+    `${source?.name ?? workout.routineStructureBaseline?.routineName ?? workout.name} (new)`,
   );
   const [busy, setBusy] = useState(false);
-  const defaultName = `${source?.name ?? workout.routineStructureBaseline?.routineName ?? workout.name} (copy)`;
+  const defaultName = `${source?.name ?? workout.routineStructureBaseline?.routineName ?? workout.name} (new)`;
   useEffect(() => {
     if (visible) {
       setChoice('');
@@ -61,6 +61,9 @@ export function FinishWorkoutSheet({
   };
   const body = { ...typeScale.body, color: theme.textSecondary };
   const title = { ...typeScale.cardTitle, color: theme.textPrimary };
+  const finishLabel = summary.incomplete
+    ? `Finish with ${summary.incomplete} incomplete ${summary.incomplete === 1 ? 'set' : 'sets'}`
+    : 'Finish workout';
   const submit = async () => {
     if (locked.current) return;
     locked.current = true;
@@ -100,14 +103,34 @@ export function FinishWorkoutSheet({
       {(dismiss) => (
         <>
           <ForgeBottomSheetHandle />
-          <ForgeSheetHeader title="Finish workout" onClose={dismiss} />
+          <ForgeSheetHeader
+            testID="finish-workout-header"
+            title="Finish workout"
+            onClose={dismiss}
+            closePosition="left"
+            trailing={
+              <ForgeWorkoutFinishAction
+                accessibilityLabel={finishLabel}
+                loading={busy}
+                disabled={(changed && !choice) || (choice === 'new' && !name.trim())}
+                onPress={() => void submit()}
+              />
+            }
+          />
+          {error ? (
+            <View style={{ paddingHorizontal: spacing.screen, paddingVertical: scaleUI(8) }}>
+              <Text accessibilityRole="alert" style={{ ...body, color: theme.textDestructive }}>
+                {error}
+              </Text>
+            </View>
+          ) : null}
           <ForgeSheetScrollView
             testID="finish-workout-scroll"
             keyboardShouldPersistTaps="handled"
             style={{ flexShrink: 1 }}
             contentContainerStyle={{
               padding: spacing.screen,
-              paddingBottom: spacing.screen,
+              paddingBottom: spacing.screen + insets.bottom,
               gap: scaleUI(16),
             }}
           >
@@ -139,32 +162,12 @@ export function FinishWorkoutSheet({
                       {summary.incomplete}
                     </Text>
                   </View>
-                  <Text style={{ ...typeScale.supporting, color: theme.textSecondary }}>Incomplete</Text>
+                  <Text style={{ ...typeScale.supporting, color: theme.textSecondary }}>
+                    Incomplete
+                  </Text>
                 </View>
               ) : null}
             </View>
-            {!workout.exercises.length ? (
-              <View
-                style={{
-                  borderLeftWidth: scaleUI(3),
-                  borderLeftColor: restTimerColors.warning,
-                  paddingLeft: scaleUI(12),
-                  gap: scaleUI(6),
-                }}
-              >
-                {!workout.exercises.length ? (
-                  <View style={{ flexDirection: 'row', gap: scaleUI(8), alignItems: 'center' }}>
-                    <Icon name="alert-triangle" size={24} color={restTimerColors.warning} />
-                    <Text style={{ ...typeScale.cardTitle, color: theme.textPrimary, flex: 1 }}>
-                      This workout has no exercises
-                    </Text>
-                  </View>
-                ) : null}
-                <Text style={{ ...typeScale.supporting, color: theme.textSecondary }}>
-                  You can still save this empty workout to History.
-                </Text>
-              </View>
-            ) : null}
             {changed ? (
               <View style={{ gap: scaleUI(8) }}>
                 <Text style={title}>Routine changes</Text>
@@ -173,7 +176,7 @@ export function FinishWorkoutSheet({
                     The original routine was deleted.
                   </Text>
                 ) : null}
-                <ForgeCard variant="nested" size="compact">
+                <ForgeCard variant="nested" size="compact" testID="finish-routine-choices">
                   <ForgeSingleSelectList
                     selectedValue={choice}
                     onSelect={setChoice}
@@ -202,64 +205,48 @@ export function FinishWorkoutSheet({
                       },
                     ]}
                   />
+                  {choice === 'new' ? (
+                    <View style={{ paddingHorizontal: scaleUI(12), paddingBottom: scaleUI(12) }}>
+                      <ForgeCard
+                        variant="nested"
+                        size="compact"
+                        testID="new-routine-details"
+                        style={{
+                          backgroundColor: theme.surfaceInset,
+                          padding: scaleUI(14),
+                          gap: scaleUI(8),
+                        }}
+                      >
+                        <Text style={{ ...typeScale.supporting, color: theme.textSecondary }}>
+                          Routine name
+                        </Text>
+                        <ForgeTextInput
+                          accessibilityLabel="New routine name"
+                          value={name}
+                          onChangeText={setName}
+                          style={{
+                            ...typeScale.body,
+                            color: theme.textPrimary,
+                            minHeight: scaleUI(48),
+                            paddingHorizontal: scaleUI(14),
+                            paddingVertical: scaleUI(10),
+                            borderRadius: radii.control,
+                            borderWidth: 1,
+                            borderColor: theme.border,
+                            backgroundColor:
+                              theme.colorScheme === 'light' ? theme.surfaceElevated : theme.input,
+                          }}
+                        />
+                        <Text style={{ ...typeScale.supporting, color: theme.textSecondary }}>
+                          Destination: {destination?.name ?? 'Standalone routines'}
+                        </Text>
+                      </ForgeCard>
+                    </View>
+                  ) : null}
                 </ForgeCard>
-                {choice === 'new' ? (
-                  <View style={{ gap: scaleUI(8) }}>
-                    <Text style={body}>Routine name</Text>
-                    <ForgeTextInput
-                      accessibilityLabel="New routine name"
-                      value={name}
-                      onChangeText={setName}
-                      style={{
-                        ...typeScale.body,
-                        color: theme.textPrimary,
-                        minHeight: scaleUI(48),
-                        paddingHorizontal: scaleUI(14),
-                        paddingVertical: scaleUI(10),
-                        borderRadius: radii.control,
-                        borderWidth: 1,
-                        borderColor: theme.border,
-                        backgroundColor:
-                          theme.colorScheme === 'light' ? theme.surfaceElevated : theme.input,
-                      }}
-                    />
-                    <Text style={body}>
-                      Destination: {destination?.name ?? 'Standalone routines'}
-                    </Text>
-                  </View>
-                ) : null}
               </View>
             ) : null}
           </ForgeSheetScrollView>
-          <View
-            style={{
-              paddingHorizontal: spacing.screen,
-              paddingBottom: spacing.screen + insets.bottom,
-              gap: scaleUI(8),
-            }}
-          >
-            {error ? (
-              <Text accessibilityRole="alert" style={{ ...body, color: theme.textDestructive }}>
-                {error}
-              </Text>
-            ) : null}
-            <Button
-              label={
-                !workout.exercises.length
-                  ? 'Save empty workout'
-                  : summary.incomplete
-                    ? `Finish with ${summary.incomplete} incomplete ${summary.incomplete === 1 ? 'set' : 'sets'}`
-                    : 'Finish workout'
-              }
-              icon="check"
-              variant="outline"
-              tone="success"
-              haptic="none"
-              loading={busy}
-              disabled={(changed && !choice) || (choice === 'new' && !name.trim())}
-              onPress={() => void submit()}
-            />
-          </View>
         </>
       )}
     </ForgeBottomSheet>

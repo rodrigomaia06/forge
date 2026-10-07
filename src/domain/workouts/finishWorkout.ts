@@ -1,5 +1,5 @@
 import type { FinishRoutineChoice, PlansState, Workout, WorkoutRoutine } from '../../types';
-import { applyWorkoutStructureToRoutine } from './routineStructure';
+import { applyWorkoutStructureToRoutine, hasRoutineStructureChanged } from './routineStructure';
 
 export function workoutFinishSummary(workout: Workout) {
   const sets = workout.exercises.flatMap((exercise) => exercise.sets);
@@ -7,6 +7,14 @@ export function workoutFinishSummary(workout: Workout) {
     set.sideCompletion ? set.sideCompletion.left && set.sideCompletion.right : set.completed,
   ).length;
   return { total: sets.length, completed, incomplete: sets.length - completed };
+}
+
+export function workoutNeedsFinishReview(workout: Workout, source?: WorkoutRoutine): boolean {
+  if (!workout.exercises.length) return false;
+  return (
+    workoutFinishSummary(workout).incomplete > 0 ||
+    Boolean(workout.routineId && (hasRoutineStructureChanged(workout) || !source))
+  );
 }
 
 /** Pure projection shared by the native transaction and browser transaction. */

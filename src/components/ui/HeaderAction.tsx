@@ -18,6 +18,7 @@ interface HeaderActionProps {
   tone?: 'neutral' | 'success' | 'destructive';
   style?: StyleProp<ViewStyle>;
   disabled?: boolean;
+  loading?: boolean;
   haptic?: 'none' | 'light' | 'medium';
 }
 
@@ -29,6 +30,7 @@ export function ForgeBackButton({
   onPress,
   style,
   disabled,
+  loading,
   haptic,
   iconSize,
   iconWeight,
@@ -41,6 +43,7 @@ export function ForgeBackButton({
       onPress={onPress}
       style={style}
       disabled={disabled}
+      loading={loading}
       haptic={haptic}
       iconSize={iconSize}
       iconWeight={iconWeight}
@@ -60,6 +63,7 @@ export function HeaderAction({
   tone = 'neutral',
   style,
   disabled = false,
+  loading = false,
   haptic,
 }: HeaderActionProps) {
   const theme = useForgeTheme();
@@ -83,6 +87,7 @@ export function HeaderAction({
       variant={frosted ? 'ghost' : variant}
       onPress={onPress}
       disabled={disabled}
+      loading={loading}
       haptic={haptic}
       tone={tone}
       style={[

@@ -77,6 +77,17 @@ async function seed(
   );
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Finish workout', exact: true })).toBeVisible();
+  await page.evaluate(() => {
+    const flashes: string[] = [];
+    Object.assign(window, { finishFlashes: flashes });
+    new MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) {
+          if (node.textContent?.includes('No active workout')) flashes.push(node.textContent);
+        }
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  });
 }
 async function tracking(page: Page, name: string) {
   await page
@@ -91,6 +102,46 @@ async function saved(page: Page) {
     plans: JSON.parse(localStorage.getItem('@forge/plans-v1') ?? '{}'),
     active: JSON.parse(localStorage.getItem('@forge/active-workout') ?? 'null'),
   }));
+}
+
+async function expectDirectDashboard(page: Page) {
+  await expect(page.getByTestId('dashboard-app-screen')).toBeVisible();
+  await expect(page.getByTestId('finish-workout-sheet')).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      () => (window as typeof window & { finishFlashes: string[] }).finishFlashes,
+    ),
+  ).toEqual([]);
+  await page.waitForTimeout(350);
+}
+
+for (const appearance of ['light', 'dark'] as const) {
+  test(`${appearance} completed unchanged routine finishes directly without an intermediate screen`, async ({
+    page,
+  }, info) => {
+    const original = movement();
+    const logged = {
+      ...original,
+      sets: [{ ...original.sets[0], weight: '50', reps: '8', completed: true }],
+    };
+    const workout = {
+      ...session([logged]),
+      routineId: 'routine',
+      planId: 'plan',
+      routineStructureBaseline: routineStructureBaseline([original]),
+    };
+    await seed(page, workout, sourceState(original), appearance);
+    await page.getByRole('button', { name: 'Finish workout', exact: true }).click();
+    await expect.poll(async () => (await saved(page)).history.length).toBe(1);
+    await expectDirectDashboard(page);
+    const state = await saved(page);
+    expect(state.active).toBeNull();
+    expect(state.history[0].exercises[0].sets[0].completed).toBe(true);
+    expect(state.plans.plans[0].routines[0].exercises).toEqual(
+      sourceState(original).plans[0].routines[0].exercises,
+    );
+    await page.screenshot({ path: info.outputPath('completed-direct-dashboard.png') });
+  });
 }
 
 test('timed bench clears drafts only after confirmation and creates another block after completion', async ({
@@ -111,7 +162,7 @@ test('timed bench clears drafts only after confirmation and creates another bloc
   await expect(page.getByLabel('Kg for set 1')).toHaveValue('50');
   await page.getByLabel('Time for set 1').fill('1:30');
   await page.getByLabel('Time for set 1').blur();
-  
+
   await expect(page.getByLabel('Time for set 1')).toHaveValue('01:30');
   await page.waitForTimeout(220);
   await page.screenshot({ path: info.outputPath('timed-columns.png') });
@@ -122,7 +173,7 @@ test('timed bench clears drafts only after confirmation and creates another bloc
   });
   await durationTarget.fill('2,00');
   await durationTarget.blur();
-  
+
   await expect(durationTarget).toHaveValue('02:00');
   await page
     .getByTestId('set-details-sheet')
@@ -166,18 +217,16 @@ test('running supports distance, time and both with deterministic completion', a
   await expect(page.getByLabel('KM for set 1')).toHaveCount(0);
   await page.getByLabel('Time for set 1').fill('60');
   await page.getByLabel('Time for set 1').blur();
-  
+
   await expect(page.getByLabel('Time for set 1')).toHaveValue('01:00');
   await tracking(page, exercise.name);
   await page.getByRole('radio', { name: 'Distance + time', exact: true }).click();
   await page.getByLabel('KM for set 1').fill('1');
   await page.getByRole('checkbox', { name: 'Complete set 1', exact: true }).click();
   await page.getByRole('button', { name: 'Finish workout', exact: true }).click();
-  const sheet = page.getByTestId('finish-workout-sheet');
-  await page.waitForTimeout(220);
-  await page.screenshot({ path: info.outputPath('complete-finish.png') });
-  await sheet.getByRole('button', { name: 'Finish workout', exact: true }).click();
   await expect.poll(async () => (await saved(page)).history.length).toBe(1);
+  await expect(page.getByTestId('finish-workout-sheet')).toHaveCount(0);
+  await page.screenshot({ path: info.outputPath('completed-without-prompt.png') });
 });
 
 for (const choice of ['Keep original routine', 'Update existing routine', 'Save as new routine'])
@@ -197,7 +246,7 @@ for (const choice of ['Keep original routine', 'Update existing routine', 'Save 
     await expect(final).toBeDisabled();
     await sheet.getByRole('radio', { name: choice, exact: true }).click();
     if (choice === 'Save as new routine') {
-      await expect(sheet.getByLabel('New routine name')).toHaveValue('Push (copy)');
+      await expect(sheet.getByLabel('New routine name')).toHaveValue('Push (new)');
       await sheet.getByLabel('New routine name').fill(' ');
       await expect(final).toBeDisabled();
       await sheet.getByLabel('New routine name').fill('Timed push');
@@ -214,6 +263,7 @@ for (const choice of ['Keep original routine', 'Update existing routine', 'Save 
     });
     await final.click();
     await expect.poll(async () => (await saved(page)).history.length).toBe(1);
+    await expectDirectDashboard(page);
     const persisted = await saved(page);
     expect(persisted.history[0].exercises[0].sets[0].completed).toBe(false);
     expect(persisted.active).toBeNull();
@@ -225,18 +275,55 @@ for (const choice of ['Keep original routine', 'Update existing routine', 'Save 
     if (choice === 'Save as new routine') expect(routines[1].name).toBe('Timed push');
   });
 
-test('dismissal preserves an empty workout and one explicit action saves it', async ({
+test('empty workouts finish immediately and duplicate taps save one entry', async ({
   page,
 }, info) => {
   await seed(page, session([]));
-  await page.getByRole('button', { name: 'Finish workout', exact: true }).click();
-  await page.getByRole('button', { name: 'Close Finish workout' }).click();
-  await expect.poll(async () => (await saved(page)).history.length).toBe(0);
-  await page.getByRole('button', { name: 'Finish workout', exact: true }).click();
-  await page.waitForTimeout(220);
-  await page.screenshot({ path: info.outputPath('empty-finish.png') });
-  await page.getByRole('button', { name: 'Save empty workout', exact: true }).click();
+  await page.getByRole('button', { name: 'Finish workout', exact: true }).evaluate((element) => {
+    element.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    element.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  });
   await expect.poll(async () => (await saved(page)).history.length).toBe(1);
+  await expect(page.getByTestId('finish-workout-sheet')).toHaveCount(0);
+  await expectDirectDashboard(page);
+  expect((await saved(page)).active).toBeNull();
+  expect((await saved(page)).history[0].exercises).toEqual([]);
+  await page.screenshot({ path: info.outputPath('empty-workout-finished.png') });
+});
+
+test('empty routine workouts retain the original routine and can retry a failed save', async ({
+  page,
+}, info) => {
+  const original = movement();
+  const workout = {
+    ...session([]),
+    routineId: 'routine',
+    planId: 'plan',
+    routineStructureBaseline: routineStructureBaseline([original]),
+  };
+  await seed(page, workout, sourceState(original));
+  await page.evaluate(() => {
+    const setItem = Storage.prototype.setItem;
+    let once = true;
+    Storage.prototype.setItem = function (key, value) {
+      if (key === '@forge/completed-workouts' && once) {
+        once = false;
+        throw new Error('Injected storage failure');
+      }
+      return setItem.call(this, key, value);
+    };
+  });
+  await page.getByRole('button', { name: 'Finish workout', exact: true }).click();
+  await expect(page.getByRole('alert')).toHaveText('The workout could not be saved. Try again.');
+  await expect(page.getByTestId('finish-workout-sheet')).toHaveCount(0);
+  expect((await saved(page)).history).toHaveLength(0);
+  expect((await saved(page)).active.exercises).toEqual([]);
+  await page.screenshot({ path: info.outputPath('empty-finish-error.png') });
+  await page.getByRole('button', { name: 'Finish workout', exact: true }).click();
+  await expect.poll(async () => (await saved(page)).history.length).toBe(1);
+  expect((await saved(page)).plans.plans[0].routines[0].exercises).toEqual(
+    sourceState(original).plans[0].routines[0].exercises,
+  );
 });
 
 test('deleted source omits update; failing save retains choices and retry prevents duplicates', async ({
@@ -271,7 +358,7 @@ test('deleted source omits update; failing save retains choices and retry preven
   await expect(sheet.getByRole('alert')).toContainText('could not be saved');
   expect((await saved(page)).plans.standaloneRoutines).toHaveLength(0);
   expect((await saved(page)).history).toHaveLength(0);
-  await expect(sheet.getByLabel('New routine name')).toHaveValue('Push (copy)');
+  await expect(sheet.getByLabel('New routine name')).toHaveValue('Push (new)');
   await page.waitForTimeout(220);
   await page.screenshot({ path: info.outputPath('retry-finish.png') });
   await final.evaluate((element) => {
@@ -349,47 +436,86 @@ test('partially completed unilateral sets finish without marking the other side 
   });
 });
 
-for (const appearance of ['light', 'dark'] as const) test(`weighted pull-up time to reps confirms data loss (${appearance})`, async ({ page }, info) => {
-  const item = [...exerciseCatalogById.values()].find(item => item.trackingType === 'weighted-bodyweight' && /pull.up/i.test(item.name))!;
-  expect(item).toBeTruthy();
-  const exercise: WorkoutExercise = { ...movement(), exerciseId: item.id, name: item.name, trackingType: item.trackingType, exerciseSnapshot: createExerciseSnapshot(item), trackingOverride: 'weighted-bodyweight-duration' };
-  await seed(page, session([exercise]), { plans: [], standaloneRoutines: [] }, appearance);
-  await page.getByRole('button', { name: 'Open details for set 1', exact: true }).click();
-  await page.waitForTimeout(350);
-  await page.screenshot({ path: info.outputPath('set-options-clearance.png') });
-  await page.getByRole('button', { name: 'Close Set 1', exact: true }).click();
-  await page.getByLabel('Added kg for set 1').fill('15');
-  await page.getByLabel('Time for set 1').fill('1,30');
-  // Open options directly from a focused duration field, matching the iPhone report.
-  await tracking(page, exercise.name);
-  await page.getByRole('radio', { name: 'Added weight + reps', exact: true }).tap();
-  await expect(page.getByRole('button', { name: 'Change tracking', exact: true })).toBeVisible();
-  await page.waitForTimeout(350);
-  await page.screenshot({ path: info.outputPath('weighted-pull-up-confirmation.png') });
-  await page.getByRole('button', { name: 'Keep current tracking', exact: true }).tap();
-  await page.getByRole('radio', { name: 'Added weight + reps', exact: true }).tap();
-  await page.getByRole('button', { name: 'Change tracking', exact: true }).tap();
-  await expect(page.getByLabel('Added kg for set 1')).toHaveValue('15');
-  await expect(page.getByLabel('Reps for set 1')).toHaveValue('');
-  await expect.poll(async () => (await saved(page)).active.exercises[0].trackingOverride).toBe('weighted-bodyweight');
-  const persisted = (await saved(page)).active.exercises[0];
-  expect(persisted.sets[0].measurements.some((entry: { kind: string }) => entry.kind === 'duration')).toBe(false);
-  // The static test server has no route fallback; restart from its root.
-  await page.goto('/');
-  await expect(page.getByLabel('Reps for set 1')).toBeVisible();
-  await expect(page.getByLabel('Added kg for set 1')).toHaveValue('15');
-});
+for (const appearance of ['light', 'dark'] as const)
+  test(`weighted pull-up time to reps confirms data loss (${appearance})`, async ({
+    page,
+  }, info) => {
+    const item = [...exerciseCatalogById.values()].find(
+      (item) => item.trackingType === 'weighted-bodyweight' && /pull.up/i.test(item.name),
+    )!;
+    expect(item).toBeTruthy();
+    const exercise: WorkoutExercise = {
+      ...movement(),
+      exerciseId: item.id,
+      name: item.name,
+      trackingType: item.trackingType,
+      exerciseSnapshot: createExerciseSnapshot(item),
+      trackingOverride: 'weighted-bodyweight-duration',
+    };
+    await seed(page, session([exercise]), { plans: [], standaloneRoutines: [] }, appearance);
+    await page.getByRole('button', { name: 'Open details for set 1', exact: true }).click();
+    await page.waitForTimeout(350);
+    await page.screenshot({ path: info.outputPath('set-options-clearance.png') });
+    await page.getByRole('button', { name: 'Close Set 1', exact: true }).click();
+    await page.getByLabel('Added kg for set 1').fill('15');
+    await page.getByLabel('Time for set 1').fill('1,30');
+    // Open options directly from a focused duration field, matching the iPhone report.
+    await tracking(page, exercise.name);
+    await page.getByRole('radio', { name: 'Added weight + reps', exact: true }).tap();
+    await expect(page.getByRole('button', { name: 'Change tracking', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Change tracking', exact: true })).toHaveText(
+      'Clear time and use reps',
+    );
+    await page.waitForTimeout(350);
+    await page.screenshot({ path: info.outputPath('weighted-pull-up-confirmation.png') });
+    await page
+      .getByRole('button', { name: 'Change tracking', exact: true })
+      .locator('..')
+      .screenshot({ path: info.outputPath('confirmation-buttons-detail.png') });
+    await page.getByRole('button', { name: 'Keep current tracking', exact: true }).tap();
+    await page.getByRole('radio', { name: 'Added weight + reps', exact: true }).tap();
+    await page.getByRole('button', { name: 'Change tracking', exact: true }).tap();
+    await expect(page.getByLabel('Added kg for set 1')).toHaveValue('15');
+    await expect(page.getByLabel('Reps for set 1')).toHaveValue('');
+    await expect
+      .poll(async () => (await saved(page)).active.exercises[0].trackingOverride)
+      .toBe('weighted-bodyweight');
+    const persisted = (await saved(page)).active.exercises[0];
+    expect(
+      persisted.sets[0].measurements.some((entry: { kind: string }) => entry.kind === 'duration'),
+    ).toBe(false);
+    // The static test server has no route fallback; restart from its root.
+    await page.goto('/');
+    await expect(page.getByLabel('Reps for set 1')).toBeVisible();
+    await expect(page.getByLabel('Added kg for set 1')).toHaveValue('15');
+  });
 
-test('legacy routine without exercise IDs can confirm timed weighted pull-up changes', async ({ page }, info) => {
-  const item = [...exerciseCatalogById.values()].find(item => item.trackingType === 'weighted-bodyweight' && /pull.up/i.test(item.name))!;
-  const exercise: WorkoutExercise = { ...movement(), exerciseId: item.id, name: item.name, trackingType: item.trackingType, exerciseSnapshot: createExerciseSnapshot(item), trackingOverride: 'weighted-bodyweight-duration' };
-  exercise.sets[0].plannedTargets = [{ id: 'duration-target', kind: 'duration', unit: 'sec', minValue: 30, maxValue: 60 }];
+test('legacy routine without exercise IDs can confirm timed weighted pull-up changes', async ({
+  page,
+}, info) => {
+  const item = [...exerciseCatalogById.values()].find(
+    (item) => item.trackingType === 'weighted-bodyweight' && /pull.up/i.test(item.name),
+  )!;
+  const exercise: WorkoutExercise = {
+    ...movement(),
+    exerciseId: item.id,
+    name: item.name,
+    trackingType: item.trackingType,
+    exerciseSnapshot: createExerciseSnapshot(item),
+    trackingOverride: 'weighted-bodyweight-duration',
+  };
+  exercise.sets[0].plannedTargets = [
+    { id: 'duration-target', kind: 'duration', unit: 'sec', minValue: 30, maxValue: 60 },
+  ];
   const plans = sourceState(exercise);
   plans.plans[0].routines[0].exercises[0].id = undefined;
   await seed(page, session([]), plans);
   await page.getByRole('tab', { name: 'Plans', exact: true }).click();
   await page.getByRole('button', { name: 'Routine actions for Push', exact: true }).click();
-  await page.getByTestId('plans-options-sheet').getByRole('button', { name: 'Edit', exact: true }).click();
+  await page
+    .getByTestId('plans-options-sheet')
+    .getByRole('button', { name: 'Edit', exact: true })
+    .click();
   await page.getByRole('button', { name: `Expand ${exercise.name}`, exact: true }).click();
   await tracking(page, exercise.name);
   await page.getByRole('radio', { name: 'Added weight + reps', exact: true }).tap();
@@ -401,10 +527,35 @@ test('legacy routine without exercise IDs can confirm timed weighted pull-up cha
   await expect(page.getByLabel('Sec for set 1')).toHaveCount(0);
 });
 
-test('history tracking confirms removing duration and saves the selected mode', async ({ page }, info) => {
-  const item = [...exerciseCatalogById.values()].find(item => item.trackingType === 'weighted-bodyweight' && /pull.up/i.test(item.name))!;
-  const exercise: WorkoutExercise = { ...movement(), exerciseId: item.id, name: item.name, trackingType: item.trackingType, exerciseSnapshot: createExerciseSnapshot(item), trackingOverride: 'weighted-bodyweight-duration', sets: [{ id: 's', weight: '15', reps: '', completed: false, measurements: [{ id: 'time', kind: 'duration', unit: 'sec', value: 90 }] }] };
-  const history = { ...session([exercise]), id: 'past', name: 'Past Pull', completedAt: Date.now() };
+test('history tracking confirms removing duration and saves the selected mode', async ({
+  page,
+}, info) => {
+  const item = [...exerciseCatalogById.values()].find(
+    (item) => item.trackingType === 'weighted-bodyweight' && /pull.up/i.test(item.name),
+  )!;
+  const exercise: WorkoutExercise = {
+    ...movement(),
+    exerciseId: item.id,
+    name: item.name,
+    trackingType: item.trackingType,
+    exerciseSnapshot: createExerciseSnapshot(item),
+    trackingOverride: 'weighted-bodyweight-duration',
+    sets: [
+      {
+        id: 's',
+        weight: '15',
+        reps: '',
+        completed: false,
+        measurements: [{ id: 'time', kind: 'duration', unit: 'sec', value: 90 }],
+      },
+    ],
+  };
+  const history = {
+    ...session([exercise]),
+    id: 'past',
+    name: 'Past Pull',
+    completedAt: Date.now(),
+  };
   await seed(page, session([]), { plans: [], standaloneRoutines: [] }, 'dark', [history]);
   await page.getByRole('tab', { name: 'History', exact: true }).click();
   await page.getByRole('button', { name: 'Open Past Pull', exact: true }).click();
@@ -419,5 +570,11 @@ test('history tracking confirms removing duration and saves the selected mode', 
   await expect(page.getByLabel('Reps for set 1')).toBeVisible();
   await expect(page.getByLabel('Added kg for set 1')).toHaveValue('15');
   await page.getByRole('button', { name: 'Save workout', exact: true }).click();
-  await expect.poll(async () => (await saved(page)).history.find((workout: Workout) => workout.id === 'past')?.exercises[0].trackingOverride).toBe('weighted-bodyweight');
+  await expect
+    .poll(
+      async () =>
+        (await saved(page)).history.find((workout: Workout) => workout.id === 'past')?.exercises[0]
+          .trackingOverride,
+    )
+    .toBe('weighted-bodyweight');
 });
