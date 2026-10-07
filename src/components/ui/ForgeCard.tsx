@@ -38,10 +38,7 @@ export function ForgeCard({
         size === 'compact' && styles.compact,
         {
           backgroundColor: nested ? theme.surfaceElevated : theme.surface,
-          // Borderless in both themes (no grey outline, matching Dark's feel). A
-          // nested card separates by tone in Dark (surfaceElevated steps up from
-          // surface) and by its soft shadow in Light (cardShadowOpacity > 0, where
-          // the two surface tones are equal). Base cards already separate the same way.
+          // Borderless cards separate by tone in both themes, with a soft Light shadow.
           borderWidth: 0,
           shadowColor: theme.shadow,
           shadowOpacity: theme.cardShadowOpacity ?? 0.06,

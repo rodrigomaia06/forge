@@ -25,18 +25,8 @@ import { selectionHaptic } from './haptics';
 export const WHEEL_ROW_HEIGHT = 48;
 export const WHEEL_VISIBLE_ROWS = 7;
 
-/**
- * The single Forge wheel: a snapping, fading column of values with the Clock-app
- * feel. Every duration and time in the app is picked on this one implementation
- * so the momentum, haptics, and fade read identically everywhere.
- *
- * It is a plain ScrollView with every row rendered up front (the lists are
- * bounded, ≤115 rows) and positioned imperatively from `onContentSizeChange`.
- * FlatList's `initialScrollIndex` is unreliable inside an animating bottom sheet
- * — it leaves the list pinned at the top, so the wheel showed a lone faded value
- * with no selection band. Setting the offset once the content is laid out works
- * regardless of the sheet's entrance transform.
- */
+// Bounded wheel rows render together; position after content layout because
+// FlatList initialScrollIndex is unreliable inside an animating sheet.
 export function ForgeWheelColumn({
   options,
   selectedValue,

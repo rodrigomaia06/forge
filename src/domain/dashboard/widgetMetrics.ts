@@ -13,10 +13,8 @@ function addDays(value: Date, days: number): Date {
   return next;
 }
 
-// ---------------------------------------------------------------------------
 // Muscle grouping — the catalogue tags a primary muscle (label or slug); both
 // normalise to one of six display groups.
-// ---------------------------------------------------------------------------
 export type MuscleGroup = 'Chest' | 'Back' | 'Legs' | 'Shoulders' | 'Arms' | 'Core';
 export const MUSCLE_GROUPS: MuscleGroup[] = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core'];
 
@@ -184,9 +182,7 @@ export function muscleHeat(
   return out;
 }
 
-// ---------------------------------------------------------------------------
 // Rest-timer stats
-// ---------------------------------------------------------------------------
 export interface RestStats {
   avgRestSeconds: number | null;
   totalRestSeconds: number;
@@ -241,9 +237,7 @@ export function restStats(
   };
 }
 
-// ---------------------------------------------------------------------------
 // Consistency — session count per day for the trailing weeks (column-major).
-// ---------------------------------------------------------------------------
 export interface Consistency {
   /**
    * windowWeeks*7 values, column by column (each column a week, top→bottom =
@@ -303,10 +297,8 @@ export function consistency(
   return { cells, weeks: windowWeeks, sessions, activeDays, maxDayLoad, startTs: gridStart.getTime() };
 }
 
-// ---------------------------------------------------------------------------
 // Streak — consecutive weeks that hit a workouts-per-week goal (optionally set
 // per workout type), plus this week's progress and rest days.
-// ---------------------------------------------------------------------------
 export interface StreakStats {
   streakWeeks: number;
   thisWeekCount: number;
@@ -376,9 +368,7 @@ export function streakStats(
   };
 }
 
-// ---------------------------------------------------------------------------
 // Training volume — lifted volume per week over a trailing window.
-// ---------------------------------------------------------------------------
 export interface VolumeWeek {
   weekStart: number;
   volume: number;
@@ -431,9 +421,7 @@ function shortDate(date: Date): string {
   return dateFormatter({ month: 'short', day: 'numeric' }).format(date);
 }
 
-// ---------------------------------------------------------------------------
 // Measurement tiles — trend of any tracked daily measurement over a window.
-// ---------------------------------------------------------------------------
 export interface MeasurementSeries {
   /** Chronological values (oldest → newest) inside the window, for the sparkline. */
   values: number[];
