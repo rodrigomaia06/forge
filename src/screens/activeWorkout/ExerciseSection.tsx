@@ -11,7 +11,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { Button, ForgeConfirmationDialog, ForgeText as Text, Icon, pressedFeedback, UnilateralBadge, useAfterSheetClose } from '../../components/ui';
+import { Button, ForgeText as Text, Icon, pressedFeedback, UnilateralBadge } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
@@ -29,6 +29,7 @@ import { CompletionCheck } from './CompletionCheck';
 import { SwipeableSetRow } from './SwipeableSetRow';
 import { SetDetailsCard } from './SetDetailsCard';
 import { ExerciseOptionsSheet } from './WorkoutSheets';
+import { ExerciseOptionsController } from './ExerciseOptionsController';
 import { useSettings } from '../../state/SettingsContext';
 import type { ExerciseSectionProps } from './activeWorkoutTypes';
 import type { RootNavigationProp, WorkoutExercise, WorkoutSet } from '../../types';
@@ -48,6 +49,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   updateExercise,
   onTrackingChange,
   resolveTrackingSelection = false,
+  onOpenExerciseOptions,
   addWarmupSets,
   updateSet,
   toggleSet,
@@ -73,17 +75,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   const reducedMotion = useForgeReducedMotion();
   const styles = useThemedStyles(createStyles);
   const deleteActionWidth = 64;
-  const [optionsOpen, setOptionsOpen] = useState(false);
-  const [optionsVisible, setOptionsVisible] = useState(false);
-  const [restorePreviousSessions, setRestorePreviousSessions] = useState(false);
-  const [previousSessionPushStarted, setPreviousSessionPushStarted] = useState(false);
-  // A restore after a workout-detail push must reappear in place, not replay the
-  // sheet's pop-up entrance. Only the return path sets this.
-  const [optionsRestoreInstant, setOptionsRestoreInstant] = useState(false);
-  const [removeConfirmationOpen, setRemoveConfirmationOpen] = useState(false);
-  // Present the remove/off-session/replace follow-up only after the options sheet
-  // has fully closed, so it can't race the sheet's dismissal.
-  const { runAfterClose, onClosed: onOptionsClosed } = useAfterSheetClose();
+  const [optionsRequest, setOptionsRequest] = useState(0);
   const [openSetId, setOpenSetId] = useState<string | null>(null);
   // Guards against a rapid double-tap on a set's completion control reading the
   // stale pre-toggle state and starting the rest timer / recording a sample twice.
@@ -97,9 +89,6 @@ export const ExerciseSection = React.memo(function ExerciseSection({
     ? formatExerciseMetadata(exercise.exerciseSnapshot)
     : null;
   const { completedWorkouts } = useWorkouts();
-  const navigation = useNavigation<RootNavigationProp>();
-  const screenIsFocused = useIsFocused();
-  const hasExerciseInfo = Boolean(exercise.exerciseSnapshot) || exerciseCatalogById.has(exercise.exerciseId ?? '');
   const trackingType = effectiveTracking(exercise);
   // Unilateral exercises complete per side. Prefer the workout-owned snapshot,
   // falling back to the catalog for exercises added before laterality was captured.
@@ -111,23 +100,12 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   // Keep the live grid stable. A missing prior value is meaningful information,
   // not a reason to move all measurement fields into a different column.
   const showPrevious = true;
-  const canBuildWarmups = showWarmupSets && Boolean(addWarmupSets) && trackingFields[trackingType].includes('weight') && trackingFields[trackingType].includes('reps');
-
-  useEffect(() => {
-    if (!screenIsFocused) {
-      if (previousSessionPushStarted) setPreviousSessionPushStarted(false);
-      return;
-    }
-    if (restorePreviousSessions && !previousSessionPushStarted) {
-      // Let the native stack's pop complete before the native modal rises
-      // again, rather than making two independent surfaces compete mid-frame.
-      return runWhenIdle(() => {
-        setOptionsRestoreInstant(true);
-        setOptionsVisible(true);
-        setRestorePreviousSessions(false);
-      });
-    }
-  }, [previousSessionPushStarted, restorePreviousSessions, screenIsFocused]);
+  const openOptions = (): void => {
+    selectionHaptic();
+    Keyboard.dismiss();
+    if (onOpenExerciseOptions) onOpenExerciseOptions(exercise);
+    else setOptionsRequest((current) => current + 1);
+  };
 
   useEffect(() => {
     cardOpen.value = deleteRevealed;
@@ -283,13 +261,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={`More options for ${exercise.name}`}
-                    onPress={() => {
-                      selectionHaptic();
-                      Keyboard.dismiss();
-                      setOptionsRestoreInstant(false);
-                      setOptionsOpen(true);
-                      requestAnimationFrame(() => setOptionsVisible(true));
-                    }}
+                    onPress={openOptions}
                     style={({ pressed }) => [styles.moreButton, pressed && pressedFeedback]}
                   >
                     <Icon name="ellipsis-horizontal" size={20} color={theme.ink} />
@@ -327,13 +299,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={`More options for ${exercise.name}`}
-                    onPress={() => {
-                      selectionHaptic();
-                      Keyboard.dismiss();
-                      setOptionsRestoreInstant(false);
-                      setOptionsOpen(true);
-                      requestAnimationFrame(() => setOptionsVisible(true));
-                    }}
+                    onPress={openOptions}
                     style={({ pressed }) => [styles.moreButton, pressed && pressedFeedback]}
                   >
                     <Icon name="ellipsis-horizontal" size={20} color={theme.ink} />
@@ -419,53 +385,18 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 />
               </View>
             )}
-            {showMoreOptions && optionsOpen && (
-              <ExerciseOptionsSheet
-                resolveTrackingSelection={resolveTrackingSelection}
-                onTrackingChange={onTrackingChange ? (mode, confirmed) => onTrackingChange(exercise.id, mode, confirmed) : undefined}
+            {showMoreOptions && !onOpenExerciseOptions && optionsRequest > 0 ? (
+              <ExerciseOptionsController
                 exercise={exercise}
-                visible={optionsVisible}
-                enterInstant={optionsRestoreInstant}
-                onClose={() => {
-                  // Flip visible so the sheet plays its slide-out. It stays mounted
-                  // (rendering nothing while closed) so a previous-sessions push can
-                  // restore it in place, and so nothing has to time an unmount.
-                  setOptionsVisible(false);
-                }}
-                onClosed={onOptionsClosed}
-                onEditNote={updateExercise ? (note) => updateExercise(exercise.id, { note }) : undefined}
-                onToggleOffSession={updateExercise ? () => runAfterClose(() => updateExercise(exercise.id, { offSession: !exercise.offSession })) : undefined}
-                onOpenPreviousSessions={() => undefined}
-                addWarmupSets={canBuildWarmups && addWarmupSets ? (sets) => addWarmupSets(exercise.id, sets) : undefined}
-                onOpenExerciseInfo={hasExerciseInfo ? () => undefined : undefined}
-                completedWorkouts={completedWorkouts}
-                onOpenWorkout={(workoutId) => {
-                  // The option-sheet component stays mounted so its history view,
-                  // expanded cards, and scroll offset can return after this push.
-                  setOptionsVisible(false);
-                  setRestorePreviousSessions(true);
-                  setPreviousSessionPushStarted(true);
-                  navigation.push('WorkoutDetails', { workoutId, returnTo: 'ActiveWorkout', returnContext: 'previous-sessions' });
-                }}
-                onRemove={() => {
-                  runAfterClose(() => setRemoveConfirmationOpen(true));
-                }}
-                onReplaceExercise={onReplaceExercise ? () => runAfterClose(() => onReplaceExercise(exercise.id)) : undefined}
+                openRequest={optionsRequest}
+                onTrackingChange={onTrackingChange}
+                resolveTrackingSelection={resolveTrackingSelection}
+                updateExercise={updateExercise}
+                removeExercise={removeExercise}
+                addWarmupSets={showWarmupSets ? addWarmupSets : undefined}
+                onReplaceExercise={onReplaceExercise}
               />
-            )}
-            <ForgeConfirmationDialog
-              visible={removeConfirmationOpen}
-              title={`Remove ${exercise.name}?`}
-              message="Its sets and recorded values will be removed from this workout."
-              cancelLabel="Keep exercise"
-              confirmLabel="Remove exercise"
-              onCancel={() => setRemoveConfirmationOpen(false)}
-              onConfirm={() => {
-                setRemoveConfirmationOpen(false);
-                animateLayout(reducedMotion);
-                removeExercise(exercise.id);
-              }}
-            />
+            ) : null}
           </View>
         </Animated.View>
       </View>

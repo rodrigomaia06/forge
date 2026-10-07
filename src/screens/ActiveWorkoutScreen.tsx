@@ -39,6 +39,7 @@ import {
   formatRest,
   formatRestDisplay,
 } from './activeWorkout/activeWorkoutFormatters';
+import { ExerciseOptionsController } from './activeWorkout/ExerciseOptionsController';
 import { ExerciseSection as ExtractedExerciseSection } from './activeWorkout/ExerciseSection';
 import { AddExerciseSheet as ExtractedAddExerciseSheet } from './activeWorkout/WorkoutSheets';
 import { RestTimerIndicator, RestTimerSheet } from './activeWorkout/RestTimer';
@@ -617,6 +618,19 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
   const theme = useForgeTheme();
   const styles = useThemedStyles(createActiveWorkoutStyles);
   const [openExerciseId, setOpenExerciseId] = useState<string | null>(null);
+  // Keep modal state outside recycled rows: keyboard restoration can move the
+  // selected exercise out of the render window while a request is pending.
+  const [optionsSelection, setOptionsSelection] = useState<{
+    exercise: WorkoutExercise;
+    request: number;
+  } | null>(null);
+  const openExerciseOptions = useCallback((exercise: WorkoutExercise): void => {
+    setOptionsSelection((current) => ({ exercise, request: (current?.request ?? 0) + 1 }));
+  }, []);
+  const optionsExercise = optionsSelection
+    ? workout.exercises.find((item) => item.id === optionsSelection.exercise.id) ??
+      optionsSelection.exercise
+    : null;
   const [attributeDraft, setAttributeDraft] = useState<ForgeAttributeDraft | null>(null);
   const workoutListRef = useRef<FlatList<WorkoutExercise>>(null);
   const dockCompactOnUi = useSharedValue(false);
@@ -698,6 +712,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
         exercise={item}
         onTrackingChange={changeTracking}
         resolveTrackingSelection
+        onOpenExerciseOptions={openExerciseOptions}
         index={index}
         addSet={addSet}
         removeSet={removeSet}
@@ -731,6 +746,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
       updateExercise,
       updateSet,
       changeTracking,
+      openExerciseOptions,
     ],
   );
   const liveAttributeEntries = Object.entries(workout.attributes ?? {});
@@ -807,6 +823,19 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
           />
         }
       />
+      {optionsSelection && optionsExercise ? (
+        <ExerciseOptionsController
+          key={optionsExercise.id}
+          exercise={optionsExercise}
+          openRequest={optionsSelection.request}
+          onTrackingChange={changeTracking}
+          resolveTrackingSelection
+          updateExercise={updateExercise}
+          removeExercise={removeExercise}
+          addWarmupSets={addWarmupSets}
+          onReplaceExercise={onReplaceExercise}
+        />
+      ) : null}
       {attributeDraft ? (
         <ForgeBottomSheet visible onClose={() => setAttributeDraft(null)} accessibilityLabel="Close attribute editor" animateContentLayout={false}>
           {() => <ForgeAttributeEditorSheet value={attributeDraft} onClose={() => setAttributeDraft(null)} onSave={saveLiveAttribute} onDelete={() => deleteLiveAttribute(attributeDraft.original ?? attributeDraft.label)} />}

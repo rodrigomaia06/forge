@@ -22,12 +22,14 @@ export function useFocusedSetKeyboardLift(
   const preFocusScrollOffsetRef = useRef<number | null>(null);
   const focusedSetMeasureRef = useRef<MeasureSetInput | null>(null);
   const keyboardFrameRef = useRef<KeyboardEvent['endCoordinates'] | null>(null);
+  const focusGeneration = useRef(0);
   // Extra scroll room added while the keyboard is up so even the last exercise
   // can lift its focused field clear of the keyboard (otherwise the list has no
   // content below it to scroll into view).
   const [keyboardSpacer, setKeyboardSpacer] = useState(0);
 
   const restoreScrollPosition = useCallback((): void => {
+    focusGeneration.current += 1;
     const offset = restoreScrollOffsetRef.current;
     restoreScrollOffsetRef.current = null;
     preFocusScrollOffsetRef.current = null;
@@ -42,7 +44,11 @@ export function useFocusedSetKeyboardLift(
     const measure = focusedSetMeasureRef.current;
     const keyboard = keyboardFrameRef.current ?? Keyboard.metrics();
     if (!measure || !keyboard) return;
+    const generation = focusGeneration.current;
     measure(({ y, height }) => {
+      // Native measurements can arrive after keyboard dismissal or another
+      // input's focus event; they must not lift the list using the old frame.
+      if (generation !== focusGeneration.current) return;
       const breathingRoom = 48;
       const fieldBottom = y + height;
       if (fieldBottom <= keyboard.screenY - breathingRoom) return;
@@ -61,6 +67,7 @@ export function useFocusedSetKeyboardLift(
   }, [scrollRef, scrollOffset]);
 
   const onSetInputFocus = useCallback((measure: MeasureSetInput): void => {
+    focusGeneration.current += 1;
     if (preFocusScrollOffsetRef.current === null) {
       preFocusScrollOffsetRef.current = scrollOffset.get();
     }

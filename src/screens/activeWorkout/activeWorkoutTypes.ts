@@ -23,6 +23,8 @@ export interface ExerciseSectionProps {
     confirmed?: boolean,
   ) => void | Promise<import('../../domain/exercises/trackingChanges').TrackingChangeResult>;
   resolveTrackingSelection?: boolean;
+  /** Live sheets belong to the list owner so row recycling cannot dismiss them. */
+  onOpenExerciseOptions?: (exercise: WorkoutExercise) => void;
   updateExercise?: (exerciseId: string, changes: WorkoutExerciseChanges) => void;
   /** Active Workout alone can turn a calculated ramp into editable warm-up sets. */
   addWarmupSets?: (exerciseId: string, sets: readonly { weight: string; reps: string }[]) => void;
