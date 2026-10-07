@@ -16,6 +16,6 @@ export function ForgeLoadingScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  icon: { width: 84, height: 84, borderRadius: 20 },
+  icon: { width: 84, height: 84 },
   spinner: { marginTop: 20 },
 });

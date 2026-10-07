@@ -12,5 +12,6 @@ test('startup logo corners blend into the loading surface', async ({ page }, tes
   const loading = page.getByLabel('Loading Forge');
   await expect(loading).toBeVisible();
   await expect(loading).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(loading.locator('img').locator('..')).toHaveCSS('border-radius', '0px');
   await loading.screenshot({ path: testInfo.outputPath('startup-logo-corners.png') });
 });
