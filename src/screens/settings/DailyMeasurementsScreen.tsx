@@ -1,6 +1,7 @@
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  FlatList,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -158,15 +159,16 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
       }));
   }, [preferences.dailyMeasurementEntries, selected]);
   const HISTORY_PREVIEW = 5;
-  const shownHistory = historyExpanded ? historyEntries : historyEntries.slice(0, HISTORY_PREVIEW);
-  const historyGroups = useMemo(() => {
-    const groups = new Map<string, typeof shownHistory>();
-    shownHistory.forEach((entry) => {
-      const key = entry.date.slice(0, 7);
-      groups.set(key, [...(groups.get(key) ?? []), entry]);
+  const historyRows = useMemo(() => {
+    const shown = historyExpanded ? historyEntries : historyEntries.slice(0, HISTORY_PREVIEW);
+    return shown.map((entry, index) => {
+      const month = entry.date.slice(0, 7);
+      return { entry, month,
+        first: index === 0 || shown[index - 1].date.slice(0, 7) !== month,
+        last: index === shown.length - 1 || shown[index + 1].date.slice(0, 7) !== month,
+      };
     });
-    return [...groups.entries()].map(([key, values]) => ({ key, label: historyMonthLabel(key), values }));
-  }, [shownHistory]);
+  }, [historyEntries, historyExpanded]);
   const trendDelta = latest && periodStart && periodStart !== latest
     ? `${latest.value >= periodStart.value ? '+' : ''}${formatValue(latest.value - periodStart.value, displayUnit)}`
     : '—';
@@ -340,16 +342,22 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
           )
         }
       />
-      <ScrollView
+      <FlatList
+        testID="measurement-history-list"
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingBottom: styles.content.paddingBottom + bottomInset }]}
+        data={historyRows}
+        keyExtractor={({ entry }) => entry.id}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={7}
         showsVerticalScrollIndicator={false}
         directionalLockEnabled
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
         onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
         scrollEventThrottle={16}
-      >
+        ListHeaderComponent={<View style={styles.listHeader}>
         {preferences.dailyMeasurementDefinitions.length ? (
           <View style={styles.metricPickerSection}>
             <View style={styles.metricPickerHeading}>
@@ -537,39 +545,18 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
             )}
           </Animated.View>
         ) : null}
-        {historyGroups.length ? (
+        {historyRows.length ? (
           <View style={styles.historyHeaderRow}>
             <Text style={styles.historyTitle}>History</Text>
             {editing ? <Text style={styles.historyHint}>Tap to edit · swipe to delete</Text> : null}
           </View>
         ) : null}
-        {historyGroups.map((group) => (
-          <View key={group.key} style={styles.historyGroup}>
-            <Text style={styles.historyGroupLabel}>{group.label}</Text>
-            <View style={styles.historyCard}>
-              {group.values.map((entry, index) => (
-                <SwipeToDeleteRow
-                  key={entry.id}
-                  enabled={editing}
-                  deleteAccessibilityLabel={`Delete ${displayHistoryDate(entry.date)} record`}
-                  onDelete={() => deleteEntry(entry.id)}
-                  showDivider={index < group.values.length - 1}
-                >
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Edit ${displayHistoryDate(entry.date)}, ${formatValue(entry.value, displayUnit)}`}
-                    onPress={() => { selectionHaptic(); editRecord(entry); }}
-                    style={({ pressed }) => [styles.historyRow, pressed && pressedFeedback]}
-                  >
-                    <Text style={styles.historyDate} numberOfLines={1}>{displayHistoryDate(entry.date)}</Text>
-                    <Text style={styles.historyValue} numberOfLines={1}>{formatValue(entry.value, displayUnit)}</Text>
-                  </Pressable>
-                </SwipeToDeleteRow>
-              ))}
-            </View>
-          </View>
-        ))}
-        {historyEntries.length > HISTORY_PREVIEW ? (
+        </View>}
+        renderItem={({ item }) => <MeasurementRecordRow
+          row={item} editing={editing} unit={displayUnit} onDelete={deleteEntry} onEdit={editRecord}
+        />}
+        ListFooterComponent={
+        historyEntries.length > HISTORY_PREVIEW ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={historyExpanded ? 'Show fewer records' : `Show all ${historyEntries.length} records`}
@@ -583,8 +570,9 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
               <Icon name="chevron-down" size={16} color={theme.textSecondary} />
             </View>
           </Pressable>
-        ) : null}
-      </ScrollView>
+        ) : null
+        }
+      />
       <ForgeConfirmationDialog
         visible={metricMenu !== null}
         title={`Delete ${metricMenu?.name ?? 'metric'}?`}
@@ -725,6 +713,67 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
   );
 }
 
+function MeasurementRecordRow({
+  row,
+  editing,
+  unit,
+  onDelete,
+  onEdit,
+}: {
+  row: { entry: DailyMeasurementEntry; month: string; first: boolean; last: boolean };
+  editing: boolean;
+  unit: string;
+  onDelete: (id: string) => void;
+  onEdit: (entry: DailyMeasurementEntry) => void;
+}) {
+  const styles = useThemedStyles(createStyles);
+  const { entry, month, first, last } = row;
+  const swipeIsOpen = useRef(false);
+  const onRevealChange = useCallback((revealed: boolean) => {
+    swipeIsOpen.current = revealed;
+  }, []);
+  return (
+    <View style={last && styles.historyGroupEnd}>
+      {first ? <Text style={styles.historyGroupLabel}>{historyMonthLabel(month)}</Text> : null}
+      <ForgeCard
+        testID={`measurement-history-${entry.id}`}
+        style={[
+          styles.historyCard,
+          styles.historyCardSegment,
+          first && styles.historyCardFirst,
+          last && styles.historyCardLast,
+        ]}
+      >
+        <SwipeToDeleteRow
+          enabled={editing}
+          deleteAccessibilityLabel={`Delete ${displayHistoryDate(entry.date)} record`}
+          onRevealChange={onRevealChange}
+          onDelete={() => onDelete(entry.id)}
+          showDivider={!last}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Edit ${displayHistoryDate(entry.date)}, ${formatValue(entry.value, unit)}`}
+            onPress={() => {
+              if (swipeIsOpen.current) return;
+              selectionHaptic();
+              onEdit(entry);
+            }}
+            style={({ pressed }) => [styles.historyRow, pressed && pressedFeedback]}
+          >
+            <Text style={styles.historyDate} numberOfLines={1}>
+              {displayHistoryDate(entry.date)}
+            </Text>
+            <Text style={styles.historyValue} numberOfLines={1}>
+              {formatValue(entry.value, unit)}
+            </Text>
+          </Pressable>
+        </SwipeToDeleteRow>
+      </ForgeCard>
+    </View>
+  );
+}
+
 const createStyles = (theme: import('../../types').ForgeTheme) => {
   const isDark = theme.colorScheme === 'dark';
   return StyleSheet.create({
@@ -734,8 +783,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     padding: settingsLayout.screenPadding,
     paddingTop: settingsLayout.contentTop,
     paddingBottom: settingsLayout.contentBottom,
-    gap: 20,
   },
+  listHeader: { gap: 20, paddingBottom: 20 },
   summaryCard: { padding: 16, gap: 16 },
   metricHeading: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 12 },
   metricIcon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
@@ -782,8 +831,11 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   historyHeaderRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginTop: 4 },
   historyTitle: { ...typeScale.sectionTitle, color: theme.textPrimary },
   historyHint: { ...typeScale.caption, color: theme.textSecondary },
-  historyGroup: { gap: 8 },
-  historyGroupLabel: { ...typeScale.caption, color: theme.textSecondary, letterSpacing: 0.5, marginLeft: 4 },
+  historyGroupEnd: { marginBottom: 20 },
+  historyCardSegment: { borderRadius: 0, shadowOpacity: 0, elevation: 0 },
+  historyCardFirst: { borderTopLeftRadius: theme.cardRadius, borderTopRightRadius: theme.cardRadius },
+  historyCardLast: { borderBottomLeftRadius: theme.cardRadius, borderBottomRightRadius: theme.cardRadius },
+  historyGroupLabel: { marginBottom: 8, ...typeScale.caption, color: theme.textSecondary, letterSpacing: 0.5, marginLeft: 4 },
   historyCard: { backgroundColor: theme.surface, borderRadius: theme.cardRadius, overflow: 'hidden' },
   historyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 56, paddingHorizontal: 16 },
   historyDate: { flexShrink: 0, ...typeScale.label, color: theme.textPrimary },
