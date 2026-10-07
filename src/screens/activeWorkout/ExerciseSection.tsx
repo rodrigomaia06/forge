@@ -694,6 +694,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     exerciseNote: { flex: 1, color: dashboardTheme.slate, ...typeScale.supporting },
     exerciseNameLarge: typeScale.sectionTitle,
     moreButton: {
+      borderRadius: 22,
       width: 44,
       height: 44,
       alignItems: 'center',

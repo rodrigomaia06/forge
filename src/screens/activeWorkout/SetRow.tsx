@@ -294,8 +294,8 @@ export function SetRow({
                     return next;
                   });
               }}
-              inputMode={kind === 'reps' ? 'numeric' : 'decimal'}
-              keyboardType={kind === 'duration' ? 'decimal-pad' : kind === 'reps' ? 'number-pad' : 'decimal-pad'}
+              inputMode="decimal"
+              keyboardType="decimal-pad"
               selectTextOnFocus={false}
               placeholder={planned || '—'}
               placeholderTextColor={theme.textDisabled}
