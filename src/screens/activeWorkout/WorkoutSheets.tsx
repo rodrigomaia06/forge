@@ -53,10 +53,16 @@ import {
   type CatalogFilterState,
 } from '../../components/ui';
 
-type CatalogCategoryData = {
+type CatalogMovementData = {
   category: string;
-  groups: { group: string; variations: ExerciseCatalogItem[] }[];
+  group: string;
+  variations: ExerciseCatalogItem[];
+  family: VariationFamily;
+  equipmentGroups: { equipment: string; exercises: ExerciseCatalogItem[] }[];
+  first: boolean;
+  last: boolean;
 };
+const EMPTY_SELECTION: ReadonlySet<string> = new Set();
 
 type VariationResolution = { direct: ExerciseCatalogItem[]; choices: ResolvedVariation[] };
 
@@ -169,7 +175,7 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
     });
     return groups;
   }, [exerciseCatalog]);
-  const groupedExercises = useMemo<CatalogCategoryData[]>(() => {
+  const groupedExercises = useMemo<CatalogMovementData[]>(() => {
     const categories = new Map<string, Map<string, ExerciseCatalogItem[]>>();
     filteredExercises.forEach((exercise) => {
       const groups = categories.get(exercise.category) ?? new Map<string, ExerciseCatalogItem[]>();
@@ -178,10 +184,14 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
       groups.set(exercise.group, variations);
       categories.set(exercise.category, groups);
     });
-    return [...categories].map(([category, groups]) => ({
-      category,
-      groups: [...groups].map(([group, variations]) => ({ group, variations })),
-    }));
+    return [...categories].flatMap(([category, groups]) =>
+      [...groups].map(([group, variations], index) => ({
+        category, group, variations,
+        family: buildVariationFamily(variations),
+        equipmentGroups: groupCatalogByPrimaryEquipment(variations).map(([equipment, exercises]) => ({ equipment, exercises })),
+        first: index === 0, last: index === groups.size - 1,
+      })),
+    );
   }, [filteredExercises]);
   const activeFilterCount = catalogFilterCount(filters);
   const toggleExercise = useCallback((exercise: ExerciseCatalogItem): void => {
@@ -383,9 +393,9 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
             testID="add-exercise-catalogue"
             style={styles.pickerList}
             data={groupedExercises}
-            keyExtractor={(item) => item.category}
-            initialNumToRender={3}
-            maxToRenderPerBatch={2}
+            keyExtractor={(item) => `${item.category}\u0001${item.group}`}
+            initialNumToRender={12}
+            maxToRenderPerBatch={8}
             updateCellsBatchingPeriod={32}
             windowSize={5}
             removeClippedSubviews={Platform.OS !== 'web'}
@@ -398,16 +408,15 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
             onScrollBeginDrag={Keyboard.dismiss}
             showsVerticalScrollIndicator={false}
             renderItem={({ item }) => (
-              <CatalogCategory
-                category={item.category}
-                groups={item.groups}
-                selected={selected}
-                expandedGroup={expandedGroup}
-                expandedEquipment={expandedEquipment}
+              <CatalogMovement
+                movement={item}
+                selectedKey={item.variations.filter((exercise) => selected.has(exercise.id)).map((exercise) => exercise.id).join('\u0001')}
+                expanded={expandedGroup === `${item.category}-${item.group}`}
+                expandedEquipment={expandedGroup === `${item.category}-${item.group}` ? expandedEquipment : null}
                 onToggleExercise={toggleExercise}
                 onToggleGroup={toggleGroup}
                 onToggleEquipment={toggleEquipment}
-                modifierSelections={modifierSelections}
+                selectedModifiers={modifierSelections.get(`${item.category}\u0001${item.group}`) ?? EMPTY_SELECTION}
                 onToggleModifier={toggleModifier}
               />
             )}
@@ -481,67 +490,128 @@ function ExerciseOutputChooser({ resolution, onBack, onClose, onConfirm }: {
   </>;
 }
 
-const CatalogCategory = React.memo(function CatalogCategory({
-  category,
-  groups,
-  selected,
-  expandedGroup,
+const CatalogMovement = React.memo(function CatalogMovement({
+  movement,
+  selectedKey,
+  expanded,
   expandedEquipment,
   onToggleExercise,
   onToggleGroup,
   onToggleEquipment,
-  modifierSelections,
+  selectedModifiers,
   onToggleModifier,
 }: {
-  category: string;
-  groups: CatalogCategoryData['groups'];
-  selected: ReadonlySet<string>;
-  expandedGroup: string | null;
+  movement: CatalogMovementData;
+  selectedKey: string;
+  expanded: boolean;
   expandedEquipment: string | null;
   onToggleExercise: (exercise: ExerciseCatalogItem) => void;
   onToggleGroup: (key: string, expanded: boolean) => void;
   onToggleEquipment: (key: string, expanded: boolean) => void;
-  modifierSelections: ReadonlyMap<string, ReadonlySet<string>>;
+  selectedModifiers: ReadonlySet<string>;
   onToggleModifier: (familyKey: string, inputId: string) => void;
 }) {
   const styles = useThemedStyles(createStyles);
+  const { category, group, variations, family, equipmentGroups, first, last } = movement;
+  const selected = useMemo(
+    () => new Set(selectedKey ? selectedKey.split('\u0001') : []),
+    [selectedKey],
+  );
+  const groupKey = `${category}-${group}`;
+  const familyKey = `${category}\u0001${group}`;
+  const selectedCount = selected.size + selectedModifiers.size;
+  const content = (() => {
+    if (variations.length === 1) {
+      const exercise = variations[0];
+      const isSelected = selected.has(exercise.id);
+      return (
+        <Pressable
+          key={group}
+          accessibilityRole="checkbox"
+          accessibilityLabel={`${group}, variation`}
+          accessibilityState={{ checked: isSelected }}
+          aria-checked={isSelected}
+          onPress={() => onToggleExercise(exercise)}
+          style={({ pressed }) => [
+            styles.groupRow,
+            styles.singleGroupRow,
+            !first && styles.groupRowDivider,
+            isSelected && styles.singleGroupRowSelected,
+            pressed && styles.groupRowPressed,
+          ]}
+        >
+          <View style={styles.exerciseOptionCopy}>
+            <Text style={styles.groupName}>{group}</Text>
+            {exercise.variation ? <Text style={styles.groupMeta}>{exercise.variation}</Text> : null}
+          </View>
+          <CompletionCheck
+            selected={isSelected}
+            tone="selection"
+            testID={`exercise-selection-${exercise.id}`}
+          />
+        </Pressable>
+      );
+    }
 
-  return (
-    <View>
-      <Text style={styles.categoryTitle}>{category}</Text>
-      <View style={styles.categoryCard}>
-        {groups.map(({ group, variations }, groupIndex) => {
-          const groupKey = `${category}-${group}`;
-          const familyKey = `${category}\u0001${group}`;
-          const expanded = expandedGroup === groupKey;
-          const family = buildVariationFamily(variations);
-          const selectedModifiers = modifierSelections.get(familyKey) ?? new Set<string>();
-          const selectedCount = variations.filter((exercise) => selected.has(exercise.id)).length + selectedModifiers.size;
-          const equipmentGroups = expanded
-            ? groupCatalogByPrimaryEquipment(variations).map(([equipment, exercises]) => ({ equipment, exercises }))
-            : [];
-
-          if (variations.length === 1) {
-            const exercise = variations[0];
+    return (
+      <View key={group} style={styles.exerciseGroup}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${group} & ${variations.length} variations`}
+          onPress={() => onToggleGroup(groupKey, expanded)}
+          style={({ pressed }) => [
+            styles.groupRow,
+            !first && styles.groupRowDivider,
+            pressed && styles.groupRowPressed,
+          ]}
+        >
+          <View style={styles.exerciseOptionCopy}>
+            <Text style={styles.groupName}>{group}</Text>
+            <Text style={styles.groupMeta}>{variations.length} variations</Text>
+          </View>
+          <View style={styles.groupActions}>
+            <View
+              testID={`exercise-group-count-${group}`}
+              style={[styles.groupCount, selectedCount > 0 && styles.groupCountActive]}
+            >
+              <AnimatedCount count={selectedCount} />
+            </View>
+            <AnimatedChevron expanded={expanded} />
+          </View>
+        </Pressable>
+        {expanded && hasComposableInputs(family) ? (
+          <FacetPickerRows
+            family={family}
+            familyKey={familyKey}
+            selected={selectedModifiers}
+            onToggle={onToggleModifier}
+          />
+        ) : null}
+        {expanded &&
+          hasComposableInputs(family) &&
+          family.standalone.map((exercise) => {
             const isSelected = selected.has(exercise.id);
             return (
               <Pressable
-                key={group}
+                key={exercise.id}
                 accessibilityRole="checkbox"
-                accessibilityLabel={`${group}, variation`}
+                accessibilityLabel={`${group}, ${exercise.name}`}
                 accessibilityState={{ checked: isSelected }}
+                aria-checked={isSelected}
                 onPress={() => onToggleExercise(exercise)}
                 style={({ pressed }) => [
-                  styles.groupRow,
-                  styles.singleGroupRow,
-                  groupIndex > 0 && styles.groupRowDivider,
-                  isSelected && styles.singleGroupRowSelected,
-                  pressed && styles.groupRowPressed,
+                  styles.subVariationRow,
+                  isSelected && styles.subVariationRowSelected,
+                  pressed && styles.exerciseOptionPressed,
                 ]}
               >
                 <View style={styles.exerciseOptionCopy}>
-                  <Text style={styles.groupName}>{group}</Text>
-                  {exercise.variation ? <Text style={styles.groupMeta}>{exercise.variation}</Text> : null}
+                  <Text style={styles.variationName}>{exercise.name}</Text>
+                  {formatCatalogVariation(exercise.name, exercise.variation) ? (
+                    <Text style={styles.equipmentMeta}>
+                      {formatCatalogVariation(exercise.name, exercise.variation)}
+                    </Text>
+                  ) : null}
                 </View>
                 <CompletionCheck
                   selected={isSelected}
@@ -550,142 +620,118 @@ const CatalogCategory = React.memo(function CatalogCategory({
                 />
               </Pressable>
             );
-          }
+          })}
+        {expanded && !hasComposableInputs(family) &&
+          equipmentGroups.map(({ equipment, exercises }) => {
+            const equipmentSelectedCount = exercises.filter((exercise) =>
+              selected.has(exercise.id),
+            ).length;
+            const hasSubVariations = exercises.length > 1;
+            const equipmentKey = `${groupKey}-${equipment}`;
+            const equipmentExpanded = expandedEquipment === equipmentKey;
 
-          return (
-            <View key={group} style={styles.exerciseGroup}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${group} & ${variations.length} variations`}
-                onPress={() => onToggleGroup(groupKey, expanded)}
-                style={({ pressed }) => [
-                  styles.groupRow,
-                  groupIndex > 0 && styles.groupRowDivider,
-                  pressed && styles.groupRowPressed,
-                ]}
-              >
-                <View style={styles.exerciseOptionCopy}>
-                  <Text style={styles.groupName}>{group}</Text>
-                  <Text style={styles.groupMeta}>{variations.length} variations</Text>
-                </View>
-                <View style={styles.groupActions}>
-                  <View
-                    testID={`exercise-group-count-${group}`}
-                    style={[styles.groupCount, selectedCount > 0 && styles.groupCountActive]}
-                  >
-                    <AnimatedCount count={selectedCount} />
+            if (!hasSubVariations) {
+              const exercise = exercises[0];
+              const equipmentLabel = formatPickerPrimaryEquipment(exercise, equipment);
+              const isSelected = selected.has(exercise.id);
+              return (
+                <Pressable
+                  key={equipment}
+                  accessibilityRole="checkbox"
+                  accessibilityLabel={`${group}, ${equipmentLabel}`}
+                  accessibilityState={{ checked: isSelected }}
+                  aria-checked={isSelected}
+                  onPress={() => onToggleExercise(exercise)}
+                  style={({ pressed }) => [
+                    styles.equipmentRow,
+                    isSelected && styles.equipmentRowSelected,
+                    pressed && styles.exerciseOptionPressed,
+                  ]}
+                >
+                  <Text style={styles.equipmentName}>{equipmentLabel}</Text>
+                  <CompletionCheck
+                    selected={isSelected}
+                    tone="selection"
+                    testID={`exercise-selection-${exercise.id}`}
+                  />
+                </Pressable>
+              );
+            }
+
+            return (
+              <View key={equipment} style={styles.equipmentGroup}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${equipment} & ${exercises.length} variations`}
+                  onPress={() => onToggleEquipment(equipmentKey, equipmentExpanded)}
+                  style={({ pressed }) => [
+                    styles.equipmentRow,
+                    pressed && styles.exerciseOptionPressed,
+                  ]}
+                >
+                  <View style={styles.exerciseOptionCopy}>
+                    <Text style={styles.equipmentName}>{equipment}</Text>
+                    <Text style={styles.equipmentMeta}>{exercises.length} variations</Text>
                   </View>
-                  <AnimatedChevron expanded={expanded} />
-                </View>
-              </Pressable>
-              {expanded && hasComposableInputs(family) ? <FacetPickerRows family={family} familyKey={familyKey} selected={selectedModifiers} onToggle={onToggleModifier} /> : null}
-              {expanded && hasComposableInputs(family) &&
-                family.standalone.map((exercise) => {
-                  const isSelected = selected.has(exercise.id);
-                  return (
-                    <Pressable key={exercise.id} accessibilityRole="checkbox" accessibilityLabel={`${group}, ${exercise.name}`} accessibilityState={{ checked: isSelected }} onPress={() => onToggleExercise(exercise)} style={({ pressed }) => [styles.subVariationRow, isSelected && styles.subVariationRowSelected, pressed && styles.exerciseOptionPressed]}>
-                      <View style={styles.exerciseOptionCopy}>
-                        <Text style={styles.variationName}>{exercise.name}</Text>
-                        {formatCatalogVariation(exercise.name, exercise.variation) ? (
-                          <Text style={styles.equipmentMeta}>
-                            {formatCatalogVariation(exercise.name, exercise.variation)}
-                          </Text>
-                        ) : null}
-                      </View>
-                      <CompletionCheck
-                  selected={isSelected}
-                  tone="selection"
-                  testID={`exercise-selection-${exercise.id}`}
-                />
-                    </Pressable>
-                  );
-                })}
-              {!hasComposableInputs(family) && equipmentGroups.map(({ equipment, exercises }) => {
-                const equipmentSelectedCount = exercises.filter((exercise) => selected.has(exercise.id)).length;
-                const hasSubVariations = exercises.length > 1;
-                const equipmentKey = `${groupKey}-${equipment}`;
-                const equipmentExpanded = expandedEquipment === equipmentKey;
-
-                if (!hasSubVariations) {
-                  const exercise = exercises[0];
-                  const equipmentLabel = formatPickerPrimaryEquipment(exercise, equipment);
-                  const isSelected = selected.has(exercise.id);
-                  return (
-                    <Pressable
-                      key={equipment}
-                      accessibilityRole="checkbox"
-                      accessibilityLabel={`${group}, ${equipmentLabel}`}
-                      accessibilityState={{ checked: isSelected }}
-                      onPress={() => onToggleExercise(exercise)}
-                      style={({ pressed }) => [
-                        styles.equipmentRow,
-                        isSelected && styles.equipmentRowSelected,
-                        pressed && styles.exerciseOptionPressed,
+                  <View style={styles.groupActions}>
+                    <View
+                      testID={`exercise-equipment-count-${group}-${equipment}`}
+                      style={[
+                        styles.groupCount,
+                        equipmentSelectedCount > 0 && styles.groupCountActive,
                       ]}
                     >
-                      <Text style={styles.equipmentName}>{equipmentLabel}</Text>
-                      <CompletionCheck
-                        selected={isSelected}
-                        tone="selection"
-                        testID={`exercise-selection-${exercise.id}`}
-                      />
-                    </Pressable>
-                  );
-                }
-
-                return (
-                  <View key={equipment} style={styles.equipmentGroup}>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`${equipment} & ${exercises.length} variations`}
-                      onPress={() => onToggleEquipment(equipmentKey, equipmentExpanded)}
-                      style={({ pressed }) => [styles.equipmentRow, pressed && styles.exerciseOptionPressed]}
-                    >
-                      <View style={styles.exerciseOptionCopy}>
-                        <Text style={styles.equipmentName}>{equipment}</Text>
-                        <Text style={styles.equipmentMeta}>{exercises.length} variations</Text>
-                      </View>
-                      <View style={styles.groupActions}>
-                        <View
-                          testID={`exercise-equipment-count-${group}-${equipment}`}
-                          style={[styles.groupCount, equipmentSelectedCount > 0 && styles.groupCountActive]}
-                        >
-                          <AnimatedCount count={equipmentSelectedCount} />
-                        </View>
-                        <AnimatedChevron expanded={equipmentExpanded} />
-                      </View>
-                    </Pressable>
-                    {equipmentExpanded && exercises.map((exercise) => {
-                      const isSelected = selected.has(exercise.id);
-                      const label = formatCatalogVariation(exercise.name, exercise.variation) || exercise.name;
-                      return (
-                        <Pressable
-                          key={exercise.id}
-                          accessibilityRole="checkbox"
-                          accessibilityLabel={`${group}, ${equipment}, ${label}`}
-                          accessibilityState={{ checked: isSelected }}
-                          onPress={() => onToggleExercise(exercise)}
-                          style={({ pressed }) => [
-                            styles.subVariationRow,
-                            isSelected && styles.subVariationRowSelected,
-                            pressed && styles.exerciseOptionPressed,
-                          ]}
-                        >
-                          <Text style={styles.variationName}>{label}</Text>
-                          <CompletionCheck
-                            selected={isSelected}
-                            tone="selection"
-                            testID={`exercise-selection-${exercise.id}`}
-                          />
-                        </Pressable>
-                      );
-                    })}
+                      <AnimatedCount count={equipmentSelectedCount} />
+                    </View>
+                    <AnimatedChevron expanded={equipmentExpanded} />
                   </View>
-                );
-              })}
-            </View>
-          );
-        })}
+                </Pressable>
+                {equipmentExpanded &&
+                  exercises.map((exercise) => {
+                    const isSelected = selected.has(exercise.id);
+                    const label =
+                      formatCatalogVariation(exercise.name, exercise.variation) || exercise.name;
+                    return (
+                      <Pressable
+                        key={exercise.id}
+                        accessibilityRole="checkbox"
+                        accessibilityLabel={`${group}, ${equipment}, ${label}`}
+                        accessibilityState={{ checked: isSelected }}
+                        aria-checked={isSelected}
+                        onPress={() => onToggleExercise(exercise)}
+                        style={({ pressed }) => [
+                          styles.subVariationRow,
+                          isSelected && styles.subVariationRowSelected,
+                          pressed && styles.exerciseOptionPressed,
+                        ]}
+                      >
+                        <Text style={styles.variationName}>{label}</Text>
+                        <CompletionCheck
+                          selected={isSelected}
+                          tone="selection"
+                          testID={`exercise-selection-${exercise.id}`}
+                        />
+                      </Pressable>
+                    );
+                  })}
+              </View>
+            );
+          })}
+      </View>
+    );
+  })();
+  return (
+    <View>
+      {first ? <Text style={styles.categoryTitle}>{category}</Text> : null}
+      <View
+        style={[
+          styles.categoryCard,
+          styles.categorySegment,
+          first && styles.categoryFirst,
+          last && styles.categoryLast,
+        ]}
+      >
+        {content}
       </View>
     </View>
   );
@@ -1150,6 +1196,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     },
     searchField: {
       flex: 1,
+      minWidth: 0,
       minHeight: 42,
       flexDirection: 'row',
       alignItems: 'center',
@@ -1211,6 +1258,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     filterChoiceTextActive: { color: dashboardTheme.surface },
     searchInput: {
       flex: 1,
+      minWidth: 0,
       minHeight: 40,
       paddingVertical: 0,
       color: dashboardTheme.ink,
@@ -1224,6 +1272,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       color: dashboardTheme.slate,
       ...typeScale.cardTitle,
     },
+    categorySegment: { borderTopWidth: 0, borderBottomWidth: 0, borderRadius: 0 },
+    categoryFirst: { borderTopWidth: 1, borderTopLeftRadius: 13, borderTopRightRadius: 13 },
+    categoryLast: { borderBottomWidth: 1, borderBottomLeftRadius: 13, borderBottomRightRadius: 13 },
     categoryCard: {
       overflow: 'hidden',
       borderWidth: 1,

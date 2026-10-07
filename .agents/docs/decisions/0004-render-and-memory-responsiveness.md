@@ -35,10 +35,20 @@ invariant in `.agents/rules/design.md`; this ADR is the mechanism and rationale.
    (`warmCatalogIndex`). Pickers render their shell immediately and defer the
    index build.
 
-4. **Large lists are virtualized.** The History timeline is a `FlatList` of
-   weekly section blocks (rows and callbacks memoized). Its per-week SVG period
-   rail is a deliberate, test-protected design element
-   (`history.spec` asserts the gradient) — keep it.
+4. **Large lists virtualize individual records, not unbounded groups.** History
+   renders individual workouts with period labels and connected rail segments.
+   Measurement history renders individual records with month labels. Plans keeps
+   its grouped cards and uses nested virtualized routine lists that inherit the
+   outer list's scroll metrics; only the outer list scrolls. A held routine's
+   render window expands across the traversed drag span to retain its gesture
+   cell, then returns to its normal size on release. Catalogue pickers virtualize
+   movement families and memoize their structural projections separately from
+   selection. History's SVG period bridge remains a deliberate, test-protected
+   design element (`history.spec` asserts the gradient) — keep it.
+   The current RN Web list scheduler uses an 8 ms InteractionManager deadline
+   so continuous gestures cannot indefinitely delay offscreen-cell cleanup.
+   This compatibility setting applies only to web; native list scheduling is
+   left to React Native.
 
 5. **Bundled illustrations ship near display resolution**, so they do not decode
    to multi-megabyte bitmaps for a small on-screen size.
