@@ -23,12 +23,22 @@ import {
 import { spacing, typeScale } from '../../theme/tokens';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 
+export interface TrackingConfirmation {
+  mode: TrackingType;
+  busy: boolean;
+  error: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
 export function TrackingChoices({
   exercise,
   onSelect,
   onApplied,
   resolveSelection = false,
+  onConfirmationChange,
 }: {
+  onConfirmationChange?: (confirmation: TrackingConfirmation | null) => void;
   exercise: WorkoutExercise;
   onSelect: (mode: TrackingType, confirmed?: boolean) => void | Promise<TrackingChangeResult>;
   onApplied: () => void;
@@ -56,6 +66,15 @@ export function TrackingChoices({
     try {
       const result = await onSelect(mode, confirmed);
       if (!mounted.current) return;
+      if (
+        resolveSelection &&
+        (!result ||
+          ((result.status === 'applied' || result.status === 'unchanged') &&
+            (result.mode !== mode || result.blockId !== exercise.id)))
+      ) {
+        setError('Tracking could not be changed. Try again.');
+        return;
+      }
       if (result?.status === 'confirmation') {
         setPendingExercise(result.exercise);
         setPending(mode);
@@ -72,6 +91,7 @@ export function TrackingChoices({
               : 'Tracking could not be changed. Try again.',
         );
       } else if (result?.status !== 'unchanged') {
+        setPending(null);
         onApplied();
       }
     } catch {
@@ -81,6 +101,27 @@ export function TrackingChoices({
       if (mounted.current) setBusy(false);
     }
   };
+  const applyRef = useRef(apply);
+  applyRef.current = apply;
+  useEffect(() => {
+    if (!resolveSelection || !onConfirmationChange) return;
+    onConfirmationChange(
+      pending
+        ? {
+            mode: pending,
+            busy,
+            error,
+            onConfirm: () => void applyRef.current(pending, true),
+            onCancel: () => {
+              if (applying.current) return;
+              setPending(null);
+              setError('');
+            },
+          }
+        : null,
+    );
+  }, [pending, busy, error, resolveSelection, onConfirmationChange]);
+  useEffect(() => () => onConfirmationChange?.(null), [onConfirmationChange]);
   const recorded = hasRecordedSets(exercise);
   const current = effectiveTracking(exercise);
   const fields = {
@@ -112,7 +153,7 @@ export function TrackingChoices({
         paddingBottom: scaleUI(32),
       }}
     >
-      {!pending ? (
+      {!pending || onConfirmationChange ? (
         <ForgeCard variant="nested" size="compact">
           <ForgeSingleSelectList
             showSeparators={false}
@@ -137,16 +178,26 @@ export function TrackingChoices({
           />
         </ForgeCard>
       ) : null}
-      {pending ? (
+      {pending && !onConfirmationChange ? (
         <View
           accessibilityRole="alert"
-          accessibilityLabel={`Change to ${trackingModeLabel(pending)}? ${cleared} values and targets will be cleared.`}
+          accessibilityLabel={
+            resolveSelection
+              ? `Discard all current sets and change to ${trackingModeLabel(pending)}? Completed sets and sides will also be discarded.`
+              : `Change to ${trackingModeLabel(pending)}? ${cleared} values and targets will be cleared.`
+          }
           style={{ gap: scaleUI(12) }}
         >
           <Button
-            label={`Clear ${cleared} and use ${next}`}
+            label={
+              resolveSelection ? `Discard sets and use ${next}` : `Clear ${cleared} and use ${next}`
+            }
             accessibilityLabel="Change tracking"
-            accessibilityHint={`Switch to ${trackingModeLabel(pending)}. Clears ${cleared} values and targets.`}
+            accessibilityHint={
+              resolveSelection
+                ? `Discard all current sets, values, targets and completion. Switch to ${trackingModeLabel(pending)} with three empty sets.`
+                : `Switch to ${trackingModeLabel(pending)}. Clears ${cleared} values and targets.`
+            }
             variant="outline"
             tone="destructive"
             disabled={busy}
@@ -163,7 +214,7 @@ export function TrackingChoices({
           />
         </View>
       ) : null}
-      {error ? (
+      {error && !(pending && onConfirmationChange) ? (
         <ForgeText
           accessibilityRole="alert"
           style={[typeScale.supporting, { color: theme.textPrimary, marginTop: scaleUI(12) }]}

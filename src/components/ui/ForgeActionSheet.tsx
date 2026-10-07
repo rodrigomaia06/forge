@@ -33,6 +33,9 @@ export interface ForgeActionSheetAction {
 
 interface ForgeActionSheetProps {
   visible: boolean;
+  overlay?: ReactNode;
+  onBackRequest?: () => boolean;
+  dragEnabled?: boolean;
   onClose: () => void;
   /** Fires one frame after the sheet has fully dismissed; see ForgeBottomSheet. */
   onClosed?: () => void;
@@ -67,6 +70,9 @@ interface ForgeActionSheetProps {
 /** Shared Forge presentation for bottom-attached action lists. */
 export function ForgeActionSheet({
   visible,
+  overlay,
+  onBackRequest,
+  dragEnabled,
   onClose,
   onClosed,
   accessibilityLabel,
@@ -93,6 +99,9 @@ export function ForgeActionSheet({
   return (
     <ForgeBottomSheet
       visible={visible}
+      overlay={overlay}
+      onBackRequest={onBackRequest}
+      dragEnabled={dragEnabled}
       onClose={onClose}
       onClosed={onClosed}
       accessibilityLabel={accessibilityLabel}

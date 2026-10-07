@@ -65,7 +65,7 @@ export function useActiveWorkoutState() {
       });
       pending.current = { id, promise, resolve };
       // Allocate outside the reducer so Strict Mode replay produces identical IDs.
-      const ids = Array.from({ length: 4 }, () => makeWorkoutId('tracking'));
+      const ids = Array.from({ length: 3 }, () => makeWorkoutId('tracking'));
       dispatch({ kind: 'tracking', id, blockId, mode, confirmed, ids, history });
       return promise;
     },

@@ -78,14 +78,14 @@ for (const appearance of ['light', 'dark'] as const) {
         await page.getByRole('button', { name: 'Back to exercise options' }).click();
         await page.getByRole('button', { name: 'Tracking', exact: true }).click();
         await page.getByRole('radio', { name: 'Weight + time', exact: true }).click();
-        const change = page.getByRole('button', { name: 'Change tracking', exact: true });
-        await expect(change).toHaveText('Clear reps and use time');
+        const change = page.getByRole('button', { name: /^(Change tracking|Discard sets)$/ });
+        await expect(change).toHaveText('Discard sets');
         await expect(page.getByText(/Incompatible draft values and targets/)).toHaveCount(0);
         await page.waitForTimeout(350);
         await change
           .locator('..')
           .screenshot({ path: info.outputPath('tracking-confirmation-detail.png') });
-        await page.getByRole('button', { name: 'Change tracking', exact: true }).click();
+        await page.getByRole('button', { name: /^(Change tracking|Discard sets)$/ }).click();
         const time = page.getByLabel('Time for set 1');
         await expect(time).toHaveAttribute('inputmode', 'decimal');
         await time.fill('1,30');

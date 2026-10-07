@@ -32,7 +32,7 @@ function session(): Workout {
     exercises: [block, { ...block, id: 'other' }],
   };
 }
-const ids = ['new-block', 's1', 's2', 's3'];
+const ids = ['s1', 's2', 's3'];
 const request = {
   kind: 'tracking' as const,
   id: 'request',
@@ -75,16 +75,16 @@ test('requests see queued edits and match the block rather than the repeated mov
   const confirmed = reduceActiveWorkout(result, { ...request, id: 'confirm', confirmed: true });
   expect(confirmed.receipt?.result.status).toBe('applied');
   expect(confirmed.workout?.exercises[0].trackingOverride).toBe('weighted-bodyweight');
-  expect(confirmed.workout?.exercises[0].sets[0]).toMatchObject({
-    id: 'set',
-    weight: '15',
-    measurements: [{ id: 'load', kind: 'addedWeight', unit: 'kg', value: 15 }],
-  });
+  expect(confirmed.workout?.exercises[0].sets).toEqual(
+    ids.map((id) => ({ id, weight: '', reps: '', completed: false })),
+  );
   expect(confirmed.workout?.exercises[1]).toBe(current.exercises[1]);
 });
 
 test('target-only drafts require confirmation and cancel leaves the original untouched', () => {
   const workout = session();
+  workout.exercises[0].sets[0].weight = '';
+  workout.exercises[0].sets[0].measurements = [];
   workout.exercises[0].sets[0].targets = [
     { id: 'target', kind: 'duration', unit: 'sec', minValue: 40 },
   ];
@@ -99,28 +99,28 @@ test('target-only drafts require confirmation and cancel leaves the original unt
   expect(result.status).toBe('confirmation');
   expect(unchanged).toBe(workout);
   const applied = applyLiveTrackingChange(workout, 'block', 'weighted-bodyweight', true, ids, []);
-  expect(applied.workout?.exercises[0].sets[0].targets).toEqual([]);
+  expect(applied.workout?.exercises[0].sets[0].targets).toBeUndefined();
 });
 
-test('a completed side arriving before confirmation protects the original block', () => {
+test('a completed side requires consent then discards sets in the same block', () => {
   const workout = session();
   workout.exercises[0].sets[0].sideCompletion = { left: true, right: false };
+  const pending = applyLiveTrackingChange(workout, 'block', 'weighted-bodyweight', false, ids, []);
+  expect(pending.result.status).toBe('confirmation');
+  expect(pending.workout).toBe(workout);
   const applied = applyLiveTrackingChange(workout, 'block', 'weighted-bodyweight', true, ids, []);
-  expect(applied.workout?.exercises[0]).toBe(workout.exercises[0]);
-  expect(applied.workout?.exercises[1]).toMatchObject({
-    id: 'new-block',
+  expect(applied.workout?.exercises).toHaveLength(2);
+  expect(applied.workout?.exercises[0]).toMatchObject({
+    id: 'block',
     exerciseId: 'pull-up',
     note: 'Keep',
     supersetId: 'pair',
     trackingOverride: 'weighted-bodyweight',
   });
-  expect(
-    applied.workout?.exercises[1].sets.map((set) => [set.weight, set.reps, set.completed]),
-  ).toEqual([
-    ['', '', false],
-    ['', '', false],
-    ['', '', false],
-  ]);
+  expect(applied.workout?.exercises[0].sets).toEqual(
+    ids.map((id) => ({ id, weight: '', reps: '', completed: false })),
+  );
+  expect(applied.workout?.exercises[1]).toBe(workout.exercises[1]);
 });
 
 test('missing blocks and incompatible modes never silently acknowledge a change', () => {
@@ -149,10 +149,36 @@ test('a failed projection acknowledges failure without partially modifying the w
   const workout = session();
   const result = reduceActiveWorkout(
     { workout },
-    { ...request, history: [{ ...session(), completedAt: 1, exercises: null! }] },
+    { ...request, confirmed: true, history: [{ ...session(), completedAt: 1, exercises: null! }] },
   );
   expect(result.receipt?.result.status).toBe('failed');
   expect(result.workout).toBe(workout);
-  const retry = reduceActiveWorkout(result, request);
+  const retry = reduceActiveWorkout(result, { ...request, confirmed: true });
   expect(retry.receipt?.result.status).toBe('applied');
+});
+
+test('even compatible load alone requires discard confirmation; selecting the current mode does not', () => {
+  const workout = session();
+  const result = applyLiveTrackingChange(workout, 'block', 'weighted-bodyweight', false, ids, []);
+  expect(result.result.status).toBe('confirmation');
+  expect(result.workout).toBe(workout);
+  expect(
+    applyLiveTrackingChange(workout, 'block', 'weighted-bodyweight-duration', true, ids, [])
+      .workout,
+  ).toBe(workout);
+});
+
+test('an empty block changes mode immediately and retains its empty set structure', () => {
+  const workout = session();
+  workout.exercises[0].sets = [
+    { id: 'empty', weight: '', reps: '', completed: false, previous: 'Last session' },
+  ];
+  const changed = applyLiveTrackingChange(workout, 'block', 'weighted-bodyweight', false, ids, []);
+  expect(changed.result).toEqual({
+    status: 'applied',
+    blockId: 'block',
+    mode: 'weighted-bodyweight',
+  });
+  expect(changed.workout?.exercises[0].sets).toHaveLength(1);
+  expect(changed.workout?.exercises[0].sets[0].id).toBe('empty');
 });

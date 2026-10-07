@@ -414,7 +414,7 @@ export function ForgeBottomSheet({
             ]}
           />
         ) : null}
-        <View style={[styles.keyboardArea, styles.pointerEventsBoxNone]}>
+        <View style={[styles.keyboardArea, styles.pointerEventsBoxNone]} accessibilityElementsHidden={Boolean(overlay)} importantForAccessibility={overlay ? 'no-hide-descendants' : 'auto'}>
           <SheetDragContext.Provider value={dragEnabled ? createPan : null}>
             <Animated.View
               testID={surfaceTestID}

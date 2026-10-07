@@ -23,10 +23,24 @@ export function applyLiveTrackingChange(
     return { workout, result: { status: 'incompatible' } };
   if (effectiveTracking(exercise) === mode)
     return { workout, result: { status: 'unchanged', blockId, mode } };
-  if (!confirmed && !hasRecordedSets(exercise) && losesTrackingData(exercise, mode))
-    return { workout, result: { status: 'confirmation', exercise } };
-  let index = 0;
-  const exercises = changeExerciseTracking(workout.exercises, blockId, mode, () => ids[index++]);
+  const discardSets = hasTrackingSetData(exercise);
+  if (!confirmed && discardSets) return { workout, result: { status: 'confirmation', exercise } };
+  const exercises = workout.exercises.map((item) =>
+    item.id !== blockId
+      ? item
+      : {
+          ...item,
+          trackingOverride: mode,
+          sets: discardSets
+            ? Array.from({ length: 3 }, (_, index) => ({
+                id: ids[index],
+                weight: '',
+                reps: '',
+                completed: false,
+              }))
+            : item.sets.map((set) => cleanSet(set, mode)),
+        },
+  );
   const matched = exercisesWithAddedPrevious(exercises, [...history]);
   return {
     workout: {
@@ -35,8 +49,26 @@ export function applyLiveTrackingChange(
         workout.exercises.includes(item) ? item : matched[position],
       ),
     },
-    result: { status: 'applied', blockId: hasRecordedSets(exercise) ? ids[0] : blockId, mode },
+    result: { status: 'applied', blockId, mode },
   };
+}
+
+/** Previous-session hints aren't entered data and don't require discarding. */
+export function hasTrackingSetData(exercise: WorkoutExercise): boolean {
+  return (
+    hasRecordedSets(exercise) ||
+    exercise.sets.some(
+      (set) =>
+        Boolean(
+          set.weight.trim() ||
+          set.reps.trim() ||
+          set.targetWeight?.trim() ||
+          set.targetReps?.trim() ||
+          set.comment?.trim() ||
+          set.tag?.trim(),
+        ) || Boolean(set.measurements?.length || set.targets?.length || set.plannedTargets?.length),
+    )
+  );
 }
 
 export function hasRecordedSets(exercise: WorkoutExercise): boolean {

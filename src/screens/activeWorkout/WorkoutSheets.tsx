@@ -1,12 +1,14 @@
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import { scaleUI } from '../../theme/scale';
-import { TrackingChoices } from './TrackingChoices';
+import { trackingModeLabel } from '../../domain/exercises/tracking';
+import { TrackingChoices, type TrackingConfirmation } from './TrackingChoices';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Keyboard, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import {
   Button,
   ForgeActionSheet,
+  ForgeConfirmationDialog,
   ForgeBottomSheet,
   ForgeBottomSheetHandle,
   ForgeCard,
@@ -833,6 +835,7 @@ export function ExerciseOptionsSheet({
   // .agents/rules/design Motion): a hierarchical drill-in, never a lateral slide.
   const viewEntering = reducedMotion ? undefined : FadeIn.duration(forgeMotion.state);
   const viewExiting = reducedMotion ? undefined : FadeOut.duration(forgeMotion.feedback);
+  const [trackingConfirmation, setTrackingConfirmation] = useState<TrackingConfirmation | null>(null);
   const [noteDraft, setNoteDraft] = useState(exercise.note ?? '');
   const [noteHeight, setNoteHeight] = useState(156);
   const [historyShowAll, setHistoryShowAll] = useState(false);
@@ -920,6 +923,27 @@ export function ExerciseOptionsSheet({
       onClosed={onClosed}
       accessibilityLabel="Close options"
       title="Exercise options"
+      dragEnabled={!trackingConfirmation}
+      onBackRequest={() => {
+        if (!trackingConfirmation) return false;
+        trackingConfirmation.onCancel();
+        return true;
+      }}
+      overlay={trackingConfirmation ? (
+        <ForgeConfirmationDialog
+          presentation="embedded"
+          visible
+          title="Discard current sets?"
+          message={`Switch to ${trackingModeLabel(trackingConfirmation.mode)} with three empty sets. All current set values, targets and completion will be discarded.`}
+          cancelLabel="Keep current tracking"
+          confirmLabel="Discard sets"
+          busy={trackingConfirmation.busy}
+          error={trackingConfirmation.error}
+          onCancel={trackingConfirmation.onCancel}
+          onConfirm={trackingConfirmation.onConfirm}
+          testID="discard-tracking-confirmation"
+        />
+      ) : undefined}
       initialOffset={420}
       closeDistance={520}
       dismissThreshold={260}
@@ -1002,6 +1026,7 @@ export function ExerciseOptionsSheet({
                     onSelect={onTrackingChange}
                     onApplied={closeSheet}
                     resolveSelection={resolveTrackingSelection}
+                    onConfirmationChange={resolveTrackingSelection ? setTrackingConfirmation : undefined}
                   />
                 ) : null}
                 {view === 'history' ? <PreviousSessionsContent

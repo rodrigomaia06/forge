@@ -11,6 +11,11 @@ function choicesHarness(onSelect: (...args: any[]) => any) {
   const slots: any[] = [];
   let cursor = 0;
   let closed = 0;
+  let confirmation: any = null;
+  let effects: (() => void)[] = [];
+  const onConfirmationChange = (value: any) => {
+    confirmation = value;
+  };
   const react = {
     createElement: (type: any, props: any, ...children: any[]) => ({
       type,
@@ -31,7 +36,9 @@ function choicesHarness(onSelect: (...args: any[]) => any) {
       if (!(index in slots)) slots[index] = { current: initial };
       return slots[index];
     },
-    useEffect: () => undefined,
+    useEffect: (effect: () => void) => {
+      effects.push(effect);
+    },
   };
   const mocks: Record<string, any> = {
     react,
@@ -77,7 +84,9 @@ function choicesHarness(onSelect: (...args: any[]) => any) {
   return {
     render: () => {
       cursor = 0;
-      return exports.TrackingChoices({
+      effects = [];
+      const node = exports.TrackingChoices({
+        onConfirmationChange,
         exercise,
         onSelect,
         resolveSelection: true,
@@ -85,7 +94,10 @@ function choicesHarness(onSelect: (...args: any[]) => any) {
           closed++;
         },
       });
+      effects.forEach((effect) => effect());
+      return node;
     },
+    confirmation: () => confirmation,
     closed: () => closed,
     exercise,
   };
@@ -133,10 +145,11 @@ test('a fresher confirmation result stays open; only a committed change dismisse
     },
   });
   await settle();
-  const confirm = find(harness.render(), 'Button', 'Change tracking');
-  expect(confirm.props.label).toBe('Clear time and use reps');
+  harness.render();
+  const confirm = harness.confirmation();
+  expect(confirm.mode).toBe('weighted-bodyweight');
   expect(harness.closed()).toBe(0);
-  confirm.props.onPress();
+  confirm.onConfirm();
   expect(calls).toHaveLength(2);
   expect(calls[1]).toEqual(['weighted-bodyweight', true]);
   expect(harness.closed()).toBe(0);
@@ -165,4 +178,67 @@ test('a current mode returned by the live resolver leaves the sheet open', async
   await settle();
   expect(harness.closed()).toBe(0);
   expect(find(harness.render(), 'Text')).toBeUndefined();
+});
+
+test('live selection requires an acknowledgement for the requested mode before dismissal', async () => {
+  for (const result of [
+    undefined,
+    { status: 'applied', blockId: 'block', mode: 'duration' },
+    { status: 'applied', blockId: 'other', mode: 'weighted-bodyweight' },
+  ]) {
+    const harness = choicesHarness(() => Promise.resolve(result));
+    find(harness.render(), 'Choices').props.onSelect('weighted-bodyweight');
+    await settle();
+    expect(harness.closed()).toBe(0);
+    expect(find(harness.render(), 'Text').props.children[0]).toContain('Try again');
+  }
+});
+
+test('centered confirmation cancellation keeps the current block untouched', async () => {
+  const calls: any[][] = [];
+  const harness = choicesHarness((...args) => {
+    calls.push(args);
+    return Promise.resolve({ status: 'confirmation', exercise: harness.exercise });
+  });
+  find(harness.render(), 'Choices').props.onSelect('weighted-bodyweight');
+  await settle();
+  harness.render();
+  harness.confirmation().onCancel();
+  harness.render();
+  expect(harness.confirmation()).toBeNull();
+  expect(calls).toEqual([['weighted-bodyweight', false]]);
+  expect(harness.closed()).toBe(0);
+});
+
+test('a failed discard retains the centered warning and can retry; repeated submits are ignored', async () => {
+  let complete!: (result: changes.TrackingChangeResult) => void;
+  const calls: any[][] = [];
+  const harness = choicesHarness((...args) => {
+    calls.push(args);
+    if (!args[1]) return Promise.resolve({ status: 'confirmation', exercise: harness.exercise });
+    return new Promise((resolve) => {
+      complete = resolve;
+    });
+  });
+  find(harness.render(), 'Choices').props.onSelect('weighted-bodyweight');
+  await settle();
+  harness.render();
+  const confirmation = harness.confirmation();
+  confirmation.onConfirm();
+  confirmation.onConfirm();
+  confirmation.onCancel();
+  harness.render();
+  expect(harness.confirmation().busy).toBe(true);
+  expect(calls).toHaveLength(2);
+  complete({ status: 'failed' });
+  await settle();
+  harness.render();
+  expect(harness.confirmation().error).toContain('Try again');
+  expect(harness.closed()).toBe(0);
+  harness.confirmation().onConfirm();
+  complete({ status: 'applied', blockId: 'block', mode: 'weighted-bodyweight' });
+  await settle();
+  harness.render();
+  expect(harness.closed()).toBe(1);
+  expect(harness.confirmation()).toBeNull();
 });
