@@ -67,6 +67,7 @@
       ],
       "./modules/forge-rest-timer/app.plugin.js",
       "./plugins/withDisableShakeToEdit.js",
+      "./plugins/withForgeDocumentIcons.js",
       "./plugins/withForgeFileAssociation.js",
       [
         "expo-build-properties",

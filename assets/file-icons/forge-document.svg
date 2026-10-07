@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 256 320">
+  <path d="M44 12H176L236 72V284Q236 308 212 308H44Q20 308 20 284V36Q20 12 44 12Z" fill="#FFFFFF" stroke="#8A9198" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M176 12V56Q176 72 192 72H236Z" fill="#E5E7E8" stroke="#8A9198" stroke-width="4" stroke-linejoin="round"/>
+  <image x="42" y="100" width="172" height="172" xlink:href="../forge-app-icon-ios.png"/>
+</svg>
