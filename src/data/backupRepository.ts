@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as SQLite from 'expo-sqlite';
+import forgeFileType from './forgeFileType.json';
 import type { ExerciseCatalogItem } from './exerciseCatalog';
 import { loadCustomExercises } from './exerciseRepository';
 import { withDatabaseMaintenance } from './database';
@@ -113,10 +114,10 @@ function shareFilename(transfer: ForgeDataTransfer): string {
   return `Forge_export_${dateStamp()}.forge`;
 }
 
-async function shareFile(file: File, mimeType: string): Promise<void> {
+async function shareFile(file: File, mimeType: string, UTI?: string): Promise<void> {
   if (!(await Sharing.isAvailableAsync()))
     throw new Error('File sharing is not available on this device.');
-  await Sharing.shareAsync(file.uri, { mimeType, dialogTitle: 'Forge data' });
+  await Sharing.shareAsync(file.uri, { mimeType, ...(UTI ? { UTI } : {}), dialogTitle: 'Forge data' });
 }
 
 function cacheFile(name: string, contents: Uint8Array | string): File {
@@ -167,7 +168,8 @@ export async function exportJson(selection = allDataTransferSelection()): Promis
 export async function shareTransfer(transfer: ForgeDataTransfer): Promise<void> {
   await shareFile(
     cacheFile(shareFilename(transfer), JSON.stringify(transfer, null, 2)),
-    'application/json',
+    forgeFileType.mimeType,
+    forgeFileType.uti,
   );
 }
 

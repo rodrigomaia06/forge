@@ -1,56 +1,58 @@
 const { withInfoPlist, withAndroidManifest, AndroidConfig } = require('expo/config-plugins');
+const {
+  uti: FORGE_UTI,
+  extension: FORGE_EXTENSION,
+  mimeType: FORGE_MIME,
+} = require('../src/data/forgeFileType.json');
 
 // Lets a shared `.forge` file open straight into Forge (AirDrop, Files, Mail,
-// Drive, etc.) instead of forcing Settings -> Backup & Export -> Import. A
-// `.forge` file is Forge's portable JSON export (see backupRepository), so the
-// declared type conforms to public.json / public.data.
+// Drive, etc.) instead of forcing Settings -> Backup & Export -> Import.
+// `.forge` files contain JSON, but are application documents rather than generic
+// text. Advertising them as public.json lets text editors claim their opens.
 //
 // This is a managed Expo project with no committed `ios/` or `android/`, so the
 // document-type and intent-filter registrations are patched into the prebuilt
 // Info.plist and AndroidManifest here rather than hand-edited native files.
 
-// Reverse-DNS, namespaced under the app's own bundle id so the exported UTI can
-// never collide with another app's type. (Apple recommends owning the prefix;
-// the issue's `app.forge.data` example is not under a domain Forge controls.)
-const FORGE_UTI = 'com.forge.training.data';
-const FORGE_EXTENSION = 'forge';
-const FORGE_MIME = 'application/json';
+const LEGACY_MIME = 'application/json';
 const TYPE_DESCRIPTION = 'Forge data';
 
 function withForgeDocumentTypeIOS(config) {
   return withInfoPlist(config, (config) => {
     const infoPlist = config.modResults;
 
-    // Declare the custom `.forge` type as one Forge exports/owns. Conforming to
-    // public.json (which itself conforms to public.text -> public.data) tells
-    // the OS the payload is JSON while keeping the extension distinctly Forge's.
+    // Replace our old declaration on repeated prebuilds, preserving other types.
     const exported = infoPlist.UTExportedTypeDeclarations ?? [];
-    if (!exported.some((entry) => entry?.UTTypeIdentifier === FORGE_UTI)) {
-      exported.push({
+    infoPlist.UTExportedTypeDeclarations = [
+      ...exported.filter((entry) => entry?.UTTypeIdentifier !== FORGE_UTI),
+      {
         UTTypeIdentifier: FORGE_UTI,
         UTTypeDescription: TYPE_DESCRIPTION,
-        UTTypeConformsTo: ['public.json', 'public.data'],
+        UTTypeConformsTo: ['public.data', 'public.content'],
         UTTypeTagSpecification: {
           'public.filename-extension': [FORGE_EXTENSION],
           'public.mime-type': [FORGE_MIME],
         },
-      });
-    }
-    infoPlist.UTExportedTypeDeclarations = exported;
+      },
+    ];
 
     // Register the app as an owning handler for that type so iOS routes an
     // opened `.forge` file to Forge and surfaces it in the share sheet.
     const documentTypes = infoPlist.CFBundleDocumentTypes ?? [];
-    if (!documentTypes.some((entry) => (entry?.LSItemContentTypes ?? []).includes(FORGE_UTI))) {
-      documentTypes.push({
+    infoPlist.CFBundleDocumentTypes = [
+      ...documentTypes.flatMap((entry) => {
+        if (!(entry?.LSItemContentTypes ?? []).includes(FORGE_UTI)) return [entry];
+        const otherTypes = entry.LSItemContentTypes.filter((type) => type !== FORGE_UTI);
+        return otherTypes.length ? [{ ...entry, LSItemContentTypes: otherTypes }] : [];
+      }),
+      {
         CFBundleTypeName: TYPE_DESCRIPTION,
         // Editor: Forge reads the file and imports/merges its contents.
         CFBundleTypeRole: 'Editor',
         LSHandlerRank: 'Owner',
         LSItemContentTypes: [FORGE_UTI],
-      });
-    }
-    infoPlist.CFBundleDocumentTypes = documentTypes;
+      },
+    ];
 
     // Opt out of in-place opening so iOS COPIES an opened/shared `.forge` into the
     // app's Documents/Inbox and hands a sandbox-local file:// URL. In place, iOS
@@ -95,30 +97,45 @@ function forgeIntentFilters() {
     ],
   };
 
-  // Mime-based match for content:// attachments whose name is hidden; the
-  // in-app content check (parseDataTransfer) rejects non-Forge JSON.
+  // A MIME-bearing intent never matches a filter without a MIME type. Keep
+  // this wildcard constrained to named .forge paths, not all provider files.
+  const byTypedExtension = {
+    ...byExtension,
+    data: [...byExtension.data, { $: { 'android:mimeType': '*/*' } }],
+  };
+
+  // Opaque provider URIs need MIME matching. Keep JSON for previous exports;
+  // parseDataTransfer rejects unrelated JSON. Never claim every opaque file.
   const byMime = {
     action: viewAction,
     category: categories,
     data: [
       ...FILE_CONTENT_SCHEMES.map((scheme) => ({ $: { 'android:scheme': scheme } })),
-      { $: { 'android:host': '*' } },
       { $: { 'android:mimeType': FORGE_MIME } },
+      { $: { 'android:mimeType': LEGACY_MIME } },
     ],
   };
 
-  return [byExtension, byMime];
+  return [byExtension, byTypedExtension, byMime];
 }
 
 // Recognise a filter this plugin already added, without stamping a foreign
 // attribute onto the manifest node (which would serialise as invalid XML).
 function isForgeFilter(filter) {
   const data = (filter && filter.data) ?? [];
+  const schemes = data.flatMap((entry) => entry?.$?.['android:scheme'] ?? []);
+  if (
+    !filter?.action?.some((entry) => entry?.$?.['android:name'] === 'android.intent.action.VIEW') ||
+    !schemes.length ||
+    schemes.some((scheme) => !FILE_CONTENT_SCHEMES.includes(scheme))
+  )
+    return false;
   return data.some((entry) => {
     const attrs = entry?.$ ?? {};
     return (
       attrs['android:pathPattern'] === EXTENSION_PATH_PATTERNS[0] ||
-      attrs['android:mimeType'] === FORGE_MIME
+      attrs['android:mimeType'] === FORGE_MIME ||
+      attrs['android:mimeType'] === LEGACY_MIME
     );
   });
 }
