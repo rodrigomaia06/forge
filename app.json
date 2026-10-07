@@ -33,7 +33,17 @@
     },
     "plugins": [
       "expo-asset",
-      "expo-font",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./node_modules/@expo-google-fonts/manrope/400Regular/Manrope_400Regular.ttf",
+            "./node_modules/@expo-google-fonts/manrope/500Medium/Manrope_500Medium.ttf",
+            "./node_modules/@expo-google-fonts/manrope/600SemiBold/Manrope_600SemiBold.ttf",
+            "./node_modules/@expo-google-fonts/manrope/700Bold/Manrope_700Bold.ttf"
+          ]
+        }
+      ],
       "expo-system-ui",
       [
         "expo-splash-screen",

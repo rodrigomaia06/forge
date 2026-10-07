@@ -46,6 +46,11 @@ invariant in `.agents/rules/design.md`; this ADR is the mechanism and rationale.
 6. **ProMotion 120 Hz is opted into** via `CADisableMinimumFrameDurationOnPhone`
    in `app.json`; this only applies to a native build, never Expo Go.
 
+7. **Native builds embed the existing Manrope weights.** Typography resolves the
+   registered native family names before mounting the app. Web, Expo Go, and
+   builds without all four embedded weights retain runtime loading and its
+   loading screen; embedding must not break those environments.
+
 ## Consequences
 
 - A set-entry keystroke re-renders only the edited exercise section (and its

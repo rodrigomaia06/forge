@@ -1,3 +1,5 @@
+import { typography } from './fonts';
+export { typography } from './fonts';
 import type { TextStyle } from 'react-native';
 import type { ForgeTheme } from '../types';
 import { moderateScale } from './scale';
@@ -148,13 +150,6 @@ export const radii = {
 export const spacing = {
   screen: Math.round(moderateScale(20)),
   section: Math.round(moderateScale(28)),
-};
-
-export const typography = {
-  regular: 'Manrope_400Regular',
-  medium: 'Manrope_500Medium',
-  semibold: 'Manrope_600SemiBold',
-  bold: 'Manrope_700Bold',
 };
 
 /** Forge's semantic type scale. Use these roles instead of raw text metrics. */

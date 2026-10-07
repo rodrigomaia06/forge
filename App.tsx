@@ -1,4 +1,6 @@
 import React from 'react';
+import { useFonts } from 'expo-font';
+import { embeddedFontsReady } from './src/theme/fonts';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
@@ -6,7 +8,6 @@ import {
   Manrope_500Medium,
   Manrope_600SemiBold,
   Manrope_700Bold,
-  useFonts,
 } from '@expo-google-fonts/manrope';
 
 import { AppNavigator } from './src/navigation/AppNavigator';
@@ -19,12 +20,16 @@ import { ForgeLoadingScreen } from './src/components/ForgeLoadingScreen';
 import { RestTimerProvider } from './src/state/RestTimerContext';
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
-    Manrope_400Regular,
-    Manrope_500Medium,
-    Manrope_600SemiBold,
-    Manrope_700Bold,
-  });
+  const [fontsLoaded] = useFonts(
+    embeddedFontsReady
+      ? {}
+      : {
+          Manrope_400Regular,
+          Manrope_500Medium,
+          Manrope_600SemiBold,
+          Manrope_700Bold,
+        },
+  );
 
   if (!fontsLoaded) return <ForgeLoadingScreen />;
 
@@ -44,7 +49,15 @@ function ThemedApp() {
   return (
     <GestureHandlerRootView testID="app-root" style={rootStyle}>
       <SafeAreaProvider style={rootStyle}>
-        <ExerciseCatalogProvider><PlansProvider><WorkoutProvider><RestTimerProvider><AppNavigator /></RestTimerProvider></WorkoutProvider></PlansProvider></ExerciseCatalogProvider>
+        <ExerciseCatalogProvider>
+          <PlansProvider>
+            <WorkoutProvider>
+              <RestTimerProvider>
+                <AppNavigator />
+              </RestTimerProvider>
+            </WorkoutProvider>
+          </PlansProvider>
+        </ExerciseCatalogProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
