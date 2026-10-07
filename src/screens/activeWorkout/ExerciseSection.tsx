@@ -1,4 +1,4 @@
-import { effectiveTracking, trackingModeLabel } from '../../domain/exercises/tracking';
+import { effectiveTracking } from '../../domain/exercises/tracking';
 import { scheduleOnRN } from 'react-native-worklets';
 import React, { useEffect, useRef, useState } from 'react';
 import { Keyboard, Pressable, StyleSheet, View } from 'react-native';
@@ -275,7 +275,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     ) : null}
                   </View>
                   <Text style={styles.collapsibleExerciseMeta}>
-                    {`${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'}${expanded ? '' : ` · ${trackingModeLabel(trackingType)}`}`}
+                    {`${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'}`}
                   </Text>
                 </View>
                 {showMoreOptions && (
@@ -545,7 +545,7 @@ export function ReadOnlyExerciseSection({
               ) : null}
             </View>
             <Text style={styles.readOnlyExerciseCount}>
-              {`${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'}${expanded ? '' : ` · ${trackingModeLabel(trackingType)}`}`}
+              {`${exercise.sets.length} ${exercise.sets.length === 1 ? 'set' : 'sets'}`}
             </Text>
           </View>
         </View>
