@@ -4,22 +4,16 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import {
   AppScreen,
   ForgeText as Text,
   ForgeConfirmationDialog,
-  ForgeSwitch,
   HeaderAction,
   Icon,
   lightHaptic,
   mediumHaptic,
   pressedFeedback,
-  selectionHaptic,
 } from '../../components/ui';
 import { usePlans } from '../../state/PlansContext';
 import { useSettings } from '../../state/SettingsContext';
@@ -31,6 +25,7 @@ import type { RootStackParamList, WorkoutTypePreference } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 import { defaultCustomWorkoutTypeColor } from '../../domain/workouts/workoutTypeDefaults';
+import { workoutTypeIcon } from '../../domain/workouts/workoutTypeMetadata';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutTypes'>;
 const spring = forgeMotion.swipeSpring;
@@ -48,14 +43,15 @@ export function WorkoutTypesScreen({ navigation }: Props) {
     type: WorkoutTypePreference;
     hide: boolean;
   } | null>(null);
-  const visible = useMemo(
-    () => preferences.workoutTypes.filter((type) => !type.hidden),
+  const orderedTypes = useMemo(
+    () =>
+      [...preferences.workoutTypes].sort((left, right) =>
+        left.name.localeCompare(right.name, undefined, { sensitivity: 'base', numeric: true }),
+      ),
     [preferences.workoutTypes],
   );
-  const hidden = useMemo(
-    () => preferences.workoutTypes.filter((type) => type.hidden),
-    [preferences.workoutTypes],
-  );
+  const visible = orderedTypes.filter((type) => !type.hidden);
+  const hidden = orderedTypes.filter((type) => type.hidden);
   const isReferenced = (type: WorkoutTypePreference) =>
     [activeWorkout, ...completedWorkouts]
       .filter(Boolean)
@@ -74,14 +70,6 @@ export function WorkoutTypesScreen({ navigation }: Props) {
   const remove = (type: WorkoutTypePreference) => {
     const hide = type.source === 'builtIn' || type.hasReferencedData || isReferenced(type);
     setPendingRemoval({ type, hide });
-  };
-  const toggleBuiltInVisibility = (type: WorkoutTypePreference) => {
-    selectionHaptic();
-    updatePreferences({
-      workoutTypes: preferences.workoutTypes.map((item) =>
-        item.id === type.id ? { ...item, hidden: !item.hidden } : item,
-      ),
-    });
   };
   return (
     <AppScreen edges={['top']} backgroundColor={theme.background}>
@@ -103,7 +91,10 @@ export function WorkoutTypesScreen({ navigation }: Props) {
         <ScrollView
           testID="workout-types-scroll"
           style={styles.scroll}
-          contentContainerStyle={[styles.content, { paddingBottom: styles.content.paddingBottom + bottomInset }]}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: styles.content.paddingBottom + bottomInset },
+          ]}
           showsVerticalScrollIndicator={false}
           directionalLockEnabled
           keyboardDismissMode="on-drag"
@@ -111,15 +102,22 @@ export function WorkoutTypesScreen({ navigation }: Props) {
           onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
           scrollEventThrottle={16}
         >
-          <TypeList
-            types={visible}
-            revealedId={revealedId}
-            setRevealedId={setRevealedId}
-            onOpen={(type) => navigation.navigate('WorkoutTypeEditor', { workoutTypeId: type.id })}
-            onRemove={remove}
-            onToggleVisibility={toggleBuiltInVisibility}
-            isReferenced={isReferenced}
-          />
+          {(['builtIn', 'custom'] as const).map((source) =>
+            visible.some((type) => type.source === source) ? (
+              <TypeList
+                key={source}
+                title={source === 'builtIn' ? 'Included' : 'Custom'}
+                types={visible.filter((type) => type.source === source)}
+                revealedId={revealedId}
+                setRevealedId={setRevealedId}
+                onOpen={(type) =>
+                  navigation.navigate('WorkoutTypeEditor', { workoutTypeId: type.id })
+                }
+                onRemove={remove}
+                isReferenced={isReferenced}
+              />
+            ) : null,
+          )}
           {hidden.length > 0 && (
             <TypeList
               title="Hidden"
@@ -130,7 +128,6 @@ export function WorkoutTypesScreen({ navigation }: Props) {
                 navigation.navigate('WorkoutTypeEditor', { workoutTypeId: type.id })
               }
               onRemove={remove}
-              onToggleVisibility={toggleBuiltInVisibility}
               isReferenced={isReferenced}
               hidden
             />
@@ -139,9 +136,11 @@ export function WorkoutTypesScreen({ navigation }: Props) {
         <ForgeConfirmationDialog
           visible={pendingRemoval !== null}
           title={pendingRemoval?.hide ? 'Hide workout type?' : 'Delete workout type?'}
-          message={pendingRemoval?.hide
-            ? 'It will disappear from new-workout pickers. Existing training keeps its saved type.'
-            : 'This cannot be undone.'}
+          message={
+            pendingRemoval?.hide
+              ? 'It will disappear from new-workout pickers. Existing training keeps its saved type.'
+              : 'This cannot be undone.'
+          }
           cancelLabel="Cancel"
           confirmLabel={pendingRemoval?.hide ? 'Hide type' : 'Delete type'}
           onCancel={() => {
@@ -182,7 +181,6 @@ function TypeList({
   setRevealedId,
   onOpen,
   onRemove,
-  onToggleVisibility,
   isReferenced,
   hidden = false,
 }: {
@@ -192,7 +190,6 @@ function TypeList({
   setRevealedId: (id: string | null) => void;
   onOpen: (type: WorkoutTypePreference) => void;
   onRemove: (type: WorkoutTypePreference) => void;
-  onToggleVisibility: (type: WorkoutTypePreference) => void;
   isReferenced: (type: WorkoutTypePreference) => boolean;
   hidden?: boolean;
 }) {
@@ -207,7 +204,6 @@ function TypeList({
             onReveal={(show) => setRevealedId(show ? type.id : null)}
             onOpen={() => onOpen(type)}
             onRemove={() => onRemove(type)}
-            onToggleVisibility={() => onToggleVisibility(type)}
             actionLabel={
               type.source === 'builtIn' || type.hasReferencedData || isReferenced(type)
                 ? 'Hide'
@@ -228,7 +224,6 @@ function SwipeTypeRow({
   onReveal,
   onOpen,
   onRemove,
-  onToggleVisibility,
   actionLabel,
   divider,
 }: {
@@ -238,7 +233,6 @@ function SwipeTypeRow({
   onReveal: (show: boolean) => void;
   onOpen: () => void;
   onRemove: () => void;
-  onToggleVisibility: () => void;
   actionLabel: 'Hide' | 'Delete';
   divider: boolean;
 }) {
@@ -248,7 +242,6 @@ function SwipeTypeRow({
   const x = useSharedValue(revealed ? -width : 0);
   const open = useSharedValue(revealed);
   const suppress = useRef(false);
-  const [expanded, setExpanded] = useState(false);
   useEffect(() => {
     open.value = revealed;
     x.value = reducedMotion ? (revealed ? -width : 0) : withSpring(revealed ? -width : 0, spring);
@@ -274,15 +267,16 @@ function SwipeTypeRow({
     });
   const animated = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
   const content = (
-    <View
-      style={styles.swipe}
-    >
+    <View style={styles.swipe}>
       {type.source !== 'builtIn' && (
         <View
           testID="workout-type-destructive-surface"
           style={[
             styles.actionLayer,
-            { backgroundColor: theme.destructiveSurface, pointerEvents: revealed ? 'auto' : 'none' },
+            {
+              backgroundColor: theme.destructiveSurface,
+              pointerEvents: revealed ? 'auto' : 'none',
+            },
           ]}
         >
           <Pressable
@@ -305,9 +299,7 @@ function SwipeTypeRow({
           </Pressable>
         </View>
       )}
-      <Animated.View
-        style={[styles.rowSurface, { backgroundColor: theme.surfaceElevated }, animated]}
-      >
+      <Animated.View style={[styles.rowSurface, { backgroundColor: theme.surface }, animated]}>
         <SettingsRow
           title={type.name}
           accessibilityLabel={`${type.name} workout type`}
@@ -316,16 +308,18 @@ function SwipeTypeRow({
               suppress.current = false;
               return;
             }
-            if (type.source === 'builtIn') {
-              selectionHaptic();
-              setExpanded((value) => !value);
-            } else {
-              lightHaptic();
-              onOpen();
-            }
+            lightHaptic();
+            onOpen();
           }}
           haptic="none"
-          leading={<View style={[styles.swatch, { backgroundColor: type.color }]} />}
+          leading={
+            <Icon
+              testID={`workout-type-icon-${type.id}`}
+              name={workoutTypeIcon(type)}
+              size={26}
+              color={type.color}
+            />
+          }
           trailing={
             <>
               <Icon
@@ -342,32 +336,9 @@ function SwipeTypeRow({
             </>
           }
           disclosure
-          showDivider={divider && !(type.source === 'builtIn' && expanded)}
+          showDivider={divider}
         />
       </Animated.View>
-      {type.source === 'builtIn' && expanded && (
-        <View
-          testID="workout-type-visibility-surface"
-          style={[
-            styles.visibilitySurface,
-            { backgroundColor: theme.surfaceElevated, borderTopColor: theme.divider },
-          ]}
-        >
-          <SettingsRow
-            title="Available in workout pickers"
-            accessibilityRole="switch"
-            accessibilityLabel={`${hidden ? 'Show' : 'Hide'} ${type.name} in workout pickers`}
-            accessibilityState={{ checked: !hidden }}
-            onPress={onToggleVisibility}
-            haptic="none"
-            trailing={<ForgeSwitch value={!hidden} testID="workout-type-list-visibility-switch" />}
-          />
-          <View
-            testID="workout-type-visibility-bottom-divider"
-            style={[styles.testDivider, { backgroundColor: theme.divider }]}
-          />
-        </View>
-      )}
     </View>
   );
   return hidden || type.source === 'builtIn' ? (
@@ -400,8 +371,5 @@ const styles = StyleSheet.create({
   swipeAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
   swipeActionText: typeScale.caption,
   rowSurface: { zIndex: 1, flex: 1, alignSelf: 'stretch' },
-  swatch: { width: 13, height: 13, borderRadius: 7 },
   hidden: typeScale.caption,
-  visibilitySurface: { borderTopWidth: StyleSheet.hairlineWidth },
-  testDivider: { height: StyleSheet.hairlineWidth },
 });
