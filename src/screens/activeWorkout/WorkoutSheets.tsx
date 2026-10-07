@@ -11,6 +11,7 @@ import {
   ForgeCard,
   ForgeCatalogFilterContent,
   ForgeDurationWheel,
+  ForgePickerDefaultAction,
   ForgeEditorBackButton,
   ForgeFloatingCta,
   ForgeSheetHeader,
@@ -985,14 +986,11 @@ export function ExerciseOptionsSheet({
             }
                   trailing={
               (view === 'rest' || view === 'rest-unilateral') && !readOnly ? (
-                <HeaderAction
+                <ForgePickerDefaultAction
                   accessibilityLabel={view === 'rest-unilateral' ? 'Use default between-sides rest' : 'Use default rest time'}
-                  label="Default"
                   icon="time-outline"
-                  variant="secondary"
                   haptic="none"
                   onPress={() => { (view === 'rest-unilateral' ? applyUnilateralRest : applyRest)(undefined); openView('info'); }}
-                  style={styles.restDefaultAction}
                 />
               ) : undefined
             }
@@ -1408,7 +1406,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     // selected row rather than measuring mid-entrance.
     restPickerContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 32, minHeight: 400 },
     restChoiceCard: { overflow: 'hidden', borderRadius: 16 },
-    restDefaultAction: { paddingHorizontal: 14, backgroundColor: theme.surfaceMuted, borderColor: theme.border, borderWidth: 1 },
     exerciseNoteContent: { paddingHorizontal: 20, paddingBottom: scaleUI(32) },
     exerciseNoteCard: { paddingHorizontal: 14, paddingVertical: 12, minHeight: 156 },
     readOnlyExerciseNote: { color: theme.textPrimary, ...typeScale.body },

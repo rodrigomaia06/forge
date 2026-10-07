@@ -21,6 +21,7 @@ export type { ForgeDateTimePickerMode } from './ForgeDateTimePicker';
 export { HeaderEdge } from './HeaderEdge';
 export { SheetCloseButton } from './SheetCloseButton';
 export { ForgeSheetHeader } from './ForgeSheetHeader';
+export { ForgePickerDefaultAction } from './ForgePickerDefaultAction';
 export {
   ForgeBottomSheet,
   ForgeBottomSheetDragArea,

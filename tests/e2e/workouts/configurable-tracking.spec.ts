@@ -122,6 +122,23 @@ async function expectDirectDashboard(page: Page) {
 }
 
 for (const appearance of ['light', 'dark'] as const) {
+  test(`${appearance} exercise duration retains its Default header reset`, async ({ page }, info) => {
+    const exercise = movement();
+    exercise.exerciseSnapshot!.restSeconds = 100;
+    await seed(page, session([exercise]), undefined, appearance);
+    await page.getByRole('button', { name: `More options for ${exercise.name}`, exact: true }).click();
+    await page.getByRole('button', { name: 'Exercise info', exact: true }).click();
+    await page.getByRole('button', { name: /Change rest time, currently/ }).click();
+    const reset = page.getByRole('button', { name: 'Use default rest time', exact: true });
+    await expect(reset).toBeVisible();
+    await expect(reset).toHaveText('Default');
+    await expect(reset).toHaveCSS('border-top-width', '1px');
+    await page.waitForTimeout(550);
+    await page.screenshot({ path: info.outputPath('timer-default-header.png') });
+    await reset.click();
+    await expect(page.getByRole('button', { name: /Change rest time, currently Default/ })).toBeVisible();
+    await expect(reset).toHaveCount(0);
+  });
   for (const partial of [false, true]) {
     test(`live tracking protects repeated blocks and rest state (${appearance}, partial=${partial})`, async ({
       page,
