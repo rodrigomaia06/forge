@@ -14,18 +14,20 @@ const emptyState: PlansState = { plans: [], standaloneRoutines: [] };
 
 export function PlansProvider({ children }: ChildrenProps) {
   const [state, setState] = useState<PlansState>(emptyState);
+  const [loadError, setLoadError] = useState(false);
   const [ready, setReady] = useState(false);
 
   const reload = useCallback(async (): Promise<void> => {
-    setState(await loadPlansState());
-    setReady(true);
+    try {
+      setState(await loadPlansState());
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setReady(true);
+    }
   }, []);
-  useEffect(() => {
-    loadPlansState()
-      .then(setState)
-      .catch(() => setState(emptyState))
-      .finally(() => setReady(true));
-  }, []);
+  useEffect(() => { void reload(); }, [reload]);
   const commit = useCallback((update: (current: PlansState) => PlansState): void => {
     setState((current) => {
       const next = update(current);
@@ -307,6 +309,7 @@ export function PlansProvider({ children }: ChildrenProps) {
     () => ({
       ...state,
       ready,
+      loadError,
       reload,
       createPlan,
       updatePlan,
@@ -323,6 +326,7 @@ export function PlansProvider({ children }: ChildrenProps) {
     }),
     [
       state,
+      loadError,
       ready,
       createPlan,
       updatePlan,

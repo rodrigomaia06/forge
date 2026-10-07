@@ -159,6 +159,7 @@ export interface PlansState {
   standaloneRoutines: WorkoutRoutine[];
 }
 export interface PlansContextValue extends PlansState {
+  loadError: boolean;
   ready: boolean;
   reload: () => Promise<void>;
   createPlan: (name?: string) => WorkoutPlan;
@@ -212,6 +213,7 @@ export interface WorkoutSetChanges {
   plannedTargets?: SetTarget[];
 }
 export interface WorkoutContextValue extends Omit<WorkoutState, 'activeWorkout'> {
+  loadError: boolean;
   ready: boolean;
   /** Identity/start-time scalars for consumers that only need presence, kept out
    * of the live activeWorkout object so they do not re-render on every keystroke. */

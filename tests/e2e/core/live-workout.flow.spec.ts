@@ -85,6 +85,7 @@ test.describe('Core flow: live workout', () => {
     await assistance.fill('40');
     await replaceClearedSetValue(assistance, '35');
     await page.getByRole('button', { name: 'Finish workout' }).click();
+    await page.getByTestId('finish-workout-sheet').getByRole('radio', { name: 'History only', exact: true }).click();
     await page.getByTestId('finish-workout-sheet').getByRole('button', { name: /^Finish (workout|with)/ }).click();
   });
 });

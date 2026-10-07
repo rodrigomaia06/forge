@@ -1,3 +1,7 @@
+import { Platform, View } from 'react-native';
+import { usePlans } from '../state/PlansContext';
+import { AppScreen, Button, ForgeText } from '../components/ui';
+import { typeScale } from '../theme/tokens';
 import React, { useMemo } from 'react';
 import { DarkTheme, DefaultTheme, NavigationContainer, useNavigationContainerRef, type LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -44,6 +48,7 @@ enableFreeze(true);
 
 export function AppNavigator() {
   const { ready } = useWorkouts();
+  const { ready: plansReady } = usePlans();
   const theme = useForgeTheme();
   const reducedMotion = useForgeReducedMotion();
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
@@ -72,7 +77,7 @@ export function AppNavigator() {
   // Keep the Forge splash up through data hydration rather than flashing an
   // empty root. The app pays the warmup cost once here, up front, so navigation
   // is fast for the rest of the session.
-  if (!ready) return <ForgeLoadingScreen />;
+  if (!ready || !plansReady) return <ForgeLoadingScreen />;
 
   return (
     <NavigationContainer ref={navigationRef} linking={linking} theme={navigationTheme} onReady={handleFileOpenReady}>
@@ -86,7 +91,7 @@ export function AppNavigator() {
           contentStyle: { backgroundColor: theme.background },
         }}
       >
-        <Stack.Screen name="MainTabs" component={MainTabNavigator} options={{ gestureEnabled: false }} />
+        <Stack.Screen name="MainTabs" component={RecoverableMainTabs} options={{ gestureEnabled: false }} />
         <Stack.Screen name="WorkoutDetails" component={WorkoutDetailsScreen} options={{ gestureEnabled: true }} />
         <Stack.Screen
           name="HistoryWorkoutEditor"
@@ -171,4 +176,25 @@ export function AppNavigator() {
       </Stack.Navigator>
     </NavigationContainer>
   );
+}
+
+function RecoverableMainTabs({ navigation }: import('@react-navigation/native-stack').NativeStackScreenProps<RootStackParamList, 'MainTabs'>) {
+  const workouts = useWorkouts();
+  const plans = usePlans();
+  const theme = useForgeTheme();
+  const [retrying, setRetrying] = React.useState(false);
+  if (!workouts.loadError && !plans.loadError) return <MainTabNavigator />;
+  const retry = async () => {
+    setRetrying(true);
+    await Promise.all([workouts.reload(), plans.reload()]);
+    setRetrying(false);
+  };
+  return <AppScreen>
+    <View style={{ flex: 1, justifyContent: 'center', padding: 20, gap: 20 }}>
+      <ForgeText accessibilityRole="alert" style={{ ...typeScale.sectionTitle, color: theme.textPrimary }}>Could not load saved {plans.loadError && workouts.loadError ? 'plans and workouts' : plans.loadError ? 'plans' : 'workouts'}</ForgeText>
+      <ForgeText style={{ ...typeScale.body, color: theme.textSecondary }}>{Platform.OS === 'web' ? 'Your saved data has not been replaced. Try loading again. Database backup restore is available in the iOS and Android app.' : 'Your saved data has not been replaced. Try again, or open Backup & Export to restore a database backup.'}</ForgeText>
+      <Button label={retrying ? 'Retrying…' : 'Retry loading data'} disabled={retrying} onPress={retry} />
+      <Button label="Open Backup & Export" variant="outline" onPress={() => navigation.navigate('BackupExport')} />
+    </View>
+  </AppScreen>;
 }

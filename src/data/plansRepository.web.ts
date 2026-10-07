@@ -1,3 +1,4 @@
+import { requireSavedId } from './savedRecordValidation';
 import { queueWebWrite } from './webWriteQueue';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { PlansState } from '../types';
@@ -8,10 +9,16 @@ const KEY = '@forge/plans-v1';
 const EMPTY: PlansState = { plans: [], standaloneRoutines: [] };
 export async function loadPlansState(): Promise<PlansState> {
   return queueWebWrite(async () => {
-    try {
       const value = await AsyncStorage.getItem(KEY);
-      const parsed = value ? (JSON.parse(value) as PlansState) : EMPTY;
-      if (!Array.isArray(parsed.plans) || !Array.isArray(parsed.standaloneRoutines)) return EMPTY;
+      const parsed = value !== null ? (JSON.parse(value) as PlansState) : EMPTY;
+      if (!parsed || !Array.isArray(parsed.plans) || !Array.isArray(parsed.standaloneRoutines))
+        throw new Error('Saved plans could not be read.');
+      parsed.plans.forEach((plan) => {
+        requireSavedId(plan);
+        if (plan.routines !== undefined && !Array.isArray(plan.routines)) throw new Error('Saved routines could not be read.');
+        plan.routines?.forEach(requireSavedId);
+      });
+      parsed.standaloneRoutines.forEach(requireSavedId);
       const canonical = {
         plans: parsed.plans.map((plan) => ({
           ...plan,
@@ -22,9 +29,6 @@ export async function loadPlansState(): Promise<PlansState> {
       if (JSON.stringify(canonical) !== value)
         await AsyncStorage.setItem(KEY, JSON.stringify(canonical));
       return canonical;
-    } catch {
-      return EMPTY;
-    }
   });
 }
 export async function savePlansState(state: PlansState): Promise<void> {

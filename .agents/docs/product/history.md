@@ -1,5 +1,7 @@
 # History
 
+- A failed saved-workout load is distinct from first use. Forge preserves unreadable active/archive records and offers retry plus the existing Backup & Export route before ordinary collection editing resumes. Database backup restore remains native-only.
+
 - Completed workouts can be opened individually from the History list.
 - History canonicalises recognised legacy catalogue exercise identity, names and snapshots during repository migration/import while preserving recorded sets, notes, completion and ordering. It never guesses a match for custom or unrecognised exercises.
 - Sets in a completed workout expose their recorded type, comment, and next-time target from the compact set-number chip in the expanded exercise table; the read-only detail sheet remains available for deeper inspection and historical sets cannot be deleted there. Exercise notes use a chat indicator beside the exercise name without changing the card height. Historical exercise More actions provide read-only note viewing, previous sessions (excluding the current workout), and exercise information.

@@ -38,6 +38,7 @@ const ActiveWorkoutContext = createContext<Workout | null>(null);
 export function WorkoutProvider({ children }: ChildrenProps) {
   const [activeWorkout, setActiveWorkout, requestTrackingChange] = useActiveWorkoutState();
   const [completedWorkouts, setCompletedWorkouts] = useState<Workout[]>([]);
+  const [loadError, setLoadError] = useState(false);
   const [ready, setReady] = useState(false);
   const activeSaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipNextActivePersistenceRef = React.useRef(false);
@@ -90,32 +91,26 @@ export function WorkoutProvider({ children }: ChildrenProps) {
       clearTimeout(activeSaveTimerRef.current);
       activeSaveTimerRef.current = null;
     }
-    const state = await loadWorkoutState();
-    skipNextActivePersistenceRef.current = true;
-    setActiveWorkout(state.activeWorkout);
-    setCompletedWorkouts(state.completedWorkouts);
-    setReady(true);
+    try {
+      const state = await loadWorkoutState();
+      skipNextActivePersistenceRef.current = true;
+      setActiveWorkout(state.activeWorkout);
+      setCompletedWorkouts(state.completedWorkouts);
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setReady(true);
+    }
   }, []);
 
-  useEffect(() => {
-    let mounted = true;
-    loadWorkoutState()
-      .then((state) => {
-        if (!mounted) return;
-        setActiveWorkout(state.activeWorkout);
-        setCompletedWorkouts(state.completedWorkouts);
-        setReady(true);
-      })
-      .catch(() => setReady(true));
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  useEffect(() => { void reload(); }, [reload]);
 
   useEffect(() => {
-    if (!ready) return undefined;
+    if (!ready || loadError) return undefined;
     if (!activeHydratedRef.current) {
       activeHydratedRef.current = true;
+      skipNextActivePersistenceRef.current = false;
       return undefined;
     }
     if (activeSaveTimerRef.current) clearTimeout(activeSaveTimerRef.current);
@@ -134,7 +129,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
     return () => {
       if (activeSaveTimerRef.current) clearTimeout(activeSaveTimerRef.current);
     };
-  }, [activeWorkout, queueActiveSave, ready]);
+  }, [activeWorkout, queueActiveSave, ready, loadError]);
 
   // Flush the latest active-workout snapshot before the OS can suspend us, so a
   // pending debounced edit is never lost when the app is backgrounded.
@@ -321,6 +316,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
   const value = useMemo(
     () => ({
       ready,
+      loadError,
       reload,
       activeWorkoutId,
       activeWorkoutStartedAt,
@@ -346,6 +342,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
     }),
     [
       ready,
+      loadError,
       reload,
       activeWorkoutId,
       activeWorkoutStartedAt,

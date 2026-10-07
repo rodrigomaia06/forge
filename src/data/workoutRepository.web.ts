@@ -1,3 +1,4 @@
+import { hasSavedId } from './savedRecordValidation';
 import { queueWebWrite } from './webWriteQueue';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Workout, WorkoutState } from '../types';
@@ -7,26 +8,26 @@ import { normalizePersistedWorkout } from './workoutNormalization';
 const ACTIVE_KEY = '@forge/active-workout';
 const COMPLETED_KEY = '@forge/completed-workouts';
 const parse = <T>(value: string | null, fallback: T): T => {
-  try {
-    return value ? (JSON.parse(value) as T) : fallback;
-  } catch {
-    return fallback;
-  }
+  return value === null ? fallback : (JSON.parse(value) as T);
 };
 const isWorkoutRecord = (value: unknown): value is Workout =>
-  Boolean(value) && typeof value === 'object' && typeof (value as Partial<Workout>).id === 'string';
+  hasSavedId(value);
 
 /** Browser persistence intentionally bypasses Expo SQLite's OPFS worker. */
 export async function loadWorkoutState(): Promise<WorkoutState> {
   return queueWebWrite(async () => {
     const [active, completed] = await AsyncStorage.multiGet([ACTIVE_KEY, COMPLETED_KEY]);
     const completedValue = parse<unknown>(completed[1], []);
+    if (!Array.isArray(completedValue) || !completedValue.every(isWorkoutRecord))
+      throw new Error('Saved workouts could not be read.');
+    const activeValue = parse<unknown>(active[1], null);
+    if (activeValue !== null && !isWorkoutRecord(activeValue))
+      throw new Error('Saved active workout could not be read.');
     const completedWorkouts = uniqueById(
       (Array.isArray(completedValue) ? completedValue : [])
         .filter(isWorkoutRecord)
         .map(normalizePersistedWorkout),
     );
-    const activeValue = parse<unknown>(active[1], null);
     const activeWorkout = isWorkoutRecord(activeValue) ? activeValue : null;
     const canonical = {
       activeWorkout:

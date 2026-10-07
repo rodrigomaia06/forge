@@ -1,3 +1,4 @@
+import { requireSavedId } from './savedRecordValidation';
 import type { Workout } from '../types';
 import { canonicalizeWorkout } from './exerciseCanonicalization';
 
@@ -7,6 +8,7 @@ import { canonicalizeWorkout } from './exerciseCanonicalization';
  * collection shape promised by Workout, without mutating the persisted row.
  */
 export function normalizePersistedWorkout(workout: Workout): Workout {
+  requireSavedId(workout);
   return canonicalizeWorkout({
     ...workout,
     exercises: Array.isArray(workout.exercises)

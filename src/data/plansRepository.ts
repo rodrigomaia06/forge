@@ -1,3 +1,4 @@
+import { requireSavedId } from './savedRecordValidation';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import type { PlansState, WorkoutPlan, WorkoutRoutine } from '../types';
 import { database, withDatabaseTransaction } from './database';
@@ -7,6 +8,7 @@ const EMPTY: PlansState = { plans: [], standaloneRoutines: [] };
 
 /** Imported records from older Forge versions can omit optional child collections. */
 function normalizeRoutine(routine: WorkoutRoutine): WorkoutRoutine {
+  requireSavedId(routine);
   return canonicalizeRoutine({
     ...routine,
     exercises: Array.isArray(routine.exercises)
@@ -19,6 +21,7 @@ function normalizeRoutine(routine: WorkoutRoutine): WorkoutRoutine {
 }
 
 function normalizePlan(plan: WorkoutPlan): WorkoutPlan {
+  requireSavedId(plan);
   return {
     ...plan,
     routines: Array.isArray(plan.routines) ? plan.routines.map(normalizeRoutine) : [],
