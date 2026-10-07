@@ -7,6 +7,12 @@
       "skillPath": "skills/antislop/SKILL.md",
       "computedHash": "a8a07efd7c55e0e4895ddda2d182f42691b196ea095cb731b651229254ec8f8d"
     },
+    "antislop-human": {
+      "source": "miqdadbadjuber/anti-slop",
+      "sourceType": "github",
+      "skillPath": "skills/antislop-human/SKILL.md",
+      "computedHash": "a20b4c2fb05981c8d5d81934411bd429a544f946f26026f80dd8f68e95bfed89"
+    },
     "brandkit": {
       "source": "Leonxlnx/taste-skill",
       "sourceType": "github",
