@@ -12,6 +12,7 @@ import { ImportSelectionScreen } from '../screens/settings/ImportSelectionScreen
 import { ImportConflictScreen } from '../screens/settings/ImportConflictScreen';
 import { WorkoutTypesScreen } from '../screens/settings/WorkoutTypesScreen';
 import { WorkoutTypeEditorScreen } from '../screens/settings/WorkoutTypeEditorScreen';
+import { WorkoutTypeUsageScreen } from '../screens/settings/WorkoutTypeUsageScreen';
 import { ExerciseLibraryScreen } from '../screens/settings/ExerciseLibraryScreen';
 import { ExerciseBrowserScreen } from '../screens/settings/ExerciseBrowserScreen';
 import { MuscleHeatmapDetailScreen } from '../screens/MuscleHeatmapDetailScreen';
@@ -125,6 +126,11 @@ export function AppNavigator() {
         <Stack.Screen
           name="WorkoutTypeEditor"
           component={WorkoutTypeEditorScreen}
+          options={{ gestureEnabled: true }}
+        />
+        <Stack.Screen
+          name="WorkoutTypeUsage"
+          component={WorkoutTypeUsageScreen}
           options={{ gestureEnabled: true }}
         />
         <Stack.Screen

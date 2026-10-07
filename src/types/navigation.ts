@@ -16,7 +16,12 @@ export type RootTabParamList = {
 
 export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<RootTabParamList> | undefined;
-  WorkoutDetails: { workoutId: string; returnTo?: 'History' | 'ActiveWorkout'; returnContext?: 'previous-sessions' };
+  WorkoutDetails: {
+    workoutId: string;
+    returnTo?: 'History' | 'ActiveWorkout';
+    returnContext?: 'previous-sessions';
+    backAccessibilityLabel?: string;
+  };
   HistoryWorkoutEditor:
     | { mode: 'edit'; workoutId: string }
     | { mode: 'create'; selectedDate: string }
@@ -30,6 +35,7 @@ export type RootStackParamList = {
   ExerciseLibrary: undefined;
   ExerciseBrowser: { workoutTypeId?: string; custom?: boolean } | undefined;
   WorkoutTypes: undefined;
+  WorkoutTypeUsage: { workoutTypeId: string; kind: 'workouts' | 'routines' };
   WorkoutTypeEditor:
     | { workoutTypeId: string }
     | { mode: 'create'; draftId: string; initialColor: string };

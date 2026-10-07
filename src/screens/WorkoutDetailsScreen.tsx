@@ -78,7 +78,10 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
       <View style={styles.screen}>
         <View style={styles.header}>
           <ForgeBackButton
-            accessibilityLabel={`Back to ${returnDestination === 'ActiveWorkout' ? 'workout' : 'History'}`}
+            accessibilityLabel={
+              route.params.backAccessibilityLabel ??
+              `Back to ${returnDestination === 'ActiveWorkout' ? 'workout' : 'History'}`
+            }
             onPress={() => {
               returnToHistory();
             }}

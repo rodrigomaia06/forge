@@ -33,8 +33,11 @@ import {
   builtInWorkoutTypeColors,
 } from '../../domain/workouts/workoutTypeDefaults';
 import { WorkoutTypeColorSheet } from './WorkoutTypeColorSheet';
+import { WorkoutTypeIconSheet } from './WorkoutTypeIconSheet';
 import {
   workoutTypeIcon,
+  workoutTypeIconChoices,
+  workoutTypeUsage,
 } from '../../domain/workouts/workoutTypeMetadata';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutTypeEditor'>;
@@ -64,6 +67,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
     : undefined;
   const type = creating ? draft : storedType;
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
+  const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [headerElevated, setHeaderElevated] = useState(false);
   const [discardConfirmationOpen, setDiscardConfirmationOpen] = useState(false);
   const [removalConfirmationOpen, setRemovalConfirmationOpen] = useState(false);
@@ -80,7 +84,10 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
       )
     );
   }, [activeWorkout, completedWorkouts, plans, standaloneRoutines, type]);
-
+  const usage = useMemo(
+    () => (type ? workoutTypeUsage(type, completedWorkouts, plans, standaloneRoutines) : null),
+    [type, completedWorkouts, plans, standaloneRoutines],
+  );
 
   if (!type)
     return (
@@ -109,7 +116,8 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
   const draftChanged =
     creating && draft !== null && initialDraft !== null
       ? draft.name !== initialDraft.name ||
-        draft.color !== initialDraft.color
+        draft.color !== initialDraft.color ||
+        draft.icon !== initialDraft.icon
       : false;
   // Defer the actual navigation until after the guard is lifted, matching the
   // routine and history editors' discard flow.
@@ -237,6 +245,21 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
           </ForgeCard>
           <SettingsSection>
             <SettingsRow
+              title="Icon"
+              accessibilityLabel="Workout type icon"
+              leading={<Icon name={workoutTypeIcon(type)} color={dashboardTheme.textPrimary} />}
+              trailing={
+                <Text style={styles.source}>
+                  {type.icon
+                    ? workoutTypeIconChoices.find((choice) => choice.value === type.icon)?.label
+                    : 'Default'}
+                </Text>
+              }
+              onPress={() => setIconPickerOpen(true)}
+              disclosure
+              showDivider
+            />
+            <SettingsRow
               title="Color"
               accessibilityLabel="Workout type color"
               onPress={() => setColorPickerOpen(true)}
@@ -277,6 +300,39 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
               />
             )}
           </SettingsSection>
+          {!creating && usage ? (
+            <SettingsSection title="Used in">
+              <SettingsRow
+                title="Saved workouts"
+                icon="history"
+                trailing={<Text style={styles.source}>{usage.workouts.length}</Text>}
+                onPress={() =>
+                  navigation.navigate('WorkoutTypeUsage', {
+                    workoutTypeId: type.id,
+                    kind: 'workouts',
+                  })
+                }
+                disabled={!usage.workouts.length}
+                disclosure={usage.workouts.length > 0}
+                showDivider
+                accessibilityLabel={`Saved workouts using ${type.name}, ${usage.workouts.length}`}
+              />
+              <SettingsRow
+                title="Routines"
+                icon="book"
+                trailing={<Text style={styles.source}>{usage.routines.length}</Text>}
+                onPress={() =>
+                  navigation.navigate('WorkoutTypeUsage', {
+                    workoutTypeId: type.id,
+                    kind: 'routines',
+                  })
+                }
+                disabled={!usage.routines.length}
+                disclosure={usage.routines.length > 0}
+                accessibilityLabel={`Routines using ${type.name}, ${usage.routines.length}`}
+              />
+            </SettingsSection>
+          ) : null}
           {!creating && !builtIn && (
             <Button
               label={destructiveLabel}
@@ -300,6 +356,13 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
             type={type}
             onChange={change}
             onClose={() => setColorPickerOpen(false)}
+          />
+        ) : null}
+        {iconPickerOpen ? (
+          <WorkoutTypeIconSheet
+            type={type}
+            onChange={change}
+            onClose={() => setIconPickerOpen(false)}
           />
         ) : null}
         <ForgeConfirmationDialog
