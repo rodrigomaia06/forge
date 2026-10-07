@@ -68,7 +68,7 @@ export function ForgeRestDurationSheet({
       {(close) => (
         <View testID={`${testID}-surface`} style={[sheetStyles.sheet, { paddingBottom: Math.max(insets.bottom, 24) }]}>
           <ForgeBottomSheetHandle />
-          <ForgeSheetHeader title={title} onClose={close} closeAccessibilityLabel={`Close ${title.toLowerCase()} picker`} />
+          <ForgeSheetHeader title={title} compactTitle autoShrinkTitle titleInset={50} onClose={close} closeAccessibilityLabel={`Close ${title.toLowerCase()} picker`} />
           <ForgeDurationWheel selectedDuration={selectedDuration} onSelect={onSelect} />
         </View>
       )}

@@ -1,5 +1,7 @@
 # Settings
 
+- A measurement editor acknowledges Save only after local persistence succeeds. A failed write keeps the value and date draft available, reports the failure in a compact tonal card with a status icon, clear title and retry guidance, and allows retry through the existing Save action; the displayed saved reading remains the last durable value.
+
 - Catalogue curation canonicalizes audited punctuation/singular/plural source aliases such as Pull-Up/Pullups into one Forge identity and maps only those known legacy identifiers; unknown custom exercises remain untouched.
 
 - Settings replaces the More destination in Forge's primary dock.

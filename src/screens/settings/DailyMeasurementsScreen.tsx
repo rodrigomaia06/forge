@@ -106,6 +106,8 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
   // The page itself must arrive settled. Only a deliberate metric change
   // inside Measurements should replace this content with a lateral motion.
   const [animateMetricChange, setAnimateMetricChange] = useState(false);
+  const [recordSaving, setRecordSaving] = useState(false);
+  const [recordError, setRecordError] = useState(false);
   const [recordOpen, setRecordOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [metricMenu, setMetricMenu] = useState<DailyMeasurementDefinition | null>(null);
@@ -216,6 +218,7 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
     const shown = value === undefined || value === 0 ? '' : String(value);
     setRecordDateKey(dateKey);
     setRecordValue(shown);
+    setRecordError(false);
     setRecordOpen(true);
   };
   const openRecord = () => openRecordFor(localDateKey());
@@ -237,8 +240,8 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
     if (selectedId === id) setSelectedId(remaining[0]?.id);
   };
 
-  const saveRecord = () => {
-    if (!selected) return;
+  const saveRecord = async () => {
+    if (!selected || recordSaving) return;
     const parsed = Number(recordValue.replace(',', '.'));
     if (!Number.isFinite(parsed)) return;
     const value = parsed;
@@ -246,7 +249,8 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
     const old = preferences.dailyMeasurementEntries.find(
       (entry) => entry.definitionId === selected.id && entry.date === date,
     );
-    updatePreferences({
+    setRecordSaving(true);
+    const saved = await updatePreferences({
       dailyMeasurementEntries: old
         ? preferences.dailyMeasurementEntries.map((entry) => entry.id === old.id ? { ...entry, value } : entry)
         : [...preferences.dailyMeasurementEntries, {
@@ -256,7 +260,9 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
             value,
           }],
     });
-    setRecordOpen(false);
+    setRecordSaving(false);
+    setRecordError(!saved);
+    if (saved) setRecordOpen(false);
   };
 
   const saveMetric = () => {
@@ -474,7 +480,7 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
                 </ForgeCard>
                 <ForgeCard variant="base" style={styles.trendCard}>
                   <View style={styles.trendHeader}>
-                    <Text style={styles.chartEyebrow}>TREND</Text>
+                    <Text style={styles.chartEyebrow}>Trend</Text>
                     <View style={styles.rangeControls} accessibilityRole="tablist" accessibilityLabel="Chart range">
                       {TREND_DAY_OPTIONS.map((value) => (
                         <Pressable
@@ -585,7 +591,7 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
       />
       <ForgeBottomSheet
         visible={recordOpen}
-        onClose={() => setRecordOpen(false)}
+        onClose={() => { if (!recordSaving) setRecordOpen(false); }}
         accessibilityLabel="Close record measurement"
         keyboardAvoiding
         dismissTextKeyboardOnTap={false}
@@ -593,7 +599,7 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
         {(close) => (
           <View style={[styles.recordSheet, { paddingBottom: floatingCtaClearance }]}>
             <ForgeBottomSheetHandle />
-            <ForgeSheetHeader title={`Record ${selected?.name ?? 'measurement'}`} onClose={close} />
+            <ForgeSheetHeader compactTitle autoShrinkTitle titleInset={50} title={`Record ${selected?.name ?? 'measurement'}`} onClose={recordSaving ? undefined : close} />
             <Text style={styles.recordDate}>
               {recordDateKey === localDateKey() ? 'Today · ' : ''}{displayDate(recordDateKey)}
             </Text>
@@ -610,10 +616,21 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
               />
               {displayUnit ? <Text style={styles.valueUnit}>{displayUnit}</Text> : null}
             </ForgeCard>
+            {recordError ? (
+              <View accessibilityRole="alert" accessibilityLiveRegion="polite">
+                <ForgeCard variant="nested" style={styles.recordError} testID="measurement-save-error">
+                  <Icon name="alert-triangle" size={22} color={theme.textPrimary} />
+                  <View style={styles.recordErrorCopy}>
+                    <Text style={styles.recordErrorTitle}>Measurement not saved</Text>
+                    <Text style={styles.recordErrorBody}>Your edit is still here. Try saving again.</Text>
+                  </View>
+                </ForgeCard>
+              </View>
+            ) : null}
             <ForgeFloatingCta
-              label="Save measurement"
+              label={recordSaving ? "Saving measurement…" : "Save measurement"}
               accessibilityLabel="Save measurement"
-              disabled={!recordValue.trim() || !Number.isFinite(Number(recordValue.replace(',', '.')))}
+              disabled={recordSaving || !recordValue.trim() || !Number.isFinite(Number(recordValue.replace(',', '.')))}
               tone="success"
               onPress={saveRecord}
             />
@@ -791,7 +808,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   metricHeadingCopy: { flex: 1, minWidth: 0 },
   metricTitle: { ...typeScale.headerTitle, color: theme.textPrimary },
   metricSubtitle: { ...typeScale.supporting, color: theme.textSecondary, marginTop: 1 },
-  chartEyebrow: { ...typeScale.caption, color: theme.textSecondary, letterSpacing: 0.8 },
+  chartEyebrow: { ...typeScale.label, color: theme.textSecondary },
   rangeControls: { flexDirection: 'row', padding: 3, gap: 2, borderRadius: 12, backgroundColor: isDark ? theme.surface : theme.surfaceMuted },
   rangeControl: { minWidth: 34, minHeight: 30, borderRadius: 9, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
   rangeControlActive: {
@@ -862,6 +879,10 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   recordEmpty: { minHeight: 50, borderRadius: 16 },
   addMetric: { minHeight: 48, borderStyle: 'dashed', borderColor: theme.border },
   recordSheet: { minHeight: 315 },
+  recordError: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14, marginHorizontal: 20, marginTop: 16 },
+  recordErrorCopy: { flex: 1, minWidth: 0, gap: 4 },
+  recordErrorTitle: { ...typeScale.controlLabel, color: theme.textPrimary },
+  recordErrorBody: { ...typeScale.supporting, color: theme.textSecondary },
   metricSheet: { minHeight: 520, flexShrink: 1 },
   metricFormScroll: { flexShrink: 1 },
   metricForm: { paddingHorizontal: 20 },

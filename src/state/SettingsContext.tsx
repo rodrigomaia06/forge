@@ -10,10 +10,13 @@ const SettingsContext = createContext<SettingsContextValue | null>(null);
 
 export function SettingsProvider({ children }: ChildrenProps) {
   const [preferences, setPreferences] = useState<SettingsPreferences>(defaultSettingsPreferences);
+  const currentPreferences = React.useRef(preferences);
+  const saveQueue = React.useRef(Promise.resolve());
   const [ready, setReady] = useState(false);
 
   const reload = useCallback(async (): Promise<void> => {
     const next = await loadSettingsPreferences();
+    currentPreferences.current = next;
     setPreferences(next);
     setReady(true);
   }, []);
@@ -21,7 +24,7 @@ export function SettingsProvider({ children }: ChildrenProps) {
     let mounted = true;
     loadSettingsPreferences()
       .then((next) => {
-        if (mounted) setPreferences(next);
+        if (mounted) { currentPreferences.current = next; setPreferences(next); }
       })
       .finally(() => {
         if (mounted) setReady(true);
@@ -31,12 +34,20 @@ export function SettingsProvider({ children }: ChildrenProps) {
     };
   }, []);
 
-  const updatePreferences = useCallback((changes: Partial<SettingsPreferences>): void => {
-    setPreferences((current) => {
-      const next = { ...current, ...changes };
-      void saveSettingsPreferences(next);
-      return next;
+  const updatePreferences = useCallback((changes: Partial<SettingsPreferences>): Promise<boolean> => {
+    const save = saveQueue.current.then(async () => {
+      const next = { ...currentPreferences.current, ...changes };
+      try {
+        await saveSettingsPreferences(next);
+        currentPreferences.current = next;
+        setPreferences(next);
+        return true;
+      } catch {
+        return false;
+      }
     });
+    saveQueue.current = save.then(() => undefined);
+    return save;
   }, []);
 
   const value = useMemo(

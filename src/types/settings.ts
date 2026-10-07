@@ -70,6 +70,6 @@ export interface MuscleHeatmapView {
 export interface SettingsContextValue {
   ready: boolean;
   preferences: SettingsPreferences;
-  updatePreferences: (changes: Partial<SettingsPreferences>) => void;
+  updatePreferences: (changes: Partial<SettingsPreferences>) => Promise<boolean>;
   reload: () => Promise<void>;
 }

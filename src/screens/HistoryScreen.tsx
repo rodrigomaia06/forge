@@ -664,7 +664,7 @@ const TimelineRow = React.memo(function TimelineRow({
               </Text>
               {hasExerciseSummary && (
                 <Text style={styles.stats} numberOfLines={1}>
-                  {`${workout.exercises.length} exercises, ${setCount} sets`}
+                  {`${workout.exercises.length} exercise${workout.exercises.length === 1 ? '' : 's'}, ${setCount} set${setCount === 1 ? '' : 's'}`}
                 </Text>
               )}
             </View>

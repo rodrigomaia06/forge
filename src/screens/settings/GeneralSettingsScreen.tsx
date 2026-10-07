@@ -80,7 +80,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
     // non-urgent transition so React schedules that cascade cooperatively instead of
     // blocking one frame (the "lag spike"); the app stays responsive during the swap.
     if ('appearance' in changes) {
-      startTransition(() => updatePreferences(changes));
+      startTransition(() => { void updatePreferences(changes); });
     } else {
       updatePreferences(changes);
     }
