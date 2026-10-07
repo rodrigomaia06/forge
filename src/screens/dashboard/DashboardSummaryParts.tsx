@@ -141,7 +141,7 @@ export function DashboardWeekCard({
                     onSelectDay?.(day);
                   }}
                   hitSlop={6}
-                  style={({ pressed }) => pressed && pressedFeedbackSubtle}
+                  style={({ pressed }) => [styles.weekDotAction, pressed && pressedFeedbackSubtle]}
                 >
                   {dot}
                 </Pressable>
@@ -322,6 +322,7 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   // This week.
   weekRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 },
   weekCell: { alignItems: 'center', gap: 8, flex: 1 },
+  weekDotAction: { borderRadius: 16 },
   weekDot: {
     width: 32,
     height: 32,

@@ -1,4 +1,4 @@
-import { ForgePressable as Pressable } from '../components/ui/ForgePressable';
+import { ForgePressable as Pressable, centeredPressFeedback } from '../components/ui/ForgePressable';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { runWhenIdle } from '../utils/idle';
@@ -231,6 +231,7 @@ export function CalendarScreen({ navigation }: Props) {
                             disabled={!has}
                             onPress={() => openWorkout(dayWorkouts)}
                             style={styles.dayCell}
+                            pressFeedbackStyle={styles.dayFeedback}
                           >
                             <View style={[
                               styles.dayCircle,
@@ -358,6 +359,7 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   weekRow: { flexDirection: 'row' },
   dayCell: { flex: 1, height: 46, alignItems: 'center', justifyContent: 'center' },
   dayCircle: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  dayFeedback: centeredPressFeedback(36, 18),
   dayNum: { fontSize: 15, lineHeight: 18, color: theme.textPrimary, fontVariant: ['tabular-nums'] },
   dayNumOn: { color: '#FFFFFF', fontWeight: '700' },
   // Split-circle overlay: equal-width type-colour segments, each carrying the circle's

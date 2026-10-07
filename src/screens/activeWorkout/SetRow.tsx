@@ -1,4 +1,4 @@
-import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
+import { ForgePressable as Pressable, centeredPressFeedback } from '../../components/ui/ForgePressable';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import { ForgeNumericRangeInput, ForgeText as Text, ForgeTextInput as TextInput } from '../../components/ui';
@@ -165,6 +165,7 @@ export function SetRow({
           if (event.nativeEvent.actionName === 'delete') onDelete();
         }}
         style={styles.setNumberWrap}
+        pressFeedbackStyle={styles.numberFeedback}
       >
         <View testID={`live-set-number-chip-${index + 1}`} style={styles.setNumberChip}>
           <Text
@@ -330,6 +331,7 @@ export function SetRow({
               }
               onPress={handleToggle}
               style={styles.checkPressable}
+              pressFeedbackStyle={styles.checkFeedback}
             >
               <CompletionCheck selected={set.completed} />
             </Pressable>
@@ -404,6 +406,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   setCompleted: {},
   // The 46x44 wrap is the set-number tap target and stays at the accessible size.
   setNumberWrap: { position: 'relative', width: 46, height: 44, alignItems: 'center', justifyContent: 'center' },
+  numberFeedback: centeredPressFeedback(scaleUI(32), scaleUI(9)),
+  checkFeedback: centeredPressFeedback(scaleUI(30), scaleUI(15)),
   setNumberChip: { position: 'relative', width: scaleUI(32), height: scaleUI(32) },
   setNumber: {
     width: scaleUI(32),

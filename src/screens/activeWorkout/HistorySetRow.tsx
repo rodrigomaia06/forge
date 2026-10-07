@@ -1,4 +1,4 @@
-import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
+import { ForgePressable as Pressable, centeredPressFeedback } from '../../components/ui/ForgePressable';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -71,7 +71,7 @@ export function HistorySetRow({
           {planned ? <Text style={[styles.planned, { color: theme.textSecondary }]}>{planned}</Text> : null}
           {set.comment?.trim() ? <Text numberOfLines={2} style={[styles.comment, { color: theme.textSecondary }]}>{`“${set.comment.trim()}”`}</Text> : null}
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Open details for set ${index + 1}`} onPress={() => { selectionHaptic(); onOpenDetails(); }} style={({ pressed }) => [styles.compactChipButton, pressed && styles.compactChipPressed]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Open details for set ${index + 1}`} onPress={() => { selectionHaptic(); onOpenDetails(); }} pressFeedbackStyle={styles.numberFeedback} style={({ pressed }) => [styles.compactChipButton, pressed && styles.compactChipPressed]}>
           <View testID={`history-set-number-chip-${index + 1}`} style={styles.chipWrap}>
             <Text style={[styles.chip, tag && { color: tag.color, backgroundColor: `${tag.color}20` }]}>
               {tag?.letter ?? index + 1}
@@ -85,7 +85,7 @@ export function HistorySetRow({
   }
   return (
     <View testID={`workout-details-set-${set.id}`} style={[styles.fullRow, !isLast && { borderBottomWidth: 1, borderBottomColor: theme.divider }]}>
-      <Pressable accessibilityRole="button" accessibilityLabel={`Open details for set ${index + 1}`} onPress={() => { selectionHaptic(); onOpenDetails(); }} style={styles.numberButton}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Open details for set ${index + 1}`} onPress={() => { selectionHaptic(); onOpenDetails(); }} pressFeedbackStyle={styles.numberFeedback} style={styles.numberButton}>
         <View testID={`history-set-number-chip-${index + 1}`} style={styles.chipWrap}>
           <Text style={[styles.chip, tag && { color: tag.color, backgroundColor: `${tag.color}20` }]}>
             {tag?.letter ?? index + 1}
@@ -119,6 +119,7 @@ export function HistorySetRow({
 const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.create({
   fullRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6 },
   numberButton: { width: 46, height: 44, alignItems: 'center', justifyContent: 'center' },
+  numberFeedback: centeredPressFeedback(32, 9),
   chipWrap: { position: 'relative', width: 32, height: 32 },
   chip: { width: 32, height: 32, borderRadius: 9, textAlign: 'center', color: theme.ink, backgroundColor: theme.surfaceMuted, ...typeScale.controlLabel, lineHeight: 32 },
   targetDot: { position: 'absolute', top: 1, left: 1, width: 7, height: 7, borderRadius: 4 },

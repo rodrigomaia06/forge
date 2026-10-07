@@ -1,4 +1,4 @@
-import { ForgePressable as Pressable } from '../components/ui/ForgePressable';
+import { ForgePressable as Pressable, ForgePressableGroup } from '../components/ui/ForgePressable';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, LayoutAnimation, Platform, StyleSheet, UIManager, View } from 'react-native';
 import type { PanGesture } from 'react-native-gesture-handler';
@@ -924,7 +924,7 @@ function RoutineRow({
       deleteWidth={64}
       deleteIconSize={22}
     >
-      <View style={styles.routineRow}>
+      <ForgePressableGroup testID={`routine-row-${routine.id}`} style={styles.routineRow}>
         {!last ? <View pointerEvents="none" style={styles.rowSeparator} /> : null}
         {/* The handle is the only drag activator; a deliberate 140 ms long press
             keeps a horizontal swipe from ever starting a reorder. */}
@@ -956,6 +956,7 @@ function RoutineRow({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Routine actions for ${routine.name}`}
+          pressFeedback="group"
           unstable_pressDelay={80}
           onPress={onOpenOptions}
           style={({ pressed }) => [styles.routineCopy, pressed && pressedFeedback]}
@@ -966,7 +967,7 @@ function RoutineRow({
           </View>
           <Icon name="chevron-forward" size={19} color={theme.slate} />
         </Pressable>
-      </View>
+      </ForgePressableGroup>
     </SwipeToDeleteRow>
   );
 }

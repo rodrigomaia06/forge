@@ -108,19 +108,23 @@ export function HeaderAction({
     />
   );
   if (frosted) {
+    const surfaceStyle = [styles.base, styles.iconOnly, styles.frostedCircle, style];
+    // Backdrop filters need their own mask inside transformed web sheets.
+    const layerShape = { borderRadius: StyleSheet.flatten<ViewStyle>(surfaceStyle).borderRadius };
     return (
-      <View style={[styles.base, styles.iconOnly, styles.frostedCircle, style]}>
+      <View style={surfaceStyle}>
         <BlurView
           pointerEvents="none"
           intensity={theme.colorScheme === 'dark' ? 36 : 60}
           tint={theme.colorScheme === 'dark' ? 'dark' : 'light'}
           blurMethod="dimezisBlurView"
-          style={StyleSheet.absoluteFill}
+          style={[StyleSheet.absoluteFill, layerShape]}
         />
         <View
           pointerEvents="none"
           style={[
             StyleSheet.absoluteFill,
+            layerShape,
             {
               opacity: theme.colorScheme === 'dark' ? 0.6 : 0.55,
               backgroundColor: theme.colorScheme === 'dark' ? theme.surfaceMuted : theme.surfaceElevated,

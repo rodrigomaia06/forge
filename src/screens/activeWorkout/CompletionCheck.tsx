@@ -1,4 +1,4 @@
-import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
+import { ForgePressable as Pressable, centeredPressFeedback } from '../../components/ui/ForgePressable';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
 import { Icon } from '../../components/ui';
@@ -107,6 +107,7 @@ export function SplitCompletionCheck({
       accessibilityLabel={accessibilityLabel}
       onPress={onAdvance}
       style={styles.checkPressable}
+      pressFeedbackStyle={styles.checkFeedback}
     >
       <View style={[styles.splitVisual, complete && styles.success, half && styles.sideProgress]}>
         {complete ? <Icon name="check" size={scaleUI(17)} color={theme.surface} /> : null}
@@ -138,6 +139,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   // The unilateral control reuses the single-check 44pt target, so its column
   // matches every other set row exactly.
   checkPressable: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  checkFeedback: centeredPressFeedback(scaleUI(30), scaleUI(15)),
   // Its own 26pt circle that clips the half-fill (the shared `visual` is left
   // untouched so the ordinary check animation is unaffected).
   splitVisual: {

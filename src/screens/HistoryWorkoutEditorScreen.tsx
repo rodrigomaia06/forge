@@ -386,22 +386,22 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
           />
         </View>
         <View style={styles.identityDivider} />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Choose workout type"
-          onPress={() => {
-            lightHaptic();
-            setTypeSheetOpen(true);
-          }}
-          style={({ pressed }) => [styles.identityField, styles.typePicker, pressed && pressedFeedbackSubtle]}
-        >
+        <View style={styles.identityField}>
           <Text style={styles.fieldLabel}>Type</Text>
-          <View style={styles.typePickerValue}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Choose workout type"
+            onPress={() => {
+              lightHaptic();
+              setTypeSheetOpen(true);
+            }}
+            style={({ pressed }) => [styles.typePickerValue, pressed && pressedFeedbackSubtle]}
+          >
             <Icon name={workoutTypeIcon(selectedWorkoutType)} size={20} color={theme.ink} />
             <Text numberOfLines={1} style={styles.typeText}>{draft.type}</Text>
             <Icon name="chevron-forward" size={18} color={theme.slate} />
-          </View>
-        </Pressable>
+          </Pressable>
+        </View>
       </View>
       <View style={styles.cardDivider} />
       <Field
@@ -957,18 +957,20 @@ function PickerButton({
 }) {
   const styles = useThemedStyles(createStyles);
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={required ? `Select ${label}, required` : `Select ${label}`}
-      onPress={onPress}
-      style={({ pressed }) => [styles.field, styles.halfField, pressed && pressedFeedbackSubtle]}
-    >
+    <View style={[styles.field, styles.halfField]}>
       <Text style={styles.fieldLabel}>
         {label}
         {required ? <Text style={styles.requiredMark}> *</Text> : null}
       </Text>
-      <Text style={styles.pickerValue}>{value}</Text>
-    </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={required ? `Select ${label}, required` : `Select ${label}`}
+        onPress={onPress}
+        style={({ pressed }) => [styles.pickerButton, pressed && pressedFeedbackSubtle]}
+      >
+        <Text style={styles.pickerValue}>{value}</Text>
+      </Pressable>
+    </View>
   );
 }
 function cloneWorkout(workout: Workout): Workout {
@@ -1081,7 +1083,6 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     color: theme.ink,
     ...typeScale.body,
   },
-  typePicker: { justifyContent: 'flex-start' },
   typePickerValue: { minHeight: 44, paddingHorizontal: 10, borderWidth: 1, borderColor: theme.divider, borderRadius: 12, backgroundColor: theme.surfaceMuted, flexDirection: 'row', alignItems: 'center', gap: 7 },
   typeText: { flex: 1, color: theme.ink, ...typeScale.body },
   cardDivider: { height: 1, marginVertical: 2, backgroundColor: theme.divider },
@@ -1108,16 +1109,18 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   attributesTitle: { color: theme.slate, ...typeScale.label },
   addAttribute: { minHeight: 48, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   addAttributeText: { color: theme.ink, ...typeScale.label },
-  pickerValue: {
-    minHeight: 40,
+  pickerButton: {
+    minHeight: 44,
     paddingHorizontal: 10,
     borderWidth: 1,
     borderColor: theme.divider,
     borderRadius: 10,
     backgroundColor: theme.surfaceMuted,
+    justifyContent: 'center',
+  },
+  pickerValue: {
     color: theme.ink,
     ...typeScale.supporting,
-    lineHeight: 40,
   },
   error: { color: theme.textDestructive, ...typeScale.label },
   sectionTitle: { color: theme.ink, ...typeScale.sectionTitle },

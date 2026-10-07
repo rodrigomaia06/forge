@@ -33,20 +33,34 @@ for (const appearance of ['light', 'dark'] as const) {
     await page.screenshot({ path: info.outputPath('routine-name-rest.png') });
     await page.mouse.move(bounds.x + 30, bounds.y + bounds.height / 2);
     await page.mouse.down();
-    const layer = row.getByTestId('forge-press-state-layer');
+    const surface = page.getByTestId('routine-row-routine');
+    const layer = surface.getByTestId('forge-press-state-layer');
     await expect(layer).toBeVisible();
     const layerBounds = await layer.boundingBox();
-    expect(Math.abs(layerBounds!.width - bounds.width)).toBeLessThan(2);
-    expect(Math.abs(layerBounds!.height - bounds.height)).toBeLessThan(2);
+    const surfaceBounds = await surface.boundingBox();
+    const startBounds = await page
+      .getByRole('button', { name: 'Start Pull day', exact: true })
+      .boundingBox();
+    expect(Math.abs(layerBounds!.width - surfaceBounds!.width)).toBeLessThan(2);
+    expect(Math.abs(layerBounds!.height - surfaceBounds!.height)).toBeLessThan(2);
+    expect(layerBounds!.x).toBeLessThan(startBounds!.x);
+    expect(layerBounds!.x + layerBounds!.width).toBeGreaterThan(
+      startBounds!.x + startBounds!.width,
+    );
+    await expect(surface.getByTestId('forge-press-state-layer')).toHaveCount(1);
     await expect(row).toHaveCSS('opacity', '1');
     expect(bounds.height).toBeGreaterThanOrEqual(62);
     await page.screenshot({ path: info.outputPath('routine-name-pressed.png') });
     // Releasing outside cancels the action and removes the highlight.
     await page.mouse.move(1, 1);
     await page.mouse.up();
+    await expect(layer).toHaveCount(0);
     await expect(row).toHaveCSS('background-color', before);
     await expect(page.getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0);
     await row.click();
     await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Close Pull day', exact: true }).click();
+    await page.getByRole('button', { name: 'Start Pull day', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Finish workout', exact: true })).toBeVisible();
   });
 }

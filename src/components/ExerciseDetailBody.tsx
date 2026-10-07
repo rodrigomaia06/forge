@@ -245,7 +245,7 @@ const createStyles = (theme: ForgeTheme) =>
     uniRowValue: { color: theme.textSecondary, ...typeScale.body },
     sideToggle: { width: scaleUI(132), flexDirection: 'row', borderRadius: scaleUI(10), padding: scaleUI(2), position: 'relative', backgroundColor: theme.surfaceMuted, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border },
     sidePill: { position: 'absolute', top: 2, bottom: 2, left: 2, borderRadius: scaleUI(8), backgroundColor: theme.surface },
-    sideOption: { flex: 1, paddingVertical: scaleUI(7), alignItems: 'center' },
+    sideOption: { flex: 1, borderRadius: scaleUI(8), paddingVertical: scaleUI(7), alignItems: 'center' },
     sideOptionText: { color: theme.textSecondary, ...typeScale.label },
     sideOptionTextActive: { color: theme.ink, fontWeight: '600' },
   });

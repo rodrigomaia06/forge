@@ -35,6 +35,8 @@ for (const appearance of ['light', 'dark'] as const) {
     await page.getByRole('button', { name: 'Workout type color', exact: true }).click();
     const picker = page.getByTestId('workout-type-color-picker');
     await expect(picker).toBeVisible();
+    const close = picker.getByRole('button', { name: 'Close workout type color', exact: true }).last();
+    await expect(close.locator('..').locator('[style*="backdrop-filter"]')).toHaveCSS('border-radius', '22px');
     await inspectPress(page, picker.getByRole('button', { name: 'Close workout type color', exact: true }).last(), info, 'close-circle', true);
     await expect(picker).toHaveCount(0);
     await page.getByRole('button', { name: 'Workout type color', exact: true }).click();
