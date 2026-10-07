@@ -60,20 +60,26 @@ async function seed(
   plans: PlansState = { plans: [], standaloneRoutines: [] },
   appearance: 'light' | 'dark' = 'dark',
   history: Workout[] = [],
+  restEnabled = false,
 ) {
   await page.addInitScript(
-    ({ workout, plans, appearance, history }) => {
+    ({ workout, plans, appearance, history, restEnabled }) => {
       if (sessionStorage.getItem('tracking-seeded')) return;
       sessionStorage.setItem('tracking-seeded', 'yes');
       localStorage.setItem(
         '@forge/settings-preferences',
-        JSON.stringify({ appearance, showRestTimer: false }),
+        JSON.stringify({ appearance, showRestTimer: restEnabled }),
       );
       localStorage.setItem('@forge/active-workout', JSON.stringify(workout));
       localStorage.setItem('@forge/completed-workouts', JSON.stringify(history));
       localStorage.setItem('@forge/plans-v1', JSON.stringify(plans));
+      if (restEnabled)
+        localStorage.setItem(
+          '@forge/rest-timer-v1',
+          JSON.stringify({ workoutId: workout.id, endAt: Date.now() + 90000, duration: 90 }),
+        );
     },
-    { workout, plans, appearance, history },
+    { workout, plans, appearance, history, restEnabled },
   );
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Finish workout', exact: true })).toBeVisible();
@@ -113,6 +119,86 @@ async function expectDirectDashboard(page: Page) {
     ),
   ).toEqual([]);
   await page.waitForTimeout(350);
+}
+
+for (const appearance of ['light', 'dark'] as const) {
+  for (const partial of [false, true]) {
+    test(`live tracking protects repeated blocks and rest state (${appearance}, partial=${partial})`, async ({
+      page,
+    }, info) => {
+      const item = [...exerciseCatalogById.values()].find(
+        (item) => item.trackingType === 'weighted-bodyweight' && /pull.up/i.test(item.name),
+      )!;
+      const block: WorkoutExercise = {
+        ...movement(),
+        id: 'first',
+        exerciseId: item.id,
+        name: item.name,
+        exerciseSnapshot: createExerciseSnapshot(item),
+        trackingType: item.trackingType,
+        trackingOverride: 'weighted-bodyweight-duration',
+      };
+      block.sets[0] = {
+        ...block.sets[0],
+        weight: '15',
+        targets: [{ id: 'target', kind: 'duration', unit: 'sec', minValue: 45 }],
+        ...(partial ? { sideCompletion: { left: true, right: false } } : {}),
+      };
+      const other = {
+        ...block,
+        id: 'second',
+        sets: [{ id: 'second-set', weight: '20', reps: '', completed: false }],
+      };
+      await seed(
+        page,
+        session([block, other]),
+        { plans: [], standaloneRoutines: [] },
+        appearance,
+        [],
+        true,
+      );
+      const timerBefore = await page.evaluate(() => localStorage.getItem('@forge/rest-timer-v1'));
+      await tracking(page, block.name);
+      if (!partial) {
+        await page.getByRole('radio', { name: 'Added weight + reps', exact: true }).tap();
+        await expect(
+          page.getByRole('button', { name: 'Change tracking', exact: true }),
+        ).toBeVisible();
+        await page.screenshot({ path: info.outputPath('target-only-confirmation.png') });
+        await page.getByRole('button', { name: 'Close tracking', exact: true }).last().click();
+        expect((await saved(page)).active.exercises[0].trackingOverride).toBe(
+          'weighted-bodyweight-duration',
+        );
+        await tracking(page, block.name);
+      }
+      await page.getByRole('radio', { name: 'Added weight + reps', exact: true }).tap();
+      if (!partial)
+        await page
+          .getByRole('button', { name: 'Change tracking', exact: true })
+          .evaluate((element) => {
+            (element as HTMLElement).click();
+            (element as HTMLElement).click();
+          });
+      await expect
+        .poll(async () => (await saved(page)).active.exercises.length)
+        .toBe(partial ? 3 : 2);
+      await expect
+        .poll(async () => (await saved(page)).active.exercises[partial ? 1 : 0].trackingOverride)
+        .toBe('weighted-bodyweight');
+      const current = (await saved(page)).active;
+      expect(current.exercises.at(-1)).toMatchObject(JSON.parse(JSON.stringify(other)));
+      if (partial) {
+        expect(current.exercises[0]).toMatchObject(JSON.parse(JSON.stringify(block)));
+        expect(current.exercises[1].sets).toHaveLength(3);
+        await page.screenshot({ path: info.outputPath('partial-side-new-block.png') });
+      } else {
+        expect(current.exercises[0].sets[0]).toMatchObject({ weight: '15', targets: [] });
+      }
+      expect(await page.evaluate(() => localStorage.getItem('@forge/rest-timer-v1'))).toBe(
+        timerBefore,
+      );
+    });
+  }
 }
 
 for (const appearance of ['light', 'dark'] as const) {

@@ -1,11 +1,12 @@
 import { scaleUI } from '../../theme/scale';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import {
   Button,
   ForgeSingleSelectList,
   ForgeCard,
   ForgeSheetScrollView,
+  ForgeText,
 } from '../../components/ui';
 import type { TrackingType, WorkoutExercise } from '../../types';
 import {
@@ -14,17 +15,72 @@ import {
   trackingModeLabel,
   trackingFields,
 } from '../../domain/exercises/tracking';
-import { hasRecordedSets, losesTrackingData } from '../../domain/exercises/trackingChanges';
-import { spacing } from '../../theme/tokens';
+import {
+  hasRecordedSets,
+  losesTrackingData,
+  type TrackingChangeResult,
+} from '../../domain/exercises/trackingChanges';
+import { spacing, typeScale } from '../../theme/tokens';
+import { useForgeTheme } from '../../theme/ThemeProvider';
 
 export function TrackingChoices({
   exercise,
   onSelect,
+  onApplied,
+  resolveSelection = false,
 }: {
   exercise: WorkoutExercise;
-  onSelect: (mode: TrackingType) => void;
+  onSelect: (mode: TrackingType, confirmed?: boolean) => void | Promise<TrackingChangeResult>;
+  onApplied: () => void;
+  /** Live requests decide confirmation against the reducer's current block. */
+  resolveSelection?: boolean;
 }) {
+  const theme = useForgeTheme();
   const [pending, setPending] = useState<TrackingType | null>(null);
+  const [pendingExercise, setPendingExercise] = useState(exercise);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const applying = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const apply = async (mode: TrackingType, confirmed = false): Promise<void> => {
+    if (applying.current) return;
+    applying.current = true;
+    setBusy(true);
+    setError('');
+    try {
+      const result = await onSelect(mode, confirmed);
+      if (!mounted.current) return;
+      if (result?.status === 'confirmation') {
+        setPendingExercise(result.exercise);
+        setPending(mode);
+      } else if (
+        result?.status === 'missing' ||
+        result?.status === 'incompatible' ||
+        result?.status === 'failed'
+      ) {
+        setError(
+          result.status === 'missing'
+            ? 'This exercise is no longer in the workout.'
+            : result.status === 'incompatible'
+              ? 'This tracking mode is no longer available.'
+              : 'Tracking could not be changed. Try again.',
+        );
+      } else if (result?.status !== 'unchanged') {
+        onApplied();
+      }
+    } catch {
+      if (mounted.current) setError('Tracking could not be changed. Try again.');
+    } finally {
+      applying.current = false;
+      if (mounted.current) setBusy(false);
+    }
+  };
   const recorded = hasRecordedSets(exercise);
   const current = effectiveTracking(exercise);
   const fields = {
@@ -36,7 +92,7 @@ export function TrackingChoices({
     rpe: 'effort',
   };
   const cleared = pending
-    ? trackingFields[current]
+    ? trackingFields[effectiveTracking(pendingExercise)]
         .filter((kind) => !trackingFields[pending].includes(kind))
         .map((kind) => fields[kind])
         .join(' and ')
@@ -66,8 +122,17 @@ export function TrackingChoices({
             }))}
             selectedValue={current}
             onSelect={(mode) => {
-              if (!recorded && losesTrackingData(exercise, mode)) setPending(mode);
-              else onSelect(mode);
+              if (applying.current) return;
+              if (resolveSelection) {
+                void apply(mode);
+                return;
+              }
+              if (mode === current) return;
+              if (!recorded && losesTrackingData(exercise, mode)) {
+                setPendingExercise(exercise);
+                setPending(mode);
+                setError('');
+              } else void apply(mode);
             }}
           />
         </ForgeCard>
@@ -84,14 +149,27 @@ export function TrackingChoices({
             accessibilityHint={`Switch to ${trackingModeLabel(pending)}. Clears ${cleared} values and targets.`}
             variant="outline"
             tone="destructive"
-            onPress={() => onSelect(pending)}
+            disabled={busy}
+            onPress={() => void apply(pending, true)}
           />
           <Button
             label="Keep current tracking"
             variant="secondary"
-            onPress={() => setPending(null)}
+            disabled={busy}
+            onPress={() => {
+              setPending(null);
+              setError('');
+            }}
           />
         </View>
+      ) : null}
+      {error ? (
+        <ForgeText
+          accessibilityRole="alert"
+          style={[typeScale.supporting, { color: theme.textPrimary, marginTop: scaleUI(12) }]}
+        >
+          {error}
+        </ForgeText>
       ) : null}
     </ForgeSheetScrollView>
   );

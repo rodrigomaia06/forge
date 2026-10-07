@@ -30,12 +30,13 @@ import {
   recordRestTimerSample,
 } from './workoutMutations';
 import { exercisesWithAddedPrevious } from '../domain/workouts/nextSessionTargets';
+import { useActiveWorkoutState } from './useActiveWorkoutState';
 
 const WorkoutContext = createContext<WorkoutContextValue | null>(null);
 const ActiveWorkoutContext = createContext<Workout | null>(null);
 
 export function WorkoutProvider({ children }: ChildrenProps) {
-  const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
+  const [activeWorkout, setActiveWorkout, requestTrackingChange] = useActiveWorkoutState();
   const [completedWorkouts, setCompletedWorkouts] = useState<Workout[]>([]);
   const [ready, setReady] = useState(false);
   const activeSaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -222,6 +223,12 @@ export function WorkoutProvider({ children }: ChildrenProps) {
     setActiveWorkout((current) => (current ? update(current) : current));
   }, []);
 
+  const changeTracking = useCallback<WorkoutContextValue['changeTracking']>(
+    (blockId, mode, confirmed = false) =>
+      requestTrackingChange(blockId, mode, confirmed, completedWorkoutsRef.current),
+    [requestTrackingChange],
+  );
+
   const cancelWorkout = useCallback((): void => {
     persistActiveWorkoutNow(null);
     setActiveWorkout(null);
@@ -330,6 +337,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
       updateSet,
       toggleSet,
       updateActiveWorkout,
+      changeTracking,
       cancelWorkout,
       finishWorkout,
       createCompletedWorkout,
@@ -354,6 +362,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
       updateSet,
       toggleSet,
       updateActiveWorkout,
+      changeTracking,
       cancelWorkout,
       finishWorkout,
       createCompletedWorkout,

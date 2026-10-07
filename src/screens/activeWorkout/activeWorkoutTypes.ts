@@ -1,6 +1,12 @@
 import type { GestureResponderEvent } from 'react-native';
 import type { ReactNode } from 'react';
-import type { WorkoutExercise, WorkoutExerciseChanges, WorkoutSet, WorkoutSetChanges, WorkoutSide } from '../../types';
+import type {
+  WorkoutExercise,
+  WorkoutExerciseChanges,
+  WorkoutSet,
+  WorkoutSetChanges,
+  WorkoutSide,
+} from '../../types';
 
 export type SetInputFrame = { y: number; height: number };
 export type MeasureSetInput = (callback: (frame: SetInputFrame) => void) => void;
@@ -11,7 +17,12 @@ export interface ExerciseSectionProps {
   addSet: (exerciseId: string) => void;
   removeSet: (exerciseId: string, setId: string) => void;
   removeExercise: (exerciseId: string) => void;
-  onTrackingChange?: (exerciseId: string, mode: import('../../types').TrackingType) => void;
+  onTrackingChange?: (
+    exerciseId: string,
+    mode: import('../../types').TrackingType,
+    confirmed?: boolean,
+  ) => void | Promise<import('../../domain/exercises/trackingChanges').TrackingChangeResult>;
+  resolveTrackingSelection?: boolean;
   updateExercise?: (exerciseId: string, changes: WorkoutExerciseChanges) => void;
   /** Active Workout alone can turn a calculated ramp into editable warm-up sets. */
   addWarmupSets?: (exerciseId: string, sets: readonly { weight: string; reps: string }[]) => void;

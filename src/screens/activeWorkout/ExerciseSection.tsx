@@ -46,6 +46,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
   removeExercise,
   updateExercise,
   onTrackingChange,
+  resolveTrackingSelection = false,
   addWarmupSets,
   updateSet,
   toggleSet,
@@ -419,7 +420,8 @@ export const ExerciseSection = React.memo(function ExerciseSection({
             )}
             {showMoreOptions && optionsOpen && (
               <ExerciseOptionsSheet
-                onTrackingChange={onTrackingChange ? (mode) => onTrackingChange(exercise.id, mode) : undefined}
+                resolveTrackingSelection={resolveTrackingSelection}
+                onTrackingChange={onTrackingChange ? (mode, confirmed) => onTrackingChange(exercise.id, mode, confirmed) : undefined}
                 exercise={exercise}
                 visible={optionsVisible}
                 enterInstant={optionsRestoreInstant}

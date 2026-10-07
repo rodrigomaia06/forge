@@ -1,5 +1,43 @@
-import type { TrackingType, WorkoutExercise, WorkoutSet } from '../../types';
+import type { TrackingType, Workout, WorkoutExercise, WorkoutSet } from '../../types';
 import { effectiveTracking, measurementText, trackingFields } from './tracking';
+import { trackingChoices } from './tracking';
+import { exercisesWithAddedPrevious } from '../workouts/nextSessionTargets';
+
+export type TrackingChangeResult =
+  | { status: 'confirmation'; exercise: WorkoutExercise }
+  | { status: 'applied' | 'unchanged'; blockId: string; mode: TrackingType }
+  | { status: 'missing' | 'incompatible' | 'failed' };
+
+/** Evaluated inside the active-state reducer, after queued set edits. */
+export function applyLiveTrackingChange(
+  workout: Workout | null,
+  blockId: string,
+  mode: TrackingType,
+  confirmed: boolean,
+  ids: readonly string[],
+  history: readonly Workout[],
+): { workout: Workout | null; result: TrackingChangeResult } {
+  const exercise = workout?.exercises.find((item) => item.id === blockId);
+  if (!workout || !exercise) return { workout, result: { status: 'missing' } };
+  if (!trackingChoices(exercise).includes(mode))
+    return { workout, result: { status: 'incompatible' } };
+  if (effectiveTracking(exercise) === mode)
+    return { workout, result: { status: 'unchanged', blockId, mode } };
+  if (!confirmed && !hasRecordedSets(exercise) && losesTrackingData(exercise, mode))
+    return { workout, result: { status: 'confirmation', exercise } };
+  let index = 0;
+  const exercises = changeExerciseTracking(workout.exercises, blockId, mode, () => ids[index++]);
+  const matched = exercisesWithAddedPrevious(exercises, [...history]);
+  return {
+    workout: {
+      ...workout,
+      exercises: exercises.map((item, position) =>
+        workout.exercises.includes(item) ? item : matched[position],
+      ),
+    },
+    result: { status: 'applied', blockId: hasRecordedSets(exercise) ? ids[0] : blockId, mode },
+  };
+}
 
 export function hasRecordedSets(exercise: WorkoutExercise): boolean {
   return exercise.sets.some(

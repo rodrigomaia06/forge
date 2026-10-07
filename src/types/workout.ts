@@ -232,6 +232,7 @@ export interface WorkoutContextValue extends Omit<WorkoutState, 'activeWorkout'>
   updateSet: (exerciseId: string, setId: string, changes: WorkoutSetChanges) => void;
   toggleSet: (exerciseId: string, setId: string) => void;
   updateActiveWorkout: (update: (workout: Workout) => Workout) => void;
+  changeTracking: (blockId: string, mode: TrackingType, confirmed?: boolean) => Promise<import('../domain/exercises/trackingChanges').TrackingChangeResult>;
   cancelWorkout: () => void;
   finishWorkout: (choice: FinishRoutineChoice) => Promise<Workout | null>;
   createCompletedWorkout: (workout: Workout) => Promise<void>;

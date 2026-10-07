@@ -779,6 +779,7 @@ function AnimatedCount({ count }: { count: number }) {
 
 export function ExerciseOptionsSheet({
   onTrackingChange,
+  resolveTrackingSelection = false,
   visible,
   exercise,
   onClose,
@@ -796,7 +797,8 @@ export function ExerciseOptionsSheet({
   onToggleOffSession,
   enterInstant = false,
 }: {
-  onTrackingChange?: (mode: import('../../types').TrackingType) => void;
+  onTrackingChange?: (mode: import('../../types').TrackingType, confirmed?: boolean) => void | Promise<import('../../domain/exercises/trackingChanges').TrackingChangeResult>;
+  resolveTrackingSelection?: boolean;
   visible: boolean;
   exercise: WorkoutExercise;
   onClose: () => void;
@@ -975,7 +977,7 @@ export function ExerciseOptionsSheet({
                   // The Duration views drop the close X and give their right slot to
                   // Default; Back returns to the info card and the sheet closes there.
                   onClose={view === 'rest' || view === 'rest-unilateral' ? undefined : closeSheet}
-                  closeAccessibilityLabel={`Close ${view === 'note' ? 'exercise note' : view === 'history' ? 'previous sessions' : view === 'warmup' ? 'warm-up sets' : 'exercise info'}`}
+                  closeAccessibilityLabel={`Close ${view === 'tracking' ? 'tracking' : view === 'note' ? 'exercise note' : view === 'history' ? 'previous sessions' : view === 'warmup' ? 'warm-up sets' : 'exercise info'}`}
                   leading={
               view === 'rest' || view === 'rest-unilateral'
                 ? <ForgeEditorBackButton onPress={() => openView('info')} accessibilityLabel="Back to exercise info" />
@@ -998,10 +1000,9 @@ export function ExerciseOptionsSheet({
                 {view === 'tracking' && onTrackingChange ? (
                   <TrackingChoices
                     exercise={exercise}
-                    onSelect={(mode) => {
-                      onTrackingChange(mode);
-                      closeSheet();
-                    }}
+                    onSelect={onTrackingChange}
+                    onApplied={closeSheet}
+                    resolveSelection={resolveTrackingSelection}
                   />
                 ) : null}
                 {view === 'history' ? <PreviousSessionsContent

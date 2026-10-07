@@ -1,8 +1,5 @@
-import { exercisesWithAddedPrevious } from '../domain/workouts/nextSessionTargets';
 import { FinishWorkoutSheet } from './activeWorkout/FinishWorkoutSheet';
 import { workoutNeedsFinishReview } from '../domain/workouts/finishWorkout';
-import { changeExerciseTracking } from '../domain/exercises/trackingChanges';
-import { makeWorkoutId } from '../state/workoutMutations';
 import { scheduleOnRN } from 'react-native-worklets';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
@@ -693,29 +690,13 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
       attributes: { ...(current.attributes ?? {}), [label]: value },
     }));
   }, [updateActiveWorkout]);
-  const { completedWorkouts } = useWorkouts();
-  const changeTracking = useCallback(
-    (exerciseId: string, mode: import('../types').TrackingType) => {
-      updateActiveWorkout((current) => {
-        const exercises = changeExerciseTracking(current.exercises, exerciseId, mode, () =>
-          makeWorkoutId('tracking'),
-        );
-        const matched = exercisesWithAddedPrevious(exercises, completedWorkouts);
-        return {
-          ...current,
-          exercises: exercises.map((exercise, index) =>
-            current.exercises.includes(exercise) ? exercise : matched[index],
-          ),
-        };
-      });
-    },
-    [updateActiveWorkout, completedWorkouts],
-  );
+  const { changeTracking } = useWorkouts();
   const renderExercise = useCallback(
     ({ item, index }: { item: WorkoutExercise; index: number }) => (
       <ExtractedExerciseSection
         exercise={item}
         onTrackingChange={changeTracking}
+        resolveTrackingSelection
         index={index}
         addSet={addSet}
         removeSet={removeSet}
