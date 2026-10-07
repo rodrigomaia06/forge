@@ -1,7 +1,8 @@
+import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import { effectiveTracking } from '../../domain/exercises/tracking';
 import { scheduleOnRN } from 'react-native-worklets';
 import React, { useEffect, useRef, useState } from 'react';
-import { Keyboard, Pressable, StyleSheet, View } from 'react-native';
+import { Keyboard, StyleSheet, View } from 'react-native';
 import { runWhenIdle } from '../../utils/idle';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';

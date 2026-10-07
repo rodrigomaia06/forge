@@ -1,5 +1,6 @@
+import { ForgePressable as Pressable } from './ForgePressable';
 import React from 'react';
-import { FlatList, Pressable, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
+import { FlatList, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { scaleUI } from '../../theme/scale';

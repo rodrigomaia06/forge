@@ -1,9 +1,9 @@
+import { ForgePressable as Pressable } from './ForgePressable';
 import React, { useEffect, useRef } from 'react';
 import {
   Animated as RNAnimated,
   Easing as RNEasing,
   Platform,
-  Pressable,
   StyleSheet,
   View,
 } from 'react-native';

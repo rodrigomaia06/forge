@@ -1,5 +1,6 @@
+import { ForgePressable as Pressable } from './ForgePressable';
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { HeaderAction } from './HeaderAction';

@@ -1,3 +1,4 @@
+import { ForgePressable as Pressable } from '../components/ui/ForgePressable';
 import { changeExerciseTracking } from '../domain/exercises/trackingChanges';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useMemo, useState } from 'react';
@@ -5,7 +6,6 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   View,

@@ -1,5 +1,6 @@
+import { ForgePressable as Pressable } from './ForgePressable';
 import React, { useEffect } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { useForgeReducedMotion } from '../../theme/motion';

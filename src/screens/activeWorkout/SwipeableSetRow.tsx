@@ -1,10 +1,10 @@
+import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import { scheduleOnRN } from 'react-native-worklets';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated as RNAnimated,
   Easing,
   Platform,
-  Pressable,
   StyleSheet,
   View,
   type GestureResponderEvent,

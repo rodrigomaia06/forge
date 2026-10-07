@@ -1,5 +1,6 @@
+import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, StyleSheet, View } from 'react-native';
 import { ForgeNumericRangeInput, ForgeText as Text, ForgeTextInput as TextInput } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';

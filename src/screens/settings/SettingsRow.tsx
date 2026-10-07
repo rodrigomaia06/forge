@@ -1,6 +1,6 @@
+import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import React from 'react';
 import {
-  Pressable,
   StyleSheet,
   View,
   type AccessibilityRole,

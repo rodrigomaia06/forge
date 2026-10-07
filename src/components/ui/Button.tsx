@@ -1,7 +1,7 @@
+import { ForgePressable as Pressable } from './ForgePressable';
 import React from 'react';
 import {
   ActivityIndicator,
-  Pressable,
   StyleSheet,
   type Insets,
   type StyleProp,

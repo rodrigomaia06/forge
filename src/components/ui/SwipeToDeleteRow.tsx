@@ -1,6 +1,7 @@
+import { ForgePressable as Pressable } from './ForgePressable';
 import { scheduleOnRN } from 'react-native-worklets';
 import React, { useEffect, useState } from 'react';
-import { LayoutAnimation, Platform, Pressable, StyleSheet, UIManager, View } from 'react-native';
+import { LayoutAnimation, Platform, StyleSheet, UIManager, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 

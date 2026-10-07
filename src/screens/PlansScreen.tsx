@@ -1,5 +1,6 @@
+import { ForgePressable as Pressable } from '../components/ui/ForgePressable';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, LayoutAnimation, Platform, Pressable, StyleSheet, UIManager, View } from 'react-native';
+import { FlatList, LayoutAnimation, Platform, StyleSheet, UIManager, View } from 'react-native';
 import type { PanGesture } from 'react-native-gesture-handler';
 import Animated, { scrollTo, useAnimatedRef, useAnimatedScrollHandler, useFrameCallback, useSharedValue, type SharedValue, type FrameInfo } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -23,12 +24,14 @@ import {
   lightHaptic,
   ScreenTitle,
   SwipeToDeleteRow,
+  pressedFeedback,
   pressedFeedbackSubtle,
   selectionHaptic,
   successHaptic,
   useAfterSheetClose,
 } from '../components/ui';
 import { useForgeTheme } from '../theme/ThemeProvider';
+import { scaleUI } from '../theme/scale';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { spacing, typography, typeScale } from '../theme/tokens';
 import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
@@ -955,7 +958,7 @@ function RoutineRow({
           accessibilityLabel={`Routine actions for ${routine.name}`}
           unstable_pressDelay={80}
           onPress={onOpenOptions}
-          style={({ pressed }) => [styles.routineCopy, pressed && pressedFeedbackSubtle]}
+          style={({ pressed }) => [styles.routineCopy, pressed && pressedFeedback]}
         >
           <View style={styles.routineText}>
             <Text style={styles.routineName} numberOfLines={1}>{routine.name}</Text>
@@ -1090,6 +1093,10 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       flex: 1,
       minWidth: 0,
       minHeight: 62,
+      alignSelf: 'stretch',
+      borderRadius: scaleUI(12),
+      marginLeft: -scaleUI(8),
+      paddingLeft: scaleUI(8),
       paddingRight: 12,
       flexDirection: 'row',
       alignItems: 'center',

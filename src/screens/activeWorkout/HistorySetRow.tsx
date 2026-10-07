@@ -1,5 +1,6 @@
+import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { ForgeText as Text } from '../../components/ui';
 import {

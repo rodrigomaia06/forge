@@ -64,7 +64,7 @@ export const lightTheme: ForgeTheme = {
   // few elements that keep an outline (search/text fields) actually show one on light.
   divider: '#E2E3E0',
   border: '#CDCFC9',
-  pressed: 'rgba(23,25,28,0.08)',
+  pressed: 'rgba(23,25,28,0.14)',
   focus: '#1D252D',
   shadow: '#17191C',
   ...shared,
@@ -113,7 +113,7 @@ export const darkTheme: ForgeTheme = {
   muted: '#929AA1',
   divider: '#3A4046',
   border: '#464D54',
-  pressed: 'rgba(247,248,246,0.10)',
+  pressed: 'rgba(247,248,246,0.16)',
   focus: '#F5F7F8',
   shadow: '#000000',
   calendarSurface: '#16181B',

@@ -58,3 +58,5 @@ export { SectionHeader } from './SectionHeader';
 export { errorHaptic, lightHaptic, mediumHaptic, selectionHaptic, successHaptic } from './haptics';
 
 export { ForgeSheetScrollView } from './ForgeSheetScrollView';
+
+export { ForgePressable } from './ForgePressable';

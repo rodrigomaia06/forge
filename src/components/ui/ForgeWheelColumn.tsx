@@ -1,7 +1,7 @@
+import { ForgePressable as Pressable } from './ForgePressable';
 import { scheduleOnRN } from 'react-native-worklets';
 import React, { useEffect, useRef } from 'react';
 import {
-  Pressable,
   ScrollView,
   StyleSheet,
   View,

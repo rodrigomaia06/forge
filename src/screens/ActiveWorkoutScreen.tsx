@@ -1,8 +1,9 @@
+import { ForgePressable as Pressable } from '../components/ui/ForgePressable';
 import { FinishWorkoutSheet } from './activeWorkout/FinishWorkoutSheet';
 import { workoutNeedsFinishReview } from '../domain/workouts/finishWorkout';
 import { scheduleOnRN } from 'react-native-worklets';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
+import { FlatList, Keyboard, KeyboardAvoidingView, Platform, View } from 'react-native';
 import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import {
   AppScreen,

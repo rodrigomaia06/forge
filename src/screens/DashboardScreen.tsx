@@ -1,6 +1,7 @@
+import { ForgePressable as Pressable } from '../components/ui/ForgePressable';
 import { scheduleOnRN } from 'react-native-worklets';
 import React, { useEffect, useMemo, useState } from 'react';
-import { LayoutAnimation, Platform, Pressable, StyleSheet, UIManager, View } from 'react-native';
+import { LayoutAnimation, Platform, StyleSheet, UIManager, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';

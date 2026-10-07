@@ -1,6 +1,7 @@
+import { ForgePressable as Pressable } from './ForgePressable';
 import { ForgeSheetScrollView } from './ForgeSheetScrollView';
 import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import type { IconName } from '../../types';
 import { typeScale } from '../../theme/tokens';
 import { useForgeTheme } from '../../theme/ThemeProvider';

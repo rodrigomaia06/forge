@@ -1,5 +1,6 @@
+import { ForgePressable as Pressable } from './ForgePressable';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import type { WeekStartsOn } from '../../types';
 import { useForgeTheme } from '../../theme/ThemeProvider';

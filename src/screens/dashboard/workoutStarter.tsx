@@ -1,6 +1,7 @@
+import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import { ForgeSheetScrollView } from '../../components/ui/ForgeSheetScrollView';
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import {
@@ -12,6 +13,7 @@ import {
   ForgeText as Text,
   Icon,
   lightHaptic,
+  pressedFeedback,
   pressedFeedbackSubtle,
   selectionHaptic,
   useAfterSheetClose,
@@ -268,7 +270,7 @@ function RoutineChoiceCard({
       {routines.map((routine, index) => {
         const type = preferences.workoutTypes.find((item) => item.name === routine.type)
           ?? { id: 'retained-routine-type', name: routine.type, color: theme.ink, source: 'custom' as const, hidden: true };
-        return <Pressable key={routine.id} accessibilityRole="button" accessibilityLabel={`Use ${routine.name} routine`} onPress={() => onPress(routine)} style={({ pressed }) => [styles.row, index > 0 && styles.divider, pressed && pressedFeedbackSubtle]}>
+        return <Pressable key={routine.id} accessibilityRole="button" accessibilityLabel={`Use ${routine.name} routine`} onPress={() => onPress(routine)} style={({ pressed }) => [styles.row, index > 0 && styles.divider, pressed && pressedFeedback]}>
           <Icon name={workoutTypeIcon(type)} size={21} color={theme.ink} />
           <View style={styles.rowText}>
             <Text style={styles.rowLabel}>{routine.name}</Text>

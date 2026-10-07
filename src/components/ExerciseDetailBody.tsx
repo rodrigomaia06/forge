@@ -1,6 +1,7 @@
+import { ForgePressable as Pressable } from './ui/ForgePressable';
 import { trackingModeLabel } from '../domain/exercises/tracking';
 import React, { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import type { ExerciseCatalogItem } from '../data/exerciseCatalog';

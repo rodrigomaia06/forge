@@ -1,5 +1,6 @@
+import { ForgePressable as Pressable } from './ui/ForgePressable';
 import React, { useMemo, useState } from 'react';
-import { LayoutAnimation, Platform, Pressable, StyleSheet, UIManager, useWindowDimensions, View } from 'react-native';
+import { LayoutAnimation, Platform, StyleSheet, UIManager, useWindowDimensions, View } from 'react-native';
 import { useForgeReducedMotion } from '../theme/motion';
 
 import { ForgeAttributeRow, ForgeCard, ForgeText as Text, Icon, pressedFeedbackSubtle, selectionHaptic } from './ui';
