@@ -23,6 +23,7 @@ export interface ForgeSingleSelectOption<T extends SelectionValue> {
   description?: string;
   emphasized?: boolean;
   accessibilityLabel?: string;
+  leading?: React.ReactNode;
 }
 
 interface ForgeSingleSelectListProps<T extends SelectionValue> {
@@ -165,6 +166,7 @@ function ForgeSelectionRow<T extends SelectionValue>({
         pressed && pressedFeedback,
       ]}
     >
+      {option.leading ? <View style={{ marginRight: scaleUI(12) }}>{option.leading}</View> : null}
       <View style={styles.selectionCopy}>
         <Text
           style={[

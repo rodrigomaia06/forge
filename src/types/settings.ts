@@ -8,6 +8,8 @@ export interface WorkoutTypePreference {
   id: string;
   name: string;
   color: string;
+  colorCustomized?: boolean;
+  icon?: IconName;
   hidden?: boolean;
   source: 'builtIn' | 'custom';
   hasReferencedData?: boolean;

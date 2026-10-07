@@ -6,6 +6,7 @@ import type {
 } from '../types';
 import { defaultSettingsPreferences } from './settingsDefaults';
 import { uniqueById } from './uniqueById';
+import { isWorkoutTypeIcon } from '../domain/workouts/workoutTypeMetadata';
 import {
   builtInWorkoutTypeColors,
   supersededBuiltInWorkoutTypeColors,
@@ -54,6 +55,8 @@ export function parseSettingsPreferences(value: string | null): SettingsPreferen
               id: item.id,
               name: item.name,
               color: item.color,
+              colorCustomized: item.colorCustomized === true,
+              icon: isWorkoutTypeIcon(item.icon) ? item.icon : undefined,
               hidden: item.hidden === true,
               hasReferencedData: item.hasReferencedData === true,
               source: item.source === 'builtIn' || item.source === 'custom'
@@ -107,6 +110,7 @@ export function parseSettingsPreferences(value: string | null): SettingsPreferen
     // or a custom type keeps the user-selected color.
     workoutTypes: parsedWorkoutTypes.map((item) =>
       item.source === 'builtIn'
+        && !item.colorCustomized
         && supersededBuiltInWorkoutTypeColors[item.id]?.toUpperCase() === item.color.trim().toUpperCase()
         ? { ...item, color: builtInWorkoutTypeColors[item.id] }
         : item,

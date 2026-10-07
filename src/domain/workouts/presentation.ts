@@ -1,17 +1,18 @@
 import type { ForgeTheme, IconName, Workout, WorkoutTypePreference } from '../../types';
 import { builtInWorkoutTypeColors } from './workoutTypeDefaults';
+import { resolveWorkoutTypeIcon } from './workoutTypeMetadata';
 
-const FALLBACK_TYPES: Record<string, { icon: IconName; color: string }> = {
-  strength: { icon: 'fitness-outline', color: builtInWorkoutTypeColors.strength },
-  calisthenics: { icon: 'activity', color: builtInWorkoutTypeColors.calisthenics },
-  mobility: { icon: 'stretching', color: builtInWorkoutTypeColors.mobility },
-  cardio: { icon: 'running', color: builtInWorkoutTypeColors.cardio },
-  functional: { icon: 'task-list', color: builtInWorkoutTypeColors.functional },
-  'olympic weightlifting': { icon: 'weight', color: builtInWorkoutTypeColors['olympic-weightlifting'] },
-  plyometrics: { icon: 'activity', color: builtInWorkoutTypeColors.plyometrics },
-  'court sport': { icon: 'tennis-ball', color: builtInWorkoutTypeColors['court-sport'] },
-  'field sport': { icon: 'basketball', color: builtInWorkoutTypeColors['field-sport'] },
-  'martial arts': { icon: 'warm-up', color: builtInWorkoutTypeColors['martial-arts'] },
+const FALLBACK_TYPES: Record<string, { color: string }> = {
+  strength: { color: builtInWorkoutTypeColors.strength },
+  calisthenics: { color: builtInWorkoutTypeColors.calisthenics },
+  mobility: { color: builtInWorkoutTypeColors.mobility },
+  cardio: { color: builtInWorkoutTypeColors.cardio },
+  functional: { color: builtInWorkoutTypeColors.functional },
+  'olympic weightlifting': { color: builtInWorkoutTypeColors['olympic-weightlifting'] },
+  plyometrics: { color: builtInWorkoutTypeColors.plyometrics },
+  'court sport': { color: builtInWorkoutTypeColors['court-sport'] },
+  'field sport': { color: builtInWorkoutTypeColors['field-sport'] },
+  'martial arts': { color: builtInWorkoutTypeColors['martial-arts'] },
 };
 
 export function formatCompactDuration(seconds = 0): string {
@@ -36,7 +37,7 @@ export function getWorkoutTypePresentation(
   );
   const fallback = FALLBACK_TYPES[normalizedType];
   const color = preference?.color ?? fallback?.color ?? theme.muted;
-  const icon = fallback?.icon ?? 'fitness-outline';
+  const icon = resolveWorkoutTypeIcon(type, workoutTypes);
   return { icon, color, background: translucent(color, backgroundOpacity) };
 }
 
