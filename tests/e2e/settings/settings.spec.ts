@@ -93,9 +93,10 @@ test.describe('Settings', () => {
     await expect(page.getByTestId('settings-detail-title')).toHaveText('Workout types');
     await page.getByRole('button', { name: 'Strength workout type' }).click();
     await expect(
-      page.getByRole('switch', { name: 'Hide Strength in workout pickers' }),
+      page.getByRole('switch', { name: 'Show Strength in workout pickers' }),
     ).toBeVisible();
-    await expect(page.getByTestId('workout-type-visibility-bottom-divider')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Workout type color', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Back to Workout types' }).click();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
 
     await page.getByRole('button', { name: 'Backup & Export' }).click();
@@ -619,12 +620,10 @@ test.describe('Settings', () => {
     await expect(page.getByRole('button', { name: 'Save workout type' })).toBeDisabled();
     await expect(page.getByText('New workout type', { exact: true })).toBeVisible();
     await page.getByLabel('Workout type name').fill('Recovery');
-    await page.getByRole('button', { name: 'Choose custom workout type color' }).click();
+    await page.getByRole('button', { name: 'Workout type color', exact: true }).click();
     await expect(page.getByTestId('custom-workout-type-color-picker')).toBeVisible();
-    await page
-      .getByRole('button', { name: /Use custom color #/ })
-      .first()
-      .click();
+    await page.getByLabel('Color saturation and brightness').click({ position: { x: 90, y: 70 } });
+    await page.getByRole('button', { name: /^Apply color #/ }).click();
     await expect(page.getByTestId('custom-workout-type-color-picker')).toHaveCount(0);
     await page.getByRole('button', { name: 'Save workout type' }).click();
     await expect(page.getByRole('button', { name: 'Recovery workout type' })).toBeVisible();
