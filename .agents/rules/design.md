@@ -43,6 +43,8 @@ Workout-type colours are data, not chrome. They may appear only in small type ma
 
 Header actions use `HeaderAction` only: icon-only controls are 44 pt circles and labelled pills use `controlLabel`. Their surface remains neutral unless the screen explicitly promotes the action or the action is directly destructive. Shared switches are presentational; their containing rows own touch handling, accessibility, and any haptic feedback.
 
+Dashboard, History and Plans empty screens share the same illustration frame, top anchoring and title baseline. Empty-state primary actions use the same dimensions and vertical position; supporting copy may grow when text scaling or wrapping needs more space.
+
 Primary dock icons use the shared navigation item and animate subtly between their standard size and a slightly enlarged selected state.
 
 Primary dock tabs use the persistent Forge tab bar. They cross-fade through the shared short tab transition rather than using a push or lateral slide, while a single local selection indicator moves to the active item. Retapping the active tab preserves its current navigation and scroll position. Their scroll bodies extend behind the lower system safe area and dock fade; only the dock's reachability inset is reserved, never a separate empty tab-bar band. The dock floats just above the home indicator at its established offset; keep that placement.

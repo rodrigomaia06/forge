@@ -319,7 +319,8 @@ export function HistoryScreen({
             removeClippedSubviews={false}
             ListEmptyComponent={(
               <EmptyState
-                style={styles.empty}
+                rootTab
+                testID="history-empty"
                 illustrationTestID="history-empty-illustration"
                 illustration={<HistoryArt />}
                 title={activeFilterCount ? 'No matching workouts' : 'No completed workouts'}
@@ -332,7 +333,6 @@ export function HistoryScreen({
                     variant="secondary"
                     onPress={() => setFilters(emptyHistoryFilters())}
                     theme={theme}
-                    style={styles.emptyAction}
                   />
                 ) : (
                   <Button
@@ -342,7 +342,6 @@ export function HistoryScreen({
                       navigation.navigate('ActiveWorkout');
                     })}
                     theme={theme}
-                    style={styles.emptyAction}
                   />
                 )}
               />
@@ -806,7 +805,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   historyMonthCopy: { flex: 1, alignItems: 'center' },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 18 },
-  contentEmpty: { flexGrow: 1 },
+  contentEmpty: { flexGrow: 1, paddingTop: 0, paddingHorizontal: 0 },
   group: { gap: 6, position: 'relative' },
   // Each workout carries its rail through the following gap. The
   // gradient bridge across a period label reads as chronology without making
@@ -933,6 +932,4 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     backgroundColor: theme.surfaceMuted,
   },
   durationText: { color: theme.ink, ...typeScale.caption },
-  empty: { paddingVertical: 52 },
-  emptyAction: { marginTop: 14 },
 });

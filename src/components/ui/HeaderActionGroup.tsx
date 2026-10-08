@@ -34,7 +34,7 @@ export function HeaderActionGroup({
       {items.map((child, index) => (
         <React.Fragment key={index}>
           {index > 0 ? (
-            <View pointerEvents="none" style={[styles.divider, { backgroundColor: theme.slate }]} />
+            <View testID="header-action-separator" pointerEvents="none" style={[styles.divider, { backgroundColor: theme.slate }]} />
           ) : null}
           {child}
         </React.Fragment>

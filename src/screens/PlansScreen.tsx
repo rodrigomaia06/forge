@@ -396,7 +396,7 @@ export function PlansScreen({ navigation, route }: Props) {
             data={plans}
             keyExtractor={(plan) => plan.id}
             extraData={{ editing, routineDragging, standaloneRoutines, workoutTypes: preferences.workoutTypes }}
-            contentContainerStyle={[styles.content, { paddingBottom: dockScrollInset }]}
+            contentContainerStyle={[styles.content, !hasContent && styles.contentEmpty, { paddingBottom: dockScrollInset }]}
             showsVerticalScrollIndicator={false}
             directionalLockEnabled
             // A handle drag owns the vertical axis; disable direct list scrolling
@@ -407,7 +407,7 @@ export function PlansScreen({ navigation, route }: Props) {
             onScroll={plansScrollHandler}
             onContentSizeChange={(_width, height) => { plansContentHeight.set(height); }}
             scrollEventThrottle={16}
-            ListHeaderComponent={(
+            ListHeaderComponent={hasContent ? (
               <View style={styles.listHeader}>
                 {standaloneRoutines.length > 0 ? (
                   <Section title="Routines">
@@ -443,7 +443,7 @@ export function PlansScreen({ navigation, route }: Props) {
                 ) : null}
                 {plans.length > 0 ? <Text style={styles.sectionTitle}>Plans</Text> : null}
               </View>
-            )}
+            ) : null}
             ListEmptyComponent={standaloneRoutines.length === 0 ? <EmptyPlans /> : null}
             renderItem={({ item: plan, index }) => (
               <View style={styles.planRow}>
@@ -973,10 +973,10 @@ function RoutineRow({
 }
 
 function EmptyPlans() {
-  const styles = useThemedStyles(createStyles);
   return (
     <EmptyState
-      style={styles.empty}
+      rootTab
+      testID="plans-empty"
       illustrationTestID="plans-empty-illustration"
       illustration={<PlansArt />}
       title="Build your first routine"
@@ -1023,6 +1023,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       paddingHorizontal: spacing.screen,
       paddingTop: 16,
     },
+    contentEmpty: { paddingTop: 0, paddingHorizontal: 0 },
     listHeader: { gap: 28, paddingBottom: 11 },
     section: { gap: 11 },
     sectionTitle: { ...typeScale.sectionTitle, color: theme.slate },
@@ -1119,5 +1120,4 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       borderTopColor: theme.divider,
     },
     addToPlanText: { ...typeScale.controlLabel, color: theme.slate },
-    empty: { paddingTop: 79 },
   });

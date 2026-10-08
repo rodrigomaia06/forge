@@ -6,6 +6,7 @@ import { ForgeText as Text } from './ui/ForgeText';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
+import { scaleUI } from '../theme/scale';
 import type { ForgeTheme } from '../types';
 
 /**
@@ -20,6 +21,7 @@ export function EmptyState({
   action,
   testID,
   illustrationTestID,
+  rootTab = false,
   style,
 }: {
   illustration: ReactNode;
@@ -28,14 +30,15 @@ export function EmptyState({
   action?: ReactNode;
   testID?: string;
   illustrationTestID?: string;
+  rootTab?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
   const styles = useThemedStyles(createStyles);
   return (
-    <View style={[styles.container, style]} testID={testID}>
+    <View style={[styles.container, rootTab && styles.rootTab, style]} testID={testID}>
       <View style={styles.art} testID={illustrationTestID}>{illustration}</View>
-      <Text style={styles.title}>{title}</Text>
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      <Text testID={testID ? `${testID}-title` : undefined} style={styles.title}>{title}</Text>
+      {subtitle ? <Text style={[styles.subtitle, rootTab && styles.rootSubtitle]}>{subtitle}</Text> : null}
       {action ? <View style={styles.action}>{action}</View> : null}
     </View>
   );
@@ -102,8 +105,10 @@ export function DashboardArt() {
 const createStyles = (theme: ForgeTheme) =>
   StyleSheet.create({
     container: { alignItems: 'center', paddingHorizontal: 28, gap: 8 },
+    rootTab: { marginTop: scaleUI(48) },
     art: { marginBottom: 10 },
     title: { ...typeScale.sectionTitle, color: theme.ink, textAlign: 'center' },
     subtitle: { ...typeScale.body, color: theme.slate, textAlign: 'center', maxWidth: 300 },
-    action: { marginTop: 10 },
+    rootSubtitle: { minHeight: typeScale.body.lineHeight * 2 },
+    action: { marginTop: 10, width: scaleUI(220), maxWidth: '100%' },
   });

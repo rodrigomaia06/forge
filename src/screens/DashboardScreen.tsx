@@ -9,6 +9,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-na
 
 import {
   AppScreen,
+  Button,
   ForgeActionSheet,
   useAfterSheetClose,
   ForgeCard,
@@ -445,25 +446,24 @@ export function DashboardScreen() {
           ListEmptyComponent={
             editing ? null : (
               <EmptyState
-                style={styles.emptyDash}
+                rootTab
+                testID="dashboard-empty"
+                illustrationTestID="dashboard-empty-illustration"
                 illustration={<DashboardArt />}
                 title="Build your dashboard"
                 subtitle="Add the widgets you want to see — stats, streaks, measurements and more."
                 action={(
-                  <Pressable
-                    accessibilityRole="button"
+                  <Button
+                    label="Add widgets"
+                    icon="add"
                     accessibilityLabel="Add widgets"
                     onPress={() => {
-                      lightHaptic();
                       reflowTiles();
                       setEditing(true);
                       setAddTileOpen(true);
                     }}
-                    style={({ pressed }) => [styles.addWidgetsButton, pressed && pressedFeedback]}
-                  >
-                    <Icon name="add" size={20} color={theme.onActionPrimary} />
-                    <Text style={styles.addWidgetsLabel}>Add widgets</Text>
-                  </Pressable>
+                    haptic="light"
+                  />
                 )}
               />
             )
@@ -738,19 +738,4 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   },
   addTileLabel: { color: theme.ink, ...typeScale.controlLabel },
   tileMissing: { color: theme.muted, ...typeScale.body },
-  emptyDash: {
-    marginTop: 48,
-  },
-  addWidgetsButton: {
-    marginTop: 8,
-    minHeight: 48,
-    paddingHorizontal: 22,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderRadius: 24,
-    backgroundColor: theme.actionPrimary,
-  },
-  addWidgetsLabel: { color: theme.onActionPrimary, ...typeScale.controlLabel },
 });
