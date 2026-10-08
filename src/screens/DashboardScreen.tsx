@@ -1,4 +1,5 @@
-import { ForgePressable as Pressable } from '../components/ui/ForgePressable';
+import { scaleUI } from '../theme/scale';
+import { centeredPressFeedback, ForgePressable as Pressable } from '../components/ui/ForgePressable';
 import { scheduleOnRN } from 'react-native-worklets';
 import React, { useEffect, useMemo, useState } from 'react';
 import { LayoutAnimation, Platform, StyleSheet, UIManager, View } from 'react-native';
@@ -628,6 +629,7 @@ function DashboardTileFrame({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Reorder ${name} tile`}
+                pressFeedbackStyle={centeredPressFeedback(scaleUI(28), scaleUI(14), scaleUI(40))}
                 accessibilityElementsHidden={!editing}
                 importantForAccessibility={editing ? 'auto' : 'no-hide-descendants'}
                 onLongPress={editing ? onDrag : undefined}

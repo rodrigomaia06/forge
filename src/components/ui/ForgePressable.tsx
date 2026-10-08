@@ -22,16 +22,16 @@ import { colors, darkTheme } from '../../theme/tokens';
 
 const GroupFeedback = createContext<((id: string, pressed: boolean) => void) | null>(null);
 
-export function centeredPressFeedback(size: number, borderRadius: number): ViewStyle {
+export function centeredPressFeedback(size: number, borderRadius: number, height = size): ViewStyle {
   return {
     width: size,
-    height: size,
+    height,
     borderRadius,
     top: '50%',
     left: '50%',
     right: undefined,
     bottom: undefined,
-    transform: [{ translateX: -size / 2 }, { translateY: -size / 2 }],
+    transform: [{ translateX: -size / 2 }, { translateY: -height / 2 }],
   };
 }
 

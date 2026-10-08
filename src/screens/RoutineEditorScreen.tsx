@@ -1,4 +1,5 @@
-import { ForgePressable as Pressable } from '../components/ui/ForgePressable';
+import { scaleUI } from '../theme/scale';
+import { centeredPressFeedback, ForgePressable as Pressable } from '../components/ui/ForgePressable';
 import { changeExerciseTracking } from '../domain/exercises/trackingChanges';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useMemo, useState } from 'react';
@@ -747,6 +748,7 @@ function RoutineExerciseDragHandle({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Drag to reorder ${name}`}
+      pressFeedbackStyle={centeredPressFeedback(scaleUI(28), scaleUI(14), scaleUI(40))}
       accessibilityHint="Hold, then drag to change exercise order"
       disabled={disabled}
       delayLongPress={180}

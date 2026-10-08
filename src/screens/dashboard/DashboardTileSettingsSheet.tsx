@@ -70,11 +70,11 @@ function Stepper({ value, min, max, onChange, label }: { value: number; min: num
     <View style={styles.stepperRow}>
       <Text style={styles.stepperLabel} numberOfLines={1}>{label}</Text>
       <View style={styles.stepper}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Decrease ${label}`} onPress={() => step(-1)} style={({ pressed }) => [styles.stepBtn, pressed && pressedFeedback]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Decrease ${label}`} accessibilityState={{ disabled: value <= min }} disabled={value <= min} onPress={() => step(-1)} style={({ pressed }) => [styles.stepBtn, pressed && pressedFeedback]}>
           <Text style={[styles.stepGlyph, { color: value <= min ? theme.textDisabled : theme.ink }]}>−</Text>
         </Pressable>
         <Text style={styles.stepValue}>{value === 0 ? '—' : value}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Increase ${label}`} onPress={() => step(1)} style={({ pressed }) => [styles.stepBtn, pressed && pressedFeedback]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Increase ${label}`} accessibilityState={{ disabled: value >= max }} disabled={value >= max} onPress={() => step(1)} style={({ pressed }) => [styles.stepBtn, pressed && pressedFeedback]}>
           <Text style={[styles.stepGlyph, { color: value >= max ? theme.textDisabled : theme.ink }]}>+</Text>
         </Pressable>
       </View>
@@ -372,7 +372,7 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   segmentText: { ...typeScale.label, fontWeight: '600' },
   stepperRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 },
   stepperLabel: { flex: 1, color: theme.ink, ...typeScale.label },
-  stepper: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surface, borderRadius: 999 },
+  stepper: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surface, borderRadius: 999, overflow: 'hidden' },
   stepBtn: { width: 40, height: 38, alignItems: 'center', justifyContent: 'center' },
   stepGlyph: { fontSize: 20, fontWeight: '700', lineHeight: 22 },
   stepValue: { minWidth: 26, textAlign: 'center', color: theme.ink, fontVariant: ['tabular-nums'], ...typeScale.controlLabel },

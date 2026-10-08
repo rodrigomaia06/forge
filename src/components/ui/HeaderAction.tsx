@@ -75,6 +75,15 @@ export function HeaderAction({
   // the same feel on every device — no native Liquid Glass. Primary CTAs keep their
   // solid fill; destructive/success keep their semantic surfaces.
   const frosted = iconOnly && tone === 'neutral' && variant !== 'primary';
+  const surfaceStyle = [styles.base, styles.iconOnly, styles.frostedCircle, style];
+  const surface = StyleSheet.flatten<ViewStyle>(surfaceStyle);
+  const layerShape = {
+    borderRadius: surface.borderRadius,
+    borderTopLeftRadius: surface.borderTopLeftRadius,
+    borderTopRightRadius: surface.borderTopRightRadius,
+    borderBottomLeftRadius: surface.borderBottomLeftRadius,
+    borderBottomRightRadius: surface.borderBottomRightRadius,
+  };
   const control = (
     <Button
       accessibilityLabel={accessibilityLabel}
@@ -103,14 +112,13 @@ export function HeaderAction({
         // On a frosted control the frost is the surface, so the caller's tonal fill is
         // dropped; otherwise the caller style (incl. background) applies as before.
         !frosted && style,
+        frosted && layerShape,
         isBorderlessSheetCircle && styles.borderlessDarkCircle,
       ]}
     />
   );
   if (frosted) {
-    const surfaceStyle = [styles.base, styles.iconOnly, styles.frostedCircle, style];
     // Backdrop filters need their own mask inside transformed web sheets.
-    const layerShape = { borderRadius: StyleSheet.flatten<ViewStyle>(surfaceStyle).borderRadius };
     return (
       <View style={surfaceStyle}>
         <BlurView

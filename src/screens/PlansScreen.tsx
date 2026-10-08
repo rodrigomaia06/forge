@@ -1016,7 +1016,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     dragRail: { width: 34, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', marginLeft: -6 },
     planEditTitle: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
     planMove: { width: 36, marginLeft: -2, marginRight: 6, alignItems: 'center', justifyContent: 'center' },
-    planMoveButton: { height: 24, alignItems: 'center', justifyContent: 'center' },
+    planMoveButton: { height: 24, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
     flipUp: { transform: [{ rotate: '180deg' }] },
     plansTitleEdit: { marginTop: 22, marginBottom: 12 },
     content: {

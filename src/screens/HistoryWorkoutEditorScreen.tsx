@@ -1,4 +1,5 @@
-import { ForgePressable as Pressable } from '../components/ui/ForgePressable';
+import { scaleUI } from '../theme/scale';
+import { centeredPressFeedback, ForgePressable as Pressable } from '../components/ui/ForgePressable';
 import { ForgeSheetScrollView } from '../components/ui/ForgeSheetScrollView';
 import { makeWorkoutId } from '../state/workoutMutations';
 import { changeExerciseTracking } from '../domain/exercises/trackingChanges';
@@ -890,6 +891,7 @@ function WorkoutExerciseDragHandle({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Drag to reorder ${name}`}
+      pressFeedbackStyle={centeredPressFeedback(scaleUI(28), scaleUI(14), scaleUI(40))}
       accessibilityHint="Hold, then drag to change exercise order"
       disabled={disabled}
       delayLongPress={180}

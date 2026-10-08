@@ -1,4 +1,5 @@
-import { ForgePressable as Pressable } from './ForgePressable';
+import { scaleUI } from '../../theme/scale';
+import { centeredPressFeedback, ForgePressable as Pressable } from './ForgePressable';
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
@@ -48,6 +49,7 @@ export function ForgeSearchField({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Clear search"
+          pressFeedbackStyle={centeredPressFeedback(scaleUI(28), scaleUI(14))}
           onPress={() => onChangeText('')}
           hitSlop={14}
         >
