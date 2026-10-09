@@ -362,6 +362,22 @@ for (const appearance of ['light', 'dark'] as const) {
       before,
     );
   });
+  test(`${appearance} shows Strive database import availability beside CSV sources`, async ({
+    page,
+  }, info) => {
+    await open(page, appearance);
+    const source = page.getByTestId('csv-source-icon-strive');
+    await source.scrollIntoViewIfNeeded();
+    await expect(source).toBeVisible();
+    const backup = page.getByRole('button', { name: 'Choose Strive backup', exact: true });
+    await backup.scrollIntoViewIfNeeded();
+    await expect(backup).toBeDisabled();
+    await expect(
+      page.getByText(/Completed workouts only. Available in the iOS and Android app/),
+    ).toBeVisible();
+    await capture(page, info, 'strive-backup-availability');
+    await expect(page.getByRole('button', { name: 'Choose CSV file', exact: true })).toBeEnabled();
+  });
   test(`${appearance} shows source icons for each supported CSV format`, async ({ page }, info) => {
     await open(page, appearance);
     const sources = [

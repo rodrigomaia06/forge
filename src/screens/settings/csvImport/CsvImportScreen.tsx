@@ -24,6 +24,8 @@ import { useExerciseCatalog } from '../../../state/ExerciseCatalogContext';
 import { useWorkouts } from '../../../state/WorkoutContext';
 import { SettingsDetailHeader } from '../SettingsScreenChrome';
 import { pickWorkoutCsv } from '../../../data/pickWorkoutCsv';
+import { pickStriveBackup } from '../../../data/pickStriveBackup';
+import { parseStriveSnapshotAsync, type StriveSnapshot } from '../../../data/striveImport';
 import { parseWorkoutCsvAsync } from '../../../data/csvImport/parse';
 import { AddExerciseSheet } from '../../activeWorkout/WorkoutSheets';
 import { csvSessionChanges } from '../../../data/csvImport/changes';
@@ -48,6 +50,7 @@ import { CsvImportRow, CsvImportSummary, type CsvReviewRow as Row } from './CsvI
 import { CsvSourceHeading } from './CsvSourceHeading';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CsvImport'>;
+type ImportFile = { name: string; text: string } | { name: string; snapshot: StriveSnapshot };
 type Stage = 'file' | 'detected' | 'matches' | 'sessions' | 'result';
 type Choice = {
   title: string;
@@ -64,7 +67,7 @@ export function CsvImportScreen({ navigation }: Props) {
   const { exercises, reload: reloadExercises } = useExerciseCatalog();
   const { completedWorkouts, reload: reloadWorkouts } = useWorkouts();
   const [stage, setStage] = useState<Stage>('file');
-  const [file, setFile] = useState<{ name: string; text: string } | null>(null);
+  const [file, setFile] = useState<ImportFile | null>(null);
   const [draft, setDraft] = useState<CsvDraft | null>(null);
   const [options, setOptions] = useState<CsvOptions>({});
   const [resolutions, setResolutions] = useState<ExerciseResolution[]>([]);
@@ -220,8 +223,11 @@ export function CsvImportScreen({ navigation }: Props) {
       previousFocus?.focus();
     };
   }, [confirm, choice]);
-  async function analyze(picked: { name: string; text: string }, nextOptions: CsvOptions) {
-    const parsed = await parseWorkoutCsvAsync(picked.text, nextOptions);
+  async function analyze(picked: ImportFile, nextOptions: CsvOptions) {
+    const parsed =
+      'snapshot' in picked
+        ? await parseStriveSnapshotAsync(picked.snapshot, nextOptions)
+        : await parseWorkoutCsvAsync(picked.text, nextOptions);
     const mappings = await loadCsvMappings();
     setSavedMappings(mappings);
     setDraft(parsed);
@@ -233,12 +239,13 @@ export function CsvImportScreen({ navigation }: Props) {
     setOptions(nextOptions);
     setStage('detected');
   }
-  async function chooseFile() {
+  async function chooseFile(strive = false) {
     if (lock.current) return;
     lock.current = true;
     setError('');
     try {
-      const picked = await pickWorkoutCsv();
+      if (strive) setBusy(true);
+      const picked = strive ? await pickStriveBackup() : await pickWorkoutCsv();
       if (!picked) return;
       setBusy(true);
       await new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -246,9 +253,7 @@ export function CsvImportScreen({ navigation }: Props) {
       setFile(picked);
     } catch (failure) {
       setError(
-        failure instanceof Error
-          ? failure.message
-          : 'Could not read the CSV. Choose the file again.',
+        failure instanceof Error ? failure.message : 'Could not read the file. Choose it again.',
       );
     } finally {
       lock.current = false;
@@ -355,15 +360,21 @@ export function CsvImportScreen({ navigation }: Props) {
               { value: 'day-first', label: 'Day / month / year' },
               { value: 'month-first', label: 'Month / day / year' },
             ]
-          : requirement === 'weightUnit'
+          : requirement === 'durationUnit'
             ? [
-                { value: 'kg', label: 'Kilograms (kg)' },
-                { value: 'lb', label: 'Pounds (lb)' },
+                { value: 'sec', label: 'Seconds' },
+                { value: 'min', label: 'Minutes' },
               ]
-            : [
-                { value: 'km', label: 'Kilometres (km)' },
-                { value: 'mi', label: 'Miles (mi)' },
-              ];
+            : requirement === 'weightUnit'
+              ? [
+                  { value: 'kg', label: 'Kilograms (kg)' },
+                  { value: 'lb', label: 'Pounds (lb)' },
+                ]
+              : [
+                  ...(draft.source === 'strive' ? [{ value: 'm', label: 'Metres (m)' }] : []),
+                  { value: 'km', label: 'Kilometres (km)' },
+                  { value: 'mi', label: 'Miles (mi)' },
+                ];
       rows.push({
         key: requirement,
         icon: 'alert-triangle',
@@ -371,10 +382,12 @@ export function CsvImportScreen({ navigation }: Props) {
         title:
           requirement === 'dateOrder'
             ? 'Choose date order'
-            : requirement === 'weightUnit'
-              ? 'Choose source weight unit'
-              : 'Choose source distance unit',
-        detail: 'The CSV does not specify this unambiguously.',
+            : requirement === 'durationUnit'
+              ? 'Choose duration unit'
+              : requirement === 'weightUnit'
+                ? 'Choose source weight unit'
+                : 'Choose source distance unit',
+        detail: 'The source file does not specify this unambiguously.',
         onPress: () =>
           setChoice({
             title: requirement === 'dateOrder' ? 'Date order' : 'Source unit',
@@ -398,7 +411,7 @@ export function CsvImportScreen({ navigation }: Props) {
       rows.push({
         key: `issue-${issue.row}-${issue.field}`,
         icon: 'alert-triangle',
-        title: `Row ${issue.row} · ${issue.field}`,
+        title: `${draft.source === 'strive' ? 'Record' : 'Row'} ${issue.row} · ${issue.field}`,
         detail: issue.message,
       });
   }
@@ -454,10 +467,10 @@ export function CsvImportScreen({ navigation }: Props) {
           inset: true,
           detail:
             choices[workout.id] === 'replace'
-              ? 'The CSV version will replace this workout.'
+              ? `The ${draft?.source === 'strive' ? 'backup' : 'CSV'} version will replace this workout.`
               : choices[workout.id] === 'both'
                 ? 'Both versions will be kept.'
-                : 'The CSV version will be skipped.',
+                : `The ${draft?.source === 'strive' ? 'backup' : 'CSV'} version will be skipped.`,
           icon:
             choices[workout.id] === 'replace'
               ? 'replace'
@@ -493,7 +506,7 @@ export function CsvImportScreen({ navigation }: Props) {
               key: `${workout.id}-change-${index}`,
               inset: true,
               title: change.label,
-              detail: `On device: ${change.before}\nCSV: ${change.after}`,
+              detail: `On device: ${change.before}\n${draft?.source === 'strive' ? 'Strive' : 'CSV'}: ${change.after}`,
             });
       }
     }
@@ -590,8 +603,8 @@ export function CsvImportScreen({ navigation }: Props) {
                 <>
                   <Text style={styles.heading}>Bring your workout history</Text>
                   <Text style={styles.copy}>
-                    Choose a CSV export. Review its exercises and sessions before adding anything to
-                    Forge.
+                    Choose a CSV export or Strive database backup. Review its exercises and sessions
+                    before adding anything to Forge.
                   </Text>
                   <ForgeCard size="compact">
                     {(
@@ -604,9 +617,14 @@ export function CsvImportScreen({ navigation }: Props) {
                           'FitNotes iOS',
                           'Export a CSV with Date, Exercise and Weight columns.',
                         ],
+                        [
+                          'strive',
+                          'Strive',
+                          'Choose an exported .db or .sqlite backup (schema 85). Completed workouts only. Available in the iOS and Android app.',
+                        ],
                       ] as const
                     ).map(([source, title, detail], index) => (
-                      <View key={source} style={[styles.sourceRow, index < 3 && styles.divider]}>
+                      <View key={source} style={[styles.sourceRow, index < 4 && styles.divider]}>
                         <CsvSourceHeading source={source} title={title} />
                         <Text style={styles.copy}>{detail}</Text>
                       </View>
@@ -621,6 +639,15 @@ export function CsvImportScreen({ navigation }: Props) {
                     }}
                     disabled={busy}
                   />
+                  <Button
+                    label="Choose Strive backup"
+                    icon="database-import"
+                    variant="outline"
+                    disabled={busy || Platform.OS === 'web'}
+                    onPress={() => {
+                      void chooseFile(true);
+                    }}
+                  />
                   {file ? (
                     <Button
                       label="Resume review"
@@ -634,7 +661,11 @@ export function CsvImportScreen({ navigation }: Props) {
                 <>
                   <CsvSourceHeading
                     source={draft.source}
-                    title={`${sourceLabels[draft.source]} CSV detected`}
+                    title={
+                      draft.source === 'strive'
+                        ? 'Strive backup detected'
+                        : `${sourceLabels[draft.source]} CSV detected`
+                    }
                     detected
                   />
                   <Text style={styles.copy}>{file?.name}</Text>
