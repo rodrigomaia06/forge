@@ -31,7 +31,7 @@
         ></a
       >
       <nav aria-label="Main navigation">
-        <a href="./#screens">Explore</a><a href="support.html">Support</a
+        <a href="./#screens">Screenshots</a><a href="support.html">Support</a
         ><a href="privacy.html">Privacy</a
         ><button class="theme-button" type="button" aria-label="Switch to dark theme">
           Dark theme
@@ -40,8 +40,24 @@
     </header>
     <main id="main">
       <section class="hero shell">
+        <div class="hero-art" aria-hidden="true">
+          <svg viewBox="0 0 1440 800" preserveAspectRatio="xMidYMid slice" focusable="false">
+            <defs>
+              <linearGradient id="ribbon" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="var(--ribbon-shadow)" />
+                <stop offset="0.55" stop-color="var(--ribbon-light)" />
+                <stop offset="1" stop-color="var(--ribbon-shadow)" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M510 -160 V-25 Q510 40 575 40 H615 Q680 40 680 105 V135 Q680 195 745 195 H1080"
+            />
+            <path d="M-180 650 H165 Q230 650 230 715 V750 Q230 815 295 815 H555" />
+            <path d="M1550 395 H1390 Q1325 395 1325 460 V540 Q1325 605 1260 605 H1185" />
+          </svg>
+        </div>
         <div class="hero-copy">
-          <h1>Your training.<br />Your journal.</h1>
+          <h1>A place for<br />all your <span>training.</span></h1>
           <p>
             Log strength, cardio and mobility. Build routines, review your progress, and keep your
             workouts on your device.
@@ -49,14 +65,26 @@
           <a class="button primary" href="#install">Get Forge</a>
         </div>
         <div class="hero-visual">
-          <img
-            src="assets/live-workout-dark.webp"
-            data-screen="live-workout"
-            width="1260"
-            height="2157"
-            fetchpriority="high"
-            alt="Forge live workout with a barbell bench press session"
-          />
+          <div class="phone-preview">
+            <div class="phone-screen">
+              <img
+                src="assets/live-workout-dark.webp"
+                data-screen="live-workout"
+                width="1260"
+                height="2157"
+                fetchpriority="high"
+                alt="Forge live workout with a barbell bench press session"
+              />
+            </div>
+            <img
+              class="phone-hand"
+              src="assets/hero-hand.webp"
+              width="1024"
+              height="1536"
+              alt=""
+              fetchpriority="high"
+            />
+          </div>
         </div>
       </section>
       <section class="intro shell">
