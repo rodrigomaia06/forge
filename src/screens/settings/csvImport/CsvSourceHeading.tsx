@@ -12,6 +12,7 @@ const sourceIcons: Record<CsvSource, IconName> = {
   strong: 'brand-strong',
   fitnotes: 'brand-fitnotes',
   'fitnotes-ios': 'brand-fitnotes-ios',
+  strive: 'database-import',
 };
 
 export function CsvSourceHeading({

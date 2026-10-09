@@ -79,7 +79,7 @@ export interface ExerciseSnapshot { id?: string; name: string; catalogueVersion?
 
 export interface Workout {
   importSource?: {
-    source: 'hevy' | 'strong' | 'fitnotes' | 'fitnotes-ios';
+    source: 'hevy' | 'strong' | 'fitnotes' | 'fitnotes-ios' | 'strive';
     sessionKey: string;
     fingerprint: string;
     dateOnly?: boolean;

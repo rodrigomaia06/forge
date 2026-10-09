@@ -1,17 +1,19 @@
 import type { Workout, TrackingType } from '../../types';
 import type { ExerciseCatalogItem } from '../exerciseCatalog';
 
-export type CsvSource = 'hevy' | 'strong' | 'fitnotes' | 'fitnotes-ios';
+export type CsvSource = 'hevy' | 'strong' | 'fitnotes' | 'fitnotes-ios' | 'strive';
 export const sourceLabels: Record<CsvSource, string> = {
   hevy: 'Hevy',
   strong: 'Strong',
   fitnotes: 'FitNotes Android',
   'fitnotes-ios': 'FitNotes iOS',
+  strive: 'Strive',
 };
 export interface CsvOptions {
   dateOrder?: 'day-first' | 'month-first';
   weightUnit?: 'kg' | 'lb';
-  distanceUnit?: 'km' | 'mi';
+  distanceUnit?: 'km' | 'mi' | 'm';
+  durationUnit?: 'sec' | 'min';
 }
 export interface CsvIssue {
   row: number;
@@ -24,7 +26,7 @@ export interface CsvDraft {
   workouts: Workout[];
   issues: CsvIssue[];
   excluded: number;
-  requirements: Array<'dateOrder' | 'weightUnit' | 'distanceUnit'>;
+  requirements: Array<'dateOrder' | 'weightUnit' | 'distanceUnit' | 'durationUnit'>;
   limitations: string[];
 }
 export interface ExerciseResolution {
