@@ -1,7 +1,14 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import * as SQLite from 'expo-sqlite';
-import { striveTables, type StriveSnapshot, type StriveRow } from './striveImport';
+import {
+  striveTables,
+  striveColumns,
+  requiredStriveColumns,
+  requiredStriveTables,
+  type StriveSnapshot,
+  type StriveRow,
+} from './striveImport';
 
 export async function pickStriveBackup(): Promise<{
   name: string;
@@ -31,26 +38,42 @@ export async function pickStriveBackup(): Promise<{
     if (integrity.length !== 1 || Object.values(integrity[0])[0] !== 'ok')
       throw new Error('The Strive backup failed integrity checks. Export a fresh backup.');
     const version = await database.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
-    if (version?.user_version !== 85)
-      throw new Error(
-        'Choose a Strive schema version 85 backup. Other database versions are not supported yet.',
-      );
     const tables = {} as StriveSnapshot['tables'];
     for (const table of striveTables) {
       const entry = await database.getFirstAsync<{ type: string }>(
         'SELECT type FROM sqlite_master WHERE name = ?',
         table,
       );
+      if (!entry && !(requiredStriveTables as readonly string[]).includes(table)) {
+        tables[table] = [];
+        continue;
+      }
       if (entry?.type !== 'table')
         throw new Error(`The Strive backup is missing the ${table} table.`);
+      const schema = await database.getAllAsync<{ name: string }>(`PRAGMA table_info(${table})`);
+      const columns = new Set(schema.map((column) => column.name));
+      const missing = requiredStriveColumns[table]?.find((column) => !columns.has(column));
+      if (
+        missing ||
+        (table === 'exercises' &&
+          !['name_en', 'name_pl', 'name'].some((column) => columns.has(column)))
+      )
+        throw new Error(
+          `The Strive backup is missing a required ${table} field: ${missing ?? 'exercise name'}.`,
+        );
       const count = await database.getFirstAsync<{ count: number }>(
         `SELECT COUNT(*) AS count FROM ${table}`,
       );
       if (!count || count.count > 100000)
         throw new Error('This Strive backup has too many records for one import.');
-      tables[table] = await database.getAllAsync<StriveRow>(`SELECT * FROM ${table}`);
+      const selected = striveColumns[table].filter((column) => columns.has(column));
+      tables[table] = selected.length
+        ? await database.getAllAsync<StriveRow>(
+            `SELECT ${selected.map((column) => `"${column}"`).join(', ')} FROM ${table}`,
+          )
+        : [];
     }
-    return { name: asset.name, snapshot: { version: version.user_version, tables } };
+    return { name: asset.name, snapshot: { version: version?.user_version ?? 0, tables } };
   } catch (error) {
     // Native errors may contain file paths or query internals; expose only our validation messages.
     if (

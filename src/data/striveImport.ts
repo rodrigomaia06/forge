@@ -11,6 +11,64 @@ import { trackingFields } from '../domain/exercises/tracking';
 import { csvId } from './csvImport/parse';
 
 export type StriveRow = Record<string, unknown>;
+export const striveColumns = {
+  routine_logs: ['id', 'name', 'started_at', 'ended_at'],
+  routine_exercise_logs: ['id', 'routine_log_id', 'exercise_id', 'order', 'superset_with'],
+  routine_exercise_set_logs: [
+    'routine_log_id',
+    'routine_exercise_log_id',
+    'exercise_id',
+    'order',
+    'reps',
+    'weight',
+    'distance',
+    'type',
+    'is_weight_unit_metric',
+    'is_distance_unit_metric',
+    'rpe',
+  ],
+  exercises: ['id', 'name_en', 'name_pl', 'name', 'category'],
+  routine_notes: ['id', 'owner_id', 'pinned', 'note', 'created_at'],
+  routine_exercise_notes: ['id', 'owner_id', 'type', 'note', 'created_at'],
+  routines: ['id', 'name', 'description', 'deleted_at', 'created_at'],
+  routine_exercises: ['id', 'routine_id', 'exercise_id', 'order', 'superset_with'],
+  routine_exercise_sets: [
+    'routine_id',
+    'routine_exercise_id',
+    'exercise_id',
+    'order',
+    'reps',
+    'weight',
+    'distance',
+    'type',
+    'is_weight_unit_metric',
+    'is_distance_unit_metric',
+    'rpe',
+    'reps_min',
+    'reps_max',
+  ],
+} as const;
+export const requiredStriveColumns: Partial<Record<keyof typeof striveColumns, readonly string[]>> =
+  {
+    routine_logs: ['id', 'name', 'started_at', 'ended_at'],
+    routine_exercise_logs: ['id', 'routine_log_id', 'exercise_id', 'order'],
+    routine_exercise_set_logs: [
+      'routine_log_id',
+      'routine_exercise_log_id',
+      'exercise_id',
+      'order',
+    ],
+    exercises: ['id'],
+    routines: ['id', 'name', 'created_at'],
+    routine_exercises: ['id', 'routine_id', 'exercise_id', 'order'],
+    routine_exercise_sets: ['routine_id', 'routine_exercise_id', 'exercise_id', 'order'],
+  };
+export const requiredStriveTables = [
+  'routine_logs',
+  'routine_exercise_logs',
+  'routine_exercise_set_logs',
+  'exercises',
+] as const;
 export const striveTables = [
   'routine_logs',
   'routine_exercise_logs',
@@ -57,6 +115,45 @@ function metadata(row: StriveRow): Record<string, string> {
       .map((key) => [key, String(row[key])]),
   );
 }
+export function normalizeStriveSnapshot(snapshot: StriveSnapshot): StriveSnapshot {
+  const tables = {} as StriveSnapshot['tables'];
+  for (const table of striveTables) {
+    const source = snapshot.tables[table];
+    if (!Array.isArray(source) && (requiredStriveTables as readonly string[]).includes(table))
+      throw new Error(`The Strive backup is missing ${table}.`);
+    tables[table] = (Array.isArray(source) ? source : []).map((row) =>
+      Object.fromEntries(
+        striveColumns[table]
+          .filter((column) => Object.hasOwn(row, column))
+          .map((column) => [column, row[column]]),
+      ),
+    );
+    for (const row of tables[table]) {
+      if (table === 'exercises') row.name_en = text(row.name_en).trim() || text(row.name);
+      if (table === 'routines' && row.deleted_at === undefined) row.deleted_at = null;
+      if (table.endsWith('_sets') || table === 'routine_exercise_set_logs') {
+        if (!Object.hasOwn(tags, text(row.type))) row.type = 'none';
+        if (typeof row.rpe !== 'number' || !Number.isFinite(row.rpe) || row.rpe < 0 || row.rpe > 10)
+          delete row.rpe;
+        if (
+          row.weight !== undefined &&
+          row.weight !== null &&
+          row.is_weight_unit_metric === undefined
+        ) {
+          delete row.weight;
+        }
+        if (
+          row.distance !== undefined &&
+          row.distance !== null &&
+          row.is_distance_unit_metric === undefined
+        ) {
+          delete row.distance;
+        }
+      }
+    }
+  }
+  return { version: snapshot.version, tables };
+}
 function stable(row: StriveRow): string {
   return JSON.stringify(metadata(row));
 }
@@ -95,10 +192,6 @@ function* parseStriveChunks(
   options: CsvOptions,
   templates = false,
 ): Generator<void, CsvDraft> {
-  if (snapshot.version !== 85)
-    throw new Error(
-      `Strive database version ${snapshot.version} is not supported. This importer supports version 85.`,
-    );
   for (const table of striveTables)
     if (!Array.isArray(snapshot.tables[table]))
       throw new Error(`The Strive backup is missing ${table}.`);
@@ -123,8 +216,8 @@ function* parseStriveChunks(
     requirements: [],
     limitations: [
       'Imports workout history and active routines as standalone routines. Plan schedules, deleted routines, measurements, preferences, photos and personal-record tables are not imported.',
-      'Routine rep ranges are kept as planned targets. Plan schedules and progression-rule tables are not imported. Set/log deload flags, training-max percentages and rest-timer settings remain metadata rather than enabled automation.',
-      'Strive-only set types, calories, timers and training-max percentages are retained as source metadata. Forge does not interpret them as recorded measurements.',
+      'Durations are imported in seconds. Metric distances use kilometres and imperial distances use miles. Routine rep ranges remain planned targets.',
+      'Unknown columns, unsupported set types, calories, timers, training-max percentages and progression automation are ignored. Values without a known unit are omitted.',
       'Exercise names use the English catalogue label, falling back to Polish. Archived exercises used in recorded workouts remain importable.',
     ],
   };
@@ -140,21 +233,6 @@ function* parseStriveChunks(
     throw new Error(
       'The Strive backup contains orphaned workout records. Repair or re-export it before importing.',
     );
-  const needsDuration = t.routine_exercise_logs.some(
-    (block) =>
-      catalog.get(text(block.exercise_id))?.[0]?.category === 'duration' &&
-      (sets.get(text(block.id)) ?? []).some((set) =>
-        [set.reps, ...(templates ? [set.reps_min, set.reps_max] : [])].some(
-          (value) => value !== null && value !== undefined,
-        ),
-      ),
-  );
-  if (needsDuration && !options.durationUnit) draft.requirements.push('durationUnit');
-  const needsDistance = t.routine_exercise_set_logs.some(
-    (set) => typeof set.distance === 'number' && set.distance !== 0,
-  );
-  if (needsDistance && !options.distanceUnit) draft.requirements.push('distanceUnit');
-  if (draft.requirements.length) return draft;
   let ordinal = 0;
   for (const [sourceId, candidates] of logs) {
     const rowNumber = ++ordinal;
@@ -263,20 +341,7 @@ function* parseStriveChunks(
           const distance = number(set.distance, 'Distance');
           if (distance !== undefined && distance !== 0) {
             const metric = flag(set.is_distance_unit_metric, 'Distance unit');
-            if (metric === (options.distanceUnit === 'mi'))
-              throw new Error(
-                'The chosen distance unit disagrees with this set. Review the source units before importing.',
-              );
-            add(
-              'distance',
-              'km',
-              distance *
-                (options.distanceUnit === 'mi'
-                  ? 1.609344
-                  : options.distanceUnit === 'm'
-                    ? 0.001
-                    : 1),
-            );
+            add('distance', 'km', distance * (metric ? 1 : 1.609344));
           }
           const rpe = number(set.rpe, 'RPE');
           if (rpe !== undefined && (rpe < 0 || rpe > 10))
@@ -494,6 +559,8 @@ function combineDrafts(history: CsvDraft, templates: CsvDraft): CsvDraft {
 }
 
 export function parseStriveSnapshot(snapshot: StriveSnapshot, options: CsvOptions = {}): CsvDraft {
+  snapshot = normalizeStriveSnapshot(snapshot);
+  options = { ...options, durationUnit: 'sec', distanceUnit: undefined };
   const chunks = parseStriveChunks(snapshot, options);
   let next = chunks.next();
   while (!next.done) next = chunks.next();
@@ -507,6 +574,8 @@ export async function parseStriveSnapshotAsync(
   snapshot: StriveSnapshot,
   options: CsvOptions = {},
 ): Promise<CsvDraft> {
+  snapshot = normalizeStriveSnapshot(snapshot);
+  options = { ...options, durationUnit: 'sec', distanceUnit: undefined };
   const chunks = parseStriveChunks(snapshot, options);
   let next = chunks.next();
   while (!next.done) {

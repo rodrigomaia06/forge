@@ -139,7 +139,7 @@ test('Strive imports active standalone routines with blank prescribed sets, rang
     weight: '',
     reps: '',
     plannedTargets: [{ kind: 'reps', minValue: 6, maxValue: 10 }],
-    importMetadata: { timer: '90' },
+    importMetadata: { type: 'normal' },
   });
   const workout = createWorkout({
     name: routine.name,
@@ -224,7 +224,7 @@ test('Strive routines share exercise resolution and conflicts while preserving e
   ).toThrow(/changed during review/);
   expect(prepareCsvCommit({ ...request, selected: [] }, [], [], []).routineWrites).toEqual([]);
 });
-test('Strive excludes an invalid routine completely and requires units for duration ranges', () => {
+test('Strive excludes an invalid routine completely and uses seconds for duration ranges', () => {
   const source = withRoutine();
   source.tables.routine_exercise_sets[0].reps_min = 20;
   expect(parseStriveSnapshot(source)).toMatchObject({
@@ -234,11 +234,11 @@ test('Strive excludes an invalid routine completely and requires units for durat
   });
   source.tables.exercises[0].category = 'duration';
   source.tables.routine_exercise_sets[0].reps_min = 1;
-  expect(parseStriveSnapshot(source).requirements).toContain('durationUnit');
+  expect(parseStriveSnapshot(source).requirements).toEqual([]);
   expect(
     parseStriveSnapshot(source, { durationUnit: 'min' }).routines![0].exercises[0].sets![0]
       .plannedTargets![0],
-  ).toMatchObject({ minValue: 60, maxValue: 600, unit: 'sec' });
+  ).toMatchObject({ minValue: 1, maxValue: 10, unit: 'sec' });
 });
 test('Strive preserves seconds dates, pounds, ordering, notes, set types and source metadata', () => {
   const source = snapshot();
@@ -262,21 +262,19 @@ test('Strive preserves seconds dates, pounds, ordering, notes, set types and sou
     workout.exercises[0].sets[0].measurements?.find((entry) => entry.kind === 'weight')?.value,
   ).toBeCloseTo(45.359237);
   expect(workout.exercises[0].sets[1].tag).toBeUndefined();
-  expect(workout.exercises[0].sets[1].importMetadata).toMatchObject({
-    type: 'myo',
-    timer: '60',
-    kcal: '12',
-    'workout.plan_id': 'source-plan',
-  });
+  expect(workout.exercises[0].sets[1].importMetadata?.type).toBe('none');
+  expect(workout.exercises[0].sets[1].importMetadata?.timer).toBeUndefined();
+  expect(workout.exercises[0].sets[1].importMetadata?.kcal).toBeUndefined();
+  expect(workout.exercises[0].sets[1].importMetadata?.['workout.plan_id']).toBeUndefined();
 });
-test('Strive requires explicit duration and distance units and preserves bodyweight loading', () => {
+test('Strive uses seconds and source distance flags and preserves bodyweight loading', () => {
   const source = snapshot(),
     exercise = source.tables.exercises[0],
     set = source.tables.routine_exercise_set_logs[0];
   exercise.category = 'duration';
   set.reps = 300;
   set.weight = 0;
-  expect(parseStriveSnapshot(source).requirements).toEqual(['durationUnit']);
+  expect(parseStriveSnapshot(source).requirements).toEqual([]);
   const seconds = parseStriveSnapshot(source, { durationUnit: 'sec' });
   expect(seconds.workouts[0].exercises[0].trackingType).toBe('duration');
   expect(
@@ -289,7 +287,7 @@ test('Strive requires explicit duration and distance units and preserves bodywei
       durationUnit: 'min',
     }).workouts[0].exercises[0].sets[0].measurements?.find((entry) => entry.kind === 'duration')
       ?.value,
-  ).toBe(18000);
+  ).toBe(300);
   exercise.category = 'weigtedBodyweight';
   set.weight = 20;
   const loaded = parseStriveSnapshot(source);
@@ -301,24 +299,29 @@ test('Strive requires explicit duration and distance units and preserves bodywei
   ).toBe(true);
   exercise.category = 'duration';
   set.weight = 0;
-  set.distance = 500;
-  expect(parseStriveSnapshot(source, { durationUnit: 'sec' }).requirements).toEqual([
-    'distanceUnit',
-  ]);
+  set.distance = 0.5;
+  expect(parseStriveSnapshot(source).requirements).toEqual([]);
   const distance = parseStriveSnapshot(source, { durationUnit: 'sec', distanceUnit: 'm' });
+  expect(distance.workouts[0].importSource?.fingerprint).toBe(
+    parseStriveSnapshot(source).workouts[0].importSource?.fingerprint,
+  );
   expect(distance.workouts[0].exercises[0].trackingType).toBe('distance-duration');
   expect(
     distance.workouts[0].exercises[0].sets[0].measurements?.find(
       (entry) => entry.kind === 'distance',
     )?.value,
   ).toBe(0.5);
-  expect(parseStriveSnapshot(source, { durationUnit: 'sec', distanceUnit: 'mi' }).excluded).toBe(1);
+  set.is_distance_unit_metric = 0;
+  expect(
+    parseStriveSnapshot(source).workouts[0].exercises[0].sets[0].measurements?.find(
+      (entry) => entry.kind === 'distance',
+    )?.value,
+  ).toBeCloseTo(0.804672);
 });
-test('Strive excludes entire invalid workouts and rejects orphaned data and unsupported schemas', () => {
+test('Strive excludes entire invalid workouts and rejects orphaned data and accepts compatible schema versions', () => {
   for (const patch of [
     { weight: -1 },
     { reps: 1.5 },
-    { rpe: 11 },
     { exercise_id: 'missing' },
     { is_weight_unit_metric: 2 },
   ]) {
@@ -333,7 +336,8 @@ test('Strive excludes entire invalid workouts and rejects orphaned data and unsu
   source.tables.routine_exercise_set_logs[0].routine_exercise_log_id = 'missing';
   expect(() => parseStriveSnapshot(source)).toThrow(/orphaned/);
   source.version = 86;
-  expect(() => parseStriveSnapshot(source)).toThrow(/version 86/);
+  source.tables.routine_exercise_set_logs[0].routine_exercise_log_id = 'block';
+  expect(parseStriveSnapshot(source).workouts).toHaveLength(1);
   const empty = snapshot();
   for (const table of striveTables) empty.tables[table] = [];
   expect(parseStriveSnapshot(empty).workouts).toEqual([]);
@@ -429,4 +433,31 @@ test('Strive large-history parsing yields to user input and fingerprints ignore 
   expect(
     reordered.workouts.find((workout) => workout.id === draft.workouts[0].id)?.importSource,
   ).toEqual(draft.workouts[0].importSource);
+});
+
+test('Strive ignores unknown version fields and absent optional tables without unit questions', () => {
+  const source = snapshot();
+  const baseline = parseStriveSnapshot(source);
+  source.version = 120;
+  source.tables.routine_logs[0].new_feature = 'unknown';
+  source.tables.routine_exercise_set_logs[0].future_measurement = 999;
+  source.tables.routine_exercise_set_logs[0].rpe = 'unknown';
+  const newer = parseStriveSnapshot(source);
+  expect(newer.workouts).toHaveLength(1);
+  expect(newer.requirements).toEqual([]);
+  expect(
+    newer.workouts[0].exercises[0].sets[0].measurements?.some((entry) => entry.kind === 'rpe'),
+  ).toBe(false);
+  source.tables.routine_exercise_set_logs[0].rpe = 8.5;
+  expect(parseStriveSnapshot(source).workouts[0].importSource).toEqual(
+    baseline.workouts[0].importSource,
+  );
+  delete (source.tables as Partial<StriveSnapshot['tables']>).routine_notes;
+  delete (source.tables as Partial<StriveSnapshot['tables']>).routine_exercise_notes;
+  delete (source.tables as Partial<StriveSnapshot['tables']>).routines;
+  expect(parseStriveSnapshot(source).workouts[0].note).toBe('');
+  expect(parseStriveSnapshot(source).routines).toEqual([]);
+  const invalid = snapshot();
+  delete invalid.tables.routine_logs[0].started_at;
+  expect(parseStriveSnapshot(invalid).excluded).toBe(1);
 });

@@ -1,5 +1,6 @@
 import type { Workout, WorkoutRoutine } from '../../types';
 import { importReviewRecords, routineReviewRecord, resolvedRoutine } from './routines';
+import { importExerciseMatcher } from './exerciseMatching';
 import type { ExerciseCatalogItem } from '../exerciseCatalog';
 import { contentSignature } from '../importMatch';
 import { createExerciseSnapshot } from '../../domain/exercises/exerciseSnapshot';
@@ -16,26 +17,13 @@ import type {
   CsvImportResult,
 } from './types';
 
-const identity = (text: string) =>
-  text
-    .normalize('NFKD')
-    .replace(/\p{M}/gu, '')
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .trim();
 export function resolveCsvExercises(
   draft: CsvDraft,
   catalog: ExerciseCatalogItem[],
   mappings: CsvMappings,
 ): ExerciseResolution[] {
-  const aliases = new Map<string, ExerciseCatalogItem | null>();
+  const match = importExerciseMatcher(catalog);
   const byId = new Map(catalog.map((exercise) => [exercise.id, exercise]));
-  for (const exercise of catalog)
-    for (const name of [exercise.name, ...exercise.aliases]) {
-      const key = identity(name);
-      if (!aliases.has(key)) aliases.set(key, exercise);
-      else if (aliases.get(key)?.id !== exercise.id) aliases.set(key, null);
-    }
   const resolutions = new Map<string, ExerciseResolution>();
   for (const workout of importReviewRecords(draft))
     for (const exercise of workout.exercises) {
@@ -46,7 +34,7 @@ export function resolveCsvExercises(
         key,
         name: exercise.name,
         trackingType: exercise.trackingType ?? 'weight-reps',
-        exercise: remembered ?? aliases.get(identity(exercise.name)) ?? undefined,
+        exercise: remembered ?? match(exercise.name),
         remembered: Boolean(remembered),
       });
     }

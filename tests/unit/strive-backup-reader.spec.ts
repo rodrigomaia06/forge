@@ -3,7 +3,12 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
-import { striveTables } from '../../src/data/striveImport';
+import {
+  striveTables,
+  striveColumns,
+  requiredStriveColumns,
+  requiredStriveTables,
+} from '../../src/data/striveImport';
 
 test('native Strive reader cancels, uses an isolated query-only database and cleans up after failures', async () => {
   const module = ts.transpileModule(readFileSync(resolve('src/data/pickStriveBackup.ts'), 'utf8'), {
@@ -18,6 +23,8 @@ test('native Strive reader cancels, uses an isolated query-only database and cle
     'header',
     'version',
     'view',
+    'missing-column',
+    'optional-table',
     'oversized',
   ] as const) {
     const deleted: string[] = [],
@@ -54,7 +61,8 @@ test('native Strive reader cancels, uses an isolated query-only database and cle
             }),
           };
         if (name === 'expo-file-system') return { File, Paths: { cache: { uri: 'cache' } } };
-        if (name === './striveImport') return { striveTables };
+        if (name === './striveImport')
+          return { striveTables, striveColumns, requiredStriveColumns, requiredStriveTables };
         if (name === 'expo-sqlite')
           return {
             openDatabaseAsync: async () => ({
@@ -63,15 +71,23 @@ test('native Strive reader cancels, uses an isolated query-only database and cle
               },
               getAllAsync: async (sql: string) => {
                 if (state === 'failure') throw new Error('native private path');
+                if (sql.includes('table_info')) {
+                  const table = sql.match(/table_info\((\w+)\)/)![1] as keyof typeof striveColumns;
+                  return striveColumns[table]
+                    .filter((column) => state !== 'missing-column' || column !== 'started_at')
+                    .map((name) => ({ name }));
+                }
                 return sql.includes('quick_check')
                   ? [{ quick_check: state === 'corrupt' ? 'invalid' : 'ok' }]
                   : [];
               },
-              getFirstAsync: async (sql: string) =>
+              getFirstAsync: async (sql: string, table: string) =>
                 sql.includes('user_version')
                   ? { user_version: state === 'version' ? 86 : 85 }
                   : sql.includes('sqlite_master')
-                    ? { type: state === 'view' ? 'view' : 'table' }
+                    ? state === 'optional-table' && table === 'routine_notes'
+                      ? null
+                      : { type: state === 'view' ? 'view' : 'table' }
                     : { count: 0 },
               closeAsync: async () => {
                 closed = true;
@@ -87,8 +103,11 @@ test('native Strive reader cancels, uses an isolated query-only database and cle
       expect(await pick()).toBeNull();
       expect(deleted).toEqual([]);
     } else {
-      if (state === 'success')
-        expect(await pick()).toMatchObject({ name: 'source.db', snapshot: { version: 85 } });
+      if (state === 'success' || state === 'version' || state === 'optional-table')
+        expect(await pick()).toMatchObject({
+          name: 'source.db',
+          snapshot: { version: state === 'version' ? 86 : 85 },
+        });
       else {
         const failure = await pick().then(
           () => '',
@@ -99,7 +118,7 @@ test('native Strive reader cancels, uses an isolated query-only database and cle
           failure: /Could not read/,
           'read-failure': /Could not read/,
           header: /not a SQLite/,
-          version: /version 85/,
+          'missing-column': /required.*started_at/,
           view: /missing/,
           oversized: /50 MB/,
         };

@@ -62,6 +62,33 @@ async function chooseBench(page: Page, keyboard = false) {
   else await confirm.click();
 }
 for (const appearance of ['light', 'dark'] as const) {
+  test(`${appearance} common movement names auto-match while ambiguous variants need a choice`, async ({
+    page,
+  }, info) => {
+    await open(page, appearance);
+    const names = [
+      'Bulgarian split squat (Dumbbell)',
+      'Crunch (Machine)',
+      'Bicep curl (Dumbbell)',
+      'Ab wheel',
+      'Incline Bench Press (Barbell)',
+      'Lateral raise (Dumbbell)',
+      'Rear delt fly (Machine)',
+      'Tricep extension',
+    ];
+    await pick(
+      page,
+      `${header}\n${names.map((name) => row('Morning workout', '20', name)).join('\n')}`,
+    );
+    await advance(page);
+    await expect(page.getByText('1 exercise to choose', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Tricep extension', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: names[0], exact: true })).toHaveCount(0);
+    await capture(page, info, 'common-names-unresolved-only');
+    await page.getByRole('button', { name: 'Show all exercises', exact: true }).click();
+    await expect(page.getByRole('button', { name: names[0], exact: true })).toBeVisible();
+    await capture(page, info, 'common-names-review');
+  });
   test(`${appearance} app source buttons stay joined and explain a mismatched export`, async ({
     page,
   }, info) => {
@@ -89,7 +116,7 @@ for (const appearance of ['light', 'dark'] as const) {
     await open(page, appearance);
     await pick(page, readFileSync(resolve('tests/fixtures/csv-import/hevy-sample.csv'), 'utf8'));
     await advance(page);
-    await expect(page.getByText('2 exercises to choose', { exact: true })).toBeVisible();
+    await expect(page.getByText('1 exercise to choose', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Pull Up', exact: true })).toHaveCount(0);
     await capture(page, info, 'unresolved-exercises');
     await page.getByRole('button', { name: 'Show all exercises', exact: true }).click();
@@ -103,7 +130,7 @@ for (const appearance of ['light', 'dark'] as const) {
       .boundingBox();
     expect(benchRow).not.toBeNull();
     expect(customRow).not.toBeNull();
-    expect(Math.abs(customRow!.y - (benchRow!.y + benchRow!.height))).toBeLessThanOrEqual(1);
+    expect(Math.abs(benchRow!.y - (customRow!.y + customRow!.height))).toBeLessThanOrEqual(1);
     await capture(page, info, 'grouped-exercises');
     await page.getByRole('button', { name: 'Bench Press (Barbell)', exact: true }).click();
     await chooseBench(page);
