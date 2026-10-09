@@ -1,14 +1,14 @@
-<p align="center">
-  <img src="assets/forge-app-icon-ios.png" alt="Forge app icon" width="96" height="96" />
-</p>
-
-# Forge: Training Journal
+<h1><img src="assets/forge-app-icon-ios.png" alt="" width="40" height="40" align="absmiddle" /> Forge: Training Journal</h1>
 
 I’m building Forge, a workout journal for iOS and Android. Log sets, time and distance, organize routines and plans, and review your training history. Workouts stay on your device and work offline, without an account.
 
 I use TypeScript, React Native and Expo, with native integrations for rest timers and numeric entry.
 
-[Website](https://rodrigomaia06.github.io/forge/) · [Privacy policy](https://rodrigomaia06.github.io/forge/privacy.html) · [Support](https://rodrigomaia06.github.io/forge/support.html)
+<p>
+  <a href="https://rodrigomaia06.github.io/forge/"><img src="docs/readme/website.svg" alt="Website" width="144" height="44" /></a>
+  <a href="https://rodrigomaia06.github.io/forge/privacy.html"><img src="docs/readme/privacy.svg" alt="Privacy policy" width="206" height="44" /></a>
+  <a href="https://rodrigomaia06.github.io/forge/support.html"><img src="docs/readme/support.svg" alt="Support" width="144" height="44" /></a>
+</p>
 
 ## What you can do
 
@@ -21,24 +21,24 @@ I use TypeScript, React Native and Expo, with native integrations for rest timer
 
 ## Screenshots
 
-| Dashboard                                                                                        | History                                                                                      | Live workout                                                                                           |
-| ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| <img src="docs/screenshots/dashboard-dark.png" alt="Forge dashboard in dark mode" width="240" /> | <img src="docs/screenshots/history-dark.png" alt="Forge history in dark mode" width="240" /> | <img src="docs/screenshots/live-workout-dark.png" alt="Forge live workout in dark mode" width="240" /> |
+| Dashboard                                                                                         | History                                                                                       | Live workout                                                                                            |
+| ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| <img src="docs/screenshots/dashboard-dark.webp" alt="Forge dashboard in dark mode" width="240" /> | <img src="docs/screenshots/history-dark.webp" alt="Forge history in dark mode" width="240" /> | <img src="docs/screenshots/live-workout-dark.webp" alt="Forge live workout in dark mode" width="240" /> |
 
-| Plans                                                                                    | Workout details                                                                                              | Exercise library                                                                                        |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| <img src="docs/screenshots/plans-dark.png" alt="Forge plans in dark mode" width="240" /> | <img src="docs/screenshots/workout-details-dark.png" alt="Forge workout details in dark mode" width="240" /> | <img src="docs/screenshots/exercises-dark.png" alt="Forge exercise library in dark mode" width="240" /> |
+| Plans                                                                                     | Workout details                                                                                               | Exercise library                                                                                         |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| <img src="docs/screenshots/plans-dark.webp" alt="Forge plans in dark mode" width="240" /> | <img src="docs/screenshots/workout-details-dark.webp" alt="Forge workout details in dark mode" width="240" /> | <img src="docs/screenshots/exercises-dark.webp" alt="Forge exercise library in dark mode" width="240" /> |
 
 <details>
 <summary>View Light theme</summary>
 
-| Dashboard                                                                                          | History                                                                                        | Live workout                                                                                             |
-| -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| <img src="docs/screenshots/dashboard-light.png" alt="Forge dashboard in light mode" width="240" /> | <img src="docs/screenshots/history-light.png" alt="Forge history in light mode" width="240" /> | <img src="docs/screenshots/live-workout-light.png" alt="Forge live workout in light mode" width="240" /> |
+| Dashboard                                                                                           | History                                                                                         | Live workout                                                                                              |
+| --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| <img src="docs/screenshots/dashboard-light.webp" alt="Forge dashboard in light mode" width="240" /> | <img src="docs/screenshots/history-light.webp" alt="Forge history in light mode" width="240" /> | <img src="docs/screenshots/live-workout-light.webp" alt="Forge live workout in light mode" width="240" /> |
 
-| Plans                                                                                      | Workout details                                                                                                | Exercise library                                                                                          |
-| ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| <img src="docs/screenshots/plans-light.png" alt="Forge plans in light mode" width="240" /> | <img src="docs/screenshots/workout-details-light.png" alt="Forge workout details in light mode" width="240" /> | <img src="docs/screenshots/exercises-light.png" alt="Forge exercise library in light mode" width="240" /> |
+| Plans                                                                                       | Workout details                                                                                                 | Exercise library                                                                                           |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| <img src="docs/screenshots/plans-light.webp" alt="Forge plans in light mode" width="240" /> | <img src="docs/screenshots/workout-details-light.webp" alt="Forge workout details in light mode" width="240" /> | <img src="docs/screenshots/exercises-light.webp" alt="Forge exercise library in light mode" width="240" /> |
 
 </details>
 
