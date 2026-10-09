@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
@@ -15,7 +15,9 @@ export interface ForgeConfirmationDialogProps {
   busy?: boolean;
   error?: string;
   title: string;
-  message: string;
+  message?: string;
+  children?: React.ReactNode;
+  actionTreatment?: 'default' | 'form';
   cancelLabel: string;
   confirmLabel: string;
   onCancel: () => void;
@@ -33,6 +35,8 @@ export function ForgeConfirmationDialog({
   error,
   title,
   message,
+  children,
+  actionTreatment = 'default',
   cancelLabel,
   confirmLabel,
   onCancel,
@@ -52,6 +56,8 @@ export function ForgeConfirmationDialog({
   const [shown, setShown] = React.useState({
     title,
     message,
+    children,
+    actionTreatment,
     cancelLabel,
     confirmLabel,
     confirmTone,
@@ -72,8 +78,28 @@ export function ForgeConfirmationDialog({
 
   // Keep the shown copy current while open; it is retained through the fade-out.
   React.useEffect(() => {
-    if (visible) setShown({ title, message, cancelLabel, confirmLabel, confirmTone, showCancel });
-  }, [visible, title, message, cancelLabel, confirmLabel, confirmTone, showCancel]);
+    if (visible)
+      setShown({
+        title,
+        message,
+        children,
+        actionTreatment,
+        cancelLabel,
+        confirmLabel,
+        confirmTone,
+        showCancel,
+      });
+  }, [
+    visible,
+    title,
+    message,
+    children,
+    actionTreatment,
+    cancelLabel,
+    confirmLabel,
+    confirmTone,
+    showCancel,
+  ]);
 
   if (!rendered) return null;
   const cancel = () => {
@@ -91,6 +117,7 @@ export function ForgeConfirmationDialog({
         accessibilityViewIsModal
         style={[
           styles.card,
+          shown.actionTreatment === 'form' && styles.formCard,
           {
             backgroundColor: theme.surfaceElevated,
             borderColor: theme.border,
@@ -100,7 +127,18 @@ export function ForgeConfirmationDialog({
         ]}
       >
         <Text style={[styles.title, { color: theme.textPrimary }]}>{shown.title}</Text>
-        <Text style={[styles.message, { color: theme.slate }]}>{shown.message}</Text>
+        {shown.message ? (
+          <Text style={[styles.message, { color: theme.slate }]}>{shown.message}</Text>
+        ) : null}
+        {shown.children ? (
+          <ScrollView
+            style={styles.body}
+            contentContainerStyle={styles.bodyContent}
+            bounces={false}
+          >
+            {shown.children}
+          </ScrollView>
+        ) : null}
         {error ? (
           <Text
             accessibilityRole="alert"
@@ -115,7 +153,7 @@ export function ForgeConfirmationDialog({
               accessibilityLabel={shown.cancelLabel}
               label={shown.cancelLabel}
               disabled={busy}
-              variant="primary"
+              variant={shown.actionTreatment === 'form' ? 'ghost' : 'primary'}
               onPress={cancel}
               haptic="light"
               style={styles.action}
@@ -126,7 +164,9 @@ export function ForgeConfirmationDialog({
             label={shown.confirmLabel}
             loading={busy}
             disabled={busy}
-            variant="primary"
+            variant={shown.actionTreatment === 'form' ? 'outline' : 'primary'}
+            icon={shown.actionTreatment === 'form' ? 'check' : undefined}
+            labelStyle={shown.actionTreatment === 'form' ? { color: theme.textPrimary } : undefined}
             tone={shown.confirmTone}
             onPress={onConfirm}
             haptic="medium"
@@ -170,6 +210,9 @@ const styles = StyleSheet.create({
   },
   title: { ...typeScale.sectionTitle, textAlign: 'center' },
   message: { ...typeScale.body, marginTop: 8, textAlign: 'center' },
+  formCard: { maxHeight: '90%' },
+  body: { marginTop: 16, flexShrink: 1 },
+  bodyContent: { flexGrow: 1 },
   actions: { marginTop: 20, gap: 10 },
   action: { width: '100%' },
 });

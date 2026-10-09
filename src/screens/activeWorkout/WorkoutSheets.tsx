@@ -77,6 +77,8 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   session = 0,
   workoutType,
   selectionLimit,
+  title = 'Add exercises',
+  persistDerivedExercises = true,
   onClose,
   onSubmit,
 }: {
@@ -87,6 +89,9 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   workoutType?: string;
   /** Replacement uses the same catalogue surface but must choose one movement. */
   selectionLimit?: number;
+  title?: string;
+  /** Import keeps newly resolved variations in its draft until the atomic save. */
+  persistDerivedExercises?: boolean;
   onClose: () => void;
   onSubmit: (exercises: ExerciseCatalogItem[]) => void;
 }) {
@@ -261,7 +266,7 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   const commit = useCallback((exercises: ExerciseCatalogItem[]): void => {
     const unique = [...new Map(exercises.map((exercise) => [exercise.id, exercise])).values()];
     if (!unique.length) return;
-    unique.filter((exercise) => exercise.id.startsWith('custom-derived-') && !exerciseCatalog.some((item) => item.id === exercise.id)).forEach(addCustomExercise);
+    if (persistDerivedExercises) unique.filter((exercise) => exercise.id.startsWith('custom-derived-') && !exerciseCatalog.some((item) => item.id === exercise.id)).forEach(addCustomExercise);
     Keyboard.dismiss();
     setQuery('');
     setSelected(new Set());
@@ -273,7 +278,7 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
     setExpandedEquipment(null);
     mediumHaptic();
     onSubmit(unique);
-  }, [addCustomExercise, defaultTypeKey, exerciseCatalog, onSubmit]);
+  }, [addCustomExercise, defaultTypeKey, exerciseCatalog, onSubmit, persistDerivedExercises]);
   const submit = (): void => {
     const direct = exerciseCatalog.filter((exercise) => selected.has(exercise.id));
     const ambiguous: ResolvedVariation[] = [];
@@ -283,6 +288,13 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
       if (resolved.length === 1) direct.push(resolved[0].exercise);
       else if (resolved.length > 1) ambiguous.push(...resolved);
     });
+    if (selectionLimit === 1 && direct.length + ambiguous.length > 1) {
+      setVariationResolution({ direct: [], choices: [...new Map([
+        ...direct.map((exercise): ResolvedVariation => ({ exercise, source: exercise.id.startsWith('custom-derived-') ? 'derived' : 'bundled' })),
+        ...ambiguous,
+      ].map((item) => [item.exercise.id, item])).values()] });
+      return;
+    }
     if (!ambiguous.length) { commit(direct); return; }
     setVariationResolution({ direct, choices: [...new Map(ambiguous.map((item) => [item.exercise.id, item])).values()] });
   };
@@ -321,6 +333,7 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
           {variationResolution ? (
             <ExerciseOutputChooser
               resolution={variationResolution}
+              selectionLimit={selectionLimit}
               onBack={() => setVariationResolution(null)}
               onClose={closeSheet}
               onConfirm={(choices) => commit([...variationResolution.direct, ...choices])}
@@ -343,7 +356,9 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
           <>
             <ForgeBottomSheetHandle />
             <ForgeSheetHeader
-              title="Add exercises"
+              title={title}
+              compactTitle={selectionLimit === 1}
+              autoShrinkTitle={selectionLimit === 1}
               onClose={closeSheet}
               closeAccessibilityLabel="Close add exercises"
               horizontalInset={0}
@@ -442,8 +457,9 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
             ) : null}
           />
           <ForgeFloatingCta
-            label={`Add exercises${selected.size + [...modifierSelections.values()].reduce((count, values) => count + values.size, 0) ? ` (${selected.size + [...modifierSelections.values()].reduce((count, values) => count + values.size, 0)})` : ''}`}
+            label={selectionLimit === 1 ? 'Choose exercise' : `Add exercises${selected.size + [...modifierSelections.values()].reduce((count, values) => count + values.size, 0) ? ` (${selected.size + [...modifierSelections.values()].reduce((count, values) => count + values.size, 0)})` : ''}`}
             accessibilityLabel="Confirm selected exercises"
+            labelStyle={selectionLimit === 1 && (selected.size > 0 || modifierSelections.size > 0) ? { color: theme.textPrimary } : undefined}
             disabled={!selected.size && !modifierSelections.size}
             onPress={submit}
             theme={dashboardTheme}
@@ -459,8 +475,9 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
   );
 });
 
-function ExerciseOutputChooser({ resolution, onBack, onClose, onConfirm }: {
+function ExerciseOutputChooser({ resolution, selectionLimit, onBack, onClose, onConfirm }: {
   resolution: VariationResolution;
+  selectionLimit?: number;
   onBack: () => void;
   onClose: () => void;
   onConfirm: (choices: ExerciseCatalogItem[]) => void;
@@ -470,7 +487,7 @@ function ExerciseOutputChooser({ resolution, onBack, onClose, onConfirm }: {
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
   return <>
     <ForgeBottomSheetHandle />
-    <ForgeSheetHeader title="Choose exercises" compactTitle onClose={onClose} leading={<ForgeEditorBackButton onPress={onBack} accessibilityLabel="Back to exercise choices" />} />
+    <ForgeSheetHeader title={selectionLimit === 1 ? 'Choose one' : 'Choose exercises'} compactTitle autoShrinkTitle={selectionLimit === 1} onClose={onClose} leading={<ForgeEditorBackButton onPress={onBack} accessibilityLabel="Back to exercise choices" />} />
     <FlatList
       testID="variation-output-chooser"
       // Always-full (ADR 0005): fill the fixed-height picker card like the
@@ -482,15 +499,15 @@ function ExerciseOutputChooser({ resolution, onBack, onClose, onConfirm }: {
       contentContainerStyle={[styles.outputChooserContent, { paddingBottom: 124 }]}
       renderItem={({ item }) => {
         const checked = selected.has(item.exercise.id);
-        return <Pressable accessibilityRole="checkbox" accessibilityLabel={item.exercise.name} accessibilityState={{ checked }} onPress={() => setSelected((current) => {
-          const next = new Set(current); if (next.has(item.exercise.id)) next.delete(item.exercise.id); else next.add(item.exercise.id); return next;
+        return <Pressable accessibilityRole="checkbox" accessibilityLabel={item.exercise.name} accessibilityState={{ checked }} aria-checked={checked} onPress={() => setSelected((current) => {
+          const next = new Set(current); if (next.has(item.exercise.id)) next.delete(item.exercise.id); else { if (selectionLimit === 1) next.clear(); next.add(item.exercise.id); } return next;
         })} style={({ pressed }) => [styles.outputChoice, checked && styles.outputChoiceSelected, pressed && styles.exerciseOptionPressed]}>
           <View style={styles.exerciseOptionCopy}><Text style={styles.groupName}>{item.exercise.name}</Text>{formatCatalogVariation(item.exercise.name, item.exercise.variation) ? <Text style={styles.groupMeta}>{formatCatalogVariation(item.exercise.name, item.exercise.variation)}</Text> : null}</View>
           <CompletionCheck selected={checked} tone="selection" />
         </Pressable>;
       }}
     />
-    <ForgeFloatingCta label={`Add exercises${selected.size ? ` (${selected.size + resolution.direct.length})` : ''}`} accessibilityLabel="Confirm resolved exercises" disabled={!selected.size && !resolution.direct.length} icon="check" tone={selected.size || resolution.direct.length ? 'success' : 'neutral'} theme={theme} onPress={() => onConfirm(resolution.choices.filter((item) => selected.has(item.exercise.id)).map((item) => item.exercise))} />
+    <ForgeFloatingCta label={selectionLimit === 1 ? 'Use exercise' : `Add exercises${selected.size ? ` (${selected.size + resolution.direct.length})` : ''}`} labelStyle={selectionLimit === 1 && (selected.size > 0 || resolution.direct.length > 0) ? { color: theme.textPrimary } : undefined} accessibilityLabel="Confirm resolved exercises" disabled={!selected.size && !resolution.direct.length} icon="check" tone={selected.size || resolution.direct.length ? 'success' : 'neutral'} theme={theme} onPress={() => onConfirm(resolution.choices.filter((item) => selected.has(item.exercise.id)).map((item) => item.exercise))} />
   </>;
 }
 

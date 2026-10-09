@@ -20,6 +20,7 @@ export function ForgeCard({
   variant = 'base',
   size = 'standard',
   testID,
+  segment,
 }: {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
@@ -27,6 +28,8 @@ export function ForgeCard({
   /** Compact grouped rows retain Forge card treatment with a smaller corner radius. */
   size?: 'standard' | 'compact';
   testID?: string;
+  /** Joined virtualized rows share the card surface without gaps or interior corners. */
+  segment?: 'first' | 'middle' | 'last' | 'only';
 }) {
   const theme = useForgeTheme();
   const nested = variant === 'nested';
@@ -43,6 +46,16 @@ export function ForgeCard({
           shadowColor: theme.shadow,
           shadowOpacity: theme.cardShadowOpacity ?? 0.06,
         },
+        segment &&
+          segment !== 'only' && {
+            borderRadius: 0,
+            shadowOpacity: 0,
+            elevation: 0,
+            borderTopLeftRadius: segment === 'first' ? scaleUI(18) : 0,
+            borderTopRightRadius: segment === 'first' ? scaleUI(18) : 0,
+            borderBottomLeftRadius: segment === 'last' ? scaleUI(18) : 0,
+            borderBottomRightRadius: segment === 'last' ? scaleUI(18) : 0,
+          },
         style,
       ]}
     >
