@@ -1,4 +1,4 @@
-import React, { useDeferredValue, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View, BackHandler, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -8,10 +8,11 @@ import {
   ForgeCard,
   ForgeConfirmationDialog,
   ForgeFloatingCta,
-  ForgeSearchField,
+  ForgeActionSheet,
   ForgeSelectionSheet,
   ForgeText as Text,
   HeaderAction,
+  Icon,
 } from '../../../components/ui';
 import { useForgeFloatingCtaClearance } from '../../../components/ui/ForgeFloatingCta';
 import { useForgeTheme } from '../../../theme/ThemeProvider';
@@ -24,7 +25,7 @@ import { useWorkouts } from '../../../state/WorkoutContext';
 import { SettingsDetailHeader } from '../SettingsScreenChrome';
 import { pickWorkoutCsv } from '../../../data/pickWorkoutCsv';
 import { parseWorkoutCsvAsync } from '../../../data/csvImport/parse';
-import { filterCatalog } from '../../../domain/exercises/catalogSelectors';
+import { AddExerciseSheet } from '../../activeWorkout/WorkoutSheets';
 import { csvSessionChanges } from '../../../data/csvImport/changes';
 import {
   applyCsvResolutions,
@@ -43,11 +44,11 @@ import {
   type CsvMappings,
   type SessionChoice,
 } from '../../../data/csvImport/types';
-import { CsvImportRow, type CsvReviewRow as Row } from './CsvImportRow';
+import { CsvImportRow, CsvImportSummary, type CsvReviewRow as Row } from './CsvImportRow';
 import { CsvSourceHeading } from './CsvSourceHeading';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CsvImport'>;
-type Stage = 'file' | 'detected' | 'matches' | 'catalog' | 'sessions' | 'result';
+type Stage = 'file' | 'detected' | 'matches' | 'sessions' | 'result';
 type Choice = {
   title: string;
   value: string;
@@ -74,12 +75,12 @@ export function CsvImportScreen({ navigation }: Props) {
   const [expandedChanges, setExpandedChanges] = useState<Set<string>>(new Set());
   const [choice, setChoice] = useState<Choice | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
-  const deferredQuery = useDeferredValue(query);
-  const catalogueResults = useMemo(
-    () => (stage === 'catalog' ? filterCatalog(exercises, { query: deferredQuery }) : []),
-    [exercises, deferredQuery, stage],
-  );
+  const [matchActions, setMatchActions] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const pickerRequested = useRef(false);
+  const [showAllExercises, setShowAllExercises] = useState(false);
+  const editingResolution = resolutions.find((item) => item.key === editing);
+  const unresolved = resolutions.filter((item) => !item.exercise);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
@@ -106,21 +107,83 @@ export function CsvImportScreen({ navigation }: Props) {
         choices[match.workout.id] === 'replace' ||
         choices[match.workout.id] === 'both'),
   );
-  const changedMappings = resolutions.filter((item) => item.confirmed && item.exercise && savedMappings[item.key] !== item.exercise.id);
+  const changedMappings = resolutions.filter(
+    (item) => item.confirmed && item.exercise && savedMappings[item.key] !== item.exercise.id,
+  );
   const mappingsOnly = actionable.length === 0 && changedMappings.length > 0;
   const reviewLabel = mappingsOnly
     ? `Review ${changedMappings.length} exercise match${changedMappings.length === 1 ? '' : 'es'}`
     : `Review ${actionable.length} workout${actionable.length === 1 ? '' : 's'}`;
-  const requiredCustom = new Set(
-    [...actionable.flatMap((match) => match.workout.exercises.map((exercise) => exercise.exerciseId)), ...changedMappings.map((item) => item.exercise!.id)],
-  );
+  const requiredCustom = new Set([
+    ...actionable.flatMap((match) =>
+      match.workout.exercises.map((exercise) => exercise.exerciseId),
+    ),
+    ...changedMappings.map((item) => item.exercise!.id),
+  ]);
   const customCount = resolutions.filter(
     (resolution) => resolution.custom && requiredCustom.has(resolution.exercise?.id),
   ).length;
+  const addedCount = actionable.filter(
+    (match) => match.status === 'new' || choices[match.workout.id] === 'both',
+  ).length;
+  const replacedCount = actionable.filter(
+    (match) => choices[match.workout.id] === 'replace',
+  ).length;
+  const duplicateCount = sessions.filter((match) => match.status === 'duplicate').length;
+  const summaryRows = (
+    counts: {
+      added: number;
+      replaced: number;
+      duplicates: number;
+      excluded: number;
+      custom: number;
+      mappings: number;
+    },
+    saved = false,
+  ): Row[] =>
+    [
+      {
+        key: 'added',
+        title: saved ? 'Workouts added' : 'Add workouts',
+        icon: 'calendar',
+        value: counts.added,
+      },
+      {
+        key: 'replaced',
+        title: saved ? 'Workouts replaced' : 'Replace workouts',
+        icon: 'replace',
+        value: counts.replaced,
+      },
+      {
+        key: 'duplicates',
+        title: 'Duplicates skipped',
+        icon: 'duplicate',
+        value: counts.duplicates,
+      },
+      {
+        key: 'excluded',
+        title: 'Incomplete workouts excluded',
+        icon: 'alert-triangle',
+        value: counts.excluded,
+      },
+      {
+        key: 'custom',
+        title: saved ? 'Custom exercises created' : 'Create custom exercises',
+        icon: 'sparkles',
+        value: counts.custom,
+      },
+      {
+        key: 'mappings',
+        title: saved ? 'Exercise matches saved' : 'Save exercise matches',
+        icon: 'layers',
+        value: counts.mappings,
+      },
+    ].filter((item) => Number(item.value) > 0) as Row[];
   const back = () => {
     if (lock.current) return;
     setError('');
-    if (stage === 'catalog') setStage('matches');
+    if (pickerOpen) setPickerOpen(false);
+    else if (matchActions) setMatchActions(false);
     else if (stage === 'sessions') setStage('matches');
     else if (stage === 'matches') setStage('detected');
     else if (stage === 'detected') setStage('file');
@@ -166,6 +229,7 @@ export function CsvImportScreen({ navigation }: Props) {
     setSelected(new Set(parsed.workouts.map((workout) => workout.id)));
     setAcknowledged(false);
     setChoices({});
+    setShowAllExercises(false);
     setOptions(nextOptions);
     setStage('detected');
   }
@@ -214,8 +278,7 @@ export function CsvImportScreen({ navigation }: Props) {
   }
   function editMatch(item: ExerciseResolution) {
     setEditing(item.key);
-    setQuery(item.name);
-    setStage('catalog');
+    setMatchActions(true);
     setError('');
   }
   function sessionChoice(id: string, ambiguous: boolean) {
@@ -303,6 +366,8 @@ export function CsvImportScreen({ navigation }: Props) {
               ];
       rows.push({
         key: requirement,
+        icon: 'alert-triangle',
+        status: 'Choice required',
         title:
           requirement === 'dateOrder'
             ? 'Choose date order'
@@ -332,51 +397,45 @@ export function CsvImportScreen({ navigation }: Props) {
     for (const issue of draft.issues)
       rows.push({
         key: `issue-${issue.row}-${issue.field}`,
+        icon: 'alert-triangle',
         title: `Row ${issue.row} · ${issue.field}`,
         detail: issue.message,
       });
   }
   if (stage === 'matches')
-    for (const item of resolutions)
+    for (const item of unresolved.length && !showAllExercises
+      ? unresolved
+      : [...unresolved, ...resolutions.filter((entry) => entry.exercise)])
       rows.push({
         key: item.key,
+        icon: !item.exercise ? 'alert-triangle' : item.custom ? 'sparkles' : 'layers',
         title: item.name,
         detail: item.exercise
-          ? `${item.custom ? 'Custom exercise' : item.remembered ? 'Remembered match' : 'Matched'}: ${item.exercise.name}`
-          : 'Choose a Forge exercise or keep as custom.',
+          ? item.custom
+            ? 'Custom exercise'
+            : item.exercise.name !== item.name
+              ? item.exercise.name
+              : undefined
+          : 'Choose an exercise',
         onPress: () => editMatch(item),
       });
-  if (stage === 'catalog') {
-    const item = resolutions.find((entry) => entry.key === editing);
-    if (item)
-      rows.push({
-        key: 'custom',
-        title: `Keep “${item.name}” as custom`,
-        detail:
-          'Keep the source name and measured fields. Equipment and muscles remain unspecified.',
-        onPress: () => {
-          updateResolution(item.key, customCsvExercise(item), true);
-          setStage('matches');
-        },
-      });
-    for (const exercise of catalogueResults)
-      rows.push({
-        key: exercise.id,
-        title: exercise.name,
-        detail: exercise.equipment,
-        onPress: () => {
-          if (editing) updateResolution(editing, exercise);
-          setStage('matches');
-        },
-      });
-  }
   if (stage === 'sessions')
     for (const match of sessions) {
       const { workout, status } = match;
       rows.push({
         key: workout.id,
+        icon:
+          status === 'duplicate' ? 'duplicate' : status === 'new' ? 'calendar' : 'alert-triangle',
+        status:
+          status === 'duplicate'
+            ? 'Already imported · skipped'
+            : status === 'new'
+              ? 'New session'
+              : status === 'ambiguous'
+                ? 'Ambiguous match'
+                : 'Changed session',
         title: workout.name,
-        detail: `${new Date(workout.startedAt).toLocaleDateString()} · ${workout.exercises.length} exercise${workout.exercises.length === 1 ? '' : 's'} · ${status === 'duplicate' ? 'Already imported' : status === 'new' ? 'New session' : status === 'ambiguous' ? 'Ambiguous match' : 'Changed session'}`,
+        detail: `${new Date(workout.startedAt).toLocaleDateString()} · ${workout.exercises.length} exercise${workout.exercises.length === 1 ? '' : 's'}`,
         checked: status === 'duplicate' ? undefined : selected.has(workout.id),
         onPress:
           status === 'duplicate'
@@ -392,6 +451,19 @@ export function CsvImportScreen({ navigation }: Props) {
       if (status === 'changed' || status === 'ambiguous')
         rows.push({
           key: `choice-${workout.id}`,
+          inset: true,
+          detail:
+            choices[workout.id] === 'replace'
+              ? 'The CSV version will replace this workout.'
+              : choices[workout.id] === 'both'
+                ? 'Both versions will be kept.'
+                : 'The CSV version will be skipped.',
+          icon:
+            choices[workout.id] === 'replace'
+              ? 'replace'
+              : choices[workout.id] === 'both'
+                ? 'duplicate'
+                : 'verified',
           title:
             choices[workout.id] === 'replace'
               ? 'Replace existing session'
@@ -404,6 +476,8 @@ export function CsvImportScreen({ navigation }: Props) {
         const expanded = expandedChanges.has(workout.id);
         rows.push({
           key: `changes-${workout.id}`,
+          inset: true,
+          icon: 'info',
           title: `${expanded ? 'Hide' : 'View'} changes for ${workout.name}`,
           onPress: () =>
             setExpandedChanges((previous) => {
@@ -417,6 +491,7 @@ export function CsvImportScreen({ navigation }: Props) {
           for (const [index, change] of csvSessionChanges(match.existing, workout).entries())
             rows.push({
               key: `${workout.id}-change-${index}`,
+              inset: true,
               title: change.label,
               detail: `On device: ${change.before}\nCSV: ${change.after}`,
             });
@@ -471,6 +546,46 @@ export function CsvImportScreen({ navigation }: Props) {
           scrollEventThrottle={16}
           ListHeaderComponent={
             <View style={styles.stack}>
+              {['detected', 'matches', 'sessions'].includes(stage) ? (
+                <View style={styles.loading} accessibilityLiveRegion="polite">
+                  <Icon
+                    name={
+                      stage === 'detected'
+                        ? 'database-import'
+                        : stage === 'matches'
+                          ? 'layers'
+                          : 'calendar'
+                    }
+                    size={scaleUI(18)}
+                    color={theme.textSecondary}
+                  />
+                  <Text style={styles.copy}>
+                    {stage === 'detected'
+                      ? '1 of 3 · Check file'
+                      : stage === 'matches'
+                        ? '2 of 3 · Exercises'
+                        : '3 of 3 · Workouts'}
+                  </Text>
+                </View>
+              ) : null}
+              {error ? (
+                <ForgeCard style={styles.card}>
+                  <View style={styles.loading}>
+                    <Icon name="alert-triangle" color={theme.textPrimary} size={scaleUI(22)} />
+                    <Text style={styles.title}>
+                      {stage === 'result' ? 'Could not refresh' : 'Could not import'}
+                    </Text>
+                  </View>
+                  <Text accessibilityRole="alert" style={styles.error}>
+                    {error}
+                  </Text>
+                  {stage === 'sessions' ? (
+                    <Text style={styles.copy}>
+                      Your selections and exercise matches are kept. Review and retry when ready.
+                    </Text>
+                  ) : null}
+                </ForgeCard>
+              ) : null}
               {stage === 'file' ? (
                 <>
                   <Text style={styles.heading}>Bring your workout history</Text>
@@ -478,23 +593,24 @@ export function CsvImportScreen({ navigation }: Props) {
                     Choose a CSV export. Review its exercises and sessions before adding anything to
                     Forge.
                   </Text>
-                  <ForgeCard style={styles.card}>
-                    <CsvSourceHeading source="hevy" title="Hevy" />
-                    <Text style={styles.copy}>
-                      In Hevy Settings, open Export & Import Data and export your workouts.
-                    </Text>
-                    <CsvSourceHeading source="strong" title="Strong" />
-                    <Text style={styles.copy}>
-                      In Strong Settings, choose Export Strong Data to create a CSV.
-                    </Text>
-                    <CsvSourceHeading source="fitnotes" title="FitNotes Android" />
-                    <Text style={styles.copy}>
-                      Use Settings → Spreadsheet Export to export your workout history.
-                    </Text>
-                    <CsvSourceHeading source="fitnotes-ios" title="FitNotes iOS" />
-                    <Text style={styles.copy}>
-                      Use the app’s CSV export with Date, Exercise, and Weight columns.
-                    </Text>
+                  <ForgeCard size="compact">
+                    {(
+                      [
+                        ['hevy', 'Hevy', 'Settings → Export & Import Data → Export workouts.'],
+                        ['strong', 'Strong', 'Settings → Export Strong Data.'],
+                        ['fitnotes', 'FitNotes Android', 'Settings → Spreadsheet Export.'],
+                        [
+                          'fitnotes-ios',
+                          'FitNotes iOS',
+                          'Export a CSV with Date, Exercise and Weight columns.',
+                        ],
+                      ] as const
+                    ).map(([source, title, detail], index) => (
+                      <View key={source} style={[styles.sourceRow, index < 3 && styles.divider]}>
+                        <CsvSourceHeading source={source} title={title} />
+                        <Text style={styles.copy}>{detail}</Text>
+                      </View>
+                    ))}
                   </ForgeCard>
                   <Button
                     label={file ? 'Choose another CSV' : 'Choose CSV file'}
@@ -522,21 +638,52 @@ export function CsvImportScreen({ navigation }: Props) {
                     detected
                   />
                   <Text style={styles.copy}>{file?.name}</Text>
-                  <ForgeCard style={styles.card}>
-                    <Text style={styles.title}>
-                      {draft.workouts.length} valid workout{draft.workouts.length === 1 ? '' : 's'}
-                    </Text>
-                    {dateRange ? <Text style={styles.copy}>{dateRange}</Text> : null}
-                    <Text style={styles.copy}>
-                      {draft.excluded} workout{draft.excluded === 1 ? '' : 's'} excluded ·{' '}
-                      {draft.issues.length} validation problem{draft.issues.length === 1 ? '' : 's'}
-                    </Text>
-                  </ForgeCard>
-                  {draft.limitations.map((limitation) => (
-                    <Text key={limitation} style={styles.copy}>
-                      {limitation}
-                    </Text>
-                  ))}
+                  <CsvImportSummary
+                    rows={[
+                      ...(!draft.requirements.length
+                        ? [
+                            {
+                              key: 'valid',
+                              title: `${draft.workouts.length} valid workout${draft.workouts.length === 1 ? '' : 's'}`,
+                              icon: 'calendar' as const,
+                              detail: dateRange || undefined,
+                            },
+                          ]
+                        : []),
+                      ...(draft.excluded && !draft.requirements.length
+                        ? [
+                            {
+                              key: 'excluded',
+                              title: `${draft.excluded} workout${draft.excluded === 1 ? '' : 's'} excluded`,
+                              icon: 'alert-triangle' as const,
+                            },
+                          ]
+                        : []),
+                      {
+                        key: 'validation',
+                        title: draft.requirements.length
+                          ? 'Source details needed'
+                          : draft.issues.length
+                            ? `${draft.issues.length} validation problem${draft.issues.length === 1 ? '' : 's'}`
+                            : 'No validation problems',
+                        icon:
+                          draft.requirements.length || draft.issues.length
+                            ? 'alert-triangle'
+                            : 'check',
+                      },
+                      ...(draft.source.startsWith('fitnotes')
+                        ? [
+                            {
+                              key: 'grouping',
+                              title: 'Date grouping in FitNotes',
+                              detail:
+                                'Exports without session IDs cannot distinguish separate workouts on the same date.',
+                              icon: 'info' as const,
+                            },
+                          ]
+                        : []),
+                    ]}
+                  />
                   {!draft.workouts.length && !draft.requirements.length ? (
                     <Text style={styles.copy}>
                       No complete workouts can be imported. Correct the reported problems or choose
@@ -547,35 +694,33 @@ export function CsvImportScreen({ navigation }: Props) {
               ) : null}
               {stage === 'matches' ? (
                 <>
-                  <Text style={styles.heading}>Match your exercises</Text>
-                  <Text style={styles.copy}>
-                    Confirmed matches are remembered on this device. Change any match, or keep an
-                    unknown exercise as custom.
+                  <Text style={styles.heading}>
+                    {unresolved.length
+                      ? `${unresolved.length} exercise${unresolved.length === 1 ? '' : 's'} to choose`
+                      : 'Review exercises'}
                   </Text>
-                </>
-              ) : null}
-              {stage === 'catalog' ? (
-                <>
-                  <Text style={styles.heading}>Choose an exercise</Text>
-                  <ForgeSearchField
-                    value={query}
-                    onChangeText={setQuery}
-                    accessibilityLabel="Search Forge exercises"
-                  />
-                  {rows.length === 1 ? (
-                    <Text style={styles.copy}>
-                      No library matches. Try a shorter search or keep the source exercise as
-                      custom.
-                    </Text>
+                  <Text style={styles.copy}>
+                    {unresolved.length
+                      ? 'Choose a library exercise or keep the source name as custom to continue.'
+                      : 'Continue to your workouts, or change an exercise below.'}
+                  </Text>
+                  {unresolved.length && resolutions.length > unresolved.length ? (
+                    <Button
+                      variant="ghost"
+                      label={
+                        showAllExercises ? 'Show only exercises to choose' : 'Show all exercises'
+                      }
+                      onPress={() => setShowAllExercises(!showAllExercises)}
+                    />
                   ) : null}
                 </>
               ) : null}
               {stage === 'sessions' ? (
                 <>
-                  <Text style={styles.heading}>Review sessions</Text>
+                  <Text style={styles.heading}>Review workouts</Text>
                   <Text style={styles.copy}>
-                    Select workouts to import. Existing sessions stay unless you explicitly choose
-                    Replace. Multiple sessions on the same day are kept.
+                    Choose which workouts to import. Changed workouts keep the existing version
+                    until you choose otherwise.
                   </Text>
                   {sessions.some((match) => match.status !== 'duplicate') ? (
                     <Button
@@ -601,24 +746,19 @@ export function CsvImportScreen({ navigation }: Props) {
               ) : null}
               {stage === 'result' && result ? (
                 <>
-                  <Text style={styles.heading}>{result.added + result.replaced === 0 ? 'Exercise matches saved' : 'Import complete'}</Text>
-                  <ForgeCard style={styles.card}>
-                    <Text style={styles.title}>
-                      {result.added} added · {result.replaced} replaced
-                    </Text>
-                    <Text style={styles.copy}>
-                      {result.duplicates} duplicate{result.duplicates === 1 ? '' : 's'} skipped
-                    </Text>
-                    <Text style={styles.copy}>
-                      {result.excluded} incomplete workout{result.excluded === 1 ? '' : 's'}{' '}
-                      excluded
-                    </Text>
-                    <Text style={styles.copy}>
-                      {result.customExercises} custom exercise
-                      {result.customExercises === 1 ? '' : 's'} created
-                    </Text>
-                    <Text style={styles.copy}>{result.mappingsSaved} exercise match{result.mappingsSaved === 1 ? '' : 'es'} saved</Text>
-                  </ForgeCard>
+                  <Text style={styles.heading}>
+                    {result.added + result.replaced === 0 ? 'Matches saved' : 'Import complete'}
+                  </Text>
+                  <View style={styles.loading} accessibilityLiveRegion="polite">
+                    <Icon name="check" color={theme.success} size={scaleUI(22)} />
+                    <Text style={styles.copy}>Saved on this device</Text>
+                  </View>
+                  <CsvImportSummary
+                    rows={summaryRows(
+                      { ...result, custom: result.customExercises, mappings: result.mappingsSaved },
+                      true,
+                    )}
+                  />
                   <Button label="Done" variant="outline" onPress={() => navigation.goBack()} />
                 </>
               ) : null}
@@ -628,38 +768,90 @@ export function CsvImportScreen({ navigation }: Props) {
                   <Text style={styles.copy}>Working with your local data…</Text>
                 </View>
               ) : null}
-              {error ? (
-                <ForgeCard style={styles.card}>
-                  <Text style={styles.title}>
-                    {stage === 'result' ? 'Could not refresh' : 'Could not import'}
-                  </Text>
-                  <Text accessibilityRole="alert" style={styles.error}>
-                    {error}
-                  </Text>
-                  {stage === 'sessions' ? (
-                    <Text style={styles.copy}>
-                      Your selections and exercise matches are kept. Review and retry when ready.
-                    </Text>
-                  ) : null}
-                </ForgeCard>
-              ) : null}
             </View>
           }
-          renderItem={({ item }) => <CsvImportRow item={item} busy={busy} />}
+          renderItem={({ item, index }) => (
+            <CsvImportRow
+              item={item}
+              busy={busy}
+              first={index === 0}
+              last={index === rows.length - 1}
+            />
+          )}
+          ListFooterComponent={
+            stage === 'detected' && draft ? (
+              <ForgeCard style={[styles.card, styles.notes]}>
+                <View style={styles.loading}>
+                  <Icon name="info" size={scaleUI(20)} color={theme.textSecondary} />
+                  <Text style={styles.title}>Import details</Text>
+                </View>
+                {draft.limitations.map((limitation) => (
+                  <Text key={limitation} style={styles.copy}>
+                    {limitation}
+                  </Text>
+                ))}
+              </ForgeCard>
+            ) : null
+          }
         />
+        {editingResolution ? (
+          <ForgeActionSheet
+            visible={matchActions}
+            title="Exercise"
+            description={editingResolution.name}
+            accessibilityLabel="Exercise import choices"
+            onClose={() => setMatchActions(false)}
+            onClosed={() => {
+              if (pickerRequested.current) {
+                pickerRequested.current = false;
+                setPickerOpen(true);
+              }
+            }}
+            actions={[
+              {
+                label: 'Choose from library',
+                icon: 'layers',
+                onPress: () => {
+                  pickerRequested.current = true;
+                },
+              },
+              {
+                label: `Keep “${editingResolution.name}” as custom`,
+                icon: 'sparkles',
+                onPress: () =>
+                  updateResolution(
+                    editingResolution.key,
+                    customCsvExercise(editingResolution),
+                    true,
+                  ),
+              },
+            ]}
+          />
+        ) : null}
+        {pickerOpen ? (
+          <AddExerciseSheet
+            visible
+            title="Exercises"
+            selectionLimit={1}
+            persistDerivedExercises={false}
+            onClose={() => setPickerOpen(false)}
+            onSubmit={(chosen) => {
+              const exercise = chosen[0];
+              if (editing && exercise)
+                updateResolution(
+                  editing,
+                  exercise,
+                  !exercises.some((item) => item.id === exercise.id),
+                );
+              setPickerOpen(false);
+            }}
+          />
+        ) : null}
         {['detected', 'matches', 'sessions'].includes(stage) ? (
           <ForgeFloatingCta
             labelStyle={busy || !canContinue ? undefined : { color: theme.textPrimary }}
-            accessibilityLabel={
-              stage === 'sessions'
-                ? reviewLabel
-                : 'Continue CSV import'
-            }
-            label={
-              stage === 'sessions'
-                ? reviewLabel
-                : 'Continue'
-            }
+            accessibilityLabel={stage === 'sessions' ? reviewLabel : 'Continue CSV import'}
+            label={stage === 'sessions' ? reviewLabel : 'Continue'}
             icon={stage === 'sessions' ? 'check' : 'chevron-forward'}
             tone={stage === 'sessions' ? 'success' : 'neutral'}
             disabled={busy || !canContinue}
@@ -690,8 +882,21 @@ export function CsvImportScreen({ navigation }: Props) {
         />
         <ForgeConfirmationDialog
           visible={confirm}
-          title={mappingsOnly ? 'Save exercise matches?' : 'Import selected workouts?'}
-          message={`${actionable.filter((match) => match.status === 'new' || choices[match.workout.id] === 'both').length} added, ${actionable.filter((match) => choices[match.workout.id] === 'replace').length} replaced. Duplicates skipped: ${sessions.filter((match) => match.status === 'duplicate').length}. Incomplete workouts excluded: ${draft?.excluded ?? 0}. Custom exercises required: ${customCount}.${changedMappings.length ? ` Exercise matches to save: ${changedMappings.length}.` : ''}${mappingsOnly ? ' Existing workouts stay unchanged.' : ''}`}
+          title={mappingsOnly ? 'Save matches?' : 'Ready to import?'}
+          actionTreatment="form"
+          message={mappingsOnly ? 'Existing workouts stay unchanged.' : undefined}
+          children={
+            <CsvImportSummary
+              rows={summaryRows({
+                added: addedCount,
+                replaced: replacedCount,
+                duplicates: duplicateCount,
+                excluded: draft?.excluded ?? 0,
+                custom: customCount,
+                mappings: changedMappings.length,
+              })}
+            />
+          }
           cancelLabel="Back to review"
           confirmLabel={mappingsOnly ? 'Save matches' : 'Import workouts'}
           confirmTone="success"
@@ -710,12 +915,15 @@ const createStyles = (theme: import('../../../types').ForgeTheme) =>
   StyleSheet.create({
     screen: { flex: 1 },
     list: { flex: 1 },
-    content: { paddingHorizontal: scaleUI(20), paddingTop: scaleUI(8), gap: scaleUI(12) },
+    content: { paddingHorizontal: scaleUI(20), paddingTop: scaleUI(8), gap: 0 },
     stack: { gap: scaleUI(14), marginBottom: scaleUI(14) },
     heading: { ...typeScale.sectionTitle, color: theme.textPrimary },
     title: { ...typeScale.cardTitle, color: theme.textPrimary },
     copy: { ...typeScale.supporting, color: theme.textSecondary },
+    sourceRow: { padding: scaleUI(16), gap: scaleUI(8) },
+    divider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.divider },
     card: { padding: scaleUI(18), gap: scaleUI(12) },
+    notes: { marginTop: scaleUI(14) },
     error: { ...typeScale.supporting, color: theme.textPrimary },
     loading: { flexDirection: 'row', alignItems: 'center', gap: scaleUI(12) },
   });

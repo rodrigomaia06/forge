@@ -3,16 +3,36 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { ForgeCard, ForgePressable, ForgeText as Text, Icon } from '../../../components/ui';
 import { useForgeTheme } from '../../../theme/ThemeProvider';
 import { typeScale } from '../../../theme/tokens';
+import type { IconName } from '../../../types';
 import { scaleUI } from '../../../theme/scale';
+import { CompletionCheck } from '../../activeWorkout/CompletionCheck';
 
 export interface CsvReviewRow {
   key: string;
   title: string;
   detail?: string;
   checked?: boolean;
+  icon?: IconName;
+  status?: string;
+  value?: string | number;
+  inset?: boolean;
   onPress?: () => void;
 }
-export function CsvImportRow({ item, busy }: { item: CsvReviewRow; busy: boolean }) {
+export function CsvImportRow({
+  item,
+  busy,
+  grouped = true,
+  first = false,
+  last = false,
+  embedded = false,
+}: {
+  item: CsvReviewRow;
+  busy: boolean;
+  grouped?: boolean;
+  first?: boolean;
+  last?: boolean;
+  embedded?: boolean;
+}) {
   const theme = useForgeTheme();
   const webKeyboard =
     Platform.OS === 'web' && item.checked !== undefined
@@ -30,48 +50,74 @@ export function CsvImportRow({ item, busy }: { item: CsvReviewRow; busy: boolean
           },
         }
       : {};
-  return (
-    <ForgeCard style={styles.card}>
-      <ForgePressable
-        {...webKeyboard}
-        accessibilityRole={
-          item.checked === undefined ? (item.onPress ? 'button' : undefined) : 'checkbox'
-        }
-        accessibilityState={{ checked: item.checked, disabled: busy }}
-        aria-checked={item.checked}
-        accessibilityLabel={item.title}
-        disabled={busy || !item.onPress}
-        onPress={item.onPress}
-        style={styles.row}
-      >
-        {item.checked !== undefined ? (
-          <View
-            style={[
-              styles.check,
-              {
-                borderColor: item.checked ? theme.selectionIndicator : theme.textSecondary,
-                backgroundColor: item.checked ? theme.selectionIndicator : 'transparent',
-              },
-            ]}
-          >
-            {item.checked ? <Icon name="check" size={16} color={theme.onActionPrimary} /> : null}
-          </View>
-        ) : null}
-        <View style={styles.copy}>
-          <Text style={[styles.title, { color: theme.textPrimary }]}>{item.title}</Text>
-          {item.detail ? (
-            <Text style={[styles.detail, { color: theme.textSecondary }]}>{item.detail}</Text>
-          ) : null}
+  const RowSurface = item.onPress ? ForgePressable : View;
+  const content = (
+    <RowSurface
+      {...webKeyboard}
+      accessibilityRole={
+        item.checked === undefined ? (item.onPress ? 'button' : undefined) : 'checkbox'
+      }
+      accessible={item.onPress ? undefined : true}
+      accessibilityState={item.onPress ? { checked: item.checked, disabled: busy } : undefined}
+      aria-checked={item.checked}
+      accessibilityLabel={
+        item.onPress
+          ? item.title
+          : [item.title, item.value, item.status, item.detail]
+              .filter((value) => value !== undefined)
+              .join('. ')
+      }
+      accessibilityHint={[item.detail, item.status].filter(Boolean).join('. ') || undefined}
+      {...(item.onPress ? { disabled: busy, onPress: item.onPress } : {})}
+      style={[
+        styles.row,
+        item.inset && styles.inset,
+        grouped &&
+          !last && {
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: theme.divider,
+          },
+      ]}
+    >
+      {item.icon ? (
+        <View accessible={false} aria-hidden>
+          <Icon name={item.icon} size={scaleUI(20)} color={theme.textSecondary} />
         </View>
-        {item.onPress && item.checked === undefined ? (
-          <Icon name="chevron-forward" size={18} color={theme.textSecondary} />
+      ) : null}
+      <View style={styles.copy}>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{item.title}</Text>
+        {item.status ? (
+          <Text style={[styles.status, { color: theme.textPrimary }]}>{item.status}</Text>
         ) : null}
-      </ForgePressable>
+        {item.detail ? (
+          <Text style={[styles.detail, { color: theme.textSecondary }]}>{item.detail}</Text>
+        ) : null}
+      </View>
+      {item.value !== undefined ? (
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{item.value}</Text>
+      ) : null}
+      {item.checked !== undefined ? (
+        <CompletionCheck selected={item.checked} tone="interactive" />
+      ) : null}
+      {item.onPress && item.checked === undefined ? (
+        <Icon name="chevron-forward" size={18} color={theme.textSecondary} />
+      ) : null}
+    </RowSurface>
+  );
+  return embedded ? (
+    content
+  ) : (
+    <ForgeCard
+      size="compact"
+      segment={first ? (last ? 'only' : 'first') : last ? 'last' : 'middle'}
+    >
+      {content}
     </ForgeCard>
   );
 }
 const styles = StyleSheet.create({
-  card: { marginBottom: scaleUI(10) },
+  inset: { paddingLeft: scaleUI(52) },
+  status: { ...typeScale.label },
   row: {
     padding: scaleUI(16),
     minHeight: Math.max(44, scaleUI(60)),
@@ -82,12 +128,22 @@ const styles = StyleSheet.create({
   copy: { flex: 1, minWidth: 0, gap: scaleUI(5) },
   title: { ...typeScale.cardTitle },
   detail: { ...typeScale.supporting },
-  check: {
-    width: scaleUI(24),
-    height: scaleUI(24),
-    borderWidth: 2,
-    borderRadius: scaleUI(7),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 });
+
+/** Small summaries reuse the same row treatment as the virtualized review. */
+export function CsvImportSummary({ rows }: { rows: RowSummary[] }) {
+  return (
+    <ForgeCard size="compact">
+      {rows.map((item, index) => (
+        <CsvImportRow
+          key={item.key}
+          item={item}
+          busy={false}
+          embedded
+          last={index === rows.length - 1}
+        />
+      ))}
+    </ForgeCard>
+  );
+}
+type RowSummary = Pick<CsvReviewRow, 'key' | 'title' | 'detail' | 'icon' | 'value'>;

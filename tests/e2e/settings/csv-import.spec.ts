@@ -39,7 +39,187 @@ async function asCustom(page: Page) {
   await page.getByRole('button', { name: 'Mystery Lift', exact: true }).click();
   await page.getByRole('button', { name: 'Keep “Mystery Lift” as custom', exact: true }).click();
 }
+async function chooseBench(page: Page, keyboard = false) {
+  const library = page.getByRole('button', { name: 'Choose from library', exact: true });
+  if (keyboard) await library.press('Enter');
+  else await library.click();
+  await page
+    .getByRole('textbox', { name: 'Search exercises', exact: true })
+    .fill('Barbell Bench Press');
+  const bench = page.getByRole('checkbox', { name: 'Bench Press, variation', exact: true });
+  if (keyboard) await bench.press('Enter');
+  else await bench.click();
+  const confirm = page.getByRole('button', { name: 'Confirm selected exercises', exact: true });
+  if (keyboard) await confirm.press('Enter');
+  else await confirm.click();
+}
 for (const appearance of ['light', 'dark'] as const) {
+  test(`${appearance} prioritizes unresolved exercises and reuses the picker without saving on cancel`, async ({
+    page,
+  }, info) => {
+    await open(page, appearance);
+    await pick(page, readFileSync(resolve('tests/fixtures/csv-import/hevy-sample.csv'), 'utf8'));
+    await advance(page);
+    await expect(page.getByText('2 exercises to choose', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Pull Up', exact: true })).toHaveCount(0);
+    await capture(page, info, 'unresolved-exercises');
+    await page.getByRole('button', { name: 'Show all exercises', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Pull Up', exact: true })).toBeVisible();
+    await expect(page.getByText(/^Matched:|^Remembered match:/)).toHaveCount(0);
+    const benchRow = await page
+      .getByRole('button', { name: 'Bench Press (Barbell)', exact: true })
+      .boundingBox();
+    const customRow = await page
+      .getByRole('button', { name: 'My Custom Cable Row', exact: true })
+      .boundingBox();
+    expect(benchRow).not.toBeNull();
+    expect(customRow).not.toBeNull();
+    expect(Math.abs(customRow!.y - (benchRow!.y + benchRow!.height))).toBeLessThanOrEqual(1);
+    await capture(page, info, 'grouped-exercises');
+    await page.getByRole('button', { name: 'Bench Press (Barbell)', exact: true }).click();
+    await chooseBench(page);
+    await page.getByRole('button', { name: 'My Custom Cable Row', exact: true }).click();
+    await capture(page, info, 'exercise-choices');
+    await page.getByRole('button', { name: 'Choose from library', exact: true }).click();
+    await expect(page.getByTestId('add-exercise-catalogue')).toBeVisible();
+    await page.getByRole('textbox', { name: 'Search exercises', exact: true }).fill('pull up');
+    await page
+      .getByRole('button', { name: /Pull-Up & \d+ variations/ })
+      .first()
+      .click();
+    await page.getByRole('checkbox', { name: 'Pull-Up, Wide', exact: true }).click();
+    await page.getByRole('checkbox', { name: 'Pull-Up, Neutral', exact: true }).click();
+    await capture(page, info, 'shared-exercise-picker');
+    const customBefore = await page.evaluate(() => localStorage.getItem('@forge/custom-exercises'));
+    await page.getByRole('button', { name: 'Confirm selected exercises', exact: true }).click();
+    const chooser = page.getByTestId('variation-output-chooser');
+    await expect(chooser).toBeVisible();
+    const derived = chooser
+      .getByRole('checkbox')
+      .filter({ hasText: /Wide.*Neutral|Neutral.*Wide/ });
+    await derived.click();
+    await expect(chooser.getByRole('checkbox', { checked: true })).toHaveCount(1);
+    await chooser.getByRole('checkbox').first().click();
+    await expect(chooser.getByRole('checkbox', { checked: true })).toHaveCount(1);
+    await derived.click();
+    await capture(page, info, 'single-exercise-variation-choice');
+    await page.getByRole('button', { name: 'Confirm resolved exercises', exact: true }).click();
+    await expect(page.getByText('Review exercises', { exact: true })).toBeVisible();
+    await capture(page, info, 'resolved-exercises');
+    expect(await page.evaluate(() => localStorage.getItem('@forge/custom-exercises'))).toBe(
+      customBefore,
+    );
+    await page.getByRole('button', { name: 'Cancel CSV import', exact: true }).click();
+    expect(await page.evaluate(() => localStorage.getItem('@forge/custom-exercises'))).toBe(
+      customBefore,
+    );
+    expect(
+      await page.evaluate(() =>
+        JSON.parse(localStorage.getItem('@forge/completed-workouts') ?? '[]'),
+      ),
+    ).toEqual([]);
+  });
+  test(`${appearance} uses grouped review rows and a readable import summary`, async ({
+    page,
+  }, info) => {
+    await open(page, appearance);
+    await capture(page, info, 'export-instructions-list');
+    await pick(page, `${header}\n${row('Morning workout')}\n${row('Evening workout')}`);
+    await advance(page);
+    await asCustom(page);
+    await advance(page);
+    const first = await page
+      .getByRole('checkbox', { name: 'Morning workout', exact: true })
+      .boundingBox();
+    const second = await page
+      .getByRole('checkbox', { name: 'Evening workout', exact: true })
+      .boundingBox();
+    expect(Math.abs(second!.y - (first!.y + first!.height))).toBeLessThanOrEqual(1);
+    await capture(page, info, 'joined-workout-list');
+    await page.getByRole('button', { name: 'Review 2 workouts', exact: true }).click();
+    const dialog = page.getByTestId('csv-import-confirmation');
+    await expect(dialog.getByText('Add workouts', { exact: true })).toBeVisible();
+    await expect(dialog.getByText('2', { exact: true })).toBeVisible();
+    await expect(dialog.getByText('Create custom exercises', { exact: true })).toBeVisible();
+    await expect(dialog.getByText('Replace workouts', { exact: true })).toHaveCount(0);
+    await expect(dialog.getByText('Duplicates skipped', { exact: true })).toHaveCount(0);
+    await expect(dialog.getByText('Incomplete workouts excluded', { exact: true })).toHaveCount(0);
+    const confirm = dialog.getByRole('button', { name: 'Import workouts', exact: true });
+    const bounds = await confirm.boundingBox();
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+    await capture(page, info, 'two-workouts-one-custom-confirmation');
+    await dialog.getByRole('button', { name: 'Back to review', exact: true }).press('Enter');
+    await expect(
+      page.getByRole('checkbox', { name: 'Morning workout', exact: true }),
+    ).toBeChecked();
+    await expect(
+      page.getByRole('checkbox', { name: 'Evening workout', exact: true }),
+    ).toBeChecked();
+    await page.getByRole('button', { name: 'Review 2 workouts', exact: true }).click();
+    await page.getByRole('button', { name: 'Import workouts', exact: true }).press('Enter');
+    await expect(page.getByText('Import complete', { exact: true })).toBeVisible();
+    await capture(page, info, 'two-workouts-summary-success');
+    expect(
+      await page.evaluate(
+        () => JSON.parse(localStorage.getItem('@forge/completed-workouts') ?? '[]').length,
+      ),
+    ).toBe(2);
+  });
+  test(`${appearance} keeps every import outcome readable in a full confirmation`, async ({
+    page,
+  }, info) => {
+    await open(page, appearance);
+    await pick(page, `${header}\n${row('Changed workout')}\n${row('Duplicate workout')}`);
+    await advance(page);
+    await asCustom(page);
+    await advance(page);
+    await page.getByRole('button', { name: 'Review 2 workouts', exact: true }).click();
+    await page.getByRole('button', { name: 'Import workouts', exact: true }).click();
+    await expect(page.getByText('Import complete', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Done', exact: true }).click();
+    await page.getByRole('button', { name: 'Import from another app', exact: true }).click();
+    await pick(
+      page,
+      `${header}\n${row('Changed workout', '55')}\n${row('Duplicate workout')}\n${row('New workout', '70', 'New custom exercise')}\n${row('Invalid workout', 'bad')}`,
+    );
+    await page.getByRole('checkbox', { name: 'Exclude 1 incomplete workout', exact: true }).click();
+    await advance(page);
+    await page.getByRole('button', { name: 'New custom exercise', exact: true }).click();
+    await page
+      .getByRole('button', { name: 'Keep “New custom exercise” as custom', exact: true })
+      .click();
+    await advance(page);
+    await page.getByRole('button', { name: 'Keep existing session', exact: true }).click();
+    await page.getByRole('radio', { name: /^Replace/ }).click();
+    await page.getByRole('button', { name: 'Review 2 workouts', exact: true }).click();
+    const dialog = page.getByTestId('csv-import-confirmation');
+    for (const label of [
+      'Add workouts',
+      'Replace workouts',
+      'Duplicates skipped',
+      'Incomplete workouts excluded',
+      'Create custom exercises',
+      'Save exercise matches',
+    ]) {
+      await expect(dialog.getByText(label, { exact: true })).toBeVisible();
+    }
+    await expect(dialog.getByText('1', { exact: true })).toHaveCount(6);
+    await expect(
+      dialog.getByRole('button', { name: 'Import workouts', exact: true }),
+    ).toBeInViewport({ ratio: 1 });
+    await capture(page, info, 'all-outcomes-confirmation');
+    await dialog.getByRole('button', { name: 'Import workouts', exact: true }).click();
+    await expect(page.getByText('Import complete', { exact: true })).toBeVisible();
+    const workouts = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('@forge/completed-workouts') ?? '[]'),
+    );
+    expect(workouts).toHaveLength(3);
+    expect(
+      workouts.find((workout: { name: string }) => workout.name === 'Changed workout').exercises[0]
+        .sets[0].weight,
+    ).toBe('55');
+    await capture(page, info, 'all-outcomes-success');
+  });
   test(`${appearance} reviews all five user-provided CSV samples`, async ({ page }, info) => {
     await open(page, appearance);
     for (const [name, source, count] of [
@@ -49,31 +229,50 @@ for (const appearance of ['light', 'dark'] as const) {
       ['fitnotes-android', 'FitNotes Android', 1],
       ['fitnotes-ios', 'FitNotes iOS', 2],
     ] as const) {
-      await pick(page, readFileSync(resolve('tests/fixtures/csv-import', `${name}-sample.csv`), 'utf8'));
+      await pick(
+        page,
+        readFileSync(resolve('tests/fixtures/csv-import', `${name}-sample.csv`), 'utf8'),
+      );
       if (name === 'strong-classic') {
         await page.getByRole('button', { name: 'Choose source weight unit', exact: true }).click();
         await page.getByRole('radio', { name: 'Kilograms (kg)', exact: true }).click();
       }
       await expect(page.getByText(`${source} CSV detected`, { exact: true })).toBeVisible();
-      await expect(page.getByText(`${count} valid workout${count === 1 ? '' : 's'}`, { exact: true })).toBeVisible();
-      await expect(page.getByText('0 workouts excluded · 0 validation problems', { exact: true })).toBeVisible();
+      await expect(
+        page.getByText(`${count} valid workout${count === 1 ? '' : 's'}`, { exact: true }),
+      ).toBeVisible();
+      await expect(page.getByText('No validation problems', { exact: true })).toBeVisible();
       await capture(page, info, `${name}-sample-detected`);
       await advance(page);
-      await expect(page.getByText('Match your exercises', { exact: true })).toBeVisible();
+      await expect(
+        page.getByText(/exercise(?:s)? to choose|Review exercises/, { exact: false }),
+      ).toBeVisible();
       await capture(page, info, `${name}-sample-matches`);
       await page.getByRole('button', { name: 'Back in CSV import', exact: true }).click();
       await page.getByRole('button', { name: 'Back in CSV import', exact: true }).click();
     }
-    const feet = readFileSync(resolve('tests/fixtures/csv-import/fitnotes-ios-sample.csv'), 'utf8').replace('5,km,30:00', '100,ft,30:00');
+    const feet = readFileSync(
+      resolve('tests/fixtures/csv-import/fitnotes-ios-sample.csv'),
+      'utf8',
+    ).replace('5,km,30:00', '100,ft,30:00');
     await pick(page, feet);
     await expect(page.getByText('2 valid workouts', { exact: true })).toBeVisible();
-    await expect(page.getByText('0 workouts excluded · 0 validation problems', { exact: true })).toBeVisible();
+    await expect(page.getByText('No validation problems', { exact: true })).toBeVisible();
     await capture(page, info, 'fitnotes-ios-feet-detected');
-    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('@forge/completed-workouts') ?? '[]'))).toEqual([]);
+    expect(
+      await page.evaluate(() =>
+        JSON.parse(localStorage.getItem('@forge/completed-workouts') ?? '[]'),
+      ),
+    ).toEqual([]);
   });
-  test(`${appearance} mixed imports preserve the existing History and set details presentation`, async ({ page }, info) => {
+  test(`${appearance} mixed imports preserve the existing History and set details presentation`, async ({
+    page,
+  }, info) => {
     await open(page, appearance);
-    await pick(page, `${header}\nMixed metrics,2026-09-20 08:00:00,2026-09-20 09:00:00,,Timed carry,,,0,normal,50,8,1,30,8`);
+    await pick(
+      page,
+      `${header}\nMixed metrics,2026-09-20 08:00:00,2026-09-20 09:00:00,,Timed carry,,,0,normal,50,8,1,30,8`,
+    );
     await advance(page);
     await page.getByRole('button', { name: 'Timed carry', exact: true }).click();
     await page.getByRole('button', { name: 'Keep “Timed carry” as custom', exact: true }).click();
@@ -93,7 +292,9 @@ for (const appearance of ['light', 'dark'] as const) {
     await expect(page.getByText('Imported measurements', { exact: true })).toHaveCount(0);
     await capture(page, info, 'mixed-measurements-set-details');
   });
-  test(`${appearance} duplicate-only mapping changes survive failure, retry and reimport`, async ({ page }, info) => {
+  test(`${appearance} duplicate-only mapping changes survive failure, retry and reimport`, async ({
+    page,
+  }, info) => {
     const text = `${header}\n${row('Mapping session')}`;
     await open(page, appearance);
     await pick(page, text);
@@ -109,17 +310,20 @@ for (const appearance of ['light', 'dark'] as const) {
     await pick(page, text);
     await advance(page);
     await page.getByRole('button', { name: 'Mystery Lift', exact: true }).click();
-    await page.getByRole('textbox', { name: 'Search Forge exercises' }).fill('Barbell Bench Press');
-    await page.getByRole('button', { name: 'Barbell Bench Press', exact: true }).click();
+    await chooseBench(page);
     await advance(page);
     await expect(page.getByText(/Already imported/)).toBeVisible();
     await capture(page, info, 'mapping-only-review');
     await page.getByRole('button', { name: 'Review 1 exercise match', exact: true }).click();
-    await expect(page.getByText('Save exercise matches?', { exact: true })).toBeVisible();
+    await expect(page.getByText('Save matches?', { exact: true })).toBeVisible();
     await capture(page, info, 'mapping-only-confirmation');
     await page.getByRole('button', { name: 'Back to review', exact: true }).click();
-    expect(await page.evaluate(() => localStorage.getItem('@forge/completed-workouts'))).toBe(before);
-    const mappingBefore = await page.evaluate(() => localStorage.getItem('@forge/csv-exercise-mappings-v1'));
+    expect(await page.evaluate(() => localStorage.getItem('@forge/completed-workouts'))).toBe(
+      before,
+    );
+    const mappingBefore = await page.evaluate(() =>
+      localStorage.getItem('@forge/csv-exercise-mappings-v1'),
+    );
     await page.evaluate(() => {
       const original = Storage.prototype.setItem;
       Storage.prototype.setItem = function (key, value) {
@@ -134,21 +338,29 @@ for (const appearance of ['light', 'dark'] as const) {
     await page.getByRole('button', { name: 'Save matches', exact: true }).click();
     await expect(page.getByText('Storage full', { exact: true })).toBeVisible();
     await capture(page, info, 'mapping-only-failure');
-    expect(await page.evaluate(() => localStorage.getItem('@forge/csv-exercise-mappings-v1'))).toBe(mappingBefore);
+    expect(await page.evaluate(() => localStorage.getItem('@forge/csv-exercise-mappings-v1'))).toBe(
+      mappingBefore,
+    );
     await page.getByRole('button', { name: 'Review 1 exercise match', exact: true }).click();
     await page.getByRole('button', { name: 'Save matches', exact: true }).click();
-    await expect(page.getByText('Exercise matches saved', { exact: true })).toBeVisible();
-    await expect(page.getByText('0 added · 0 replaced', { exact: true })).toBeVisible();
+    await expect(page.getByText('Matches saved', { exact: true })).toBeVisible();
+    await expect(page.getByText('Workouts added', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Workouts replaced', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Saved on this device', { exact: true })).toBeVisible();
     await capture(page, info, 'mapping-only-success');
-    expect(await page.evaluate(() => localStorage.getItem('@forge/completed-workouts'))).toBe(before);
+    expect(await page.evaluate(() => localStorage.getItem('@forge/completed-workouts'))).toBe(
+      before,
+    );
     await page.getByRole('button', { name: 'Done', exact: true }).click();
     await page.getByRole('button', { name: 'Import from another app', exact: true }).click();
     await pick(page, text);
     await advance(page);
-    await expect(page.getByText('Remembered match: Barbell Bench Press', { exact: true })).toBeVisible();
+    await expect(page.getByText('Barbell Bench Press', { exact: true })).toBeVisible();
     await capture(page, info, 'mapping-only-remembered');
     await page.getByRole('button', { name: 'Cancel CSV import', exact: true }).click();
-    expect(await page.evaluate(() => localStorage.getItem('@forge/completed-workouts'))).toBe(before);
+    expect(await page.evaluate(() => localStorage.getItem('@forge/completed-workouts'))).toBe(
+      before,
+    );
   });
   test(`${appearance} shows source icons for each supported CSV format`, async ({ page }, info) => {
     await open(page, appearance);
@@ -195,11 +407,7 @@ for (const appearance of ['light', 'dark'] as const) {
     await acknowledgment.press('Space');
     await advance(page);
     await page.getByRole('button', { name: 'Mystery Lift', exact: true }).press('Enter');
-    await page.getByRole('textbox', { name: 'Search Forge exercises' }).fill('Barbell Bench Press');
-    await expect(
-      page.getByRole('button', { name: 'Barbell Bench Press', exact: true }),
-    ).toBeVisible();
-    await page.getByRole('button', { name: 'Barbell Bench Press', exact: true }).press('Enter');
+    await chooseBench(page, true);
     await advance(page);
     const session = page.getByRole('checkbox', { name: 'CSV morning', exact: true });
     await session.press('Space');
@@ -262,7 +470,7 @@ for (const appearance of ['light', 'dark'] as const) {
     await page.getByRole('button', { name: 'Import from another app', exact: true }).click();
     await pick(page, `${header}\n${row('CSV morning')}`);
     await advance(page);
-    await expect(page.getByText('Remembered match: Mystery Lift', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Mystery Lift', exact: true })).toBeVisible();
     await advance(page);
     await expect(page.getByText(/Already imported/)).toBeVisible();
     await expect(
@@ -299,7 +507,8 @@ for (const appearance of ['light', 'dark'] as const) {
     await page.getByRole('radio', { name: /^Replace/ }).click();
     await page.getByRole('button', { name: 'Review 2 workouts' }).click();
     await page.getByRole('button', { name: 'Import workouts', exact: true }).click();
-    await expect(page.getByText('1 added · 1 replaced', { exact: true })).toBeVisible();
+    await expect(page.getByText('Workouts added', { exact: true })).toBeVisible();
+    await expect(page.getByText('Workouts replaced', { exact: true })).toBeVisible();
     expect(
       await page.evaluate(
         () => JSON.parse(localStorage.getItem('@forge/completed-workouts') ?? '[]').length,
@@ -321,6 +530,11 @@ for (const appearance of ['light', 'dark'] as const) {
       page,
       'Date,Workout Name,Duration,Exercise Name,Set Order,Weight,Reps\n09/10/2026,Strong session,1200,Mystery Lift,1,50,8',
     );
+    await expect(page.getByText('Source details needed', { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Choose date order', exact: true }),
+    ).toBeInViewport({ ratio: 1 });
+    await capture(page, info, 'source-details-required');
     await page.getByRole('button', { name: 'Choose date order', exact: true }).click();
     await page.getByRole('radio', { name: 'Day / month / year', exact: true }).click();
     await page.getByRole('button', { name: 'Choose source weight unit', exact: true }).click();
