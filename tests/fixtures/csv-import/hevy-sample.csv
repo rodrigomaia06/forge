@@ -1,0 +1,6 @@
+title,start_time,end_time,description,exercise_title,superset_id,exercise_notes,set_index,set_type,weight_kg,reps,distance_km,duration_seconds,rpe
+Push Day,"14 May 2024, 17:30","14 May 2024, 18:25",,Bench Press (Barbell),,,0,warmup,40,10,,0,
+Push Day,"14 May 2024, 17:30","14 May 2024, 18:25",,Bench Press (Barbell),,,1,normal,80,8,,0,8
+Push Day,"14 May 2024, 17:30","14 May 2024, 18:25",,Bench Press (Barbell),,,2,normal,82.5,6,,0,9
+Pull Day,"16 May 2024, 18:05","16 May 2024, 18:52",,Pull Up,,,0,normal,15,8,,0,8
+Pull Day,"16 May 2024, 18:05","16 May 2024, 18:52",,My Custom Cable Row,,,0,normal,45,12,,0,8

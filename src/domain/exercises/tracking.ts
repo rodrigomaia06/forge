@@ -14,7 +14,7 @@ export function trackingFieldLabel(type: TrackingType, kind: SetMeasurementKind)
   return trackingLabels[kind];
 }
 export function measurementsFor(mode: TrackingType | undefined, set: WorkoutSet): SetMeasurement[] {
-  if (set.measurements?.length) return mode
+  if (set.measurements?.length) return mode && !set.importMetadata
       ? set.measurements.filter(
           (entry) => trackingFields[mode].includes(entry.kind) || entry.kind === 'rpe',
         )

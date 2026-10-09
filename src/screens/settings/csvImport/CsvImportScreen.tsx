@@ -40,6 +40,7 @@ import {
   type CsvOptions,
   type ExerciseResolution,
   type CsvImportResult,
+  type CsvMappings,
   type SessionChoice,
 } from '../../../data/csvImport/types';
 import { CsvImportRow, type CsvReviewRow as Row } from './CsvImportRow';
@@ -66,6 +67,7 @@ export function CsvImportScreen({ navigation }: Props) {
   const [draft, setDraft] = useState<CsvDraft | null>(null);
   const [options, setOptions] = useState<CsvOptions>({});
   const [resolutions, setResolutions] = useState<ExerciseResolution[]>([]);
+  const [savedMappings, setSavedMappings] = useState<CsvMappings>({});
   const [acknowledged, setAcknowledged] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [choices, setChoices] = useState<Record<string, SessionChoice>>({});
@@ -104,8 +106,13 @@ export function CsvImportScreen({ navigation }: Props) {
         choices[match.workout.id] === 'replace' ||
         choices[match.workout.id] === 'both'),
   );
+  const changedMappings = resolutions.filter((item) => item.confirmed && item.exercise && savedMappings[item.key] !== item.exercise.id);
+  const mappingsOnly = actionable.length === 0 && changedMappings.length > 0;
+  const reviewLabel = mappingsOnly
+    ? `Review ${changedMappings.length} exercise match${changedMappings.length === 1 ? '' : 'es'}`
+    : `Review ${actionable.length} workout${actionable.length === 1 ? '' : 's'}`;
   const requiredCustom = new Set(
-    actionable.flatMap((match) => match.workout.exercises.map((exercise) => exercise.exerciseId)),
+    [...actionable.flatMap((match) => match.workout.exercises.map((exercise) => exercise.exerciseId)), ...changedMappings.map((item) => item.exercise!.id)],
   );
   const customCount = resolutions.filter(
     (resolution) => resolution.custom && requiredCustom.has(resolution.exercise?.id),
@@ -153,6 +160,7 @@ export function CsvImportScreen({ navigation }: Props) {
   async function analyze(picked: { name: string; text: string }, nextOptions: CsvOptions) {
     const parsed = await parseWorkoutCsvAsync(picked.text, nextOptions);
     const mappings = await loadCsvMappings();
+    setSavedMappings(mappings);
     setDraft(parsed);
     setResolutions(resolveCsvExercises(parsed, exercises, mappings));
     setSelected(new Set(parsed.workouts.map((workout) => workout.id)));
@@ -200,7 +208,7 @@ export function CsvImportScreen({ navigation }: Props) {
   function updateResolution(key: string, exercise: ExerciseResolution['exercise'], custom = false) {
     setResolutions((previous) =>
       previous.map((item) =>
-        item.key === key ? { ...item, exercise, custom, remembered: false } : item,
+        item.key === key ? { ...item, exercise, custom, remembered: false, confirmed: true } : item,
       ),
     );
   }
@@ -248,6 +256,7 @@ export function CsvImportScreen({ navigation }: Props) {
         choices,
         reviewed: reviewed.current,
         acknowledged,
+        confirmedMappingKeys: changedMappings.map((item) => item.key),
       });
       setResult(saved);
       setStage('result');
@@ -427,7 +436,7 @@ export function CsvImportScreen({ navigation }: Props) {
       : stage === 'matches'
         ? resolutions.every((item) => item.exercise)
         : stage === 'sessions'
-          ? actionable.length > 0
+          ? actionable.length > 0 || changedMappings.length > 0
           : false;
   return (
     <AppScreen edges={['top']} backgroundColor={theme.background}>
@@ -592,7 +601,7 @@ export function CsvImportScreen({ navigation }: Props) {
               ) : null}
               {stage === 'result' && result ? (
                 <>
-                  <Text style={styles.heading}>Import complete</Text>
+                  <Text style={styles.heading}>{result.added + result.replaced === 0 ? 'Exercise matches saved' : 'Import complete'}</Text>
                   <ForgeCard style={styles.card}>
                     <Text style={styles.title}>
                       {result.added} added · {result.replaced} replaced
@@ -608,6 +617,7 @@ export function CsvImportScreen({ navigation }: Props) {
                       {result.customExercises} custom exercise
                       {result.customExercises === 1 ? '' : 's'} created
                     </Text>
+                    <Text style={styles.copy}>{result.mappingsSaved} exercise match{result.mappingsSaved === 1 ? '' : 'es'} saved</Text>
                   </ForgeCard>
                   <Button label="Done" variant="outline" onPress={() => navigation.goBack()} />
                 </>
@@ -642,12 +652,12 @@ export function CsvImportScreen({ navigation }: Props) {
             labelStyle={busy || !canContinue ? undefined : { color: theme.textPrimary }}
             accessibilityLabel={
               stage === 'sessions'
-                ? `Review ${actionable.length} workout${actionable.length === 1 ? '' : 's'}`
+                ? reviewLabel
                 : 'Continue CSV import'
             }
             label={
               stage === 'sessions'
-                ? `Review ${actionable.length} workout${actionable.length === 1 ? '' : 's'}`
+                ? reviewLabel
                 : 'Continue'
             }
             icon={stage === 'sessions' ? 'check' : 'chevron-forward'}
@@ -680,10 +690,10 @@ export function CsvImportScreen({ navigation }: Props) {
         />
         <ForgeConfirmationDialog
           visible={confirm}
-          title="Import selected workouts?"
-          message={`${actionable.filter((match) => match.status === 'new' || choices[match.workout.id] === 'both').length} added, ${actionable.filter((match) => choices[match.workout.id] === 'replace').length} replaced. Duplicates skipped: ${sessions.filter((match) => match.status === 'duplicate').length}. Incomplete workouts excluded: ${draft?.excluded ?? 0}. Custom exercises required: ${customCount}.`}
+          title={mappingsOnly ? 'Save exercise matches?' : 'Import selected workouts?'}
+          message={`${actionable.filter((match) => match.status === 'new' || choices[match.workout.id] === 'both').length} added, ${actionable.filter((match) => choices[match.workout.id] === 'replace').length} replaced. Duplicates skipped: ${sessions.filter((match) => match.status === 'duplicate').length}. Incomplete workouts excluded: ${draft?.excluded ?? 0}. Custom exercises required: ${customCount}.${changedMappings.length ? ` Exercise matches to save: ${changedMappings.length}.` : ''}${mappingsOnly ? ' Existing workouts stay unchanged.' : ''}`}
           cancelLabel="Back to review"
-          confirmLabel="Import workouts"
+          confirmLabel={mappingsOnly ? 'Save matches' : 'Import workouts'}
           confirmTone="success"
           onCancel={() => setConfirm(false)}
           onConfirm={() => {

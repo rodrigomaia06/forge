@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
 import { parseWorkoutCsv, parseWorkoutCsvAsync } from '../../src/data/csvImport/parse';
@@ -17,6 +18,7 @@ import { recoverCsvImport, writeCsvImport } from '../../src/data/csvImport/webSt
 import type { CsvDraft, CsvImportRequest } from '../../src/data/csvImport/types';
 import type { ExerciseCatalogItem } from '../../src/data/exerciseCatalog';
 import { normalizeDataTransfer } from '../../src/data/dataTransferNormalization';
+import { effectiveTracking, measurementsFor } from '../../src/domain/exercises/tracking';
 
 const header =
   'title,start_time,end_time,description,exercise_title,superset_id,exercise_notes,set_index,set_type,weight_kg,reps,distance_km,duration_seconds,rpe';
@@ -76,6 +78,21 @@ test('Hevy retains notes, supersets, source fields, measurements and warm-up tag
   expect(set.tag).toBe('Warm Up');
   expect(set.measurements?.map((entry) => entry.value)).toEqual([50, 8, 8]);
   expect(set.importMetadata?.set_index).toBe('0');
+});
+test('mixed imported measurements survive resolution and backup beyond the selected tracking mode', () => {
+  const draft = parseWorkoutCsv(`${header}\nMorning,2026-09-20 08:00:00,2026-09-20 09:00:00,,Timed lift,,,0,normal,50,8,1,30,8`);
+  for (const trackingType of ['weight-reps', 'weighted-bodyweight', 'assisted-bodyweight-duration'] as const) {
+    const target = { ...bench, trackingType };
+    const resolutions = resolveCsvExercises(draft, [target], {});
+    resolutions[0].exercise = target;
+    const block = applyCsvResolutions(draft, resolutions)[0].exercises[0];
+    const set = block.sets[0];
+    expect(measurementsFor(effectiveTracking(block), set).map((entry) => entry.kind)).toEqual([
+      'weight', 'reps', 'distance', 'duration', 'rpe',
+    ]);
+    const restored = normalizeDataTransfer({ settings: {}, plans: {}, workouts: { completedWorkouts: [applyCsvResolutions(draft, resolutions)[0]] } });
+    expect(restored.workouts.completedWorkouts[0].exercises[0].sets[0].measurements).toEqual(set.measurements);
+  }
 });
 test('changed-session review exposes measurements, notes and removed sets', () => {
   const before = parseWorkoutCsv(csv()).workouts[0];
@@ -213,6 +230,45 @@ test('FitNotes iOS recognizes explicit weight columns, Kind and Notes', () => {
   expect(draft.source).toBe('fitnotes-ios');
   expect(draft.workouts[0].exercises[0].sets[0].weight).toBe('45.359237');
   expect(draft.workouts[0].exercises[0].sets[0].comment).toBe('Note');
+});
+for (const [file, source, count, options] of [
+  ['hevy-sample.csv', 'hevy', 2, {}],
+  ['strong-classic-sample.csv', 'strong', 1, { weightUnit: 'kg' }],
+  ['strong-modern-semicolon-sample.csv', 'strong', 1, {}],
+  ['fitnotes-android-sample.csv', 'fitnotes', 1, {}],
+  ['fitnotes-ios-sample.csv', 'fitnotes-ios', 2, {}],
+] as const) {
+  test(`user-provided ${file} preserves its workouts, set order and measurements`, () => {
+    const draft = parseWorkoutCsv(readFileSync(resolve('tests/fixtures/csv-import', file), 'utf8'), options);
+    expect(draft.source).toBe(source);
+    expect(draft.issues).toEqual([]);
+    expect(draft.requirements).toEqual([]);
+    expect(draft.workouts).toHaveLength(count);
+    const sets = draft.workouts[0].exercises[0].sets;
+    expect(sets.map((set) => set.weight)).toEqual(source === 'hevy' ? ['40', '80', '82.5'] : ['80', '85']);
+    if (source === 'strong') expect(draft.workouts[0].durationSeconds).toBe(3300);
+    if (source === 'fitnotes-ios') {
+      const run = draft.workouts[1].exercises[0].sets[0];
+      expect(run.measurements?.map(({ kind, value }) => [kind, value])).toEqual([['distance', 5], ['duration', 1800]]);
+      expect(run.comment).toBe('Easy pace');
+    }
+  });
+}
+for (const [unit, expected] of [['km', 100], ['m', 0.1], ['cm', 0.001], ['in', 0.00254], ['ft', 0.03048], ['yd', 0.09144], ['mi', 160.9344]] as const) {
+  test(`FitNotes iOS converts documented ${unit} distances`, () => {
+    const draft = parseWorkoutCsv(`Date,Exercise,Category,Weight (kg),Weight (lbs),Reps,Distance,Distance Unit,Time,Notes,Kind\n2026-09-20,Walk,Cardio,,,,100,${unit},01:00,,dt`);
+    expect(draft.issues).toEqual([]);
+    expect(draft.workouts[0].exercises[0].sets[0].measurements?.find((entry) => entry.kind === 'distance')?.value).toBeCloseTo(expected, 8);
+  });
+}
+test('Strong spaced session ID, duration and metre headers preserve identity and values', () => {
+  const text = 'Workout #,Date,Workout Name,Duration (sec),Exercise Name,Set Order,Weight (kg),Reps,Distance (meters),Seconds\n7,2026-09-20 08:00:00,Run,3300,Run,1,,,1500,600';
+  const draft = parseWorkoutCsv(text);
+  expect(draft.issues).toEqual([]);
+  expect(draft.workouts[0].durationSeconds).toBe(3300);
+  expect(draft.workouts[0].importSource?.sessionKey).toBe('["strong","7"]');
+  expect(draft.workouts[0].exercises[0].sets[0].measurements?.map(({ kind, value }) => [kind, value])).toEqual([['distance', 1.5], ['duration', 600]]);
+  expect(parseWorkoutCsv(text.replace(',Run,3300,', ',Renamed run,3300,')).workouts[0].id).toBe(draft.workouts[0].id);
 });
 test('bad row excludes its complete session but preserves independent valid sessions', () => {
   const draft = parseWorkoutCsv(
@@ -384,6 +440,48 @@ function storage(initial: Record<string, string> = {}) {
     },
   };
 }
+test('duplicate-only reviews save confirmed matches atomically without rewriting workouts', async () => {
+  const draft = parseWorkoutCsv(csv());
+  const original = applyCsvResolutions(draft, resolveCsvExercises(draft, [bench], {}));
+  const req = request(draft, original);
+  const resolution = req.resolutions[0];
+  resolution.confirmed = true;
+  resolution.custom = true;
+  resolution.exercise = customCsvExercise({ ...resolution, name: 'My confirmed bench' });
+  req.confirmedMappingKeys = [resolution.key];
+  req.selected = [];
+  const before = JSON.stringify(original);
+  const store = storage({ '@forge/completed-workouts': before, '@forge/csv-exercise-mappings-v1': JSON.stringify({ unrelated: 'kept', [resolution.key]: bench.id }) });
+  store.failNext('@forge/csv-exercise-mappings-v1');
+  await expect(writeCsvImport(store, req, [bench])).rejects.toThrow('Storage full');
+  expect(store.values['@forge/completed-workouts']).toBe(before);
+  expect(store.values['@forge/custom-exercises']).toBeUndefined();
+  expect(JSON.parse(store.values['@forge/csv-exercise-mappings-v1'])[resolution.key]).toBe(bench.id);
+  const result = await writeCsvImport(store, req, [bench]);
+  expect(result).toMatchObject({ added: 0, replaced: 0, duplicates: 1, mappingsSaved: 1, customExercises: 1 });
+  expect(store.values['@forge/completed-workouts']).toBe(before);
+  const custom = JSON.parse(store.values['@forge/custom-exercises']);
+  const mappings = JSON.parse(store.values['@forge/csv-exercise-mappings-v1']);
+  expect(mappings.unrelated).toBe('kept');
+  expect(resolveCsvExercises(draft, [bench, ...custom], mappings)[0].exercise?.id).toBe(resolution.exercise.id);
+  resolution.exercise = customCsvExercise({ ...resolution, name: 'My confirmed bench' });
+  expect(prepareCsvCommit(req, original, custom, [bench, ...custom]).result.customExercises).toBe(0);
+  req.reviewed = {};
+  expect(() => prepareCsvCommit(req, original, [], [bench])).toThrow('Workouts changed');
+});
+test('mapping-only reviews reject removed targets and unconfirmed source identities', () => {
+  const draft = parseWorkoutCsv(csv());
+  const current = applyCsvResolutions(draft, resolveCsvExercises(draft, [bench], {}));
+  const req = request(draft, current);
+  req.resolutions[0].confirmed = true;
+  req.confirmedMappingKeys = [req.resolutions[0].key];
+  expect(() => prepareCsvCommit(req, current, [], [])).toThrow('no longer available');
+  req.confirmedMappingKeys = ['not-in-this-file'];
+  expect(() => prepareCsvCommit(req, current, [], [bench])).toThrow('Review the exercise matches');
+  req.confirmedMappingKeys = [req.resolutions[0].key];
+  req.resolutions[0].confirmed = false;
+  expect(() => prepareCsvCommit(req, current, [], [bench])).toThrow('Review the exercise matches');
+});
 test('browser save rolls back all touched keys and can retry', async () => {
   const store = storage({
     '@forge/completed-workouts': '[]',
@@ -434,8 +532,9 @@ test('native CSV import uses one transaction and rolls back when a mapping write
   let stored: string[] = [],
     transactions = 0,
     fail = true;
+  let archive: ReturnType<typeof applyCsvResolutions> = [];
   const db = {
-    getAllAsync: async () => [],
+    getAllAsync: async (sql: string) => sql.includes('is_active = 0') ? archive.map((workout) => ({ value_json: JSON.stringify(workout) })) : [],
     getFirstAsync: async () => null,
     runAsync: async (sql: string) => {
       stored.push(sql);
@@ -474,4 +573,20 @@ test('native CSV import uses one transaction and rolls back when a mapping write
   fail = false;
   expect((await exports.commitCsvImport(request(parseWorkoutCsv(csv())))).added).toBe(1);
   expect(transactions).toBe(2);
+  const draft = parseWorkoutCsv(csv());
+  archive = applyCsvResolutions(draft, resolveCsvExercises(draft, [bench], {}));
+  const req = request(draft, archive);
+  req.resolutions[0] = { ...req.resolutions[0], confirmed: true, custom: true, exercise: customCsvExercise({ ...req.resolutions[0], name: 'Native mapping target' }) };
+  req.confirmedMappingKeys = [req.resolutions[0].key];
+  stored = [];
+  fail = true;
+  failure = undefined;
+  try { await exports.commitCsvImport(req); } catch (error) { failure = error; }
+  expect(String(failure)).toContain('Disk full');
+  expect(stored).toEqual([]);
+  fail = false;
+  expect(await exports.commitCsvImport(req)).toMatchObject({ added: 0, replaced: 0, mappingsSaved: 1, customExercises: 1 });
+  expect(stored.some((sql) => sql.includes('INSERT INTO workouts'))).toBe(false);
+  expect(stored.some((sql) => sql.includes('INSERT INTO custom_exercises'))).toBe(true);
+  expect(transactions).toBe(4);
 });

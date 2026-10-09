@@ -42,7 +42,7 @@ export function detectCsvSource(headers: string[]): CsvSource {
     return 'strong';
   }
   if (has(headers, ['date', 'exercise', 'category', 'reps'])) {
-    if (headers.includes('weight(kg)') || headers.includes('weight(lbs)')) {
+    if (['weight (kg)', 'weight (lbs)', 'weight(kg)', 'weight(lbs)'].some((header) => headers.includes(header))) {
       return 'fitnotes-ios';
     }
     requireHeaders(headers, ['weight']);
@@ -101,7 +101,7 @@ export function adaptRow(source: CsvSource, record: CsvRecord): AdaptedRow {
     return {
       ...base,
       date: record.date,
-      session: record['workout#'] ?? '',
+      session: record['workout #'] ?? record['workout#'] ?? '',
       name: record['workout name'],
       exercise: record['exercise name'],
       weight:
@@ -113,18 +113,18 @@ export function adaptRow(source: CsvSource, record: CsvRecord): AdaptedRow {
             ? 'lb'
             : (record['weight unit'] ?? ''),
       reps: record.reps,
-      distance: record.distance ?? '',
-      distanceUnit: record['distance unit'] ?? '',
+      distance: record['distance (meters)'] ?? record.distance ?? '',
+      distanceUnit: record['distance (meters)'] !== undefined ? 'm' : record['distance unit'] ?? '',
       seconds: record.seconds ?? '',
-      duration: record.durationsec ?? record.duration ?? '',
+      duration: record['duration (sec)'] ?? record.durationsec ?? record.duration ?? '',
       note: record['workout notes'] ?? '',
       comment: record.notes ?? '',
       rpe: record.rpe ?? '',
       tag: record['set type'] ?? record['set order'] ?? '',
     };
   const ios = source === 'fitnotes-ios';
-  const kg = record['weight(kg)'],
-    lb = record['weight(lbs)'];
+  const kg = record['weight (kg)'] ?? record['weight(kg)'],
+    lb = record['weight (lbs)'] ?? record['weight(lbs)'];
   return {
     ...base,
     date: record.date,

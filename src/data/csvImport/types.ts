@@ -34,6 +34,7 @@ export interface ExerciseResolution {
   exercise?: ExerciseCatalogItem;
   custom?: boolean;
   remembered?: boolean;
+  confirmed?: boolean;
 }
 export type CsvMappings = Record<string, string>;
 export type SessionChoice = 'keep' | 'replace' | 'both';
@@ -50,6 +51,7 @@ export interface CsvImportRequest {
   /** Review must still describe the records being replaced at commit time. */
   reviewed: Record<string, string>;
   acknowledged: boolean;
+  confirmedMappingKeys?: string[];
 }
 export interface CsvImportResult {
   added: number;
@@ -57,4 +59,5 @@ export interface CsvImportResult {
   duplicates: number;
   excluded: number;
   customExercises: number;
+  mappingsSaved: number;
 }

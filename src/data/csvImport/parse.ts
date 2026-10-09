@@ -27,6 +27,10 @@ class NeedsChoice extends Error {
     super(`Choose ${requirement} before review.`);
   }
 }
+const distanceKilometres: Record<string, number> = {
+  km: 1, m: 0.001, cm: 0.00001, in: 0.0000254, ft: 0.0003048, yd: 0.0009144,
+  mi: 1.609344, mile: 1.609344, miles: 1.609344,
+};
 const months: Record<string, number> = {
   jan: 1,
   january: 1,
@@ -352,10 +356,9 @@ function* parseChunks(
       if (distance !== undefined && distance !== 0) {
         const unit = adapted.distanceUnit.toLowerCase() || options.distanceUnit;
         if (!unit) throw new NeedsChoice('distanceUnit');
-        if (!['km', 'm', 'mi', 'mile', 'miles'].includes(unit))
+        if (!Object.hasOwn(distanceKilometres, unit))
           throw new Error('Unsupported distance unit.');
-        if (unit === 'm') distance /= 1000;
-        else if (unit !== 'km') distance *= 1.609344;
+        distance *= distanceKilometres[unit];
       }
       add('distance', 'km', distance);
       field = 'Set duration';

@@ -78,19 +78,22 @@ export function applyCsvResolutions(draft: CsvDraft, resolutions: ExerciseResolu
       const mode = exercise.trackingType ?? block.trackingType ?? 'weight-reps';
       const loaded =
         mode.startsWith('weighted-bodyweight') || mode.startsWith('assisted-bodyweight');
+      // Prefer the source mode when the catalogue mode cannot represent its values.
+      const incompatible = block.sets.some((set) =>
+        set.measurements?.some(
+          (entry) =>
+            entry.value !== 0 && entry.kind !== 'rpe' &&
+            !trackingFields[mode].includes(loaded && entry.kind === 'weight' ? 'addedWeight' : entry.kind),
+        ),
+      );
+      const selectedMode = incompatible ? block.trackingType ?? mode : mode;
+      const selectedLoaded = selectedMode.startsWith('weighted-bodyweight') || selectedMode.startsWith('assisted-bodyweight');
       const sets = block.sets.map((set) => ({
         ...set,
         measurements: set.measurements?.map((entry) =>
-          loaded && entry.kind === 'weight' ? { ...entry, kind: 'addedWeight' as const } : entry,
+          selectedLoaded && entry.kind === 'weight' ? { ...entry, kind: 'addedWeight' as const } : entry,
         ),
       }));
-      // A catalogue choice must never hide source measurements from the history UI.
-      const incompatible = sets.some((set) =>
-        set.measurements?.some(
-          (entry) =>
-            entry.value !== 0 && entry.kind !== 'rpe' && !trackingFields[mode].includes(entry.kind),
-        ),
-      );
       return {
         ...block,
         name: exercise.name,
@@ -182,6 +185,11 @@ export function prepareCsvCommit(
   if (request.draft.excluded && !request.acknowledged)
     throw new Error('Acknowledge the excluded workouts first.');
   const selected = new Set(request.selected);
+  const confirmedMappings = new Set(request.confirmedMappingKeys ?? []);
+  const draftKeys = new Set(request.draft.workouts.flatMap((workout) => workout.exercises.map((exercise) => exercise.importKey)));
+  for (const key of confirmedMappings)
+    if (!draftKeys.has(key) || !request.resolutions.some((resolution) => resolution.key === key && resolution.confirmed))
+      throw new Error('Review the exercise matches again before saving.');
   const existingIds = new Set(catalog.map((exercise) => exercise.id));
   const customByVariation = new Map<string, ExerciseCatalogItem>();
   for (const exercise of custom) {
@@ -210,8 +218,12 @@ export function prepareCsvCommit(
     duplicates: matches.filter((match) => match.status === 'duplicate').length,
     excluded: request.draft.excluded,
     customExercises: 0,
+    mappingsSaved: 0,
   };
   for (const match of matches) {
+    if (match.workout.exercises.some((exercise) => confirmedMappings.has(exercise.importKey!)) &&
+      request.reviewed[match.workout.id] !== reviewStamp(match))
+      throw new Error('Workouts changed during review. Review the sessions again before saving matches.');
     if (!selected.has(match.workout.id) || match.status === 'duplicate') continue;
     if (request.reviewed[match.workout.id] !== reviewStamp(match))
       throw new Error(
@@ -239,7 +251,7 @@ export function prepareCsvCommit(
     writes.push(workout);
   }
   const used = new Set(
-    writes.flatMap((workout) => workout.exercises.map((exercise) => exercise.importKey)),
+    [...writes.flatMap((workout) => workout.exercises.map((exercise) => exercise.importKey)), ...confirmedMappings],
   );
   const customIds = new Set(custom.map((exercise) => exercise.id));
   const additions = resolutions
@@ -254,6 +266,7 @@ export function prepareCsvCommit(
       .filter((resolution) => used.has(resolution.key))
       .map((resolution) => [resolution.key, resolution.exercise!.id]),
   );
+  result.mappingsSaved = Object.keys(mappings).length;
   return {
     workouts,
     writes,

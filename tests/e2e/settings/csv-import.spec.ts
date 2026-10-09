@@ -1,4 +1,6 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 const header =
   'title,start_time,end_time,description,exercise_title,superset_id,exercise_notes,set_index,set_type,weight_kg,reps,distance_km,duration_seconds,rpe';
@@ -38,6 +40,116 @@ async function asCustom(page: Page) {
   await page.getByRole('button', { name: 'Keep “Mystery Lift” as custom', exact: true }).click();
 }
 for (const appearance of ['light', 'dark'] as const) {
+  test(`${appearance} reviews all five user-provided CSV samples`, async ({ page }, info) => {
+    await open(page, appearance);
+    for (const [name, source, count] of [
+      ['hevy', 'Hevy', 2],
+      ['strong-classic', 'Strong', 1],
+      ['strong-modern-semicolon', 'Strong', 1],
+      ['fitnotes-android', 'FitNotes Android', 1],
+      ['fitnotes-ios', 'FitNotes iOS', 2],
+    ] as const) {
+      await pick(page, readFileSync(resolve('tests/fixtures/csv-import', `${name}-sample.csv`), 'utf8'));
+      if (name === 'strong-classic') {
+        await page.getByRole('button', { name: 'Choose source weight unit', exact: true }).click();
+        await page.getByRole('radio', { name: 'Kilograms (kg)', exact: true }).click();
+      }
+      await expect(page.getByText(`${source} CSV detected`, { exact: true })).toBeVisible();
+      await expect(page.getByText(`${count} valid workout${count === 1 ? '' : 's'}`, { exact: true })).toBeVisible();
+      await expect(page.getByText('0 workouts excluded · 0 validation problems', { exact: true })).toBeVisible();
+      await capture(page, info, `${name}-sample-detected`);
+      await advance(page);
+      await expect(page.getByText('Match your exercises', { exact: true })).toBeVisible();
+      await capture(page, info, `${name}-sample-matches`);
+      await page.getByRole('button', { name: 'Back in CSV import', exact: true }).click();
+      await page.getByRole('button', { name: 'Back in CSV import', exact: true }).click();
+    }
+    const feet = readFileSync(resolve('tests/fixtures/csv-import/fitnotes-ios-sample.csv'), 'utf8').replace('5,km,30:00', '100,ft,30:00');
+    await pick(page, feet);
+    await expect(page.getByText('2 valid workouts', { exact: true })).toBeVisible();
+    await expect(page.getByText('0 workouts excluded · 0 validation problems', { exact: true })).toBeVisible();
+    await capture(page, info, 'fitnotes-ios-feet-detected');
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('@forge/completed-workouts') ?? '[]'))).toEqual([]);
+  });
+  test(`${appearance} mixed imports preserve the existing History and set details presentation`, async ({ page }, info) => {
+    await open(page, appearance);
+    await pick(page, `${header}\nMixed metrics,2026-09-20 08:00:00,2026-09-20 09:00:00,,Timed carry,,,0,normal,50,8,1,30,8`);
+    await advance(page);
+    await page.getByRole('button', { name: 'Timed carry', exact: true }).click();
+    await page.getByRole('button', { name: 'Keep “Timed carry” as custom', exact: true }).click();
+    await advance(page);
+    await page.getByRole('button', { name: 'Review 1 workout', exact: true }).click();
+    await page.getByRole('button', { name: 'Import workouts', exact: true }).click();
+    await expect(page.getByText('Import complete', { exact: true })).toBeVisible();
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'History', exact: true }).click();
+    await page.getByRole('button', { name: 'Open Mixed metrics', exact: true }).click();
+    await page.getByRole('button', { name: 'Expand Timed carry', exact: true }).click();
+    await expect(page.getByText('Weight: 50 kg · Reps: 8', { exact: true })).toHaveCount(0);
+    await capture(page, info, 'mixed-measurements-history');
+    await page.getByRole('button', { name: 'Open details for set 1', exact: true }).click();
+    const imported = page.getByTestId('set-imported-measurements');
+    await expect(imported).toHaveCount(0);
+    await expect(page.getByText('Imported measurements', { exact: true })).toHaveCount(0);
+    await capture(page, info, 'mixed-measurements-set-details');
+  });
+  test(`${appearance} duplicate-only mapping changes survive failure, retry and reimport`, async ({ page }, info) => {
+    const text = `${header}\n${row('Mapping session')}`;
+    await open(page, appearance);
+    await pick(page, text);
+    await advance(page);
+    await asCustom(page);
+    await advance(page);
+    await page.getByRole('button', { name: 'Review 1 workout', exact: true }).click();
+    await page.getByRole('button', { name: 'Import workouts', exact: true }).click();
+    await expect(page.getByText('Import complete', { exact: true })).toBeVisible();
+    const before = await page.evaluate(() => localStorage.getItem('@forge/completed-workouts'));
+    await page.getByRole('button', { name: 'Done', exact: true }).click();
+    await page.getByRole('button', { name: 'Import from another app', exact: true }).click();
+    await pick(page, text);
+    await advance(page);
+    await page.getByRole('button', { name: 'Mystery Lift', exact: true }).click();
+    await page.getByRole('textbox', { name: 'Search Forge exercises' }).fill('Barbell Bench Press');
+    await page.getByRole('button', { name: 'Barbell Bench Press', exact: true }).click();
+    await advance(page);
+    await expect(page.getByText(/Already imported/)).toBeVisible();
+    await capture(page, info, 'mapping-only-review');
+    await page.getByRole('button', { name: 'Review 1 exercise match', exact: true }).click();
+    await expect(page.getByText('Save exercise matches?', { exact: true })).toBeVisible();
+    await capture(page, info, 'mapping-only-confirmation');
+    await page.getByRole('button', { name: 'Back to review', exact: true }).click();
+    expect(await page.evaluate(() => localStorage.getItem('@forge/completed-workouts'))).toBe(before);
+    const mappingBefore = await page.evaluate(() => localStorage.getItem('@forge/csv-exercise-mappings-v1'));
+    await page.evaluate(() => {
+      const original = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (key, value) {
+        if (key === '@forge/csv-exercise-mappings-v1') {
+          Storage.prototype.setItem = original;
+          throw new Error('Storage full');
+        }
+        return original.call(this, key, value);
+      };
+    });
+    await page.getByRole('button', { name: 'Review 1 exercise match', exact: true }).click();
+    await page.getByRole('button', { name: 'Save matches', exact: true }).click();
+    await expect(page.getByText('Storage full', { exact: true })).toBeVisible();
+    await capture(page, info, 'mapping-only-failure');
+    expect(await page.evaluate(() => localStorage.getItem('@forge/csv-exercise-mappings-v1'))).toBe(mappingBefore);
+    await page.getByRole('button', { name: 'Review 1 exercise match', exact: true }).click();
+    await page.getByRole('button', { name: 'Save matches', exact: true }).click();
+    await expect(page.getByText('Exercise matches saved', { exact: true })).toBeVisible();
+    await expect(page.getByText('0 added · 0 replaced', { exact: true })).toBeVisible();
+    await capture(page, info, 'mapping-only-success');
+    expect(await page.evaluate(() => localStorage.getItem('@forge/completed-workouts'))).toBe(before);
+    await page.getByRole('button', { name: 'Done', exact: true }).click();
+    await page.getByRole('button', { name: 'Import from another app', exact: true }).click();
+    await pick(page, text);
+    await advance(page);
+    await expect(page.getByText('Remembered match: Barbell Bench Press', { exact: true })).toBeVisible();
+    await capture(page, info, 'mapping-only-remembered');
+    await page.getByRole('button', { name: 'Cancel CSV import', exact: true }).click();
+    expect(await page.evaluate(() => localStorage.getItem('@forge/completed-workouts'))).toBe(before);
+  });
   test(`${appearance} shows source icons for each supported CSV format`, async ({ page }, info) => {
     await open(page, appearance);
     const sources = [
