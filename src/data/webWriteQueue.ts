@@ -1,7 +1,15 @@
 let pending: Promise<unknown> = Promise.resolve();
-/** All browser plan and workout writes share one ordering boundary. */
+let recover: (() => Promise<void>) | undefined;
+export function registerWebRecovery(operation: () => Promise<void>): void {
+  recover = operation;
+}
+/** Browser repository operations recover interrupted imports before sharing one ordering boundary. */
 export function queueWebWrite<T>(operation: () => Promise<T>): Promise<T> {
-  const run = pending.then(operation, operation);
+  const recoveredOperation = async () => {
+    await recover?.();
+    return operation();
+  };
+  const run = pending.then(recoveredOperation, recoveredOperation);
   pending = run.then(
     () => undefined,
     () => undefined,

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { exerciseCatalog, type ExerciseCatalogItem } from '../data/exerciseCatalog';
 import { warmCatalogIndex } from '../domain/exercises/catalogSelectors';
+import { customVariationKey as variationKey } from '../domain/exercises/customIdentity';
 import { loadCustomExercises, saveCustomExercises } from '../data/exerciseRepository';
 import type { ChildrenProps } from '../types';
 
@@ -16,15 +17,6 @@ type ExerciseCatalogContextValue = {
 };
 
 const ExerciseCatalogContext = createContext<ExerciseCatalogContextValue | null>(null);
-
-function variationKey(exercise: ExerciseCatalogItem): string {
-  const facets = exercise.variationFacets
-    ? Object.entries(exercise.variationFacets).flatMap(([key, value]) => Array.isArray(value) ? value.map((item) => `${key}:${item}`) : value ? [`${key}:${value}`] : [])
-    : [];
-  return [exercise.group, ...(facets.length ? facets : [exercise.variation || exercise.name]), ...(exercise.equipmentIds?.length ? [...exercise.equipmentIds].sort() : [exercise.equipment])]
-    .map((value) => value.trim().toLocaleLowerCase())
-    .join('\u0000');
-}
 
 function withoutDuplicateVariations(exercises: ExerciseCatalogItem[]): ExerciseCatalogItem[] {
   const seen = new Set<string>();
