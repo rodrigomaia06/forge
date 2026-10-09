@@ -874,8 +874,8 @@ test.describe('Active workout flow', () => {
     expect(dotBox.y).toBeLessThan(chipBox.y + chipBox.height);
     expect(dotBox.x + dotBox.width).toBeLessThanOrEqual(chipBox.x + chipBox.width);
     expect(dotBox.y + dotBox.height).toBeLessThanOrEqual(chipBox.y + chipBox.height);
-    expect(dotBox.x + dotBox.width).toBeGreaterThan(chipBox.x + chipBox.width - 3);
-    expect(dotBox.y + dotBox.height).toBeGreaterThan(chipBox.y + chipBox.height - 3);
+    expect(dotBox.x + dotBox.width).toBeLessThanOrEqual(chipBox.x + chipBox.width - 3);
+    expect(dotBox.y + dotBox.height).toBeLessThanOrEqual(chipBox.y + chipBox.height - 3);
     if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('set-comment-indicator-iphone.png') });
     }

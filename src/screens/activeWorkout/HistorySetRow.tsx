@@ -1,4 +1,4 @@
-import { ForgePressable as Pressable, centeredPressFeedback } from '../../components/ui/ForgePressable';
+import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -7,7 +7,7 @@ import {
   measurementDisplay,
   measurementText, trackingFieldLabel, trackingFields,
 } from '../../domain/exercises/tracking';
-import { hasNextSessionTarget, setTagPresentation } from '../../domain/workouts/setPresentation';
+import { SetNumberBadge, useSetNumberBadgeLayout } from './SetNumberBadge';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
@@ -39,9 +39,8 @@ export function HistorySetRow({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const tag = setTagPresentation(set.tag);
   const rpe = measurementText(set, 'rpe');
-  const target = hasNextSessionTarget(set);
+  const badgeLayout = useSetNumberBadgeLayout(!compact && Boolean(rpe));
   const values = trackingFields[trackingType].map((kind) => measurementDisplay(set, kind)).filter(Boolean);
   const planned = set.plannedTargets?.map((item) => item.maxValue !== undefined && item.maxValue !== item.minValue ? `${item.minValue}–${item.maxValue}` : String(item.minValue ?? item.maxValue ?? '')).filter(Boolean).join(' · ');
   const formatTarget = (item: NonNullable<WorkoutSet['plannedTargets']>[number]): string =>
@@ -71,33 +70,16 @@ export function HistorySetRow({
           {planned ? <Text style={[styles.planned, { color: theme.textSecondary }]}>{planned}</Text> : null}
           {set.comment?.trim() ? <Text numberOfLines={2} style={[styles.comment, { color: theme.textSecondary }]}>{`“${set.comment.trim()}”`}</Text> : null}
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Open details for set ${index + 1}`} onPress={() => { selectionHaptic(); onOpenDetails(); }} pressFeedbackStyle={styles.numberFeedback} style={({ pressed }) => [styles.compactChipButton, pressed && styles.compactChipPressed]}>
-          <View testID={`history-set-number-chip-${index + 1}`} style={styles.chipWrap}>
-            <Text style={[styles.chip, tag && { color: tag.color, backgroundColor: `${tag.color}20` }]}>
-              {tag?.letter ?? index + 1}
-            </Text>
-            {target ? <View accessibilityLabel={`Set ${index + 1} has a next session target`} style={[styles.targetDot, { backgroundColor: theme.setTargetIndicator }]} /> : null}
-            {set.comment?.trim() ? <View accessibilityLabel={`Set ${index + 1} has a comment`} style={[styles.commentDot, { backgroundColor: theme.ink }]} /> : null}
-          </View>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Open details for set ${index + 1}`} onPress={() => { selectionHaptic(); onOpenDetails(); }} pressFeedbackStyle={badgeLayout.feedback} style={[styles.compactChipButton, { minHeight: Math.max(44, badgeLayout.height + 4) }]}>
+          <SetNumberBadge set={set} index={index} testID={`history-set-number-chip-${index + 1}`} showEffort={false} />
         </Pressable>
       </View>
     );
   }
   return (
     <View testID={`workout-details-set-${set.id}`} style={[styles.fullRow, !isLast && { borderBottomWidth: 1, borderBottomColor: theme.divider }]}>
-      <Pressable accessibilityRole="button" accessibilityLabel={`Open details for set ${index + 1}`} onPress={() => { selectionHaptic(); onOpenDetails(); }} pressFeedbackStyle={styles.numberFeedback} style={styles.numberButton}>
-        <View testID={`history-set-number-chip-${index + 1}`} style={styles.chipWrap}>
-          <Text style={[styles.chip, tag && { color: tag.color, backgroundColor: `${tag.color}20` }]}>
-            {tag?.letter ?? index + 1}
-          </Text>
-          {target ? <View accessibilityLabel={`Set ${index + 1} has a next session target`} style={[styles.targetDot, { backgroundColor: theme.setTargetIndicator }]} /> : null}
-          {rpe ? (
-            <Text accessibilityLabel={`Set ${index + 1} RPE ${rpe}`} style={styles.rpe}>
-              {rpe}
-            </Text>
-          ) : null}
-          {set.comment?.trim() ? <View accessibilityLabel={`Set ${index + 1} has a comment`} style={[styles.commentDot, { backgroundColor: theme.ink }]} /> : null}
-        </View>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Open details for set ${index + 1}`} onPress={() => { selectionHaptic(); onOpenDetails(); }} pressFeedbackStyle={badgeLayout.feedback} style={[styles.numberButton, { minHeight: Math.max(44, badgeLayout.height + 4) }]}>
+        <SetNumberBadge set={set} index={index} testID={`history-set-number-chip-${index + 1}`} />
       </Pressable>
       {showPrevious ? <Text style={styles.previous}>{set.previous?.trim() || 'Not recorded'}</Text> : null}
       {trackingFields[trackingType].map((kind) => (
@@ -118,13 +100,7 @@ export function HistorySetRow({
 
 const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.create({
   fullRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  numberButton: { width: 46, height: 44, alignItems: 'center', justifyContent: 'center' },
-  numberFeedback: centeredPressFeedback(32, 9),
-  chipWrap: { position: 'relative', width: 32, height: 32 },
-  chip: { width: 32, height: 32, borderRadius: 9, textAlign: 'center', color: theme.ink, backgroundColor: theme.surfaceMuted, ...typeScale.controlLabel, lineHeight: 32 },
-  targetDot: { position: 'absolute', top: 1, left: 1, width: 7, height: 7, borderRadius: 4 },
-  commentDot: { position: 'absolute', right: 1, bottom: 1, width: 7, height: 7, borderRadius: 4 },
-  rpe: { position: 'absolute', left: 3, bottom: 1, color: theme.ink, ...typeScale.caption },
+  numberButton: { width: 46, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   value: { width: 60, minHeight: 36, borderWidth: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   valueText: { color: theme.ink, ...typeScale.body },
   previous: { flex: 1, minWidth: 0, color: theme.ink, ...typeScale.body, textAlign: 'center' },
@@ -132,8 +108,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   compactRow: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 18, paddingRight: 10, paddingVertical: 7, borderTopWidth: StyleSheet.hairlineWidth },
   compactCopy: { flex: 1, minWidth: 0, gap: 2 },
   compactMetricsLine: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-  compactChipButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  compactChipPressed: { opacity: 0.62 },
+  compactChipButton: { width: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   metrics: { color: theme.ink, ...typeScale.cardTitle },
   compactRpe: { ...typeScale.supporting },
   planned: { ...typeScale.body },

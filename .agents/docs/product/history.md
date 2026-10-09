@@ -1,5 +1,7 @@
 # History
 
+- Recorded set-number badges share the live-workout layout: the number or set-kind letter stays centered while RPE and target/comment dots fit around it without overlap.
+
 - A failed saved-workout load is distinct from first use. Forge preserves unreadable active/archive records and offers retry plus the existing Backup & Export route before ordinary collection editing resumes. Database backup restore remains native-only.
 
 - Completed workouts can be opened individually from the History list.

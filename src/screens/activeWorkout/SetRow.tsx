@@ -16,7 +16,7 @@ import {
   parseDuration,
   measurementText, measurementUnit, trackingFieldLabel, trackingFields, updateMeasurement,
 } from '../../domain/exercises/tracking';
-import { hasNextSessionTarget, setTagPresentation } from '../../domain/workouts/setPresentation';
+import { SetNumberBadge, useSetNumberBadgeLayout } from './SetNumberBadge';
 
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
@@ -49,9 +49,8 @@ export function SetRow({
   const [routineRangeDrafts, setRoutineRangeDrafts] = useState<Partial<Record<import('../../types').SetMeasurementKind, string>>>({});
   const [focusedInputs, setFocusedInputs] = useState<Partial<Record<import('../../types').SetMeasurementKind, boolean>>>({});
   const previous = set.previous || '—';
-  const tag = setTagPresentation(set.tag);
   const rpe = measurementText(set, 'rpe');
-  const hasNextTarget = hasNextSessionTarget(set);
+  const badgeLayout = useSetNumberBadgeLayout(Boolean(rpe));
 
   useEffect(
     () => () => {
@@ -164,30 +163,10 @@ export function SetRow({
         onAccessibilityAction={(event) => {
           if (event.nativeEvent.actionName === 'delete') onDelete();
         }}
-        style={styles.setNumberWrap}
-        pressFeedbackStyle={styles.numberFeedback}
+        style={[styles.setNumberWrap, { minHeight: Math.max(44, badgeLayout.height + 4) }]}
+        pressFeedbackStyle={badgeLayout.feedback}
       >
-        <View testID={`live-set-number-chip-${index + 1}`} style={styles.setNumberChip}>
-          <Text
-            style={[
-              styles.setNumber,
-              tag && { color: tag.color, backgroundColor: `${tag.color}20` },
-            ]}
-          >
-            {tag?.letter ?? index + 1}
-          </Text>
-          {hasNextTarget ? (
-            <View accessibilityLabel={`Set ${index + 1} has a next session target`} style={styles.targetIndicator} />
-          ) : null}
-          {rpe ? (
-            <Text accessibilityLabel={`Set ${index + 1} RPE ${rpe}`} style={styles.rpeIndicator}>
-              {rpe}
-            </Text>
-          ) : null}
-          {set.comment?.trim() ? (
-            <View accessibilityLabel={`Set ${index + 1} has a comment`} style={styles.commentIndicator} />
-          ) : null}
-        </View>
+        <SetNumberBadge set={set} index={index} testID={`live-set-number-chip-${index + 1}`} />
       </Pressable>
       {showPrevious ? (
         <Text style={styles.previous} numberOfLines={1}>
@@ -404,21 +383,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     gap: scaleUI(6),
   },
   setCompleted: {},
-  // The 46x44 wrap is the set-number tap target and stays at the accessible size.
-  setNumberWrap: { position: 'relative', width: 46, height: 44, alignItems: 'center', justifyContent: 'center' },
-  numberFeedback: centeredPressFeedback(scaleUI(32), scaleUI(9)),
+  // Keep the touch target accessible while the badge grows with text scaling.
+  setNumberWrap: { position: 'relative', width: 46, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   checkFeedback: centeredPressFeedback(scaleUI(30), scaleUI(15)),
-  setNumberChip: { position: 'relative', width: scaleUI(32), height: scaleUI(32) },
-  setNumber: {
-    width: scaleUI(32),
-    height: scaleUI(32),
-    borderRadius: scaleUI(9),
-    textAlign: 'center',
-    backgroundColor: dashboardTheme.surfaceMuted,
-    color: dashboardTheme.ink,
-    ...typeScale.controlLabel,
-    lineHeight: scaleUI(32),
-  },
   previous: {
     flex: 1,
     color: dashboardTheme.ink,
@@ -460,30 +427,5 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     overflow: 'hidden',
   },
   checkPressable: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  commentIndicator: {
-    position: 'absolute',
-    right: 1,
-    bottom: 1,
-    width: scaleUI(7),
-    height: scaleUI(7),
-    borderRadius: scaleUI(3.5),
-    backgroundColor: dashboardTheme.ink,
-  },
-  targetIndicator: {
-    position: 'absolute',
-    top: 1,
-    left: 1,
-    width: scaleUI(7),
-    height: scaleUI(7),
-    borderRadius: scaleUI(3.5),
-    backgroundColor: dashboardTheme.setTargetIndicator,
-  },
-  rpeIndicator: {
-    position: 'absolute',
-    bottom: 1,
-    left: 3,
-    color: dashboardTheme.ink,
-    ...typeScale.caption,
-  },
   });
 };

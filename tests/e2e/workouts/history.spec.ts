@@ -529,8 +529,8 @@ test.describe('History screen', () => {
     expect(dotBox.y).toBeLessThan(chipBox.y + chipBox.height);
     expect(dotBox.x + dotBox.width).toBeLessThanOrEqual(chipBox.x + chipBox.width);
     expect(dotBox.y + dotBox.height).toBeLessThanOrEqual(chipBox.y + chipBox.height);
-    expect(dotBox.x + dotBox.width).toBeGreaterThan(chipBox.x + chipBox.width - 3);
-    expect(dotBox.y + dotBox.height).toBeGreaterThan(chipBox.y + chipBox.height - 3);
+    expect(dotBox.x + dotBox.width).toBeLessThanOrEqual(chipBox.x + chipBox.width - 3);
+    expect(dotBox.y + dotBox.height).toBeLessThanOrEqual(chipBox.y + chipBox.height - 3);
     // setTargetIndicator is a dark tone (#55585C) in Light so the dot reads on the
     // light set-number chip (white only in Dark).
     await expect(firstSet.getByLabel('Set 1 has a next session target')).toHaveCSS('background-color', 'rgb(85, 88, 92)');

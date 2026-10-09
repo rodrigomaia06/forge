@@ -622,7 +622,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
       elevation: 1,
   },
   readOnlyExerciseHeaderRow: { flexDirection: 'row', alignItems: 'center' },
-  readOnlyExerciseHeaderPressable: { flex: 1 },
+  readOnlyExerciseHeaderPressable: { flex: 1, borderRadius: scaleUI(16), overflow: 'hidden' },
   readOnlyMoreButton: { width: 44, height: 44, borderRadius: 22, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', marginRight: 6 },
     readOnlyExerciseHeader: {
       minHeight: scaleUI(56),
