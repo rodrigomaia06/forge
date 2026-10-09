@@ -1,6 +1,6 @@
 (() => {
   const video = document.querySelector('.hero-video');
-  const control = document.querySelector('.hero-video-control');
+  const control = document.querySelector('.phone-screen');
   const still = document.querySelector('.phone-screen img');
   if (!video || !control || !still) return;
 
@@ -10,8 +10,9 @@
   let failed = false;
   let theme;
   const label = () => {
-    control.textContent = video.paused ? 'Play video' : 'Pause video';
-    control.setAttribute('aria-label', `${video.paused ? 'Play' : 'Pause'} workout preview`);
+    const action = `${video.paused ? 'Play' : 'Pause'} app preview`;
+    control.setAttribute('aria-label', action);
+    control.title = action;
   };
   const fallback = () => {
     video.hidden = true;
@@ -21,15 +22,16 @@
     if (motion.matches || failed) {
       video.pause();
       fallback();
-      control.hidden = true;
+      control.disabled = true;
       return;
     }
+    control.disabled = false;
     const nextTheme = document.documentElement.dataset.theme;
     if (nextTheme !== theme) {
       theme = nextTheme;
       fallback();
       const format = video.canPlayType('video/mp4') ? 'mp4' : 'webm';
-      video.src = `assets/hero-workout-${theme}.${format}`;
+      video.src = `assets/hero-tabs-${theme}.${format}`;
       video.load();
     }
     if (visible && !document.hidden && !pausedByUser) {
@@ -37,7 +39,7 @@
       video.hidden = false;
       video.play().catch(() => {
         fallback();
-        control.hidden = false;
+        control.disabled = false;
         label();
       });
     } else video.pause();
@@ -47,7 +49,7 @@
     if (motion.matches || failed) return;
     video.hidden = false;
     still.hidden = true;
-    control.hidden = false;
+    control.disabled = false;
     label();
   });
   video.addEventListener('pause', label);
