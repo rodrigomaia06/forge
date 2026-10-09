@@ -22,6 +22,8 @@ import { scaleUI } from '../../../theme/scale';
 import type { RootStackParamList } from '../../../types';
 import { useExerciseCatalog } from '../../../state/ExerciseCatalogContext';
 import { useWorkouts } from '../../../state/WorkoutContext';
+import { usePlans } from '../../../state/PlansContext';
+import { routineReviewRecord } from '../../../data/csvImport/routines';
 import { SettingsDetailHeader } from '../SettingsScreenChrome';
 import { pickWorkoutCsv } from '../../../data/pickWorkoutCsv';
 import { pickStriveBackup } from '../../../data/pickStriveBackup';
@@ -45,9 +47,10 @@ import {
   type CsvImportResult,
   type CsvMappings,
   type SessionChoice,
+  type CsvSource,
 } from '../../../data/csvImport/types';
 import { CsvImportRow, CsvImportSummary, type CsvReviewRow as Row } from './CsvImportRow';
-import { CsvSourceHeading } from './CsvSourceHeading';
+import { CsvSourceHeading, sourceIcons } from './CsvSourceHeading';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CsvImport'>;
 type ImportFile = { name: string; text: string } | { name: string; snapshot: StriveSnapshot };
@@ -66,6 +69,11 @@ export function CsvImportScreen({ navigation }: Props) {
     clearance = useForgeFloatingCtaClearance();
   const { exercises, reload: reloadExercises } = useExerciseCatalog();
   const { completedWorkouts, reload: reloadWorkouts } = useWorkouts();
+  const { plans, standaloneRoutines, reload: reloadPlans } = usePlans();
+  const currentRoutines = useMemo(
+    () => [...standaloneRoutines, ...plans.flatMap((plan) => plan.routines)],
+    [plans, standaloneRoutines],
+  );
   const [stage, setStage] = useState<Stage>('file');
   const [file, setFile] = useState<ImportFile | null>(null);
   const [draft, setDraft] = useState<CsvDraft | null>(null);
@@ -98,10 +106,21 @@ export function CsvImportScreen({ navigation }: Props) {
         : [],
     [draft, resolutions],
   );
-  const sessions = useMemo(
-    () => matchCsvSessions(incoming, completedWorkouts),
-    [incoming, completedWorkouts],
-  );
+  const sessions = useMemo(() => {
+    const ids = new Set((draft?.routines ?? []).map((routine) => routine.id));
+    return [
+      ...matchCsvSessions(
+        incoming.filter((record) => !ids.has(record.id)),
+        completedWorkouts,
+      ),
+      ...matchCsvSessions(
+        incoming.filter((record) => ids.has(record.id)),
+        currentRoutines.map(routineReviewRecord),
+      ),
+    ];
+  }, [incoming, completedWorkouts, currentRoutines, draft]);
+  const routineIds = new Set((draft?.routines ?? []).map((routine) => routine.id));
+  const hasRoutines = Boolean(draft?.routines?.length);
   const actionable = sessions.filter(
     (match) =>
       selected.has(match.workout.id) &&
@@ -116,7 +135,9 @@ export function CsvImportScreen({ navigation }: Props) {
   const mappingsOnly = actionable.length === 0 && changedMappings.length > 0;
   const reviewLabel = mappingsOnly
     ? `Review ${changedMappings.length} exercise match${changedMappings.length === 1 ? '' : 'es'}`
-    : `Review ${actionable.length} workout${actionable.length === 1 ? '' : 's'}`;
+    : hasRoutines
+      ? `Review ${actionable.length} selected`
+      : `Review ${actionable.length} workout${actionable.length === 1 ? '' : 's'}`;
   const requiredCustom = new Set([
     ...actionable.flatMap((match) =>
       match.workout.exercises.map((exercise) => exercise.exerciseId),
@@ -127,10 +148,20 @@ export function CsvImportScreen({ navigation }: Props) {
     (resolution) => resolution.custom && requiredCustom.has(resolution.exercise?.id),
   ).length;
   const addedCount = actionable.filter(
-    (match) => match.status === 'new' || choices[match.workout.id] === 'both',
+    (match) =>
+      !routineIds.has(match.workout.id) &&
+      (match.status === 'new' || choices[match.workout.id] === 'both'),
   ).length;
   const replacedCount = actionable.filter(
-    (match) => choices[match.workout.id] === 'replace',
+    (match) => !routineIds.has(match.workout.id) && choices[match.workout.id] === 'replace',
+  ).length;
+  const routinesAdded = actionable.filter(
+    (match) =>
+      routineIds.has(match.workout.id) &&
+      (match.status === 'new' || choices[match.workout.id] === 'both'),
+  ).length;
+  const routinesReplaced = actionable.filter(
+    (match) => routineIds.has(match.workout.id) && choices[match.workout.id] === 'replace',
   ).length;
   const duplicateCount = sessions.filter((match) => match.status === 'duplicate').length;
   const summaryRows = (
@@ -141,10 +172,24 @@ export function CsvImportScreen({ navigation }: Props) {
       excluded: number;
       custom: number;
       mappings: number;
+      routinesAdded?: number;
+      routinesReplaced?: number;
     },
     saved = false,
   ): Row[] =>
     [
+      {
+        key: 'routines-added',
+        title: saved ? 'Routines added' : 'Add routines',
+        icon: 'layers',
+        value: counts.routinesAdded,
+      },
+      {
+        key: 'routines-replaced',
+        title: saved ? 'Routines replaced' : 'Replace routines',
+        icon: 'replace',
+        value: counts.routinesReplaced,
+      },
       {
         key: 'added',
         title: saved ? 'Workouts added' : 'Add workouts',
@@ -165,7 +210,7 @@ export function CsvImportScreen({ navigation }: Props) {
       },
       {
         key: 'excluded',
-        title: 'Incomplete workouts excluded',
+        title: hasRoutines ? 'Incomplete items excluded' : 'Incomplete workouts excluded',
         icon: 'alert-triangle',
         value: counts.excluded,
       },
@@ -223,33 +268,40 @@ export function CsvImportScreen({ navigation }: Props) {
       previousFocus?.focus();
     };
   }, [confirm, choice]);
-  async function analyze(picked: ImportFile, nextOptions: CsvOptions) {
+  async function analyze(picked: ImportFile, nextOptions: CsvOptions, expectedSource?: CsvSource) {
     const parsed =
       'snapshot' in picked
         ? await parseStriveSnapshotAsync(picked.snapshot, nextOptions)
         : await parseWorkoutCsvAsync(picked.text, nextOptions);
+    if (expectedSource && parsed.source !== expectedSource)
+      throw new Error(
+        `This is a ${sourceLabels[parsed.source]} export. Choose ${sourceLabels[parsed.source]} from the app list to import it.`,
+      );
     const mappings = await loadCsvMappings();
     setSavedMappings(mappings);
     setDraft(parsed);
     setResolutions(resolveCsvExercises(parsed, exercises, mappings));
-    setSelected(new Set(parsed.workouts.map((workout) => workout.id)));
+    setSelected(
+      new Set([...parsed.workouts, ...(parsed.routines ?? [])].map((record) => record.id)),
+    );
     setAcknowledged(false);
     setChoices({});
     setShowAllExercises(false);
     setOptions(nextOptions);
     setStage('detected');
   }
-  async function chooseFile(strive = false) {
+  async function chooseFile(source: CsvSource) {
     if (lock.current) return;
     lock.current = true;
     setError('');
     try {
+      const strive = source === 'strive';
       if (strive) setBusy(true);
       const picked = strive ? await pickStriveBackup() : await pickWorkoutCsv();
       if (!picked) return;
       setBusy(true);
       await new Promise<void>((resolve) => setTimeout(resolve, 0));
-      await analyze(picked, {});
+      await analyze(picked, {}, source);
       setFile(picked);
     } catch (failure) {
       setError(
@@ -287,21 +339,22 @@ export function CsvImportScreen({ navigation }: Props) {
     setError('');
   }
   function sessionChoice(id: string, ambiguous: boolean) {
+    const routine = routineIds.has(id);
     setChoice({
-      title: 'Session',
+      title: routine ? 'Routine' : 'Session',
       value: choices[id] ?? 'keep',
       options: [
         {
           value: 'keep',
           label: 'Keep existing',
-          description: 'Preserve the workout on this device.',
+          description: `Preserve the ${routine ? 'routine' : 'workout'} on this device.`,
         },
         ...(!ambiguous
           ? [
               {
                 value: 'replace',
                 label: 'Replace',
-                description: 'Replace this session with the exported version.',
+                description: `Replace this ${routine ? 'routine' : 'session'} with the exported version.`,
               },
             ]
           : []),
@@ -329,7 +382,7 @@ export function CsvImportScreen({ navigation }: Props) {
       setResult(saved);
       setStage('result');
       try {
-        await Promise.all([reloadWorkouts(), reloadExercises()]);
+        await Promise.all([reloadWorkouts(), reloadExercises(), reloadPlans()]);
       } catch {
         setError(
           'The import was saved, but the displayed data could not refresh. Reopen Forge to reload it.',
@@ -342,7 +395,7 @@ export function CsvImportScreen({ navigation }: Props) {
           : 'Could not save. Your review is kept. Try again.',
       );
       try {
-        await Promise.all([reloadWorkouts(), reloadExercises()]);
+        await Promise.all([reloadWorkouts(), reloadExercises(), reloadPlans()]);
       } catch {
         /* Keep the draft while storage remains unavailable. */
       }
@@ -402,8 +455,11 @@ export function CsvImportScreen({ navigation }: Props) {
     if (!draft.requirements.length && draft.excluded)
       rows.push({
         key: 'ack',
-        title: `Exclude ${draft.excluded} incomplete workout${draft.excluded === 1 ? '' : 's'}`,
-        detail: 'I understand only the remaining valid workouts will be imported.',
+        title: `Exclude ${draft.excluded} incomplete ${draft.source === 'strive' ? 'item' : 'workout'}${draft.excluded === 1 ? '' : 's'}`,
+        detail:
+          draft.source === 'strive'
+            ? 'I understand only valid workouts and routines will be imported.'
+            : 'I understand only the remaining valid workouts will be imported.',
         checked: acknowledged,
         onPress: () => setAcknowledged(!acknowledged),
       });
@@ -435,20 +491,31 @@ export function CsvImportScreen({ navigation }: Props) {
   if (stage === 'sessions')
     for (const match of sessions) {
       const { workout, status } = match;
+      const routine = routineIds.has(workout.id);
       rows.push({
         key: workout.id,
         icon:
-          status === 'duplicate' ? 'duplicate' : status === 'new' ? 'calendar' : 'alert-triangle',
+          status === 'duplicate'
+            ? 'duplicate'
+            : status === 'new'
+              ? routine
+                ? 'layers'
+                : 'calendar'
+              : 'alert-triangle',
         status:
           status === 'duplicate'
             ? 'Already imported · skipped'
             : status === 'new'
-              ? 'New session'
+              ? routine
+                ? 'New routine'
+                : 'New session'
               : status === 'ambiguous'
                 ? 'Ambiguous match'
-                : 'Changed session',
+                : routine
+                  ? 'Changed routine'
+                  : 'Changed session',
         title: workout.name,
-        detail: `${new Date(workout.startedAt).toLocaleDateString()} · ${workout.exercises.length} exercise${workout.exercises.length === 1 ? '' : 's'}`,
+        detail: `${routine ? 'Standalone routine' : new Date(workout.startedAt).toLocaleDateString()} · ${workout.exercises.length} exercise${workout.exercises.length === 1 ? '' : 's'}`,
         checked: status === 'duplicate' ? undefined : selected.has(workout.id),
         onPress:
           status === 'duplicate'
@@ -467,7 +534,7 @@ export function CsvImportScreen({ navigation }: Props) {
           inset: true,
           detail:
             choices[workout.id] === 'replace'
-              ? `The ${draft?.source === 'strive' ? 'backup' : 'CSV'} version will replace this workout.`
+              ? `The ${draft?.source === 'strive' ? 'backup' : 'CSV'} version will replace this ${routine ? 'routine' : 'workout'}.`
               : choices[workout.id] === 'both'
                 ? 'Both versions will be kept.'
                 : `The ${draft?.source === 'strive' ? 'backup' : 'CSV'} version will be skipped.`,
@@ -479,10 +546,14 @@ export function CsvImportScreen({ navigation }: Props) {
                 : 'verified',
           title:
             choices[workout.id] === 'replace'
-              ? 'Replace existing session'
+              ? routine
+                ? 'Replace existing routine'
+                : 'Replace existing session'
               : choices[workout.id] === 'both'
                 ? 'Import a separate copy'
-                : 'Keep existing session',
+                : routine
+                  ? 'Keep existing routine'
+                  : 'Keep existing session',
           onPress: () => sessionChoice(workout.id, status === 'ambiguous'),
         });
       if (status === 'changed' && match.existing) {
@@ -519,7 +590,9 @@ export function CsvImportScreen({ navigation }: Props) {
   const canContinue =
     stage === 'detected'
       ? Boolean(
-          draft?.workouts.length && !draft.requirements.length && (!draft.excluded || acknowledged),
+          (draft?.workouts.length || draft?.routines?.length) &&
+          !draft?.requirements.length &&
+          (!draft?.excluded || acknowledged),
         )
       : stage === 'matches'
         ? resolutions.every((item) => item.exercise)
@@ -530,7 +603,7 @@ export function CsvImportScreen({ navigation }: Props) {
     <AppScreen edges={['top']} backgroundColor={theme.background}>
       <View style={styles.screen} testID="csv-import-screen">
         <SettingsDetailHeader
-          title="Import workouts"
+          title={hasRoutines ? 'Import' : 'Import workouts'}
           navigation={{ goBack: back }}
           backAccessibilityLabel="Back in CSV import"
           elevated={elevated}
@@ -577,7 +650,9 @@ export function CsvImportScreen({ navigation }: Props) {
                       ? '1 of 3 · Check file'
                       : stage === 'matches'
                         ? '2 of 3 · Exercises'
-                        : '3 of 3 · Workouts'}
+                        : hasRoutines
+                          ? '3 of 3 · Workouts & routines'
+                          : '3 of 3 · Workouts'}
                   </Text>
                 </View>
               ) : null}
@@ -601,10 +676,9 @@ export function CsvImportScreen({ navigation }: Props) {
               ) : null}
               {stage === 'file' ? (
                 <>
-                  <Text style={styles.heading}>Bring your workout history</Text>
+                  <Text style={styles.heading}>Choose your app</Text>
                   <Text style={styles.copy}>
-                    Choose a CSV export or Strive database backup. Review its exercises and sessions
-                    before adding anything to Forge.
+                    Select an app to open its export. Review everything before saving to Forge.
                   </Text>
                   <ForgeCard size="compact">
                     {(
@@ -617,37 +691,31 @@ export function CsvImportScreen({ navigation }: Props) {
                           'FitNotes iOS',
                           'Export a CSV with Date, Exercise and Weight columns.',
                         ],
-                        [
-                          'strive',
-                          'Strive',
-                          'Choose an exported .db or .sqlite backup (schema 85). Completed workouts only. Available in the iOS and Android app.',
-                        ],
+                        ['strive', 'Strive', 'Choose an exported .db or .sqlite backup.'],
                       ] as const
                     ).map(([source, title, detail], index) => (
-                      <View key={source} style={[styles.sourceRow, index < 4 && styles.divider]}>
-                        <CsvSourceHeading source={source} title={title} />
-                        <Text style={styles.copy}>{detail}</Text>
-                      </View>
+                      <CsvImportRow
+                        key={source}
+                        embedded
+                        last={index === 4}
+                        busy={busy}
+                        item={{
+                          key: source,
+                          title,
+                          detail:
+                            source === 'strive' && Platform.OS === 'web'
+                              ? `${detail}\nAvailable in the iOS or Android app.`
+                              : detail,
+                          icon: sourceIcons[source],
+                          iconTestID: `csv-source-icon-${source}`,
+                          disabled: source === 'strive' && Platform.OS === 'web',
+                          onPress: () => {
+                            void chooseFile(source);
+                          },
+                        }}
+                      />
                     ))}
                   </ForgeCard>
-                  <Button
-                    label={file ? 'Choose another CSV' : 'Choose CSV file'}
-                    icon="database-import"
-                    variant="outline"
-                    onPress={() => {
-                      void chooseFile();
-                    }}
-                    disabled={busy}
-                  />
-                  <Button
-                    label="Choose Strive backup"
-                    icon="database-import"
-                    variant="outline"
-                    disabled={busy || Platform.OS === 'web'}
-                    onPress={() => {
-                      void chooseFile(true);
-                    }}
-                  />
                   {file ? (
                     <Button
                       label="Resume review"
@@ -681,11 +749,20 @@ export function CsvImportScreen({ navigation }: Props) {
                             },
                           ]
                         : []),
+                      ...(draft.routines?.length && !draft.requirements.length
+                        ? [
+                            {
+                              key: 'routines',
+                              title: `${draft.routines.length} standalone routine${draft.routines.length === 1 ? '' : 's'}`,
+                              icon: 'layers' as const,
+                            },
+                          ]
+                        : []),
                       ...(draft.excluded && !draft.requirements.length
                         ? [
                             {
                               key: 'excluded',
-                              title: `${draft.excluded} workout${draft.excluded === 1 ? '' : 's'} excluded`,
+                              title: `${draft.excluded} ${draft.source === 'strive' ? 'item' : 'workout'}${draft.excluded === 1 ? '' : 's'} excluded`,
                               icon: 'alert-triangle' as const,
                             },
                           ]
@@ -715,7 +792,9 @@ export function CsvImportScreen({ navigation }: Props) {
                         : []),
                     ]}
                   />
-                  {!draft.workouts.length && !draft.requirements.length ? (
+                  {!draft.workouts.length &&
+                  !draft.routines?.length &&
+                  !draft.requirements.length ? (
                     <Text style={styles.copy}>
                       No complete workouts can be imported. Correct the reported problems or choose
                       another export.
@@ -748,10 +827,13 @@ export function CsvImportScreen({ navigation }: Props) {
               ) : null}
               {stage === 'sessions' ? (
                 <>
-                  <Text style={styles.heading}>Review workouts</Text>
+                  <Text style={styles.heading}>
+                    {hasRoutines ? 'Workouts & routines' : 'Review workouts'}
+                  </Text>
                   <Text style={styles.copy}>
-                    Choose which workouts to import. Changed workouts keep the existing version
-                    until you choose otherwise.
+                    {hasRoutines
+                      ? 'Choose workouts and standalone routines to import. Changed items keep the existing version until you choose otherwise.'
+                      : 'Choose which workouts to import. Changed workouts keep the existing version until you choose otherwise.'}
                   </Text>
                   {sessions.some((match) => match.status !== 'duplicate') ? (
                     <Button
@@ -759,8 +841,12 @@ export function CsvImportScreen({ navigation }: Props) {
                         sessions
                           .filter((match) => match.status !== 'duplicate')
                           .every((match) => selected.has(match.workout.id))
-                          ? 'Deselect all workouts'
-                          : 'Select all workouts'
+                          ? hasRoutines
+                            ? 'Deselect all'
+                            : 'Deselect all workouts'
+                          : hasRoutines
+                            ? 'Select all'
+                            : 'Select all workouts'
                       }
                       variant="secondary"
                       onPress={() => {
@@ -778,7 +864,13 @@ export function CsvImportScreen({ navigation }: Props) {
               {stage === 'result' && result ? (
                 <>
                   <Text style={styles.heading}>
-                    {result.added + result.replaced === 0 ? 'Matches saved' : 'Import complete'}
+                    {result.added +
+                      result.replaced +
+                      (result.routinesAdded ?? 0) +
+                      (result.routinesReplaced ?? 0) ===
+                    0
+                      ? 'Matches saved'
+                      : 'Import complete'}
                   </Text>
                   <View style={styles.loading} accessibilityLiveRegion="polite">
                     <Icon name="check" color={theme.success} size={scaleUI(22)} />
@@ -925,11 +1017,15 @@ export function CsvImportScreen({ navigation }: Props) {
                 excluded: draft?.excluded ?? 0,
                 custom: customCount,
                 mappings: changedMappings.length,
+                routinesAdded,
+                routinesReplaced,
               })}
             />
           }
           cancelLabel="Back to review"
-          confirmLabel={mappingsOnly ? 'Save matches' : 'Import workouts'}
+          confirmLabel={
+            mappingsOnly ? 'Save matches' : hasRoutines ? 'Import selected' : 'Import workouts'
+          }
           confirmTone="success"
           onCancel={() => setConfirm(false)}
           onConfirm={() => {
@@ -951,8 +1047,6 @@ const createStyles = (theme: import('../../../types').ForgeTheme) =>
     heading: { ...typeScale.sectionTitle, color: theme.textPrimary },
     title: { ...typeScale.cardTitle, color: theme.textPrimary },
     copy: { ...typeScale.supporting, color: theme.textSecondary },
-    sourceRow: { padding: scaleUI(16), gap: scaleUI(8) },
-    divider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.divider },
     card: { padding: scaleUI(18), gap: scaleUI(12) },
     notes: { marginTop: scaleUI(14) },
     error: { ...typeScale.supporting, color: theme.textPrimary },

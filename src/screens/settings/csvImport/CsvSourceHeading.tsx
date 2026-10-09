@@ -7,12 +7,12 @@ import { typeScale } from '../../../theme/tokens';
 import type { IconName } from '../../../types';
 import type { CsvSource } from '../../../data/csvImport/types';
 
-const sourceIcons: Record<CsvSource, IconName> = {
+export const sourceIcons: Record<CsvSource, IconName> = {
   hevy: 'brand-hevy',
   strong: 'brand-strong',
   fitnotes: 'brand-fitnotes',
   'fitnotes-ios': 'brand-fitnotes-ios',
-  strive: 'database-import',
+  strive: 'brand-strive',
 };
 
 export function CsvSourceHeading({

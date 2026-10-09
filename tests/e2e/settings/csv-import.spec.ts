@@ -1,6 +1,8 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { parseWorkoutCsv } from '../../../src/data/csvImport/parse';
+import { sourceLabels } from '../../../src/data/csvImport/types';
 
 const header =
   'title,start_time,end_time,description,exercise_title,superset_id,exercise_notes,set_index,set_type,weight_kg,reps,distance_km,duration_seconds,rpe';
@@ -19,8 +21,14 @@ async function open(page: Page, appearance: 'light' | 'dark') {
   await page.getByRole('button', { name: 'Import from another app', exact: true }).click();
 }
 async function pick(page: Page, text: string) {
+  let source = 'Hevy';
+  try {
+    source = sourceLabels[parseWorkoutCsv(text).source];
+  } catch {
+    /* Invalid files still go through validation. */
+  }
   const chooser = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: /Choose (CSV file|another CSV)/ }).click();
+  await page.getByRole('button', { name: source, exact: true }).click();
   await (
     await chooser
   ).setFiles({ name: 'workout-history.csv', mimeType: 'text/csv', buffer: Buffer.from(text) });
@@ -54,6 +62,27 @@ async function chooseBench(page: Page, keyboard = false) {
   else await confirm.click();
 }
 for (const appearance of ['light', 'dark'] as const) {
+  test(`${appearance} app source buttons stay joined and explain a mismatched export`, async ({
+    page,
+  }, info) => {
+    await open(page, appearance);
+    const hevy = page.getByRole('button', { name: 'Hevy', exact: true });
+    const strong = page.getByRole('button', { name: 'Strong', exact: true });
+    const first = await hevy.boundingBox(),
+      second = await strong.boundingBox();
+    expect(Math.abs(second!.y - (first!.y + first!.height))).toBeLessThanOrEqual(1);
+    await capture(page, info, 'app-source-buttons');
+    const chooser = page.waitForEvent('filechooser');
+    await hevy.press('Enter');
+    await (await chooser).setFiles(resolve('tests/fixtures/csv-import/strong-classic-sample.csv'));
+    await expect(page.getByRole('alert')).toContainText('This is a Strong export. Choose Strong');
+    await capture(page, info, 'wrong-app-export');
+    await pick(
+      page,
+      readFileSync(resolve('tests/fixtures/csv-import/strong-classic-sample.csv'), 'utf8'),
+    );
+    await expect(page.getByText('Strong CSV detected', { exact: true })).toBeVisible();
+  });
   test(`${appearance} prioritizes unresolved exercises and reuses the picker without saving on cancel`, async ({
     page,
   }, info) => {
@@ -369,14 +398,39 @@ for (const appearance of ['light', 'dark'] as const) {
     const source = page.getByTestId('csv-source-icon-strive');
     await source.scrollIntoViewIfNeeded();
     await expect(source).toBeVisible();
-    const backup = page.getByRole('button', { name: 'Choose Strive backup', exact: true });
+    const backup = page.getByRole('button', { name: 'Strive', exact: true });
     await backup.scrollIntoViewIfNeeded();
     await expect(backup).toBeDisabled();
-    await expect(
-      page.getByText(/Completed workouts only. Available in the iOS and Android app/),
-    ).toBeVisible();
+    const supporting = backup.getByText(/Available in the iOS or Android app/);
+    await expect(supporting).toBeVisible();
+    const reference = page
+      .getByRole('button', { name: 'Strong', exact: true })
+      .getByText('Settings → Export Strong Data.');
+    for (const property of ['color', 'font-size', 'font-weight', 'line-height']) {
+      await expect(supporting).toHaveCSS(
+        property,
+        await reference.evaluate(
+          (element, property) => getComputedStyle(element).getPropertyValue(property),
+          property,
+        ),
+      );
+    }
+    const hevy = page.getByRole('button', { name: 'Hevy', exact: true });
+    await expect(backup.getByText('Strive', { exact: true })).toHaveCSS(
+      'color',
+      await hevy
+        .getByText('Hevy', { exact: true })
+        .evaluate((element) => getComputedStyle(element).color),
+    );
+    const iconColor = await page
+      .getByTestId('csv-source-icon-hevy')
+      .locator('svg')
+      .evaluate((element) => getComputedStyle(element).color);
+    await expect(source.locator('svg')).toHaveCSS('color', iconColor);
     await capture(page, info, 'strive-backup-availability');
-    await expect(page.getByRole('button', { name: 'Choose CSV file', exact: true })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Hevy', exact: true })).toBeEnabled();
+    await expect(backup.getByText(/Choose an exported .db or .sqlite backup/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Choose CSV file', exact: true })).toHaveCount(0);
   });
   test(`${appearance} shows source icons for each supported CSV format`, async ({ page }, info) => {
     await open(page, appearance);
@@ -536,7 +590,7 @@ for (const appearance of ['light', 'dark'] as const) {
   }, info) => {
     await open(page, appearance);
     const canceledChooser = page.waitForEvent('filechooser');
-    await page.getByRole('button', { name: 'Choose CSV file', exact: true }).click();
+    await page.getByRole('button', { name: 'Hevy', exact: true }).click();
     await canceledChooser;
     await page.locator('input[type="file"]').dispatchEvent('cancel');
     await pick(page, 'Name,Value\nUnknown,3');

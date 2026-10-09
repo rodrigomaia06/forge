@@ -1,6 +1,7 @@
 export type IconName =
   | 'brand-hevy'
   | 'brand-strong'
+  | 'brand-strive'
   | 'brand-fitnotes'
   | 'brand-fitnotes-ios'
   | 'add'

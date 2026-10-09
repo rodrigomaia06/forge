@@ -13,6 +13,8 @@ export interface CsvReviewRow {
   detail?: string;
   checked?: boolean;
   icon?: IconName;
+  iconTestID?: string;
+  disabled?: boolean;
   status?: string;
   value?: string | number;
   inset?: boolean;
@@ -58,7 +60,9 @@ export function CsvImportRow({
         item.checked === undefined ? (item.onPress ? 'button' : undefined) : 'checkbox'
       }
       accessible={item.onPress ? undefined : true}
-      accessibilityState={item.onPress ? { checked: item.checked, disabled: busy } : undefined}
+      accessibilityState={
+        item.onPress ? { checked: item.checked, disabled: busy || item.disabled } : undefined
+      }
       aria-checked={item.checked}
       accessibilityLabel={
         item.onPress
@@ -68,7 +72,7 @@ export function CsvImportRow({
               .join('. ')
       }
       accessibilityHint={[item.detail, item.status].filter(Boolean).join('. ') || undefined}
-      {...(item.onPress ? { disabled: busy, onPress: item.onPress } : {})}
+      {...(item.onPress ? { disabled: busy || item.disabled, onPress: item.onPress } : {})}
       style={[
         styles.row,
         item.inset && styles.inset,
@@ -80,7 +84,7 @@ export function CsvImportRow({
       ]}
     >
       {item.icon ? (
-        <View accessible={false} aria-hidden>
+        <View testID={item.iconTestID} accessible={false} aria-hidden>
           <Icon name={item.icon} size={scaleUI(20)} color={theme.textSecondary} />
         </View>
       ) : null}
@@ -99,7 +103,7 @@ export function CsvImportRow({
       {item.checked !== undefined ? (
         <CompletionCheck selected={item.checked} tone="interactive" />
       ) : null}
-      {item.onPress && item.checked === undefined ? (
+      {item.onPress && !item.disabled && item.checked === undefined ? (
         <Icon name="chevron-forward" size={18} color={theme.textSecondary} />
       ) : null}
     </RowSurface>

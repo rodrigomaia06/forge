@@ -35,6 +35,17 @@ export function BrandStrong(props: SvgProps) {
   );
 }
 
+export function BrandStrive(props: SvgProps) {
+  return (
+    <BrandOutline {...props}>
+      <Rect x={3} y={8} width={3} height={8} rx={1} />
+      <Rect x={8} y={4} width={4} height={16} rx={1} />
+      <Rect x={14} y={4} width={4} height={16} rx={1} />
+      <Path d="M1 12h2m15 0h5" />
+    </BrandOutline>
+  );
+}
+
 export function BrandFitNotes(props: SvgProps) {
   return (
     <BrandOutline {...props}>
