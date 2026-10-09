@@ -9,8 +9,9 @@
     const shape = document.createElementNS('http://www.w3.org/2000/svg', 'use');
     shape.setAttribute('href', `assets/icons.svg#${next === 'dark' ? 'moon' : 'sun'}`);
     icon.append(shape);
-    button.replaceChildren(icon, `${next === 'dark' ? 'Dark' : 'Light'} theme`);
+    button.replaceChildren(icon);
     button.setAttribute('aria-label', `Switch to ${next} theme`);
+    button.title = `Switch to ${next} theme`;
     document.querySelectorAll('[data-screen]').forEach((image) => {
       image.src = `assets/${image.dataset.screen}-${theme}.webp`;
     });
