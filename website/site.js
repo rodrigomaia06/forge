@@ -15,6 +15,7 @@
     document.querySelectorAll('[data-screen]').forEach((image) => {
       image.src = `assets/${image.dataset.screen}-${theme}.webp`;
     });
+    document.dispatchEvent(new Event('forge-theme-change'));
   };
   button.addEventListener('click', () => {
     const theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
