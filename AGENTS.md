@@ -72,8 +72,7 @@ list contents with the file tools instead, so this never drifts as files change.
 - `.agents/docs/` — agent-facing canonical knowledge: `product/` (accepted
   requirements), `decisions/` (ADRs), and `research/` (non-canonical).
 - `.agents/skills/` — shared agent skills, tracked with `skills-lock.json` and `.claude/skills/` links; not app source.
-- `docs/` — app/developer documentation (not agent rules). Empty for now; app-facing
-  docs will be added here.
+- `docs/` — app/developer documentation and product screenshots (not agent rules).
 - `src/`
   - `components/` — shared UI, including `components/ui/` (the Forge primitives:
     sheets, buttons, fields, filters) and feature cards.
@@ -96,5 +95,6 @@ list contents with the file tools instead, so this never drifts as files change.
 - `plugins/` — Expo config plugins (disable shake-to-edit, `.forge` file
   association).
 - `tests/` — `tests/unit/` and Playwright `tests/e2e/`.
+- `website/` — the static public website, privacy policy, and support pages hosted on GitHub Pages.
 - `.github/workflows/` — manual build workflows: `build-ipa.yml` (iOS) and
   `build-apk.yml` (Android).
