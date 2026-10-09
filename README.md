@@ -1,68 +1,104 @@
-# Forge: A Strength-Training App
+<p align="center">
+  <img src="assets/forge-app-icon-ios.png" alt="Forge app icon" width="96" height="96" />
+</p>
 
-Forge is a private, fast workout tracker for iOS and Android. It's built for the
-gym floor: log sets quickly, keep your data on your own device, and keep working
-even when a session is interrupted.
+# Forge: Training Journal
 
-## Core Capabilities
+I’m building Forge, a workout journal for iOS and Android. Log sets, time and distance, organize routines and plans, and review your training history. Workouts stay on your device and work offline, without an account.
 
-Log a workout as a scroll of exercise cards, each with its set table inline.
-Forge includes:
+I use TypeScript, React Native and Expo, with native integrations for rest timers and numeric entry.
 
-- Rest timers with customizable alerts, including a live countdown on the lock
-  screen (iOS Live Activity).
-- Reusable routines and multi-routine plans, with a suggested next workout.
-- Workout history, trends, and a muscle heatmap.
-- Set types, personal-record markers, and RPE logging.
-- Unilateral (per-side) exercises and custom exercises.
-- Backup and export, plus shareable `.forge` files that import with a review of
-  exactly what will be added or changed.
+[Website](https://rodrigomaia06.github.io/forge/) · [Privacy policy](https://rodrigomaia06.github.io/forge/privacy.html) · [Support](https://rodrigomaia06.github.io/forge/support.html)
 
-## Why Forge
+## What you can do
 
-Most popular trackers (Hevy, Strong, and the like) put your log behind an
-account, sync it to someone else's cloud, and gate the genuinely useful parts
-behind a subscription. Forge takes the opposite stance:
+- **Record different kinds of training:** weight, reps, duration and distance, with workout types for strength, cardio, mobility and other activities.
+- **Log a session:** exercise notes, set types, supersets, RPE, unilateral sets and rest timers. iOS supports a rest-timer Live Activity; Android has native timer notifications.
+- **Prepare your training:** reusable standalone routines, plans and custom exercises, with searchable exercise variations.
+- **Review progress:** workout history, calendar, trends, muscle heatmaps and daily measurements. Add the widgets you want to your dashboard.
+- **Move your data:** portable JSON/`.forge` backups and shareable workouts, routines and plans, with selection and conflict review before saving.
+- **Import another tracker:** Hevy, Strong and FitNotes Android/iOS CSV exports, plus Strive SQLite backups on iOS and Android. Strive history and active routines import together; uncertain exercise matches stay reviewable.
 
-- **No account, no cloud, no sign-up.** It opens and works.
-- **No subscription and no ads.** Every feature is included; nothing is
-  paywalled.
-- **No analytics or tracking.** Nothing leaves your device unless you export it.
-- **You own your data.** Everything lives in a local database with a full,
-  portable export — no lock-in and no migration tax.
-- **Fully offline.** The gym's dead spot never gets in the way.
-- **Built for speed.** The session UI is designed around quick set entry, not a
-  social feed.
-- **Open source (GPLv3).** Auditable, and you can build it yourself.
+## Screenshots
 
-## Privacy & Data Handling
+| Dashboard                                                                                        | History                                                                                      | Live workout                                                                                           |
+| ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| <img src="docs/screenshots/dashboard-dark.png" alt="Forge dashboard in dark mode" width="240" /> | <img src="docs/screenshots/history-dark.png" alt="Forge history in dark mode" width="240" /> | <img src="docs/screenshots/live-workout-dark.png" alt="Forge live workout in dark mode" width="240" /> |
 
-Forge stores workouts locally in an on-device SQLite database. It requires no
-account, includes no analytics or advertising SDKs, and sends nothing off the
-device unless you deliberately export it. There are no subscriptions and no user
-tracking. A portable JSON / `.forge` export lets you move data between your own
-installs.
+| Plans                                                                                    | Workout details                                                                                              | Exercise library                                                                                        |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| <img src="docs/screenshots/plans-dark.png" alt="Forge plans in dark mode" width="240" /> | <img src="docs/screenshots/workout-details-dark.png" alt="Forge workout details in dark mode" width="240" /> | <img src="docs/screenshots/exercises-dark.png" alt="Forge exercise library in dark mode" width="240" /> |
 
-## Installation
+<details>
+<summary>View Light theme</summary>
 
-Prebuilt binaries are attached to each GitHub [Release](../../releases).
+| Dashboard                                                                                          | History                                                                                        | Live workout                                                                                             |
+| -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| <img src="docs/screenshots/dashboard-light.png" alt="Forge dashboard in light mode" width="240" /> | <img src="docs/screenshots/history-light.png" alt="Forge history in light mode" width="240" /> | <img src="docs/screenshots/live-workout-light.png" alt="Forge live workout in light mode" width="240" /> |
 
-- **iOS:** download the unsigned `.ipa` and sideload it onto an iPhone running
-  iOS 16+ with a tool like iLoader, which re-signs it with your Apple ID.
-- **Android:** download the `.apk` and sideload it onto a phone. It is an
-  `arm64-v8a` build — it installs on physical phones, not on x86 emulators.
+| Plans                                                                                      | Workout details                                                                                                | Exercise library                                                                                          |
+| ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| <img src="docs/screenshots/plans-light.png" alt="Forge plans in light mode" width="240" /> | <img src="docs/screenshots/workout-details-light.png" alt="Forge workout details in light mode" width="240" /> | <img src="docs/screenshots/exercises-light.png" alt="Forge exercise library in light mode" width="240" /> |
 
-## Development
+</details>
 
-The app is built with Expo, React Native, and TypeScript. Install dependencies
-with `npm install` and start the dev server with `npm start`. Verify changes
-with `npm run typecheck` and the Playwright suites under `tests/`. A full native
-build needs a Mac with Xcode (iOS) or the Android SDK (Android); GitHub Actions
-workflows build both and the binaries are published to Releases.
+<sub>Preview captures use fictional sample workouts and browser rendering. These are not native-device screenshots.</sub>
 
-Development leverages AI-assisted tooling, with the features reviewed by a human.
+## Data and privacy
 
-## License
+Forge stores training data in a local SQLite database on your device. Forge has no account system, cloud sync, advertising SDK or analytics SDK. Imports and exports are initiated by you.
 
-Forge is released under the GNU General Public License v3.0. See
-[LICENSE](LICENSE) for the full text.
+Use **Settings → Backup & Export** to create a portable backup. Full SQLite backup and restore are available in native builds. The same area contains **Import from another app** and **Delete all app data**.
+
+> [!IMPORTANT]
+> Keep backups outside the app. Uninstalling Forge or deleting app data can remove your local journal.
+
+## Native development
+
+You need Node.js **22.13 or newer** and npm. Clone the repository and install dependencies:
+
+```sh
+npm ci
+```
+
+Use a development build containing Forge's local native module. Start Metro with `npm start`, or use `npm run ios` / `npm run android` to start Expo for the respective platform. Expo Go does not contain Forge's custom native functionality.
+
+Local iOS builds require macOS, Xcode and CocoaPods; Android builds require the Android SDK and JDK. Follow the platform workflows below for the project's toolchain setup and compatibility steps.
+
+## Check changes
+
+Run `nice -n 10 npm run typecheck` and the automated tests directly affected by your change. See [the test guide](tests/README.md) for coverage and commands. Use up to two-thirds of available CPU cores, run one resource-heavy suite at a time, and preserve memory headroom.
+
+Verify native keyboards, file access, SQLite persistence and rest-timer integrations on iOS and Android devices. Automated checks do not replace device verification.
+
+## Native test builds
+
+Manual workflows in GitHub Actions generate device builds without using EAS build quota:
+
+| Platform | Workflow                                                  | Download artifact        | Distribution                                                                           |
+| -------- | --------------------------------------------------------- | ------------------------ | -------------------------------------------------------------------------------------- |
+| iOS      | [Build unsigned iOS IPA](.github/workflows/build-ipa.yml) | `Forge-unsigned-ios-ipa` | Unsigned IPA; requires signing before installation. The app targets iOS 16.4 or newer. |
+| Android  | [Build Android APK](.github/workflows/build-apk.yml)      | `Forge-android-apk`      | ARM64 APK signed with a debug key, for testing on compatible devices.                  |
+
+Choose the workflow in **Actions → Run workflow**, select the branch, and download the artifact when it finishes. These workflows upload artifacts to the workflow run, rather than publishing GitHub Releases.
+
+For iOS sideloading, I recommend [iLoader](https://github.com/nab138/iloader). Download it from the official repository or [iloader.app](https://iloader.app/), extract the workflow artifact, then import the unsigned `.ipa` and follow iLoader's device and Apple Account prompts. iLoader handles signing for installation; the downloaded IPA itself is unsigned.
+
+> [!NOTE]
+> These artifacts are test builds. TestFlight and store distribution require appropriate distribution signing and provisioning; the unsigned IPA cannot be uploaded directly to TestFlight.
+
+## Working in the repository
+
+| Location                                        | Purpose                                                          |
+| ----------------------------------------------- | ---------------------------------------------------------------- |
+| `src/screens/`, `src/components/`, `src/theme/` | Screens, shared Forge controls and visual tokens                 |
+| `src/domain/`                                   | Training and exercise logic independent of UI and storage        |
+| `src/data/`, `src/state/`                       | Repositories, transfer/import logic and React providers          |
+| `src/navigation/`                               | React Navigation stacks, tabs and opened-file routing            |
+| `modules/forge-rest-timer/`, `plugins/`         | Native rest timers, iOS numeric keyboard and Expo config plugins |
+| `tests/`                                        | Automated checks, fixtures and visual baselines                  |
+| `data/catalog/`, `scripts/`                     | Exercise source data and catalogue tooling                       |
+
+`npm run catalog:audit` checks catalogue variations and classifications.
+
+For repository maintenance, start with [AGENTS.md](AGENTS.md). It routes to the active rules and accepted product requirements under `.agents/`; research and audit documents are advisory. The project uses the [GNU GPL v3 or later](LICENSE).
