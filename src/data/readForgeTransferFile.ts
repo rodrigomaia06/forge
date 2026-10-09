@@ -11,7 +11,7 @@ import { parseDataTransfer, type ForgeDataTransfer } from './backupRepository';
  * `content://` URI, which the new `File` API cannot open in read mode — the
  * legacy `readAsStringAsync` still resolves those, so route them there.
  */
-async function readUriText(uri: string): Promise<string> {
+export async function readUriText(uri: string): Promise<string> {
   if (uri.startsWith('content://')) {
     return readAsStringAsync(uri);
   }

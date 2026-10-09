@@ -13,6 +13,7 @@ import { GeneralSettingsScreen } from '../screens/settings/GeneralSettingsScreen
 import { DailyMeasurementsScreen } from '../screens/settings/DailyMeasurementsScreen';
 import { SettingsDestinationScreen } from '../screens/settings/SettingsDestinationScreen';
 import { ImportSelectionScreen } from '../screens/settings/ImportSelectionScreen';
+import { CsvImportScreen } from '../screens/settings/csvImport/CsvImportScreen';
 import { ImportConflictScreen } from '../screens/settings/ImportConflictScreen';
 import { WorkoutTypesScreen } from '../screens/settings/WorkoutTypesScreen';
 import { WorkoutTypeEditorScreen } from '../screens/settings/WorkoutTypeEditorScreen';
@@ -148,6 +149,7 @@ export function AppNavigator() {
           component={ImportSelectionScreen}
           options={{ gestureEnabled: true }}
         />
+        <Stack.Screen name="CsvImport" component={CsvImportScreen} options={{ gestureEnabled: false }} />
         <Stack.Screen
           name="ImportConflict"
           component={ImportConflictScreen}

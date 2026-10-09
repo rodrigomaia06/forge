@@ -95,11 +95,16 @@ import {
   IconLicense,
 } from '@tabler/icons-react-native';
 import type { IconName, IconWeight } from '../../types';
+import { BrandFitNotes, BrandFitNotesIos, BrandHevy, BrandStrong } from './ImportBrandIcons';
 
 /** The barbell reads best at a lighter weight than the rest of the set. */
 const BarbellThin = (props: SvgProps) => <IconBarbell {...props} strokeWidth={1.5} />;
 
 const iconMap: Record<IconName, React.ComponentType<SvgProps>> = {
+  'brand-hevy': BrandHevy,
+  'brand-strong': BrandStrong,
+  'brand-fitnotes': BrandFitNotes,
+  'brand-fitnotes-ios': BrandFitNotesIos,
   add: IconPlus,
   'chevron-back': IconChevronLeft,
   'chevron-forward': IconChevronRight,

@@ -244,12 +244,13 @@ function BackupExport() {
       <SettingsSection
         title="Data transfer"
         icon="database-export"
-        info="Export data writes a portable .forge file that adds to another device without replacing anything. Export summary is a read-only text overview. Import accepts .forge files only."
+        info="Export data writes a portable .forge file that adds to another device without replacing anything. Export summary is a read-only text overview. Import data accepts .forge files; import workout CSVs with Import from another app."
         footer={history.lastExportAt ? `Last export ${relativeTime(history.lastExportAt)}.` : undefined}
       >
         <Action title="Export data" divider onPress={() => { setSelection(allDataTransferSelection()); setTransferStep('export-json'); }} />
         <Action title="Export summary" divider onPress={() => { setSelection(allDataTransferSelection()); setTransferStep('export-text'); }} />
-        <Action title="Import data" onPress={importData} />
+        <Action title="Import data" divider onPress={importData} />
+        <Action title="Import from another app" onPress={() => navigation.navigate('CsvImport')} />
       </SettingsSection>
       <SettingsSection
         title="Database backup"

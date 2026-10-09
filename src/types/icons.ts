@@ -1,4 +1,8 @@
 export type IconName =
+  | 'brand-hevy'
+  | 'brand-strong'
+  | 'brand-fitnotes'
+  | 'brand-fitnotes-ios'
   | 'add'
   | 'chevron-back'
   | 'chevron-forward'

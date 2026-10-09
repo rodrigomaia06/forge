@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle, type TextStyle } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -41,6 +41,7 @@ export function ForgeFloatingCta({
   tone = 'neutral',
   theme,
   style,
+  labelStyle,
 }: {
   label: string;
   accessibilityLabel: string;
@@ -50,6 +51,7 @@ export function ForgeFloatingCta({
   tone?: 'neutral' | 'success' | 'destructive';
   theme?: ForgeTheme;
   style?: StyleProp<ViewStyle>;
+  labelStyle?: StyleProp<TextStyle>;
 }) {
   const insets = useSafeAreaInsets();
   const contextTheme = useForgeTheme();
@@ -88,6 +90,7 @@ export function ForgeFloatingCta({
           variant="outline"
           tone={tone}
           style={styles.button}
+          labelStyle={labelStyle}
         />
       </Animated.View>
     </>
