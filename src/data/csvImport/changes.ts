@@ -12,6 +12,10 @@ function setLabel(set: WorkoutSet | undefined): string {
     (entry) =>
       `${entry.value} ${entry.kind === 'reps' ? 'reps' : entry.kind === 'rpe' ? 'RPE' : entry.unit}`,
   );
+  for (const target of set.plannedTargets ?? [])
+    values.push(
+      `${target.minValue ?? 'Any'}–${target.maxValue ?? 'Any'} ${target.kind === 'reps' ? 'reps' : target.unit} planned`,
+    );
   return [...values, set.tag, set.comment].filter(Boolean).join(' · ') || 'No recorded values';
 }
 /** Positions describe the source order; they do not decide import identity. */

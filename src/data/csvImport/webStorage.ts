@@ -61,6 +61,8 @@ export async function writeCsvImport(
   request: CsvImportRequest,
   catalog: ExerciseCatalogItem[],
 ) {
+  if (request.draft.routines?.length)
+    throw new Error('Strive routine imports require the iOS or Android app.');
   await recoverCsvImport(storage);
   const before = await Promise.all(
     KEYS.map(async (key): Promise<[string, string | null]> => [key, await storage.getItem(key)]),

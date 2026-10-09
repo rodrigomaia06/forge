@@ -1,7 +1,7 @@
 import { database, withDatabaseTransaction } from './database';
 import { exerciseCatalog } from './exerciseCatalog';
 import type { ExerciseCatalogItem } from './exerciseCatalog';
-import type { Workout } from '../types';
+import type { Workout, WorkoutRoutine } from '../types';
 import { completedWorkoutUpsert } from './workoutRepository';
 import { normalizePersistedWorkout } from './workoutNormalization';
 import { prepareCsvCommit } from './csvImport/review';
@@ -43,7 +43,22 @@ export async function commitCsvImport(request: CsvImportRequest): Promise<CsvImp
       'SELECT value FROM forge_meta WHERE key = ?',
       MAPPINGS_KEY,
     );
-    const next = prepareCsvCommit(request, workouts, custom, [...exerciseCatalog, ...custom]);
+    const routineRows = request.draft.routines?.length
+      ? await db.getAllAsync<{ value_json: string; plan_id: string | null; position: number }>(
+          'SELECT value_json, plan_id, position FROM routines ORDER BY position',
+        )
+      : [];
+    const routines = routineRows.map((row) => ({
+      ...(JSON.parse(row.value_json) as WorkoutRoutine),
+      planId: row.plan_id ?? undefined,
+    }));
+    const next = prepareCsvCommit(
+      request,
+      workouts,
+      custom,
+      [...exerciseCatalog, ...custom],
+      routines,
+    );
     const active = await db.getAllAsync<{ id: string }>(
       'SELECT id FROM workouts WHERE is_active = 1',
     );
@@ -65,6 +80,20 @@ export async function commitCsvImport(request: CsvImportRequest): Promise<CsvImp
         workout.startedAt,
         JSON.stringify(workout),
       );
+    let position = routineRows.reduce((max, row) => Math.max(max, row.position + 1), 0);
+    const routineRowsById = new Map(
+      routineRows.map((row) => [(JSON.parse(row.value_json) as WorkoutRoutine).id, row]),
+    );
+    for (const routine of next.routineWrites) {
+      const existing = routineRowsById.get(routine.id);
+      await db.runAsync(
+        'INSERT INTO routines (id, plan_id, position, value_json) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET value_json = excluded.value_json',
+        routine.id,
+        routine.planId ?? null,
+        existing?.position ?? position++,
+        JSON.stringify(routine),
+      );
+    }
     await db.runAsync(
       'INSERT OR REPLACE INTO forge_meta (key, value) VALUES (?, ?)',
       MAPPINGS_KEY,

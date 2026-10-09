@@ -14,11 +14,17 @@ import {
   reviewStamp,
 } from '../../src/data/csvImport/review';
 import { normalizeDataTransfer } from '../../src/data/dataTransferNormalization';
+import { routineReviewRecord } from '../../src/data/csvImport/routines';
+import { createWorkout } from '../../src/state/workoutMutations';
+import { csvSessionChanges } from '../../src/data/csvImport/changes';
 
 function snapshot(): StriveSnapshot {
   return {
     version: 85,
     tables: {
+      routines: [],
+      routine_exercises: [],
+      routine_exercise_sets: [],
       routine_logs: [
         {
           id: 'session',
@@ -80,6 +86,160 @@ function snapshot(): StriveSnapshot {
     },
   };
 }
+function withRoutine(): StriveSnapshot {
+  const source = snapshot();
+  source.tables.routines = [
+    {
+      id: 'template',
+      name: 'Upper',
+      description: 'Routine note',
+      created_at: 1700000000,
+      deleted_at: null,
+    },
+    { id: 'deleted', name: 'Deleted', created_at: 1700000000, deleted_at: 1700000001 },
+  ];
+  source.tables.routine_exercises = [
+    {
+      id: 'template-block',
+      routine_id: 'template',
+      exercise_id: 'bench',
+      order: 0,
+      superset_with: null,
+    },
+  ];
+  source.tables.routine_exercise_sets = [
+    {
+      id: 'template-set',
+      routine_id: 'template',
+      routine_exercise_id: 'template-block',
+      exercise_id: 'bench',
+      order: 0,
+      reps: null,
+      weight: null,
+      distance: null,
+      rpe: null,
+      reps_min: 6,
+      reps_max: 10,
+      type: 'normal',
+      is_weight_unit_metric: 1,
+      is_distance_unit_metric: 1,
+      timer: 90,
+    },
+  ];
+  return source;
+}
+test('Strive imports active standalone routines with blank prescribed sets, ranges and portable provenance', () => {
+  const draft = parseStriveSnapshot(withRoutine());
+  expect(draft.routines).toHaveLength(1);
+  expect(draft.excluded).toBe(0);
+  const routine = draft.routines![0];
+  expect(routine.planId).toBeUndefined();
+  expect(routine.note).toBe('Routine note');
+  expect(routine.exercises[0].sets![0]).toMatchObject({
+    weight: '',
+    reps: '',
+    plannedTargets: [{ kind: 'reps', minValue: 6, maxValue: 10 }],
+    importMetadata: { timer: '90' },
+  });
+  const workout = createWorkout({
+    name: routine.name,
+    routineId: routine.id,
+    exercises: routine.exercises,
+  });
+  expect(workout.exercises[0].sets[0].completed).toBe(false);
+  expect(workout.exercises[0].sets[0].plannedTargets?.[0].minValue).toBe(6);
+  const portable = normalizeDataTransfer({
+    format: 'forge',
+    version: 1,
+    exportedAt: 0,
+    settings: {},
+    workouts: { completedWorkouts: [], activeWorkout: null },
+    plans: { plans: [], standaloneRoutines: [routine] },
+  });
+  expect(portable.plans.standaloneRoutines[0].importSource).toEqual(routine.importSource);
+});
+test('Strive routines share exercise resolution and conflicts while preserving existing plan membership', () => {
+  const draft = parseStriveSnapshot(withRoutine());
+  draft.workouts = [];
+  const resolutions = resolveCsvExercises(draft, [], {}).map((resolution) => ({
+    ...resolution,
+    custom: true,
+    exercise: customCsvExercise(resolution),
+  }));
+  const incoming = applyCsvResolutions(draft, resolutions);
+  const request = {
+    draft,
+    selected: incoming.map((record) => record.id),
+    resolutions,
+    choices: {},
+    reviewed: Object.fromEntries(
+      matchCsvSessions(incoming, []).map((match) => [match.workout.id, reviewStamp(match)]),
+    ),
+    acknowledged: true,
+  };
+  const first = prepareCsvCommit(request, [], [], []);
+  expect(first.writes).toEqual([]);
+  expect(first.workouts).toEqual([]);
+  expect(first.result).toMatchObject({ added: 0, routinesAdded: 1, customExercises: 1 });
+  const existing = { ...first.routineWrites[0], planId: 'user-plan', name: 'Locally edited' };
+  const current = [routineReviewRecord(existing)];
+  expect(matchCsvSessions(incoming, current)[0].status).toBe('duplicate');
+  const changed = withRoutine();
+  changed.tables.routine_exercise_sets[0].reps_max = 12;
+  const updated = parseStriveSnapshot(changed);
+  updated.workouts = [];
+  const next = applyCsvResolutions(updated, resolutions);
+  const match = matchCsvSessions(next, current)[0];
+  expect(match.status).toBe('changed');
+  expect(
+    csvSessionChanges(current[0], next[0]).some((change) => change.after.includes('6–12')),
+  ).toBe(true);
+  const reviewed = { [next[0].id]: reviewStamp(match) };
+  const req = {
+    ...request,
+    draft: updated,
+    reviewed,
+    choices: { [next[0].id]: 'replace' as const },
+  };
+  expect(
+    prepareCsvCommit({ ...req, choices: {} }, [], first.additions, first.additions, [existing])
+      .routineWrites,
+  ).toEqual([]);
+  const replace = prepareCsvCommit(req, [], first.additions, first.additions, [existing]);
+  expect(replace.routineWrites[0]).toMatchObject({ id: existing.id, planId: 'user-plan' });
+  expect(replace.result).toMatchObject({ replaced: 0, routinesReplaced: 1 });
+  expect(
+    prepareCsvCommit(
+      { ...req, choices: { [next[0].id]: 'both' } },
+      [],
+      first.additions,
+      first.additions,
+      [existing],
+    ).routineWrites[0].planId,
+  ).toBeUndefined();
+  expect(() =>
+    prepareCsvCommit(req, [], first.additions, first.additions, [
+      { ...existing, name: 'Edited after review' },
+    ]),
+  ).toThrow(/changed during review/);
+  expect(prepareCsvCommit({ ...request, selected: [] }, [], [], []).routineWrites).toEqual([]);
+});
+test('Strive excludes an invalid routine completely and requires units for duration ranges', () => {
+  const source = withRoutine();
+  source.tables.routine_exercise_sets[0].reps_min = 20;
+  expect(parseStriveSnapshot(source)).toMatchObject({
+    excluded: 1,
+    routines: [],
+    issues: [{ field: 'Routine' }],
+  });
+  source.tables.exercises[0].category = 'duration';
+  source.tables.routine_exercise_sets[0].reps_min = 1;
+  expect(parseStriveSnapshot(source).requirements).toContain('durationUnit');
+  expect(
+    parseStriveSnapshot(source, { durationUnit: 'min' }).routines![0].exercises[0].sets![0]
+      .plannedTargets![0],
+  ).toMatchObject({ minValue: 60, maxValue: 600, unit: 'sec' });
+});
 test('Strive preserves seconds dates, pounds, ordering, notes, set types and source metadata', () => {
   const source = snapshot();
   source.tables.routine_exercise_set_logs.unshift({

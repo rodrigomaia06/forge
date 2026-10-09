@@ -1,4 +1,11 @@
-import type { SetMeasurement, TrackingType, Workout, WorkoutExercise, WorkoutSet } from '../types';
+import type {
+  SetMeasurement,
+  TrackingType,
+  Workout,
+  WorkoutExercise,
+  WorkoutSet,
+  WorkoutRoutine,
+} from '../types';
 import type { CsvDraft, CsvOptions } from './csvImport/types';
 import { trackingFields } from '../domain/exercises/tracking';
 import { csvId } from './csvImport/parse';
@@ -11,6 +18,9 @@ export const striveTables = [
   'exercises',
   'routine_notes',
   'routine_exercise_notes',
+  'routines',
+  'routine_exercises',
+  'routine_exercise_sets',
 ] as const;
 export type StriveTable = (typeof striveTables)[number];
 export interface StriveSnapshot {
@@ -79,10 +89,11 @@ const tags: Record<string, string | undefined> = {
   backoff: 'Back-Off',
 };
 
-/** Converts only recorded history. Templates, preferences and photos never enter Forge storage. */
+/** Routine templates share measurement validation without requiring recorded set values. */
 function* parseStriveChunks(
   snapshot: StriveSnapshot,
   options: CsvOptions,
+  templates = false,
 ): Generator<void, CsvDraft> {
   if (snapshot.version !== 85)
     throw new Error(
@@ -91,7 +102,7 @@ function* parseStriveChunks(
   for (const table of striveTables)
     if (!Array.isArray(snapshot.tables[table]))
       throw new Error(`The Strive backup is missing ${table}.`);
-  const t = snapshot.tables;
+  const t = templates ? routineSnapshot(snapshot).tables : snapshot.tables;
   const logs = index(t.routine_logs, 'id');
   const blocks = index(t.routine_exercise_logs, 'routine_log_id');
   const sets = index(t.routine_exercise_set_logs, 'routine_exercise_log_id');
@@ -111,7 +122,8 @@ function* parseStriveChunks(
     excluded: 0,
     requirements: [],
     limitations: [
-      'Imports completed workouts only. Plans, routines, measurements, preferences, photos and personal-record tables are not imported.',
+      'Imports workout history and active routines as standalone routines. Plan schedules, deleted routines, measurements, preferences, photos and personal-record tables are not imported.',
+      'Routine rep ranges are kept as planned targets. Plan schedules and progression-rule tables are not imported. Set/log deload flags, training-max percentages and rest-timer settings remain metadata rather than enabled automation.',
       'Strive-only set types, calories, timers and training-max percentages are retained as source metadata. Forge does not interpret them as recorded measurements.',
       'Exercise names use the English catalogue label, falling back to Polish. Archived exercises used in recorded workouts remain importable.',
     ],
@@ -131,7 +143,11 @@ function* parseStriveChunks(
   const needsDuration = t.routine_exercise_logs.some(
     (block) =>
       catalog.get(text(block.exercise_id))?.[0]?.category === 'duration' &&
-      (sets.get(text(block.id)) ?? []).some((set) => set.reps !== null && set.reps !== undefined),
+      (sets.get(text(block.id)) ?? []).some((set) =>
+        [set.reps, ...(templates ? [set.reps_min, set.reps_max] : [])].some(
+          (value) => value !== null && value !== undefined,
+        ),
+      ),
   );
   if (needsDuration && !options.durationUnit) draft.requirements.push('durationUnit');
   const needsDistance = t.routine_exercise_set_logs.some(
@@ -152,7 +168,7 @@ function* parseStriveChunks(
         completedAt = epoch(log.ended_at, 'End date');
       if (completedAt < startedAt) throw new Error('End date precedes start date.');
       const sourceBlocks = ordered(blocks.get(sourceId) ?? []);
-      if (!sourceBlocks.length) throw new Error('Workout has no recorded exercises.');
+      if (!templates && !sourceBlocks.length) throw new Error('Workout has no recorded exercises.');
       const blockIds = new Set(
         sourceBlocks.map((block) => requiredText(block.id, 'Exercise log ID')),
       );
@@ -191,7 +207,8 @@ function* parseStriveChunks(
           'Exercise name',
         );
         const sourceSets = ordered(sets.get(text(block.id)) ?? []);
-        if (!sourceSets.length) throw new Error(`A recorded exercise has no sets: ${name}.`);
+        if (!templates && !sourceSets.length)
+          throw new Error(`A recorded exercise has no sets: ${name}.`);
         const category = text(sourceExercise.category);
         const duration = category === 'duration';
         const loaded =
@@ -265,8 +282,15 @@ function* parseStriveChunks(
           if (rpe !== undefined && (rpe < 0 || rpe > 10))
             throw new Error('RPE must be between 0 and 10.');
           add('rpe', 'rpe', rpe);
-          if (!measurements.some((entry) => entry.kind !== 'rpe'))
+          if (!templates && !measurements.some((entry) => entry.kind !== 'rpe'))
             throw new Error('A recorded set has no supported measurements.');
+          const min = templates ? number(set.reps_min, 'Minimum repetitions') : undefined;
+          const max = templates ? number(set.reps_max, 'Maximum repetitions') : undefined;
+          if (
+            [min, max].some((value) => value !== undefined && !Number.isInteger(value)) ||
+            (min !== undefined && max !== undefined && min > max)
+          )
+            throw new Error('The routine repetition range is invalid.');
           requiredText(set.type, 'Set type');
           return {
             id: setId,
@@ -275,6 +299,25 @@ function* parseStriveChunks(
             completed: true,
             tag: Object.hasOwn(tags, text(set.type)) ? tags[text(set.type)] : undefined,
             measurements,
+            ...(min !== undefined || max !== undefined
+              ? {
+                  plannedTargets: [
+                    {
+                      id: `${setId}-range`,
+                      kind: duration ? ('duration' as const) : ('reps' as const),
+                      unit: duration ? ('sec' as const) : ('count' as const),
+                      minValue:
+                        min === undefined
+                          ? undefined
+                          : min * (duration && options.durationUnit === 'min' ? 60 : 1),
+                      maxValue:
+                        max === undefined
+                          ? undefined
+                          : max * (duration && options.durationUnit === 'min' ? 60 : 1),
+                    },
+                  ],
+                }
+              : {}),
             importMetadata: {
               ...metadata(set),
               ...Object.fromEntries(
@@ -304,7 +347,9 @@ function* parseStriveChunks(
               ? 'weighted-bodyweight'
               : kinds.has('weight')
                 ? 'weight-reps'
-                : 'reps-only';
+                : templates && ![...kinds].some((kind) => kind !== 'rpe') && category !== 'reps'
+                  ? 'weight-reps'
+                  : 'reps-only';
         if (kinds.has('distance'))
           trackingType = kinds.has('duration')
             ? 'distance-duration'
@@ -370,11 +415,92 @@ function* parseStriveChunks(
   return draft;
 }
 
+function routineSnapshot(snapshot: StriveSnapshot): StriveSnapshot {
+  const t = snapshot.tables;
+  const allIds = new Set(t.routines.map((routine) => routine.id));
+  const blockById = new Map(t.routine_exercises.map((block) => [block.id, block]));
+  if (
+    t.routine_exercises.some((block) => !allIds.has(block.routine_id)) ||
+    t.routine_exercise_sets.some(
+      (set) => blockById.get(set.routine_exercise_id)?.routine_id !== set.routine_id,
+    )
+  )
+    throw new Error(
+      'The Strive backup contains orphaned routine records. Repair or re-export it before importing.',
+    );
+  const routines = t.routines.filter((routine) => routine.deleted_at === null);
+  const ids = new Set(routines.map((routine) => routine.id));
+  const blocks = t.routine_exercises.filter((block) => ids.has(block.routine_id));
+  return {
+    version: snapshot.version,
+    tables: {
+      ...t,
+      routine_logs: routines.map((routine) => ({
+        ...routine,
+        id: `routine:${requiredText(routine.id, 'Routine ID')}`,
+        name: routine.name,
+        started_at: routine.created_at,
+        ended_at: routine.created_at,
+      })),
+      routine_exercise_logs: blocks.map((block) => ({
+        ...block,
+        routine_log_id: `routine:${block.routine_id}`,
+      })),
+      routine_exercise_set_logs: t.routine_exercise_sets
+        .filter((set) => ids.has(set.routine_id))
+        .map((set) => ({
+          ...set,
+          routine_log_id: `routine:${set.routine_id}`,
+          routine_exercise_log_id: set.routine_exercise_id,
+        })),
+      routine_notes: routines
+        .filter((routine) => text(routine.description))
+        .map((routine) => ({
+          id: routine.id,
+          owner_id: `routine:${routine.id}`,
+          pinned: 0,
+          note: routine.description,
+        })),
+      routine_exercise_notes: t.routine_exercise_notes
+        .filter((note) => note.type === 'routine')
+        .map((note) => ({ ...note, type: 'log' })),
+    },
+  };
+}
+function combineDrafts(history: CsvDraft, templates: CsvDraft): CsvDraft {
+  const routines: WorkoutRoutine[] = templates.workouts.map((record) => ({
+    id: record.id,
+    name: record.name,
+    type: record.type,
+    note: record.note,
+    createdAt: record.startedAt,
+    updatedAt: record.startedAt,
+    importSource: record.importSource,
+    exercises: record.exercises.map((exercise) => ({
+      ...exercise,
+      sets: exercise.sets.map(({ completed, ...set }) => set),
+    })),
+  }));
+  return {
+    ...history,
+    routines,
+    requirements: [...new Set([...history.requirements, ...templates.requirements])],
+    excluded: history.excluded + templates.excluded,
+    issues: [
+      ...history.issues,
+      ...templates.issues.map((issue) => ({ ...issue, field: 'Routine' })),
+    ],
+  };
+}
+
 export function parseStriveSnapshot(snapshot: StriveSnapshot, options: CsvOptions = {}): CsvDraft {
   const chunks = parseStriveChunks(snapshot, options);
   let next = chunks.next();
   while (!next.done) next = chunks.next();
-  return next.value;
+  const templates = parseStriveChunks(snapshot, options, true);
+  let routine = templates.next();
+  while (!routine.done) routine = templates.next();
+  return combineDrafts(next.value, routine.value);
 }
 
 export async function parseStriveSnapshotAsync(
@@ -387,5 +513,11 @@ export async function parseStriveSnapshotAsync(
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
     next = chunks.next();
   }
-  return next.value;
+  const templates = parseStriveChunks(snapshot, options, true);
+  let routine = templates.next();
+  while (!routine.done) {
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    routine = templates.next();
+  }
+  return combineDrafts(next.value, routine.value);
 }

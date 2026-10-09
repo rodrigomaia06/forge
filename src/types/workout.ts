@@ -114,6 +114,7 @@ export interface Workout {
 }
 
 export interface WorkoutSetInput {
+  importMetadata?: Record<string, string>;
   id?: string;
   weight?: string;
   reps?: string;
@@ -129,6 +130,7 @@ export interface WorkoutSetInput {
 }
 
 export interface WorkoutExerciseInput {
+  importKey?: string;
   id?: string;
   exerciseId?: string;
   name: string;
@@ -142,6 +144,7 @@ export interface WorkoutExerciseInput {
   sets?: WorkoutSetInput[];
 }
 export interface WorkoutRoutine {
+  importSource?: Workout['importSource'];
   id: string;
   name: string;
   type: WorkoutType;

@@ -1,4 +1,4 @@
-import type { Workout, TrackingType } from '../../types';
+import type { Workout, WorkoutRoutine, TrackingType } from '../../types';
 import type { ExerciseCatalogItem } from '../exerciseCatalog';
 
 export type CsvSource = 'hevy' | 'strong' | 'fitnotes' | 'fitnotes-ios' | 'strive';
@@ -24,6 +24,7 @@ export interface CsvIssue {
 export interface CsvDraft {
   source: CsvSource;
   workouts: Workout[];
+  routines?: WorkoutRoutine[];
   issues: CsvIssue[];
   excluded: number;
   requirements: Array<'dateOrder' | 'weightUnit' | 'distanceUnit' | 'durationUnit'>;
@@ -62,4 +63,6 @@ export interface CsvImportResult {
   excluded: number;
   customExercises: number;
   mappingsSaved: number;
+  routinesAdded?: number;
+  routinesReplaced?: number;
 }
