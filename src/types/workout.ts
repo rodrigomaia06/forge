@@ -10,6 +10,7 @@ export interface SetMeasurement { id: string; kind: SetMeasurementKind; unit: 'c
 export interface SetTarget { id: string; kind: SetMeasurementKind; unit: SetMeasurement['unit']; minValue?: number; maxValue?: number; }
 
 export interface WorkoutSet {
+  importMetadata?: Record<string, string>;
   id: string;
   weight: string;
   reps: string;
@@ -33,6 +34,7 @@ export interface WorkoutSet {
 }
 
 export interface WorkoutExercise {
+  importKey?: string;
   id: string;
   exerciseId?: string;
   name: string;
@@ -76,6 +78,12 @@ export interface ExerciseVariationFacets {
 export interface ExerciseSnapshot { id?: string; name: string; catalogueVersion?: number; trackingType: TrackingType; familyId?: string; group?: string; variation?: string; variationFacets?: ExerciseVariationFacets; equipment?: string[]; primaryEquipment?: string; workoutTypeIds?: string[]; category?: string; bodyRegion?: string; primaryMuscle?: string; secondaryMuscles?: string[]; aliases?: string[]; searchTerms?: string[]; movementPattern?: string; /** Base catalog laterality (`unilateral` | `bilateral` | `alternating`), captured so per-side completion survives future catalog releases. */ laterality?: string; /** Per-exercise rest preference captured with the workout for offline use. */ restSeconds?: number; }
 
 export interface Workout {
+  importSource?: {
+    source: 'hevy' | 'strong' | 'fitnotes' | 'fitnotes-ios';
+    sessionKey: string;
+    fingerprint: string;
+    dateOnly?: boolean;
+  };
   id: string;
   name: string;
   type: WorkoutType;
