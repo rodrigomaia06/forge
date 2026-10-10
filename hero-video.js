@@ -31,8 +31,10 @@
       theme = nextTheme;
       fallback();
       const format = video.canPlayType('video/mp4') ? 'mp4' : 'webm';
-      video.src = `assets/hero-tabs-${theme}.${format}`;
+      video.src = `assets/hero-iphone-tabs-${theme}.${format}`;
       video.load();
+      video.defaultPlaybackRate = 1.5;
+      video.playbackRate = 1.5;
     }
     if (visible && !document.hidden && !pausedByUser) {
       video.muted = true;
