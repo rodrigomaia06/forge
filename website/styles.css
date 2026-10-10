@@ -342,18 +342,18 @@ p {
 }
 .gallery {
   display: flex;
-  gap: 32px;
+  gap: 80px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scrollbar-width: thin;
   scrollbar-color: var(--muted) transparent;
-  padding: 18px 12px 24px;
-  margin: 32px -12px 0;
+  padding: 36px 44px 40px;
+  margin: 32px 0 0;
 }
 figure {
   margin: 0;
   min-width: 0;
-  flex: 0 0 calc((100% - 64px) / 3);
+  flex: 0 0 calc((100% - 160px) / 3);
   scroll-snap-align: center;
 }
 .section-heading,
@@ -402,18 +402,53 @@ figure {
 .screenshot-open {
   display: block;
   width: 100%;
-  padding: 5px;
-  border: 2px solid #68716f;
-  background: #171b1d;
-  border-radius: 28px;
+  padding: 22px;
+  border: 0;
+  background: var(--surface);
+  border-radius: 30px;
   cursor: zoom-in;
-  transform: perspective(1200px) rotateY(-7deg) rotate(-1deg);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 12%);
+  transform: rotate(-7deg) translateY(20px);
 }
-.gallery figure:nth-child(even) .screenshot-open {
-  transform: perspective(1200px) rotateY(7deg) rotate(1deg);
+.gallery figure:nth-child(3n + 2) .screenshot-open {
+  transform: none;
 }
-.screenshot-open img {
-  border-radius: 20px;
+.gallery figure:nth-child(3n) .screenshot-open {
+  transform: rotate(7deg) translateY(20px);
+}
+.gallery-phone {
+  display: block;
+  position: relative;
+  aspect-ratio: 1311 / 2708;
+}
+.gallery-display {
+  position: absolute;
+  left: 4.04%;
+  top: 1.66%;
+  width: 91.92%;
+  height: 96.71%;
+  border-radius: 14% / 6.5%;
+  overflow: hidden;
+  background: #e3e5e2;
+  display: flex;
+  align-items: center;
+}
+:root[data-theme='dark'] .gallery-display {
+  background: #080b0c;
+}
+.gallery-display > img {
+  width: 100%;
+  height: auto;
+  border-radius: 0;
+}
+.gallery-phone > .iphone-bezel {
+  background: transparent;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  pointer-events: none;
 }
 .gallery:focus-visible {
   outline: 3px solid var(--focus);
@@ -459,7 +494,7 @@ figure img {
   background: var(--page);
 }
 figcaption {
-  padding-top: 20px;
+  padding-top: 60px;
 }
 figcaption h3 {
   font-size: 18px;
@@ -706,8 +741,12 @@ footer a {
   .gallery figure {
     flex-basis: var(--screen-width);
   }
+  figcaption {
+    padding-top: 20px;
+  }
   .gallery .screenshot-open,
-  .gallery figure:nth-child(even) .screenshot-open {
+  .gallery figure:nth-child(3n + 2) .screenshot-open,
+  .gallery figure:nth-child(3n) .screenshot-open {
     transform: none;
   }
   .section-heading {

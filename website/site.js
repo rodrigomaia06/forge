@@ -74,7 +74,20 @@
     open.className = 'screenshot-open';
     open.setAttribute('aria-label', `View ${figure.querySelector('h3').textContent} screenshot`);
     image.before(open);
-    open.append(image);
+    const frame = document.createElement('span');
+    frame.className = 'gallery-phone';
+    const display = document.createElement('span');
+    display.className = 'gallery-display';
+    display.append(image);
+    const bezel = document.createElement('img');
+    bezel.className = 'iphone-bezel';
+    bezel.src = 'assets/iphone-frame.webp';
+    bezel.alt = '';
+    bezel.width = 1311;
+    bezel.height = 2708;
+    bezel.loading = 'lazy';
+    frame.append(display, bezel);
+    open.append(frame);
     open.addEventListener('click', () => {
       const preview = dialog.querySelector('img');
       preview.dataset.screen = image.dataset.screen;
