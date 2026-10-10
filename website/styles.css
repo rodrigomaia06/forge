@@ -156,7 +156,7 @@ nav a:focus-visible {
   display: grid;
   grid-template-columns: 1.1fr 1fr;
   align-items: center;
-  gap: 70px;
+  gap: 48px;
   min-height: min(760px, calc(100dvh - 80px));
   padding-block: 66px 100px;
 }
@@ -265,7 +265,8 @@ p {
 }
 .phone-preview {
   position: relative;
-  width: min(460px, 100%);
+  width: min(510px, 110%);
+  flex-shrink: 0;
   aspect-ratio: 2 / 3;
 }
 .phone-hand {
@@ -274,19 +275,46 @@ p {
   width: 100%;
   height: auto;
   pointer-events: none;
+  mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0);
+  mask-size: 100% 100%, 56% 71%;
+  mask-position: 0 0, 50% 0;
+  mask-repeat: no-repeat;
+  mask-composite: exclude;
 }
-.phone-screen {
+.hero-device {
   position: absolute;
   z-index: 1;
-  left: 25.8%;
-  top: 2.8%;
-  width: 48.2%;
-  height: 65.6%;
-  border-radius: 13% / 6.4%;
-  background: var(--page);
+  left: 22%;
+  top: 1.1%;
+  width: 56%;
+  aspect-ratio: 1311 / 2708;
+}
+.hero-bezel {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.phone-screen {
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  position: absolute;
+  z-index: 1;
+  left: 4.04%;
+  top: 1.66%;
+  width: 91.92%;
+  height: 96.71%;
+  border-radius: 14% / 6.5%;
+  background: #e3e5e2;
   overflow: hidden;
   display: flex;
   align-items: center;
+}
+:root[data-theme='dark'] .phone-screen {
+  background: #080b0c;
 }
 .phone-screen img,
 .phone-screen video {
@@ -299,24 +327,6 @@ p {
   position: absolute;
   inset: 0;
   z-index: 1;
-}
-.hero-video-control {
-  position: absolute;
-  z-index: 2;
-  left: 25.8%;
-  top: 70%;
-  width: 48.2%;
-  min-height: 44px;
-  padding: 8px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--action);
-  color: var(--on-action);
-  font-size: 12px;
-  cursor: pointer;
-}
-.hero-video-control:hover {
-  opacity: 0.9;
 }
 .intro,
 .privacy-section,
@@ -693,8 +703,8 @@ footer a {
     grid-column: 2;
     grid-row: 3;
     justify-content: flex-start;
-    margin-right: -20px;
-    overflow: clip;
+    margin-right: 0;
+    overflow: visible;
   }
   .hero h1 {
     font-size: clamp(40px, 8vw, 54px);
@@ -715,9 +725,9 @@ footer a {
     max-width: 360px;
   }
   .phone-preview {
-    width: min(310px, 75vw);
+    width: min(310px, calc(100% + 30px));
     flex-shrink: 0;
-    margin-left: -45px;
+    margin-left: -30px;
   }
   .intro,
   .privacy-section,

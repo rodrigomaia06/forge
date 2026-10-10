@@ -61,30 +61,46 @@
             workouts on your device.
           </p>
           <a class="button primary" href="#install"
-            ><img class="button-mark" src="assets/icon.png" width="22" height="22" alt="" />Get
+            ><img class="button-mark" src="assets/icon.png" width="30" height="30" alt="" />Get
             Forge</a
           >
         </div>
         <div class="hero-visual">
           <div class="phone-preview">
-            <div class="phone-screen">
+            <div class="hero-device">
+              <button
+                class="phone-screen"
+                type="button"
+                disabled
+                aria-label="Pause app preview"
+                title="Pause app preview"
+              >
+                <img
+                  src="assets/hero-iphone-tabs-dark.webp"
+                  data-screen="hero-iphone-tabs"
+                  width="1260"
+                  height="2736"
+                  fetchpriority="high"
+                  alt="Forge dashboard with a populated training week"
+                />
+                <video
+                  class="hero-video"
+                  muted
+                  loop
+                  playsinline
+                  preload="none"
+                  aria-hidden="true"
+                  hidden
+                ></video>
+              </button>
               <img
-                src="assets/hero-workout-dark.webp"
-                data-screen="hero-workout"
-                width="840"
-                height="1710"
+                class="hero-bezel"
+                src="assets/iphone-frame.webp"
+                width="1311"
+                height="2708"
+                alt=""
                 fetchpriority="high"
-                alt="Forge live workout with a barbell bench press session"
               />
-              <video
-                class="hero-video"
-                muted
-                loop
-                playsinline
-                preload="none"
-                aria-hidden="true"
-                hidden
-              ></video>
             </div>
             <img
               class="phone-hand"
@@ -94,7 +110,6 @@
               alt=""
               fetchpriority="high"
             />
-            <button class="hero-video-control" type="button" hidden>Pause video</button>
           </div>
         </div>
       </section>
