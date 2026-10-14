@@ -4,7 +4,7 @@ import { ForgeSheetScrollView } from '../ui/ForgeSheetScrollView';
 import { ForgeCard, ForgeText as Text, ForgePressable as Pressable, Icon, Button } from '../ui';
 import { HistorySetRow } from '../../screens/activeWorkout/HistorySetRow';
 import { SetDetailsCard } from '../../screens/activeWorkout/SetDetailsCard';
-import { effectiveTracking } from '../../domain/exercises/tracking';
+import { effectiveTracking, trackingFieldLabel, trackingFields } from '../../domain/exercises/tracking';
 import {
   exerciseSessions,
   type ExerciseSession,
@@ -13,6 +13,7 @@ import {
 import type { Workout, WorkoutExercise, WorkoutSet, TrackingType } from '../../types';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
+import { scaleUI } from '../../theme/scale';
 
 export function ExerciseHistory({
   exercise,
@@ -108,51 +109,56 @@ export function ExerciseHistory({
         variant="nested"
         style={styles.card}
       >
+        <View style={styles.header}>
         <Pressable
           accessibilityRole={onOpenWorkout ? 'button' : undefined}
           accessibilityLabel={onOpenWorkout ? `Open ${workout.name}` : undefined}
           onPress={() => onOpenWorkout?.(workout.id)}
-          style={styles.header}
+          style={styles.workoutAction}
         >
           <View style={styles.copy}>
-            <Text style={[styles.title, { color: theme.textPrimary }]}>{workout.name}</Text>
+            <Text numberOfLines={2} style={[styles.title, { color: theme.textPrimary }]}>{workout.name}</Text>
             <Text style={[styles.caption, { color: theme.textSecondary }]}>
               {new Date(workout.startedAt).toLocaleString(undefined, {
                 month: 'short',
                 day: 'numeric',
-                year: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit',
               })}
             </Text>
           </View>
-          {onOpenWorkout ? (
-            <Icon name="chevron-forward" size={22} color={theme.textSecondary} />
-          ) : null}
         </Pressable>
         {point && onSelectOverride ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Session filtering: ${status}, ${workout.name}`}
             onPress={() => onSelectOverride(workout.id)}
-            style={styles.status}
+            style={[styles.status, { backgroundColor: theme.surfaceMuted }]}
           >
             <Icon
-              name={point.excluded ? 'filter' : 'check'}
+              name="filter"
               size={18}
               color={theme.textSecondary}
             />
-            <Text style={[typeScale.controlLabel, { color: theme.textSecondary }]}>{status}</Text>
-            <Icon name="chevron-forward" size={16} color={theme.textSecondary} />
           </Pressable>
         ) : null}
+        {onOpenWorkout ? <Icon name="chevron-forward" size={18} color={theme.textSecondary} /> : null}
+        </View>
         {exercises.map((block) => (
           <View key={block.id}>
             {block.offSession ? (
               <Text style={[styles.caption, { color: theme.textSecondary, paddingHorizontal: 14 }]}>
-                Off-session · not used for progress
+                Off-session
               </Text>
             ) : null}
+            <View style={styles.setHeader}>
+              <Text style={[styles.setColumn, styles.caption, { color: theme.textSecondary }]}>Set</Text>
+              {trackingFields[effectiveTracking(block)].map(kind => (
+                <Text key={kind} style={[styles.measurementColumn, styles.caption, { color: theme.textSecondary }]}>
+                  {trackingFieldLabel(effectiveTracking(block), kind)}
+                </Text>
+              ))}
+            </View>
             {block.sets.map((set, index) => (
               <View key={set.id}>
                 {!set.completed ||
@@ -256,17 +262,21 @@ export function ExerciseHistory({
   );
 }
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 32, gap: 14 },
+  content: { paddingHorizontal: scaleUI(20), paddingTop: scaleUI(4), paddingBottom: scaleUI(24), gap: scaleUI(12) },
   card: { padding: 0, overflow: 'hidden' },
-  header: { minHeight: 64, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  copy: { flex: 1, gap: 4 },
+  header: { paddingHorizontal: scaleUI(12), flexDirection: 'row', alignItems: 'center', gap: scaleUI(8) },
+  workoutAction: { flex: 1, minWidth: 0, minHeight: 56, justifyContent: 'center', paddingVertical: scaleUI(8), borderRadius: scaleUI(12) },
+  copy: { minWidth: 0, gap: scaleUI(2) },
   title: { ...typeScale.cardTitle },
   caption: { ...typeScale.label },
+  setHeader: { paddingHorizontal: scaleUI(12), minHeight: scaleUI(24), flexDirection: 'row', alignItems: 'center', gap: 6 },
+  setColumn: { width: 46, textAlign: 'center' },
+  measurementColumn: { flex: 1, minWidth: 0, textAlign: 'center' },
   status: {
     minHeight: 44,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
+    width: 44,
+    borderRadius: scaleUI(12),
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
   },
 });

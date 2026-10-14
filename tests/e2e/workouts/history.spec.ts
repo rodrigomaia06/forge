@@ -210,7 +210,8 @@ test.describe('History screen', () => {
     await expect(page.getByText('Muay Thai', { exact: true }).last()).toBeVisible();
     await expect(summary).toContainText('1:12h');
     await expect(summary).toContainText('Duration');
-    await expect(summary).toContainText('Not recorded');
+    await expect(summary.getByText('Avg rest', { exact: true })).toHaveCount(0);
+    await expect(summary.getByText('Not recorded', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Rest', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Back to History' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Back to History' })).not.toContainText('Back');
@@ -265,8 +266,8 @@ test.describe('History screen', () => {
     const title = page.getByTestId('workout-details-summary-title');
     await expect(summary.getByText('3 exercises · 8 sets', { exact: true })).toBeVisible();
     await expect(summary.getByText('Duration', { exact: true })).toBeVisible();
-    await expect(summary.getByText('Avg rest', { exact: true })).toBeVisible();
-    await expect(summary.getByText('Not recorded', { exact: true })).toBeVisible();
+    await expect(summary.getByText('Avg rest', { exact: true })).toHaveCount(0);
+    await expect(summary.getByText('Not recorded', { exact: true })).toHaveCount(0);
     await expect(summary.getByText('Sharp rounds, focused technique.', { exact: true })).toBeVisible();
     await expect(rail).toBeVisible();
     await expect(summary).toHaveScreenshot('workout-summary-card-light.png', { animations: 'disabled' });

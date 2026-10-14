@@ -41,9 +41,10 @@ export function WorkoutSummaryCard({
   const detailPreview = metadata.slice(0, 3).map((item) => item.label).join(', ');
   const remainingDetails = Math.max(0, metadata.length - 3);
   const duration = formatCompactDuration(workout.durationSeconds ?? 0);
-  const rest = workout.averageRestSeconds === undefined
-    ? 'Not recorded'
-    : formatRest(workout.averageRestSeconds);
+  const rest = typeof workout.averageRestSeconds === 'number' &&
+    Number.isFinite(workout.averageRestSeconds) && workout.averageRestSeconds >= 0
+    ? formatRest(workout.averageRestSeconds)
+    : null;
   const completedAt = workout.completedAt ?? workout.startedAt;
   const note = workout.note?.trim() ?? '';
   const setCount = countWorkoutSets(workout);
@@ -78,8 +79,10 @@ export function WorkoutSummaryCard({
           <View style={styles.divider} />
           <View style={[styles.timingRow, isCompactPhone && styles.timingRowCompact]}>
             <TimingMetric compact={isCompactPhone} icon="clock" label="Duration" value={duration} />
-            <View style={styles.verticalDivider} />
-            <TimingMetric compact={isCompactPhone} icon="alarm-average" iconSize={20} label="Avg rest" value={rest} />
+            {rest !== null ? <>
+              <View style={styles.verticalDivider} />
+              <TimingMetric compact={isCompactPhone} icon="alarm-average" iconSize={20} label="Avg rest" value={rest} />
+            </> : null}
           </View>
 
           {note ? <>
