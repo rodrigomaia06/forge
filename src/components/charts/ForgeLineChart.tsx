@@ -1,3 +1,4 @@
+import { ForgeSessionLineChart } from './ForgeSessionLineChart';
 import React, { useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Line } from 'react-native-svg';
@@ -9,8 +10,11 @@ import { typeScale } from '../../theme/tokens';
 
 export interface ForgeLinePoint {
   value: number;
+  date?: number;
+  trend?: number;
   /** Axis label (e.g. a short date); shown only when `showAxes`. */
   label?: string;
+  description?: string;
 }
 
 /**
@@ -48,6 +52,10 @@ export function ForgeLineChart({
   const [width, setWidth] = useState(0);
   const stroke = color ?? theme.selectionIndicator ?? theme.ink;
   const onLayout = (e: LayoutChangeEvent) => setWidth(Math.round(e.nativeEvent.layout.width));
+
+  if (data.some((point) => point.date !== undefined)) {
+    return <ForgeSessionLineChart data={data} height={height} color={stroke} formatValue={formatValue} />;
+  }
 
   if (data.length < 2) {
     return <View style={{ height }} onLayout={onLayout} />;

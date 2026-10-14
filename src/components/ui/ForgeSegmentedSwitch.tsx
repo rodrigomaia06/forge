@@ -6,6 +6,8 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-na
 import { useForgeReducedMotion } from '../../theme/motion';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import type { IconName } from '../../types';
+import { ForgeText as Text } from './ForgeText';
+import { typeScale } from '../../theme/tokens';
 import { Icon } from './Icon';
 import { selectionHaptic } from './haptics';
 
@@ -28,15 +30,20 @@ export function ForgeSegmentedSwitch<T extends string | number>({
   value,
   onChange,
   accessibilityLabel,
+  showLabels = false,
 }: {
   options: readonly ForgeSegmentedOption<T>[];
   value: T;
   onChange: (value: T) => void;
   accessibilityLabel?: string;
+  showLabels?: boolean;
 }) {
   const theme = useForgeTheme();
   const reducedMotion = useForgeReducedMotion();
-  const index = Math.max(0, options.findIndex((option) => option.value === value));
+  const index = Math.max(
+    0,
+    options.findIndex((option) => option.value === value),
+  );
 
   const translateX = useSharedValue(index * SIZE);
   useEffect(() => {
@@ -45,7 +52,50 @@ export function ForgeSegmentedSwitch<T extends string | number>({
       ? target
       : withSpring(target, { damping: 18, stiffness: 220, mass: 0.7 });
   }, [index, reducedMotion, translateX]);
-  const indicatorStyle = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value }] }));
+  const indicatorStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  if (showLabels)
+    return (
+      <View
+        accessibilityRole="radiogroup"
+        accessibilityLabel={accessibilityLabel}
+        style={[styles.track, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}
+      >
+        {options.map((option) => (
+          <Pressable
+            key={String(option.value)}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: option.value === value }}
+            aria-checked={option.value === value}
+            accessibilityLabel={option.label}
+            onPress={() => {
+              selectionHaptic();
+              onChange(option.value);
+            }}
+            style={{
+              flex: 1,
+              minHeight: 44,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 999,
+              backgroundColor: option.value === value ? theme.actionPrimary : 'transparent',
+              paddingHorizontal: 8,
+            }}
+          >
+            <Text
+              style={[
+                typeScale.controlLabel,
+                { color: option.value === value ? theme.onActionPrimary : theme.textSecondary },
+              ]}
+            >
+              {option.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    );
 
   return (
     <View
@@ -55,7 +105,11 @@ export function ForgeSegmentedSwitch<T extends string | number>({
     >
       <Animated.View
         pointerEvents="none"
-        style={[styles.indicator, indicatorStyle, { backgroundColor: theme.surface, borderColor: theme.border }]}
+        style={[
+          styles.indicator,
+          indicatorStyle,
+          { backgroundColor: theme.surface, borderColor: theme.border },
+        ]}
       />
       {options.map((option) => {
         const active = option.value === value;
@@ -64,6 +118,7 @@ export function ForgeSegmentedSwitch<T extends string | number>({
             key={String(option.value)}
             accessibilityRole="radio"
             accessibilityState={{ checked: active }}
+            aria-checked={active}
             accessibilityLabel={option.label}
             onPress={() => {
               if (active) return;
