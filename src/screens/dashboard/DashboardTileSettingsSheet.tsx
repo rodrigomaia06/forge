@@ -11,6 +11,11 @@ import {
   selectionHaptic,
 } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
+import { ForgeCard } from '../../components/ui/ForgeCard';
+import {
+  resolveForgeControlFill,
+  useForgeControlSurface,
+} from '../../components/ui/ForgeControlSurface';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import { Icon } from '../../components/ui';
@@ -29,9 +34,11 @@ import {
 /** A row of exclusive chips (e.g. a trend window). */
 function Segmented<T extends number>({
   options, value, format, onSelect,
-}: { options: T[]; value: T; format: (v: T) => string; onSelect: (v: T) => void }) {
+}: { options: T[]; value: T; format: (v: T) => string; onSelect: (v: T) => void;
+}) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const controlFill = resolveForgeControlFill(theme, useForgeControlSurface());
   return (
     <View style={styles.segmented}>
       {options.map((option) => {
@@ -45,7 +52,7 @@ function Segmented<T extends number>({
             onPress={() => { selectionHaptic(); onSelect(option); }}
             style={({ pressed }) => [
               styles.segment,
-              { backgroundColor: active ? theme.selectionIndicator : theme.surface },
+              { backgroundColor: active ? theme.actionPrimary : controlFill },
               pressed && !active && pressedFeedback,
             ]}
           >
@@ -59,9 +66,11 @@ function Segmented<T extends number>({
   );
 }
 
-function Stepper({ value, min, max, onChange, label }: { value: number; min: number; max: number; onChange: (v: number) => void; label: string }) {
+function Stepper({ value, min, max, onChange, label }: { value: number; min: number; max: number; onChange: (v: number) => void; label: string;
+}) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  const controlFill = resolveForgeControlFill(theme, useForgeControlSurface());
   const step = (delta: number) => {
     const next = Math.min(max, Math.max(min, value + delta));
     if (next !== value) { selectionHaptic(); onChange(next); }
@@ -69,7 +78,7 @@ function Stepper({ value, min, max, onChange, label }: { value: number; min: num
   return (
     <View style={styles.stepperRow}>
       <Text style={styles.stepperLabel} numberOfLines={1}>{label}</Text>
-      <View style={styles.stepper}>
+      <View style={[styles.stepper, { backgroundColor: controlFill }]}>
         <Pressable accessibilityRole="button" accessibilityLabel={`Decrease ${label}`} accessibilityState={{ disabled: value <= min }} disabled={value <= min} onPress={() => step(-1)} style={({ pressed }) => [styles.stepBtn, pressed && pressedFeedback]}>
           <Text style={[styles.stepGlyph, { color: value <= min ? theme.textDisabled : theme.ink }]}>−</Text>
         </Pressable>
@@ -96,10 +105,11 @@ const WINDOW_WEEKS: Partial<Record<DashboardTileKind, number[]>> = {
 };
 
 /** A titled card that groups one setting, giving the sheet clear structure. */
-function GroupCard({ title, hint, accent, trailing, children }: { title: string; hint?: string; accent?: string; trailing?: React.ReactNode; children: React.ReactNode }) {
+function GroupCard({ title, hint, accent, trailing, children }: { title: string; hint?: string; accent?: string; trailing?: React.ReactNode; children: React.ReactNode;
+}) {
   const styles = useThemedStyles(createStyles);
   return (
-    <View style={styles.card}>
+    <ForgeCard variant="nested" size="compact" style={styles.card}>
       <View style={styles.cardHead}>
         {accent ? <View style={[styles.cardDot, { backgroundColor: accent }]} /> : null}
         <Text style={styles.cardTitle}>{title}</Text>
@@ -107,14 +117,15 @@ function GroupCard({ title, hint, accent, trailing, children }: { title: string;
       </View>
       {hint ? <Text style={styles.cardHint}>{hint}</Text> : null}
       {children}
-    </View>
+    </ForgeCard>
   );
 }
 
 /** A tappable toggle row (check for multi, dot for single) used inside a card. */
 function ToggleRow({
   label, color, selected, onToggle, showDivider,
-}: { label: string; color?: string; selected: boolean; onToggle: () => void; showDivider?: boolean }) {
+}: { label: string; color?: string; selected: boolean; onToggle: () => void; showDivider?: boolean;
+}) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   return (
@@ -127,7 +138,9 @@ function ToggleRow({
     >
       {color ? <View style={[styles.metricDot, { backgroundColor: color }]} /> : null}
       <Text style={[styles.metricName, selected && styles.metricNameSelected]} numberOfLines={1}>{label}</Text>
-      {selected ? <Icon name="check" size={19} color={theme.selectionIndicator} weight="bold" /> : null}
+      {selected ? (
+        <Icon name="check" size={19} color={theme.selectionIndicator} weight="bold" />
+      ) : null}
     </Pressable>
   );
 }
@@ -198,7 +211,7 @@ export function DashboardTileSettingsSheet({
                         accessibilityState={{ checked: active }}
                         accessibilityLabel={g === 'male' ? 'Male' : 'Female'}
                         onPress={() => { selectionHaptic(); patch({ gender: g }); }}
-                        style={({ pressed }) => [styles.chip, active ? { backgroundColor: theme.selectionIndicator, borderColor: theme.selectionIndicator } : { borderColor: theme.border }, pressed && pressedFeedback]}
+                        style={({ pressed }) => [styles.chip, active ? { backgroundColor: theme.selectionIndicator, borderColor: theme.selectionIndicator } : { backgroundColor: theme.surfaceMuted, borderColor: theme.border }, pressed && pressedFeedback]}
                       >
                         <Text style={[styles.chipText, { color: active ? (theme.onActionPrimary ?? theme.surface) : theme.slate }]}>{g === 'male' ? 'Male' : 'Female'}</Text>
                       </Pressable>
@@ -265,9 +278,9 @@ export function DashboardTileSettingsSheet({
                     const slug = section.slugs[0];
                     const selected = filter.includes(slug);
                     return (
-                      <Pressable
-                        key={section.group}
-                        accessibilityRole="checkbox"
+                      <ForgeCard key={section.group} variant="nested" size="compact">
+                    <Pressable
+                      accessibilityRole="checkbox"
                         accessibilityState={{ checked: selected }}
                         accessibilityLabel={section.group}
                         onPress={() => toggle(slug)}
@@ -276,9 +289,12 @@ export function DashboardTileSettingsSheet({
                         <View style={[styles.cardDot, { backgroundColor: groupColor }]} />
                         <Text style={[styles.cardTitle, { flex: 1 }]}>{section.group}</Text>
                         <View style={[styles.soloCheck, selected ? { backgroundColor: groupColor, borderColor: groupColor } : { borderColor: theme.border }]}>
-                          {selected ? <Icon name="check" size={13} color="#FFFFFF" weight="bold" /> : null}
+                          {selected ? (
+                          <Icon name="check" size={13} color="#FFFFFF" weight="bold" />
+                        ) : null}
                         </View>
                       </Pressable>
+                  </ForgeCard>
                     );
                   }
                   const count = section.slugs.filter((slug) => filter.includes(slug)).length;
@@ -287,7 +303,9 @@ export function DashboardTileSettingsSheet({
                       key={section.group}
                       title={section.group}
                       accent={groupColor}
-                      trailing={count ? <Text style={[styles.groupCount, { color: groupColor }]}>{count}</Text> : null}
+                      trailing={count ? (
+                      <Text style={[styles.groupCount, { color: groupColor }]}>{count}</Text>
+                    ) : null}
                     >
                       <View style={styles.chipWrap}>
                         {section.slugs.map((slug) => {
@@ -301,7 +319,7 @@ export function DashboardTileSettingsSheet({
                               onPress={() => toggle(slug)}
                               style={({ pressed }) => [
                                 styles.chip,
-                                selected ? { backgroundColor: groupColor, borderColor: groupColor } : { borderColor: theme.border },
+                                selected ? { backgroundColor: groupColor, borderColor: groupColor } : { backgroundColor: theme.surfaceMuted, borderColor: theme.border },
                                 pressed && pressedFeedback,
                               ]}
                             >
@@ -354,9 +372,10 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   soloCard: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   soloCheck: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingHorizontal: 12, height: 34, borderRadius: 999, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  chip: { paddingHorizontal: 12,
+      minHeight: 44, borderRadius: 999, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   chipText: { ...typeScale.caption, fontWeight: '600' },
-  card: { backgroundColor: theme.surfaceMuted, borderRadius: 16, padding: 14, gap: 10 },
+  card: { padding: 14, gap: 10 },
   subLabel: { ...typeScale.caption, color: theme.textSecondary },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   cardDot: { width: 10, height: 10, borderRadius: 5 },
@@ -368,12 +387,13 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   rowDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border },
   segmented: { flexDirection: 'row', gap: 6 },
-  segment: { flex: 1, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  segment: { flex: 1,
+      minHeight: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   segmentText: { ...typeScale.label, fontWeight: '600' },
   stepperRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 },
   stepperLabel: { flex: 1, color: theme.ink, ...typeScale.label },
-  stepper: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surface, borderRadius: 999, overflow: 'hidden' },
-  stepBtn: { width: 40, height: 38, alignItems: 'center', justifyContent: 'center' },
+  stepper: { flexDirection: 'row', alignItems: 'center', borderRadius: 999, overflow: 'hidden' },
+  stepBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   stepGlyph: { fontSize: 20, fontWeight: '700', lineHeight: 22 },
   stepValue: { minWidth: 26, textAlign: 'center', color: theme.ink, fontVariant: ['tabular-nums'], ...typeScale.controlLabel },
   metricDot: { width: 10, height: 10, borderRadius: 5 },

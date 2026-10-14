@@ -14,6 +14,7 @@ import { colors, radii, shadows, typeScale } from '../../theme/tokens';
 import { scaleUI } from '../../theme/scale';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { lightHaptic, mediumHaptic } from './haptics';
+import { resolveForgeControlFill, useForgeControlSurface } from './ForgeControlSurface';
 import type { ForgeTheme, IconName, IconWeight } from '../../types';
 
 interface ButtonProps {
@@ -59,16 +60,21 @@ export function Button({
 }: ButtonProps) {
   const contextTheme = useForgeTheme();
   const resolvedTheme = theme ?? contextTheme ?? colors;
+  const parentSurface = useForgeControlSurface();
+  const controlFill = resolveForgeControlFill(resolvedTheme, parentSurface);
+  const disabledFill =
+    parentSurface === resolvedTheme.surfaceMuted
+      ? resolvedTheme.surfaceElevated
+      : resolvedTheme.surfaceMuted;
   const isPrimary = variant === 'primary';
   const isOutline = variant === 'outline';
   const isGhost = variant === 'ghost';
   const resolvedTone = tone ?? 'neutral';
-  // Borderless + tonal is a LIGHT-only treatment: it fixes Light's compressed tones.
-  // Dark keeps its original semantic outlines (it was already the reference look).
   const borderless = resolvedTheme.colorScheme === 'light';
-  const textColor = disabled || loading
-    ? resolvedTheme.textDisabled
-    : foregroundFor(resolvedTone, isPrimary, resolvedTheme);
+  const textColor =
+    disabled || loading
+      ? resolvedTheme.textDisabled
+      : foregroundFor(resolvedTone, isPrimary, resolvedTheme);
 
   return (
     <Pressable
@@ -88,15 +94,21 @@ export function Button({
       style={({ pressed }) => [
         styles.base,
         isPrimary && styles.primary,
-        buttonSurface(variant, resolvedTone, resolvedTheme),
+        buttonSurface(variant, resolvedTone, resolvedTheme, controlFill),
         // The `outline` variant keeps its 2px ring in BOTH themes — if a button is
         // outlined in Dark it is outlined in Light too (the deepened Light `border`
         // token makes the neutral ring visible). `secondary`/ghost stay borderless;
         // Light secondary separates by its elevated fill + the card shadow.
         isOutline && styles.outline,
-        borderless && !isPrimary && !isGhost && !isOutline && [styles.tonalShadow, { shadowColor: resolvedTheme.shadow }],
+        borderless &&
+          !isPrimary &&
+          !isGhost &&
+          !isOutline && [styles.tonalShadow, { shadowColor: resolvedTheme.shadow }],
         isGhost && styles.ghost,
-        (disabled || loading) && [styles.disabled, { backgroundColor: resolvedTheme.surfaceMuted, borderColor: resolvedTheme.surfaceMuted }],
+        (disabled || loading) && [
+          styles.disabled,
+          { backgroundColor: isGhost ? 'transparent' : disabledFill, borderColor: disabledFill },
+        ],
         pressed && !(disabled || loading) && pressedSurface(variant, resolvedTone, resolvedTheme),
         style,
       ]}
@@ -104,7 +116,18 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={textColor} />
       ) : (
-        icon && <Icon name={icon} size={iconSize} weight={iconWeight} color={textColor} />
+        icon && (
+          <Icon
+            name={icon}
+            size={iconSize}
+            weight={iconWeight}
+            color={
+              !disabled && !loading && !isPrimary && resolvedTone === 'success'
+                ? resolvedTheme.success
+                : textColor
+            }
+          />
+        )
       )}
       {!loading && label && (
         <Text style={[styles.label, { color: textColor }, labelStyle]}>{label}</Text>
@@ -134,14 +157,18 @@ const styles = StyleSheet.create({
   disabled: { opacity: 1 },
 });
 
-function foregroundFor(tone: NonNullable<ButtonProps['tone']>, primary: boolean, theme: ForgeTheme): string {
+function foregroundFor(
+  tone: NonNullable<ButtonProps['tone']>,
+  primary: boolean,
+  theme: ForgeTheme,
+): string {
   if (primary && tone === 'neutral') return theme.onActionPrimary;
   if (primary && tone === 'success') return theme.onSuccess;
   // A solid destructive (primary) button takes contrasting text; the tinted
   // variants keep the bright-red label on their soft fill.
   if (primary && tone === 'destructive') return theme.onActionPrimary;
   if (tone === 'destructive') return theme.textDestructive;
-  if (tone === 'success') return theme.success;
+  if (tone === 'success') return theme.textPrimary;
   return theme.textPrimary;
 }
 
@@ -149,12 +176,15 @@ function buttonSurface(
   variant: NonNullable<ButtonProps['variant']>,
   tone: NonNullable<ButtonProps['tone']>,
   theme: ForgeTheme,
+  controlFill: string,
 ): ViewStyle {
   if (variant === 'ghost') return { backgroundColor: 'transparent', borderColor: 'transparent' };
   if (variant === 'primary') {
-    if (tone === 'neutral') return { backgroundColor: theme.actionPrimary, borderColor: theme.actionPrimary };
+    if (tone === 'neutral')
+      return { backgroundColor: theme.actionPrimary, borderColor: theme.actionPrimary };
     if (tone === 'success') return { backgroundColor: theme.success, borderColor: theme.success };
-    if (tone === 'destructive') return { backgroundColor: theme.textDestructive, borderColor: theme.textDestructive };
+    if (tone === 'destructive')
+      return { backgroundColor: theme.textDestructive, borderColor: theme.textDestructive };
     return { backgroundColor: theme.surfaceElevated, borderColor: theme.surfaceElevated };
   }
   // `outline` keeps its 2px semantic ring in BOTH themes (same colours): soft fill +
@@ -162,28 +192,27 @@ function buttonSurface(
   // outlined in Dark is outlined in Light too.
   if (variant === 'outline') {
     return {
-      backgroundColor: tone === 'destructive'
-        ? theme.destructiveSurface
-        : tone === 'success'
-          ? theme.successSurface
-          : theme.surface,
-      borderColor: tone === 'destructive' ? theme.textDestructive : tone === 'success' ? theme.success : theme.border,
+      backgroundColor:
+        tone === 'destructive'
+          ? theme.destructiveSurface
+          : tone === 'success'
+            ? theme.successSurface
+            : controlFill,
+      borderColor:
+        tone === 'destructive'
+          ? theme.textDestructive
+          : tone === 'success'
+            ? theme.success
+            : theme.border,
     };
   }
-  // `secondary` is borderless in both themes. LIGHT separates it by an elevated/tonal
-  // fill (colour = meaning); DARK separates it by tone.
-  if (theme.colorScheme === 'light') {
-    const backgroundColor = tone === 'destructive'
+  const backgroundColor =
+    tone === 'destructive'
       ? theme.destructiveSurface
       : tone === 'success'
         ? theme.successSurface
-        : theme.surfaceElevated;
-    return { backgroundColor, borderColor: backgroundColor };
-  }
-  return {
-    backgroundColor: tone === 'destructive' ? theme.destructiveSurface : theme.surfaceElevated,
-    borderColor: tone === 'destructive' ? theme.textDestructive : theme.border,
-  };
+        : controlFill;
+  return { backgroundColor, borderColor: backgroundColor };
 }
 
 function pressedSurface(
@@ -194,7 +223,8 @@ function pressedSurface(
   // The solid destructive button darkens by dimming; the tinted ones deepen.
   if (variant === 'primary' && tone === 'destructive') return { opacity: 0.82 };
   if (tone === 'destructive') return { backgroundColor: theme.destructiveSurfacePressed };
-  if (tone === 'success' && variant === 'outline') return { backgroundColor: theme.successSurfacePressed };
+  if (tone === 'success' && variant === 'outline')
+    return { backgroundColor: theme.successSurfacePressed };
   if (variant === 'ghost') return { backgroundColor: theme.pressed };
   return { opacity: 0.76 };
 }

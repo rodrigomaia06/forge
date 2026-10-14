@@ -24,6 +24,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useForgeTheme } from '../../theme/ThemeProvider';
+import { ForgeControlSurface } from './ForgeControlSurface';
 import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import { scaleUI } from '../../theme/scale';
 import { lightHaptic } from './haptics';
@@ -455,7 +456,9 @@ export function ForgeBottomSheet({
                 sheetStyle,
               ]}
             >
-              {dragArea ? dragArea(renderedChildren) : renderedChildren}
+              <ForgeControlSurface.Provider value={typeof StyleSheet.flatten(style)?.backgroundColor === 'string' ? StyleSheet.flatten(style)!.backgroundColor as string : theme.surface}>
+                {dragArea ? dragArea(renderedChildren) : renderedChildren}
+              </ForgeControlSurface.Provider>
             </Animated.View>
           </SheetDragContext.Provider>
         </View>

@@ -439,7 +439,7 @@ function DataTransferSheet({
       accessibilityLabel={title}
       closeDistance={680}
       dragEnabled={false}
-      style={[styles.transferSheet, { backgroundColor: theme.surfaceElevated }]}
+      style={styles.transferSheet}
     >
       <ForgeBottomSheetHandle />
       <ForgeSheetHeader

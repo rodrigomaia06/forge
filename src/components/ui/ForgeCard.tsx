@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { scaleUI } from '../../theme/scale';
+import { ForgeControlSurface } from './ForgeControlSurface';
 
 /**
  * The one Forge card surface. Separation is tone-first (see .agents/rules/design.md):
@@ -33,7 +34,10 @@ export function ForgeCard({
 }) {
   const theme = useForgeTheme();
   const nested = variant === 'nested';
+  const surface = StyleSheet.flatten(style)?.backgroundColor;
+  const parentColor = typeof surface === 'string' ? surface : nested ? theme.surfaceElevated : theme.surface;
   return (
+    <ForgeControlSurface.Provider value={parentColor}>
     <View
       testID={testID}
       style={[
@@ -61,6 +65,7 @@ export function ForgeCard({
     >
       {children}
     </View>
+    </ForgeControlSurface.Provider>
   );
 }
 

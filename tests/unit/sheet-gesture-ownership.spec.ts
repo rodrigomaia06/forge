@@ -38,7 +38,7 @@ function loadSheet() {
     react,
     'react-native-worklets': { scheduleOnRN: (fn: (...args: any[]) => unknown, ...args: any[]) => fn(...args) },
     'react-native': {
-      Platform: { OS: 'ios' }, StyleSheet: { create: (styles: unknown) => styles, absoluteFill: {} },
+      Platform: { OS: 'ios' }, StyleSheet: { create: (styles: unknown) => styles, absoluteFill: {}, flatten: (style: unknown) => Array.isArray(style) ? Object.assign({}, ...style.filter(Boolean)) : style },
       View: 'View', Modal: 'Modal', Pressable: 'Pressable', Keyboard: { dismiss: () => undefined },
       LayoutAnimation: {}, UIManager: {}, useWindowDimensions: () => ({ height: 900, width: 420 }),
     },
@@ -53,6 +53,7 @@ function loadSheet() {
     '../../theme/motion': { useForgeReducedMotion: () => true, forgeMotion: { sheetSpring: {}, sheetEnter: 0, sheetExit: 0 } },
     '../../theme/scale': { scaleUI: (value: unknown) => value },
     './haptics': { lightHaptic: () => undefined },
+    './ForgeControlSurface': { ForgeControlSurface: { Provider: 'SurfaceProvider' } },
     'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) },
   };
   const source = ts.transpileModule(readFileSync('src/components/ui/ForgeBottomSheet.tsx', 'utf8'), {

@@ -12,7 +12,7 @@ import { Icon } from './Icon';
 import { selectionHaptic } from './haptics';
 
 const PAD = 3;
-const SIZE = 34;
+const SIZE = 44;
 
 export type ForgeSegmentedOption<T> = {
   value: T;
@@ -80,6 +80,7 @@ export function ForgeSegmentedSwitch<T extends string | number>({
               alignItems: 'center',
               justifyContent: 'center',
               borderRadius: 999,
+              overflow: 'hidden',
               backgroundColor: option.value === value ? theme.actionPrimary : 'transparent',
               paddingHorizontal: 8,
             }}
@@ -140,6 +141,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: PAD,
     borderRadius: 999,
+    overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth,
     position: 'relative',
   },
@@ -156,6 +158,7 @@ const styles = StyleSheet.create({
     width: SIZE,
     height: SIZE,
     borderRadius: 999,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },

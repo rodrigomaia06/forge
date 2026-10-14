@@ -11,11 +11,13 @@ import { ForgeText as Text } from './ForgeText';
 import { ForgeSheetHeader } from './ForgeSheetHeader';
 import { Icon } from './Icon';
 import { selectionHaptic } from './haptics';
-import { pressedFeedback } from './pressFeedback';
+import { resolveForgeControlFill, useForgeControlSurface } from './ForgeControlSurface';
 
 type SelectionValue = string | number;
 
 const SELECTION_ROW_HEIGHT = 52;
+const SELECTION_ROW_GAP = 8;
+const SELECTION_ROW_PITCH = SELECTION_ROW_HEIGHT + SELECTION_ROW_GAP;
 const DEFAULT_MAX_VISIBLE_ROWS = 6;
 
 export interface ForgeSingleSelectOption<T extends SelectionValue> {
@@ -38,10 +40,9 @@ interface ForgeSingleSelectListProps<T extends SelectionValue> {
   /** A contextual selection can use Forge's success treatment without
    * changing the neutral treatment used by ordinary settings. */
   selectedTone?: 'neutral' | 'success';
-  /** Rounds and insets the selected-row highlight into a pill and drops the row
-   * separators — the treatment for anchored dropdown menus. */
+  /** Retained for callers; all choices now use rounded tonal surfaces. */
   rounded?: boolean;
-  /** Compact choices can rely on row spacing instead of hairline dividers. */
+  /** Retained for callers; spacing separates the individual choice surfaces. */
   showSeparators?: boolean;
   testID?: string;
 }
@@ -55,8 +56,6 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
   maxVisibleRows = DEFAULT_MAX_VISIBLE_ROWS,
   disableVirtualization = false,
   selectedTone = 'neutral',
-  rounded = false,
-  showSeparators = true,
   testID,
 }: ForgeSingleSelectListProps<T>) {
   const hasDescriptions = options.some((option) => option.description);
@@ -73,16 +72,15 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
     options.findIndex((option) => option.value === selectedValue),
   );
   const initialScrollIndex = Math.max(0, selectedIndex - Math.floor(visibleRows / 2));
-  const renderOption = (option: ForgeSingleSelectOption<T>, index: number) => (
+  const renderOption = (option: ForgeSingleSelectOption<T>) => (
     <ForgeSelectionRow
       key={String(option.value)}
       option={option}
       selected={option.value === selectedValue}
       selectedTone={selectedTone}
-      rounded={rounded}
+      fixedHeight={virtualized}
       onSelect={onSelect}
       onSelectedPress={onSelectedPress}
-      showSeparator={showSeparators && !rounded && index < options.length - 1}
     />
   );
 
@@ -91,23 +89,27 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
       <View
         testID={testID}
         accessibilityRole="radiogroup"
-        style={[styles.listViewport, { height: visibleRows * SELECTION_ROW_HEIGHT }]}
+        style={[
+          styles.listViewport,
+          { height: visibleRows * SELECTION_ROW_PITCH - SELECTION_ROW_GAP },
+        ]}
       >
         <FlatList
           style={styles.virtualizedList}
           data={options}
           extraData={selectedValue}
-          renderItem={({ item, index }: ListRenderItemInfo<ForgeSingleSelectOption<T>>) =>
-            renderOption(item, index)
+          renderItem={({ item }: ListRenderItemInfo<ForgeSingleSelectOption<T>>) =>
+            renderOption(item)
           }
           keyExtractor={(item) => String(item.value)}
           getItemLayout={(_, index) => ({
             length: SELECTION_ROW_HEIGHT,
-            offset: SELECTION_ROW_HEIGHT * index,
+            offset: SELECTION_ROW_PITCH * index,
             index,
           })}
           initialScrollIndex={initialScrollIndex}
           initialNumToRender={visibleRows + 2}
+          ItemSeparatorComponent={() => <View style={styles.rowGap} />}
           showsVerticalScrollIndicator
           accessibilityLabel="Selection options"
         />
@@ -116,7 +118,7 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
   }
 
   return (
-    <View testID={testID} accessibilityRole="radiogroup">
+    <View testID={testID} accessibilityRole="radiogroup" style={styles.choices}>
       {options.map(renderOption)}
     </View>
   );
@@ -126,22 +128,28 @@ interface ForgeSelectionRowProps<T extends SelectionValue> {
   option: ForgeSingleSelectOption<T>;
   selected: boolean;
   selectedTone: 'neutral' | 'success';
-  rounded?: boolean;
+  fixedHeight: boolean;
   onSelect: (value: T) => void;
   onSelectedPress?: (value: T) => void;
-  showSeparator: boolean;
 }
 
 function ForgeSelectionRow<T extends SelectionValue>({
   option,
   selected,
   selectedTone,
-  rounded = false,
+  fixedHeight,
   onSelect,
   onSelectedPress,
-  showSeparator,
 }: ForgeSelectionRowProps<T>) {
   const theme = useForgeTheme();
+  const parentSurface = useForgeControlSurface();
+  const neutralSelected = selected && selectedTone === 'neutral';
+  const foreground = neutralSelected ? theme.onActionPrimary : theme.textPrimary;
+  const backgroundColor = selected
+    ? selectedTone === 'success'
+      ? theme.successSurface
+      : theme.actionPrimary
+    : resolveForgeControlFill(theme, parentSurface);
   return (
     <Pressable
       accessibilityRole="radio"
@@ -156,30 +164,28 @@ function ForgeSelectionRow<T extends SelectionValue>({
         selectionHaptic();
         onSelect(option.value);
       }}
-      style={({ pressed }) => [
-        styles.selectionRow,
-        option.description && styles.describedSelectionRow,
-        rounded && styles.selectionRowRounded,
-        // Selection is shown by the checkmark (and bold label), not a persistent
-        // fill — matching platform select menus. Success tone keeps its tint for
-        // the non-dropdown contexts that opt into it.
-        selected && selectedTone === 'success' && { backgroundColor: theme.successSurface },
-        pressed && pressedFeedback,
-      ]}
+      unstable_pressDelay={80}
+      style={[styles.selectionRow, fixedHeight && styles.fixedSelectionRow, { backgroundColor }]}
     >
       {option.leading ? <View style={{ marginRight: scaleUI(12) }}>{option.leading}</View> : null}
       <View style={styles.selectionCopy}>
         <Text
+          numberOfLines={fixedHeight ? 1 : undefined}
           style={[
             styles.selectionLabel,
             option.emphasized && styles.selectionLabelEmphasized,
-            { color: theme.textPrimary },
+            { color: foreground },
           ]}
         >
           {option.label}
         </Text>
         {option.description && (
-          <Text style={[styles.selectionDescription, { color: theme.textSecondary }]}>
+          <Text
+            style={[
+              styles.selectionDescription,
+              { color: neutralSelected ? theme.onActionPrimary : theme.textSecondary },
+            ]}
+          >
             {option.description}
           </Text>
         )}
@@ -188,16 +194,8 @@ function ForgeSelectionRow<T extends SelectionValue>({
         <Icon
           name="check"
           size={22}
-          color={selectedTone === 'success' ? theme.success : theme.selectionIndicator}
+          color={selectedTone === 'success' ? theme.success : theme.onActionPrimary}
           weight="bold"
-        />
-      )}
-      {showSeparator && (
-        <View
-          style={[
-            styles.selectionSeparator,
-            { backgroundColor: theme.divider, pointerEvents: 'none' },
-          ]}
         />
       )}
     </Pressable>
@@ -233,7 +231,6 @@ export function ForgeSelectionSheet<T extends SelectionValue>({
   listTestID,
 }: ForgeSelectionSheetProps<T>) {
   const insets = useSafeAreaInsets();
-  const theme = useForgeTheme();
   return (
     <ForgeBottomSheet
       visible={visible}
@@ -248,12 +245,7 @@ export function ForgeSelectionSheet<T extends SelectionValue>({
         >
           <ForgeBottomSheetHandle />
           <ForgeSheetHeader title={title} onClose={close} />
-          <View
-            style={[
-              styles.optionCard,
-              { backgroundColor: theme.surface, borderColor: theme.border },
-            ]}
-          >
+          <View style={styles.optionCard}>
             <ForgeSingleSelectList
               testID={listTestID}
               options={options}
@@ -276,30 +268,22 @@ export function ForgeSelectionSheet<T extends SelectionValue>({
 const styles = StyleSheet.create({
   listViewport: { overflow: 'hidden' },
   virtualizedList: { flex: 1 },
+  choices: { gap: SELECTION_ROW_GAP },
+  rowGap: { height: SELECTION_ROW_GAP },
   selectionRow: {
-    height: SELECTION_ROW_HEIGHT,
-    paddingHorizontal: 20,
+    minHeight: SELECTION_ROW_HEIGHT,
+    paddingHorizontal: scaleUI(16),
+    paddingVertical: scaleUI(12),
+    borderRadius: scaleUI(14),
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  describedSelectionRow: {
-    height: 'auto',
-    minHeight: SELECTION_ROW_HEIGHT,
-    paddingVertical: scaleUI(12),
-  },
-  selectionRowRounded: { height: 46, paddingHorizontal: 12, borderRadius: 12 },
+  fixedSelectionRow: { height: SELECTION_ROW_HEIGHT, paddingVertical: 0 },
   selectionCopy: { flex: 1, minWidth: 0, gap: 2 },
   selectionLabel: { ...typeScale.body },
   selectionLabelEmphasized: { fontFamily: typeScale.display.fontFamily, fontWeight: '700' },
   selectionDescription: { ...typeScale.supporting },
-  selectionSeparator: {
-    position: 'absolute',
-    height: StyleSheet.hairlineWidth,
-    right: 20,
-    bottom: 0,
-    left: 20,
-  },
   sheet: { flexShrink: 1, paddingHorizontal: 16 },
-  optionCard: { overflow: 'hidden', borderRadius: 16 },
+  optionCard: { paddingTop: 4 },
 });
