@@ -1,3 +1,4 @@
+import { validateProgressOverrides } from '../domain/exercises/progress';
 import type {
   DailyMeasurementDefinition,
   DailyMeasurementEntry,
@@ -85,6 +86,7 @@ export function parseSettingsPreferences(value: string | null): SettingsPreferen
     restTimerHaptic: parsed.restTimerHaptic !== false,
     unfinishedWorkoutReminderEnabled: parsed.unfinishedWorkoutReminderEnabled === true,
     unfinishedWorkoutReminderDelay: [900, 1800, 3600, 7200].includes(parsed.unfinishedWorkoutReminderDelay as number) ? parsed.unfinishedWorkoutReminderDelay as number : 1800,
+    exerciseProgressOverrides: validateProgressOverrides(parsed.exerciseProgressOverrides),
     exerciseRestSeconds:
       parsed.exerciseRestSeconds && typeof parsed.exerciseRestSeconds === 'object'
         ? Object.fromEntries(Object.entries(parsed.exerciseRestSeconds).filter(([, item]) => typeof item === 'number' && item >= 0))

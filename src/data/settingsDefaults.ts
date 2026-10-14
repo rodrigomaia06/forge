@@ -16,6 +16,7 @@ export const defaultSettingsPreferences: SettingsPreferences = {
   restTimerHaptic: true,
   unfinishedWorkoutReminderEnabled: false,
   unfinishedWorkoutReminderDelay: 1800,
+  exerciseProgressOverrides: {},
   exerciseRestSeconds: {},
   exerciseUnilateralRestSeconds: {},
   exerciseLeadSide: {},

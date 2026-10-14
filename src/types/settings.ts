@@ -1,4 +1,5 @@
 import type { IconName } from './icons';
+import type { ProgressOverrides } from '../domain/exercises/progress';
 import type { WorkoutSide } from './workout';
 
 export type AppearancePreference = 'light' | 'dark' | 'system';
@@ -54,6 +55,7 @@ export interface SettingsPreferences {
   exerciseUnilateralRestSeconds: Record<string, number>;
   /** Per-exercise leading side for unilateral exercises; omitted keys lead with the left side. */
   exerciseLeadSide: Record<string, WorkoutSide>;
+  exerciseProgressOverrides: ProgressOverrides;
   workoutTypes: WorkoutTypePreference[];
   dailyMeasurementDefinitions: DailyMeasurementDefinition[];
   dailyMeasurementEntries: DailyMeasurementEntry[];

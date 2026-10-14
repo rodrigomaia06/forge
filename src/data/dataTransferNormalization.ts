@@ -1,3 +1,4 @@
+import { validateProgressOverrides } from '../domain/exercises/progress';
 import { uniqueById } from './uniqueById';
 import { canonicalizeExerciseRecord } from './exerciseCanonicalization';
 import type { DailyMeasurementDefinition, DailyMeasurementEntry } from '../types';
@@ -154,6 +155,7 @@ export function normalizeDataTransfer<T>(transfer: T): T {
     ...value,
     settings: {
       ...settings,
+      exerciseProgressOverrides: validateProgressOverrides(settings.exerciseProgressOverrides),
       workoutTypes: uniqueById(records<TransferRecord>(settings.workoutTypes)),
       dailyMeasurementDefinitions: uniqueById(
         records<TransferRecord>(settings.dailyMeasurementDefinitions),

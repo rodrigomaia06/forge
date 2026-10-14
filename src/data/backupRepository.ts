@@ -1,3 +1,4 @@
+import { mergeProgressOverrides } from '../domain/exercises/progress';
 import * as DocumentPicker from 'expo-document-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { File, Paths } from 'expo-file-system';
@@ -143,6 +144,7 @@ export async function createDataTransfer(
     exportedAt: new Date().toISOString(),
     settings: {
       ...settings,
+      exerciseProgressOverrides: selection.workouts ? settings.exerciseProgressOverrides : {},
       workoutTypes: selection.workoutTypes ? settings.workoutTypes : [],
       dailyMeasurementDefinitions: selection.measurements
         ? settings.dailyMeasurementDefinitions
@@ -438,6 +440,9 @@ export async function mergeDataTransfer(
     workoutTypes: selection.workoutTypes
       ? mergeById(currentSettings.workoutTypes, incoming.settings.workoutTypes ?? [])
       : currentSettings.workoutTypes,
+    exerciseProgressOverrides: selection.workouts
+      ? mergeProgressOverrides(currentSettings.exerciseProgressOverrides, incoming.settings.exerciseProgressOverrides, new Set(completed.map((workout) => workout.id)))
+      : currentSettings.exerciseProgressOverrides,
     dailyMeasurementDefinitions: measurements.definitions,
     dailyMeasurementEntries: measurements.entries,
   };

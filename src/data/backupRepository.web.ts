@@ -1,3 +1,4 @@
+import { mergeProgressOverrides } from '../domain/exercises/progress';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { ExerciseCatalogItem } from './exerciseCatalog';
@@ -99,6 +100,7 @@ export async function createDataTransfer(
     selection,
     settings: {
       ...settings,
+      exerciseProgressOverrides: selection.workouts ? settings.exerciseProgressOverrides : {},
       workoutTypes: selection.workoutTypes ? settings.workoutTypes : [],
       dailyMeasurementDefinitions: selection.measurements
         ? settings.dailyMeasurementDefinitions
@@ -359,6 +361,9 @@ export async function mergeDataTransfer(
     workoutTypes: selection.workoutTypes
       ? merge(settings.workoutTypes, incoming.settings.workoutTypes ?? [])
       : settings.workoutTypes,
+    exerciseProgressOverrides: selection.workouts
+      ? mergeProgressOverrides(settings.exerciseProgressOverrides, incoming.settings.exerciseProgressOverrides, new Set(completed.map((workout) => workout.id)))
+      : settings.exerciseProgressOverrides,
     dailyMeasurementDefinitions: measurements.definitions,
     dailyMeasurementEntries: measurements.entries,
   };
