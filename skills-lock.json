@@ -37,6 +37,12 @@
       "skillPath": "skills/antislop-ui/SKILL.md",
       "computedHash": "4cb1cb91997ca9849438d1bb1a5194626e1255a1eaec59301fef174a3dee9c90"
     },
+    "apple-design": {
+      "source": "dickwu/apple-design-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "bd7ec2979b70d5e4ca6a86e2ad95dc5bc336986ce6b03e0d84dfabbe43611296"
+    },
     "brandkit": {
       "source": "Leonxlnx/taste-skill",
       "sourceType": "github",
