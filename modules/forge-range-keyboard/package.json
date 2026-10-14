@@ -1,0 +1,7 @@
+{
+  "name": "forge-range-keyboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Forge native range input and in-app numeric keypad",
+  "main": "index.ts"
+}
