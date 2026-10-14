@@ -7,3 +7,4 @@ or Forge rules. Recheck findings against the current code before acting on them.
 - [Anti-slop audit, 2026-10-07](anti-slop-001-2026-10-07.md)
 - [Anti-slop audit, 2026-10-09: CSV import working tree](anti-slop-002-2026-10-09.md)
 - [Anti-slop audit, 2026-10-09: public website](anti-slop-003-2026-10-09.md)
+- [Anti-slop audit, 2026-10-11: Exercise Info history and progress](anti-slop-004-2026-10-11.md)
