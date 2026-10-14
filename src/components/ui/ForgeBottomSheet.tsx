@@ -24,6 +24,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useForgeTheme } from '../../theme/ThemeProvider';
+import { addForgeKeyboardListener, dismissForgeKeyboard, isRangeKeyboardVisible } from './forgeKeyboard';
 import { ForgeControlSurface } from './ForgeControlSurface';
 import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import { scaleUI } from '../../theme/scale';
@@ -204,6 +205,7 @@ export function ForgeBottomSheet({
   const beginExit = useCallback(() => {
     if (closingRef.current) return;
     closingRef.current = true;
+    dismissForgeKeyboard();
     closing.value = true;
     setExiting(true);
     clearExitTimer();
@@ -246,7 +248,7 @@ export function ForgeBottomSheet({
     // this, iOS restores the previous first responder (e.g. the search field)
     // when this Modal later unmounts, so the keyboard reopens by itself. None of
     // Forge's sheets auto-focus a field on open, so this is safe.
-    if (!wasVisibleRef.current) Keyboard.dismiss();
+    if (!wasVisibleRef.current) dismissForgeKeyboard();
     wasVisibleRef.current = true;
     clearExitTimer();
     closingRef.current = false;
@@ -316,11 +318,11 @@ export function ForgeBottomSheet({
       setKeyboardVisible(nextVisible);
       setKeyboardHeight(nextVisible ? event.endCoordinates.height : 0);
     };
-    const show = Keyboard.addListener(
+    const show = addForgeKeyboardListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (event) => transition(true, event),
     );
-    const hide = Keyboard.addListener(
+    const hide = addForgeKeyboardListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       (event) => transition(false, event),
     );
@@ -379,6 +381,10 @@ export function ForgeBottomSheet({
       statusBarTranslucent={Platform.OS === 'android'}
       navigationBarTranslucent={Platform.OS === 'android'}
       onRequestClose={() => {
+        if (isRangeKeyboardVisible()) {
+          dismissForgeKeyboard();
+          return;
+        }
         if (!onBackRequest?.()) close(true);
       }}
     >
@@ -408,7 +414,7 @@ export function ForgeBottomSheet({
         {keyboardVisible ? (
           <Pressable
             accessible={false}
-            onPress={Keyboard.dismiss}
+            onPress={dismissForgeKeyboard}
             style={[
               styles.keyboardSurfaceFill,
               { height: keyboardSurfaceFillHeight, backgroundColor: theme.surfaceElevated },
@@ -434,7 +440,7 @@ export function ForgeBottomSheet({
                 }
               }}
               onStartShouldSetResponderCapture={() => keyboardVisible && dismissTextKeyboardOnTap}
-              onResponderRelease={() => Keyboard.dismiss()}
+              onResponderRelease={dismissForgeKeyboard}
               style={[
                 styles.sheet,
                 // The sheet is a base surface; elevated controls and nested cards

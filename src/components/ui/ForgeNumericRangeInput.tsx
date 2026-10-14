@@ -1,5 +1,8 @@
-import React, { useEffect, useRef } from 'react';
-import { Platform, type ColorValue, type KeyboardTypeOptions, type StyleProp, type TextInput as NativeTextInput, type TextStyle, type TextInputProps } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Platform, StyleSheet, processColor, type ColorValue, type KeyboardTypeOptions, type StyleProp, type TextInput as NativeTextInput, type TextStyle, type TextInputProps } from 'react-native';
+import { NativeRangeInput } from '../../../modules/forge-range-keyboard';
+import { useForgeTheme } from '../../theme/ThemeProvider';
+import { typeScale } from '../../theme/tokens';
 
 import { ForgeTextInput } from './ForgeText';
 
@@ -20,9 +23,8 @@ export interface ForgeNumericRangeInputProps {
   fontSize?: number;
   textAlign?: 'left' | 'center' | 'right';
   /**
-   * Keypad to raise. Range fields keep `numbers-and-punctuation` (a dash is
-   * needed for `8–12`); single decimal fields pass `decimal-pad` for a clean
-   * numbers-and-separator keypad.
+   * `numbers-and-punctuation` selects the native range keypad when available.
+   * Single decimal fields retain `decimal-pad` and the system keyboard.
    */
   keyboardType?: KeyboardTypeOptions;
   /** Increment to focus the input from a grouped row tap. */
@@ -30,7 +32,7 @@ export interface ForgeNumericRangeInputProps {
   testID?: string;
 }
 
-/** Native punctuation input for routine intervals; commas are normalized by its consumer. */
+/** Native range entry with a platform TextInput fallback; parsing stays with the consumer. */
 export function ForgeNumericRangeInput({
   value,
   onChangeText,
@@ -52,8 +54,41 @@ export function ForgeNumericRangeInput({
   testID,
 }: ForgeNumericRangeInputProps) {
   const fallbackRef = useRef<NativeTextInput>(null);
+  const theme = useForgeTheme();
+  const [eventCount, setEventCount] = useState(0);
 
   useEffect(() => { if (focusRequest > 0) fallbackRef.current?.focus(); }, [focusRequest]);
+
+  if (NativeRangeInput && keyboardType === 'numbers-and-punctuation') {
+    const flattened = StyleSheet.flatten(style);
+    const foreground = processColor(textColor ?? theme.textPrimary);
+    const placeholderColor = processColor(placeholderTextColor ?? theme.textSecondary);
+    return <NativeRangeInput
+      value={value}
+      mostRecentEventCount={eventCount}
+      editable={editable}
+      placeholder={placeholder ?? ''}
+      accessibilityLabel={accessibilityLabel}
+      textColor={typeof foreground === 'number' ? foreground : undefined}
+      placeholderTextColor={typeof placeholderColor === 'number' ? placeholderColor : undefined}
+      fontSize={fontSize}
+      fontFamily={flattened?.fontFamily ?? typeScale.body.fontFamily ?? ''}
+      textAlign={textAlign}
+      appearance={theme.colorScheme}
+      focusRequest={focusRequest}
+      testID={testID}
+      onChange={({ nativeEvent }) => {
+        setEventCount(nativeEvent.eventCount);
+        onChangeText(nativeEvent.value);
+      }}
+      onFocus={() => onFocus?.()}
+      onBlur={() => onBlur?.()}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      style={[{ minHeight: typeScale.body.lineHeight }, style]}
+    />;
+  }
 
   return (
     <ForgeTextInput
@@ -61,9 +96,7 @@ export function ForgeNumericRangeInput({
       lockCursorToEnd
       accessibilityLabel={accessibilityLabel}
       editable={editable}
-      // React Native Web otherwise renders `numbers-and-punctuation` as a
-      // text input. Native retains its keypad so range punctuation remains
-      // available, while web receives a decimal number keypad as well.
+      // Web needs inputMode because its numbers-and-punctuation mapping is text.
       inputMode={Platform.OS === 'web' ? keyboardType === 'number-pad' ? 'numeric' : 'decimal' : undefined}
       keyboardType={keyboardType}
       onBlur={onBlur}

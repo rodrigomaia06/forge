@@ -1,8 +1,9 @@
 import { useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Keyboard, Platform, type KeyboardEvent } from 'react-native';
+import { Platform, type KeyboardEvent } from 'react-native';
 
 import type { MeasureSetInput } from './activeWorkoutTypes';
+import { addForgeKeyboardListener, forgeKeyboardMetrics } from '../../components/ui/forgeKeyboard';
 
 type OffsetScrollable = {
   scrollToOffset: (params: { offset: number; animated?: boolean }) => void;
@@ -42,7 +43,7 @@ export function useFocusedSetKeyboardLift(
 
   const liftFocusedSetInput = useCallback((): void => {
     const measure = focusedSetMeasureRef.current;
-    const keyboard = keyboardFrameRef.current ?? Keyboard.metrics();
+    const keyboard = keyboardFrameRef.current ?? forgeKeyboardMetrics();
     if (!measure || !keyboard) return;
     const generation = focusGeneration.current;
     measure(({ y, height }) => {
@@ -83,19 +84,19 @@ export function useFocusedSetKeyboardLift(
       setKeyboardSpacer(event.endCoordinates.height);
       requestAnimationFrame(() => requestAnimationFrame(liftFocusedSetInput));
     };
-    const show = Keyboard.addListener(
+    const show = addForgeKeyboardListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       settleFocusedInput,
     );
     // The initial iOS event lets the list move with the keyboard. Repeating
     // after its native frame settles avoids relying on pre-animation metrics.
     const didShow = Platform.OS === 'ios'
-      ? Keyboard.addListener('keyboardDidShow', settleFocusedInput)
+      ? addForgeKeyboardListener('keyboardDidShow', settleFocusedInput)
       : null;
     const frameChange = Platform.OS === 'ios'
-      ? Keyboard.addListener('keyboardWillChangeFrame', settleFocusedInput)
+      ? addForgeKeyboardListener('keyboardWillChangeFrame', settleFocusedInput)
       : null;
-    const hide = Keyboard.addListener(
+    const hide = addForgeKeyboardListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       restoreScrollPosition,
     );

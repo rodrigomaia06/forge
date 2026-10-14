@@ -29,6 +29,13 @@ function keyboardLift() {
       },
     },
   };
+  mocks['../../components/ui/forgeKeyboard'] = {
+    forgeKeyboardMetrics: () => keyboard,
+    addForgeKeyboardListener: (name: string, callback: (event: unknown) => void) => {
+      events.set(name, callback);
+      return { remove: () => events.delete(name) };
+    },
+  };
   const exports: Record<string, any> = {};
   const source = ts.transpileModule(
     readFileSync('src/screens/activeWorkout/useFocusedSetKeyboardLift.ts', 'utf8'),

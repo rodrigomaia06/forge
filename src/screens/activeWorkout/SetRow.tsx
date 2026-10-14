@@ -175,7 +175,7 @@ export function SetRow({
       ) : null}
       {trackingFields[trackingType].map((kind) => {
         const planned = plannedIntervalText(set, kind);
-        const allowsRange = setTargetMode === 'routine' && (kind === 'reps' || kind === 'duration');
+        const allowsRange = setTargetMode === 'routine' && (kind === 'reps' || kind === 'duration' || kind === 'distance');
         // Prefer the raw legacy string so a decimal being typed ("9.5", "9,5")
         // is preserved as-is; formatting through the parsed number would drop a
         // trailing separator mid-entry. Fall back to the structured value only
