@@ -93,6 +93,10 @@ Every implementation change must be verified, but verification should remain sco
 
 ### Verification capacity
 
+All agents must run verification through `npm run typecheck`, `npm run test:visual -- <targeted arguments>`, or `npm run verify:run -- <command> <arguments>`. These entry points enforce `scripts/verification-budget.mjs`: reduced scheduling priority on every existing thread and a shared CPU-affinity pool containing at most two thirds of the initially available CPUs, rounded down with a minimum of one. Child processes, browsers and the Playwright web-server/Metro export inherit the same pool; nested wrappers reuse the baseline instead of reducing it again. Agent processes must use the same lowest-ID pool so parallel agents cannot collectively consume all cores. Worker counts alone are not a CPU limit.
+
+`playwright.config.ts` invokes the same guard for direct Playwright calls and rejects worker overrides above the allowed count. Never bypass the guard with a temporary config, a different invocation, changed environment metadata or an unwrapped verification command. If CPU affinity or reduced priority cannot be enforced, the runner fails before verification starts; report the limitation and use an environment with enforceable limits. Run one resource-heavy suite at a time and reduce workers further when observed memory pressure requires it. This applies to every agent, including delegated work.
+
 Use the machine's available capacity to reduce verification time without making it unusable for the user. Run automated checks at reduced system priority and use up to two thirds of the available cores (rounded down, minimum one); do not default to a serial run merely because a suite is visual. Preserve memory headroom by running one resource-heavy suite at a time and reducing workers only for observed memory pressure. Do not use all cores or configure a check to consume all available RAM unless the user explicitly overrides this constraint.
 
 ### Visual verification

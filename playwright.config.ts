@@ -1,11 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
+import { enforceVerificationBudget } from './scripts/verification-budget.mjs';
+
+const verificationBudget = enforceVerificationBudget();
 
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
-  // Cap parallelism at two-thirds of the cores so the dev machine keeps headroom
-  // and heavy specs don't flake on timeouts/rendering under full CPU contention.
-  workers: '66%',
+  workers: verificationBudget.workers,
   outputDir: 'tests/results/artifacts',
   reporter: [['list'], ['html', { outputFolder: 'tests/results/report', open: 'never' }]],
   projects: [
@@ -29,7 +30,7 @@ export default defineConfig({
   webServer: {
     command: 'npm run web:export && python3 -m http.server 9021 --directory dist',
     url: 'http://127.0.0.1:9021',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120000,
   },
 });
