@@ -1,10 +1,5 @@
 {
-  "platforms": [
-    "apple"
-  ],
-  "apple": {
-    "modules": [
-      "ForgeRangeKeyboardModule"
-    ]
-  }
+  "platforms": ["apple", "android"],
+  "apple": { "modules": ["ForgeRangeKeyboardModule"] },
+  "android": { "modules": ["expo.modules.forgerangekeyboard.ForgeRangeKeyboardModule"] }
 }
