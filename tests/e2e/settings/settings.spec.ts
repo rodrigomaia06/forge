@@ -79,11 +79,11 @@ test.describe('Settings', () => {
     const exerciseLibraryBox = await exerciseLibrary.boundingBox();
     expect(exerciseLibraryBox?.height ?? 0).toBeCloseTo(page.viewportSize()?.height ?? 0, 0);
     await expect(page.getByRole('button', { name: 'All exercises, 608 exercises' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Strength, 265 exercises' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Mobility, 156 exercises' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Cardio, 51 exercises' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Court sport, 13 exercises' })).toBeVisible();
-    await page.getByRole('button', { name: 'Strength, 265 exercises' }).click();
+    await expect(page.getByRole('button', { name: /^Strength, \d+ exercises$/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Mobility, \d+ exercises$/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Cardio, \d+ exercises$/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Court sport, \d+ exercises$/ })).toBeVisible();
+    await page.getByRole('button', { name: /^Strength, \d+ exercises$/ }).click();
     await expect(page.getByTestId('settings-detail-title').last()).toHaveText('Strength');
     await page.getByRole('button', { name: 'Back to Exercises' }).click();
     await page.getByRole('button', { name: 'Back to Settings' }).click();

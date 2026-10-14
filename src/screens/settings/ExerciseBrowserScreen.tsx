@@ -1,3 +1,6 @@
+import { ExerciseInfoTabs, type ExerciseInfoTab, type ExerciseInfoReview } from '../../components/exerciseInfo/ExerciseInfoTabs';
+import { useWorkouts } from '../../state/WorkoutContext';
+import { useIsFocused } from '@react-navigation/native';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import { ForgeSheetScrollView } from '../../components/ui/ForgeSheetScrollView';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -113,6 +116,14 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const { height: viewportHeight } = useWindowDimensions();
   const floatingCtaClearance = useForgeFloatingCtaClearance();
   const { preferences, updatePreferences } = useSettings();
+  const { completedWorkouts } = useWorkouts();
+  const [infoReview, setInfoReview] = useState<ExerciseInfoReview>({});
+  const [infoTab, setInfoTab] = useState<ExerciseInfoTab>('info');
+  const isFocused = useIsFocused();
+  const returningDetail = useRef<ExerciseCatalogItem | null>(null);
+  useEffect(() => {
+    if (isFocused && returningDetail.current) { setDetail(returningDetail.current); returningDetail.current = null; }
+  }, [isFocused]);
   const catalog = useExerciseCatalog();
   const fixedTypeId = route.params?.workoutTypeId;
   const customOnly = route.params?.custom === true;
@@ -141,6 +152,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const [editing, setEditing] = useState<ExerciseCatalogItem | null>(null);
   const [detail, setDetail] = useState<ExerciseCatalogItem | null>(null);
   const [detailSheetView, setDetailSheetView] = useState<DetailSheetView>('details');
+  const historyExercise = useMemo(() => detail ? { id: detail.id, exerciseId: detail.id, name: detail.name, trackingType: detail.trackingType, sets: [] } : null, [detail]);
   // Open the edit form only after the detail sheet has fully dismissed.
   const { runAfterClose, onClosed: onDetailClosed } = useAfterSheetClose();
   const savingVariation = useRef(false);
@@ -333,6 +345,8 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     setExpanded((current) => (current === movement ? null : movement));
   }, []);
   const handleOpenExercise = useCallback((item: ExerciseCatalogItem) => {
+    setInfoTab('info');
+    setInfoReview({});
     setDetailSheetView('details');
     setDetail(item);
   }, []);
@@ -1076,11 +1090,11 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                 </View>
               </View>
             ) : (
-              <View style={styles.detailSheet}>
+              <>
                 <ForgeBottomSheetHandle />
                 <ForgeSheetHeader
                   title={detail.name}
-                  autoShrinkTitle
+                  titleNumberOfLines={2}
                   onClose={close}
                   closeAccessibilityLabel="Close exercise details"
                   // Custom exercises get a "..." that opens an in-sheet options
@@ -1100,10 +1114,17 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                     ) : undefined
                   }
                 />
-                {/* The detail body does not scroll, so the whole card is a
-                    drag-to-dismiss target (taps on the rest rows and the
-                    leading-side toggle still win; only a vertical drag dismisses). */}
-                <ForgeBottomSheetDragArea>
+                <ExerciseInfoTabs
+                  exercise={historyExercise!}
+                  workouts={completedWorkouts}
+                  tab={infoTab} onTabChange={setInfoTab}
+                  review={infoReview} onReviewChange={setInfoReview}
+                  onOpenWorkout={(workoutId) => {
+                    returningDetail.current = detail;
+                    runAfterClose(() => navigation.navigate('WorkoutDetails', { workoutId, backAccessibilityLabel: 'Back to exercises' }));
+                    close();
+                  }}
+                  info={<ForgeSheetScrollView contentContainerStyle={{ paddingBottom: 12 }}>
                   <ExerciseDetailBody
                     detail={detail}
                     workoutTypes={preferences.workoutTypes}
@@ -1122,8 +1143,9 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                       />
                     ) : undefined}
                   />
-                </ForgeBottomSheetDragArea>
-              </View>
+                  </ForgeSheetScrollView>}
+                />
+              </>
             ))
           }
         </ForgeBottomSheet>

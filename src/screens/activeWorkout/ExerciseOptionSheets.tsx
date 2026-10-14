@@ -1,8 +1,10 @@
+import { ExerciseInfoTabs, type ExerciseInfoTab, type ExerciseInfoReview } from '../../components/exerciseInfo/ExerciseInfoTabs';
+import { ExerciseHistory as PreviousSessionsContent } from '../../components/exerciseInfo/ExerciseHistory';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import { ForgeSheetScrollView } from '../../components/ui/ForgeSheetScrollView';
 import { effectiveTracking } from '../../domain/exercises/tracking';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Keyboard, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import {
@@ -28,8 +30,6 @@ import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import type { Workout, WorkoutExercise, WorkoutSet, WorkoutSide } from '../../types';
-import { HistorySetRow } from './HistorySetRow';
-import { SetDetailsCard } from './SetDetailsCard';
 import { animateLayout } from './activeWorkoutFeedback';
 
 export function WarmupSetsContent({
@@ -189,6 +189,13 @@ function restReadout(seconds: number | undefined): string {
 
 export function ExerciseInfoContent({
   exercise,
+  workouts = [],
+  excludeWorkoutId,
+  onOpenWorkout,
+  tab,
+  onTabChange,
+  review,
+  onReviewChange,
   onPressRest,
   unilateral = false,
   leadSide = 'left',
@@ -197,6 +204,13 @@ export function ExerciseInfoContent({
   onToggleLeadSide,
 }: {
   exercise: WorkoutExercise;
+  workouts?: readonly Workout[];
+  excludeWorkoutId?: string;
+  onOpenWorkout?: (id: string) => void;
+  tab?: ExerciseInfoTab;
+  onTabChange?: (tab: ExerciseInfoTab) => void;
+  review?: ExerciseInfoReview;
+  onReviewChange?: (review: ExerciseInfoReview) => void;
   onPressRest?: () => void;
   /** Unilateral exercises expose a between-sides rest and a leading-side choice. */
   unilateral?: boolean;
@@ -207,25 +221,13 @@ export function ExerciseInfoContent({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const reducedMotion = useForgeReducedMotion();
   const { preferences } = useSettings();
   const detail = useMemo(() => catalogueDetail(exercise), [exercise]);
-  // Only allow scrolling when the content actually overflows: a fits-on-screen
-  // card should not rubber-band. Compare measured content vs viewport height.
-  const [viewportHeight, setViewportHeight] = useState(0);
-  const [contentHeight, setContentHeight] = useState(0);
-  if (!detail) return null;
+  if (!detail) return <ExerciseInfoTabs exercise={exercise} workouts={workouts} excludeWorkoutId={excludeWorkoutId} onOpenWorkout={onOpenWorkout} tab={tab} onTabChange={onTabChange} review={review} onReviewChange={onReviewChange} info={<ForgeSheetScrollView contentContainerStyle={styles.infoScroll}><Text style={{ color: theme.textSecondary }}>Catalogue details are not available for this exercise.</Text></ForgeSheetScrollView>} />;
   // Match the read path in ActiveWorkoutScreen.restDurationForExercise.
   const exerciseId = exercise.exerciseId ?? exercise.exerciseSnapshot?.id ?? detail.id;
   const restLabel = restReadout(preferences.exerciseRestSeconds[exerciseId]);
   const unilateralRestLabel = restReadout(unilateralRestOverride);
-  // Only scroll once a real viewport has been measured AND the content overflows
-  // it. Guarding on `viewportHeight > 0` matters on the view-swap frame when this
-  // card remounts after returning from the duration wheel: the viewport momentarily
-  // measures ~0, and without the guard `scrollable` would flip true, so the
-  // ScrollView would claim the vertical pan and the body could not be dragged to
-  // dismiss. See the drag-area note below.
-  const scrollable = viewportHeight > 0 && contentHeight > viewportHeight + 1;
   const body = (
     <ExerciseDetailBody
       detail={detail}
@@ -243,146 +245,13 @@ export function ExerciseInfoContent({
       ) : undefined}
     />
   );
-  // Reuse the exact Exercise Library detail card so the two read identically.
-  return (
-    <Animated.ScrollView
-      testID="exercise-info-content"
-      style={styles.infoScrollView}
-      contentContainerStyle={styles.infoScroll}
-      scrollEnabled={scrollable}
-      onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}
-      onContentSizeChange={(_width, height) => setContentHeight(height)}
-      // Cross-fade the drill-in/back swap while the surface height eases.
-      entering={reducedMotion ? undefined : FadeIn.duration(forgeMotion.state)}
-      exiting={reducedMotion ? undefined : FadeOut.duration(forgeMotion.feedback)}
-    >
-      {/* When the card fits (does not scroll) the whole body is a drag-to-dismiss
-          target, mirroring the Exercise Library detail — so a vertical drag off the
-          header still dismisses, including right after returning from the wheel.
-          Once the content overflows, the ScrollView owns the pan and dismissal is
-          via the header handle instead. */}
-      {scrollable ? body : <ForgeBottomSheetDragArea>{body}</ForgeBottomSheetDragArea>}
-    </Animated.ScrollView>
-  );
+  return <ExerciseInfoTabs exercise={exercise} workouts={workouts} excludeWorkoutId={excludeWorkoutId} onOpenWorkout={onOpenWorkout} tab={tab} onTabChange={onTabChange} review={review} onReviewChange={onReviewChange} info={
+    <ForgeSheetScrollView testID="exercise-info-content" contentContainerStyle={styles.infoScroll}>{body}</ForgeSheetScrollView>
+  } />;
 }
 
-const AnimatedSheetScrollView = Animated.createAnimatedComponent(ForgeSheetScrollView);
 
-export function PreviousSessionsContent({
-  exercise,
-  workouts,
-  excludeWorkoutId,
-  onOpenWorkout,
-  showAll: controlledShowAll,
-  onShowAllChange,
-  scrollOffset,
-  onScrollOffsetChange,
-}: {
-  exercise: WorkoutExercise;
-  workouts: readonly Workout[];
-  excludeWorkoutId?: string;
-  onOpenWorkout?: (workoutId: string) => void;
-  /** State is lifted by option sheets that temporarily close for a stack push. */
-  showAll?: boolean;
-  onShowAllChange?: (showAll: boolean) => void;
-  /** Preserves the list position when returning from a read-only workout detail. */
-  scrollOffset?: number;
-  onScrollOffsetChange?: (offset: number) => void;
-}) {
-  const theme = useForgeTheme();
-  const styles = useThemedStyles(createStyles);
-  const reducedMotion = useForgeReducedMotion();
-  const scrollViewRef = useRef<ScrollView>(null);
-  const [uncontrolledShowAll, setUncontrolledShowAll] = useState(false);
-  const [openSet, setOpenSet] = useState<{ set: WorkoutSet; index: number; trackingType: NonNullable<WorkoutExercise['trackingType']> } | null>(null);
-  const sessions = useMemo(
-    () => findPreviousSessions(exercise, workouts).filter(({ workout }) => workout.id !== excludeWorkoutId),
-    [excludeWorkoutId, exercise, workouts],
-  );
-  const showAll = controlledShowAll ?? uncontrolledShowAll;
-  const visibleSessions = showAll ? sessions : sessions.slice(0, 3);
-  const revealAll = (): void => {
-    animateLayout(reducedMotion);
-    if (onShowAllChange) onShowAllChange(true);
-    else setUncontrolledShowAll(true);
-  };
-
-  useEffect(() => {
-    if (!scrollOffset) return;
-    const frame = requestAnimationFrame(() => scrollViewRef.current?.scrollTo({ y: scrollOffset, animated: false }));
-    return () => cancelAnimationFrame(frame);
-    // The sheet remounts after a stack drill-in. Do not react to each user
-    // scroll update here or the list would continually command itself back to
-    // the current pixel while the user is dragging.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showAll]);
-
-  return (
-    <>
-      <AnimatedSheetScrollView
-    ref={scrollViewRef}
-    // Hug the content and scroll only once it exceeds the sheet's own max
-    // height. See .agents/docs/decisions/0005 — a maxHeight ON the ScrollView parks it
-    // at that height and creates dead space; the sheet surface already caps it.
-    style={styles.previousSessionsScroll}
-    contentContainerStyle={styles.previousSessionsContent}
-    nestedScrollEnabled
-    onScroll={(event) => onScrollOffsetChange?.(event.nativeEvent.contentOffset.y)}
-    scrollEventThrottle={16}
-    // Cross-fade the drill-in/back swap while the surface height eases.
-    entering={reducedMotion ? undefined : FadeIn.duration(forgeMotion.state)}
-    exiting={reducedMotion ? undefined : FadeOut.duration(forgeMotion.feedback)}
-  >
-        {sessions.length ? (
-          <>
-            {visibleSessions.map(({ workout, exercise: sessionExercise }) => (
-              <View key={workout.id}>
-                <ForgeCard testID={`previous-session-card-${workout.id}`} variant="nested" style={styles.previousSessionCard}>
-                  <Pressable accessibilityRole={onOpenWorkout ? 'button' : undefined} accessibilityLabel={onOpenWorkout ? `Open ${workout.name}` : undefined} onPress={() => onOpenWorkout?.(workout.id)} style={({ pressed }) => [styles.previousSessionHeader, pressed && pressedFeedbackSubtle]}>
-                    <View style={styles.sessionCopy}>
-                      <Text style={styles.sessionTitle} numberOfLines={1}>
-                        {workout.name}
-                      </Text>
-                      <Text style={[styles.sessionDate, { color: theme.textSecondary }]}>
-                        {sessionDateTime(workout)}
-                      </Text>
-                    </View>
-                    {onOpenWorkout ? <Icon name="chevron-forward" size={22} color={theme.textSecondary} /> : null}
-                  </Pressable>
-                  {sessionExercise.sets.map((set, index) => (
-                    <HistorySetRow
-                      key={set.id}
-                      set={set}
-                      index={index}
-                      compact
-                      isLast={index === sessionExercise.sets.length - 1}
-                      trackingType={effectiveTracking(sessionExercise)}
-                      onOpenDetails={() =>
-                        setOpenSet({ set, index, trackingType: effectiveTracking(sessionExercise) })
-                      }
-                    />
-                  ))}
-                </ForgeCard>
-              </View>
-            ))}
-            {!showAll && sessions.length > 3 ? (
-              <Pressable accessibilityRole="button" accessibilityLabel={`Show ${sessions.length - 3} more sessions`} onPress={revealAll} style={({ pressed }) => [styles.showMoreSessions, { backgroundColor: theme.surfaceElevated }, pressed && pressedFeedbackSubtle]}>
-                <Text style={styles.showMoreText}>{`Show ${sessions.length - 3} more`}</Text>
-              </Pressable>
-            ) : null}
-          </>
-        ) : (
-          <View style={[styles.emptyCard, { borderColor: theme.border, backgroundColor: theme.surfaceMuted }]}>
-            <Text style={[styles.emptyMessage, { color: theme.textSecondary }]}>
-              No completed sessions for this exercise yet.
-            </Text>
-          </View>
-        )}
-      </AnimatedSheetScrollView>
-      {openSet ? <SetDetailsCard visible set={openSet.set} index={openSet.index} editable={false} onChange={() => undefined} onDelete={() => undefined} onDone={() => setOpenSet(null)} trackingType={openSet.trackingType} /> : null}
-    </>
-  );
-}
+export { ExerciseHistory as PreviousSessionsContent } from '../../components/exerciseInfo/ExerciseHistory';
 
 function catalogueDetail(exercise: WorkoutExercise): ExerciseCatalogItem | undefined {
   const snapshot = exercise.exerciseSnapshot;
@@ -424,17 +293,6 @@ function normalizeName(value: string): string {
   return value.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 }
 
-function sessionDateTime(workout: Workout): string {
-  const date = new Date(workout.completedAt ?? workout.startedAt);
-  const today = new Date();
-  const sameDay = date.toDateString() === today.toDateString();
-  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
-  const time = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-  if (sameDay) return `Today at ${time}`;
-  if (date.toDateString() === yesterday.toDateString()) return `Yesterday at ${time}`;
-  return `${date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', ...(date.getFullYear() !== today.getFullYear() ? { year: 'numeric' } : {}) })} at ${time}`;
-}
-
 function formatRecordedSet(set: WorkoutSet, exercise: WorkoutExercise): string {
   const tracking = effectiveTracking(exercise);
   const values = trackingFields[tracking].map((kind) => measurementDisplay(set, kind)).filter(Boolean);
@@ -448,19 +306,10 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   // Warm-up editing needs room above its final confirmation control; static
   // Exercise info only keeps the normal short-sheet safe trailing clearance.
   infoContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24 },
-  // Hug-then-scroll (ADR 0005): flexShrink lets the body size to its content and
-  // scroll within the surface cap instead of parking content high with dead
-  // space beneath it. Never put a height/maxHeight on the scroll view itself.
-  // A min-height floor keeps the info card at full height when it remounts after
-  // returning from the duration wheel — without it the ScrollView measures ~0 on
-  // the swap frame and the native sheet collapses to the header. Matches the rest
-  // view's restPickerContent and the library detail's DETAIL_SHEET_MIN_HEIGHT.
+  // The warm-up body must retain its height across content swaps while yielding
+  // scrolling to the sheet; a zero-height remount collapses native layout.
   infoScrollView: { flexShrink: 1, minHeight: 400 },
   infoScroll: { paddingTop: 4, paddingBottom: 30 },
-  // Let the list occupy all remaining sheet height. The former percentage cap
-  // left an inert band under the final card and could clip Show more.
-  previousSessionsScroll: { flexShrink: 1 },
-  previousSessionsContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 32, gap: 14 },
   supporting: { ...typeScale.body },
   sectionLabel: { marginTop: 8, marginLeft: 6, color: theme.textPrimary, ...typeScale.sectionTitle },
   workingCard: { overflow: 'hidden', borderRadius: 16 },
@@ -498,12 +347,5 @@ const createStyles = (theme: import('../../types').ForgeTheme) => StyleSheet.cre
   infoRow: { minHeight: 54, paddingHorizontal: 16, paddingVertical: 10, gap: 2 },
   infoLabel: { ...typeScale.caption },
   infoValue: { color: theme.ink, ...typeScale.label },
-  previousSessionCard: { overflow: 'hidden', borderRadius: 22, marginBottom: 2 },
-  previousSessionHeader: { minHeight: 78, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, gap: 12 },
-  sessionCopy: { flex: 1, gap: 3 },
-  sessionTitle: { color: theme.ink, ...typeScale.cardTitle },
-  sessionDate: { color: theme.ink, ...typeScale.body },
-  showMoreSessions: { minHeight: 56, borderRadius: 20, justifyContent: 'center', paddingHorizontal: 24 },
-  showMoreText: { color: theme.ink, ...typeScale.sectionTitle },
   emptyCard: { borderWidth: 1, borderRadius: 16 },
 });

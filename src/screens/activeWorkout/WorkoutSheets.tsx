@@ -1,3 +1,4 @@
+import type { ExerciseInfoTab, ExerciseInfoReview } from '../../components/exerciseInfo/ExerciseInfoTabs';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import { scaleUI } from '../../theme/scale';
 import { trackingModeLabel } from '../../domain/exercises/tracking';
@@ -37,7 +38,7 @@ import { CompletionCheck } from './CompletionCheck';
 
 import { animateLayout, animateSheetContent, lightHaptic, mediumHaptic, selectionHaptic } from './activeWorkoutFeedback';
 import type { Workout, WorkoutExercise } from '../../types';
-import { ExerciseInfoContent, PreviousSessionsContent, WarmupSetsContent } from './ExerciseOptionSheets';
+import { ExerciseInfoContent, WarmupSetsContent } from './ExerciseOptionSheets';
 import { catalogFacets, filterCatalog, groupCatalogByPrimaryEquipment } from '../../domain/exercises/catalogSelectors';
 import { formatCatalogVariation, formatPickerPrimaryEquipment } from '../../domain/exercises/exercisePresentation';
 import { isUnilateralExercise } from '../../domain/exercises/laterality';
@@ -855,8 +856,8 @@ export function ExerciseOptionsSheet({
   const [trackingConfirmation, setTrackingConfirmation] = useState<TrackingConfirmation | null>(null);
   const [noteDraft, setNoteDraft] = useState(exercise.note ?? '');
   const [noteHeight, setNoteHeight] = useState(156);
-  const [historyShowAll, setHistoryShowAll] = useState(false);
-  const [historyScrollOffset, setHistoryScrollOffset] = useState(0);
+  const [infoReview, setInfoReview] = useState<ExerciseInfoReview>({});
+  const [infoTab, setInfoTab] = useState<ExerciseInfoTab>('info');
   const pendingWorkoutIdRef = useRef<string | null>(null);
   // Each fresh open starts on the action list. The parent now defers this
   // sheet's unmount past its slide-out (and cancels it on a quick reopen), so
@@ -865,7 +866,7 @@ export function ExerciseOptionsSheet({
   // `enterInstant` marks a restore (returning from a pushed prior session), which
   // deliberately keeps its sub-view, so it is left untouched.
   useEffect(() => {
-    if (visible && !enterInstant) setView('actions');
+    if (visible && !enterInstant) { setView('actions'); setInfoTab('info'); setInfoReview({}); }
   }, [visible, enterInstant]);
 
   // Per-exercise rest override, editable from Exercise info. Match the read path
@@ -986,9 +987,9 @@ export function ExerciseOptionsSheet({
           dismiss: false,
           onPress: () => openView('note'),
         }] : []),
-        ...(onOpenPreviousSessions ? [{ icon: 'history' as const, label: 'Previous sessions', dismiss: false, onPress: () => openView('history') }] : []),
+        ...(onOpenPreviousSessions ? [{ icon: 'history' as const, label: 'Previous sessions', dismiss: false, onPress: () => { setInfoTab('history'); openView('history'); } }] : []),
         ...(addWarmupSets ? [{ icon: 'temperature-sun' as const, label: 'Warm-up sets', dismiss: false, onPress: () => openView('warmup') }] : []),
-        ...(onOpenExerciseInfo ? [{ icon: 'info' as const, label: 'Exercise info', dismiss: false, onPress: () => openView('info') }] : []),
+        ...(onOpenExerciseInfo ? [{ icon: 'info' as const, label: 'Exercise info', dismiss: false, onPress: () => { setInfoTab('info'); openView('info'); } }] : []),
         ...(!readOnly && onReplaceExercise ? [{ icon: 'replace' as const, label: 'Replace exercise', onPress: onReplaceExercise }] : []),
         ...(!readOnly && onToggleOffSession ? [{
           icon: exercise.offSession ? ('notes' as const) : ('notes-off' as const),
@@ -1015,12 +1016,12 @@ export function ExerciseOptionsSheet({
                   title={
                     view === 'tracking'
                       ? 'Tracking'
-                      : view === 'note' ? 'Exercise note' : view === 'history' ? 'Previous sessions' : view === 'rest' ? 'Duration' : view === 'rest-unilateral' ? 'Side rest' : view === 'warmup' ? 'Warm-up sets' : 'Exercise info'
+                      : view === 'note' ? 'Exercise note' : view === 'history' ? 'Exercise info' : view === 'rest' ? 'Duration' : view === 'rest-unilateral' ? 'Side rest' : view === 'warmup' ? 'Warm-up sets' : 'Exercise info'
                   }
                   // The Duration views drop the close X and give their right slot to
                   // Default; Back returns to the info card and the sheet closes there.
                   onClose={view === 'rest' || view === 'rest-unilateral' ? undefined : closeSheet}
-                  closeAccessibilityLabel={`Close ${view === 'tracking' ? 'tracking' : view === 'note' ? 'exercise note' : view === 'history' ? 'previous sessions' : view === 'warmup' ? 'warm-up sets' : 'exercise info'}`}
+                  closeAccessibilityLabel={`Close ${view === 'tracking' ? 'tracking' : view === 'note' ? 'exercise note' : view === 'history' ? 'exercise info' : view === 'warmup' ? 'warm-up sets' : 'exercise info'}`}
                   leading={
               view === 'rest' || view === 'rest-unilateral'
                 ? <ForgeEditorBackButton onPress={() => openView('info')} accessibilityLabel="Back to exercise info" />
@@ -1046,22 +1047,16 @@ export function ExerciseOptionsSheet({
                     onConfirmationChange={resolveTrackingSelection ? setTrackingConfirmation : undefined}
                   />
                 ) : null}
-                {view === 'history' ? <PreviousSessionsContent
-            exercise={exercise}
-            workouts={completedWorkouts}
-            excludeWorkoutId={excludeWorkoutId}
-            showAll={historyShowAll}
-            onShowAllChange={setHistoryShowAll}
-            scrollOffset={historyScrollOffset}
-            onScrollOffsetChange={setHistoryScrollOffset}
-            onOpenWorkout={(workoutId) => {
-              pendingWorkoutIdRef.current = workoutId;
-              closeSheet();
-            }}
-          /> : null}
-                {view === 'info' ? (
+                {view === 'info' || view === 'history' ? (
             <ExerciseInfoContent
               exercise={exercise}
+              workouts={completedWorkouts}
+              excludeWorkoutId={excludeWorkoutId}
+              review={infoReview}
+              onReviewChange={setInfoReview}
+              tab={infoTab}
+              onTabChange={setInfoTab}
+              onOpenWorkout={(workoutId) => { pendingWorkoutIdRef.current = workoutId; closeSheet(); }}
               onPressRest={readOnly ? undefined : () => openView('rest')}
               unilateral={unilateral}
               leadSide={leadSide}

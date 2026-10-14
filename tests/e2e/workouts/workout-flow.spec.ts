@@ -1153,7 +1153,7 @@ test.describe('Active workout flow', () => {
 
     await page.getByRole('button', { name: 'Previous sessions' }).click();
     await expect(page.getByText('No completed sessions for this exercise yet.', { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: /Close previous sessions/i }).click();
+    await page.getByRole('button', { name: /Close exercise info/i }).click();
     await expect(page.getByText('Previous sessions', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Pause at the chest', { exact: true })).toHaveCount(0);
     await expect(page.locator('svg[aria-label="Exercise has a comment"]')).toBeVisible();
