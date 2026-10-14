@@ -619,7 +619,7 @@ export function DashboardCalendarTile({
   const todayDate = now.getDate();
 
   const { colorByDay, count, seconds, volume } = React.useMemo(() => {
-    const colorByDay = new Map<number, string>();
+    const colorByDay = new Map<number, string[]>();
     let count = 0, seconds = 0, volume = 0;
     for (const w of workouts) {
       const d = new Date(w.completedAt ?? w.startedAt);
@@ -627,9 +627,9 @@ export function DashboardCalendarTile({
       count += 1;
       seconds += w.durationSeconds ?? 0;
       volume += computeWorkoutVolume(w);
-      if (!colorByDay.has(d.getDate())) {
-        colorByDay.set(d.getDate(), getWorkoutTypePresentation(w.type, workoutTypes, theme, 0.16).color);
-      }
+      const colors = colorByDay.get(d.getDate()) ?? [];
+      colors.push(getWorkoutTypePresentation(w.type, workoutTypes, theme, 0.16).color);
+      colorByDay.set(d.getDate(), colors);
     }
     return { colorByDay, count, seconds, volume };
   }, [workouts, workoutTypes, year, month, theme]);
@@ -654,13 +654,16 @@ export function DashboardCalendarTile({
         {weeks.map((week, wi) => (
           <View key={wi} style={styles.calGridRow}>
             {week.map((day, di) => {
-              const color = day ? colorByDay.get(day) : undefined;
+              const colors = day ? colorByDay.get(day) : undefined;
               const isToday = day === todayDate;
               return (
                 <View key={di} style={styles.calGridCell}>
                   {day ? (
-                    <View style={[styles.calDot, color ? { backgroundColor: color } : null, isToday && !color ? { borderWidth: 1, borderColor: theme.border } : null]}>
-                      <Text style={[styles.calDayNum, color ? styles.calDayNumOn : null]}>{day}</Text>
+                    <View testID={`dashboard-calendar-day-${day}`} style={[styles.calDot, isToday && !colors ? { borderWidth: 1, borderColor: theme.border } : null]}>
+                      {colors ? <View pointerEvents="none" style={styles.calDaySegments}>
+                        {colors.map((color, index) => <View key={index} testID={`dashboard-calendar-day-${day}-segment`} style={{ flex: 1, backgroundColor: color }} />)}
+                      </View> : null}
+                      <Text style={[styles.calDayNum, colors ? styles.calDayNumOn : null]}>{day}</Text>
                     </View>
                   ) : null}
                 </View>
@@ -680,6 +683,7 @@ export function DashboardCalendarTile({
 }
 
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
+  calDaySegments: { ...StyleSheet.absoluteFill, flexDirection: 'row', borderRadius: 999, overflow: 'hidden' },
   block: { gap: 10 },
   calRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   calLeft: { flex: 1.4, minWidth: 0 },
