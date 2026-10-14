@@ -72,10 +72,10 @@ export function metricsFor(mode: TrackingType): ProgressMetric[] {
 export function metricLabel(metric: ProgressMetric, mode: TrackingType): string {
   return {
     load: mode.startsWith('assisted')
-      ? 'Least assistance'
+      ? 'Assistance'
       : mode.startsWith('weighted-bodyweight')
-        ? 'Greatest added weight'
-        : 'Heaviest weight',
+        ? 'Added weight'
+        : 'Weight',
     volume: 'Session volume',
     'best-reps': 'Best-set reps',
     'total-reps': 'Session reps',

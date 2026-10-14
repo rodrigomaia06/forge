@@ -1,7 +1,10 @@
-import { sessionChartLayout } from './sessionChartLayout';
-import React, { useRef, useState } from 'react';
+import { nearestSessionIndex, sessionChartLayout, shapePreservingPath } from './sessionChartLayout';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
-import Svg, { Line, Polyline, Circle } from 'react-native-svg';
+import Svg, { Line, Polyline, Circle, Path } from 'react-native-svg';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useAnimatedReaction, useSharedValue } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { ForgeText as Text, Button, ForgePressable as Pressable } from '../ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
@@ -22,19 +25,55 @@ export function ForgeSessionLineChart({
   const theme = useForgeTheme();
   const chartRef = useRef<View>(null);
   const [width, setWidth] = useState(0);
-  const [selection, setSelection] = useState<number | null>(null);
-  const selected = Math.min(selection ?? data.length - 1, data.length - 1);
-  const layout = sessionChartLayout(data as (ForgeLinePoint & { date: number })[], width, height);
+  const [selection, setSelection] = useState(data.length - 1);
+  const selected = Math.max(0, Math.min(selection, data.length - 1));
+  const selectedOnUI = useSharedValue(data.length - 1);
+  const positionsOnUI = useSharedValue<number[]>([]);
+  const identity = JSON.stringify(
+    data.map(({ date, value, trend, label, description }) => [
+      date,
+      value,
+      trend,
+      label,
+      description,
+    ]),
+  );
+  const layout = useMemo(
+    () => sessionChartLayout(data as (ForgeLinePoint & { date: number })[], width, height),
+    [data, width, height],
+  );
   const x = (point: ForgeLinePoint) => layout.x(point.date!);
   const y = layout.y;
+  const positions = data.map(x);
+  const markerCount = Math.min(data.length, 60);
+  const markerIndices = Array.from({ length: markerCount }, (_, index) =>
+    markerCount > 1 ? Math.round((index * (data.length - 1)) / (markerCount - 1)) : 0,
+  );
   const trend = data.filter((point) => point.trend !== undefined);
-  const selectAt = (target: number) => {
-    let nearest = 0;
-    data.forEach((point, index) => {
-      if (Math.abs(x(point) - target) < Math.abs(x(data[nearest]) - target)) nearest = index;
+  const trendPath = shapePreservingPath(
+    trend.map((point) => ({ x: x(point), y: y(point.trend!) })),
+  );
+  useEffect(() => {
+    selectedOnUI.set(data.length - 1);
+    setSelection(data.length - 1);
+  }, [identity, selectedOnUI]);
+  useEffect(() => {
+    positionsOnUI.set(positions);
+  }, [identity, width, height, positionsOnUI]);
+  const commitSelection = useCallback((index: number) => setSelection(index), []);
+  useAnimatedReaction(
+    () => selectedOnUI.get(),
+    (index, previous) => {
+      if (index !== previous && index >= 0) scheduleOnRN(commitSelection, index);
+    },
+  );
+  const selectAt = (target: number) => selectedOnUI.set(nearestSessionIndex(positions, target));
+  const scrub = Gesture.Pan()
+    .activeOffsetX([-8, 8])
+    .failOffsetY([-8, 8])
+    .onUpdate((event) => {
+      selectedOnUI.set(nearestSessionIndex(positionsOnUI.get(), event.x));
     });
-    setSelection(nearest);
-  };
   return (
     <View
       ref={chartRef}
@@ -42,59 +81,89 @@ export function ForgeSessionLineChart({
       onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
     >
       {width > 0 && data.length ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Select a session point on the chart"
-          onPress={(event) => {
-            if ('detail' in event.nativeEvent && event.nativeEvent.detail === 0) {
-              setSelection(0);
-              return;
-            }
-            const { locationX, pageX } = event.nativeEvent;
-            if (Number.isFinite(locationX)) selectAt(locationX);
-            else if (Number.isFinite(pageX)) {
-              // Browser click events supply page coordinates rather than RN's local coordinates.
-              chartRef.current?.measure((_x, _y, _width, _height, left) => selectAt(pageX - left));
-            } else setSelection(0);
-          }}
-        >
-          <Svg pointerEvents="none" width={width} height={height}>
-            {[0, 0.5, 1].map((fraction) => (
-              <Line
-                key={fraction}
-                x1={16}
-                x2={width - 16}
-                y1={12 + fraction * (height - 24)}
-                y2={12 + fraction * (height - 24)}
-                stroke={theme.divider}
-              />
-            ))}
-            <Polyline
-              points={data.map((point) => `${x(point)},${y(point.value)}`).join(' ')}
-              fill="none"
-              stroke={color}
-              strokeWidth={2}
-            />
-            {trend.length > 1 ? (
-              <Polyline
-                points={trend.map((point) => `${x(point)},${y(point.trend!)}`).join(' ')}
-                fill="none"
-                stroke={theme.textSecondary}
-                strokeWidth={2}
-                strokeDasharray="5 4"
-              />
-            ) : null}
-            {data.map((point, index) => (
-              <Circle
-                key={index}
-                cx={x(point)}
-                cy={y(point.value)}
-                r={index === selected ? 5 : 3}
-                fill={color}
-              />
-            ))}
-          </Svg>
-        </Pressable>
+        <GestureDetector gesture={scrub} touchAction="pan-y">
+          <Animated.View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Select a session point on the chart"
+              onPress={(event) => {
+                if ('detail' in event.nativeEvent && event.nativeEvent.detail === 0) {
+                  selectedOnUI.set(0);
+                  return;
+                }
+                const { locationX, pageX } = event.nativeEvent;
+                if (Number.isFinite(locationX)) selectAt(locationX);
+                else if (Number.isFinite(pageX)) {
+                  // Browser click events supply page coordinates rather than RN's local coordinates.
+                  chartRef.current?.measure((_x, _y, _width, _height, left) =>
+                    selectAt(pageX - left),
+                  );
+                } else selectedOnUI.set(0);
+              }}
+            >
+              <Svg pointerEvents="none" width={width} height={height}>
+                {[0, 0.5, 1].map((fraction) => (
+                  <Line
+                    key={fraction}
+                    x1={16}
+                    x2={width - 16}
+                    y1={12 + fraction * (height - 24)}
+                    y2={12 + fraction * (height - 24)}
+                    stroke={theme.divider}
+                  />
+                ))}
+                <Polyline
+                  points={data.map((point) => `${x(point)},${y(point.value)}`).join(' ')}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth={1.5}
+                  strokeOpacity={0.6}
+                />
+                {trend.length > 1 ? (
+                  <Path
+                    d={trendPath}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth={2.5}
+                    strokeLinecap="round"
+                  />
+                ) : null}
+                <Line
+                  testID="exercise-progress-selection-guide"
+                  x1={x(data[selected])}
+                  x2={x(data[selected])}
+                  y1={12}
+                  y2={height - 12}
+                  stroke={theme.textSecondary}
+                  strokeOpacity={0.65}
+                  strokeDasharray="3 4"
+                />
+                {markerIndices
+                  .filter((index) => index !== selected)
+                  .map((index) => (
+                    <Circle
+                      key={index}
+                      cx={x(data[index])}
+                      cy={y(data[index].value)}
+                      r={3}
+                      fill={theme.surface}
+                      stroke={color}
+                      strokeOpacity={0.6}
+                      strokeWidth={1}
+                    />
+                  ))}
+                <Circle
+                  cx={x(data[selected])}
+                  cy={y(data[selected].value)}
+                  r={5}
+                  fill={color}
+                  stroke={color}
+                  strokeWidth={2}
+                />
+              </Svg>
+            </Pressable>
+          </Animated.View>
+        </GestureDetector>
       ) : null}
       {data.length ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -103,7 +172,7 @@ export function ForgeSessionLineChart({
             accessibilityLabel="Previous session point"
             variant="ghost"
             disabled={selected <= 0}
-            onPress={() => setSelection(selected - 1)}
+            onPress={() => selectedOnUI.set(selected - 1)}
             style={{ minWidth: 44, minHeight: 44 }}
           />
           <View style={{ flex: 1, alignItems: 'center' }}>
@@ -118,9 +187,19 @@ export function ForgeSessionLineChart({
             accessibilityLabel="Next session point"
             variant="ghost"
             disabled={selected >= data.length - 1}
-            onPress={() => setSelection(selected + 1)}
+            onPress={() => selectedOnUI.set(selected + 1)}
             style={{ minWidth: 44, minHeight: 44 }}
           />
+        </View>
+      ) : null}
+      {trend.length > 1 ? (
+        <View
+          style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 }}
+        >
+          <View style={{ width: 16, height: 1.5, backgroundColor: color, opacity: 0.6 }} />
+          <Text style={[typeScale.caption, { color: theme.textSecondary }]}>Sessions</Text>
+          <View style={{ width: 16, height: 2.5, backgroundColor: color, marginLeft: 8 }} />
+          <Text style={[typeScale.caption, { color: theme.textSecondary }]}>Trend</Text>
         </View>
       ) : null}
       {data.length > 1 ? (
