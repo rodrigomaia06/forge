@@ -499,10 +499,10 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           <View style={styles.headerActions}>
             {viewing ? (
               <HeaderAction
-                accessibilityLabel="Edit routine"
-                icon="note"
+                accessibilityLabel="Routine options"
+                icon="ellipsis-horizontal"
                 iconOnly
-                onPress={() => navigation.replace('RoutineEditor', { mode: 'edit', routineId: draft.id })}
+                onPress={() => setOptionsOpen(true)}
               />
             ) : (
               <HeaderAction
@@ -658,7 +658,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
             return index < 0 ? null : renderRoutineExercise(exercise, index, drag, isActive);
           }}
         />
-        {!creating && !viewing && (
+        {!creating && (
           <ForgeActionSheet
             visible={optionsOpen}
             onClose={() => setOptionsOpen(false)}
@@ -667,13 +667,17 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
             title="Routine options"
             testID="routine-options-sheet"
             actions={[
-              {
+              ...(viewing ? [{
+                label: 'Edit routine', icon: 'note' as const,
+                onPress: () => runAfterClose(() => navigation.replace('RoutineEditor', { mode: 'edit', routineId: draft.id })),
+              }] : []),
+              ...(!viewing ? [{
                 label: draft.planId ? 'Move to standalone routines' : 'Move to a plan',
-                icon: 'layers',
+                icon: 'layers' as const,
                 disabled: !draft.planId && !plans[0],
                 onPress: () =>
                   change((current) => ({ ...current, planId: current.planId ? undefined : plans[0]?.id })),
-              },
+              }] : []),
               { label: 'Share routine', icon: 'share', onPress: () => runAfterClose(() => shareItem({ kind: 'routine', id: draft.id })) },
               // Confirm only after the options sheet has dismissed; iOS drops a
               // Modal presented while another is still closing.
