@@ -1,11 +1,9 @@
 import { scheduleOnRN } from 'react-native-worklets';
 import React, { useEffect, useRef } from 'react';
-import { LayoutAnimation, Platform, UIManager, View, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  measure,
-  useAnimatedRef,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -19,6 +17,7 @@ import { colors, radii } from '../theme/tokens';
 import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
 import { useSettings } from '../state/SettingsContext';
 import { useActiveWorkout } from '../state/WorkoutContext';
+import { dockIndexAtPosition, forgeDockGeometry, getDockSlotGeometry } from './dockGeometry';
 import type { ForgeTheme, IconName, RootTabParamList } from '../types';
 
 interface BottomNavigationProps {
@@ -26,10 +25,11 @@ interface BottomNavigationProps {
   theme?: ForgeTheme;
   compact?: boolean;
   /** UI-thread dock width; required while the surface is animating. */
-  surfaceWidth?: SharedValue<number>;
-  surfaceHeight?: SharedValue<number>;
-  canvasWidth?: number;
-  controlWidth?: number;
+  surfaceWidth: SharedValue<number>;
+  surfaceHeight: SharedValue<number>;
+  canvasWidth: number;
+  controlWidth: number;
+  hasActiveWorkout: boolean;
   onNavigate?: () => void;
 }
 type BottomNavigationScreen = keyof RootTabParamList;
@@ -43,6 +43,7 @@ export function BottomNavigation({
   surfaceHeight,
   canvasWidth,
   controlWidth,
+  hasActiveWorkout,
   onNavigate,
 }: BottomNavigationProps) {
   const { navigation, state } = tabBarProps;
@@ -56,25 +57,14 @@ export function BottomNavigation({
   const dragScale = useSharedValue(1);
   // The tab the scrub is previewing, so its icon lights up before commit.
   const [previewIndex, setPreviewIndex] = React.useState<number | null>(null);
-  const navigationRef = useAnimatedRef<Animated.View>();
   const reducedMotion = useForgeReducedMotion();
-  const hasActiveWorkout = Boolean(activeWorkout);
   const activeWorkoutIcon = activeWorkout
     ? getWorkoutTypePresentation(activeWorkout.type, preferences.workoutTypes, theme, 1).icon
     : 'fitness-outline';
-  const workoutPresence = useRef(hasActiveWorkout);
-  useEffect(() => {
-    if (workoutPresence.current === hasActiveWorkout) return;
-    if (!reducedMotion && Platform.OS !== 'web') {
-      if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    }
-    workoutPresence.current = hasActiveWorkout;
-  }, [hasActiveWorkout, reducedMotion]);
   const items: NavigationItemEntry[] = [
     ['home-outline', 'Dashboard', 'Dashboard', false],
     ['time-outline', 'History', 'History', false],
-    ...(activeWorkout
+    ...(hasActiveWorkout
       ? [[activeWorkoutIcon, 'Workout', 'ActiveWorkout', true] as NavigationItemEntry]
       : []),
     ['book', 'Plans', 'Plans', false],
@@ -108,49 +98,24 @@ export function BottomNavigation({
   }, [activeIndex, currentActiveIndex, indicatorOpacity, reducedMotion]);
 
   const selectionIndicatorStyle = useAnimatedStyle(() => {
-    // Drive the pill from the SAME shared value that animates the dock width
-    // (surfaceWidth) rather than measure(): measuring the laid-out parent lags
-    // the width spring by a frame on native, so the pill trails the dock and
-    // appears to "bounce" to catch up during compact/expand. Reading surfaceWidth
-    // in this worklet keeps the pill in perfect lockstep. DockSurface's own 6pt
-    // horizontal padding + 1pt border per side give the navigation its width.
-    const navigationWidth = surfaceWidth
-      ? Math.max(0, surfaceWidth.value - 14)
-      : (measure(navigationRef)?.width ?? 0);
-    // `navigation` has no horizontal padding, so the pill's absolute-left origin
-    // and the flex slots share the same origin on every platform (no border-box
-    // vs padding-box ambiguity between native and web). Each slot is an equal
-    // share of the full width; the pill is inset 2pt and centered on its slot:
-    // start = i*slotWidth + inset. This holds for any tab count.
-    const slotWidth = Math.max(0, navigationWidth / items.length);
-    // activeIndex is spring-driven in both phases — the resting position and the
-    // scrub glide — so the pill always eases rather than teleports. dragScale
-    // gives it a subtle lift while the finger is down.
+    const slot = getDockSlotGeometry(
+      surfaceWidth.get(),
+      surfaceHeight.get(),
+      canvasWidth,
+      items.length,
+      activeIndex.get(),
+    );
     return {
       opacity: indicatorOpacity.value,
-      width: Math.max(0, slotWidth - 4),
-      height: (surfaceHeight?.get() ?? (compact ? 50 : 68)) - 2 - (compact ? 4 : 14),
+      width: slot.indicatorWidth,
+      height: slot.indicatorHeight,
       transform: [
-        {
-          translateX:
-            ((canvasWidth ?? navigationWidth) - navigationWidth) / 2 +
-            2 +
-            activeIndex.value * slotWidth,
-        },
+        { translateX: slot.indicatorLeft },
+        { translateY: slot.indicatorTop },
         { scale: dragScale.value },
       ],
     };
-  }, [
-    activeIndex,
-    dragScale,
-    indicatorOpacity,
-    items.length,
-    navigationRef,
-    surfaceWidth,
-    surfaceHeight,
-    canvasWidth,
-    compact,
-  ]);
+  });
 
   const goTo = (screen: BottomNavigationScreen): void => {
     const target = state.routes.find((route) => route.name === screen);
@@ -179,23 +144,12 @@ export function BottomNavigation({
     .activeOffsetX([-8, 8])
     .onStart(() => {
       lastScrubIndex.value = -1;
+      dragIndex.value = Math.max(0, currentActiveIndex);
       // Reduce Motion: jump to the final scale/position instead of springing.
       dragScale.value = reducedMotion ? 1.12 : withSpring(1.12, forgeMotion.dockSpring);
     })
     .onUpdate((event) => {
-      if (!surfaceWidth) return;
-      const navigationWidth = Math.max(0, surfaceWidth.value - 14);
-      const slotWidth = itemCount > 0 ? navigationWidth / itemCount : 0;
-      if (slotWidth <= 0) return;
-      const index = Math.min(
-        itemCount - 1,
-        Math.max(
-          0,
-          Math.floor(
-            (event.x - ((canvasWidth ?? navigationWidth) - navigationWidth) / 2) / slotWidth,
-          ),
-        ),
-      );
+      const index = dockIndexAtPosition(event.x, surfaceWidth.get(), canvasWidth, itemCount);
       // Glide the pill toward the slot under the finger rather than teleporting.
       activeIndex.value = reducedMotion ? index : withSpring(index, forgeMotion.dockSpring);
       if (index !== lastScrubIndex.value) {
@@ -220,19 +174,15 @@ export function BottomNavigation({
   return (
     <GestureDetector gesture={scrub}>
       <Animated.View
-        ref={navigationRef}
         pointerEvents="box-none"
         style={[
           styles.navigation,
-          canvasWidth != null && {
+          {
             width: canvasWidth,
-            height: 66,
-            minHeight: 66,
-            marginHorizontal: 7,
+            height: forgeDockGeometry.surfaceHeight,
             position: 'absolute',
-            bottom: 1,
+            bottom: 0,
           },
-          !surfaceHeight && compact && styles.navigationCompact,
         ]}
       >
         <Animated.View
@@ -240,7 +190,6 @@ export function BottomNavigation({
           style={[
             styles.selectionPill,
             styles.pointerEventsNone,
-            compact && styles.selectionPillCompact,
             selectionIndicatorStyle,
             {
               backgroundColor: theme.dockSelected || theme.slate,
@@ -309,37 +258,39 @@ function DockItemSlot({
 }: {
   index: number;
   itemCount: number;
-  surfaceWidth?: SharedValue<number>;
-  surfaceHeight?: SharedValue<number>;
-  canvasWidth?: number;
-  controlWidth?: number;
+  surfaceWidth: SharedValue<number>;
+  surfaceHeight: SharedValue<number>;
+  canvasWidth: number;
+  controlWidth: number;
   compact: boolean;
   children: React.ReactNode;
 }) {
   const position = useAnimatedStyle(() => {
-    if (canvasWidth == null || !surfaceWidth || controlWidth == null) return {};
-    const width = Math.max(0, surfaceWidth.get() - 14);
-    const slot = width / itemCount;
+    const slot = getDockSlotGeometry(
+      surfaceWidth.get(),
+      surfaceHeight.get(),
+      canvasWidth,
+      itemCount,
+      index,
+    );
     return {
       transform: [
-        { translateX: (canvasWidth - width) / 2 + (index + 0.5) * slot - controlWidth / 2 },
-        { translateY: (68 - (surfaceHeight?.get() ?? 68)) / 2 },
+        { translateX: slot.centerX - controlWidth / 2 },
+        { translateY: slot.centerY - forgeDockGeometry.surfaceHeight / 2 },
       ],
     };
   });
   return (
     <Animated.View
       style={[
-        canvasWidth == null
-          ? styles.itemSlot
-          : {
-              position: 'absolute',
-              left: 0,
-              bottom: 0,
-              width: controlWidth,
-              height: 66,
-              justifyContent: 'center',
-            },
+        {
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width: controlWidth,
+          height: forgeDockGeometry.surfaceHeight,
+          justifyContent: 'center',
+        },
         position,
       ]}
     >
@@ -351,30 +302,13 @@ function DockItemSlot({
 const styles = StyleSheet.create({
   pointerEventsNone: { pointerEvents: 'none' },
   navigation: {
-    position: 'relative',
     zIndex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    minHeight: 64,
-    paddingHorizontal: 0,
-    paddingBottom: 4,
-    paddingTop: 4,
     backgroundColor: 'transparent',
-    borderTopWidth: 0,
   },
-  navigationCompact: {
-    minHeight: 48,
-    paddingVertical: 0,
-  },
-  itemSlot: { flex: 1, alignItems: 'center' },
-  itemSlotCompact: { height: 44, justifyContent: 'center' },
   selectionPill: {
     position: 'absolute',
-    // Match the former per-item pill: its Pressable had a 3 pt vertical
-    // margin inside the 4 pt dock padding, making the visible capsule 50 pt.
-    bottom: 7,
+    left: 0,
+    top: 0,
     borderRadius: radii.capsule,
   },
-  selectionPillCompact: { bottom: 2 },
 });

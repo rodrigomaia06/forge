@@ -16,13 +16,8 @@ import { dashboardTheme } from '../theme/dashboardTheme';
 import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
 import type { ForgeTheme } from '../types';
 
-/** Geometry shared by the floating primary dock and the tab scenes beneath it. */
-export const forgeDockGeometry = {
-  surfaceHeight: 64,
-  compactSurfaceHeight: 48,
-  minimumBottomClearance: 12,
-  surfaceToContentGap: 12,
-} as const;
+import { forgeDockGeometry } from './dockGeometry';
+export { forgeDockGeometry } from './dockGeometry';
 
 /**
  * Keeps the floating surface above the home indicator without introducing a
@@ -88,7 +83,11 @@ export function DockChrome({
   const reducedMotion = useForgeReducedMotion();
 
   useEffect(() => {
-    compactProgress.value = reducedMotion ? (compact ? 1 : 0) : withSpring(compact ? 1 : 0, forgeMotion.dockSpring);
+    compactProgress.value = reducedMotion
+      ? compact
+        ? 1
+        : 0
+      : withSpring(compact ? 1 : 0, forgeMotion.dockSpring);
   }, [compact, compactProgress, reducedMotion]);
 
   return (

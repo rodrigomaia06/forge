@@ -15,6 +15,7 @@ import { dashboardTheme } from '../theme/dashboardTheme';
 import { forgeMotion, forgeMotionDuration, useForgeReducedMotion } from '../theme/motion';
 import type { ForgeTheme } from '../types';
 import { radii, shadows } from '../theme/tokens';
+import { forgeDockGeometry, getDockWidths } from './dockGeometry';
 
 interface DockSurfaceProps {
   theme?: ForgeTheme;
@@ -43,15 +44,10 @@ export function DockSurface({
   const { width: viewportWidth } = useWindowDimensions();
   const internalProgress = useSharedValue(compact ? 1 : 0);
   const progress = compactProgress ?? internalProgress;
-  // A 360 pt dock is the established regular Forge surface on phone widths.
-  // Retaining that width also keeps the selection capsule proportional to the
-  // original dock while the parent indicator moves between tabs.
-  const regularWidth = Math.min(Math.max(viewportWidth * 0.86, 304), 360);
-  const activeWorkoutWidth = Math.round(Math.min(Math.max(viewportWidth * 0.88, 320), 390));
-  // Five tabs remain visible while a workout is active. Keep their 56 pt
-  // hit targets inside the compact surface so the selection pill stays
-  // centred on its measured slot instead of overflowing the dock.
-  const compactWidth = Math.min(Math.max(viewportWidth * 0.76, 304), 336);
+  const widths = getDockWidths(viewportWidth);
+  const regularWidth = widths.regular;
+  const activeWorkoutWidth = widths.activeWorkout;
+  const compactWidth = widths.compact;
   const activeWorkoutProgress = useSharedValue(activeWorkout ? 1 : 0);
   const reducedMotion = useForgeReducedMotion();
   const surfaceWidth = useDerivedValue(() => {
@@ -80,7 +76,13 @@ export function DockSurface({
 
   // Preserve the established intrinsic sizes (navigation, padding and border)
   // while keeping tab children outside the resizing background.
-  const surfaceHeight = useDerivedValue(() => interpolate(progress.get(), [0, 1], [68, 50]));
+  const surfaceHeight = useDerivedValue(() =>
+    interpolate(
+      progress.get(),
+      [0, 1],
+      [forgeDockGeometry.surfaceHeight, forgeDockGeometry.compactSurfaceHeight],
+    ),
+  );
   const surfaceAnimatedStyle = useAnimatedStyle(() => {
     return {
       width: surfaceWidth.value,
@@ -92,7 +94,11 @@ export function DockSurface({
   return (
     <View
       pointerEvents="box-none"
-      style={{ width: activeWorkoutWidth, height: 68, alignSelf: 'center' }}
+      style={{
+        width: activeWorkoutWidth,
+        height: forgeDockGeometry.surfaceHeight,
+        alignSelf: 'center',
+      }}
     >
       <Animated.View
         ref={dockRef}
@@ -102,7 +108,8 @@ export function DockSurface({
           styles.dock,
           surfaceAnimatedStyle,
           {
-            borderColor: theme.border ?? theme.dockBorder,
+            borderColor:
+              theme.colorScheme === 'light' ? theme.divider : (theme.dockBorder ?? theme.border),
             shadowColor: theme.shadow,
           },
         ]}
@@ -137,8 +144,12 @@ export function DockSurface({
           compact={compact}
           surfaceWidth={surfaceWidth}
           surfaceHeight={surfaceHeight}
-          canvasWidth={activeWorkoutWidth - 14}
-          controlWidth={(compactWidth - 14) / (activeWorkout ? 5 : 4)}
+          canvasWidth={activeWorkoutWidth}
+          controlWidth={
+            (Math.min(regularWidth, compactWidth) - forgeDockGeometry.horizontalInset * 2) /
+            (activeWorkout ? 5 : 4)
+          }
+          hasActiveWorkout={activeWorkout}
           onNavigate={onNavigate}
         />
       )}

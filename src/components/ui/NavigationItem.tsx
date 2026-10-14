@@ -11,6 +11,7 @@ import { Icon } from './Icon';
 import { ForgeText as Text } from './ForgeText';
 import { colors } from '../../theme/tokens';
 import { typeScale } from '../../theme/tokens';
+import { forgeDockGeometry } from '../dockGeometry';
 import { forgeMotion, forgeMotionDuration, useForgeReducedMotion } from '../../theme/motion';
 import type { ForgeTheme, IconName } from '../../types';
 
@@ -101,16 +102,23 @@ export function NavigationItem({
               active
                 ? theme.dockForeground || theme.surface
                 : emphasis
-                  // A mid-tone so the larger live-workout icon reads as distinct
-                  // without the loud near-black/near-white of actionPrimary.
-                  ? theme.slate
+                  ? // A mid-tone so the larger live-workout icon reads as distinct
+                    // without the loud near-black/near-white of actionPrimary.
+                    theme.slate
                   : theme.dockMuted || theme.slate
             }
             weight={emphasis ? 'thin' : active ? 'fill' : 'regular'}
           />
-          {badge ? <View style={[styles.badge, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}>
-            <Text style={[styles.badgeText, { color: theme.textPrimary }]}>{badge}</Text>
-          </View> : null}
+          {badge ? (
+            <View
+              style={[
+                styles.badge,
+                { backgroundColor: theme.surfaceMuted, borderColor: theme.border },
+              ]}
+            >
+              <Text style={[styles.badgeText, { color: theme.textPrimary }]}>{badge}</Text>
+            </View>
+          ) : null}
         </RNAnimated.View>
       </Pressable>
     </View>
@@ -124,7 +132,7 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 56,
+    minWidth: forgeDockGeometry.minimumTouchSize,
     minHeight: 52,
     paddingHorizontal: 3,
     borderRadius: 1000,
