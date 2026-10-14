@@ -13,6 +13,7 @@ import {
   ForgeAttributeEditorSheet,
   ForgeBottomSheet,
   HeaderAction,
+  HeaderActionGroup,
   ForgeWorkoutFinishAction,
   HeaderEdge,
   ForgeCard,
@@ -371,7 +372,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     >
       <View style={styles.header}>
         <View testID="live-workout-header" style={styles.headerTop}>
-          <View style={styles.headerLeadingActions}>
+          <HeaderActionGroup testID="live-workout-leading-actions">
             <HeaderAction
               accessibilityLabel="Cancel workout"
               icon="close"
@@ -382,7 +383,6 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
               variant="ghost"
               style={styles.joinedHeaderAction}
             />
-            <View pointerEvents="none" style={styles.headerActionDivider} />
             <HeaderAction
               accessibilityLabel="Edit live workout"
               icon="note"
@@ -392,7 +392,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
               variant="ghost"
               style={styles.joinedHeaderAction}
             />
-          </View>
+          </HeaderActionGroup>
           <View pointerEvents="none" testID="live-workout-header-title" style={styles.titleBlock}>
             <View
               style={styles.titleWrap}

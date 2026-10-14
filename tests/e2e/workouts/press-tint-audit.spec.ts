@@ -3,6 +3,22 @@ import { expect, test, type Locator, type Page, type TestInfo } from '@playwrigh
 async function held(page: Page, control: Locator, info: TestInfo, name: string, radius: string) {
   await control.scrollIntoViewIfNeeded();
   await page.waitForTimeout(600);
+  const joinedSurface = await control.evaluate(node => {
+    for (let parent = node.parentElement; parent; parent = parent.parentElement) {
+      const style = getComputedStyle(parent);
+      if (style.borderRadius === '22px' && style.height === '44px' && parent.querySelectorAll('button').length === 2) {
+        return {
+          frostLayers: parent.querySelectorAll('[style*="backdrop-filter"]').length,
+          fills: Array.from(parent.querySelectorAll('button')).map(button => getComputedStyle(button).backgroundColor),
+        };
+      }
+    }
+    return null;
+  });
+  if (joinedSurface) {
+    expect(joinedSurface.frostLayers).toBe(1);
+    expect(joinedSurface.fills).toEqual(['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0)']);
+  }
   const box = await control.boundingBox();
   const opacity = await control.evaluate(node => getComputedStyle(node).opacity);
   await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);

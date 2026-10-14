@@ -5,6 +5,8 @@ import { BlurView } from 'expo-blur';
 import type { IconName, IconWeight } from '../../types';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { Button } from './Button';
+import { resolveForgeControlFill, useForgeControlSurface } from './ForgeControlSurface';
+import { JoinedHeaderActionContext } from './HeaderActionGroup';
 
 interface HeaderActionProps {
   accessibilityLabel: string;
@@ -67,6 +69,14 @@ export function HeaderAction({
   haptic,
 }: HeaderActionProps) {
   const theme = useForgeTheme();
+  const parentSurface = useForgeControlSurface();
+  const joined = React.useContext(JoinedHeaderActionContext);
+  const raisedFill =
+    theme.colorScheme === 'dark'
+      ? parentSurface === theme.surfaceMuted
+        ? theme.surfaceElevated
+        : theme.surfaceMuted
+      : resolveForgeControlFill(theme, parentSurface);
   const isBackControl = iconOnly && icon === 'chevron-back';
   // Icon-only circular header/sheet controls are borderless in BOTH themes — they
   // separate by their tonal/frosted surface against the header, never a grey ring.
@@ -74,8 +84,14 @@ export function HeaderAction({
   // Neutral circular controls get a frosted "glass-like" surface (blur + a soft tint),
   // the same feel on every device — no native Liquid Glass. Primary CTAs keep their
   // solid fill; destructive/success keep their semantic surfaces.
-  const frosted = iconOnly && tone === 'neutral' && variant !== 'primary';
-  const surfaceStyle = [styles.base, styles.iconOnly, styles.frostedCircle, style];
+  const frosted = !joined && iconOnly && tone === 'neutral' && variant !== 'primary';
+  const surfaceStyle = [
+    styles.base,
+    styles.iconOnly,
+    styles.frostedCircle,
+    style,
+    { backgroundColor: 'transparent' },
+  ];
   const surface = StyleSheet.flatten<ViewStyle>(surfaceStyle);
   const layerShape = {
     borderRadius: surface.borderRadius,
@@ -102,13 +118,14 @@ export function HeaderAction({
       style={[
         styles.base,
         iconOnly && styles.iconOnly,
-        isBackControl && !frosted && {
-          // Back is a peer of the neutral header action, not a disabled or
-          // inset control. Dark headers need the muted layer to retain the
-          // same clear silhouette that the light elevated surface provides.
-          backgroundColor: theme.colorScheme === 'dark' ? theme.surfaceMuted : theme.surfaceElevated,
-          borderColor: theme.border,
-        },
+        isBackControl &&
+          !frosted && {
+            // Back is a peer of the neutral header action, not a disabled or
+            // inset control. Dark headers need the muted layer to retain the
+            // same clear silhouette that the light elevated surface provides.
+            backgroundColor: raisedFill,
+            borderColor: theme.border,
+          },
         // On a frosted control the frost is the surface, so the caller's tonal fill is
         // dropped; otherwise the caller style (incl. background) applies as before.
         !frosted && style,
@@ -135,7 +152,7 @@ export function HeaderAction({
             layerShape,
             {
               opacity: theme.colorScheme === 'dark' ? 0.6 : 0.55,
-              backgroundColor: theme.colorScheme === 'dark' ? theme.surfaceMuted : theme.surfaceElevated,
+              backgroundColor: raisedFill,
             },
           ]}
         />
