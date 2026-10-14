@@ -276,8 +276,8 @@ export function ForgeWorkoutTypePicker({
   );
 }
 
-export function ForgeEditorBackButton({ onPress, accessibilityLabel = 'Back to edit workout' }: { onPress: () => void; accessibilityLabel?: string }) {
-  return <ForgeBackButton accessibilityLabel={accessibilityLabel} onPress={onPress} />;
+export function ForgeEditorBackButton({ onPress, accessibilityLabel = 'Back to edit workout', disabled = false }: { onPress: () => void; accessibilityLabel?: string; disabled?: boolean }) {
+  return <ForgeBackButton accessibilityLabel={accessibilityLabel} onPress={onPress} disabled={disabled} />;
 }
 
 /**

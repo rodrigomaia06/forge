@@ -124,8 +124,22 @@ for (const appearance of ['light', 'dark']) {
     await page.screenshot({ path: testInfo.outputPath(`exercise-info-${appearance}.png`) });
     await page.getByRole('radio', { name: 'Progress', exact: true }).focus();
     await page.keyboard.press('Enter');
-    await expect(page.getByText('1 excluded in this range')).toBeVisible();
+    await expect(page.getByText('1 excluded', { exact: true })).toBeVisible();
     await expect(page.getByTestId('exercise-progress-chart')).toBeVisible();
+    for (const name of ['Progress metric', 'Progress date range']) {
+      const control = page.getByRole('button', { name, exact: true });
+      expect(
+        await control.evaluate((node) => {
+          const fill = getComputedStyle(node).backgroundColor;
+          for (let parent = node.parentElement; parent; parent = parent.parentElement) {
+            const parentFill = getComputedStyle(parent).backgroundColor;
+            if (parentFill !== 'rgba(0, 0, 0, 0)' && parentFill !== 'transparent')
+              return fill !== parentFill;
+          }
+          return false;
+        }),
+      ).toBe(true);
+    }
     await page
       .getByRole('button', { name: 'Select a session point on the chart', exact: true })
       .focus();
@@ -138,18 +152,56 @@ for (const appearance of ['light', 'dark']) {
     await expect(page.getByTestId('exercise-progress-selection')).not.toHaveText(keyboardSelection);
     await page.getByRole('button', { name: 'Previous session point' }).click();
     await page.getByRole('button', { name: 'Next session point' }).click();
+    const beforeScrub = await page.getByTestId('exercise-progress-selection').innerText();
+    const plot = await page
+      .getByRole('button', { name: 'Select a session point on the chart', exact: true })
+      .boundingBox();
+    if (!plot) throw new Error('Missing progress plot');
+    await page.mouse.move(plot.x + 20, plot.y + plot.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(plot.x + plot.width - 20, plot.y + plot.height / 2, { steps: 12 });
+    await page.mouse.up();
+    await expect(page.getByTestId('exercise-progress-selection')).not.toHaveText(beforeScrub);
+    // A vertical SVG line has zero bounding-box width even when its stroke is painted.
+    expect(
+      await page.getByTestId('exercise-progress-selection-guide').evaluate((line) => {
+        const style = getComputedStyle(line);
+        return (
+          style.stroke !== 'none' &&
+          Number(style.strokeOpacity) > 0 &&
+          Number(line.getAttribute('y2')) > Number(line.getAttribute('y1'))
+        );
+      }),
+    ).toBe(true);
     await page.screenshot({ path: testInfo.outputPath(`exercise-progress-${appearance}.png`) });
+    await page.getByRole('button', { name: 'Progress date range', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Back to progress', exact: true })).toHaveCount(
+      1,
+    );
+    await expect(page.getByRole('radio', { name: 'Progress', exact: true })).toHaveCount(0);
+    await page.screenshot({ path: testInfo.outputPath(`exercise-range-menu-${appearance}.png`) });
+    await page.getByRole('button', { name: 'Back to progress', exact: true }).click();
+    await expect(page.getByRole('radio', { name: 'Progress', exact: true })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    await expect(
+      page.getByRole('button', { name: 'Progress date range', exact: true }),
+    ).toContainText('90d');
+    await page.getByRole('button', { name: 'Progress date range', exact: true }).click();
     await page.getByRole('radio', { name: '7d', exact: true }).click();
-    await expect(page.getByText('0 excluded in this range')).toBeVisible();
-    await page.getByRole('radio', { name: '30d', exact: true }).click();
-    await page.getByRole('radio', { name: 'All', exact: true }).click();
-    await page.getByRole('radio', { name: '90d', exact: true }).click();
+    await expect(page.getByText(/^\d+ excluded$/)).toHaveCount(0);
+    for (const range of ['30d', 'All', '90d']) {
+      await page.getByRole('button', { name: 'Progress date range', exact: true }).click();
+      await page.getByRole('radio', { name: range, exact: true }).click();
+    }
     await page.getByRole('button', { name: 'Progress metric' }).click();
     await page.getByRole('radio', { name: 'Session volume', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Progress metric' })).toContainText(
       'Session volume',
     );
-    await page.getByRole('button', { name: 'Review history', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Review history', exact: true })).toHaveCount(0);
+    await page.getByRole('radio', { name: 'History', exact: true }).click();
     await scrollBody(page.getByRole('dialog').last());
     await page.getByRole('button', { name: 'Show 41 more sessions' }).click();
     // Expanded histories remain windowed instead of mounting every set.
@@ -182,6 +234,14 @@ for (const appearance of ['light', 'dark']) {
     await anomaly.scrollIntoViewIfNeeded();
     await page.screenshot({ path: testInfo.outputPath(`exercise-history-${appearance}.png`) });
     await anomaly.click();
+    await expect(page.getByRole('button', { name: 'Back to history', exact: true })).toHaveCount(1);
+    await expect(page.getByRole('radio', { name: 'History', exact: true })).toHaveCount(0);
+    const choices = page.getByRole('dialog').last().getByRole('radio');
+    const fills = await choices.evaluateAll((nodes) =>
+      nodes.map((node) => getComputedStyle(node).backgroundColor),
+    );
+    expect(fills.every((fill) => fill !== 'rgba(0, 0, 0, 0)')).toBe(true);
+    expect(fills[0]).not.toBe(fills[1]);
     await page.getByRole('radio', { name: 'Include', exact: true }).click();
     await page.evaluate(() => {
       const original = Storage.prototype.setItem;
@@ -210,7 +270,7 @@ for (const appearance of ['light', 'dark']) {
       page.getByRole('button', { name: 'Session filtering: Included, Session 9', exact: true }),
     ).toBeVisible();
     await page.getByRole('radio', { name: 'Progress', exact: true }).click();
-    await expect(page.getByText('0 excluded in this range')).toBeVisible();
+    await expect(page.getByText(/^\d+ excluded$/)).toHaveCount(0);
     await page.screenshot({
       path: testInfo.outputPath(`exercise-progress-included-${appearance}.png`),
     });
@@ -326,8 +386,8 @@ for (const appearance of ['light', 'dark']) {
       page.getByRole('dialog').last().getByText('Barbell Bench Press', { exact: true }),
     ).toHaveCSS('-webkit-line-clamp', '2');
     await page.getByRole('radio', { name: 'Progress', exact: true }).click();
-    await expect(page.getByText('Latest session · 1 point')).toBeVisible();
-    await expect(page.getByText('The trend appears after 3 included sessions.')).toBeVisible();
+    await expect(page.getByTestId('exercise-progress-selection')).toContainText('50 kg');
+    await expect(page.getByText('The trend appears after 3 included sessions.')).toHaveCount(0);
     await page.screenshot({
       path: testInfo.outputPath(`exercise-progress-sparse-${appearance}.png`),
     });

@@ -1,5 +1,5 @@
 import { formatProgressValue } from '../../domain/exercises/progressPresentation';
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   Button,
@@ -25,8 +25,15 @@ import {
 import { useSettings } from '../../state/SettingsContext';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
+import { scaleUI } from '../../theme/scale';
 import type { Workout, WorkoutExercise } from '../../types';
 export type ExerciseInfoTab = 'info' | 'progress' | 'history';
+export type ExerciseInfoHeader = {
+  title: string;
+  backLabel: string;
+  onBack: () => void;
+  backDisabled: boolean;
+};
 export type ExerciseInfoReview = {
   metric?: ProgressMetric;
   range?: string;
@@ -55,6 +62,7 @@ export function ExerciseInfoTabs({
   onTabChange,
   review: controlledReview,
   onReviewChange,
+  onHeaderChange,
 }: {
   exercise: WorkoutExercise;
   workouts: readonly Workout[];
@@ -65,6 +73,7 @@ export function ExerciseInfoTabs({
   onTabChange?: (tab: ExerciseInfoTab) => void;
   review?: ExerciseInfoReview;
   onReviewChange?: (review: ExerciseInfoReview) => void;
+  onHeaderChange?: (header: ExerciseInfoHeader | null) => void;
 }) {
   const theme = useForgeTheme();
   const { preferences, updatePreferences } = useSettings();
@@ -86,11 +95,36 @@ export function ExerciseInfoTabs({
   const range = review.range ?? '90';
   const expanded = review.expanded ?? false;
   const offset = review.offset ?? 0;
-  const [selector, setSelector] = useState(false);
+  const [selector, setSelector] = useState<'metric' | 'range' | null>(null);
   const [overrideId, setOverrideId] = useState<string | null>(null);
   const [choice, setChoice] = useState('auto');
   const [saveError, setSaveError] = useState(false);
   const [saving, setSaving] = useState(false);
+  const header = useMemo<ExerciseInfoHeader | null>(
+    () =>
+      selector
+        ? {
+            title: selector === 'range' ? 'Date range' : 'Metric',
+            backLabel: tab === 'history' ? 'Back to history' : 'Back to progress',
+            backDisabled: false,
+            onBack: () => setSelector(null),
+          }
+        : overrideId
+          ? {
+              title: 'Filtering',
+              backLabel: 'Back to history',
+              backDisabled: saving,
+              onBack: () => {
+                if (!saving) setOverrideId(null);
+              },
+            }
+          : null,
+    [selector, overrideId, saving, tab],
+  );
+  useLayoutEffect(() => {
+    onHeaderChange?.(header);
+    return () => onHeaderChange?.(null);
+  }, [header, onHeaderChange]);
   const sessions = useMemo(
     () =>
       exerciseSessions(exercise, workouts).filter(
@@ -132,54 +166,56 @@ export function ExerciseInfoTabs({
       accessibilityLabel="Progress metric"
       icon="chevron-down"
       variant="secondary"
-      onPress={() => setSelector(true)}
+      onPress={() => setSelector('metric')}
+      style={styles.metricControl}
     />
   );
   return (
     <>
-      <View style={styles.tabs}>
-        <ForgeSegmentedSwitch
-          options={tabs}
-          value={tab}
-          onChange={(value) => {
-            if (onTabChange) onTabChange(value);
-            else setOwnTab(value);
-            setSelector(false);
-            setOverrideId(null);
-          }}
-          showLabels
-          accessibilityLabel="Exercise information"
-        />
-      </View>
+      {!header ? (
+        <View style={styles.tabs}>
+          <ForgeSegmentedSwitch
+            options={tabs}
+            value={tab}
+            onChange={(value) => {
+              if (onTabChange) onTabChange(value);
+              else setOwnTab(value);
+              setSelector(null);
+              setOverrideId(null);
+            }}
+            showLabels
+            accessibilityLabel="Exercise information"
+          />
+        </View>
+      ) : null}
       {selector ? (
         <ForgeSheetScrollView contentContainerStyle={styles.content}>
-          <Button
-            label="Back"
-            icon="chevron-back"
-            variant="ghost"
-            onPress={() => setSelector(false)}
-          />
-          <Text style={[styles.title, { color: theme.textPrimary }]}>Progress metric</Text>
-          <ForgeSingleSelectList
-            options={metrics.map((value) => ({ value, label: metricLabel(value, mode) }))}
-            selectedValue={metric}
-            onSelect={(value) => {
-              updateReview({ metric: value });
-              setSelector(false);
-            }}
-            disableVirtualization
-          />
+          {selector === 'range' ? (
+            <ForgeSingleSelectList
+              options={ranges}
+              selectedValue={range}
+              onSelect={(value) => {
+                updateReview({ range: value });
+                setSelector(null);
+              }}
+              onSelectedPress={() => setSelector(null)}
+              disableVirtualization
+            />
+          ) : (
+            <ForgeSingleSelectList
+              options={metrics.map((value) => ({ value, label: metricLabel(value, mode) }))}
+              selectedValue={metric}
+              onSelect={(value) => {
+                updateReview({ metric: value });
+                setSelector(null);
+              }}
+              onSelectedPress={() => setSelector(null)}
+              disableVirtualization
+            />
+          )}
         </ForgeSheetScrollView>
       ) : overrideId ? (
         <ForgeSheetScrollView contentContainerStyle={styles.content}>
-          <Button
-            label="Back to history"
-            icon="chevron-back"
-            variant="ghost"
-            disabled={saving}
-            onPress={() => setOverrideId(null)}
-          />
-          <Text style={[styles.title, { color: theme.textPrimary }]}>Session filtering</Text>
           <Text style={[styles.copy, { color: theme.textSecondary }]}>
             {sessions.find((session) => session.workout.id === overrideId)?.workout.name} ·{' '}
             {metricLabel(metric, mode)}
@@ -189,17 +225,17 @@ export function ExerciseInfoTabs({
               {
                 value: 'auto',
                 label: 'Auto',
-                description: 'Hide unusually high or low values from this metric.',
+                description: 'Filter unusual values.',
               },
               {
                 value: 'include',
                 label: 'Include',
-                description: 'Keep this session on the chart.',
+                description: 'Keep on the chart.',
               },
               {
                 value: 'exclude',
                 label: 'Exclude',
-                description: 'Hide this session from the chart. Recorded sets stay unchanged.',
+                description: 'Hide from the chart.',
               },
             ]}
             selectedValue={choice}
@@ -220,7 +256,7 @@ export function ExerciseInfoTabs({
             label={saveError ? 'Retry save' : 'Save'}
             icon="check"
             tone="success"
-            variant="primary"
+            variant="outline"
             loading={saving}
             onPress={saveOverride}
           />
@@ -249,25 +285,26 @@ export function ExerciseInfoTabs({
           dragToDismiss={false}
           contentContainerStyle={styles.content}
         >
-          {metricButton}
-          <ForgeSegmentedSwitch
-            options={ranges}
-            value={range}
-            onChange={(range) => updateReview({ range })}
-            showLabels
-            accessibilityLabel="Progress date range"
-          />
           <ForgeCard variant="nested" style={styles.chart}>
+            <View style={styles.chartHeader}>
+              {metricButton}
+              <Button
+                label={range === 'all' ? 'All' : `${range}d`}
+                icon="chevron-down"
+                variant="secondary"
+                accessibilityLabel="Progress date range"
+                onPress={() => setSelector('range')}
+              />
+            </View>
+            {visible.some((point) => point.excluded) ? (
+              <Text style={[styles.copy, { alignSelf: 'flex-end', color: theme.textSecondary }]}>
+                {visible.filter((point) => point.excluded).length} excluded
+              </Text>
+            ) : null}
             {chartPoints.length ? (
               <>
-                <Text style={[styles.title, { color: theme.textPrimary }]}>
-                  {formatValue(chartPoints[chartPoints.length - 1].value)}
-                </Text>
-                <Text style={[styles.copy, { color: theme.textSecondary }]}>
-                  Latest session · {chartPoints.length}{' '}
-                  {chartPoints.length === 1 ? 'point' : 'points'}
-                </Text>
                 <ForgeLineChart
+                  key={`${metric}:${range}`}
                   data={chartPoints.map((point) => ({
                     value: point.value,
                     date: point.date,
@@ -295,30 +332,6 @@ export function ExerciseInfoTabs({
               </Text>
             )}
           </ForgeCard>
-          <Text style={[styles.copy, { color: theme.textSecondary }]}>
-            {chartPoints.some((point) => point.trend !== undefined)
-              ? 'Solid: sessions · Dashed: trailing median (up to 5 sessions).'
-              : 'The trend appears after 3 included sessions.'}
-          </Text>
-          <View style={styles.exclusions}>
-            <Icon name="filter" size={18} color={theme.textSecondary} />
-            <Text style={[styles.copy, { color: theme.textSecondary }]}>
-              {visible.filter((point) => point.excluded).length} excluded in this range
-            </Text>
-          </View>
-          <Text style={[styles.copy, { color: theme.textSecondary }]}>
-            Unusual values are hidden once this metric has 7 valid sessions. Review or change
-            exclusions in History. Recorded sets stay unchanged.
-          </Text>
-          <Button
-            label="Review history"
-            icon="time"
-            variant="secondary"
-            onPress={() => {
-              if (onTabChange) onTabChange('history');
-              else setOwnTab('history');
-            }}
-          />
         </ForgeSheetScrollView>
       )}
     </>
@@ -327,7 +340,15 @@ export function ExerciseInfoTabs({
 const styles = StyleSheet.create({
   tabs: { paddingHorizontal: 20, paddingBottom: 14 },
   content: { paddingHorizontal: 20, paddingBottom: 32, gap: 14 },
-  historyControls: { paddingHorizontal: 20, paddingBottom: 12 },
+  historyControls: { paddingHorizontal: scaleUI(20), paddingBottom: scaleUI(8) },
+  metricControl: { alignSelf: 'flex-start', minWidth: 44, flexShrink: 1 },
+  chartHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: scaleUI(8),
+    flexWrap: 'wrap',
+  },
   title: { ...typeScale.sectionTitle },
   copy: { ...typeScale.supporting },
   chart: { padding: 14, gap: 8 },

@@ -1,4 +1,4 @@
-import { ExerciseInfoTabs, type ExerciseInfoTab, type ExerciseInfoReview } from '../../components/exerciseInfo/ExerciseInfoTabs';
+import { ExerciseInfoTabs, type ExerciseInfoTab, type ExerciseInfoReview, type ExerciseInfoHeader } from '../../components/exerciseInfo/ExerciseInfoTabs';
 import { ExerciseHistory as PreviousSessionsContent } from '../../components/exerciseInfo/ExerciseHistory';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import { ForgeSheetScrollView } from '../../components/ui/ForgeSheetScrollView';
@@ -196,6 +196,7 @@ export function ExerciseInfoContent({
   onTabChange,
   review,
   onReviewChange,
+  onHeaderChange,
   onPressRest,
   unilateral = false,
   leadSide = 'left',
@@ -211,6 +212,7 @@ export function ExerciseInfoContent({
   onTabChange?: (tab: ExerciseInfoTab) => void;
   review?: ExerciseInfoReview;
   onReviewChange?: (review: ExerciseInfoReview) => void;
+  onHeaderChange?: (header: ExerciseInfoHeader | null) => void;
   onPressRest?: () => void;
   /** Unilateral exercises expose a between-sides rest and a leading-side choice. */
   unilateral?: boolean;
@@ -223,7 +225,7 @@ export function ExerciseInfoContent({
   const styles = useThemedStyles(createStyles);
   const { preferences } = useSettings();
   const detail = useMemo(() => catalogueDetail(exercise), [exercise]);
-  if (!detail) return <ExerciseInfoTabs exercise={exercise} workouts={workouts} excludeWorkoutId={excludeWorkoutId} onOpenWorkout={onOpenWorkout} tab={tab} onTabChange={onTabChange} review={review} onReviewChange={onReviewChange} info={<ForgeSheetScrollView contentContainerStyle={styles.infoScroll}><Text style={{ color: theme.textSecondary }}>Catalogue details are not available for this exercise.</Text></ForgeSheetScrollView>} />;
+  if (!detail) return <ExerciseInfoTabs exercise={exercise} workouts={workouts} excludeWorkoutId={excludeWorkoutId} onOpenWorkout={onOpenWorkout} tab={tab} onTabChange={onTabChange} review={review} onReviewChange={onReviewChange} onHeaderChange={onHeaderChange} info={<ForgeSheetScrollView contentContainerStyle={styles.infoScroll}><Text style={{ color: theme.textSecondary }}>Catalogue details are not available for this exercise.</Text></ForgeSheetScrollView>} />;
   // Match the read path in ActiveWorkoutScreen.restDurationForExercise.
   const exerciseId = exercise.exerciseId ?? exercise.exerciseSnapshot?.id ?? detail.id;
   const restLabel = restReadout(preferences.exerciseRestSeconds[exerciseId]);
@@ -245,7 +247,7 @@ export function ExerciseInfoContent({
       ) : undefined}
     />
   );
-  return <ExerciseInfoTabs exercise={exercise} workouts={workouts} excludeWorkoutId={excludeWorkoutId} onOpenWorkout={onOpenWorkout} tab={tab} onTabChange={onTabChange} review={review} onReviewChange={onReviewChange} info={
+  return <ExerciseInfoTabs exercise={exercise} workouts={workouts} excludeWorkoutId={excludeWorkoutId} onOpenWorkout={onOpenWorkout} tab={tab} onTabChange={onTabChange} review={review} onReviewChange={onReviewChange} onHeaderChange={onHeaderChange} info={
     <ForgeSheetScrollView testID="exercise-info-content" contentContainerStyle={styles.infoScroll}>{body}</ForgeSheetScrollView>
   } />;
 }

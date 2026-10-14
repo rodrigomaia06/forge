@@ -1,5 +1,8 @@
-import { ExerciseInfoTabs, type ExerciseInfoTab, type ExerciseInfoReview } from '../../components/exerciseInfo/ExerciseInfoTabs';
+import { ExerciseInfoTabs, type ExerciseInfoTab, type ExerciseInfoReview,
+  type ExerciseInfoHeader,
+} from '../../components/exerciseInfo/ExerciseInfoTabs';
 import { useWorkouts } from '../../state/WorkoutContext';
+import { scaleUI } from '../../theme/scale';
 import { useIsFocused } from '@react-navigation/native';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import { ForgeSheetScrollView } from '../../components/ui/ForgeSheetScrollView';
@@ -119,6 +122,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const { completedWorkouts } = useWorkouts();
   const [infoReview, setInfoReview] = useState<ExerciseInfoReview>({});
   const [infoTab, setInfoTab] = useState<ExerciseInfoTab>('info');
+  const [infoHeader, setInfoHeader] = useState<ExerciseInfoHeader | null>(null);
   const isFocused = useIsFocused();
   const returningDetail = useRef<ExerciseCatalogItem | null>(null);
   useEffect(() => {
@@ -326,8 +330,8 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     setSaveError(null);
     setGroup(parent ?? '');
     setCategorySource(parent
-      ? (forgeCategoryOptions.some((item) => item.toLocaleLowerCase() === parent.toLocaleLowerCase()) ? 'forge' : 'custom')
-      : null);
+      ? forgeCategoryOptions.some((item) => item.toLocaleLowerCase() === parent.toLocaleLowerCase()) ? 'forge' : 'custom'
+          : null);
     const nextEquipment = inherited?.equipmentIds?.length
       ? inherited.equipmentIds.map((value) => taxonomyLabel('equipment', value))
       : [inherited?.primaryEquipment ?? inherited?.equipment ?? 'Bodyweight'];
@@ -587,18 +591,22 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
             <View style={styles.empty}>
               <Text style={styles.movementName}>No exercises found</Text>
               <Text style={styles.meta}>{query && active ? 'Try clearing the search or filters.' : query ? 'Try clearing the search.' : 'Try clearing filters or creating a custom exercise.'}</Text>
-              {(query || active > 0) && <Button label={active ? 'Clear filters' : 'Clear search'} variant="ghost" onPress={() => active ? setFilters(emptyCatalogFilters()) : setQuery('')} />}
+              {(query || active > 0) && (
+                  <Button label={active ? 'Clear filters' : 'Clear search'} variant="ghost" onPress={() => (active ? setFilters(emptyCatalogFilters()) : setQuery(''))} />
+                )}
             </View>
           ) : null}
         />
-        {!customOnly && <ForgeCatalogFilterSheet
+        {!customOnly && (
+          <ForgeCatalogFilterSheet
           testID="exercise-filter-sheet"
           visible={filtersOpen}
           filters={filters}
           facets={editableFilterFacets}
           onApply={setFilters}
           onClose={() => setFiltersOpen(false)}
-        />}
+        />
+        )}
         <ForgeBottomSheet
           visible={formParent !== undefined}
           onClose={() => {
@@ -731,7 +739,9 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                         <Icon name="note" size={20} color={theme.textSecondary} />
                         <View style={styles.optionalCopy}>
                           <Text style={styles.optionalTitle}>Optional details</Text>
-                          {!showOptionalDetails ? <Text style={styles.optionalSubtitle}>Group, workout types, and muscles</Text> : null}
+                          {!showOptionalDetails ? (
+                            <Text style={styles.optionalSubtitle}>Group, workout types, and muscles</Text>
+                          ) : null}
                         </View>
                         <Icon name={showOptionalDetails ? 'chevron-down' : 'chevron-forward'} size={20} color={theme.textSecondary} />
                       </Pressable>
@@ -953,6 +963,10 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
           }}
           onClosed={onDetailClosed}
           onBackRequest={() => {
+            if (infoHeader && detailSheetView === 'details') {
+              infoHeader.onBack();
+              return true;
+            }
             if (detailSheetView === 'details') return false;
             transitionDetailSheet('details');
             return true;
@@ -1093,16 +1107,25 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
               <>
                 <ForgeBottomSheetHandle />
                 <ForgeSheetHeader
-                  title={detail.name}
+                  title={infoHeader?.title ?? detail.name}
                   titleNumberOfLines={2}
                   onClose={close}
                   closeAccessibilityLabel="Close exercise details"
                   // Custom exercises get a "..." that opens an in-sheet options
                   // view (Share / Edit / Delete). Keep one control per side —
                   // Close left, "..." right — so a long name never overlaps them.
-                  closePosition={isCustom(detail) ? 'left' : 'right'}
+                  closePosition={isCustom(detail) && !infoHeader ? 'left' : 'right'}
+                  leading={
+                    infoHeader ? (
+                      <ForgeBackButton
+                        accessibilityLabel={infoHeader.backLabel}
+                        onPress={infoHeader.onBack}
+                        disabled={infoHeader.backDisabled}
+                      />
+                    ) : undefined
+                  }
                   trailing={
-                    isCustom(detail) ? (
+                    isCustom(detail) && !infoHeader ? (
                       <HeaderAction
                         accessibilityLabel="Exercise options"
                         icon="ellipsis-horizontal"
@@ -1119,6 +1142,7 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
                   workouts={completedWorkouts}
                   tab={infoTab} onTabChange={setInfoTab}
                   review={infoReview} onReviewChange={setInfoReview}
+                  onHeaderChange={setInfoHeader}
                   onOpenWorkout={(workoutId) => {
                     returningDetail.current = detail;
                     runAfterClose(() => navigation.navigate('WorkoutDetails', { workoutId, backAccessibilityLabel: 'Back to exercises' }));
@@ -1220,7 +1244,9 @@ function FormChoiceRow({
     >
       {icon && <Icon name={icon} size={18} color={theme.textPrimary} />}
       <Text style={styles.formChoiceText}>{label}</Text>
-      {selected ? <Icon name="check" size={20} color={theme.selectionIndicator} weight="bold" testID="choice-selection-check" /> : null}
+      {selected ? (
+        <Icon name="check" size={20} color={theme.selectionIndicator} weight="bold" testID="choice-selection-check" />
+      ) : null}
     </Pressable>
   );
 }
@@ -1377,7 +1403,9 @@ const Movement = React.memo(function Movement({
                 subtitle={singleSubtitle}
                 trailing={
                   <View style={styles.variationIcons}>
-                    {item.laterality === 'unilateral' ? <UnilateralBadge size={18} color={theme.textSecondary} /> : null}
+                    {item.laterality === 'unilateral' ? (
+                      <UnilateralBadge size={18} color={theme.textSecondary} />
+                    ) : null}
                     <Icon name="sparkles" size={19} color={theme.textSecondary} />
                   </View>
                 }
@@ -1402,7 +1430,9 @@ const Movement = React.memo(function Movement({
               subtitle={singleSubtitle}
               accessibilityLabel={`Open ${group}`}
               onPress={() => onOpen(item)}
-              trailing={item.laterality === 'unilateral' ? <UnilateralBadge size={18} color={theme.textSecondary} /> : undefined}
+              trailing={item.laterality === 'unilateral' ? (
+                  <UnilateralBadge size={18} color={theme.textSecondary} />
+                ) : undefined}
               disclosure
             />
             <Button
@@ -1454,10 +1484,14 @@ const Movement = React.memo(function Movement({
                       pressed && { backgroundColor: theme.pressed },
                     ]}
                   >
-                    <Text style={styles.variationName}>{label}</Text>
+                    <Text numberOfLines={2} style={styles.variationName}>{label}</Text>
                     <View style={styles.variationIcons}>
-                      {item.laterality === 'unilateral' && <UnilateralBadge size={18} color={theme.textSecondary} />}
-                      {isCustom(item) && <Icon name="sparkles" size={18} color={theme.textSecondary} />}
+                      {item.laterality === 'unilateral' && (
+                        <UnilateralBadge size={18} color={theme.textSecondary} />
+                      )}
+                      {isCustom(item) && (
+                        <Icon name="sparkles" size={18} color={theme.textSecondary} />
+                      )}
                       <Icon name="chevron-forward" size={17} color={theme.slate} />
                     </View>
                   </Pressable>
@@ -1524,11 +1558,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       alignItems: 'center',
       justifyContent: 'center',
       flexDirection: 'row',
-      backgroundColor: theme.surface,
-      borderWidth: 1,
-      borderColor: theme.border,
     },
-    filtersActive: { borderColor: theme.selectionIndicator, backgroundColor: theme.surfaceMuted },
+    filtersActive: { backgroundColor: theme.surfaceMuted },
     movementName: { ...typeScale.cardTitle, color: theme.ink },
     meta: { ...typeScale.supporting, color: theme.slate, marginTop: 2 },
     variations: {
@@ -1557,14 +1588,22 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     variation: {
       minHeight: 56,
       paddingHorizontal: 12,
+      paddingVertical: scaleUI(8),
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       borderTopWidth: StyleSheet.hairlineWidth,
       borderColor: theme.divider,
     },
-    variationName: { ...typeScale.cardTitle, color: theme.ink },
-    variationIcons: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+    variationName: { ...typeScale.cardTitle, color: theme.ink,
+      flex: 1,
+      minWidth: 0,
+      flexShrink: 1,
+    },
+    variationIcons: { flexDirection: 'row', alignItems: 'center', gap: scaleUI(7),
+      flexShrink: 0,
+      marginLeft: scaleUI(12),
+    },
     addVariation: {
       alignSelf: 'stretch',
       height: 38,
@@ -1583,12 +1622,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     restTimeDefaultAction: {
       minWidth: 112,
       paddingHorizontal: 12,
-      // On a sheet the surfaceElevated `secondary` fill matches the sheet
-      // itself (identical in dark), so the pill vanishes. Use the muted layer —
-      // the same visible grey the active-workout rest sheet's Default uses — so
-      // it reads as a button.
-      backgroundColor: theme.surfaceMuted,
-      borderColor: theme.border,
     },
     restTimeDefaultActionSelected: { borderColor: theme.success, backgroundColor: theme.successSurface },
     restTimePickerContent: { paddingHorizontal: 20, paddingBottom: 24, gap: 10 },

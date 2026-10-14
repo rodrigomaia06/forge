@@ -1,4 +1,4 @@
-import type { ExerciseInfoTab, ExerciseInfoReview } from '../../components/exerciseInfo/ExerciseInfoTabs';
+import type { ExerciseInfoTab, ExerciseInfoReview, ExerciseInfoHeader } from '../../components/exerciseInfo/ExerciseInfoTabs';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import { scaleUI } from '../../theme/scale';
 import { trackingModeLabel } from '../../domain/exercises/tracking';
@@ -858,6 +858,7 @@ export function ExerciseOptionsSheet({
   const [noteHeight, setNoteHeight] = useState(156);
   const [infoReview, setInfoReview] = useState<ExerciseInfoReview>({});
   const [infoTab, setInfoTab] = useState<ExerciseInfoTab>('info');
+  const [infoHeader, setInfoHeader] = useState<ExerciseInfoHeader | null>(null);
   const pendingWorkoutIdRef = useRef<string | null>(null);
   // Each fresh open starts on the action list. The parent now defers this
   // sheet's unmount past its slide-out (and cancels it on a quick reopen), so
@@ -943,6 +944,7 @@ export function ExerciseOptionsSheet({
       title="Exercise options"
       dragEnabled={!trackingConfirmation}
       onBackRequest={() => {
+        if (infoHeader && (view === 'info' || view === 'history')) { infoHeader.onBack(); return true; }
         if (!trackingConfirmation) return false;
         trackingConfirmation.onCancel();
         return true;
@@ -1013,7 +1015,7 @@ export function ExerciseOptionsSheet({
               <React.Fragment key={view}>
                 <ForgeBottomSheetHandle />
                 <ForgeSheetHeader
-                  title={
+                  title={(view === 'info' || view === 'history') && infoHeader ? infoHeader.title :
                     view === 'tracking'
                       ? 'Tracking'
                       : view === 'note' ? 'Exercise note' : view === 'history' ? 'Exercise info' : view === 'rest' ? 'Duration' : view === 'rest-unilateral' ? 'Side rest' : view === 'warmup' ? 'Warm-up sets' : 'Exercise info'
@@ -1022,7 +1024,8 @@ export function ExerciseOptionsSheet({
                   // Default; Back returns to the info card and the sheet closes there.
                   onClose={view === 'rest' || view === 'rest-unilateral' ? undefined : closeSheet}
                   closeAccessibilityLabel={`Close ${view === 'tracking' ? 'tracking' : view === 'note' ? 'exercise note' : view === 'history' ? 'exercise info' : view === 'warmup' ? 'warm-up sets' : 'exercise info'}`}
-                  leading={
+                  leading={(view === 'info' || view === 'history') && infoHeader
+                ? <ForgeEditorBackButton onPress={infoHeader.onBack} accessibilityLabel={infoHeader.backLabel} disabled={infoHeader.backDisabled} /> :
               view === 'rest' || view === 'rest-unilateral'
                 ? <ForgeEditorBackButton onPress={() => openView('info')} accessibilityLabel="Back to exercise info" />
                 : <ForgeEditorBackButton onPress={backToActions} accessibilityLabel="Back to exercise options" />
@@ -1054,6 +1057,7 @@ export function ExerciseOptionsSheet({
               excludeWorkoutId={excludeWorkoutId}
               review={infoReview}
               onReviewChange={setInfoReview}
+              onHeaderChange={setInfoHeader}
               tab={infoTab}
               onTabChange={setInfoTab}
               onOpenWorkout={(workoutId) => { pendingWorkoutIdRef.current = workoutId; closeSheet(); }}
