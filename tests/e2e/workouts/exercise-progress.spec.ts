@@ -398,3 +398,81 @@ for (const appearance of ['light', 'dark']) {
     expect(stored[1].exercises[0].sets[1].completed).toBe(false);
   });
 }
+
+for (const appearance of ['light', 'dark']) {
+  test(`chart scrubbing captures vertical touch movement (${appearance})`, async ({
+    page,
+    browserName,
+  }, info) => {
+    await seedProgress(page, appearance);
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'History', exact: true }).click();
+    await page.getByRole('button', { name: 'Open Session 1', exact: true }).click();
+    await page
+      .getByRole('button', { name: 'More options for Barbell Bench Press', exact: true })
+      .click();
+    await page.getByRole('button', { name: 'Exercise info', exact: true }).click();
+    await page.getByRole('radio', { name: 'Progress', exact: true }).click();
+    const body = page.getByTestId('exercise-progress-content');
+    // Keep the parent scrollable on tall phone profiles too, without changing the plot.
+    await body.evaluate((node) => {
+      (node.firstElementChild as HTMLElement).style.paddingBottom = '600px';
+    });
+    const beforeOffset = await body.evaluate((node) => node.scrollTop);
+    const beforeSelection = await page.getByTestId('exercise-progress-selection').innerText();
+    const plot = page.getByRole('button', {
+      name: 'Select a session point on the chart',
+      exact: true,
+    });
+    const bounds = (await plot.boundingBox())!;
+    const session = browserName === 'chromium' ? await page.context().newCDPSession(page) : null;
+    await expect(plot.locator('..')).toHaveCSS('touch-action', 'none');
+    const drag = async (startX: number, startY: number, endX: number, endY: number) => {
+      if (!session) {
+        await page.mouse.move(startX, startY);
+        await page.mouse.down();
+        await page.mouse.move(endX, endY, { steps: 10 });
+        await page.mouse.up();
+        return;
+      }
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [{ x: startX, y: startY }],
+      });
+      for (let step = 1; step <= 10; step++) {
+        await session.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [
+            {
+              x: startX + ((endX - startX) * step) / 10,
+              y: startY + ((endY - startY) * step) / 10,
+            },
+          ],
+        });
+        await page.evaluate(() => new Promise(requestAnimationFrame));
+      }
+      await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    };
+    await drag(
+      bounds.x + bounds.width * 0.8,
+      bounds.y + 25,
+      bounds.x + bounds.width * 0.25,
+      bounds.y + 160,
+    );
+    await expect(page.getByTestId('exercise-progress-selection')).not.toHaveText(beforeSelection);
+    expect(await body.evaluate((node) => node.scrollTop)).toBe(beforeOffset);
+    await page.screenshot({ path: info.outputPath(`chart-captured-gesture-${appearance}.png`) });
+    if (session) await drag(8, bounds.y + 170, 8, bounds.y + 40);
+    else {
+      // Mobile WebKit exposes neither touch-drag nor wheel injection.
+      await expect(body).toHaveCSS('overflow-y', 'auto');
+      await body.evaluate((node) => {
+        node.scrollTop = 180;
+      });
+    }
+    await expect
+      .poll(() => body.evaluate((node) => node.scrollTop))
+      .toBeGreaterThan(beforeOffset + 20);
+    await session?.detach();
+  });
+}

@@ -88,8 +88,10 @@ export function ForgeSessionLineChart({
   );
   const selectAt = (target: number) => selectedOnUI.set(nearestSessionIndex(positions, target));
   const scrub = Gesture.Pan()
-    .activeOffsetX([-8, 8])
-    .failOffsetY([-8, 8])
+    .minDistance(0)
+    .onBegin((event) => {
+      selectedOnUI.set(nearestSessionIndex(positionsOnUI.get(), event.x));
+    })
     .onUpdate((event) => {
       selectedOnUI.set(nearestSessionIndex(positionsOnUI.get(), event.x));
     });
@@ -128,7 +130,7 @@ export function ForgeSessionLineChart({
     >
       {selectionPlacement === 'above' ? readout : null}
       {width > 0 && data.length ? (
-        <GestureDetector gesture={scrub} touchAction="pan-y">
+        <GestureDetector gesture={scrub} touchAction="none">
           <Animated.View>
             <Pressable
               accessibilityRole="button"
