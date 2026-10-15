@@ -156,6 +156,7 @@ export function TrackingChoices({
       {!pending || onConfirmationChange ? (
         <ForgeCard variant="nested" size="compact">
           <ForgeSingleSelectList
+            embedded
             showSeparators={false}
             options={trackingChoices(exercise).map((value) => ({
               value,

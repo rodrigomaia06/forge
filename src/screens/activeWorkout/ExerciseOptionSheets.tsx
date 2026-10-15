@@ -255,7 +255,7 @@ export function ExerciseInfoContent({
 
 export { ExerciseHistory as PreviousSessionsContent } from '../../components/exerciseInfo/ExerciseHistory';
 
-function catalogueDetail(exercise: WorkoutExercise): ExerciseCatalogItem | undefined {
+export function catalogueDetail(exercise: WorkoutExercise): ExerciseCatalogItem | undefined {
   const snapshot = exercise.exerciseSnapshot;
   if (snapshot) {
     return {

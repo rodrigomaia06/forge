@@ -197,6 +197,7 @@ export function FinishWorkoutSheet({
                 ) : null}
                 <ForgeCard variant="nested" size="compact" testID="finish-routine-choices">
                   <ForgeSingleSelectList
+                    embedded
                     selectedValue={choice}
                     onSelect={setChoice}
                     disableVirtualization

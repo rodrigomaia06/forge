@@ -31,6 +31,7 @@ export { ForgeFloatingCta } from './ForgeFloatingCta';
 export { ForgeSelectionSheet, ForgeSingleSelectList } from './ForgeSelection';
 export type { ForgeSingleSelectOption } from './ForgeSelection';
 export { ForgeCard } from './ForgeCard';
+export { ForgeDropdown } from './ForgeDropdown';
 export {
   ForgeAttributeEditorSheet,
   ForgeAttributeRow,

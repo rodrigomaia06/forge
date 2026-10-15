@@ -1,9 +1,9 @@
 import { ForgePressable as Pressable } from './ForgePressable';
 import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 
-import { useForgeReducedMotion } from '../../theme/motion';
+import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import type { IconName } from '../../types';
 import { ForgeText as Text } from './ForgeText';
@@ -56,6 +56,19 @@ export function ForgeSegmentedSwitch<T extends string | number>({
     transform: [{ translateX: translateX.value }],
   }));
 
+  const labelWidth = useSharedValue(0);
+  const labelPosition = useSharedValue(index);
+  useEffect(() => {
+    labelPosition.set(reducedMotion ? index : withTiming(index, {
+      duration: forgeMotion.state,
+      easing: forgeMotion.easing,
+    }));
+  }, [index, labelPosition, reducedMotion]);
+  const labelIndicatorStyle = useAnimatedStyle(() => ({
+    width: labelWidth.get(),
+    transform: [{ translateX: labelPosition.get() * labelWidth.get() }],
+  }));
+
   if (showLabels)
     return (
       <View
@@ -63,38 +76,40 @@ export function ForgeSegmentedSwitch<T extends string | number>({
         accessibilityLabel={accessibilityLabel}
         style={[styles.track, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}
       >
-        {options.map((option) => (
-          <Pressable
-            key={String(option.value)}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: option.value === value }}
-            aria-checked={option.value === value}
-            accessibilityLabel={option.label}
-            onPress={() => {
-              selectionHaptic();
-              onChange(option.value);
-            }}
-            style={{
-              flex: 1,
-              minHeight: 44,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 999,
-              overflow: 'hidden',
-              backgroundColor: option.value === value ? theme.actionPrimary : 'transparent',
-              paddingHorizontal: 8,
-            }}
-          >
-            <Text
-              style={[
-                typeScale.controlLabel,
-                { color: option.value === value ? theme.onActionPrimary : theme.textSecondary },
-              ]}
+        <View
+          style={styles.labelSegments}
+          onLayout={(event) => labelWidth.set(event.nativeEvent.layout.width / Math.max(1, options.length))}
+        >
+          <Animated.View
+            testID="forge-segmented-label-indicator"
+            pointerEvents="none"
+            style={[styles.labelIndicator, { backgroundColor: theme.actionPrimary }, labelIndicatorStyle]}
+          />
+          {options.map((option) => (
+            <Pressable
+              key={String(option.value)}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: option.value === value }}
+              aria-checked={option.value === value}
+              accessibilityLabel={option.label}
+              onPress={() => {
+                if (option.value === value) return;
+                selectionHaptic();
+                onChange(option.value);
+              }}
+              style={styles.labelSegment}
             >
-              {option.label}
-            </Text>
-          </Pressable>
-        ))}
+              <Text
+                style={[
+                  typeScale.controlLabel,
+                  { color: option.value === value ? theme.onActionPrimary : theme.textSecondary },
+                ]}
+              >
+                {option.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
     );
 
@@ -137,6 +152,9 @@ export function ForgeSegmentedSwitch<T extends string | number>({
 }
 
 const styles = StyleSheet.create({
+  labelSegments: { flex: 1, flexDirection: 'row', position: 'relative' },
+  labelIndicator: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 999 },
+  labelSegment: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 999, overflow: 'hidden', paddingHorizontal: 8 },
   track: {
     flexDirection: 'row',
     padding: PAD,

@@ -7,6 +7,7 @@ import { scaleUI } from '../../theme/scale';
 import { typeScale } from '../../theme/tokens';
 import { ForgeBottomSheet, ForgeBottomSheetHandle } from './ForgeBottomSheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ForgeCard } from './ForgeCard';
 import { ForgeText as Text } from './ForgeText';
 import { ForgeSheetHeader } from './ForgeSheetHeader';
 import { Icon } from './Icon';
@@ -16,8 +17,10 @@ import { resolveForgeControlFill, useForgeControlSurface } from './ForgeControlS
 type SelectionValue = string | number;
 
 const SELECTION_ROW_HEIGHT = 52;
-const SELECTION_ROW_GAP = 8;
-const SELECTION_ROW_PITCH = SELECTION_ROW_HEIGHT + SELECTION_ROW_GAP;
+const SELECTION_ROW_GAP = StyleSheet.hairlineWidth;
+const MENU_ROW_HEIGHT = 44;
+const MENU_ROW_GAP = 2;
+const MENU_INSET = scaleUI(6);
 const DEFAULT_MAX_VISIBLE_ROWS = 6;
 
 export interface ForgeSingleSelectOption<T extends SelectionValue> {
@@ -40,9 +43,13 @@ interface ForgeSingleSelectListProps<T extends SelectionValue> {
   /** A contextual selection can use Forge's success treatment without
    * changing the neutral treatment used by ordinary settings. */
   selectedTone?: 'neutral' | 'success';
-  /** Retained for callers; all choices now use rounded tonal surfaces. */
+  /** Omit the outer card when an existing grouped card owns the surface. */
+  embedded?: boolean;
+  /** Anchored menus use compact inset rows rather than connected sheet choices. */
+  appearance?: 'list' | 'menu';
+  /** Retained for callers; the connected group owns its outer corners. */
   rounded?: boolean;
-  /** Retained for callers; spacing separates the individual choice surfaces. */
+  /** Retained for callers; connected choices always have inset dividers. */
   showSeparators?: boolean;
   testID?: string;
 }
@@ -57,7 +64,19 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
   disableVirtualization = false,
   selectedTone = 'neutral',
   testID,
+  embedded = false,
+  appearance = 'list',
 }: ForgeSingleSelectListProps<T>) {
+  const theme = useForgeTheme();
+  const menu = appearance === 'menu';
+  const rowHeight = menu ? MENU_ROW_HEIGHT : SELECTION_ROW_HEIGHT;
+  const rowGap = menu ? MENU_ROW_GAP : SELECTION_ROW_GAP;
+  const rowPitch = rowHeight + rowGap;
+  const divider = menu ? (
+    <View style={{ height: rowGap }} />
+  ) : (
+    <View style={[styles.rowDivider, { backgroundColor: theme.divider }]} />
+  );
   const hasDescriptions = options.some((option) => option.description);
   const visibleRows = Math.min(
     options.length,
@@ -78,11 +97,26 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
       option={option}
       selected={option.value === selectedValue}
       selectedTone={selectedTone}
+      menu={menu}
       fixedHeight={virtualized}
       onSelect={onSelect}
       onSelectedPress={onSelectedPress}
     />
   );
+
+  const surface = (children: React.ReactNode) =>
+    embedded ? (
+      <View style={[virtualized && styles.virtualizedList, menu && styles.menuInset]}>
+        {children}
+      </View>
+    ) : (
+      <ForgeCard
+        size="compact"
+        style={[virtualized && styles.virtualizedList, menu && styles.menuInset]}
+      >
+        {children}
+      </ForgeCard>
+    );
 
   if (virtualized) {
     return (
@@ -91,35 +125,44 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
         accessibilityRole="radiogroup"
         style={[
           styles.listViewport,
-          { height: visibleRows * SELECTION_ROW_PITCH - SELECTION_ROW_GAP },
+          { height: visibleRows * rowPitch - rowGap + (menu ? MENU_INSET * 2 : 0) },
         ]}
       >
-        <FlatList
-          style={styles.virtualizedList}
-          data={options}
-          extraData={selectedValue}
-          renderItem={({ item }: ListRenderItemInfo<ForgeSingleSelectOption<T>>) =>
-            renderOption(item)
-          }
-          keyExtractor={(item) => String(item.value)}
-          getItemLayout={(_, index) => ({
-            length: SELECTION_ROW_HEIGHT,
-            offset: SELECTION_ROW_PITCH * index,
-            index,
-          })}
-          initialScrollIndex={initialScrollIndex}
-          initialNumToRender={visibleRows + 2}
-          ItemSeparatorComponent={() => <View style={styles.rowGap} />}
-          showsVerticalScrollIndicator
-          accessibilityLabel="Selection options"
-        />
+        {surface(
+          <FlatList
+            style={styles.virtualizedList}
+            data={options}
+            extraData={selectedValue}
+            renderItem={({ item }: ListRenderItemInfo<ForgeSingleSelectOption<T>>) =>
+              renderOption(item)
+            }
+            keyExtractor={(item) => String(item.value)}
+            getItemLayout={(_, index) => ({
+              length: rowHeight,
+              offset: rowPitch * index,
+              index,
+            })}
+            initialScrollIndex={initialScrollIndex}
+            initialNumToRender={visibleRows + 2}
+            ItemSeparatorComponent={() => divider}
+            showsVerticalScrollIndicator
+            accessibilityLabel="Selection options"
+          />,
+        )}
       </View>
     );
   }
 
   return (
-    <View testID={testID} accessibilityRole="radiogroup" style={styles.choices}>
-      {options.map(renderOption)}
+    <View testID={testID} accessibilityRole="radiogroup">
+      {surface(
+        options.map((option, index) => (
+          <React.Fragment key={String(option.value)}>
+            {index > 0 ? divider : null}
+            {renderOption(option)}
+          </React.Fragment>
+        )),
+      )}
     </View>
   );
 }
@@ -129,6 +172,7 @@ interface ForgeSelectionRowProps<T extends SelectionValue> {
   selected: boolean;
   selectedTone: 'neutral' | 'success';
   fixedHeight: boolean;
+  menu: boolean;
   onSelect: (value: T) => void;
   onSelectedPress?: (value: T) => void;
 }
@@ -138,18 +182,23 @@ function ForgeSelectionRow<T extends SelectionValue>({
   selected,
   selectedTone,
   fixedHeight,
+  menu,
   onSelect,
   onSelectedPress,
 }: ForgeSelectionRowProps<T>) {
   const theme = useForgeTheme();
   const parentSurface = useForgeControlSurface();
-  const neutralSelected = selected && selectedTone === 'neutral';
+  const neutralSelected = selected && selectedTone === 'neutral' && !menu;
   const foreground = neutralSelected ? theme.onActionPrimary : theme.textPrimary;
-  const backgroundColor = selected
-    ? selectedTone === 'success'
-      ? theme.successSurface
-      : theme.actionPrimary
-    : resolveForgeControlFill(theme, parentSurface);
+  const backgroundColor = menu
+    ? selected
+      ? resolveForgeControlFill(theme, parentSurface)
+      : 'transparent'
+    : selected
+      ? selectedTone === 'success'
+        ? theme.successSurface
+        : theme.actionPrimary
+      : resolveForgeControlFill(theme, parentSurface);
   return (
     <Pressable
       accessibilityRole="radio"
@@ -165,7 +214,13 @@ function ForgeSelectionRow<T extends SelectionValue>({
         onSelect(option.value);
       }}
       unstable_pressDelay={80}
-      style={[styles.selectionRow, fixedHeight && styles.fixedSelectionRow, { backgroundColor }]}
+      style={[
+        styles.selectionRow,
+        fixedHeight && styles.fixedSelectionRow,
+        menu && styles.menuRow,
+        menu && fixedHeight && { height: MENU_ROW_HEIGHT, paddingVertical: 0 },
+        { backgroundColor },
+      ]}
     >
       {option.leading ? <View style={{ marginRight: scaleUI(12) }}>{option.leading}</View> : null}
       <View style={styles.selectionCopy}>
@@ -173,6 +228,7 @@ function ForgeSelectionRow<T extends SelectionValue>({
           numberOfLines={fixedHeight ? 1 : undefined}
           style={[
             styles.selectionLabel,
+            menu && styles.menuLabel,
             option.emphasized && styles.selectionLabelEmphasized,
             { color: foreground },
           ]}
@@ -194,7 +250,13 @@ function ForgeSelectionRow<T extends SelectionValue>({
         <Icon
           name="check"
           size={22}
-          color={selectedTone === 'success' ? theme.success : theme.onActionPrimary}
+          color={
+            menu
+              ? theme.textPrimary
+              : selectedTone === 'success'
+                ? theme.success
+                : theme.onActionPrimary
+          }
           weight="bold"
         />
       )}
@@ -268,13 +330,19 @@ export function ForgeSelectionSheet<T extends SelectionValue>({
 const styles = StyleSheet.create({
   listViewport: { overflow: 'hidden' },
   virtualizedList: { flex: 1 },
-  choices: { gap: SELECTION_ROW_GAP },
-  rowGap: { height: SELECTION_ROW_GAP },
+  menuInset: { padding: MENU_INSET },
+  menuRow: {
+    minHeight: MENU_ROW_HEIGHT,
+    borderRadius: scaleUI(12),
+    paddingHorizontal: scaleUI(12),
+    paddingVertical: scaleUI(8),
+  },
+  menuLabel: { ...typeScale.controlLabel },
+  rowDivider: { height: SELECTION_ROW_GAP, marginHorizontal: scaleUI(16) },
   selectionRow: {
     minHeight: SELECTION_ROW_HEIGHT,
     paddingHorizontal: scaleUI(16),
     paddingVertical: scaleUI(12),
-    borderRadius: scaleUI(14),
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
