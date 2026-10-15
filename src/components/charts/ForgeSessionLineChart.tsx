@@ -1,13 +1,14 @@
-import { nearestSessionIndex, sessionChartLayout, shapePreservingPath } from './sessionChartLayout';
+import { nearestSessionIndex, sessionChartLayout } from './sessionChartLayout';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
-import Svg, { Line, Polyline, Circle, Path, Text as SvgText } from 'react-native-svg';
+import Svg, { Line, Circle, Text as SvgText } from 'react-native-svg';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedReaction, useSharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { ForgeText as Text, Button } from '../ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
+import { ForgeLinePlot } from './ForgeLinePlot';
 import type { ForgeLinePoint } from './ForgeLineChart';
 
 /** Date-positioned session points and their already-classified trailing medians. */
@@ -71,9 +72,6 @@ export function ForgeSessionLineChart({
     markerCount > 1 ? Math.round((index * (data.length - 1)) / (markerCount - 1)) : 0,
   );
   const trend = data.filter((point) => point.trend !== undefined);
-  const trendPath = shapePreservingPath(
-    trend.map((point) => ({ x: x(point), y: y(point.trend!) })),
-  );
   useEffect(() => {
     selectedOnUI.set(data.length - 1);
     setSelection(data.length - 1);
@@ -150,6 +148,31 @@ export function ForgeSessionLineChart({
                 } else selectedOnUI.set(0);
               }}
             >
+              <View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  left: axisWidth,
+                  width: Math.max(0, width - axisWidth),
+                  height,
+                }}
+              >
+                <ForgeLinePlot
+                  points={data.map((p) => ({ x: layout.x(p.date!), y: y(p.value) }))}
+                  color={color}
+                  width={Math.max(0, width - axisWidth)}
+                  height={height}
+                  thickness={1.5}
+                  opacity={0.6}
+                />
+                <ForgeLinePlot
+                  points={trend.map((p) => ({ x: layout.x(p.date!), y: y(p.trend!) }))}
+                  color={color}
+                  width={Math.max(0, width - axisWidth)}
+                  height={height}
+                  smooth
+                />
+              </View>
               <Svg pointerEvents="none" width={width} height={height}>
                 {showAxes
                   ? ticks.map((value) => (
@@ -184,22 +207,6 @@ export function ForgeSessionLineChart({
                         stroke={theme.divider}
                       />
                     ))}
-                <Polyline
-                  points={data.map((point) => `${x(point)},${y(point.value)}`).join(' ')}
-                  fill="none"
-                  stroke={color}
-                  strokeWidth={1.5}
-                  strokeOpacity={0.6}
-                />
-                {trend.length > 1 ? (
-                  <Path
-                    d={trendPath}
-                    fill="none"
-                    stroke={color}
-                    strokeWidth={2.5}
-                    strokeLinecap="round"
-                  />
-                ) : null}
                 <Line
                   testID="exercise-progress-selection-guide"
                   x1={x(data[selected])}

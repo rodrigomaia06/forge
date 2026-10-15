@@ -135,6 +135,33 @@ for (const appearance of ['light', 'dark']) {
     await page.getByRole('radio', { name: 'Progress', exact: true }).click();
     const chart = page.getByTestId('exercise-progress-chart');
     await expect(chart).toBeVisible();
+    const rawLine = chart
+      .getByTestId('forge-line-plot')
+      .first()
+      .locator('path[stroke]:not([stroke="none"])')
+      .first();
+    await expect(rawLine).toBeAttached();
+    await expect
+      .poll(() =>
+        rawLine.evaluate((element) => {
+          const path = element as unknown as SVGPathElement;
+          const matrix = path.getScreenCTM();
+          const chart = element.closest('[data-testid="exercise-progress-chart"]')!;
+          const markers = chart.querySelectorAll('circle');
+          if (!matrix || !markers.length || path.getTotalLength() <= 0) return Infinity;
+          return Math.max(
+            ...[0, path.getTotalLength()].map((length, index) => {
+              const point = path.getPointAtLength(length).matrixTransform(matrix);
+              const marker = markers[index ? markers.length - 1 : 0].getBoundingClientRect();
+              return Math.hypot(
+                point.x - marker.x - marker.width / 2,
+                point.y - marker.y - marker.height / 2,
+              );
+            }),
+          );
+        }),
+      )
+      .toBeLessThan(1);
     await expect(page.getByRole('button', { name: 'Progress metric', exact: true })).toContainText(
       'Volume',
     );

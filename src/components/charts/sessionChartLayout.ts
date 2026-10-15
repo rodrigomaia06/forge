@@ -7,6 +7,7 @@ export function sessionChartLayout(
   points: readonly { date: number; value: number; trend?: number }[],
   width: number,
   height: number,
+  insets = { horizontal: 16, vertical: 12 },
 ) {
   const values = points
     .flatMap((point) => [point.value, point.trend])
@@ -17,8 +18,8 @@ export function sessionChartLayout(
   const dates = points.map((point) => point.date).filter(Number.isFinite);
   const first = dates.reduce((result, date) => Math.min(result, date), dates[0] ?? 0);
   const last = dates.reduce((result, date) => Math.max(result, date), dates[0] ?? 0);
-  const horizontalInset = Math.min(16, Math.max(0, width) / 2);
-  const verticalInset = Math.min(12, Math.max(0, height) / 2);
+  const horizontalInset = Math.min(insets.horizontal, Math.max(0, width) / 2);
+  const verticalInset = Math.min(insets.vertical, Math.max(0, height) / 2);
   return {
     x: (date: number) =>
       last === first || !Number.isFinite(date)

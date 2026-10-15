@@ -38,6 +38,10 @@ Keep mock/sample data distinguishable from durable domain data. Avoid turning pr
 
 Reuse shared tokens/components where they reduce duplication, but do not create speculative abstraction layers before there is a real repeated need.
 
+## Graph rendering
+
+Use `react-native-gifted-charts` as Forge's only graph/chart library, behind shared Forge chart components. Keep domain calculations, actual session dates, selected-session identity and accessibility in Forge. Display-only curve sampling must retain recorded endpoints and must never create selectable sessions or change computed metrics. Axes, markers and selection guides may use the existing drawing primitives around the shared renderer.
+
 ## Feature-local boundaries
 
 Keep feature-specific screens, interactive subcomponents, hooks, formatters, and styles together in a feature-local folder. A screen should retain orchestration while independently interactive sections, modals, gestures, timers, and validation are extracted into focused modules. Promote code to shared folders only when multiple features genuinely reuse it.
