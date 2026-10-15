@@ -1,11 +1,11 @@
 import { nearestSessionIndex, sessionChartLayout, shapePreservingPath } from './sessionChartLayout';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View } from 'react-native';
-import Svg, { Line, Polyline, Circle, Path } from 'react-native-svg';
+import { Pressable, View } from 'react-native';
+import Svg, { Line, Polyline, Circle, Path, Text as SvgText } from 'react-native-svg';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedReaction, useSharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import { ForgeText as Text, Button, ForgePressable as Pressable } from '../ui';
+import { ForgeText as Text, Button } from '../ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
 import type { ForgeLinePoint } from './ForgeLineChart';
@@ -16,11 +16,15 @@ export function ForgeSessionLineChart({
   height,
   color,
   formatValue,
+  selectionPlacement = 'below',
+  showAxes = false,
 }: {
   data: ForgeLinePoint[];
   height: number;
   color: string;
   formatValue: (value: number) => string;
+  selectionPlacement?: 'above' | 'below';
+  showAxes?: boolean;
 }) {
   const theme = useForgeTheme();
   const chartRef = useRef<View>(null);
@@ -38,11 +42,28 @@ export function ForgeSessionLineChart({
       description,
     ]),
   );
+  const values = data
+    .flatMap((point) => [point.value, point.trend])
+    .filter((value): value is number => value !== undefined && Number.isFinite(value));
+  const minimum = values.reduce((value, next) => Math.min(value, next), values[0] ?? 0);
+  const maximum = values.reduce((value, next) => Math.max(value, next), values[0] ?? 0);
+  const ticks = minimum === maximum ? [minimum] : [minimum, (minimum + maximum) / 2, maximum];
+  const axisWidth = showAxes
+    ? Math.max(
+        40,
+        ...ticks.map((value) => Number(value.toFixed(1)).toLocaleString().length * 7 + 12),
+      )
+    : 0;
   const layout = useMemo(
-    () => sessionChartLayout(data as (ForgeLinePoint & { date: number })[], width, height),
-    [data, width, height],
+    () =>
+      sessionChartLayout(
+        data as (ForgeLinePoint & { date: number })[],
+        Math.max(0, width - axisWidth),
+        height,
+      ),
+    [data, width, height, axisWidth],
   );
-  const x = (point: ForgeLinePoint) => layout.x(point.date!);
+  const x = (point: ForgeLinePoint) => layout.x(point.date!) + axisWidth;
   const y = layout.y;
   const positions = data.map(x);
   const markerCount = Math.min(data.length, 60);
@@ -74,12 +95,40 @@ export function ForgeSessionLineChart({
     .onUpdate((event) => {
       selectedOnUI.set(nearestSessionIndex(positionsOnUI.get(), event.x));
     });
+  const readout = data.length ? (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <Button
+        icon="chevron-back"
+        accessibilityLabel="Previous session point"
+        variant="ghost"
+        disabled={selected <= 0}
+        onPress={() => selectedOnUI.set(selected - 1)}
+        style={{ minWidth: 44, minHeight: 44 }}
+      />
+      <View style={{ flex: 1, alignItems: 'center' }}>
+        <Text
+          testID="exercise-progress-selection"
+          accessibilityLiveRegion="polite"
+          style={[typeScale.supporting, { color: theme.textPrimary }]}
+        >{`${data[selected].description ?? data[selected].label}: ${formatValue(data[selected].value)}`}</Text>
+      </View>
+      <Button
+        icon="chevron-forward"
+        accessibilityLabel="Next session point"
+        variant="ghost"
+        disabled={selected >= data.length - 1}
+        onPress={() => selectedOnUI.set(selected + 1)}
+        style={{ minWidth: 44, minHeight: 44 }}
+      />
+    </View>
+  ) : null;
   return (
     <View
       ref={chartRef}
       testID="exercise-progress-chart"
       onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
     >
+      {selectionPlacement === 'above' ? readout : null}
       {width > 0 && data.length ? (
         <GestureDetector gesture={scrub} touchAction="pan-y">
           <Animated.View>
@@ -102,16 +151,39 @@ export function ForgeSessionLineChart({
               }}
             >
               <Svg pointerEvents="none" width={width} height={height}>
-                {[0, 0.5, 1].map((fraction) => (
-                  <Line
-                    key={fraction}
-                    x1={16}
-                    x2={width - 16}
-                    y1={12 + fraction * (height - 24)}
-                    y2={12 + fraction * (height - 24)}
-                    stroke={theme.divider}
-                  />
-                ))}
+                {showAxes
+                  ? ticks.map((value) => (
+                      <React.Fragment key={value}>
+                        <Line
+                          x1={axisWidth}
+                          x2={width - 16}
+                          y1={y(value)}
+                          y2={y(value)}
+                          stroke={theme.border}
+                          strokeOpacity={0.6}
+                        />
+                        <SvgText
+                          x={axisWidth - 8}
+                          y={y(value) + 4}
+                          textAnchor="end"
+                          fill={theme.textSecondary}
+                          fontFamily={typeScale.caption.fontFamily}
+                          fontSize={typeScale.caption.fontSize}
+                        >
+                          {Number(value.toFixed(1)).toLocaleString()}
+                        </SvgText>
+                      </React.Fragment>
+                    ))
+                  : [0, 0.5, 1].map((fraction) => (
+                      <Line
+                        key={fraction}
+                        x1={16}
+                        x2={width - 16}
+                        y1={12 + fraction * (height - 24)}
+                        y2={12 + fraction * (height - 24)}
+                        stroke={theme.divider}
+                      />
+                    ))}
                 <Polyline
                   points={data.map((point) => `${x(point)},${y(point.value)}`).join(' ')}
                   fill="none"
@@ -165,33 +237,7 @@ export function ForgeSessionLineChart({
           </Animated.View>
         </GestureDetector>
       ) : null}
-      {data.length ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Button
-            icon="chevron-back"
-            accessibilityLabel="Previous session point"
-            variant="ghost"
-            disabled={selected <= 0}
-            onPress={() => selectedOnUI.set(selected - 1)}
-            style={{ minWidth: 44, minHeight: 44 }}
-          />
-          <View style={{ flex: 1, alignItems: 'center' }}>
-            <Text
-              testID="exercise-progress-selection"
-              accessibilityLiveRegion="polite"
-              style={[typeScale.supporting, { color: theme.textPrimary }]}
-            >{`${data[selected].description ?? data[selected].label}: ${formatValue(data[selected].value)}`}</Text>
-          </View>
-          <Button
-            icon="chevron-forward"
-            accessibilityLabel="Next session point"
-            variant="ghost"
-            disabled={selected >= data.length - 1}
-            onPress={() => selectedOnUI.set(selected + 1)}
-            style={{ minWidth: 44, minHeight: 44 }}
-          />
-        </View>
-      ) : null}
+      {selectionPlacement === 'below' ? readout : null}
       {trend.length > 1 ? (
         <View
           style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 }}
