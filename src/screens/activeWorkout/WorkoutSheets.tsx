@@ -1,4 +1,5 @@
-import type { ExerciseInfoTab, ExerciseInfoReview, ExerciseInfoHeader } from '../../components/exerciseInfo/ExerciseInfoTabs';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import { scaleUI } from '../../theme/scale';
 import { trackingModeLabel } from '../../domain/exercises/tracking';
@@ -15,7 +16,6 @@ import {
   ForgeCard,
   ForgeCatalogFilterContent,
   ForgeDurationWheel,
-  ForgePickerDefaultAction,
   ForgeEditorBackButton,
   ForgeFloatingCta,
   ForgeSheetHeader,
@@ -37,11 +37,10 @@ import { useSettings } from '../../state/SettingsContext';
 import { CompletionCheck } from './CompletionCheck';
 
 import { animateLayout, animateSheetContent, lightHaptic, mediumHaptic, selectionHaptic } from './activeWorkoutFeedback';
-import type { Workout, WorkoutExercise } from '../../types';
-import { ExerciseInfoContent, WarmupSetsContent } from './ExerciseOptionSheets';
+import type { RootStackParamList, Workout, WorkoutExercise } from '../../types';
+import { WarmupSetsContent } from './ExerciseOptionSheets';
 import { catalogFacets, filterCatalog, groupCatalogByPrimaryEquipment } from '../../domain/exercises/catalogSelectors';
 import { formatCatalogVariation, formatPickerPrimaryEquipment } from '../../domain/exercises/exercisePresentation';
-import { isUnilateralExercise } from '../../domain/exercises/laterality';
 import {
   buildVariationFamily,
   hasComposableInputs,
@@ -845,9 +844,9 @@ export function ExerciseOptionsSheet({
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const reducedMotion = useForgeReducedMotion();
-  const { preferences, updatePreferences } = useSettings();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [view, setView] = useState<
-    'actions' | 'note' | 'history' | 'info' | 'rest' | 'rest-unilateral' | 'warmup' | 'tracking'
+    'actions' | 'note' | 'warmup' | 'tracking'
   >('actions');
   // Cross-fade each view's content while the surface height eases (ADR 0005 /
   // .agents/rules/design Motion): a hierarchical drill-in, never a lateral slide.
@@ -856,10 +855,7 @@ export function ExerciseOptionsSheet({
   const [trackingConfirmation, setTrackingConfirmation] = useState<TrackingConfirmation | null>(null);
   const [noteDraft, setNoteDraft] = useState(exercise.note ?? '');
   const [noteHeight, setNoteHeight] = useState(156);
-  const [infoReview, setInfoReview] = useState<ExerciseInfoReview>({});
-  const [infoTab, setInfoTab] = useState<ExerciseInfoTab>('info');
-  const [infoHeader, setInfoHeader] = useState<ExerciseInfoHeader | null>(null);
-  const pendingWorkoutIdRef = useRef<string | null>(null);
+  const pendingInfo = useRef<RootStackParamList['ExerciseInfo'] | null>(null);
   // Each fresh open starts on the action list. The parent now defers this
   // sheet's unmount past its slide-out (and cancels it on a quick reopen), so
   // the component can survive a close/reopen — reset the sub-view here on open
@@ -867,47 +863,14 @@ export function ExerciseOptionsSheet({
   // `enterInstant` marks a restore (returning from a pushed prior session), which
   // deliberately keeps its sub-view, so it is left untouched.
   useEffect(() => {
-    if (visible && !enterInstant) { setView('actions'); setInfoTab('info'); setInfoReview({}); }
+    if (visible && !enterInstant) setView('actions');
   }, [visible, enterInstant]);
-
-  // Per-exercise rest override, editable from Exercise info. Match the read path
-  // in ActiveWorkoutScreen.restDurationForExercise.
-  const restKey = exercise.exerciseId ?? exercise.exerciseSnapshot?.id ?? exercise.id;
-  const restOverride = preferences.exerciseRestSeconds[restKey];
-  // The wheel sets the override live as it settles (like the live-workout Rest
-  // picker); "Default" clears it and steps back to the info card.
-  const applyRest = (seconds: number | undefined): void => {
-    const next = { ...preferences.exerciseRestSeconds };
-    if (seconds === undefined) delete next[restKey];
-    else next[restKey] = seconds;
-    updatePreferences({ exerciseRestSeconds: next });
-  };
-  // Unilateral exercises additionally carry a between-sides rest and a leading
-  // side, both editable here and both keyed by the same exercise identity.
-  // Match the exercise card's robust detection: fall back to the live catalog so
-  // a legacy snapshot without laterality still surfaces the unilateral options.
-  const unilateral = isUnilateralExercise(exercise)
-    || exerciseCatalogById.get(exercise.exerciseId ?? '')?.laterality === 'unilateral';
-  const unilateralRestOverride = preferences.exerciseUnilateralRestSeconds[restKey];
-  const applyUnilateralRest = (seconds: number | undefined): void => {
-    const next = { ...preferences.exerciseUnilateralRestSeconds };
-    if (seconds === undefined) delete next[restKey];
-    else next[restKey] = seconds;
-    updatePreferences({ exerciseUnilateralRestSeconds: next });
-  };
-  const leadSide = preferences.exerciseLeadSide[restKey] ?? 'left';
-  const toggleLeadSide = (): void => {
-    selectionHaptic();
-    updatePreferences({
-      exerciseLeadSide: { ...preferences.exerciseLeadSide, [restKey]: leadSide === 'left' ? 'right' : 'left' },
-    });
-  };
 
   const commitNote = (): void => {
     onEditNote?.(noteDraft.trim());
   };
   const openView = (
-    nextView: 'note' | 'history' | 'info' | 'rest' | 'rest-unilateral' | 'warmup' | 'tracking',
+    nextView: 'note' | 'warmup' | 'tracking',
   ): void => {
     // These destinations replace the action list in one Forge sheet. The
     // keyed-fragment remount cross-fades each view's content (its Animated root)
@@ -917,16 +880,17 @@ export function ExerciseOptionsSheet({
   };
   const close = (): void => {
     if (view === 'note') commitNote();
-    const pendingWorkoutId = pendingWorkoutIdRef.current;
-    pendingWorkoutIdRef.current = null;
-    // A React Native Modal always sits above a native-stack screen. Complete
-    // its close before pushing, otherwise the previous-sessions card remains
-    // physically in front of the destination despite navigation succeeding.
-    if (pendingWorkoutId) {
-      onOpenWorkout?.(pendingWorkoutId);
-      return;
-    }
     onClose();
+  };
+  const openInfo = (initialTab: 'info' | 'history') => {
+    pendingInfo.current = { exercise, initialTab, excludeWorkoutId, readOnly };
+    onClose();
+  };
+  const handleClosed = () => {
+    const destination = pendingInfo.current;
+    pendingInfo.current = null;
+    onClosed?.();
+    if (destination) navigation.push('ExerciseInfo', destination);
   };
   const backToActions = (): void => {
     commitNote();
@@ -939,12 +903,11 @@ export function ExerciseOptionsSheet({
       visible={visible}
       enterInstant={enterInstant}
       onClose={close}
-      onClosed={onClosed}
+      onClosed={handleClosed}
       accessibilityLabel="Close options"
       title="Exercise options"
       dragEnabled={!trackingConfirmation}
       onBackRequest={() => {
-        if (infoHeader && (view === 'info' || view === 'history')) { infoHeader.onBack(); return true; }
         if (!trackingConfirmation) return false;
         trackingConfirmation.onCancel();
         return true;
@@ -989,9 +952,9 @@ export function ExerciseOptionsSheet({
           dismiss: false,
           onPress: () => openView('note'),
         }] : []),
-        ...(onOpenPreviousSessions ? [{ icon: 'history' as const, label: 'Previous sessions', dismiss: false, onPress: () => { setInfoTab('history'); openView('history'); } }] : []),
+        ...(onOpenPreviousSessions ? [{ icon: 'history' as const, label: 'Previous sessions', dismiss: false, onPress: () => openInfo('history') }] : []),
         ...(addWarmupSets ? [{ icon: 'temperature-sun' as const, label: 'Warm-up sets', dismiss: false, onPress: () => openView('warmup') }] : []),
-        ...(onOpenExerciseInfo ? [{ icon: 'info' as const, label: 'Exercise info', dismiss: false, onPress: () => { setInfoTab('info'); openView('info'); } }] : []),
+        ...(onOpenExerciseInfo ? [{ icon: 'info' as const, label: 'Exercise info', dismiss: false, onPress: () => openInfo('info') }] : []),
         ...(!readOnly && onReplaceExercise ? [{ icon: 'replace' as const, label: 'Replace exercise', onPress: onReplaceExercise }] : []),
         ...(!readOnly && onToggleOffSession ? [{
           icon: exercise.offSession ? ('notes' as const) : ('notes-off' as const),
@@ -1015,31 +978,10 @@ export function ExerciseOptionsSheet({
               <React.Fragment key={view}>
                 <ForgeBottomSheetHandle />
                 <ForgeSheetHeader
-                  title={(view === 'info' || view === 'history') && infoHeader ? infoHeader.title :
-                    view === 'tracking'
-                      ? 'Tracking'
-                      : view === 'note' ? 'Exercise note' : view === 'history' ? 'Exercise info' : view === 'rest' ? 'Duration' : view === 'rest-unilateral' ? 'Side rest' : view === 'warmup' ? 'Warm-up sets' : 'Exercise info'
-                  }
-                  // The Duration views drop the close X and give their right slot to
-                  // Default; Back returns to the info card and the sheet closes there.
-                  onClose={view === 'rest' || view === 'rest-unilateral' ? undefined : closeSheet}
-                  closeAccessibilityLabel={`Close ${view === 'tracking' ? 'tracking' : view === 'note' ? 'exercise note' : view === 'history' ? 'exercise info' : view === 'warmup' ? 'warm-up sets' : 'exercise info'}`}
-                  leading={(view === 'info' || view === 'history') && infoHeader
-                ? <ForgeEditorBackButton onPress={infoHeader.onBack} accessibilityLabel={infoHeader.backLabel} disabled={infoHeader.backDisabled} /> :
-              view === 'rest' || view === 'rest-unilateral'
-                ? <ForgeEditorBackButton onPress={() => openView('info')} accessibilityLabel="Back to exercise info" />
-                : <ForgeEditorBackButton onPress={backToActions} accessibilityLabel="Back to exercise options" />
-            }
-                  trailing={
-              (view === 'rest' || view === 'rest-unilateral') && !readOnly ? (
-                <ForgePickerDefaultAction
-                  accessibilityLabel={view === 'rest-unilateral' ? 'Use default between-sides rest' : 'Use default rest time'}
-                  icon="time-outline"
-                  haptic="none"
-                  onPress={() => { (view === 'rest-unilateral' ? applyUnilateralRest : applyRest)(undefined); openView('info'); }}
-                />
-              ) : undefined
-            }
+                  title={view === 'tracking' ? 'Tracking' : view === 'note' ? 'Exercise note' : 'Warm-up sets'}
+                  onClose={closeSheet}
+                  closeAccessibilityLabel={`Close ${view === 'tracking' ? 'tracking' : view === 'note' ? 'exercise note' : 'warm-up sets'}`}
+                  leading={<ForgeEditorBackButton onPress={backToActions} accessibilityLabel="Back to exercise options" />}
                 />
                 {view === 'tracking' && onTrackingChange ? (
                   <TrackingChoices
@@ -1050,25 +992,6 @@ export function ExerciseOptionsSheet({
                     onConfirmationChange={resolveTrackingSelection ? setTrackingConfirmation : undefined}
                   />
                 ) : null}
-                {view === 'info' || view === 'history' ? (
-            <ExerciseInfoContent
-              exercise={exercise}
-              workouts={completedWorkouts}
-              excludeWorkoutId={excludeWorkoutId}
-              review={infoReview}
-              onReviewChange={setInfoReview}
-              onHeaderChange={setInfoHeader}
-              tab={infoTab}
-              onTabChange={setInfoTab}
-              onOpenWorkout={(workoutId) => { pendingWorkoutIdRef.current = workoutId; closeSheet(); }}
-              onPressRest={readOnly ? undefined : () => openView('rest')}
-              unilateral={unilateral}
-              leadSide={leadSide}
-              unilateralRestOverride={unilateralRestOverride}
-              onPressUnilateralRest={readOnly ? undefined : () => openView('rest-unilateral')}
-              onToggleLeadSide={readOnly ? undefined : toggleLeadSide}
-            />
-          ) : null}
                 {view === 'warmup' && addWarmupSets ? (
             <WarmupSetsContent
               exercise={exercise}
@@ -1081,26 +1004,6 @@ export function ExerciseOptionsSheet({
                 closeSheet();
               }}
             />
-          ) : null}
-                {view === 'rest' ? (
-            // The wheel must measure against a settled frame to land on the
-            // selected row: a reserved min-height plus a plain (non-entering)
-            // container, exactly like the settings/library duration wheels. A
-            // FadeIn/exiting wrapper here left the drum pinned at the top.
-            <View style={styles.restPickerContent}>
-              <ForgeDurationWheel
-                selectedDuration={restOverride ?? preferences.defaultRestSeconds}
-                onSelect={applyRest}
-              />
-            </View>
-          ) : null}
-                {view === 'rest-unilateral' ? (
-            <View style={styles.restPickerContent}>
-              <ForgeDurationWheel
-                selectedDuration={unilateralRestOverride ?? preferences.defaultUnilateralRestSeconds}
-                onSelect={applyUnilateralRest}
-              />
-            </View>
           ) : null}
                 {view === 'note' && readOnly ? <ExerciseNoteView note={exercise.note ?? ''} /> : null}
                 {view === 'note' && !readOnly ? <Animated.View style={styles.exerciseNoteContent} entering={viewEntering} exiting={viewExiting}>

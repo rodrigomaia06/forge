@@ -306,54 +306,32 @@ test.describe('Exercise library', () => {
     await expect(page.getByRole('button', { name: 'Apply filters' })).toBeDisabled();
   });
 
-  test('shows built-in exercise metadata and persists its rest override', async ({ page }) => {
+  test('shows built-in exercise metadata and persists its rest override', async ({ page }, testInfo) => {
     await openAllExercises(page);
     await page.getByRole('button', { name: 'Bench Press & 3 variations' }).click();
     await page.getByRole('button', { name: 'Open Flat' }).first().click();
-    await expect(page.getByText('Category', { exact: true })).toBeVisible();
-    await expect(page.getByText('Bench Press', { exact: true }).last()).toBeVisible();
-    await expect(page.getByText('Primary muscle', { exact: true })).toBeVisible();
-    await expect(page.getByText('Chest', { exact: true }).first()).toBeVisible();
-    await expect(page.getByTestId('exercise-section-type-strength').locator('svg')).toBeVisible();
-    await expect(page.getByText('Essentials', { exact: true })).toBeVisible();
-    await expect(page.getByText('Training profile', { exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Change rest time, currently Default' })).toBeVisible();
-    const detailSheet = page.getByTestId('exercise-detail-sheet-surface');
-    await page.waitForTimeout(250);
+    const screen = page.getByTestId('exercise-info-screen');
+    await expect(screen).toBeVisible();
+    await expect(screen.getByText('Category', { exact: true })).toBeVisible();
+    await expect(screen.getByText('Bench Press', { exact: true })).toBeVisible();
+    await expect(screen.getByText('Primary muscle', { exact: true })).toBeVisible();
+    await expect(screen.getByText('Chest', { exact: true }).first()).toBeVisible();
+    await expect(screen.getByText('Essentials', { exact: true })).toHaveCount(0);
+    await expect(screen.getByText('Training profile', { exact: true })).toHaveCount(0);
     await page.getByRole('button', { name: 'Change rest time, currently Default' }).click();
-    await expect(page.getByTestId('exercise-rest-selection-view')).toBeVisible();
-    await expect(page.getByText('Duration', { exact: true })).toBeVisible();
-    const restTimeTitle = page.getByText('Duration', { exact: true });
-    const defaultAction = page.getByRole('button', { name: 'Use default rest time' });
-    await expect(defaultAction).toBeVisible();
-    // Let the sheet's content-layout animation settle before measuring: the
-    // header positions shift while the surface eases to its new height, so an
-    // immediate boundingBox catches a transient mid-flight offset.
-    await page.waitForTimeout(300);
-    expect(Math.abs(((await defaultAction.boundingBox())?.y ?? 0) - ((await restTimeTitle.boundingBox())?.y ?? Infinity))).toBeLessThan(12);
-    const restPicker = page.getByTestId('exercise-rest-selection-list');
-    await page.waitForTimeout(250);
-    await expect(restPicker).toBeVisible();
-    await expect(page.getByTestId('exercise-detail-sheet-surface')).toHaveCount(1);
-    await page.getByRole('button', { name: 'Back to exercise details' }).click();
-    await expect(page.getByRole('button', { name: 'Change rest time, currently Default' })).toBeVisible();
-
-    // The rest override is picked on the shared duration wheel. The default rest
-    // is 01:30, so 01:40 sits within the wheel's window; scroll/tap selects it
-    // live and Back returns to the details.
-    await page.getByRole('button', { name: 'Change rest time, currently Default' }).click();
-    await restPicker.getByRole('button', { name: 'Rest duration 01:40' }).click();
-    await page.getByRole('button', { name: 'Back to exercise details' }).click();
+    const picker = page.getByTestId('exercise-rest-selection-list');
+    await expect(picker).toBeVisible();
+    await picker.getByRole('button', { name: 'Rest duration 01:40' }).click();
+    await page.getByRole('button', { name: 'Close Rest time', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Change rest time, currently 1:40' })).toBeVisible();
-
-    // The Default action clears the override back to the app default.
+    await page.getByRole('button', { name: 'Back from exercise info', exact: true }).click();
+    await page.getByRole('button', { name: 'Open Flat' }).first().click();
+    await expect(page.getByRole('button', { name: 'Change rest time, currently 1:40' })).toBeVisible();
     await page.getByRole('button', { name: 'Change rest time, currently 1:40' }).click();
-    await page.getByRole('button', { name: 'Use default rest time' }).click();
+    await page.getByRole('button', { name: 'Use default', exact: true }).click();
+    await page.getByRole('button', { name: 'Close Rest time', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Change rest time, currently Default' })).toBeVisible();
-    await page.getByRole('button', { name: 'Change rest time, currently Default' }).click();
-    await page.getByTestId('exercise-detail-sheet-backdrop').click({ position: { x: 4, y: 4 } });
-    await expect(page.getByTestId('exercise-rest-selection-view')).toHaveCount(0);
-    await expect(page.getByTestId('exercise-detail-sheet-surface')).toHaveCount(0);
+    await page.screenshot({ path: testInfo.outputPath('exercise-info-rest-default.png') });
   });
 
   test('adds a variation from a single exercise with its current equipment or a custom one', async ({ page }) => {
@@ -486,9 +464,7 @@ test.describe('Exercise library', () => {
     await page.getByRole('button', { name: 'Back to exercise form' }).click();
     await page.getByRole('button', { name: 'Save variation' }).click();
     await page.getByRole('button', { name: 'Open Rows' }).click();
-    const details = page.getByRole('dialog');
-    // The details view shows the custom exercise's sections/targets; its "..."
-    // options view (which marks it custom) holds Share / Edit / Delete.
+    const details = page.getByTestId('exercise-info-screen');
     await expect(details).toContainText('Mobility');
     await expect(details).toContainText('Lats');
     await expect(details).toContainText('Biceps');
@@ -496,5 +472,11 @@ test.describe('Exercise library', () => {
     await expect(page.getByRole('button', { name: 'Share exercise' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Edit exercise' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Delete exercise' })).toBeVisible();
+    await page.getByRole('button', { name: 'Edit exercise', exact: true }).click();
+    await expect(page.getByLabel('Exercise name')).toHaveValue('Custom Row');
+    await page.getByLabel('Exercise name').fill('Updated Custom Row');
+    await page.getByRole('button', { name: 'Save variation' }).click();
+    await page.getByRole('button', { name: 'Open Rows', exact: true }).click();
+    await expect(page.getByTestId('exercise-info-name')).toHaveText('Updated Custom Row');
   });
 });

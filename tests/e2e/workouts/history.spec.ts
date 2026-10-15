@@ -603,9 +603,9 @@ test.describe('History screen', () => {
     await sessionCard.getByRole('button', { name: 'Open Pull - Extension' }).click();
 
     // A native modal must not remain over the detail stack entry.
-    await expect(page.getByText('Exercise info', { exact: true })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Back to History' })).toBeVisible();
-    await page.getByRole('button', { name: 'Back to History' }).click();
+    await expect(page.getByTestId('exercise-info-screen')).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Back to exercise info' })).toBeVisible();
+    await page.getByRole('button', { name: 'Back to exercise info' }).click();
     await expect(page.getByText('Exercise info', { exact: true }).last()).toBeVisible();
     await expect(page.getByTestId('previous-session-card-pull-25')).toBeVisible();
   });

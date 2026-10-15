@@ -32,8 +32,11 @@ export function ExerciseDetailBody({
   onPressRest,
   secondaryRest,
   footer,
+  settingsFooter,
   bottomPadding,
+  presentation = 'sheet',
 }: {
+  presentation?: 'sheet' | 'screen';
   detail: ExerciseCatalogItem;
   workoutTypes: readonly WorkoutTypePreference[];
   restLabel: string;
@@ -42,12 +45,43 @@ export function ExerciseDetailBody({
   secondaryRest?: { title: string; value: string; onPress?: () => void };
   /** Extra content appended after the profile card (e.g. the unilateral section). */
   footer?: React.ReactNode;
+  settingsFooter?: React.ReactNode;
   /** Override the content's own bottom padding — a hosting sheet may already
    * provide clearance, so the default 30 would otherwise stack into dead space. */
   bottomPadding?: number;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
+  if (presentation === 'screen') {
+    const facts = [
+      ['Category', detail.category],
+      ['Equipment', detail.equipment],
+      ['Tracking', formatTrackingType(detail.trackingType)],
+      ['Movement family', detail.group],
+      ['Primary muscle', detail.primaryMuscle],
+      ...(detail.secondaryMuscles.length ? [['Secondary muscles', detail.secondaryMuscles.join(', ')]] : []),
+      ...(detail.workoutTypeIds.length ? [['Workout types', detail.workoutTypeIds.map(id => workoutTypes.find(type => type.id === id)?.name ?? id).join(', ')]] : []),
+    ].filter(([, value]) => Boolean(value));
+    return (
+      <View style={[styles.detailContent, bottomPadding !== undefined && { paddingBottom: bottomPadding }]}>
+        <View style={styles.openFacts}>
+          {facts.map(([label, value], index) => (
+            <View key={label} style={[styles.openFact, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }]}>
+              <Text style={styles.openFactLabel}>{label}</Text>
+              <Text style={styles.openFactValue}>{value}</Text>
+            </View>
+          ))}
+        </View>
+        <Text style={styles.detailSectionLabel}>Exercise settings</Text>
+        <ForgeCard style={styles.restTimeCard}>
+          <RestRow title="Rest time" value={restLabel} onPress={onPressRest} />
+          {secondaryRest ? <><View style={styles.restRowDivider} /><RestRow title={secondaryRest.title} value={secondaryRest.value} onPress={secondaryRest.onPress} /></> : null}
+          {settingsFooter ? <><View style={styles.restRowDivider} />{settingsFooter}</> : null}
+        </ForgeCard>
+        {footer}
+      </View>
+    );
+  }
   return (
     <View style={[styles.detailContent, bottomPadding !== undefined && { paddingBottom: bottomPadding }]}>
       <Text style={styles.detailSectionLabel}>Rest</Text>
@@ -156,28 +190,29 @@ function Fact({ label, value }: { label: string; value: string }) {
 export function UnilateralDetailSection({
   leadSide,
   onToggleLeadSide,
+  presentation = 'sheet',
 }: {
+  presentation?: 'sheet' | 'screen';
   leadSide: WorkoutSide;
   onToggleLeadSide?: () => void;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  return (
+  const row = (
+    <View style={styles.uniRow}>
+      <View style={styles.uniRowIcon}>
+        <Icon name="square-rounded-letter-s" size={scaleUI(20)} color={theme.textSecondary} />
+      </View>
+      <Text style={styles.uniRowTitle}>Leading side</Text>
+      {onToggleLeadSide ? (
+        <LeadingSideToggle value={leadSide} onChange={(side) => { if (side !== leadSide) onToggleLeadSide(); }} />
+      ) : <Text style={styles.uniRowValue}>{leadSide === 'right' ? 'Right' : 'Left'}</Text>}
+    </View>
+  );
+  return presentation === 'screen' ? row : (
     <>
       <Text style={styles.detailSectionLabel}>Unilateral</Text>
-      <ForgeCard variant="nested" style={styles.uniCard}>
-        <View style={styles.uniRow}>
-          <View style={styles.uniRowIcon}>
-            <Icon name="square-rounded-letter-s" size={scaleUI(20)} color={theme.textSecondary} />
-          </View>
-          <Text style={styles.uniRowTitle}>Leading side</Text>
-          {onToggleLeadSide ? (
-            <LeadingSideToggle value={leadSide} onChange={(side) => { if (side !== leadSide) onToggleLeadSide(); }} />
-          ) : (
-            <Text style={styles.uniRowValue}>{leadSide === 'right' ? 'Right' : 'Left'}</Text>
-          )}
-        </View>
-      </ForgeCard>
+      <ForgeCard variant="nested" style={styles.uniCard}>{row}</ForgeCard>
     </>
   );
 }
@@ -217,6 +252,10 @@ function LeadingSideToggle({ value, onChange }: { value: WorkoutSide; onChange: 
 
 const createStyles = (theme: ForgeTheme) =>
   StyleSheet.create({
+    openFacts: { marginBottom: scaleUI(16) },
+    openFact: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: scaleUI(20), paddingVertical: scaleUI(15) },
+    openFactLabel: { flex: 1, minWidth: 0, ...typeScale.body, color: theme.textSecondary },
+    openFactValue: { flex: 1.3, minWidth: 0, textAlign: 'right', ...typeScale.body, color: theme.textPrimary },
     detailContent: { paddingHorizontal: 20, paddingBottom: 30, paddingTop: 2, gap: 8 },
     detailSectionLabel: { marginTop: 8, marginLeft: 6, color: theme.textPrimary, ...typeScale.sectionTitle },
     restTimeCard: { overflow: 'hidden', borderRadius: scaleUI(18) },

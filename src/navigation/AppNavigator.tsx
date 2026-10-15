@@ -6,6 +6,7 @@ import React, { useMemo } from 'react';
 import { DarkTheme, DefaultTheme, NavigationContainer, useNavigationContainerRef, type LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { enableFreeze } from 'react-native-screens';
+import { ExerciseInfoScreen } from '../screens/ExerciseInfoScreen';
 import { WorkoutDetailsScreen } from '../screens/WorkoutDetailsScreen';
 import { HistoryWorkoutEditorScreen } from '../screens/HistoryWorkoutEditorScreen';
 import { RoutineEditorScreen } from '../screens/RoutineEditorScreen';
@@ -93,6 +94,7 @@ export function AppNavigator() {
         }}
       >
         <Stack.Screen name="MainTabs" component={RecoverableMainTabs} options={{ gestureEnabled: false }} />
+        <Stack.Screen name="ExerciseInfo" component={ExerciseInfoScreen} options={{ gestureEnabled: true }} />
         <Stack.Screen name="WorkoutDetails" component={WorkoutDetailsScreen} options={{ gestureEnabled: true }} />
         <Stack.Screen
           name="HistoryWorkoutEditor"

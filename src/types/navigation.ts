@@ -1,3 +1,4 @@
+import type { WorkoutExercise } from './workout';
 import type {
   CompositeNavigationProp,
   CompositeScreenProps,
@@ -16,6 +17,13 @@ export type RootTabParamList = {
 
 export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<RootTabParamList> | undefined;
+  ExerciseInfo: {
+    exercise: WorkoutExercise;
+    initialTab?: 'info' | 'progress' | 'history';
+    excludeWorkoutId?: string;
+    readOnly?: boolean;
+    fromLibrary?: boolean;
+  };
   WorkoutDetails: {
     workoutId: string;
     returnTo?: 'History' | 'ActiveWorkout';
@@ -33,7 +41,7 @@ export type RootStackParamList = {
   GeneralSettings: undefined;
   DailyMeasurements: { metricId?: string } | undefined;
   ExerciseLibrary: undefined;
-  ExerciseBrowser: { workoutTypeId?: string; custom?: boolean } | undefined;
+  ExerciseBrowser: { workoutTypeId?: string; custom?: boolean; editExerciseId?: string } | undefined;
   WorkoutTypes: undefined;
   WorkoutTypeUsage: { workoutTypeId: string; kind: 'workouts' | 'routines' };
   WorkoutTypeEditor:

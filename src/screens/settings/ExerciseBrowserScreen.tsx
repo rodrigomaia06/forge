@@ -1,7 +1,3 @@
-import { ExerciseInfoTabs, type ExerciseInfoTab, type ExerciseInfoReview,
-  type ExerciseInfoHeader,
-} from '../../components/exerciseInfo/ExerciseInfoTabs';
-import { useWorkouts } from '../../state/WorkoutContext';
 import { scaleUI } from '../../theme/scale';
 import { useIsFocused } from '@react-navigation/native';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
@@ -34,7 +30,6 @@ import {
   ForgeSearchField,
   ForgeSheetHeader,
   ForgeSwitch,
-  ForgeDurationWheel,
   ForgeText as Text,
   ForgeTextInput as TextInput,
   HeaderAction,
@@ -44,10 +39,9 @@ import {
   selectionHaptic,
   SwipeToDeleteRow,
   UnilateralBadge,
-  useAfterSheetClose,
 } from '../../components/ui';
 import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
-import { ExerciseDetailBody, UnilateralDetailSection } from '../../components/ExerciseDetailBody';
+import { createExerciseSnapshot } from '../../domain/exercises/exerciseSnapshot';
 import {
   catalogFilterCount,
   emptyCatalogFilters,
@@ -62,7 +56,7 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useForgeReducedMotion } from '../../theme/motion';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import type { IconName, RootStackParamList, WorkoutSide } from '../../types';
+import type { IconName, RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { workoutTypeIcon } from './workoutTypeIcon';
 import {
@@ -71,11 +65,9 @@ import {
   groupCatalogByMovement,
 } from '../../domain/exercises/catalogSelectors';
 import { formatCatalogVariation } from '../../domain/exercises/exercisePresentation';
-import { shareItem } from '../../utils/shareItem';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExerciseBrowser'>;
-type DetailSheetView = 'details' | 'restTime' | 'restTimeUnilateral' | 'options';
 type ExerciseFormView =
   | 'details'
   | 'category'
@@ -100,17 +92,8 @@ function customVariationFacets(value: string): import('../../types').ExerciseVar
 }
 
 const EMPTY_ITEMS: ExerciseCatalogItem[] = [];
-// A shared height floor for every detail-sheet sub-view (details / options /
-// rest wheel). The sheet snaps between views without an animated relayout, and
-// a native Modal reliably grows but only intermittently SHRINKS its surface —
-// so returning from the tall rest-wheel view to a shorter one could leave the
-// content sitting low with dead space. Keeping all sub-views at or above one
-// floor means the surface never has to shrink, which removes that race.
-const DETAIL_SHEET_MIN_HEIGHT = 400;
-// A picker's first synchronous render is capped to a screenful; the rest fill
-// in on the next frame so a long list can't stall the sheet's open animation.
+// Limit the first picker render so its shell can open before longer lists fill in.
 const FORM_OPTION_INITIAL_RENDER = 40;
-
 export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const { bottom: bottomInset } = useSafeAreaInsets();
   const theme = useForgeTheme();
@@ -118,16 +101,8 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const reducedMotion = useForgeReducedMotion();
   const { height: viewportHeight } = useWindowDimensions();
   const floatingCtaClearance = useForgeFloatingCtaClearance();
-  const { preferences, updatePreferences } = useSettings();
-  const { completedWorkouts } = useWorkouts();
-  const [infoReview, setInfoReview] = useState<ExerciseInfoReview>({});
-  const [infoTab, setInfoTab] = useState<ExerciseInfoTab>('info');
-  const [infoHeader, setInfoHeader] = useState<ExerciseInfoHeader | null>(null);
+  const { preferences } = useSettings();
   const isFocused = useIsFocused();
-  const returningDetail = useRef<ExerciseCatalogItem | null>(null);
-  useEffect(() => {
-    if (isFocused && returningDetail.current) { setDetail(returningDetail.current); returningDetail.current = null; }
-  }, [isFocused]);
   const catalog = useExerciseCatalog();
   const fixedTypeId = route.params?.workoutTypeId;
   const customOnly = route.params?.custom === true;
@@ -154,11 +129,6 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   const [unilateral, setUnilateral] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [editing, setEditing] = useState<ExerciseCatalogItem | null>(null);
-  const [detail, setDetail] = useState<ExerciseCatalogItem | null>(null);
-  const [detailSheetView, setDetailSheetView] = useState<DetailSheetView>('details');
-  const historyExercise = useMemo(() => detail ? { id: detail.id, exerciseId: detail.id, name: detail.name, trackingType: detail.trackingType, sets: [] } : null, [detail]);
-  // Open the edit form only after the detail sheet has fully dismissed.
-  const { runAfterClose, onClosed: onDetailClosed } = useAfterSheetClose();
   const savingVariation = useRef(false);
   const source = customOnly ? catalog.customExercises : catalog.exercises;
   // The header, Back, and search field mount immediately. The full-catalogue
@@ -307,14 +277,6 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     (item: ExerciseCatalogItem) => catalog.customExercises.some((custom) => custom.id === item.id),
     [catalog.customExercises],
   );
-  const restOverride = (item: ExerciseCatalogItem) =>
-    isCustom(item) ? item.restSeconds : preferences.exerciseRestSeconds[item.id];
-  const restLabel = (item: ExerciseCatalogItem) => {
-    const value = restOverride(item);
-    return value === undefined
-      ? 'Default'
-      : `${Math.floor(value / 60)}:${String(value % 60).padStart(2, '0')}`;
-  };
   const openCreate = useCallback((parent: string | null) => {
     lightHaptic();
     // Don't carry a search keyboard from the list into the form.
@@ -349,11 +311,19 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     setExpanded((current) => (current === movement ? null : movement));
   }, []);
   const handleOpenExercise = useCallback((item: ExerciseCatalogItem) => {
-    setInfoTab('info');
-    setInfoReview({});
-    setDetailSheetView('details');
-    setDetail(item);
-  }, []);
+    Keyboard.dismiss();
+    navigation.push('ExerciseInfo', {
+      exercise: {
+        id: item.id,
+        exerciseId: item.id,
+        name: item.name,
+        trackingType: item.trackingType,
+        exerciseSnapshot: createExerciseSnapshot(item),
+        sets: [],
+      },
+      fromLibrary: true,
+    });
+  }, [navigation]);
   const handleRemoveExercise = useCallback(
     (item: ExerciseCatalogItem) => catalog.removeCustomExercise(item.id),
     [catalog],
@@ -362,7 +332,6 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     lightHaptic();
     Keyboard.dismiss();
     savingVariation.current = false;
-    setDetail(null);
     setFormView('details');
     setEditing(item);
     setName(item.variation || item.name);
@@ -382,6 +351,13 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     setUnilateral(item.laterality === 'unilateral');
     setFormParent(item.group);
   };
+  useEffect(() => {
+    const id = route.params?.editExerciseId;
+    if (!isFocused || !id) return;
+    const item = catalog.customExercises.find((exercise) => exercise.id === id);
+    navigation.setParams({ editExerciseId: undefined });
+    if (item) openEdit(item);
+  }, [isFocused, route.params?.editExerciseId, catalog.customExercises, navigation]);
   const save = (): boolean => {
     if (!name.trim() || savingVariation.current) return false;
     savingVariation.current = true;
@@ -431,57 +407,6 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
     setEquipmentDraft((current) => current.includes(value)
       ? current.filter((item) => item !== value)
       : [...current, value]);
-  };
-  const setRestOverride = (item: ExerciseCatalogItem, seconds: number | undefined) => {
-    if (isCustom(item)) {
-      catalog.updateCustomExercise({ ...item, restSeconds: seconds });
-    } else {
-      const next = { ...preferences.exerciseRestSeconds };
-      if (seconds === undefined) delete next[item.id];
-      else next[item.id] = seconds;
-      updatePreferences({ exerciseRestSeconds: next });
-    }
-    setDetail((current) =>
-      current && current.id === item.id ? { ...current, restSeconds: seconds } : current,
-    );
-  };
-  const chooseRestOverride = (item: ExerciseCatalogItem, seconds: number | undefined) => {
-    if (restOverride(item) === seconds) return;
-    setRestOverride(item, seconds);
-  };
-  // Unilateral defaults (between-sides rest and leading side) are global
-  // per-exercise preferences keyed by exercise id — the same values the live
-  // workout's Exercise info edits, so the library and workout stay in sync.
-  const unilateralRestOverride = (item: ExerciseCatalogItem) => preferences.exerciseUnilateralRestSeconds[item.id];
-  const unilateralRestLabel = (item: ExerciseCatalogItem) => {
-    const value = unilateralRestOverride(item);
-    return value === undefined
-      ? 'Default'
-      : `${Math.floor(value / 60)}:${String(value % 60).padStart(2, '0')}`;
-  };
-  const chooseUnilateralRestOverride = (item: ExerciseCatalogItem, seconds: number | undefined) => {
-    if (unilateralRestOverride(item) === seconds) return;
-    const next = { ...preferences.exerciseUnilateralRestSeconds };
-    if (seconds === undefined) delete next[item.id];
-    else next[item.id] = seconds;
-    updatePreferences({ exerciseUnilateralRestSeconds: next });
-  };
-  const leadSide = (item: ExerciseCatalogItem): WorkoutSide => preferences.exerciseLeadSide[item.id] ?? 'left';
-  const toggleLeadSide = (item: ExerciseCatalogItem) => {
-    selectionHaptic();
-    updatePreferences({
-      exerciseLeadSide: { ...preferences.exerciseLeadSide, [item.id]: leadSide(item) === 'left' ? 'right' : 'left' },
-    });
-  };
-  // The detail sheet is a multi-view sheet whose views differ a lot in height
-  // (a tall scrollable details body, a short options list, a 400pt rest wheel).
-  // Per ForgeActionSheet's guidance, the reanimated `layout` transition can
-  // fail to shrink a native Modal surface back for cases like this, leaving the
-  // shorter view sitting low with dead space — so this sheet snaps between views
-  // (animateContentLayout off) rather than easing, and its swap runs no
-  // LayoutAnimation either.
-  const transitionDetailSheet = (nextView: DetailSheetView) => {
-    setDetailSheetView(nextView);
   };
   // The form sheet has no reanimated content layout, so it animates its own
   // view swaps with LayoutAnimation.
@@ -955,254 +880,8 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
             </View>
           )}
         </ForgeBottomSheet>
-        <ForgeBottomSheet
-          visible={detail !== null}
-          onClose={() => {
-            setDetail(null);
-            setDetailSheetView('details');
-          }}
-          onClosed={onDetailClosed}
-          onBackRequest={() => {
-            if (infoHeader && detailSheetView === 'details') {
-              infoHeader.onBack();
-              return true;
-            }
-            if (detailSheetView === 'details') return false;
-            transitionDetailSheet('details');
-            return true;
-          }}
-          accessibilityLabel="Close exercise details"
-          backdropTestID="exercise-detail-sheet-backdrop"
-          surfaceTestID="exercise-detail-sheet-surface"
-        >
-          {(close) =>
-            detail &&
-            (detailSheetView === 'restTime' ? (
-              <View testID="exercise-rest-selection-view" style={styles.restTimeSheet}>
-                <ForgeBottomSheetHandle />
-                <ForgeSheetHeader
-                  title="Duration"
-                  leading={
-                    <ForgeBackButton
-                      accessibilityLabel="Back to exercise details"
-                      onPress={() => transitionDetailSheet('details')}
-                    />
-                  }
-                  trailing={
-                    <HeaderAction
-                      accessibilityLabel="Use default rest time"
-                      label="Default"
-                      icon="time-outline"
-                      variant="secondary"
-                      haptic="none"
-                      onPress={() => {
-                        selectionHaptic();
-                        chooseRestOverride(detail, undefined);
-                        transitionDetailSheet('details');
-                      }}
-                      style={[
-                        styles.restTimeDefaultAction,
-                        restOverride(detail) === undefined && styles.restTimeDefaultActionSelected,
-                      ]}
-                    />
-                  }
-                />
-                <View testID="exercise-rest-selection-list" style={styles.restTimePickerContent}>
-                  <ForgeDurationWheel
-                    selectedDuration={restOverride(detail) ?? preferences.defaultRestSeconds}
-                    onSelect={(value) => chooseRestOverride(detail, value)}
-                  />
-                </View>
-              </View>
-            ) : detailSheetView === 'restTimeUnilateral' ? (
-              <View testID="exercise-unilateral-rest-selection-view" style={styles.restTimeSheet}>
-                <ForgeBottomSheetHandle />
-                <ForgeSheetHeader
-                  title="Side rest"
-                  leading={
-                    <ForgeBackButton
-                      accessibilityLabel="Back to exercise details"
-                      onPress={() => transitionDetailSheet('details')}
-                    />
-                  }
-                  trailing={
-                    <HeaderAction
-                      accessibilityLabel="Use default between-sides rest"
-                      label="Default"
-                      icon="time-outline"
-                      variant="secondary"
-                      haptic="none"
-                      onPress={() => {
-                        selectionHaptic();
-                        chooseUnilateralRestOverride(detail, undefined);
-                        transitionDetailSheet('details');
-                      }}
-                      style={[
-                        styles.restTimeDefaultAction,
-                        unilateralRestOverride(detail) === undefined && styles.restTimeDefaultActionSelected,
-                      ]}
-                    />
-                  }
-                />
-                <View testID="exercise-unilateral-rest-selection-list" style={styles.restTimePickerContent}>
-                  <ForgeDurationWheel
-                    selectedDuration={unilateralRestOverride(detail) ?? preferences.defaultUnilateralRestSeconds}
-                    onSelect={(value) => chooseUnilateralRestOverride(detail, value)}
-                  />
-                </View>
-              </View>
-            ) : detailSheetView === 'options' ? (
-              <View style={styles.detailSheet}>
-                <ForgeBottomSheetHandle />
-                <ForgeSheetHeader
-                  title="Options"
-                  compactTitle
-                  leading={
-                    <ForgeBackButton
-                      accessibilityLabel="Back to exercise details"
-                      onPress={() => transitionDetailSheet('details')}
-                    />
-                  }
-                />
-                <View style={styles.optionsList}>
-                  <ForgeCard variant="nested" size="compact">
-                    <ExerciseOptionRow
-                      icon="share"
-                      label="Share exercise"
-                      onPress={() => {
-                        // Present the OS share sheet only after this sheet has fully
-                        // closed — iOS won't present it while a modal is dismissing.
-                        const target = detail;
-                        runAfterClose(() => shareItem({ kind: 'exercise', id: target.id }));
-                        close();
-                      }}
-                    />
-                    <ExerciseOptionRow
-                      icon="note"
-                      label="Edit exercise"
-                      divider
-                      onPress={() => {
-                        // Open the edit form only after the detail sheet has fully
-                        // dismissed; iOS drops a Modal presented while another is
-                        // still closing.
-                        const target = detail;
-                        runAfterClose(() => openEdit(target));
-                        close();
-                      }}
-                    />
-                    <ExerciseOptionRow
-                      icon="trash"
-                      label="Delete exercise"
-                      destructive
-                      divider
-                      onPress={() => {
-                        catalog.removeCustomExercise(detail.id);
-                        close();
-                      }}
-                    />
-                  </ForgeCard>
-                </View>
-              </View>
-            ) : (
-              <>
-                <ForgeBottomSheetHandle />
-                <ForgeSheetHeader
-                  title={infoHeader?.title ?? detail.name}
-                  titleNumberOfLines={2}
-                  onClose={close}
-                  closeAccessibilityLabel="Close exercise details"
-                  // Custom exercises get a "..." that opens an in-sheet options
-                  // view (Share / Edit / Delete). Keep one control per side —
-                  // Close left, "..." right — so a long name never overlaps them.
-                  closePosition={isCustom(detail) && !infoHeader ? 'left' : 'right'}
-                  leading={
-                    infoHeader ? (
-                      <ForgeBackButton
-                        accessibilityLabel={infoHeader.backLabel}
-                        onPress={infoHeader.onBack}
-                        disabled={infoHeader.backDisabled}
-                      />
-                    ) : undefined
-                  }
-                  trailing={
-                    isCustom(detail) && !infoHeader ? (
-                      <HeaderAction
-                        accessibilityLabel="Exercise options"
-                        icon="ellipsis-horizontal"
-                        iconOnly
-                        variant="ghost"
-                        onPress={() => transitionDetailSheet('options')}
-                        style={{ backgroundColor: theme.surfaceMuted }}
-                      />
-                    ) : undefined
-                  }
-                />
-                <ExerciseInfoTabs
-                  exercise={historyExercise!}
-                  workouts={completedWorkouts}
-                  tab={infoTab} onTabChange={setInfoTab}
-                  review={infoReview} onReviewChange={setInfoReview}
-                  onHeaderChange={setInfoHeader}
-                  onOpenWorkout={(workoutId) => {
-                    returningDetail.current = detail;
-                    runAfterClose(() => navigation.navigate('WorkoutDetails', { workoutId, backAccessibilityLabel: 'Back to exercises' }));
-                    close();
-                  }}
-                  info={<ForgeSheetScrollView contentContainerStyle={{ paddingBottom: 12 }}>
-                  <ExerciseDetailBody
-                    detail={detail}
-                    workoutTypes={preferences.workoutTypes}
-                    restLabel={restLabel(detail)}
-                    onPressRest={() => transitionDetailSheet('restTime')}
-                    bottomPadding={Math.max(30, bottomInset + 20)}
-                    secondaryRest={detail.laterality === 'unilateral' ? {
-                      title: 'Between sides',
-                      value: unilateralRestLabel(detail),
-                      onPress: () => transitionDetailSheet('restTimeUnilateral'),
-                    } : undefined}
-                    footer={detail.laterality === 'unilateral' ? (
-                      <UnilateralDetailSection
-                        leadSide={leadSide(detail)}
-                        onToggleLeadSide={() => toggleLeadSide(detail)}
-                      />
-                    ) : undefined}
-                  />
-                  </ForgeSheetScrollView>}
-                />
-              </>
-            ))
-          }
-        </ForgeBottomSheet>
       </View>
     </AppScreen>
-  );
-}
-
-function ExerciseOptionRow({
-  icon,
-  label,
-  destructive = false,
-  divider = false,
-  onPress,
-}: {
-  icon: IconName;
-  label: string;
-  destructive?: boolean;
-  divider?: boolean;
-  onPress: () => void;
-}) {
-  const theme = useForgeTheme();
-  const styles = useThemedStyles(createStyles);
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={({ pressed }) => [styles.optionRow, divider && styles.optionDivider, pressed && pressedFeedback]}
-    >
-      <Icon name={icon} size={20} color={destructive ? theme.textDestructive : theme.textSecondary} />
-      <Text style={[styles.optionLabel, { color: destructive ? theme.textDestructive : theme.textPrimary }]}>{label}</Text>
-    </Pressable>
   );
 }
 
@@ -1617,8 +1296,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     },
     empty: { paddingTop: 60, alignItems: 'center' },
     formSheet: { alignSelf: 'stretch', flexShrink: 1 },
-    detailSheet: { minHeight: DETAIL_SHEET_MIN_HEIGHT },
-    restTimeSheet: { minHeight: DETAIL_SHEET_MIN_HEIGHT },
     restTimeDefaultAction: {
       minWidth: 112,
       paddingHorizontal: 12,

@@ -15,6 +15,7 @@ for (const appearance of ['light', 'dark']) {
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Exercises', exact: true }).click();
     await page.getByRole('button', { name: /^All exercises, \d+ exercises$/ }).click();
+    await expect(page.getByTestId('exercise-browser-loading')).toHaveCount(0);
     await page.getByLabel('Search exercises', { exact: true }).fill('Long triceps');
     await page.getByRole('button', { name: 'Long triceps & 2 variations', exact: true }).click();
     const row = page.getByRole('button', { name: `Open ${title}`, exact: true });
@@ -32,6 +33,24 @@ for (const appearance of ['light', 'dark']) {
     expect(geometry.clamp).toBe('2');
     await page.screenshot({ path: info.outputPath(`long-exercise-${appearance}.png`) });
     await row.click();
-    await expect(page.getByTestId('exercise-detail-sheet-surface').getByRole('button', { name: 'Close exercise details', exact: true })).toBeVisible();
+    await expect(page.getByTestId('exercise-info-screen').getByRole('button', { name: 'Back from exercise info', exact: true })).toBeVisible();
+    await expect(page.getByTestId('exercise-info-name')).toHaveText(title);
+    expect(await page.getByTestId('exercise-info-name').evaluate(node => parseFloat(getComputedStyle(node).fontSize))).toBeLessThanOrEqual(23);
+    await page.screenshot({ path: info.outputPath(`long-exercise-info-${appearance}.png`) });
+    const rightSide = page.getByRole('button', { name: 'Lead with the right side', exact: true });
+    await rightSide.scrollIntoViewIfNeeded();
+    await rightSide.click();
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('@forge/settings-preferences')!).exerciseLeadSide?.['custom-long-0'])).toBe('right');
+    await page.getByTestId('exercise-info-content').evaluate(root => {
+      const scroller = [root, ...root.querySelectorAll('*')].find(node =>
+        /auto|scroll/.test(getComputedStyle(node).overflowY) && node.scrollHeight > node.clientHeight + 1,
+      );
+      if (scroller) scroller.scrollTop = scroller.scrollHeight;
+    });
+    await expect(page.getByText('Leading side', { exact: true }).locator('..')).toBeInViewport({ ratio: 1 });
+    // The shared side indicator takes 190ms to reach its selected position.
+    await page.waitForTimeout(220);
+    await page.screenshot({ path: info.outputPath(`long-exercise-settings-${appearance}.png`) });
+    await page.getByRole('button', { name: 'Lead with the left side', exact: true }).click();
   });
 }
