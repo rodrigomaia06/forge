@@ -5,7 +5,7 @@ import { BlurView } from 'expo-blur';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import {
   ForgeControlSurface,
-  resolveForgeControlFill,
+  resolveForgeHeaderFill,
   useForgeControlSurface,
 } from './ForgeControlSurface';
 
@@ -26,12 +26,7 @@ export function HeaderActionGroup({
 }) {
   const theme = useForgeTheme();
   const parentSurface = useForgeControlSurface();
-  const surface =
-    theme.colorScheme === 'dark'
-      ? parentSurface === theme.surfaceMuted
-        ? theme.surfaceElevated
-        : theme.surfaceMuted
-      : resolveForgeControlFill(theme, parentSurface);
+  const surface = resolveForgeHeaderFill(theme, parentSurface);
   const items = React.Children.toArray(children).filter(Boolean);
   return (
     <View

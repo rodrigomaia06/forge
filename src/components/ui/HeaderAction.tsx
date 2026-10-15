@@ -5,7 +5,7 @@ import { BlurView } from 'expo-blur';
 import type { IconName, IconWeight } from '../../types';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { Button } from './Button';
-import { resolveForgeControlFill, useForgeControlSurface } from './ForgeControlSurface';
+import { resolveForgeHeaderFill, useForgeControlSurface } from './ForgeControlSurface';
 import { JoinedHeaderActionContext } from './HeaderActionGroup';
 
 interface HeaderActionProps {
@@ -71,12 +71,7 @@ export function HeaderAction({
   const theme = useForgeTheme();
   const parentSurface = useForgeControlSurface();
   const joined = React.useContext(JoinedHeaderActionContext);
-  const raisedFill =
-    theme.colorScheme === 'dark'
-      ? parentSurface === theme.surfaceMuted
-        ? theme.surfaceElevated
-        : theme.surfaceMuted
-      : resolveForgeControlFill(theme, parentSurface);
+  const raisedFill = resolveForgeHeaderFill(theme, parentSurface);
   const isBackControl = iconOnly && icon === 'chevron-back';
   // Icon-only circular header/sheet controls are borderless in BOTH themes — they
   // separate by their tonal/frosted surface against the header, never a grey ring.
@@ -90,7 +85,7 @@ export function HeaderAction({
     styles.iconOnly,
     styles.frostedCircle,
     style,
-    { backgroundColor: 'transparent' },
+    { backgroundColor: raisedFill },
   ];
   const surface = StyleSheet.flatten<ViewStyle>(surfaceStyle);
   const layerShape = {

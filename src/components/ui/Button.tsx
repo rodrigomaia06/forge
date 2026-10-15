@@ -62,10 +62,7 @@ export function Button({
   const resolvedTheme = theme ?? contextTheme ?? colors;
   const parentSurface = useForgeControlSurface();
   const controlFill = resolveForgeControlFill(resolvedTheme, parentSurface);
-  const disabledFill =
-    parentSurface === resolvedTheme.surfaceMuted
-      ? resolvedTheme.surfaceElevated
-      : resolvedTheme.surfaceMuted;
+  const disabledFill = controlFill;
   const isPrimary = variant === 'primary';
   const isOutline = variant === 'outline';
   const isGhost = variant === 'ghost';
@@ -98,7 +95,7 @@ export function Button({
         // The `outline` variant keeps its 2px ring in BOTH themes — if a button is
         // outlined in Dark it is outlined in Light too (the deepened Light `border`
         // token makes the neutral ring visible). `secondary`/ghost stay borderless;
-        // Light secondary separates by its elevated fill + the card shadow.
+        // Light secondary separates by its tonal fill + the card shadow.
         isOutline && styles.outline,
         borderless &&
           !isPrimary &&

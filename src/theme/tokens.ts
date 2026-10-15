@@ -62,7 +62,7 @@ export const lightTheme: ForgeTheme = {
   muted: '#8A969E',
   // Divider stays a hairline tone for row separators; `border` is deepened so the
   // few elements that keep an outline (search/text fields) actually show one on light.
-  divider: '#E2E3E0',
+  divider: '#C9CCC6',
   border: '#CDCFC9',
   pressed: 'rgba(23,25,28,0.14)',
   focus: '#1D252D',
