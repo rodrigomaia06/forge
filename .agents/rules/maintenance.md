@@ -91,6 +91,12 @@ Every implementation change must be verified, but verification should remain sco
 - Run the complete verification suite only when the change itself is repository-wide and the full suite is the smallest correct scope, or when the user explicitly requests it.
 - Report the exact checks executed and identify any affected behavior that could not be verified.
 
+### Exploratory browser checks through MCP
+
+When Playwright browser tools are available through MCP, use them for exploratory UI checks, reproducing reported problems, and interactive diagnosis with snapshots, screenshots, console messages, and network inspection. This guidance is provider-independent: do not require a particular connector or plugin. If suitable MCP tools are unavailable, continue with the repository's existing verification tools without blocking the task.
+
+MCP exploration complements the repository's automated tests; it does not replace required typechecks, targeted regression tests, or the phone-profile screenshot checks below. Add a meaningful repository regression test when exploration identifies a reproducible failure that warrants lasting coverage. Browser checks do not validate native Swift/Kotlin behavior or system keyboards. Do not use MCP tools to bypass the verification capacity policy below.
+
 ### Verification capacity
 
 All agents must run verification through `npm run typecheck`, `npm run test:visual -- <targeted arguments>`, or `npm run verify:run -- <command> <arguments>`. These entry points enforce `scripts/verification-budget.mjs`: reduced scheduling priority on every existing thread and a shared CPU-affinity pool containing at most two thirds of the initially available CPUs, rounded down with a minimum of one. Child processes, browsers and the Playwright web-server/Metro export inherit the same pool; nested wrappers reuse the baseline instead of reducing it again. Agent processes must use the same lowest-ID pool so parallel agents cannot collectively consume all cores. Worker counts alone are not a CPU limit.
