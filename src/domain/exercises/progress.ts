@@ -76,7 +76,7 @@ export function metricLabel(metric: ProgressMetric, mode: TrackingType): string 
       : mode.startsWith('weighted-bodyweight')
         ? 'Added weight'
         : 'Weight',
-    volume: 'Session volume',
+    volume: 'Volume',
     'best-reps': 'Best-set reps',
     'total-reps': 'Session reps',
     'longest-duration': 'Longest set',

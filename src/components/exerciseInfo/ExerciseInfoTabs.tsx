@@ -1,14 +1,7 @@
-import { formatProgressValue } from '../../domain/exercises/progressPresentation';
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import {
-  Button,
-  ForgeCard,
-  ForgeText as Text,
-  ForgeSegmentedSwitch,
-  ForgeSingleSelectList,
-  Icon,
-} from '../ui';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { ForgeText as Text, ForgeSegmentedSwitch } from '../ui';
+import { ForgeDropdown } from '../ui/ForgeDropdown';
 import { ForgeSheetScrollView } from '../ui/ForgeSheetScrollView';
 import { ForgeLineChart } from '../charts/ForgeLineChart';
 import { ExerciseHistory } from './ExerciseHistory';
@@ -19,14 +12,15 @@ import {
   metricsFor,
   metricLabel,
   progressInRange,
-  progressScope,
   type ProgressMetric,
 } from '../../domain/exercises/progress';
+import { formatProgressValue } from '../../domain/exercises/progressPresentation';
 import { useSettings } from '../../state/SettingsContext';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
 import { scaleUI } from '../../theme/scale';
 import type { Workout, WorkoutExercise } from '../../types';
+
 export type ExerciseInfoTab = 'info' | 'progress' | 'history';
 export type ExerciseInfoHeader = {
   title: string;
@@ -40,18 +34,18 @@ export type ExerciseInfoReview = {
   expanded?: boolean;
   offset?: number;
 };
-
 const tabs = [
   { value: 'info', label: 'Info', icon: 'note' },
   { value: 'progress', label: 'Progress', icon: 'activity' },
   { value: 'history', label: 'History', icon: 'time' },
 ] as const;
 const ranges = [
-  { value: '7', label: '7d', icon: 'calendar' },
-  { value: '30', label: '30d', icon: 'calendar' },
-  { value: '90', label: '90d', icon: 'calendar' },
-  { value: 'all', label: 'All', icon: 'calendar' },
+  { value: '7', label: '7d' },
+  { value: '30', label: '30d' },
+  { value: '90', label: '90d' },
+  { value: 'all', label: 'All' },
 ] as const;
+
 export function ExerciseInfoTabs({
   exercise,
   workouts,
@@ -63,6 +57,9 @@ export function ExerciseInfoTabs({
   review: controlledReview,
   onReviewChange,
   onHeaderChange,
+  presentation = 'sheet',
+  bottomInset = 0,
+  onScrollOffsetChange,
 }: {
   exercise: WorkoutExercise;
   workouts: readonly Workout[];
@@ -74,13 +71,14 @@ export function ExerciseInfoTabs({
   review?: ExerciseInfoReview;
   onReviewChange?: (review: ExerciseInfoReview) => void;
   onHeaderChange?: (header: ExerciseInfoHeader | null) => void;
+  presentation?: 'sheet' | 'screen';
+  bottomInset?: number;
+  onScrollOffsetChange?: (offset: number) => void;
 }) {
   const theme = useForgeTheme();
-  const { preferences, updatePreferences } = useSettings();
+  const { preferences } = useSettings();
   const [ownTab, setOwnTab] = useState<ExerciseInfoTab>('info');
   const tab = controlledTab ?? ownTab;
-  const mode = effectiveTracking(exercise);
-  const metrics = metricsFor(mode);
   const [ownReview, setOwnReview] = useState<ExerciseInfoReview>({});
   const review = controlledReview ?? ownReview;
   const latestReview = useRef(review);
@@ -91,40 +89,18 @@ export function ExerciseInfoTabs({
     if (onReviewChange) onReviewChange(next);
     else setOwnReview(next);
   };
-  const metric = review.metric && metrics.includes(review.metric) ? review.metric : metrics[0];
-  const range = review.range ?? '90';
-  const expanded = review.expanded ?? false;
-  const offset = review.offset ?? 0;
-  const [selector, setSelector] = useState<'metric' | 'range' | null>(null);
-  const [overrideId, setOverrideId] = useState<string | null>(null);
-  const [choice, setChoice] = useState('auto');
-  const [saveError, setSaveError] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const header = useMemo<ExerciseInfoHeader | null>(
-    () =>
-      selector
-        ? {
-            title: selector === 'range' ? 'Date range' : 'Metric',
-            backLabel: tab === 'history' ? 'Back to history' : 'Back to progress',
-            backDisabled: false,
-            onBack: () => setSelector(null),
-          }
-        : overrideId
-          ? {
-              title: 'Filtering',
-              backLabel: 'Back to history',
-              backDisabled: saving,
-              onBack: () => {
-                if (!saving) setOverrideId(null);
-              },
-            }
-          : null,
-    [selector, overrideId, saving, tab],
-  );
   useLayoutEffect(() => {
-    onHeaderChange?.(header);
-    return () => onHeaderChange?.(null);
-  }, [header, onHeaderChange]);
+    onHeaderChange?.(null);
+  }, [onHeaderChange]);
+  const mode = effectiveTracking(exercise);
+  const metrics = metricsFor(mode);
+  const metric =
+    review.metric && metrics.includes(review.metric)
+      ? review.metric
+      : metrics.includes('volume')
+        ? 'volume'
+        : metrics[0];
+  const range = review.range ?? '90';
   const sessions = useMemo(
     () =>
       exerciseSessions(exercise, workouts).filter(
@@ -137,220 +113,116 @@ export function ExerciseInfoTabs({
     [exercise, sessions, metric, preferences.exerciseProgressOverrides],
   );
   const visible = progressInRange(points, range === 'all' ? 'all' : Number(range));
-  const chartPoints = visible.filter((point) => !point.excluded);
-  const formatValue = (value: number) => formatProgressValue(metric, value, preferences.units);
-  const saveOverride = async () => {
-    if (!overrideId || saving) return;
-    setSaving(true);
-    const scope = progressScope(exercise, metric);
-    const records = { ...preferences.exerciseProgressOverrides[scope] };
-    if (choice === 'auto') delete records[overrideId];
-    else records[overrideId] = choice as 'include' | 'exclude';
-    const saved = await updatePreferences({
-      exerciseProgressOverrides: { ...preferences.exerciseProgressOverrides, [scope]: records },
-    });
-    setSaving(false);
-    setSaveError(!saved);
-    if (saved) setOverrideId(null);
-  };
-  const chooseOverride = (id: string) => {
-    setOverrideId(id);
-    setChoice(
-      preferences.exerciseProgressOverrides[progressScope(exercise, metric)]?.[id] ?? 'auto',
-    );
-    setSaveError(false);
-  };
-  const metricButton = (
-    <Button
-      label={metricLabel(metric, mode)}
-      accessibilityLabel="Progress metric"
-      icon="chevron-down"
-      variant="secondary"
-      onPress={() => setSelector('metric')}
-      style={styles.metricControl}
-    />
-  );
+  const included = visible.filter((point) => !point.excluded);
+  const excluded = visible.length - included.length;
+  const page = presentation === 'screen';
+  const ContentScroll = page ? ScrollView : ForgeSheetScrollView;
   return (
     <>
-      {!header ? (
-        <View style={styles.tabs}>
-          <ForgeSegmentedSwitch
-            options={tabs}
-            value={tab}
-            onChange={(value) => {
-              if (onTabChange) onTabChange(value);
-              else setOwnTab(value);
-              setSelector(null);
-              setOverrideId(null);
-            }}
-            showLabels
-            accessibilityLabel="Exercise information"
-          />
-        </View>
-      ) : null}
-      {selector ? (
-        <ForgeSheetScrollView contentContainerStyle={styles.content}>
-          {selector === 'range' ? (
-            <ForgeSingleSelectList
-              options={ranges}
-              selectedValue={range}
-              onSelect={(value) => {
-                updateReview({ range: value });
-                setSelector(null);
-              }}
-              onSelectedPress={() => setSelector(null)}
-              disableVirtualization
-            />
-          ) : (
-            <ForgeSingleSelectList
-              options={metrics.map((value) => ({ value, label: metricLabel(value, mode) }))}
-              selectedValue={metric}
-              onSelect={(value) => {
-                updateReview({ metric: value });
-                setSelector(null);
-              }}
-              onSelectedPress={() => setSelector(null)}
-              disableVirtualization
-            />
-          )}
-        </ForgeSheetScrollView>
-      ) : overrideId ? (
-        <ForgeSheetScrollView contentContainerStyle={styles.content}>
-          <Text style={[styles.copy, { color: theme.textSecondary }]}>
-            {sessions.find((session) => session.workout.id === overrideId)?.workout.name} ·{' '}
-            {metricLabel(metric, mode)}
-          </Text>
-          <ForgeSingleSelectList
-            options={[
-              {
-                value: 'auto',
-                label: 'Auto',
-                description: 'Filter unusual values.',
-              },
-              {
-                value: 'include',
-                label: 'Include',
-                description: 'Keep on the chart.',
-              },
-              {
-                value: 'exclude',
-                label: 'Exclude',
-                description: 'Hide from the chart.',
-              },
-            ]}
-            selectedValue={choice}
-            onSelect={(value) => {
-              if (!saving) setChoice(value);
-            }}
-            disableVirtualization
-          />
-          {saveError ? (
-            <View accessibilityRole="alert" style={styles.exclusions}>
-              <Icon name="alert-triangle" size={20} color={theme.textDestructive} />
-              <Text style={[styles.copy, { flex: 1, color: theme.textPrimary }]}>
-                Could not save. Your selection is still here. Try again.
-              </Text>
-            </View>
-          ) : null}
-          <Button
-            label={saveError ? 'Retry save' : 'Save'}
-            icon="check"
-            tone="success"
-            variant="outline"
-            loading={saving}
-            onPress={saveOverride}
-          />
-        </ForgeSheetScrollView>
-      ) : tab === 'info' ? (
+      <View style={styles.tabs}>
+        <ForgeSegmentedSwitch
+          options={tabs}
+          value={tab}
+          onChange={(next) => {
+            if (onTabChange) onTabChange(next);
+            else setOwnTab(next);
+          }}
+          showLabels
+          accessibilityLabel="Exercise information"
+        />
+      </View>
+      {tab === 'info' ? (
         info
       ) : tab === 'history' ? (
-        <>
-          <View style={styles.historyControls}>{metricButton}</View>
-          <ExerciseHistory
-            exercise={exercise}
-            workouts={workouts}
-            excludeWorkoutId={excludeWorkoutId}
-            onOpenWorkout={onOpenWorkout}
-            showAll={expanded}
-            onShowAllChange={(expanded) => updateReview({ expanded })}
-            scrollOffset={offset}
-            onScrollOffsetChange={(offset) => updateReview({ offset })}
-            points={points}
-            onSelectOverride={chooseOverride}
-          />
-        </>
+        <ExerciseHistory
+          presentation={presentation}
+          bottomInset={bottomInset}
+          onPageScroll={onScrollOffsetChange}
+          exercise={exercise}
+          workouts={workouts}
+          excludeWorkoutId={excludeWorkoutId}
+          onOpenWorkout={onOpenWorkout}
+          showAll={review.expanded ?? false}
+          onShowAllChange={(expanded) => updateReview({ expanded })}
+          scrollOffset={review.offset ?? 0}
+          onScrollOffsetChange={(offset) => updateReview({ offset })}
+        />
       ) : (
-        <ForgeSheetScrollView
+        <ContentScroll
+          {...(!page ? { dragToDismiss: false } : {})}
           testID="exercise-progress-content"
-          dragToDismiss={false}
-          contentContainerStyle={styles.content}
+          style={page ? styles.scroll : undefined}
+          contentContainerStyle={[styles.content, { paddingBottom: scaleUI(32) + bottomInset }]}
+          scrollEventThrottle={16}
+          onScroll={(event) => onScrollOffsetChange?.(event.nativeEvent.contentOffset.y)}
         >
-          <ForgeCard variant="nested" style={styles.chart}>
-            <View style={styles.chartHeader}>
-              {metricButton}
-              <Button
-                label={range === 'all' ? 'All' : `${range}d`}
-                icon="chevron-down"
-                variant="secondary"
-                accessibilityLabel="Progress date range"
-                onPress={() => setSelector('range')}
-              />
-            </View>
-            {visible.some((point) => point.excluded) ? (
-              <Text style={[styles.copy, { alignSelf: 'flex-end', color: theme.textSecondary }]}>
-                {visible.filter((point) => point.excluded).length} excluded
-              </Text>
-            ) : null}
-            {chartPoints.length ? (
-              <>
-                <ForgeLineChart
-                  key={`${metric}:${range}`}
-                  data={chartPoints.map((point) => ({
-                    value: point.value,
-                    date: point.date,
-                    trend: point.trend,
-                    description: new Date(point.date).toLocaleString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    }),
-                    label: new Date(point.date).toLocaleDateString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                    }),
-                  }))}
-                  height={180}
-                  formatValue={formatValue}
-                />
-              </>
-            ) : (
-              <Text style={[styles.copy, { color: theme.textSecondary }]}>
-                {points.length
-                  ? 'No included sessions in this range.'
-                  : 'Complete working sets to see progress.'}
-              </Text>
-            )}
-          </ForgeCard>
-        </ForgeSheetScrollView>
+          <View style={styles.toolbar}>
+            <ForgeDropdown
+              label={metricLabel(metric, mode)}
+              accessibilityLabel="Progress metric"
+              value={metric}
+              options={metrics.map((value) => ({ value, label: metricLabel(value, mode) }))}
+              onChange={(metric) => updateReview({ metric })}
+            />
+            <ForgeDropdown
+              label={range === 'all' ? 'All' : `${range}d`}
+              accessibilityLabel="Progress date range"
+              value={range}
+              options={ranges}
+              onChange={(range) => updateReview({ range })}
+            />
+          </View>
+          {excluded ? (
+            <Text style={[styles.copy, styles.excluded, { color: theme.textSecondary }]}>
+              {excluded} excluded
+            </Text>
+          ) : null}
+          {included.length ? (
+            <ForgeLineChart
+              key={`${metric}:${range}`}
+              showAxes={page}
+              selectionPlacement={page ? 'above' : 'below'}
+              height={page ? 250 : 180}
+              formatValue={(value) => formatProgressValue(metric, value, preferences.units)}
+              data={included.map((point) => ({
+                value: point.value,
+                date: point.date,
+                trend: point.trend,
+                description: new Date(point.date).toLocaleString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                }),
+                label: new Date(point.date).toLocaleDateString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                }),
+              }))}
+            />
+          ) : (
+            <Text style={[styles.copy, { color: theme.textSecondary }]}>
+              {points.length
+                ? 'No included sessions in this range.'
+                : 'Complete working sets to see progress.'}
+            </Text>
+          )}
+        </ContentScroll>
       )}
     </>
   );
 }
 const styles = StyleSheet.create({
-  tabs: { paddingHorizontal: 20, paddingBottom: 14 },
-  content: { paddingHorizontal: 20, paddingBottom: 32, gap: 14 },
-  historyControls: { paddingHorizontal: scaleUI(20), paddingBottom: scaleUI(8) },
-  metricControl: { alignSelf: 'flex-start', minWidth: 44, flexShrink: 1 },
-  chartHeader: {
+  tabs: { paddingHorizontal: scaleUI(20), paddingBottom: scaleUI(14) },
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: scaleUI(20), paddingTop: scaleUI(12), gap: scaleUI(16) },
+  toolbar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: scaleUI(8),
     flexWrap: 'wrap',
   },
-  title: { ...typeScale.sectionTitle },
   copy: { ...typeScale.supporting },
-  chart: { padding: 14, gap: 8 },
-  exclusions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  excluded: { alignSelf: 'flex-end' },
 });
