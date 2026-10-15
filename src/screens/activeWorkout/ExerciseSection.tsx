@@ -11,7 +11,9 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { Button, ForgeText as Text, Icon, pressedFeedback, UnilateralBadge } from '../../components/ui';
+import {
+  Button, ForgeText as Text, ForgeExerciseName, Icon, pressedFeedback, UnilateralBadge,
+} from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
@@ -244,9 +246,9 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 {dragHandle}
                 <View style={styles.collapsibleExerciseCopy}>
                   <View style={styles.exerciseNameRow}>
-                    <Text numberOfLines={1} style={[styles.exerciseName, styles.collapsibleExerciseName]}>
+                    <ForgeExerciseName style={[styles.exerciseName, styles.collapsibleExerciseName]}>
                       {exercise.name}
-                    </Text>
+                    </ForgeExerciseName>
                     {unilateral ? <UnilateralBadge /> : null}
                     {exercise.offSession ? <OffSessionBadge /> : null}
                     {exercise.note?.trim() ? (
@@ -280,9 +282,9 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                 {dragHandle}
                 <View style={styles.exerciseCopy}>
                   <View style={styles.exerciseNameRow}>
-                    <Text numberOfLines={1} style={[styles.exerciseName, size === 'large' && styles.exerciseNameLarge]}>
+                    <ForgeExerciseName style={[styles.exerciseName, size === 'large' && styles.exerciseNameLarge]}>
                       {exercise.name}
-                    </Text>
+                    </ForgeExerciseName>
                     {unilateral ? <UnilateralBadge /> : null}
                     {exercise.offSession ? <OffSessionBadge /> : null}
                     {exercise.note?.trim() ? (
@@ -467,9 +469,9 @@ export function ReadOnlyExerciseSection({
         <View style={styles.readOnlyExerciseCopy}>
           <View style={styles.readOnlyExerciseTitleRow}>
             <View style={styles.readOnlyExerciseNameRow}>
-              <Text numberOfLines={1} style={styles.readOnlyExerciseName}>
+              <ForgeExerciseName style={styles.readOnlyExerciseName}>
                 {exercise.name}
-              </Text>
+              </ForgeExerciseName>
               {unilateral ? <UnilateralBadge /> : null}
               {exercise.offSession ? <OffSessionBadge /> : null}
               {exercise.note?.trim() ? (

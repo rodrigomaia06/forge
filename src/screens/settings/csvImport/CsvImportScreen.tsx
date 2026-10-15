@@ -479,6 +479,7 @@ export function CsvImportScreen({ navigation }: Props) {
         key: item.key,
         icon: !item.exercise ? 'alert-triangle' : item.custom ? 'sparkles' : 'layers',
         title: item.name,
+        exerciseName: true,
         detail: item.exercise
           ? item.custom
             ? 'Custom exercise'

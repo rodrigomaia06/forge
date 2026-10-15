@@ -83,6 +83,8 @@ Use Forge's semantic type roles and shared text primitives rather than raw font 
 
 Descriptive titles, section labels, and field labels use sentence or title case, never all caps. Preserve all caps only where it carries compact semantic meaning: date rails and calendars, well-known abbreviations such as RPE, and units or initialisms such as kg or km.
 
+Exercise names use the shared single-line shrinking treatment across catalogue rows, workout cards, editors, import matching, and detail headers. Reduce the type size when space is constrained instead of wrapping the name; preserve the full accessible name and keep adjacent controls reachable.
+
 Textual actions use the shared `controlLabel` role (15px) and retain a 44pt minimum touch target. Do not use smaller labels simply because an action is placed in compact header chrome.
 
 ## Accessibility is part of correctness

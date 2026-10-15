@@ -13,6 +13,7 @@ import {
   ForgeDurationWheel,
   ForgeSheetHeader,
   ForgeText as Text,
+  ForgeExerciseName,
   HeaderAction,
   HeaderEdge,
   useAfterSheetClose,
@@ -139,13 +140,13 @@ export function ExerciseInfoScreen({ navigation, route }: Props) {
             accessibilityLabel="Back from exercise info"
             onPress={() => navigation.goBack()}
           />
-          <Text
+          <ForgeExerciseName
             testID="exercise-info-name"
             accessibilityRole="header"
             style={[styles.name, { color: theme.textPrimary }]}
           >
             {exercise.name}
-          </Text>
+          </ForgeExerciseName>
           {fromLibrary && custom ? (
             <HeaderAction
               icon="ellipsis-horizontal"

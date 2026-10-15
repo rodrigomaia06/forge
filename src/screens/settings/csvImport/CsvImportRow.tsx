@@ -1,6 +1,6 @@
 import React from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
-import { ForgeCard, ForgePressable, ForgeText as Text, Icon } from '../../../components/ui';
+import { ForgeCard, ForgeExerciseName, ForgePressable, ForgeText as Text, Icon } from '../../../components/ui';
 import { useForgeTheme } from '../../../theme/ThemeProvider';
 import { typeScale } from '../../../theme/tokens';
 import type { IconName } from '../../../types';
@@ -10,6 +10,7 @@ import { CompletionCheck } from '../../activeWorkout/CompletionCheck';
 export interface CsvReviewRow {
   key: string;
   title: string;
+  exerciseName?: boolean;
   detail?: string;
   checked?: boolean;
   icon?: IconName;
@@ -53,6 +54,7 @@ export function CsvImportRow({
         }
       : {};
   const RowSurface = item.onPress ? ForgePressable : View;
+  const Name = item.exerciseName ? ForgeExerciseName : Text;
   const content = (
     <RowSurface
       {...webKeyboard}
@@ -89,12 +91,12 @@ export function CsvImportRow({
         </View>
       ) : null}
       <View style={styles.copy}>
-        <Text style={[styles.title, { color: theme.textPrimary }]}>{item.title}</Text>
+        <Name style={[styles.title, { color: theme.textPrimary }]}>{item.title}</Name>
         {item.status ? (
           <Text style={[styles.status, { color: theme.textPrimary }]}>{item.status}</Text>
         ) : null}
         {item.detail ? (
-          <Text style={[styles.detail, { color: theme.textSecondary }]}>{item.detail}</Text>
+          <Name style={[styles.detail, { color: theme.textSecondary }]}>{item.detail}</Name>
         ) : null}
       </View>
       {item.value !== undefined ? (

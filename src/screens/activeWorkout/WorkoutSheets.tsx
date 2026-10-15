@@ -20,6 +20,7 @@ import {
   ForgeFloatingCta,
   ForgeSheetHeader,
   ForgeText as Text,
+  ForgeExerciseName,
   ForgeTextInput as TextInput,
   HeaderAction,
   Icon,
@@ -502,7 +503,7 @@ function ExerciseOutputChooser({ resolution, selectionLimit, onBack, onClose, on
         return <Pressable accessibilityRole="checkbox" accessibilityLabel={item.exercise.name} accessibilityState={{ checked }} aria-checked={checked} onPress={() => setSelected((current) => {
           const next = new Set(current); if (next.has(item.exercise.id)) next.delete(item.exercise.id); else { if (selectionLimit === 1) next.clear(); next.add(item.exercise.id); } return next;
         })} style={({ pressed }) => [styles.outputChoice, checked && styles.outputChoiceSelected, pressed && styles.exerciseOptionPressed]}>
-          <View style={styles.exerciseOptionCopy}><Text style={styles.groupName}>{item.exercise.name}</Text>{formatCatalogVariation(item.exercise.name, item.exercise.variation) ? <Text style={styles.groupMeta}>{formatCatalogVariation(item.exercise.name, item.exercise.variation)}</Text> : null}</View>
+          <View style={styles.exerciseOptionCopy}><ForgeExerciseName style={styles.groupName}>{item.exercise.name}</ForgeExerciseName>{formatCatalogVariation(item.exercise.name, item.exercise.variation) ? <Text style={styles.groupMeta}>{formatCatalogVariation(item.exercise.name, item.exercise.variation)}</Text> : null}</View>
           <CompletionCheck selected={checked} tone="selection" />
         </Pressable>;
       }}
@@ -562,7 +563,7 @@ const CatalogMovement = React.memo(function CatalogMovement({
           ]}
         >
           <View style={styles.exerciseOptionCopy}>
-            <Text style={styles.groupName}>{group}</Text>
+            <ForgeExerciseName style={styles.groupName}>{group}</ForgeExerciseName>
             {exercise.variation ? <Text style={styles.groupMeta}>{exercise.variation}</Text> : null}
           </View>
           <CompletionCheck
@@ -587,7 +588,7 @@ const CatalogMovement = React.memo(function CatalogMovement({
           ]}
         >
           <View style={styles.exerciseOptionCopy}>
-            <Text style={styles.groupName}>{group}</Text>
+            <ForgeExerciseName style={styles.groupName}>{group}</ForgeExerciseName>
             <Text style={styles.groupMeta}>{variations.length} variations</Text>
           </View>
           <View style={styles.groupActions}>
@@ -627,7 +628,7 @@ const CatalogMovement = React.memo(function CatalogMovement({
                 ]}
               >
                 <View style={styles.exerciseOptionCopy}>
-                  <Text style={styles.variationName}>{exercise.name}</Text>
+                  <ForgeExerciseName style={styles.variationName}>{exercise.name}</ForgeExerciseName>
                   {formatCatalogVariation(exercise.name, exercise.variation) ? (
                     <Text style={styles.equipmentMeta}>
                       {formatCatalogVariation(exercise.name, exercise.variation)}
@@ -726,7 +727,7 @@ const CatalogMovement = React.memo(function CatalogMovement({
                           pressed && styles.exerciseOptionPressed,
                         ]}
                       >
-                        <Text style={styles.variationName}>{label}</Text>
+                        <ForgeExerciseName style={styles.variationName}>{label}</ForgeExerciseName>
                         <CompletionCheck
                           selected={isSelected}
                           tone="selection"

@@ -31,6 +31,7 @@ import {
   ForgeSheetHeader,
   ForgeSwitch,
   ForgeText as Text,
+  ForgeExerciseName,
   ForgeTextInput as TextInput,
   HeaderAction,
   Icon,
@@ -1079,6 +1080,7 @@ const Movement = React.memo(function Movement({
             >
               <SettingsRow
                 title={group}
+                shrinkTitle
                 subtitle={singleSubtitle}
                 trailing={
                   <View style={styles.variationIcons}>
@@ -1106,6 +1108,7 @@ const Movement = React.memo(function Movement({
           <>
             <SettingsRow
               title={group}
+              shrinkTitle
               subtitle={singleSubtitle}
               accessibilityLabel={`Open ${group}`}
               onPress={() => onOpen(item)}
@@ -1133,6 +1136,7 @@ const Movement = React.memo(function Movement({
     <SettingsSection>
       <SettingsRow
         title={group}
+        shrinkTitle
         subtitle={`${items.length} ${items.length === 1 ? 'variation' : 'variations'}`}
         accessibilityLabel={`${group} & ${items.length} variations`}
         accessibilityState={{ expanded }}
@@ -1163,7 +1167,7 @@ const Movement = React.memo(function Movement({
                       pressed && { backgroundColor: theme.pressed },
                     ]}
                   >
-                    <Text numberOfLines={2} style={styles.variationName}>{label}</Text>
+                    <ForgeExerciseName style={styles.variationName}>{label}</ForgeExerciseName>
                     <View style={styles.variationIcons}>
                       {item.laterality === 'unilateral' && (
                         <UnilateralBadge size={18} color={theme.textSecondary} />

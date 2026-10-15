@@ -13,6 +13,7 @@ import {
   ForgeCard,
   ForgeConfirmationDialog,
   ForgeText as Text,
+  ForgeExerciseName,
   Icon,
   lightHaptic,
   pressedFeedback,
@@ -35,6 +36,7 @@ type SettingsHaptic = 'light' | 'selection' | 'none';
 
 interface SettingsRowProps {
   title: string;
+  shrinkTitle?: boolean;
   subtitle?: string;
   icon?: IconName;
   iconColor?: string;
@@ -61,6 +63,7 @@ interface SettingsRowProps {
 export function SettingsRow({
   title,
   subtitle,
+  shrinkTitle = false,
   icon,
   iconColor,
   iconBackgroundColor,
@@ -83,6 +86,7 @@ export function SettingsRow({
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const hasLeading = Boolean(leading || icon);
+  const Title = shrinkTitle ? ForgeExerciseName : Text;
   const content = (
     <>
       {leading ??
@@ -98,13 +102,13 @@ export function SettingsRow({
           )
         ) : null)}
       <View style={styles.copy}>
-        <Text
+        <Title
           testID={testID ? `${testID}-title` : undefined}
           style={[styles.title, { color: destructive ? theme.textDestructive : theme.textPrimary }]}
           numberOfLines={2}
         >
           {title}
-        </Text>
+        </Title>
         {subtitle ? (
           <Text style={[styles.subtitle, { color: theme.textSecondary }]} numberOfLines={3}>
             {subtitle}

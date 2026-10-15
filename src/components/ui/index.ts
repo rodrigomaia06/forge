@@ -3,6 +3,7 @@ export { useAfterSheetClose } from './useAfterSheetClose';
 export { Button } from './Button';
 export { Divider } from './Divider';
 export { ForgeText, ForgeTextInput } from './ForgeText';
+export { ForgeExerciseName } from './ForgeExerciseName';
 export { ForgeNumericRangeInput } from './ForgeNumericRangeInput';
 export { ForgeSearchField } from './ForgeSearchField';
 export { ForgeBackButton, HeaderAction } from './HeaderAction';
