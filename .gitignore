@@ -14,3 +14,11 @@ tests/results/
 test-results/
 playwright-report/
 artifacts/
+design-proposals/
+
+# Local Apple signing credentials and device provisioning profiles.
+*.p12
+*.pfx
+*.mobileprovision
+*.p8
+*.key
