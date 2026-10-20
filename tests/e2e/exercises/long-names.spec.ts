@@ -62,8 +62,8 @@ for (const appearance of ['light', 'dark']) {
     expect(geometry.overflow).toBe(false);
     expect(geometry.iconRight).toBeLessThanOrEqual(geometry.right);
     expect(geometry.textRight).toBeLessThanOrEqual(geometry.iconLeft);
-    expect(geometry.whiteSpace).toBe('nowrap');
-    expect(geometry.fontSize).toBeLessThan(16);
+    expect(geometry.whiteSpace).not.toBe('nowrap');
+    expect(geometry.fontSize).toBe(16);
     await page.screenshot({ path: info.outputPath(`long-exercise-${appearance}.png`) });
     await row.click();
     await expect(
@@ -72,12 +72,22 @@ for (const appearance of ['light', 'dark']) {
         .getByRole('button', { name: 'Back from exercise info', exact: true }),
     ).toBeVisible();
     await expect(page.getByTestId('exercise-info-name')).toHaveText(title);
-    await expect(page.getByTestId('exercise-info-name')).toHaveCSS('white-space', 'nowrap');
-    expect(
-      await page
-        .getByTestId('exercise-info-name')
-        .evaluate((node) => parseFloat(getComputedStyle(node).fontSize)),
-    ).toBeLessThan(23);
+    const heading = page.getByTestId('exercise-info-name');
+    await expect(heading).not.toHaveCSS('white-space', 'nowrap');
+    await expect(heading).toHaveCSS('font-size', '23px');
+    const headingGeometry = await heading.evaluate((node) => {
+      const bounds = node.getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      const text = range.getBoundingClientRect();
+      return {
+        lines: text.height / parseFloat(getComputedStyle(node).lineHeight),
+        fits: node.scrollWidth <= node.clientWidth && text.height <= bounds.height + 1,
+      };
+    });
+    expect(headingGeometry.lines).toBeGreaterThan(1);
+    expect(headingGeometry.fits).toBe(true);
+    await expect(page.getByRole('button', { name: 'Exercise options', exact: true })).toBeInViewport();
     await page.screenshot({ path: info.outputPath(`long-exercise-info-${appearance}.png`) });
     const rightSide = page.getByRole('button', { name: 'Lead with the right side', exact: true });
     await rightSide.scrollIntoViewIfNeeded();
@@ -111,7 +121,7 @@ for (const appearance of ['light', 'dark']) {
 }
 
 for (const appearance of ['light', 'dark']) {
-  test(`long exercise names shrink in live and recorded workouts (${appearance})`, async ({
+  test(`long exercise names wrap in live and recorded workouts (${appearance})`, async ({
     page,
   }, info) => {
     await page.addInitScript(
@@ -154,17 +164,17 @@ for (const appearance of ['light', 'dark']) {
     const visibleName = () =>
       page.getByText(title, { exact: true }).filter({ visible: true }).first();
     await expect(visibleName()).toBeVisible();
-    await expect(visibleName()).toHaveCSS('white-space', 'nowrap');
+    await expect(visibleName()).not.toHaveCSS('white-space', 'nowrap');
     await expect
       .poll(() => visibleName().evaluate((n) => parseFloat(getComputedStyle(n).fontSize)))
-      .toBeLessThan(18);
+      .toBe(16);
     await page.screenshot({ path: info.outputPath(`long-name-live-${appearance}.png`) });
     await page.getByRole('tab', { name: 'History', exact: true }).click();
     await page.getByRole('button', { name: 'Open Long name workout', exact: true }).click();
-    await expect(visibleName()).toHaveCSS('white-space', 'nowrap');
+    await expect(visibleName()).not.toHaveCSS('white-space', 'nowrap');
     await expect
       .poll(() => visibleName().evaluate((n) => parseFloat(getComputedStyle(n).fontSize)))
-      .toBeLessThan(18);
+      .toBe(16);
     await page.screenshot({ path: info.outputPath(`long-name-recorded-${appearance}.png`) });
   });
 }

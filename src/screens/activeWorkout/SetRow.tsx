@@ -1,3 +1,4 @@
+import { useSetRowLayout } from './useSetRowLayout';
 import { ForgePressable as Pressable, centeredPressFeedback } from '../../components/ui/ForgePressable';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
@@ -48,6 +49,7 @@ export function SetRow({
   const setRowRef = useRef<View>(null);
   const [routineRangeDrafts, setRoutineRangeDrafts] = useState<Partial<Record<import('../../types').SetMeasurementKind, string>>>({});
   const [focusedInputs, setFocusedInputs] = useState<Partial<Record<import('../../types').SetMeasurementKind, boolean>>>({});
+  const { stacked, onLayout, probe } = useSetRowLayout(trackingFields[trackingType].length, showPrevious);
   const previous = set.previous || '—';
   const rpe = measurementText(set, 'rpe');
   const badgeLayout = useSetNumberBadgeLayout(Boolean(rpe));
@@ -149,11 +151,15 @@ export function SetRow({
   return (
     <View
       ref={setRowRef}
+      onLayout={onLayout}
+      testID={`set-row-${index + 1}`}
       style={[
         styles.setRow,
+        stacked && styles.stackedRow,
         set.completed && styles.setCompleted,
       ]}
     >
+      {probe}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Open details for set ${index + 1}`}
@@ -169,8 +175,8 @@ export function SetRow({
         <SetNumberBadge set={set} index={index} testID={`live-set-number-chip-${index + 1}`} />
       </Pressable>
       {showPrevious ? (
-        <Text style={styles.previous} numberOfLines={1}>
-          {previous}
+        <Text style={[styles.previous, stacked && styles.stackedPrevious]}>
+          {stacked ? `Previous: ${previous}` : previous}
         </Text>
       ) : null}
       {trackingFields[trackingType].map((kind) => {
@@ -218,7 +224,8 @@ export function SetRow({
           });
         };
         return (
-          <React.Fragment key={kind}>
+          <View key={kind} style={stacked ? styles.stackedField : undefined}>
+            {stacked ? <Text style={styles.fieldLabel}>{trackingFieldLabel(trackingType, kind)}</Text> : null}
             {allowsRange ? (
               <ForgeNumericRangeInput
                 accessibilityLabel={`${kind === 'duration' ? 'Sec' : trackingFieldLabel(trackingType, kind)} for set ${index + 1}${planned ? `, routine interval ${planned}` : ''}`}
@@ -247,6 +254,7 @@ export function SetRow({
                 style={[
                   styles.input,
                   styles.inputColumn,
+                  stacked && styles.stackedInput,
                   styles.inputFilled,
                   inputFocused && styles.inputFocused,
                   { color: inputTextColor },
@@ -281,6 +289,7 @@ export function SetRow({
               style={[
                 styles.input,
                 styles.inputColumn,
+                stacked && styles.stackedInput,
                 styles.inputFilled,
                 inputFocused && styles.inputFocused,
                 { color: inputTextColor },
@@ -288,7 +297,7 @@ export function SetRow({
               ]}
             />
             )}
-          </React.Fragment>
+          </View>
         );
       })}
       <View style={styles.check}>
@@ -382,9 +391,14 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     alignItems: 'center',
     gap: scaleUI(6),
   },
+  stackedRow: { flexWrap: 'wrap', alignItems: 'flex-start', paddingVertical: scaleUI(8) },
+  stackedField: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: scaleUI(12) },
+  stackedPrevious: { flexBasis: '70%', textAlign: 'left' },
+  fieldLabel: { flex: 1, ...typeScale.body, color: theme.textSecondary },
+  stackedInput: { flex: 1, minWidth: 0, width: undefined, minHeight: 44, paddingVertical: scaleUI(8) },
   setCompleted: {},
   // Keep the touch target accessible while the badge grows with text scaling.
-  setNumberWrap: { position: 'relative', width: 46, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  setNumberWrap: { position: 'relative', minWidth: 46, flexShrink: 0, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   checkFeedback: centeredPressFeedback(scaleUI(30), scaleUI(15)),
   previous: {
     flex: 1,
@@ -399,7 +413,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   inputColumn: { width: scaleUI(60) },
   firstInputWithoutPrevious: { marginLeft: 'auto' },
   input: {
-    minHeight: scaleUI(36),
+    minHeight: 44,
     borderWidth: 1,
     borderRadius: scaleUI(8),
     ...typeScale.body,
@@ -408,7 +422,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     // padding otherwise pushes it off-centre and inflates the row.
     textAlignVertical: 'center',
     includeFontPadding: false,
-    paddingVertical: 0,
+    paddingVertical: scaleUI(6),
     paddingHorizontal: 3,
   },
   inputFilled: {
@@ -426,6 +440,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  checkPressable: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  checkPressable: { width: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   });
 };

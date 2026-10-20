@@ -1,3 +1,4 @@
+import { useSetRowLayout } from './useSetRowLayout';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -43,6 +44,7 @@ export function HistorySetRow({
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const rpe = measurementText(set, 'rpe');
+  const { stacked, onLayout, probe } = useSetRowLayout(trackingFields[trackingType].length, showPrevious);
   const badgeLayout = useSetNumberBadgeLayout(Boolean(rpe));
   const formatTarget = (item: NonNullable<WorkoutSet['plannedTargets']>[number]): string =>
     item.maxValue !== undefined && item.maxValue !== item.minValue
@@ -62,8 +64,10 @@ export function HistorySetRow({
   return (
     <View
       testID={`workout-details-set-${set.id}`}
+      onLayout={onLayout}
       style={[
         styles.fullRow,
+        stacked && styles.stackedRow,
         compact && styles.insetRow,
         !isLast && {
           borderBottomWidth: StyleSheet.hairlineWidth,
@@ -71,6 +75,7 @@ export function HistorySetRow({
         },
       ]}
     >
+      {probe}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Open details for set ${index + 1}`}
@@ -84,7 +89,7 @@ export function HistorySetRow({
         <SetNumberBadge set={set} index={index} testID={`history-set-number-chip-${index + 1}`} />
       </Pressable>
       {showPrevious ? (
-        <Text style={styles.previous}>{set.previous?.trim() || 'Not recorded'}</Text>
+        <Text style={[styles.previous, stacked && styles.stackedPrevious]}>{stacked ? 'Previous: ' : ''}{set.previous?.trim() || 'Not recorded'}</Text>
       ) : null}
       {trackingFields[trackingType].map((kind) => (
         <View
@@ -93,10 +98,12 @@ export function HistorySetRow({
           style={[
             styles.value,
             !showPrevious && styles.flexibleValue,
+            stacked && styles.stackedField,
             { borderColor: theme.divider, backgroundColor: theme.surfaceMuted },
           ]}
         >
-          <Text numberOfLines={1} style={styles.valueText}>
+          {stacked ? <Text style={styles.valueText}>{trackingFieldLabel(trackingType, kind)}</Text> : null}
+          <Text style={styles.valueText}>
             {valueFor(kind)}
           </Text>
         </View>
@@ -115,6 +122,9 @@ export function HistorySetRow({
 
 const createStyles = (theme: import('../../types').ForgeTheme) =>
   StyleSheet.create({
+    stackedRow: { flexWrap: 'wrap' },
+    stackedPrevious: { flexBasis: '70%', textAlign: 'left' },
+    stackedField: { flexBasis: '100%', width: '100%', flexDirection: 'row', justifyContent: 'space-between', padding: scaleUI(8) },
     fullRow: {
       minHeight: Math.max(44, scaleUI(48)),
       paddingVertical: scaleUI(4),
@@ -122,7 +132,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       alignItems: 'center',
       gap: 6,
     },
-    numberButton: { width: 46, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+    numberButton: { minWidth: 46, flexShrink: 0, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
     value: {
       width: 60,
       minHeight: scaleUI(36),
@@ -131,9 +141,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    valueText: { color: theme.ink, ...typeScale.body },
+    valueText: { flexShrink: 1, minWidth: 0, color: theme.ink, ...typeScale.body },
     previous: { flex: 1, minWidth: 0, color: theme.ink, ...typeScale.body, textAlign: 'center' },
-    check: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+    check: { width: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
     insetRow: { paddingHorizontal: scaleUI(12) },
     flexibleValue: { flex: 1, minWidth: 0 },
   });

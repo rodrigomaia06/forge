@@ -1,3 +1,4 @@
+import { scaleUI } from '../../theme/scale';
 import { StyleSheet } from 'react-native';
 import { spacing, typeScale } from '../../theme/tokens';
 import type { ForgeTheme } from '../../types';
@@ -11,7 +12,7 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       position: 'relative',
       zIndex: 2,
       paddingHorizontal: 16,
-      paddingTop: 8,
+      paddingTop: scaleUI(12),
       paddingBottom: 12,
       borderBottomWidth: 0,
       backgroundColor: dashboardTheme.background,
@@ -19,7 +20,8 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
     pointerEventsNone: { pointerEvents: 'none' },
     headerTop: {
       position: 'relative',
-      height: 44,
+      minHeight: 44,
+      gap: scaleUI(12),
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -47,7 +49,7 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       justifyContent: 'center',
     },
     elapsedPanel: {
-      height: 44,
+      minHeight: 44,
       marginTop: 10,
       overflow: 'hidden',
       flexDirection: 'row',
@@ -59,8 +61,10 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
     },
     elapsedInfo: {
       flex: 1,
+      flexWrap: 'wrap',
+      paddingVertical: scaleUI(6),
       minWidth: 0,
-      height: 44,
+      minHeight: 44,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
@@ -77,8 +81,10 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
     },
     timerReset: {
       flex: 1,
+      flexWrap: 'wrap',
+      paddingVertical: scaleUI(6),
       minWidth: 0,
-      height: 44,
+      minHeight: 44,
       paddingHorizontal: 0,
       flexDirection: 'row',
       alignItems: 'center',
@@ -183,7 +189,7 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
     inputColumn: { width: 56 },
     inputHeader: { textAlign: 'center' },
     checkColumn: { width: 44 },
-    setNumberWrap: { width: 46, height: 44, alignItems: 'center', justifyContent: 'center' },
+    setNumberWrap: { minWidth: 46, flexShrink: 0, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
     setNumber: {
       width: 30,
       height: 30,
@@ -213,7 +219,7 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       justifyContent: 'center',
       overflow: 'hidden',
     },
-    checkPressable: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+    checkPressable: { width: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
     checkVisual: {
       width: 26,
       height: 26,
@@ -272,7 +278,7 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
     },
-    restTimerSheetPicker: { minHeight: 458, maxHeight: '78%', paddingBottom: 48 },
+    restTimerSheetPicker: { minHeight: 458, paddingBottom: 48 },
     // Extra lower breathing room raises the whole active composition—handle, title, timer, and controls—together.
     restTimerSheetActive: { minHeight: 0, paddingBottom: 48, gap: 2 },
     restTimerHeader: {
@@ -341,7 +347,7 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
     restStopButton: { width: '100%', minHeight: 48 },
     durationPicker: { height: 282, position: 'relative', overflow: 'hidden', marginTop: 8, marginHorizontal: 20 },
     durationPickerContent: { paddingVertical: 119 },
-    durationRow: { height: 44, alignItems: 'center', justifyContent: 'center' },
+    durationRow: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
     durationRowPressed: { backgroundColor: dashboardTheme.surfaceMuted, borderRadius: 12 },
     durationText: { color: dashboardTheme.slate, ...typeScale.metricMedium, opacity: 0.58 },
     durationTextSelected: { color: dashboardTheme.ink, ...typeScale.metricLarge, opacity: 1 },
@@ -364,7 +370,7 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       backgroundColor: dashboardTheme.actionPrimary,
     },
     // Compact primary pill that lives in the sheet header's trailing slot.
-    restStartAction: { minWidth: 0, height: 44, paddingHorizontal: 22, borderRadius: 22 },
+    restStartAction: { minWidth: 0, minHeight: 44, paddingHorizontal: 22, borderRadius: 22 },
     restStartText: { color: dashboardTheme.surface, ...typeScale.supporting },
     swipeRow: { position: 'relative', overflow: 'hidden' },
     swipeContent: { zIndex: 1, backgroundColor: dashboardTheme.surface },

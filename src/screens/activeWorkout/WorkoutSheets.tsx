@@ -359,7 +359,6 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
             <ForgeSheetHeader
               title={title}
               compactTitle={selectionLimit === 1}
-              autoShrinkTitle={selectionLimit === 1}
               onClose={closeSheet}
               closeAccessibilityLabel="Close add exercises"
               horizontalInset={0}
@@ -488,7 +487,7 @@ function ExerciseOutputChooser({ resolution, selectionLimit, onBack, onClose, on
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
   return <>
     <ForgeBottomSheetHandle />
-    <ForgeSheetHeader title={selectionLimit === 1 ? 'Choose one' : 'Choose exercises'} compactTitle autoShrinkTitle={selectionLimit === 1} onClose={onClose} leading={<ForgeEditorBackButton onPress={onBack} accessibilityLabel="Back to exercise choices" />} />
+    <ForgeSheetHeader title={selectionLimit === 1 ? 'Choose one' : 'Choose exercises'} compactTitle onClose={onClose} leading={<ForgeEditorBackButton onPress={onBack} accessibilityLabel="Back to exercise choices" />} />
     <FlatList
       testID="variation-output-chooser"
       // Always-full (ADR 0005): fill the fixed-height picker card like the
@@ -670,7 +669,10 @@ const CatalogMovement = React.memo(function CatalogMovement({
                     pressed && styles.exerciseOptionPressed,
                   ]}
                 >
-                  <Text style={styles.equipmentName}>{equipmentLabel}</Text>
+                  <View style={styles.exerciseOptionCopy}>
+                    <ForgeExerciseName style={styles.equipmentName}>{exercise.name}</ForgeExerciseName>
+                    <Text style={styles.equipmentMeta}>{equipmentLabel}</Text>
+                  </View>
                   <CompletionCheck
                     selected={isSelected}
                     tone="selection"
@@ -727,7 +729,7 @@ const CatalogMovement = React.memo(function CatalogMovement({
                           pressed && styles.exerciseOptionPressed,
                         ]}
                       >
-                        <ForgeExerciseName style={styles.variationName}>{label}</ForgeExerciseName>
+                        <ForgeExerciseName style={styles.variationName}>{exercise.name}</ForgeExerciseName>
                         <CompletionCheck
                           selected={isSelected}
                           tone="selection"

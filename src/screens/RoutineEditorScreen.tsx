@@ -1,3 +1,4 @@
+import { useForgeDetailHeading } from '../components/ui';
 import { scaleUI } from '../theme/scale';
 import { centeredPressFeedback, ForgePressable as Pressable } from '../components/ui/ForgePressable';
 import { changeExerciseTracking } from '../domain/exercises/trackingChanges';
@@ -170,6 +171,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
     onLeaveAttempt(() => navigation.dispatch(data.action));
   });
 
+  const { headerTitle: recordHeaderTitle, contentTitle } = useForgeDetailHeading(creating ? 'New routine' : viewing ? draft?.name.trim() || 'Routine' : 'Edit routine');
   if (!draft || !initialDraft || (!creating && !source)) {
     return (
       <View style={styles.unavailable}>
@@ -485,17 +487,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
               onPress={discard}
             />
           )}
-          <View
-            style={[
-              styles.headerTitleWrap,
-              styles.pointerEventsNone,
-              !creating && !viewing && styles.headerTitleWrapWide,
-            ]}
-          >
-            <Text style={styles.headerTitle} numberOfLines={1}>
-              {creating ? 'New routine' : viewing ? draft.name.trim() || 'Routine' : 'Edit routine'}
-            </Text>
-          </View>
+          {recordHeaderTitle}
           <View style={styles.headerActions}>
             {viewing ? (
               <HeaderAction
@@ -539,7 +531,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           animationConfig={{ damping: 28, stiffness: 340, mass: 0.65, overshootClamping: true }}
           onScrollOffsetChange={handleRoutineScrollOffset}
           ListHeaderComponent={
-            <View style={styles.listHeader}>
+            <View style={styles.listHeader}>{contentTitle}
               <View style={styles.sessionCard}>
                 <TextInput
                   accessibilityLabel="Routine name"
@@ -935,7 +927,9 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     screen: { flex: 1, backgroundColor: theme.background },
     header: {
       minHeight: 70,
-      paddingHorizontal: 16,
+      paddingHorizontal: scaleUI(20),
+      paddingVertical: scaleUI(12),
+      gap: scaleUI(12),
       alignItems: 'center',
       flexDirection: 'row',
       justifyContent: 'space-between',

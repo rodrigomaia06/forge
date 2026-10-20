@@ -1,3 +1,5 @@
+import { scaleUI } from '../theme/scale';
+import { useForgeDetailHeading } from '../components/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -44,6 +46,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
     () => (workout ? exercisesWithHistoricalPrevious(workout, completedWorkouts) : []),
     [workout, completedWorkouts],
   );
+  const { headerTitle, contentTitle } = useForgeDetailHeading(workout?.name ?? 'Workout', 'workout-details-name');
   const returnDestination = route.params.returnTo ?? 'History';
   const returnToHistory = (): void => {
     if (navigation.canGoBack()) navigation.goBack();
@@ -87,11 +90,7 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
             }}
           />
           {headerElevated ? <HeaderEdge /> : null}
-          <View style={styles.headerCopy}>
-            <Text style={styles.headerTitle} numberOfLines={1}>
-              {workout.name}
-            </Text>
-          </View>
+          {headerTitle}
           <HeaderAction
             accessibilityLabel="Workout options"
             icon="ellipsis-horizontal"
@@ -114,7 +113,9 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
           onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
           scrollEventThrottle={16}
         >
+          {contentTitle}
           <WorkoutSummaryCard
+            showName={false}
             testID="workout-details-summary"
             workout={workout}
             workoutTypes={preferences.workoutTypes}
@@ -130,8 +131,8 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
           onClose={() => setOptionsOpen(false)}
           onClosed={onOptionsClosed}
           accessibilityLabel="Close workout options"
-          title={workout.name}
-          titleNumberOfLines={1}
+          title="Workout options"
+          contextName={workout.name}
           actions={[
             { label: 'Share workout', icon: 'share', onPress: () => runAfterClose(() => shareItem({ kind: 'workout', id: workout.id })) },
             { label: 'Edit workout', icon: 'note', onPress: () => navigation.navigate('HistoryWorkoutEditor', { mode: 'edit', workoutId: workout.id }) },
@@ -142,8 +143,8 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
         />
         <ForgeConfirmationDialog
           visible={confirmDelete}
-          title={`Delete ${workout.name}?`}
-          message="This permanently removes this workout and its sets. This can't be undone."
+          title="Delete workout?"
+          message={`${workout.name}\n\nThis permanently removes this workout and its sets. This can't be undone.`}
           cancelLabel="Cancel"
           confirmLabel="Delete"
           confirmTone="destructive"
@@ -169,8 +170,9 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingHorizontal: scaleUI(20),
+      paddingVertical: scaleUI(12),
+      gap: scaleUI(12),
       backgroundColor: theme.background,
     },
     headerCopy: {

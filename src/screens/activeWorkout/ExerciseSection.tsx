@@ -1,3 +1,4 @@
+import { useSetRowLayout } from './useSetRowLayout';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import { effectiveTracking } from '../../domain/exercises/tracking';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -92,6 +93,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
     : null;
   const { completedWorkouts } = useWorkouts();
   const trackingType = effectiveTracking(exercise);
+  const { stacked, onLayout: onTableLayout, probe: tableProbe } = useSetRowLayout(trackingFields[trackingType].length, true);
   // Unilateral exercises complete per side. Prefer the workout-owned snapshot,
   // falling back to the catalog for exercises added before laterality was captured.
   const unilateral = isUnilateralExercise(exercise)
@@ -292,7 +294,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                     ) : null}
                   </View>
                   {catalogMetadata && (
-                    <Text numberOfLines={1} style={styles.exerciseMetadata}>
+                    <Text style={styles.exerciseMetadata}>
                       {catalogMetadata}
                     </Text>
                   )}
@@ -311,14 +313,14 @@ export const ExerciseSection = React.memo(function ExerciseSection({
             )}
             {(!collapsible || expanded) && (
               <View style={collapsible ? styles.collapsibleExerciseBody : undefined}>
-                <View style={[styles.setHeader, size === 'large' && styles.setHeaderLarge]}>
+                <View onLayout={onTableLayout}>{tableProbe}{!stacked ? <View style={[styles.setHeader, size === 'large' && styles.setHeaderLarge]}>
                   <Text style={[styles.setHeaderText, styles.setColumn]}>Set</Text>
                   <Text style={[styles.setHeaderText, styles.previousColumn]}>Previous</Text>
                   {trackingFields[trackingType].map((kind) => (
                     <Text key={kind} style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>{kind === 'duration' && setTargetMode === 'routine' ? 'Sec' : trackingFieldLabel(trackingType, kind)}</Text>
                   ))}
                   <View style={styles.checkColumn} />
-                </View>
+                </View> : null}</View>
                 {exercise.sets.map((set, setIndex) => (
                   <SwipeableSetRow
                     key={set.id}
@@ -433,6 +435,7 @@ export function ReadOnlyExerciseSection({
   const screenIsFocused = useIsFocused();
   const openSet = openSetIndex === null ? null : exercise.sets[openSetIndex];
   const trackingType = effectiveTracking(exercise);
+  const { stacked, onLayout: onTableLayout, probe: tableProbe } = useSetRowLayout(trackingFields[trackingType].length, true);
   const unilateral = isUnilateralExercise(exercise)
     || exerciseCatalogById.get(exercise.exerciseId ?? '')?.laterality === 'unilateral';
 
@@ -493,14 +496,14 @@ export function ReadOnlyExerciseSection({
       </View>
       {expanded && (
         <View style={styles.readOnlySets}>
-          <View style={styles.setHeader}>
+          <View onLayout={onTableLayout}>{tableProbe}{!stacked ? <View style={styles.setHeader}>
             <Text style={[styles.setHeaderText, styles.setColumn]}>Set</Text>
             <Text style={[styles.setHeaderText, styles.previousColumn]}>Previous</Text>
             {trackingFields[trackingType].map((kind) => (
               <Text key={kind} style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>{trackingFieldLabel(trackingType, kind)}</Text>
             ))}
             {showCompletion ? <View style={styles.checkColumn} /> : null}
-          </View>
+          </View> : null}</View>
           {exercise.sets.map((set, index) => (
             <HistorySetRow
               key={set.id}

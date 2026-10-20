@@ -114,8 +114,8 @@ export function ExerciseOptionsController({
       />
       <ForgeConfirmationDialog
         visible={removeConfirmationOpen}
-        title={`Remove ${exercise.name}?`}
-        message="Its sets and recorded values will be removed from this workout."
+        title="Remove exercise?"
+        message={`${exercise.name}\n\nIts sets and recorded values will be removed from this workout.`}
         cancelLabel="Keep exercise"
         confirmLabel="Remove exercise"
         onCancel={() => setRemoveConfirmationOpen(false)}

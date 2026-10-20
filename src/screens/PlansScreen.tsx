@@ -1,3 +1,4 @@
+import { ForgeEntityName } from '../components/ui';
 import { ForgePressable as Pressable, ForgePressableGroup } from '../components/ui/ForgePressable';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, LayoutAnimation, Platform, StyleSheet, UIManager, View } from 'react-native';
@@ -486,8 +487,8 @@ export function PlansScreen({ navigation, route }: Props) {
           onClose={() => { setRoutineTarget(null); setMoveMode(false); }}
           onClosed={onOptionsClosed}
           accessibilityLabel="Dismiss routine options"
-          title={routineTarget?.name ?? 'Routine options'}
-          titleNumberOfLines={1}
+          title="Routine options"
+          contextName={routineTarget?.name}
           testID="plans-options-sheet"
           actions={routineTarget ? routineOptionActions(routineTarget) : []}
           replacement={
@@ -509,8 +510,8 @@ export function PlansScreen({ navigation, route }: Props) {
           onClose={() => setPlanTarget(null)}
           onClosed={onOptionsClosed}
           accessibilityLabel="Dismiss plan options"
-          title={planTarget?.name ?? 'Plan options'}
-          titleNumberOfLines={1}
+          title="Plan options"
+          contextName={planTarget?.name}
           testID="plans-plan-options-sheet"
           actions={planTarget ? [
             {
@@ -622,7 +623,7 @@ function MoveDestinations({
             style={({ pressed }) => [styles.moveRow, index > 0 && styles.divider, pressed && pressedFeedbackSubtle]}
           >
             <View style={styles.moveIcon}><Icon name={destination.icon} size={20} color={theme.slate} /></View>
-            <Text style={styles.moveLabel} numberOfLines={1}>{destination.label}</Text>
+            <ForgeEntityName style={styles.moveLabel} presentation="full">{destination.label}</ForgeEntityName>
             <Icon name="chevron-forward" size={18} color={theme.slate} />
           </Pressable>
         ))}
@@ -771,7 +772,7 @@ function PlanCard({
         </Pressable>
       </View>
       <View style={styles.planHeadText}>
-        <Text style={styles.planName} numberOfLines={1}>{plan.name}</Text>
+        <ForgeEntityName style={styles.planName} presentation="preview" disclose>{plan.name}</ForgeEntityName>
         <Text style={styles.planCount}>{count}</Text>
       </View>
       {/* Edit mode opens the same options popup as the resting card, so plan
@@ -790,7 +791,7 @@ function PlanCard({
   ) : (
     <View style={[styles.planHeader, styles.planOptions]}>
       <View style={styles.planHeadRow}>
-        <Text style={styles.planName} numberOfLines={1}>{plan.name}</Text>
+        <ForgeEntityName style={styles.planName} presentation="preview" disclose>{plan.name}</ForgeEntityName>
         {description ? (
           <Text style={styles.planDescription} numberOfLines={1}>{description}</Text>
         ) : null}
@@ -962,7 +963,7 @@ function RoutineRow({
           style={({ pressed }) => [styles.routineCopy, pressed && pressedFeedback]}
         >
           <View style={styles.routineText}>
-            <Text style={styles.routineName} numberOfLines={1}>{routine.name}</Text>
+            <ForgeEntityName style={styles.routineName} presentation="preview">{routine.name}</ForgeEntityName>
             <Text style={styles.routineSummary} numberOfLines={1}>{routineSummary(routine)}</Text>
           </View>
           <Icon name="chevron-forward" size={19} color={theme.slate} />

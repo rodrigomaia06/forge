@@ -1,20 +1,17 @@
 import React from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { ForgeText as Text } from '../../components/ui';
-import { centeredPressFeedback } from '../../components/ui/ForgePressable';
 import { measurementText } from '../../domain/exercises/tracking';
 import { hasNextSessionTarget, setTagPresentation } from '../../domain/workouts/setPresentation';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { scaleUI } from '../../theme/scale';
-import { maxFontSizeMultiplier, typeScale } from '../../theme/tokens';
+import { typeScale } from '../../theme/tokens';
 import type { WorkoutSet } from '../../types';
 
 export function useSetNumberBadgeLayout(hasEffort: boolean) {
-  const { fontScale } = useWindowDimensions();
-  const growth = Math.max(0, Math.min(fontScale, maxFontSizeMultiplier) - 1);
-  const width = scaleUI(hasEffort ? 40 : 32) + growth * 12;
-  const height = scaleUI(hasEffort ? 48 : 32) + growth * (hasEffort ? 48 : 36);
-  return { width, height, feedback: centeredPressFeedback(width, scaleUI(9), height) };
+  const width = scaleUI(hasEffort ? 40 : 32);
+  const height = scaleUI(hasEffort ? 48 : 32);
+  return { width, height, feedback: { borderRadius: scaleUI(9) } };
 }
 
 export function SetNumberBadge({
@@ -37,9 +34,10 @@ export function SetNumberBadge({
       testID={testID}
       style={[
         styles.badge,
-        { width, height, backgroundColor: tag ? `${tag.color}20` : theme.surfaceMuted },
+        { minWidth: width, minHeight: height, backgroundColor: tag ? `${tag.color}20` : theme.surfaceMuted },
       ]}
     >
+      {rpe ? <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" aria-hidden><Text style={[styles.effort, { opacity: 0 }]}>{rpe}</Text></View> : null}
       <View style={[styles.numberArea, styles.centeredNumber]}>
         <Text
           testID={`${testID}-number`}
@@ -73,14 +71,11 @@ export function SetNumberBadge({
 }
 
 const styles = StyleSheet.create({
-  badge: { position: 'relative', borderRadius: scaleUI(9) },
-  numberArea: { position: 'absolute', top: scaleUI(2), left: scaleUI(4), right: scaleUI(4) },
-  centeredNumber: { bottom: scaleUI(2), alignItems: 'center', justifyContent: 'center' },
+  badge: { position: 'relative', alignItems: 'center', justifyContent: 'center', paddingVertical: scaleUI(4), paddingHorizontal: scaleUI(12), borderRadius: scaleUI(9) },
+  numberArea: { alignItems: 'center' },
+  centeredNumber: { alignItems: 'center', justifyContent: 'center' },
   number: { ...typeScale.controlLabel, lineHeight: scaleUI(18) },
   effort: {
-    position: 'absolute',
-    left: scaleUI(4),
-    bottom: scaleUI(1),
     ...typeScale.caption,
     lineHeight: scaleUI(14),
     fontVariant: ['tabular-nums'],

@@ -50,6 +50,7 @@ export function ExerciseInfoTabs({
   exercise,
   workouts,
   info,
+  contentTitle,
   excludeWorkoutId,
   onOpenWorkout,
   tab: controlledTab,
@@ -64,6 +65,7 @@ export function ExerciseInfoTabs({
   exercise: WorkoutExercise;
   workouts: readonly Workout[];
   info: React.ReactNode;
+  contentTitle?: React.ReactNode;
   excludeWorkoutId?: string;
   onOpenWorkout?: (id: string) => void;
   tab?: ExerciseInfoTab;
@@ -135,6 +137,7 @@ export function ExerciseInfoTabs({
         info
       ) : tab === 'history' ? (
         <ExerciseHistory
+          contentTitle={contentTitle}
           presentation={presentation}
           bottomInset={bottomInset}
           onPageScroll={onScrollOffsetChange}
@@ -156,6 +159,7 @@ export function ExerciseInfoTabs({
           scrollEventThrottle={16}
           onScroll={(event) => onScrollOffsetChange?.(event.nativeEvent.contentOffset.y)}
         >
+          {contentTitle}
           <View style={styles.toolbar}>
             <ForgeDropdown
               label={metricLabel(metric, mode)}

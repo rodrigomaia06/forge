@@ -1,3 +1,4 @@
+import { useForgeDetailHeading } from '../components/ui';
 import { scaleUI } from '../theme/scale';
 import { centeredPressFeedback, ForgePressable as Pressable } from '../components/ui/ForgePressable';
 import { ForgeSheetScrollView } from '../components/ui/ForgeSheetScrollView';
@@ -214,6 +215,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
     leaveEditor(completedAt);
   };
 
+  const { headerTitle: recordHeaderTitle, contentTitle } = useForgeDetailHeading(draft?.name.trim() || draft?.type || 'Workout');
   if (!draft || (!isCreating && !source)) return null;
   const startedAt = new Date(draft.startedAt);
   const completedAt = new Date(draft.completedAt ?? draft.startedAt);
@@ -491,9 +493,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
             iconOnly
             onPress={discard}
           />
-          <Text numberOfLines={1} style={styles.headerTitle}>
-            {draft.name.trim() || draft.type}
-          </Text>
+          {recordHeaderTitle}
           <HeaderAction
             accessibilityLabel="Save workout"
             icon="check"
@@ -532,7 +532,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
               onScrollOffsetChange(offset);
               setHeaderElevated(offset > 1);
             }}
-            ListHeaderComponent={<View style={styles.listHeader}>{editorForm}<Text style={styles.sectionTitle}>Exercises</Text></View>}
+            ListHeaderComponent={<View style={styles.listHeader}>{contentTitle}{editorForm}<Text style={styles.sectionTitle}>Exercises</Text></View>}
             ListFooterComponent={<View style={styles.exerciseFooter}>{addExerciseButton}</View>}
             onDragBegin={() => {
               // Drag is grabbed synchronously from the handle's long-press; only
@@ -1047,12 +1047,13 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     position: 'relative',
     zIndex: 2,
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: scaleUI(12),
     paddingBottom: 12,
     backgroundColor: theme.background,
   },
   headerTop: {
-    height: 44,
+    minHeight: 44,
+    gap: scaleUI(12),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

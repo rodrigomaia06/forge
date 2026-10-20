@@ -1,3 +1,4 @@
+import { useForgeDetailHeading } from '../components/ui';
 import { ForgePressable as Pressable } from '../components/ui/ForgePressable';
 import { FinishWorkoutSheet } from './activeWorkout/FinishWorkoutSheet';
 import { workoutNeedsFinishReview } from '../domain/workouts/finishWorkout';
@@ -92,6 +93,8 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
   const { preferences } = useSettings();
   const { findRoutine, plans, reload: reloadPlans } = usePlans();
   const restTimer = useRestTimer();
+  const { headerTitle: recordHeaderTitle, contentTitle } = useForgeDetailHeading(activeWorkout?.name ?? 'Workout', 'live-workout-header-title', styles.headerTitle);
+
 
   useEffect(
     () =>
@@ -393,16 +396,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
               style={styles.joinedHeaderAction}
             />
           </HeaderActionGroup>
-          <View pointerEvents="none" testID="live-workout-header-title" style={styles.titleBlock}>
-            <View
-              style={styles.titleWrap}
-              accessibilityLabel={`Workout type: ${activeWorkout.type}`}
-            >
-              <Text style={styles.headerTitle} numberOfLines={1}>
-                {activeWorkout.name}
-              </Text>
-            </View>
-          </View>
+          {recordHeaderTitle}
           <ForgeWorkoutFinishAction onPress={() => void handleFinish()} loading={finishingDirect} />
         </View>
         {finishError ? (
@@ -441,6 +435,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
         {headerElevated ? <HeaderEdge /> : null}
       </View>
       <LiveWorkoutExerciseList
+        contentTitle={contentTitle}
         workout={activeWorkout}
         addSet={addSet}
         removeSet={removeSet}
@@ -583,6 +578,7 @@ const RestTimerHeaderAction = React.memo(function RestTimerHeaderAction({
 });
 
 const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
+  contentTitle,
   workout,
   addSet,
   removeSet,
@@ -599,6 +595,7 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
   onScrollOffsetChange,
   dockScrollInset,
 }: {
+  contentTitle?: React.ReactNode;
   workout: Workout;
   addSet: (exerciseId: string) => void;
   removeSet: (exerciseId: string, setId: string) => void;
@@ -777,8 +774,8 @@ const LiveWorkoutExerciseList = React.memo(function LiveWorkoutExerciseList({
         onScroll={workoutScrollHandler}
         scrollEventThrottle={16}
         ListHeaderComponent={
-          liveAttributeEntries.length || workout.exercises.length ? (
-            <View style={styles.listSectionHeader}>
+          contentTitle || liveAttributeEntries.length || workout.exercises.length ? (
+            <View style={styles.listSectionHeader}>{contentTitle}
               {liveAttributeEntries.length ? (
                 <View style={styles.liveAttributesSection}>
                   <Text style={styles.listSectionTitle}>Attributes</Text>

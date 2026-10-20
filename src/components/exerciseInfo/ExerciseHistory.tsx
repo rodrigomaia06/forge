@@ -1,3 +1,4 @@
+import { ForgeEntityName } from '../ui/ForgeEntityName';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useIsFocused } from '@react-navigation/native';
 import {
@@ -32,10 +33,12 @@ export function ExerciseHistory({
   onShowAllChange,
   scrollOffset = 0,
   onScrollOffsetChange,
+  contentTitle,
   presentation = 'sheet',
   bottomInset = 0,
   onPageScroll,
 }: {
+  contentTitle?: React.ReactNode;
   presentation?: 'sheet' | 'screen';
   bottomInset?: number;
   onPageScroll?: (offset: number) => void;
@@ -148,9 +151,9 @@ export function ExerciseHistory({
             style={styles.workoutAction}
           >
             <View style={styles.copy}>
-              <Text numberOfLines={2} style={[styles.title, { color: theme.textPrimary }]}>
+              <ForgeEntityName presentation={onOpenWorkout ? 'preview' : 'full'} style={[styles.title, { color: theme.textPrimary }]}>
                 {workout.name}
-              </Text>
+              </ForgeEntityName>
               <Text style={[styles.caption, { color: theme.textSecondary }]}>
                 {new Date(workout.startedAt).toLocaleString(undefined, {
                   month: 'short',
@@ -224,6 +227,7 @@ export function ExerciseHistory({
         >
           <FlatList
             ref={listRef}
+            ListHeaderComponent={<>{contentTitle}</>}
             style={{ flex: 1 }}
             data={sessions}
             keyExtractor={(item) => item.workout.id}
@@ -255,6 +259,7 @@ export function ExerciseHistory({
           onScroll={(event) => recordScroll(event.nativeEvent.contentOffset.y)}
           scrollEventThrottle={16}
         >
+          {contentTitle}
           {sessions.slice(0, 3).map((session) => (
             <View key={session.workout.id}>{renderSession(session)}</View>
           ))}

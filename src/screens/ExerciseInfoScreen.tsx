@@ -13,8 +13,8 @@ import {
   ForgeDurationWheel,
   ForgeSheetHeader,
   ForgeText as Text,
-  ForgeExerciseName,
   HeaderAction,
+  useForgeDetailHeading,
   HeaderEdge,
   useAfterSheetClose,
 } from '../components/ui';
@@ -54,6 +54,7 @@ export function ExerciseInfoScreen({ navigation, route }: Props) {
     ? (custom ?? catalogueDetail(exercise))
     : (catalogueDetail(exercise) ?? custom);
   const unilateral = isUnilateralExercise(exercise) || detail?.laterality === 'unilateral';
+  const { headerTitle, contentTitle } = useForgeDetailHeading(exercise.name, 'exercise-info-name', styles.name);
   const [tab, setTab] = useState<ExerciseInfoTab>(route.params.initialTab ?? 'info');
   const [review, setReview] = useState<ExerciseInfoReview>({});
   const [elevated, setElevated] = useState(false);
@@ -86,6 +87,7 @@ export function ExerciseInfoScreen({ navigation, route }: Props) {
       onScroll={(event) => setElevated(event.nativeEvent.contentOffset.y > 0)}
       scrollEventThrottle={16}
     >
+      {contentTitle ? <View style={{ paddingHorizontal: scaleUI(20) }}>{contentTitle}</View> : null}
       {detail ? (
         <ExerciseDetailBody
           presentation="screen"
@@ -140,13 +142,7 @@ export function ExerciseInfoScreen({ navigation, route }: Props) {
             accessibilityLabel="Back from exercise info"
             onPress={() => navigation.goBack()}
           />
-          <ForgeExerciseName
-            testID="exercise-info-name"
-            accessibilityRole="header"
-            style={[styles.name, { color: theme.textPrimary }]}
-          >
-            {exercise.name}
-          </ForgeExerciseName>
+          {headerTitle}
           {fromLibrary && custom ? (
             <HeaderAction
               icon="ellipsis-horizontal"
@@ -168,6 +164,7 @@ export function ExerciseInfoScreen({ navigation, route }: Props) {
         workouts={completedWorkouts}
         excludeWorkoutId={excludeWorkoutId}
         info={info}
+        contentTitle={contentTitle}
         tab={tab}
         onTabChange={(next) => {
           setTab(next);
@@ -272,7 +269,7 @@ export function ExerciseInfoScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  header: { zIndex: 2, paddingHorizontal: scaleUI(20), paddingBottom: scaleUI(8) },
+  header: { zIndex: 2, paddingHorizontal: scaleUI(20), paddingTop: scaleUI(12), paddingBottom: scaleUI(12) },
   topBar: {
     minHeight: scaleUI(64),
     flexDirection: 'row',
@@ -281,7 +278,7 @@ const styles = StyleSheet.create({
     gap: scaleUI(12),
   },
   actionSpace: { width: 44 },
-  name: { ...typeScale.headerTitle, flex: 1, minWidth: 0, paddingVertical: scaleUI(8) },
+  name: { ...typeScale.headerTitle, minWidth: 0, paddingVertical: scaleUI(8) },
   restSheet: { minHeight: scaleUI(480), flexShrink: 1 },
   scroll: { flex: 1 },
   empty: { ...typeScale.body, padding: scaleUI(20) },
