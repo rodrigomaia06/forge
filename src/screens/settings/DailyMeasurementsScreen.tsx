@@ -1,3 +1,4 @@
+import { ForgeSheetScrollView } from '../../components/ui/ForgeSheetScrollView';
 import { ForgeEntityName } from '../../components/ui';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -598,37 +599,39 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
         dismissTextKeyboardOnTap={false}
       >
         {(close) => (
-          <View style={[styles.recordSheet, { paddingBottom: floatingCtaClearance }]}>
+          <View style={styles.recordSheet}>
             <ForgeBottomSheetHandle />
             <ForgeSheetHeader compactTitle titleInset={50} title="Record measurement" onClose={recordSaving ? undefined : close} />
-            <ForgeEntityName style={[typeScale.sectionTitle, { color: theme.textPrimary }]}>{selected?.name}</ForgeEntityName>
-            <Text style={styles.recordDate}>
-              {recordDateKey === localDateKey() ? 'Today · ' : ''}{displayDate(recordDateKey)}
-            </Text>
-            <ForgeCard variant="nested" style={styles.valueField}>
-              <TextInput
-                autoFocus
-                accessibilityLabel={`${selected?.name ?? 'Measurement'} value`}
-                value={recordValue}
-                onChangeText={setRecordValue}
-                keyboardType="decimal-pad"
-                placeholder="0"
-                placeholderTextColor={theme.textDisabled}
-                style={styles.valueInput}
-              />
-              {displayUnit ? <Text style={styles.valueUnit}>{displayUnit}</Text> : null}
-            </ForgeCard>
-            {recordError ? (
-              <View accessibilityRole="alert" accessibilityLiveRegion="polite">
-                <ForgeCard variant="nested" style={styles.recordError} testID="measurement-save-error">
-                  <Icon name="alert-triangle" size={22} color={theme.textPrimary} />
-                  <View style={styles.recordErrorCopy}>
-                    <Text style={styles.recordErrorTitle}>Measurement not saved</Text>
-                    <Text style={styles.recordErrorBody}>Your edit is still here. Try saving again.</Text>
-                  </View>
-                </ForgeCard>
-              </View>
-            ) : null}
+            <ForgeSheetScrollView contentContainerStyle={{ paddingBottom: floatingCtaClearance }} keyboardShouldPersistTaps="handled">
+              <ForgeEntityName style={[typeScale.sectionTitle, { color: theme.textPrimary, marginHorizontal: 20 }]}>{selected?.name}</ForgeEntityName>
+              <Text style={styles.recordDate}>
+                {recordDateKey === localDateKey() ? 'Today · ' : ''}{displayDate(recordDateKey)}
+              </Text>
+              <ForgeCard variant="nested" style={styles.valueField}>
+                <TextInput
+                  autoFocus
+                  accessibilityLabel={`${selected?.name ?? 'Measurement'} value`}
+                  value={recordValue}
+                  onChangeText={setRecordValue}
+                  keyboardType="decimal-pad"
+                  placeholder="0"
+                  placeholderTextColor={theme.textDisabled}
+                  style={styles.valueInput}
+                />
+                {displayUnit ? <Text style={styles.valueUnit}>{displayUnit}</Text> : null}
+              </ForgeCard>
+              {recordError ? (
+                <View accessibilityRole="alert" accessibilityLiveRegion="polite">
+                  <ForgeCard variant="nested" style={styles.recordError} testID="measurement-save-error">
+                    <Icon name="alert-triangle" size={22} color={theme.textPrimary} />
+                    <View style={styles.recordErrorCopy}>
+                      <Text style={styles.recordErrorTitle}>Measurement not saved</Text>
+                      <Text style={styles.recordErrorBody}>Your edit is still here. Try saving again.</Text>
+                    </View>
+                  </ForgeCard>
+                </View>
+              ) : null}
+            </ForgeSheetScrollView>
             <ForgeFloatingCta
               label={recordSaving ? "Saving measurement…" : "Save measurement"}
               accessibilityLabel="Save measurement"
@@ -880,17 +883,17 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   selectedMetricContent: { gap: 14 },
   recordEmpty: { minHeight: 50, borderRadius: 16 },
   addMetric: { minHeight: 48, borderStyle: 'dashed', borderColor: theme.border },
-  recordSheet: { minHeight: 315 },
+  recordSheet: { flexShrink: 1 },
   recordError: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14, marginHorizontal: 20, marginTop: 16 },
   recordErrorCopy: { flex: 1, minWidth: 0, gap: 4 },
   recordErrorTitle: { ...typeScale.controlLabel, color: theme.textPrimary },
   recordErrorBody: { ...typeScale.supporting, color: theme.textSecondary },
-  metricSheet: { minHeight: 520, flexShrink: 1 },
+  metricSheet: { flexShrink: 1 },
   metricFormScroll: { flexShrink: 1 },
   metricForm: { paddingHorizontal: 20 },
   recordDate: { ...typeScale.supporting, color: theme.textSecondary, textAlign: 'center', marginBottom: 22 },
   valueField: { marginHorizontal: 20, minHeight: 72, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  valueInput: { flex: 1, ...typeScale.metricLarge, color: theme.textPrimary, paddingVertical: 0 },
+  valueInput: { flex: 1, minWidth: 0, ...typeScale.metricLarge, color: theme.textPrimary, paddingVertical: 0 },
   valueUnit: { ...typeScale.cardTitle, color: theme.textSecondary },
   fieldLabel: { ...typeScale.caption, color: theme.textSecondary, letterSpacing: 0.8, marginTop: 14, marginBottom: 7 },
   fieldCard: { minHeight: 52, paddingHorizontal: 14, justifyContent: 'center' },

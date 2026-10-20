@@ -1151,7 +1151,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     justifyContent: 'center',
   },
   pickerSheet: { paddingHorizontal: 20, paddingBottom: 32, gap: 12 },
-  editorSheet: { maxHeight: '84%', paddingHorizontal: 20, paddingBottom: 12 },
+  editorSheet: { maxHeight: '84%' },
   // Hug the content when short, shrink to scroll within the sheet cap when tall.
   sourceScroll: { flexShrink: 1 },
   sourceContent: { paddingTop: 14, paddingBottom: 24, paddingHorizontal: 20, gap: 18 },

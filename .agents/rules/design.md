@@ -30,6 +30,8 @@ Bottom-attached lists of discrete actions use `ForgeActionSheet`. It owns the ha
 
 When a text keyboard is visible in a shared sheet, the first tap elsewhere in the sheet dismisses it instead of activating the tapped control. Number-pad editing in Live Workout remains exempt so repeated set entry is uninterrupted.
 
+On iOS, switching to another app and returning preserves the focused input and keyboard-related layout. Background or other-app keyboard notifications must not collapse sheets, reset workout scroll position, or replay an unchanged keyboard layout on return. Explicit keyboard dismissal and genuinely changed keyboard frames still update the layout normally.
+
 Use the shared grouped-card primitive whenever a feature presents related rows. It owns the common surface, border, radius, and shadow treatment in both themes; screens may not recreate a locally divergent card outline.
 
 ### Card separation contract

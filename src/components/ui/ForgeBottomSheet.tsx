@@ -124,6 +124,8 @@ export function ForgeBottomSheet({
   testID,
 }: ForgeBottomSheetProps) {
   const theme = useForgeTheme();
+  const customSurface = StyleSheet.flatten(style)?.backgroundColor;
+  const sheetSurface = typeof customSurface === 'string' ? customSurface : theme.surface;
   const reducedMotion = useForgeReducedMotion();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
@@ -417,7 +419,7 @@ export function ForgeBottomSheet({
             onPress={dismissForgeKeyboard}
             style={[
               styles.keyboardSurfaceFill,
-              { height: keyboardSurfaceFillHeight, backgroundColor: theme.surfaceElevated },
+              { height: keyboardSurfaceFillHeight, backgroundColor: sheetSurface },
             ]}
           />
         ) : null}
@@ -462,7 +464,7 @@ export function ForgeBottomSheet({
                 sheetStyle,
               ]}
             >
-              <ForgeControlSurface.Provider value={typeof StyleSheet.flatten(style)?.backgroundColor === 'string' ? StyleSheet.flatten(style)!.backgroundColor as string : theme.surface}>
+              <ForgeControlSurface.Provider value={sheetSurface}>
                 {dragArea ? dragArea(renderedChildren) : renderedChildren}
               </ForgeControlSurface.Provider>
             </Animated.View>

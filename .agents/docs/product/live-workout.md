@@ -38,3 +38,6 @@
 - Tracking, note and set-detail subviews share bottom clearance. The Finish workout summary, incomplete-set warning and routine choices have distinct hierarchy: the incomplete count occupies the right-hand summary space with an amber warning icon, without a separate incomplete-status explanation. Warnings do not use selectable-card styling. Selected exercise-picker facets remain distinguishable from the surrounding panel in both themes.
 
 - Workout Exercise Info shares the library's Info (default), Progress and History tabs. Previous sessions is a direct History shortcut with a three-session preview and a virtualized expanded list. Set inspection and workout drill-in/back preserve review state and scroll position. Existing rest, unilateral and custom-exercise actions remain intact. Progress analyses completed history; the current workout is excluded from its previous-session history.
+
+
+- Set-details keyboard spacing belongs inside its scroll content, so next-session targets remain reachable without a fixed empty band below the clipped scroll viewport. Focusing a target reveals the whole target group and preserves that visibility when the keyboard resizes the viewport. The shared sheet keyboard filler uses the same surface as the sheet, including behind rounded system-keyboard corners.

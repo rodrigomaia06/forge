@@ -1028,7 +1028,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       gap: 7,
     },
     addExerciseText: { ...typeScale.controlLabel, color: theme.textPrimary },
-    attributeSheet: { paddingBottom: 24 },
+    attributeSheet: { flexShrink: 1 },
     attributeForm: { paddingHorizontal: 20, paddingTop: 8, gap: 12 },
     attributeFields: { flexDirection: 'row', gap: 10 },
     attributeInput: {

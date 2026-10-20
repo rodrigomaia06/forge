@@ -1,3 +1,4 @@
+import { ForgeSheetScrollView } from '../components/ui/ForgeSheetScrollView';
 import { ForgeEntityName } from '../components/ui';
 import { ForgePressable as Pressable, ForgePressableGroup } from '../components/ui/ForgePressable';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -677,7 +678,7 @@ function PlanEditSheet({
           />
         }
       />
-      <View style={styles.editSheetBody}>
+      <ForgeSheetScrollView contentContainerStyle={styles.editSheetBody} keyboardShouldPersistTaps="handled">
         <ForgeCard variant="nested" style={styles.editFieldCard}>
           <ForgeTextInput
             accessibilityLabel="Plan name"
@@ -699,7 +700,7 @@ function PlanEditSheet({
             style={styles.editDescriptionInput}
           />
         </ForgeCard>
-      </View>
+      </ForgeSheetScrollView>
     </View>
   );
 }
@@ -1052,8 +1053,8 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     // A full-width rule under the plan header, matched to the 1px separators
     // used between the rows of an expanded routine set table.
     planHeaderDivider: { height: 1, backgroundColor: theme.divider },
-    editSheet: { paddingBottom: 28 },
-    editSheetBody: { paddingHorizontal: 20, paddingTop: 6, gap: 12 },
+    editSheet: { flexShrink: 1 },
+    editSheetBody: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 28, gap: 12 },
     editFieldCard: { paddingHorizontal: 14, paddingVertical: 4 },
     editNameInput: { minHeight: 44, paddingVertical: 0, color: theme.ink, ...typeScale.cardTitle },
     editDescriptionInput: { minHeight: 60, paddingVertical: 8, color: theme.ink, ...typeScale.body },

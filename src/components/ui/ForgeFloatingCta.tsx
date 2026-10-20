@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ForgeTheme, IconName } from '../../types';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { Button } from './Button';
+import { ForgeControlSurface } from './ForgeControlSurface';
 
 /** Geometry shared by scrollable sheet bodies and their floating confirmation action. */
 export const forgeFloatingCtaGeometry = {
@@ -56,20 +57,21 @@ export function ForgeFloatingCta({
   const insets = useSafeAreaInsets();
   const contextTheme = useForgeTheme();
   const resolvedTheme = theme ?? contextTheme;
+  const surface = React.useContext(ForgeControlSurface) ?? resolvedTheme.background;
   // A success-tone floating confirm is a form/selection completion, so it wears
   // the shared checkmark by default (design.md) unless a caller sets its own icon.
   const resolvedIcon = icon ?? (tone === 'success' ? 'check' : undefined);
   const gradientId = `forgeFloatingCtaFade${React.useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   return (
     <>
-      <View style={[styles.fade, { pointerEvents: 'none' }]}>
+      <View testID="forge-floating-cta-fade" style={[styles.fade, { pointerEvents: 'none' }]}>
         <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
           <Defs>
             <LinearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={resolvedTheme.surfaceElevated} stopOpacity="0" />
-              <Stop offset="0.38" stopColor={resolvedTheme.surfaceElevated} stopOpacity="0.48" />
-              <Stop offset="0.72" stopColor={resolvedTheme.surfaceElevated} stopOpacity="0.9" />
-              <Stop offset="1" stopColor={resolvedTheme.surfaceElevated} stopOpacity="1" />
+              <Stop offset="0" stopColor={surface} stopOpacity="0" />
+              <Stop offset="0.38" stopColor={surface} stopOpacity="0.48" />
+              <Stop offset="0.72" stopColor={surface} stopOpacity="0.9" />
+              <Stop offset="1" stopColor={surface} stopOpacity="1" />
             </LinearGradient>
           </Defs>
           <Rect x="0" y="0" width="100" height="100" fill={`url(#${gradientId})`} />
