@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Forge Logs - Diagnostic Ledger</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-surface-variant": "#c4c7c5",
+            "on-secondary-fixed-variant": "#42474b",
+            "outline-variant": "#434846",
+            "error-container": "#93000a",
+            "inverse-surface": "#e3e2e5",
+            "tertiary": "#ffffff",
+            "surface-variant": "#343537",
+            "on-tertiary": "#611118",
+            "secondary": "#c2c7cb",
+            "on-secondary-fixed": "#171c1f",
+            "tertiary-fixed-dim": "#ffb3b1",
+            "surface-container": "#1f2022",
+            "surface-tint": "#c5c7c5",
+            "on-background": "#e3e2e5",
+            "primary": "#ffffff",
+            "inverse-primary": "#5c5f5e",
+            "surface-bright": "#38393b",
+            "on-tertiary-container": "#a64547",
+            "primary-container": "#e2e3e1",
+            "secondary-fixed": "#dee3e7",
+            "on-error-container": "#ffdad6",
+            "on-tertiary-fixed": "#410007",
+            "surface-dim": "#121315",
+            "background": "#0A0B0D",
+            "secondary-container": "#42474b",
+            "surface-container-low": "#16181B",
+            "on-surface": "#e3e2e5",
+            "on-tertiary-fixed-variant": "#7f282c",
+            "inverse-on-surface": "#303033",
+            "on-secondary-container": "#b1b6ba",
+            "surface-container-highest": "#343537",
+            "on-primary-fixed": "#191c1b",
+            "tertiary-container": "#ffdad8",
+            "surface-container-lowest": "#0d0e10",
+            "tertiary-fixed": "#ffdad8",
+            "on-primary-fixed-variant": "#454746",
+            "on-primary": "#2e3130",
+            "surface-container-high": "#1F2225",
+            "outline": "#2B2F34",
+            "surface": "#121315",
+            "primary-fixed": "#e2e3e1",
+            "on-secondary": "#2c3134",
+            "on-error": "#690005",
+            "error": "#ffb4ab",
+            "primary-fixed-dim": "#c5c7c5",
+            "on-primary-container": "#626564",
+            "secondary-fixed-dim": "#c2c7cb"
+          },
+          fontFamily: {
+            "label-md": ["Manrope", "sans-serif"],
+            "body-lg": ["Manrope", "sans-serif"],
+            "label-lg": ["Manrope", "sans-serif"],
+            "headline-md": ["Manrope", "sans-serif"],
+            "body-md": ["Manrope", "sans-serif"],
+            "body-sm": ["Manrope", "sans-serif"],
+            "headline-lg": ["Manrope", "sans-serif"],
+            "label-sm": ["Manrope", "sans-serif"],
+            "headline-sm": ["Manrope", "sans-serif"]
+          },
+          fontSize: {
+            "label-md": ["11px", { lineHeight: "14px", letterSpacing: "0.04em", fontWeight: "600" }],
+            "body-lg": ["15px", { lineHeight: "22px", letterSpacing: "-0.005em", fontWeight: "500" }],
+            "label-lg": ["13px", { lineHeight: "16px", letterSpacing: "0.01em", fontWeight: "600" }],
+            "headline-md": ["22px", { lineHeight: "28px", letterSpacing: "-0.015em", fontWeight: "600" }],
+            "body-md": ["13px", { lineHeight: "18px", letterSpacing: "0em", fontWeight: "400" }],
+            "body-sm": ["11px", { lineHeight: "16px", letterSpacing: "0.01em", fontWeight: "400" }],
+            "headline-lg": ["28px", { lineHeight: "34px", letterSpacing: "-0.02em", fontWeight: "700" }],
+            "label-sm": ["9px", { lineHeight: "12px", letterSpacing: "0.08em", fontWeight: "700" }],
+            "headline-sm": ["18px", { lineHeight: "24px", letterSpacing: "-0.01em", fontWeight: "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    body {
+      background-color: #0A0B0D;
+      color: #F7F8F6;
+      font-family: 'Manrope', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+    button { min-height: 44px !important; }
+    button[aria-label="Copy event"] { min-width: 44px; }
+    .ledger-row > :first-child { flex: 1; }
+    .ledger-row .truncate { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+    .ledger-row [class*="FF8A8A"] { color: #F7F8F6; }
+    .ledger-row [class*="FF8A8A"] .material-symbols-outlined { flex-shrink: 0; }
+  </style>
+  </head>
+<body class="bg-[#0A0B0D] text-[#F7F8F6] min-h-screen flex justify-center selection:bg-[#2B2F34] selection:text-[#F7F8F6]">
+<!-- Mobile Max Width Shell (Max 420px) -->
+<main class="w-full max-w-[420px] min-h-screen bg-[#0A0B0D] flex flex-col relative pb-10">
+<!-- Toast Notification Overlay -->
+<div class="fixed top-5 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-opacity duration-200" id="toast">
+<div class="px-4 py-2 bg-[#1F2225] border border-[#2B2F34] text-[#F7F8F6] text-xs font-semibold rounded-lg shadow-2xl flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-[#C3C8CC]">check_circle</span>
+<span id="toast-text">Copied to clipboard</span>
+</div>
+</div>
+<!-- Confirmation Modal Dialog -->
+<div class="fixed inset-0 z-50 bg-[#0A0B0D]/80 backdrop-blur-sm hidden items-center justify-center px-6" id="confirm-modal">
+<div class="w-full max-w-xs bg-[#16181B] border border-[#2B2F34] rounded-2xl p-5 shadow-2xl">
+<div class="w-10 h-10 rounded-xl bg-[#4A2B2D] border border-[#FF8A8A]/40 flex items-center justify-center text-[#FF8A8A] mb-3.5">
+<span class="material-symbols-outlined text-[20px]">delete_outline</span>
+</div>
+<h3 class="text-base font-bold text-[#F7F8F6]">Clear local logs?</h3>
+<p class="text-xs text-[#C3C8CC] mt-1.5 leading-relaxed">
+          Clear 6 local technical diagnostic records? This purge cannot be undone and resets sandbox event metrics.
+        </p>
+<div class="flex gap-2.5 mt-5">
+<button class="flex-1 h-11 min-h-[44px] bg-[#1F2225] hover:bg-[#25292D] active:opacity-85 border border-[#2B2F34] rounded-xl text-xs font-semibold text-[#F7F8F6] transition-all" id="cancel-clear-btn">
+            Cancel
+          </button>
+<button class="flex-1 h-11 min-h-[44px] bg-[#4A2B2D] hover:bg-[#5a3437] active:opacity-85 border border-[#FF8A8A]/60 rounded-xl text-xs font-semibold text-[#FF8A8A] transition-all" id="confirm-clear-btn">
+            Clear all
+          </button>
+</div>
+</div>
+</div>
+<!-- 1. Header (Shared Component: TopAppBar docked with 20px insets) -->
+<header class="sticky top-0 z-40 bg-[#0A0B0D]/95 backdrop-blur-md border-b border-[#2B2F34]/50 px-5 h-14 flex items-center justify-between">
+<!-- 44px Circular Tap Target Back Button -->
+<button aria-label="Go back" class="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center text-[#F7F8F6] hover:bg-[#1F2225] active:opacity-80 transition-colors -ml-2" onclick="history.back()">
+<span class="material-symbols-outlined text-[22px]">arrow_back</span>
+</button>
+<!-- Centered Title -->
+<h1 class="text-[20px] font-semibold text-[#F7F8F6] tracking-tight">Logs</h1>
+<!-- Right Indicator Badge -->
+<div class="flex items-center min-w-[44px] justify-end">
+<span class="bg-[#1F2225] border border-[#2B2F34] text-[11px] text-[#C3C8CC] font-medium px-2.5 py-1 rounded-full whitespace-nowrap">
+          Demo data
+        </span>
+</div>
+</header>
+<!-- 2. Sticky / Top Tools Section -->
+<section class="px-5 pt-4 pb-3">
+<!-- Two-segment summary / status bar -->
+<div class="flex items-center justify-between gap-2">
+<div>
+<div class="text-[16px] font-semibold text-[#F7F8F6] leading-tight tracking-tight">Local diagnostics</div>
+<div class="text-[12px] text-[#C3C8CC] mt-0.5 font-medium" id="counter-label">6 events · SQLite · Local only</div>
+</div>
+<!-- Filter Selector with Dropdown Container -->
+<div class="relative">
+<button class="h-9 min-h-[36px] px-3 rounded-lg bg-[#16181B] border border-[#2B2F34] text-xs font-medium text-[#F7F8F6] flex items-center gap-1.5 hover:bg-[#1F2225] active:opacity-85 transition-colors" id="filter-btn">
+<span class="material-symbols-outlined text-sm text-[#C3C8CC]">tune</span>
+<span id="active-filter-text">All events</span>
+<span class="material-symbols-outlined text-sm text-[#C3C8CC]">expand_more</span>
+</button>
+<!-- Filter Options Dropdown -->
+<div class="hidden absolute right-0 mt-1.5 w-44 bg-[#16181B] border border-[#2B2F34] rounded-xl shadow-2xl py-1 z-30 divide-y divide-[#2B2F34]/50" id="filter-dropdown">
+<div class="py-1">
+<button class="w-full text-left px-3.5 py-2 text-xs text-[#F7F8F6] hover:bg-[#1F2225] flex items-center justify-between" onclick="applyFilter('all', 'All events')">
+<span>All events</span>
+<span class="text-[10px] text-[#C3C8CC] font-mono">6</span>
+</button>
+<button class="w-full text-left px-3.5 py-2 text-xs text-[#FF8A8A] hover:bg-[#1F2225] flex items-center justify-between" onclick="applyFilter('failures', 'Failures')">
+<span>Failures</span>
+<span class="text-[10px] text-[#FF8A8A] font-mono">1</span>
+</button>
+<button class="w-full text-left px-3.5 py-2 text-xs text-[#F7F8F6] hover:bg-[#1F2225] flex items-center justify-between" onclick="applyFilter('imports', 'Imports')">
+<span>Imports</span>
+<span class="text-[10px] text-[#C3C8CC] font-mono">1</span>
+</button>
+<button class="w-full text-left px-3.5 py-2 text-xs text-[#F7F8F6] hover:bg-[#1F2225] flex items-center justify-between" onclick="applyFilter('exports', 'Exports')">
+<span>Exports</span>
+<span class="text-[10px] text-[#C3C8CC] font-mono">1</span>
+</button>
+<button class="w-full text-left px-3.5 py-2 text-xs text-[#F7F8F6] hover:bg-[#1F2225] flex items-center justify-between" onclick="applyFilter('backups', 'Backups')">
+<span>Backups</span>
+<span class="text-[10px] text-[#C3C8CC] font-mono">1</span>
+</button>
+<button class="w-full text-left px-3.5 py-2 text-xs text-[#F7F8F6] hover:bg-[#1F2225] flex items-center justify-between" onclick="applyFilter('activity', 'App activity')">
+<span>App activity</span>
+<span class="text-[10px] text-[#C3C8CC] font-mono">2</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Horizontal TOP Toolbar Housing Two Adjacent 44px Neutral Buttons -->
+<div class="mt-3.5 flex items-center gap-2.5">
+<button class="flex-1 h-11 min-h-[44px] bg-[#1F2225] hover:bg-[#25292D] active:opacity-85 border border-[#2B2F34] rounded-xl text-xs font-semibold text-[#F7F8F6] flex items-center justify-center gap-2 transition-all" id="copy-all-btn">
+<span class="material-symbols-outlined text-[17px] text-[#C3C8CC]">content_copy</span>
+<span>Copy all</span>
+</button>
+<button class="flex-1 h-11 min-h-[44px] bg-[#1F2225] hover:bg-[#25292D] active:opacity-85 border border-[#2B2F34] rounded-xl text-xs font-semibold text-[#F7F8F6] flex items-center justify-center gap-2 transition-all" id="export-btn">
+<span class="material-symbols-outlined text-[17px] text-[#C3C8CC]">ios_share</span>
+<span>Export</span>
+</button>
+</div>
+</section>
+<!-- 3. Dense Grouped Ledger (One connected container, NO rail, NO dots) -->
+<section class="px-5 mt-2">
+<div class="rounded-2xl border border-[#2B2F34] bg-[#16181B] overflow-hidden divide-y divide-[#2B2F34]" id="ledger-box">
+<!-- Group 1: TODAY -->
+<div class="ledger-group" id="group-today">
+<!-- Band 1: Date Header -->
+<div class="bg-[#121417] px-4 py-2 border-b border-[#2B2F34] text-[11px] font-bold tracking-wider uppercase text-[#C3C8CC] flex items-center justify-between">
+<span>TODAY</span>
+<span class="text-[10px] font-mono opacity-60">12 NOV</span>
+</div>
+<!-- Event 1 -->
+<div class="ledger-row p-3.5 flex items-center justify-between hover:bg-[#1F2225]/40 transition-colors border-b border-[#2B2F34]/60 last:border-b-0" data-cat="exports" data-payload="[2023-11-12T18:42:00] Data exported | Local export">
+<div class="min-w-0 pr-2">
+<div class="text-[15px] font-semibold text-[#F7F8F6] leading-tight truncate">Data exported</div>
+<div class="text-[12px] text-[#C3C8CC] mt-0.5 font-medium truncate">Local export</div>
+</div>
+<div class="flex items-center gap-1.5 shrink-0">
+<span class="text-[13px] font-mono text-[#C3C8CC]">18:42</span>
+<button aria-label="Copy event" class="w-10 h-10 min-w-[40px] min-h-[40px] rounded-lg flex items-center justify-center text-[#C3C8CC] hover:text-[#F7F8F6] hover:bg-[#1F2225] active:opacity-75 transition-all" onclick="copyRow(this)">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+</button>
+</div>
+</div>
+<!-- Event 2 (Failure) -->
+<div class="ledger-row p-3.5 flex items-center justify-between hover:bg-[#1F2225]/40 transition-colors border-b border-[#2B2F34]/60 last:border-b-0" data-cat="failures" data-payload="[2023-11-12T18:39:12] Operation could not complete | Unavailable">
+<div class="min-w-0 pr-2">
+<div class="text-[15px] font-semibold text-[#FF8A8A] leading-tight truncate flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm">error</span>
+<span>Operation could not complete</span>
+</div>
+<div class="text-[12px] text-[#C3C8CC] mt-0.5 font-medium flex items-center gap-1.5 truncate">
+<span>Unavailable</span>
+</div>
+</div>
+<div class="flex items-center gap-1.5 shrink-0">
+<span class="text-[13px] font-mono text-[#C3C8CC]">18:39</span>
+<button aria-label="Copy event" class="w-10 h-10 min-w-[40px] min-h-[40px] rounded-lg flex items-center justify-center text-[#C3C8CC] hover:text-[#F7F8F6] hover:bg-[#1F2225] active:opacity-75 transition-all" onclick="copyRow(this)">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+</button>
+</div>
+</div>
+<!-- Event 3 -->
+<div class="ledger-row p-3.5 flex items-center justify-between hover:bg-[#1F2225]/40 transition-colors" data-cat="activity" data-payload="[2023-11-12T18:33:04] App opened | Foreground cold launch">
+<div class="min-w-0 pr-2">
+<div class="text-[15px] font-semibold text-[#F7F8F6] leading-tight truncate">App opened</div>
+<div class="text-[12px] text-[#C3C8CC] mt-0.5 font-medium truncate">Foreground cold launch</div>
+</div>
+<div class="flex items-center gap-1.5 shrink-0">
+<span class="text-[13px] font-mono text-[#C3C8CC]">18:33</span>
+<button aria-label="Copy event" class="w-10 h-10 min-w-[40px] min-h-[40px] rounded-lg flex items-center justify-center text-[#C3C8CC] hover:text-[#F7F8F6] hover:bg-[#1F2225] active:opacity-75 transition-all" onclick="copyRow(this)">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Group 2: YESTERDAY -->
+<div class="ledger-group" id="group-yesterday">
+<!-- Band 2: Date Header -->
+<div class="bg-[#121417] px-4 py-2 border-b border-[#2B2F34] text-[11px] font-bold tracking-wider uppercase text-[#C3C8CC] flex items-center justify-between">
+<span>YESTERDAY</span>
+<span class="text-[10px] font-mono opacity-60">11 NOV</span>
+</div>
+<!-- Event 4 -->
+<div class="ledger-row p-3.5 flex items-center justify-between hover:bg-[#1F2225]/40 transition-colors border-b border-[#2B2F34]/60 last:border-b-0" data-cat="backups" data-payload="[2023-11-11T20:10:45] SQLite backup created | Local backup">
+<div class="min-w-0 pr-2">
+<div class="text-[15px] font-semibold text-[#F7F8F6] leading-tight truncate">SQLite backup created</div>
+<div class="text-[12px] text-[#C3C8CC] mt-0.5 font-medium truncate">Local backup</div>
+</div>
+<div class="flex items-center gap-1.5 shrink-0">
+<span class="text-[13px] font-mono text-[#C3C8CC]">20:10</span>
+<button aria-label="Copy event" class="w-10 h-10 min-w-[40px] min-h-[40px] rounded-lg flex items-center justify-center text-[#C3C8CC] hover:text-[#F7F8F6] hover:bg-[#1F2225] active:opacity-75 transition-all" onclick="copyRow(this)">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+</button>
+</div>
+</div>
+<!-- Event 5 -->
+<div class="ledger-row p-3.5 flex items-center justify-between hover:bg-[#1F2225]/40 transition-colors border-b border-[#2B2F34]/60 last:border-b-0" data-cat="imports" data-payload="[2023-11-11T20:07:11] Data imported | Local import">
+<div class="min-w-0 pr-2">
+<div class="text-[15px] font-semibold text-[#F7F8F6] leading-tight truncate">Data imported</div>
+<div class="text-[12px] text-[#C3C8CC] mt-0.5 font-medium truncate">Local import</div>
+</div>
+<div class="flex items-center gap-1.5 shrink-0">
+<span class="text-[13px] font-mono text-[#C3C8CC]">20:07</span>
+<button aria-label="Copy event" class="w-10 h-10 min-w-[40px] min-h-[40px] rounded-lg flex items-center justify-center text-[#C3C8CC] hover:text-[#F7F8F6] hover:bg-[#1F2225] active:opacity-75 transition-all" onclick="copyRow(this)">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+</button>
+</div>
+</div>
+<!-- Event 6 -->
+<div class="ledger-row p-3.5 flex items-center justify-between hover:bg-[#1F2225]/40 transition-colors" data-cat="activity" data-payload="[2023-11-11T20:03:00] App opened | Cold start initialization">
+<div class="min-w-0 pr-2">
+<div class="text-[15px] font-semibold text-[#F7F8F6] leading-tight truncate">App opened</div>
+<div class="text-[12px] text-[#C3C8CC] mt-0.5 font-medium truncate">Cold start initialization</div>
+</div>
+<div class="flex items-center gap-1.5 shrink-0">
+<span class="text-[13px] font-mono text-[#C3C8CC]">20:03</span>
+<button aria-label="Copy event" class="w-10 h-10 min-w-[40px] min-h-[40px] rounded-lg flex items-center justify-center text-[#C3C8CC] hover:text-[#F7F8F6] hover:bg-[#1F2225] active:opacity-75 transition-all" onclick="copyRow(this)">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Empty State Container (Hidden by default) -->
+<div class="hidden py-14 px-5 text-center flex-col items-center justify-center" id="empty-state">
+<div class="w-12 h-12 rounded-xl bg-[#1F2225] border border-[#2B2F34] flex items-center justify-center text-[#C3C8CC] mb-3">
+<span class="material-symbols-outlined text-2xl">database</span>
+</div>
+<div class="text-sm font-semibold text-[#F7F8F6]">No local events recorded</div>
+<div class="text-xs text-[#C3C8CC] mt-1 max-w-[240px]">
+            The SQLite diagnostic journal is clear. Any new system action will log here automatically.
+          </div>
+</div>
+</div>
+</section>
+<!-- 4. Clear Logs Action (Below ledger with distinct 32px gap) -->
+<div class="mt-8 mx-5">
+<button class="w-full h-12 min-h-[44px] rounded-xl bg-[#4A2B2D]/40 border border-[#FF8A8A]/30 text-[#FF8A8A] hover:bg-[#4A2B2D]/60 flex items-center justify-center gap-2 text-sm font-semibold active:opacity-80 transition-all" id="clear-logs-btn">
+<span class="material-symbols-outlined text-[18px]">delete_outline</span>
+<span>Clear logs</span>
+</button>
+</div>
+<!-- 5. Bottom Informational Block -->
+<div class="mx-5 mt-4 mb-8">
+<div class="rounded-xl border border-[#2B2F34] bg-[#121417]/90 p-3.5 flex items-start gap-3">
+<div class="p-1 rounded bg-[#1F2225] border border-[#2B2F34] text-[#C3C8CC] shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[16px]">shield</span>
+</div>
+<div>
+<div class="text-[13px] font-medium text-[#F7F8F6] leading-tight">
+            Technical events only. No workout data.
+          </div>
+<p class="text-[11px] text-[#C3C8CC] mt-1 leading-relaxed">
+            Local diagnostic logs are strictly confined to this device SQLite storage (capped at 80 events).
+          </p>
+</div>
+</div>
+</div>
+</main>
+<script>
+    // Toast notification utility
+    let toastTimeout;
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      const text = document.getElementById('toast-text');
+      text.textContent = message;
+      toast.classList.remove('opacity-0');
+      toast.classList.add('opacity-100');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+      }, 2000);
+    }
+
+    // Copy single event
+    function copyRow(button) {
+      const row = button.closest('.ledger-row');
+      const payload = row.getAttribute('data-payload') || row.innerText.replace(/\s+/g, ' ').trim();
+      navigator.clipboard.writeText(payload).then(() => {
+        showToast('Event copied to clipboard');
+      }).catch(() => {
+        showToast('Copied event data');
+      });
+    }
+
+    // Copy all logs
+    document.getElementById('copy-all-btn').addEventListener('click', () => {
+      const rows = document.querySelectorAll('.ledger-row:not(.hidden)');
+      if (rows.length === 0) {
+        showToast('No logs to copy');
+        return;
+      }
+      const aggregated = Array.from(rows).map(r => r.getAttribute('data-payload')).join('\n');
+      navigator.clipboard.writeText(aggregated).then(() => {
+        showToast('All visible logs copied');
+      }).catch(() => {
+        showToast('Copied ledger to clipboard');
+      });
+    });
+
+    // Export demo logs JSON bundle
+    document.getElementById('export-btn').addEventListener('click', () => {
+      const dump = [
+        { id: "evt_101", ts: "2023-11-12T18:42:00Z", type: "export", desc: "Data exported", meta: "Local export" },
+        { id: "evt_102", ts: "2023-11-12T18:39:12Z", type: "error", desc: "Operation could not complete", status: 503, meta: "[Unavailable] Status code 503" },
+        { id: "evt_103", ts: "2023-11-12T18:33:04Z", type: "lifecycle", desc: "App opened", meta: "Foreground cold launch" },
+        { id: "evt_104", ts: "2023-11-11T20:10:45Z", type: "backup", desc: "SQLite backup created", meta: "Local backup" },
+        { id: "evt_105", ts: "2023-11-11T20:07:11Z", type: "import", desc: "Data imported", meta: "Local import" },
+        { id: "evt_106", ts: "2023-11-11T20:03:00Z", type: "lifecycle", desc: "App opened", meta: "Cold start initialization" }
+      ];
+      const blob = new Blob([JSON.stringify(dump, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `forge-diagnostics-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Exported JSON package');
+    });
+
+    // Filter dropdown toggle
+    const filterBtn = document.getElementById('filter-btn');
+    const filterDropdown = document.getElementById('filter-dropdown');
+    filterBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      filterDropdown.classList.toggle('hidden');
+    });
+    document.addEventListener('click', () => {
+      filterDropdown.classList.add('hidden');
+    });
+
+    // Filter logic
+    function applyFilter(category, label) {
+      document.getElementById('active-filter-text').textContent = label;
+      filterDropdown.classList.add('hidden');
+      const rows = document.querySelectorAll('.ledger-row');
+      let visibleCount = 0;
+
+      rows.forEach(row => {
+        if (category === 'all' || row.getAttribute('data-cat') === category) {
+          row.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          row.classList.add('hidden');
+        }
+      });
+
+      // Show/hide date divider sections if empty
+      ['group-today', 'group-yesterday'].forEach(groupId => {
+        const group = document.getElementById(groupId);
+        if (group) {
+          const visibleInGroup = group.querySelectorAll('.ledger-row:not(.hidden)').length;
+          group.style.display = visibleInGroup > 0 ? 'block' : 'none';
+        }
+      });
+
+      document.getElementById('counter-label').textContent = `${visibleCount} events · SQLite · Local only`;
+      showToast(`Filter: ${label}`);
+    }
+
+    // Modal Clear Confirm Logic
+    const clearBtn = document.getElementById('clear-logs-btn');
+    const modal = document.getElementById('confirm-modal');
+    const cancelClearBtn = document.getElementById('cancel-clear-btn');
+    const confirmClearBtn = document.getElementById('confirm-clear-btn');
+    const emptyState = document.getElementById('empty-state');
+
+    clearBtn.addEventListener('click', () => {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    });
+
+    cancelClearBtn.addEventListener('click', () => {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    });
+
+    confirmClearBtn.addEventListener('click', () => {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      // Hide all groups and rows
+      document.getElementById('group-today').style.display = 'none';
+      document.getElementById('group-yesterday').style.display = 'none';
+      emptyState.classList.remove('hidden');
+      emptyState.classList.add('flex');
+      // Update counts and button state
+      document.getElementById('counter-label').textContent = '0 events · SQLite · Local only';
+      clearBtn.setAttribute('disabled', 'true');
+      clearBtn.classList.add('opacity-40', 'cursor-not-allowed');
+      showToast('All 6 logs purged from storage');
+    });
+  </script>
+</body></html>
