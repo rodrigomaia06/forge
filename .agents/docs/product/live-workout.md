@@ -41,3 +41,6 @@
 
 
 - Set-details keyboard spacing belongs inside its scroll content, so next-session targets remain reachable without a fixed empty band below the clipped scroll viewport. Focusing a target reveals the whole target group and preserves that visibility when the keyboard resizes the viewport. The shared sheet keyboard filler uses the same surface as the sheet, including behind rounded system-keyboard corners.
+
+
+- The exercise three-dot menu uses a grouped Forge sheet titled Exercise options, without repeating the exercise name. Its title uses the standard sheet-header role and its section headings use the shared section-title role. Log & setup presents Tracking, Add/Edit/View note and Warm-up sets as three side-by-side tiles; Review groups Previous sessions and Exercise info; Change exercise groups Replace exercise and Mark off-session/Count in session. Existing permissions and availability determine which actions appear, and empty groups are omitted. Remove exercise remains the destructive header action. Labels may wrap with larger text, and the content scrolls when it exceeds the sheet height.

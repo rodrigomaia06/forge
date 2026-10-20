@@ -51,7 +51,7 @@ Header actions use `HeaderAction` only: icon-only controls are 44 pt circles and
 
 Joined action pills retain their established internal vertical separators in both themes. Their independently accessible segments fill their own share of the pill, with the group's outer corners clipping press feedback.
 
-Drag grips use an inset vertical oval press tint around the dots, with space between the tint and the containing row or card. Their existing drag/touch region stays intact. Bare icon actions use rounded local feedback; painted buttons and full-row actions retain feedback matching their visible surface.
+Drag grips use an inset vertical oval press tint around the dots, with space between the tint and the containing row or card. Their existing drag/touch region stays intact. The shared Forge pressable applies a centered 40 pt circular press tint by default to standard 44 pt round controls, including three-dot menus, header/sheet actions and circular choices. Their touch targets stay unchanged; custom feedback remains scoped to its control. Joined header segments keep feedback filling their own segment. Other bare icon actions use rounded local feedback; painted buttons and full-row actions retain feedback matching their visible surface.
 
 Dashboard, History and Plans empty screens share the same illustration frame, top anchoring and title baseline. Empty-state primary actions use the same dimensions and vertical position; supporting copy may grow when text scaling or wrapping needs more space.
 

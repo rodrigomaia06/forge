@@ -489,7 +489,6 @@ export function PlansScreen({ navigation, route }: Props) {
           onClosed={onOptionsClosed}
           accessibilityLabel="Dismiss routine options"
           title="Routine options"
-          contextName={routineTarget?.name}
           testID="plans-options-sheet"
           actions={routineTarget ? routineOptionActions(routineTarget) : []}
           replacement={
@@ -512,7 +511,6 @@ export function PlansScreen({ navigation, route }: Props) {
           onClosed={onOptionsClosed}
           accessibilityLabel="Dismiss plan options"
           title="Plan options"
-          contextName={planTarget?.name}
           testID="plans-plan-options-sheet"
           actions={planTarget ? [
             {
@@ -773,7 +771,7 @@ function PlanCard({
         </Pressable>
       </View>
       <View style={styles.planHeadText}>
-        <ForgeEntityName style={styles.planName} presentation="preview" disclose>{plan.name}</ForgeEntityName>
+        <ForgeEntityName style={styles.planName}>{plan.name}</ForgeEntityName>
         <Text style={styles.planCount}>{count}</Text>
       </View>
       {/* Edit mode opens the same options popup as the resting card, so plan
@@ -792,7 +790,7 @@ function PlanCard({
   ) : (
     <View style={[styles.planHeader, styles.planOptions]}>
       <View style={styles.planHeadRow}>
-        <ForgeEntityName style={styles.planName} presentation="preview" disclose>{plan.name}</ForgeEntityName>
+        <ForgeEntityName style={styles.planName}>{plan.name}</ForgeEntityName>
         {description ? (
           <Text style={styles.planDescription} numberOfLines={1}>{description}</Text>
         ) : null}
@@ -1016,7 +1014,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     // Grab-rail for reordering — a generous, edit-only left zone like the dashboard tile handle.
     dragRail: { width: 34, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', marginLeft: -6 },
-    planEditTitle: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+    planEditTitle: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
     planMove: { width: 36, marginLeft: -2, marginRight: 6, alignItems: 'center', justifyContent: 'center' },
     planMoveButton: { height: 24, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
     flipUp: { transform: [{ rotate: '180deg' }] },

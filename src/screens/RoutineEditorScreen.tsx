@@ -361,8 +361,9 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
       return (
         <View style={styles.exerciseRow}>
           <ReadOnlyExerciseSection
-            exercise={asWorkoutExercise(viewingExercises?.[index] ?? exercise, completedRoutineSetIds)}
+            exercise={asWorkoutExercise(viewingExercises?.[index] ?? exercise, completedRoutineSetIds, exerciseId)}
             showCompletion={false}
+            showOptions
           />
         </View>
       );

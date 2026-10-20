@@ -35,6 +35,16 @@ export function centeredPressFeedback(size: number, borderRadius: number, height
   };
 }
 
+const circularIconPressFeedback = centeredPressFeedback(40, 20);
+
+function defaultPressFeedback(surface: ViewStyle): ViewStyle | undefined {
+  const width = surface.width ?? surface.minWidth;
+  const height = surface.height ?? surface.minHeight;
+  return width === 44 && height === 44 && typeof surface.borderRadius === 'number' && surface.borderRadius >= 22
+    ? circularIconPressFeedback
+    : undefined;
+}
+
 function PressStateLayer({ surface, style }: { surface: ViewStyle; style?: StyleProp<ViewStyle> }) {
   const theme = useForgeTheme();
   const background = surface.backgroundColor;
@@ -142,7 +152,7 @@ export const ForgePressable = forwardRef<View, ForgePressableProps>(function For
             !props.disabled &&
             props.accessible !== false &&
             !backdrop ? (
-              <PressStateLayer surface={base} style={pressFeedbackStyle} />
+              <PressStateLayer surface={base} style={pressFeedbackStyle ?? defaultPressFeedback(base)} />
             ) : null}
           </>
         );

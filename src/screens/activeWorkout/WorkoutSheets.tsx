@@ -804,6 +804,7 @@ function AnimatedCount({ count }: { count: number }) {
 export function ExerciseOptionsSheet({
   onTrackingChange,
   resolveTrackingSelection = false,
+  groupedActions = false,
   visible,
   exercise,
   onClose,
@@ -823,6 +824,7 @@ export function ExerciseOptionsSheet({
 }: {
   onTrackingChange?: (mode: import('../../types').TrackingType, confirmed?: boolean) => void | Promise<import('../../domain/exercises/trackingChanges').TrackingChangeResult>;
   resolveTrackingSelection?: boolean;
+  groupedActions?: boolean;
   visible: boolean;
   exercise: WorkoutExercise;
   onClose: () => void;
@@ -910,6 +912,7 @@ export function ExerciseOptionsSheet({
       accessibilityLabel="Close options"
       title="Exercise options"
       appearance="compact"
+      sectionPresentation={groupedActions ? 'grouped' : 'flat'}
       dragEnabled={!trackingConfirmation}
       onBackRequest={() => {
         if (!trackingConfirmation) return false;
@@ -939,35 +942,49 @@ export function ExerciseOptionsSheet({
       // ForgeActionSheet's reanimated layout — the two fought and left a shorter
       // view (e.g. back on the action list) sitting low with dead space.
       animateContentLayout={false}
+      sections={[
+        {
+          title: 'Log & setup',
+          layout: 'tiles',
+          actions: [
+            ...(!readOnly && onTrackingChange ? [{
+              icon: 'measure' as const,
+              label: 'Tracking',
+              dismiss: false,
+              onPress: () => openView('tracking'),
+            }] : []),
+            ...((onEditNote || (readOnly && exercise.note?.trim())) ? [{
+              icon: 'note' as const,
+              label: readOnly ? 'View note' : exercise.note?.trim() ? 'Edit note' : 'Add note',
+              dismiss: false,
+              onPress: () => openView('note'),
+            }] : []),
+            ...(addWarmupSets ? [{ icon: 'temperature-sun' as const, label: 'Warm-up sets', dismiss: false, onPress: () => openView('warmup') }] : []),
+          ],
+        },
+        {
+          title: 'Review',
+          actions: [
+            ...(onOpenPreviousSessions ? [{ icon: 'history' as const, label: 'Previous sessions', dismiss: false, onPress: () => openInfo('history') }] : []),
+            ...(onOpenExerciseInfo ? [{ icon: 'info' as const, label: 'Exercise info', dismiss: false, onPress: () => openInfo('info') }] : []),
+          ],
+        },
+        {
+          title: 'Change exercise',
+          actions: [
+            ...(!readOnly && onReplaceExercise ? [{ icon: 'replace' as const, label: 'Replace exercise', onPress: onReplaceExercise }] : []),
+            ...(!readOnly && onToggleOffSession ? [{
+              icon: exercise.offSession ? ('notes' as const) : ('notes-off' as const),
+              label: exercise.offSession ? 'Count in session' : 'Mark off-session',
+              accessibilityLabel: exercise.offSession
+                ? `Count ${exercise.name} in this session`
+                : `Mark ${exercise.name} as done off-session`,
+              onPress: onToggleOffSession,
+            }] : []),
+          ],
+        },
+      ]}
       actions={[
-        ...(!readOnly && onTrackingChange
-          ? [
-              {
-                icon: 'measure' as const,
-                label: 'Tracking',
-                dismiss: false,
-                onPress: () => openView('tracking'),
-              },
-            ]
-          : []),
-        ...((onEditNote || (readOnly && exercise.note?.trim())) ? [{
-          icon: 'note' as const,
-          label: readOnly ? 'View note' : exercise.note?.trim() ? 'Edit note' : 'Add note',
-          dismiss: false,
-          onPress: () => openView('note'),
-        }] : []),
-        ...(onOpenPreviousSessions ? [{ icon: 'history' as const, label: 'Previous sessions', dismiss: false, onPress: () => openInfo('history') }] : []),
-        ...(addWarmupSets ? [{ icon: 'temperature-sun' as const, label: 'Warm-up sets', dismiss: false, onPress: () => openView('warmup') }] : []),
-        ...(onOpenExerciseInfo ? [{ icon: 'info' as const, label: 'Exercise info', dismiss: false, onPress: () => openInfo('info') }] : []),
-        ...(!readOnly && onReplaceExercise ? [{ icon: 'replace' as const, label: 'Replace exercise', onPress: onReplaceExercise }] : []),
-        ...(!readOnly && onToggleOffSession ? [{
-          icon: exercise.offSession ? ('notes' as const) : ('notes-off' as const),
-          label: exercise.offSession ? 'Count in session' : 'Mark off-session',
-          accessibilityLabel: exercise.offSession
-            ? `Count ${exercise.name} in this session`
-            : `Mark ${exercise.name} as done off-session`,
-          onPress: onToggleOffSession,
-        }] : []),
         ...(!readOnly && onRemove ? [{
           icon: 'trash' as const,
           label: 'Remove exercise',

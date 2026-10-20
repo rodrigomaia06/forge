@@ -96,7 +96,7 @@ for (const appearance of ['light', 'dark']) {
 }
 
 for (const appearance of ['light', 'dark']) {
-  test(`plan previews disclose complete names (${appearance})`, async ({ page }, info) => {
+  test(`plan names wrap without separate disclosure controls (${appearance})`, async ({ page }, info) => {
     const name = 'Training plan 💪 ' + 'A long unbroken name 的訓練 خطة '.repeat(6);
     await page.addInitScript(({ appearance, name }) => {
       localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance }));
@@ -106,13 +106,13 @@ for (const appearance of ['light', 'dark']) {
     }, { appearance, name });
     await page.goto('/');
     await page.getByRole('tab', { name: 'Plans', exact: true }).click();
-    await page.getByRole('button', { name: 'Show full name', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Close Full name', exact: true })).toBeInViewport();
-    await expect(page.getByText(name, { exact: true }).last()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Show full name', exact: true })).toHaveCount(0);
+    const title = page.getByText(name, { exact: true });
+    await expect(title).toBeVisible();
+    const size = await title.evaluate(element => ({ height: element.clientHeight, content: element.scrollHeight }));
+    expect(size.height + 1).toBeGreaterThanOrEqual(size.content);
     await page.waitForTimeout(220);
-    await page.screenshot({ path: info.outputPath(`full-name-disclosure-${appearance}.png`) });
-    await page.getByRole('button', { name: 'Close Full name', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Show full name', exact: true })).toBeVisible();
+    await page.screenshot({ path: info.outputPath(`wrapped-plan-name-${appearance}.png`) });
   });
 }
 

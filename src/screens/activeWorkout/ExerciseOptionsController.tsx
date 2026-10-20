@@ -75,6 +75,7 @@ export function ExerciseOptionsController({
         visible={visible}
         enterInstant={enterInstant}
         resolveTrackingSelection={resolveTrackingSelection}
+        groupedActions={resolveTrackingSelection === true}
         onTrackingChange={
           onTrackingChange
             ? (mode, confirmed) => onTrackingChange(exercise.id, mode, confirmed)

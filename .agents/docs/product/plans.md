@@ -1,5 +1,9 @@
 # Plans and routines
 
+- Plan names wrap directly in the header without a Show full name control or name-only sheet. In routine Visualize, exercise cards expose the shared read-only three-dot menu: View note when present, Previous sessions, and Exercise info. Preview menus never expose mutations such as tracking changes, warm-up creation, replacement, removal or off-session marking.
+- Routine and plan action popups retain their generic titles and actions without repeating the selected routine or plan name. Destructive confirmations still identify the affected item.
+- The tile-and-group exercise popup is exclusive to Live Workout. Routine preview and other shorter exercise menus use a flat list, without setup tiles or repeated exercise-name context.
+
 - A failed saved-library load is distinct from an empty library. Forge preserves unreadable records, offers an explicit retry and the existing Backup & Export recovery route, and keeps ordinary collection editing unavailable until hydration succeeds.
 
 - Plans can contain routines, and routines may also exist without a plan. In edit mode, every standalone or plan routine has the same direct drag-handle reorder interaction as a Dashboard tile. A routine can be reordered within its current group, and its resulting order persists without removing any routine. Moving a routine between standalone Routines and a plan uses the routine's Move to action. Plans use their visible up/down controls for ordering.

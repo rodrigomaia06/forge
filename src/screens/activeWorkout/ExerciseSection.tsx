@@ -412,12 +412,14 @@ export function ReadOnlyExerciseSection({
   exercise,
   showCompletion = true,
   workoutId,
+  showOptions = !!workoutId,
 }: {
   exercise: WorkoutExercise;
   /** Recorded workouts show a completion tick; routine Visualize has none. */
   showCompletion?: boolean;
   /** Enables read-only exercise actions when rendered inside workout history. */
   workoutId?: string;
+  showOptions?: boolean;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -492,7 +494,7 @@ export function ReadOnlyExerciseSection({
           color={theme.slate}
         />
       </Pressable>
-      {workoutId ? <Pressable accessibilityRole="button" accessibilityLabel={`More options for ${exercise.name}`} onPress={() => { selectionHaptic(); setOptionsRestoreInstant(false); setOptionsOpen(true); setOptionsVisible(true); }} style={styles.readOnlyMoreButton}><Icon name="ellipsis-horizontal" size={20} color={theme.ink} /></Pressable> : null}
+      {showOptions ? <Pressable accessibilityRole="button" accessibilityLabel={`More options for ${exercise.name}`} onPress={() => { selectionHaptic(); setOptionsRestoreInstant(false); setOptionsOpen(true); setOptionsVisible(true); }} style={styles.readOnlyMoreButton}><Icon name="ellipsis-horizontal" size={20} color={theme.ink} /></Pressable> : null}
       </View>
       {expanded && (
         <View style={styles.readOnlySets}>
@@ -530,7 +532,7 @@ export function ReadOnlyExerciseSection({
           trackingType={trackingType}
         />
       )}
-      {workoutId && optionsOpen ? <ExerciseOptionsSheet
+      {showOptions && optionsOpen ? <ExerciseOptionsSheet
         visible={optionsVisible}
         enterInstant={optionsRestoreInstant}
         readOnly
