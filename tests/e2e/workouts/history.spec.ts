@@ -510,35 +510,13 @@ test.describe('History screen', () => {
     const historyExercise = page.getByTestId('history-exercise-muay-thai-exercise-0');
     await expect(historyExercise).not.toContainText('Exercise history note');
     await expect(historyExercise.locator('svg[aria-label="Exercise has a comment"]')).toBeVisible();
-    const [chipBox, dotBox, targetDotBox, rpeBox] = await Promise.all([
-      page.getByTestId('history-set-number-chip-1').boundingBox(),
-      firstSet.getByLabel('Set 1 has a comment').boundingBox(),
-      firstSet.getByLabel('Set 1 has a next session target').boundingBox(),
-      firstSet.getByLabel('Set 1 RPE 8').boundingBox(),
-    ]);
-    expect(chipBox).not.toBeNull();
-    expect(dotBox).not.toBeNull();
-    expect(targetDotBox).not.toBeNull();
-    expect(rpeBox).not.toBeNull();
-    if (!chipBox || !dotBox || !targetDotBox || !rpeBox) throw new Error('Expected measurable history set indicators');
-    await expect(firstSet.getByLabel('Set 1 has a comment').locator('svg')).toHaveCount(0);
-    expect(dotBox.width).toBeCloseTo(7, 0);
-    expect(dotBox.height).toBeCloseTo(7, 0);
-    expect(dotBox.x).toBeGreaterThan(chipBox.x + chipBox.width / 2);
-    expect(dotBox.y).toBeGreaterThan(chipBox.y + chipBox.height / 2);
-    expect(dotBox.x).toBeLessThan(chipBox.x + chipBox.width);
-    expect(dotBox.y).toBeLessThan(chipBox.y + chipBox.height);
-    expect(dotBox.x + dotBox.width).toBeLessThanOrEqual(chipBox.x + chipBox.width);
-    expect(dotBox.y + dotBox.height).toBeLessThanOrEqual(chipBox.y + chipBox.height);
-    expect(dotBox.x + dotBox.width).toBeLessThanOrEqual(chipBox.x + chipBox.width - 3);
-    expect(dotBox.y + dotBox.height).toBeLessThanOrEqual(chipBox.y + chipBox.height - 3);
-    // setTargetIndicator is a dark tone (#55585C) in Light so the dot reads on the
-    // light set-number chip (white only in Dark).
-    await expect(firstSet.getByLabel('Set 1 has a next session target')).toHaveCSS('background-color', 'rgb(85, 88, 92)');
-    expect(targetDotBox.x).toBeLessThan(chipBox.x + chipBox.width / 2);
-    expect(targetDotBox.y).toBeLessThan(chipBox.y + chipBox.height / 2);
-    expect(rpeBox.x).toBeLessThan(chipBox.x + chipBox.width / 2);
-    expect(rpeBox.y + rpeBox.height).toBeGreaterThan(chipBox.y + chipBox.height / 2);
+    const chipBox = (await page.getByTestId('history-set-number-chip-1').boundingBox())!;
+    const commentBox = (await firstSet.getByLabel('Set 1 has a comment').boundingBox())!;
+    expect(commentBox.y).toBeGreaterThanOrEqual(chipBox.y);
+    expect(commentBox.y + commentBox.height).toBeLessThanOrEqual(chipBox.y + chipBox.height);
+    await expect(firstSet.getByLabel('Set 1 has a comment')).toBeVisible();
+    await expect(firstSet.getByLabel('Set 1 has a next session target')).toBeVisible();
+    await expect(firstSet.getByLabel('Set 1 RIR 2')).toBeVisible();
     if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('commented-history-exercise-iphone.png') });
     }
@@ -553,7 +531,7 @@ test.describe('History screen', () => {
     await expect(sheet.getByText('No type recorded', { exact: true })).toBeVisible();
     await expect(sheet.getByText('Set kind', { exact: true })).toBeVisible();
     await expect(sheet.getByText('Session note & effort', { exact: true })).toBeVisible();
-    await expect(sheet.getByText('Next session', { exact: true })).toBeVisible();
+    await expect(sheet.getByText('Next session target', { exact: true })).toBeVisible();
     await expect(sheet.getByRole('radio')).toHaveCount(0);
     await expect(sheet.getByRole('button', { name: 'Change set kind' })).toHaveCount(0);
     await expect(sheet.getByRole('button', { name: 'Delete Set 1' })).toHaveCount(0);

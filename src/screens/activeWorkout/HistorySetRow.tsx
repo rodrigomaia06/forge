@@ -43,9 +43,8 @@ export function HistorySetRow({
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const rpe = measurementText(set, 'rpe');
   const { stacked, onLayout, probe } = useSetRowLayout(trackingFields[trackingType].length, showPrevious);
-  const badgeLayout = useSetNumberBadgeLayout(Boolean(rpe));
+  const badgeLayout = useSetNumberBadgeLayout();
   const formatTarget = (item: NonNullable<WorkoutSet['plannedTargets']>[number]): string =>
     item.maxValue !== undefined && item.maxValue !== item.minValue
       ? `${item.minValue}–${item.maxValue}`

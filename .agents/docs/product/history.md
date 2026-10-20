@@ -1,6 +1,6 @@
 # History
 
-- Recorded set-number badges share the live-workout layout: the number or set-kind letter stays centered while RPE and target/comment dots fit around it without overlap.
+- Recorded set-number badges share the live-workout layout and uniform 36 pt square size: a centered number or set-kind letter, with target at top-left, RIR at bottom-left and comment at bottom-right as separate corner dots in the same theme-aware ink colour, inset toward the center. RIR values remain available in the accessible label and read-only details. Its tap opens read-only set details.
 
 - A failed saved-workout load is distinct from first use. Forge preserves unreadable active/archive records and offers retry plus the existing Backup & Export route before ordinary collection editing resumes. Database backup restore remains native-only.
 

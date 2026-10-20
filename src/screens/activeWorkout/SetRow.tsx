@@ -51,8 +51,7 @@ export function SetRow({
   const [focusedInputs, setFocusedInputs] = useState<Partial<Record<import('../../types').SetMeasurementKind, boolean>>>({});
   const { stacked, onLayout, probe } = useSetRowLayout(trackingFields[trackingType].length, showPrevious);
   const previous = set.previous || '—';
-  const rpe = measurementText(set, 'rpe');
-  const badgeLayout = useSetNumberBadgeLayout(Boolean(rpe));
+  const badgeLayout = useSetNumberBadgeLayout();
 
   useEffect(
     () => () => {
