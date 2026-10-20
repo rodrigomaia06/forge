@@ -28,6 +28,8 @@ export function ForgeLineChart({
   formatValue = (v) => `${Math.round(v * 10) / 10}`,
   yAxisUnit = '',
   selectionPlacement = 'below',
+  selectedIndex,
+  onSelectionChange,
 }: {
   data: ForgeLinePoint[];
   height?: number;
@@ -39,7 +41,9 @@ export function ForgeLineChart({
   curved?: boolean;
   formatValue?: (value: number) => string;
   yAxisUnit?: string;
-  selectionPlacement?: 'above' | 'below';
+  selectionPlacement?: 'above' | 'below' | 'none';
+  selectedIndex?: number;
+  onSelectionChange?: (index: number) => void;
 }) {
   const theme = useForgeTheme();
   const [width, setWidth] = useState(0);
@@ -56,6 +60,8 @@ export function ForgeLineChart({
         formatValue={(v) => `${formatValue(v)}${yAxisUnit}`}
         selectionPlacement={selectionPlacement}
         showAxes={showAxes}
+        selectedIndex={selectedIndex}
+        onSelectionChange={onSelectionChange}
       />
     );
   }

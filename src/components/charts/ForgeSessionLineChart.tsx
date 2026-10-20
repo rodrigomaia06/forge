@@ -19,19 +19,23 @@ export function ForgeSessionLineChart({
   formatValue,
   selectionPlacement = 'below',
   showAxes = false,
+  selectedIndex,
+  onSelectionChange,
 }: {
   data: ForgeLinePoint[];
   height: number;
   color: string;
   formatValue: (value: number) => string;
-  selectionPlacement?: 'above' | 'below';
+  selectionPlacement?: 'above' | 'below' | 'none';
+  selectedIndex?: number;
+  onSelectionChange?: (index: number) => void;
   showAxes?: boolean;
 }) {
   const theme = useForgeTheme();
   const chartRef = useRef<View>(null);
   const [width, setWidth] = useState(0);
   const [selection, setSelection] = useState(data.length - 1);
-  const selected = Math.max(0, Math.min(selection, data.length - 1));
+  const selected = Math.max(0, Math.min(selectedIndex ?? selection, data.length - 1));
   const selectedOnUI = useSharedValue(data.length - 1);
   const positionsOnUI = useSharedValue<number[]>([]);
   const identity = JSON.stringify(
@@ -75,11 +79,21 @@ export function ForgeSessionLineChart({
   useEffect(() => {
     selectedOnUI.set(data.length - 1);
     setSelection(data.length - 1);
-  }, [identity, selectedOnUI]);
+    onSelectionChange?.(data.length - 1);
+  }, [identity, selectedOnUI, onSelectionChange]);
+  useEffect(() => {
+    if (selectedIndex !== undefined) selectedOnUI.set(selectedIndex);
+  }, [selectedIndex, selectedOnUI]);
   useEffect(() => {
     positionsOnUI.set(positions);
   }, [identity, width, height, positionsOnUI]);
-  const commitSelection = useCallback((index: number) => setSelection(index), []);
+  const commitSelection = useCallback(
+    (index: number) => {
+      setSelection(index);
+      onSelectionChange?.(index);
+    },
+    [onSelectionChange],
+  );
   useAnimatedReaction(
     () => selectedOnUI.get(),
     (index, previous) => {
