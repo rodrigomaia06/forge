@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Set details — RIR and indicators</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "inverse-primary": "#5c5f5e",
+            "outline": "#8e9290",
+            "on-tertiary-fixed": "#1e1b18",
+            "on-secondary-fixed-variant": "#42474b",
+            "on-error": "#690005",
+            "on-error-container": "#ffdad6",
+            "outline-variant": "#434846",
+            "on-primary-container": "#626564",
+            "surface-variant": "#333538",
+            "secondary": "#c2c7cb",
+            "on-secondary-container": "#b1b6ba",
+            "tertiary-fixed": "#e9e1dc",
+            "secondary-fixed": "#dee3e7",
+            "inverse-surface": "#e2e2e6",
+            "surface-dim": "#111316",
+            "tertiary-fixed-dim": "#cdc5c0",
+            "on-secondary-fixed": "#171c1f",
+            "on-tertiary": "#34302d",
+            "background": "#111316",
+            "on-primary": "#2e3130",
+            "surface-container-high": "#282a2d",
+            "surface": "#111316",
+            "error": "#ffb4ab",
+            "tertiary-container": "#e9e1dc",
+            "primary": "#ffffff",
+            "secondary-fixed-dim": "#c2c7cb",
+            "surface-tint": "#c5c7c5",
+            "on-primary-fixed-variant": "#454746",
+            "surface-container": "#1e2023",
+            "surface-bright": "#37393d",
+            "on-surface-variant": "#c4c7c5",
+            "tertiary": "#ffffff",
+            "on-primary-fixed": "#191c1b",
+            "primary-container": "#e2e3e1",
+            "surface-container-low": "#1a1c1f",
+            "on-surface": "#e2e2e6",
+            "secondary-container": "#42474b",
+            "on-tertiary-container": "#696360",
+            "on-secondary": "#2c3134",
+            "on-background": "#e2e2e6",
+            "error-container": "#93000a",
+            "primary-fixed-dim": "#c5c7c5",
+            "on-tertiary-fixed-variant": "#4b4642",
+            "inverse-on-surface": "#2f3034",
+            "surface-container-highest": "#333538",
+            "surface-container-lowest": "#0c0e11",
+            "primary-fixed": "#e2e3e1"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-xs": "0.25rem",
+            "space-xl": "1.5rem",
+            "gutter": "0.75rem",
+            "space-lg": "1rem",
+            "space-sm": "0.5rem",
+            "space-md": "0.75rem",
+            "margin": "1rem"
+          },
+          "fontFamily": {
+            "section-title": ["Manrope"],
+            "body-default": ["Manrope"],
+            "metadata": ["Manrope"],
+            "sheet-header": ["Manrope"],
+            "metric-large": ["Manrope"],
+            "body-semibold": ["Manrope"],
+            "metadata-caps": ["Manrope"]
+          },
+          "fontSize": {
+            "section-title": [
+              "18px",
+              {
+                "lineHeight": "24px",
+                "letterSpacing": "-0.01em",
+                "fontWeight": "600"
+              }
+            ],
+            "body-default": [
+              "15px",
+              {
+                "lineHeight": "22px",
+                "letterSpacing": "0em",
+                "fontWeight": "400"
+              }
+            ],
+            "metadata": [
+              "12px",
+              {
+                "lineHeight": "16px",
+                "letterSpacing": "0.02em",
+                "fontWeight": "500"
+              }
+            ],
+            "sheet-header": [
+              "23px",
+              {
+                "lineHeight": "30px",
+                "letterSpacing": "-0.015em",
+                "fontWeight": "600"
+              }
+            ],
+            "metric-large": [
+              "28px",
+              {
+                "lineHeight": "34px",
+                "letterSpacing": "-0.02em",
+                "fontWeight": "600"
+              }
+            ],
+            "body-semibold": [
+              "15px",
+              {
+                "lineHeight": "22px",
+                "letterSpacing": "0em",
+                "fontWeight": "600"
+              }
+            ],
+            "metadata-caps": [
+              "11px",
+              {
+                "lineHeight": "14px",
+                "letterSpacing": "0.06em",
+                "fontWeight": "600"
+              }
+            ]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      font-family: 'Manrope', sans-serif;
+      background-color: #0D0F12;
+      color: #E2E2E6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    /* Hide scrollbar for chrome, safari and opera */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    /* Hide scrollbar for IE, Edge and Firefox */
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+  button { min-width: 44px; min-height: 44px; } input { min-width: 0; }
+</style>
+<style>
+    body {
+      min-height: 100dvh;
+    }
+  </style>
+  </head>
+<body class="bg-[#0D0F12] text-on-surface antialiased flex justify-center min-h-screen select-none">
+<!-- Mobile 390px Shell Container -->
+<div class="w-full max-w-[390px] min-h-screen bg-[#0D0F12] flex flex-col relative overflow-x-hidden border-x border-[#282B30]">
+<!-- TopAppBar from JSON Anchors -->
+<header class="fixed top-0 left-0 w-full z-40 flex items-center justify-between h-14 px-margin max-w-[390px] mx-auto bg-surface border-b border-outline-variant">
+<button aria-label="Navigate back" class="flex items-center justify-center w-11 h-11 text-primary hover:bg-surface-container active:opacity-85 transition-opacity duration-150 rounded" type="button">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="text-section-title font-section-title text-primary tracking-tight">Barbell Bench Press</h1>
+<button aria-label="Exercise options" class="flex items-center justify-center w-11 h-11 text-primary hover:bg-surface-container active:opacity-85 transition-opacity duration-150 rounded" type="button">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</header>
+<!-- Content Behind Backdrop Veil (Workout Table) -->
+<main class="flex-1 pt-16 px-margin pb-4 pointer-events-none">
+<!-- Exercise Session Context Header -->
+<div class="flex items-center justify-between py-3 mb-2 border-b border-[#282B30]">
+<div class="flex items-center gap-2">
+<span class="text-metadata-caps font-metadata-caps uppercase text-secondary">Working Sets</span>
+<span class="inline-block w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="text-metadata font-metadata text-secondary">Rest: 2m 30s</span>
+</div>
+<div class="flex items-center gap-1 text-metadata font-metadata text-secondary">
+<span class="material-symbols-outlined text-[16px]" data-icon="timer">timer</span>
+<span class="tabular-nums">02:14</span>
+</div>
+</div>
+<!-- Clean Industrial Table Container -->
+<div class="bg-[#16181B] border border-[#282B30] rounded-xl overflow-hidden mb-6">
+<!-- Table Column Headers -->
+<div class="grid grid-cols-12 px-3 py-2.5 bg-[#1F2225] border-b border-[#282B30] text-metadata-caps font-metadata-caps text-secondary uppercase tracking-wider items-center">
+<div class="col-span-2 text-left">SET</div>
+<div class="col-span-3 text-left">PREV</div>
+<div class="col-span-2 text-center">KG</div>
+<div class="col-span-2 text-center">REPS</div>
+<div class="col-span-3 text-right">STATUS</div>
+</div>
+<!-- SET 1: Plain Completed Set -->
+<div class="grid grid-cols-12 px-3 py-3 border-b border-[#282B30] items-center bg-[#16181B]">
+<div class="col-span-2">
+<span class="inline-flex items-center justify-center w-6 h-6 rounded bg-[#1F2225] text-metadata font-metadata text-secondary border border-[#282B30] tabular-nums">1</span>
+</div>
+<div class="col-span-3 text-metadata font-metadata text-secondary tabular-nums">
+            100 kg × 8
+          </div>
+<div class="col-span-2 text-center text-body-semibold font-body-semibold text-primary tabular-nums">
+            100
+          </div>
+<div class="col-span-2 text-center text-body-semibold font-body-semibold text-primary tabular-nums">
+            8
+          </div>
+<div class="col-span-3 flex justify-end items-center">
+<div class="w-7 h-7 rounded bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[#0D0F12] text-[18px] font-bold" data-icon="check" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+</div>
+</div>
+<!-- SET 2: Active Set with Indicators -->
+<div class="grid grid-cols-12 px-3 py-3 border-b border-[#282B30] items-center bg-[#1F2225] ring-1 ring-[#3D434A]">
+<div class="col-span-2">
+<span class="inline-flex items-center justify-center w-6 h-6 rounded bg-[#16181B] text-metadata font-metadata text-primary border border-primary tabular-nums font-semibold">2</span>
+</div>
+<div class="col-span-3 text-metadata font-metadata text-secondary tabular-nums">
+            100 kg × 8
+          </div>
+<div class="col-span-2 text-center text-body-semibold font-body-semibold text-primary tabular-nums">
+            102.5
+          </div>
+<div class="col-span-2 text-center text-body-semibold font-body-semibold text-primary tabular-nums">
+            8
+          </div>
+<div class="col-span-3 flex justify-end items-center gap-1.5">
+<!-- Target Indicator -->
+<span class="px-1 py-0.5 rounded bg-[#16181B] border border-[#282B30] text-[10px] font-semibold text-primary tabular-nums leading-none">
+              <span class="material-symbols-outlined text-[14px]">target</span>
+            </span>
+<!-- RIR Indicator -->
+<span class="px-1 py-0.5 rounded bg-[#16181B] border border-[#282B30] text-[10px] font-semibold text-secondary tabular-nums leading-none">
+              RIR 2
+            </span>
+<!-- Note Indicator -->
+<span class="material-symbols-outlined text-[15px] text-secondary" data-icon="chat_bubble">chat_bubble</span>
+</div>
+</div>
+<!-- SET 3: Pending Set -->
+<div class="grid grid-cols-12 px-3 py-3 items-center bg-[#16181B]">
+<div class="col-span-2">
+<span class="inline-flex items-center justify-center w-6 h-6 rounded bg-[#1F2225] text-metadata font-metadata text-secondary border border-[#282B30] tabular-nums">3</span>
+</div>
+<div class="col-span-3 text-metadata font-metadata text-secondary tabular-nums">
+            100 kg × 7
+          </div>
+<div class="col-span-2 text-center text-body-semibold font-body-semibold text-secondary tabular-nums">
+            102.5
+          </div>
+<div class="col-span-2 text-center text-body-semibold font-body-semibold text-secondary tabular-nums">
+            8
+          </div>
+<div class="col-span-3 flex justify-end items-center">
+<div class="w-7 h-7 rounded bg-[#1F2225] border border-[#282B30] flex items-center justify-center">
+<span class="material-symbols-outlined text-outline text-[18px]" data-icon="check">check</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BACKDROP VEIL: Pure black with 70% opacity, crisp frame rate fidelity -->
+<div class="fixed inset-0 bg-black/40 z-40 max-w-[390px] mx-auto pointer-events-auto"></div>
+<!-- BOTTOM-ATTACHED SHEET: Set 2 Details -->
+<section class="fixed bottom-0 left-0 right-0 z-50 max-w-[390px] mx-auto bg-[#16181B] border-t border-[#282B30] rounded-t-2xl shadow-none flex flex-col max-h-[62dvh] overflow-hidden">
+<!-- Sheet Drag Handle -->
+<div class="w-full flex justify-center pt-2 pb-1">
+<div class="w-9 h-1 rounded-full bg-[#282B30]"></div>
+</div>
+<!-- Header: Back Button | Centered Title 'Set 2 Details' | Close Button -->
+<header class="flex items-center justify-between px-margin py-2 border-b border-[#282B30]">
+<button aria-label="Previous step" class="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-[#1F2225] border border-[#282B30] flex items-center justify-center text-primary active:opacity-85 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="arrow_back">arrow_back</span>
+</button>
+<h2 class="text-sheet-header font-sheet-header text-primary tracking-tight">Set 2 Details</h2>
+<button aria-label="Close set details" class="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-[#1F2225] border border-[#282B30] flex items-center justify-center text-primary active:opacity-85 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="close">close</span>
+</button>
+</header>
+<!-- Scrollable Sheet Content -->
+<div class="flex-1 overflow-y-auto px-margin py-4 space-y-5 no-scrollbar">
+<!-- SECTION 1: SET KIND -->
+<section aria-labelledby="section-set-kind">
+<h3 class="text-section-title font-section-title text-primary mb-2.5" id="section-set-kind">Set kind</h3>
+<div class="grid grid-cols-4 gap-2 bg-[#1F2225] p-1.5 rounded-lg border border-[#282B30]">
+<!-- Normal (Selected) -->
+<button class="min-h-[44px] rounded flex items-center justify-center text-body-semibold font-body-semibold text-primary bg-[#16181B] border border-[#3D434A] transition-all" type="button">
+              Normal
+            </button>
+<!-- Warm-up -->
+<button class="min-h-[44px] rounded flex items-center justify-center text-body-default font-body-default text-secondary hover:text-primary transition-colors" type="button">
+              Warm-up
+            </button>
+<!-- Drop -->
+<button class="min-h-[44px] rounded flex items-center justify-center text-body-default font-body-default text-secondary hover:text-primary transition-colors" type="button">
+              Drop
+            </button>
+<!-- Failure -->
+<button class="min-h-[44px] rounded flex items-center justify-center text-body-default font-body-default text-secondary hover:text-primary transition-colors" type="button">
+              Failure
+            </button>
+</div>
+</section>
+<!-- SECTION 2: SESSION NOTE & EFFORT -->
+<section aria-labelledby="section-effort">
+<h3 class="text-section-title font-section-title text-primary mb-2.5" id="section-effort">Session note &amp; effort</h3>
+<div class="bg-[#1F2225] border border-[#282B30] rounded-lg p-3 space-y-4">
+<!-- Comment Note Input Field -->
+<div>
+<label class="block text-metadata-caps font-metadata-caps text-secondary uppercase mb-1.5" for="set-comment">Set Note</label>
+<div class="relative">
+<input class="w-full bg-[#16181B] border border-[#282B30] focus:border-[#3D434A] rounded text-body-default font-body-default text-primary px-3 py-2.5 min-h-[44px] focus:outline-none placeholder-outline" id="set-comment" placeholder="Add note for this set..." type="text" value="Felt solid, slight grind on 8th rep."/>
+</div>
+</div>
+<!-- Reps in Reserve (RIR) Selector -->
+<div>
+<div class="flex items-center justify-between mb-2">
+<span class="text-metadata-caps font-metadata-caps text-secondary uppercase">REPS IN RESERVE (RIR)</span>
+<span class="text-metadata font-metadata text-primary font-semibold tabular-nums">RIR 2</span>
+</div>
+<!-- Horizontal Scrollable Pill Array -->
+<div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+<!-- 0 -->
+<button class="min-w-[40px] h-11 flex-shrink-0 rounded bg-[#16181B] border border-[#282B30] text-body-default font-body-default text-secondary flex items-center justify-center tabular-nums active:opacity-85" type="button">
+                  0
+                </button>
+<!-- 0.5 -->
+<button class="min-w-[44px] h-11 flex-shrink-0 rounded bg-[#16181B] border border-[#282B30] text-body-default font-body-default text-secondary flex items-center justify-center tabular-nums active:opacity-85" type="button">
+                  0.5
+                </button>
+<!-- 1 -->
+<button class="min-w-[40px] h-11 flex-shrink-0 rounded bg-[#16181B] border border-[#282B30] text-body-default font-body-default text-secondary flex items-center justify-center tabular-nums active:opacity-85" type="button">
+                  1
+                </button>
+<!-- 1.5 -->
+<button class="min-w-[44px] h-11 flex-shrink-0 rounded bg-[#16181B] border border-[#282B30] text-body-default font-body-default text-secondary flex items-center justify-center tabular-nums active:opacity-85" type="button">
+                  1.5
+                </button>
+<!-- 2 (SELECTED HIGH CONTRAST) -->
+<button class="min-w-[44px] h-11 flex-shrink-0 rounded bg-primary text-[#0D0F12] border border-primary text-body-semibold font-body-semibold flex items-center justify-center tabular-nums" type="button">
+                  2
+                </button>
+<!-- 2.5 -->
+<button class="min-w-[44px] h-11 flex-shrink-0 rounded bg-[#16181B] border border-[#282B30] text-body-default font-body-default text-secondary flex items-center justify-center tabular-nums active:opacity-85" type="button">
+                  2.5
+                </button>
+<!-- 3 -->
+<button class="min-w-[40px] h-11 flex-shrink-0 rounded bg-[#16181B] border border-[#282B30] text-body-default font-body-default text-secondary flex items-center justify-center tabular-nums active:opacity-85" type="button">
+                  3
+                </button>
+<!-- 3.5 -->
+<button class="min-w-[44px] h-11 flex-shrink-0 rounded bg-[#16181B] border border-[#282B30] text-body-default font-body-default text-secondary flex items-center justify-center tabular-nums active:opacity-85" type="button">
+                  3.5
+                </button>
+<!-- 4 -->
+<button class="min-w-[40px] h-11 flex-shrink-0 rounded bg-[#16181B] border border-[#282B30] text-body-default font-body-default text-secondary flex items-center justify-center tabular-nums active:opacity-85" type="button">
+                  4
+                </button>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 3: NEXT SESSION TARGET -->
+<section aria-labelledby="section-targets">
+<div class="flex items-center justify-between mb-2.5">
+<h3 class="text-section-title font-section-title text-primary" id="section-targets">Next session target</h3>
+
+</div>
+<div class="grid grid-cols-2 gap-3">
+<!-- Field 1: Target Weight -->
+<div class="bg-[#1F2225] border border-[#282B30] rounded-lg p-2.5">
+<label class="block text-metadata-caps font-metadata-caps text-secondary uppercase mb-1" for="target-load">TARGET LOAD</label>
+<div class="flex items-center justify-between bg-[#16181B] border border-[#282B30] rounded px-3 min-h-[44px]">
+<input class="w-full bg-transparent text-body-semibold font-body-semibold text-primary tabular-nums focus:outline-none" id="target-load" type="text" value="102.5"/>
+<span class="text-metadata-caps font-metadata-caps text-secondary font-bold pl-2">KG</span>
+</div>
+</div>
+<!-- Field 2: Target Reps -->
+<div class="bg-[#1F2225] border border-[#282B30] rounded-lg p-2.5">
+<label class="block text-metadata-caps font-metadata-caps text-secondary uppercase mb-1" for="target-reps">TARGET REPS</label>
+<div class="flex items-center justify-between bg-[#16181B] border border-[#282B30] rounded px-3 min-h-[44px]">
+<input class="w-full bg-transparent text-body-semibold font-body-semibold text-primary tabular-nums focus:outline-none" id="target-reps" type="text" value="8"/>
+<span class="text-metadata-caps font-metadata-caps text-secondary font-bold pl-2">REPS</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Sheet Footer: Autosave Indicator (Strictly utilitarian, no fake CTA buttons) -->
+
+</section>
+</div>
+</body></html>

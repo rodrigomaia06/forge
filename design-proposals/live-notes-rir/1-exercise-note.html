@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Exercise note — live editing</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "inverse-primary": "#5c5f5e",
+            "outline": "#8e9290",
+            "on-tertiary-fixed": "#1e1b18",
+            "on-secondary-fixed-variant": "#42474b",
+            "on-error": "#690005",
+            "on-error-container": "#ffdad6",
+            "outline-variant": "#434846",
+            "on-primary-container": "#626564",
+            "surface-variant": "#333538",
+            "secondary": "#c2c7cb",
+            "on-secondary-container": "#b1b6ba",
+            "tertiary-fixed": "#e9e1dc",
+            "secondary-fixed": "#dee3e7",
+            "inverse-surface": "#e2e2e6",
+            "surface-dim": "#111316",
+            "tertiary-fixed-dim": "#cdc5c0",
+            "on-secondary-fixed": "#171c1f",
+            "on-tertiary": "#34302d",
+            "background": "#0D0F12",
+            "on-primary": "#2e3130",
+            "surface-container-high": "#282a2d",
+            "surface": "#111316",
+            "error": "#ffb4ab",
+            "tertiary-container": "#e9e1dc",
+            "primary": "#ffffff",
+            "secondary-fixed-dim": "#c2c7cb",
+            "surface-tint": "#c5c7c5",
+            "on-primary-fixed-variant": "#454746",
+            "surface-container": "#1e2023",
+            "surface-bright": "#37393d",
+            "on-surface-variant": "#c4c7c5",
+            "tertiary": "#ffffff",
+            "on-primary-fixed": "#191c1b",
+            "primary-container": "#e2e3e1",
+            "surface-container-low": "#1a1c1f",
+            "on-surface": "#e2e2e6",
+            "secondary-container": "#42474b",
+            "on-tertiary-container": "#696360",
+            "on-secondary": "#2c3134",
+            "on-background": "#e2e2e6",
+            "error-container": "#93000a",
+            "primary-fixed-dim": "#c5c7c5",
+            "on-tertiary-fixed-variant": "#4b4642",
+            "inverse-on-surface": "#2f3034",
+            "surface-container-highest": "#333538",
+            "surface-container-lowest": "#0c0e11",
+            "primary-fixed": "#e2e3e1"
+          },
+          borderRadius: {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          spacing: {
+            "space-xs": "0.25rem",
+            "space-xl": "1.5rem",
+            "gutter": "0.75rem",
+            "space-lg": "1rem",
+            "space-sm": "0.5rem",
+            "space-md": "0.75rem",
+            "margin": "1rem"
+          },
+          fontFamily: {
+            "section-title": ["Manrope"],
+            "body-default": ["Manrope"],
+            "metadata": ["Manrope"],
+            "sheet-header": ["Manrope"],
+            "metric-large": ["Manrope"],
+            "body-semibold": ["Manrope"],
+            "metadata-caps": ["Manrope"]
+          },
+          fontSize: {
+            "section-title": ["18px", { lineHeight: "24px", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "body-default": ["15px", { lineHeight: "22px", letterSpacing: "0em", fontWeight: "400" }],
+            "metadata": ["12px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "500" }],
+            "sheet-header": ["23px", { lineHeight: "30px", letterSpacing: "-0.015em", fontWeight: "600" }],
+            "metric-large": ["28px", { lineHeight: "34px", letterSpacing: "-0.02em", fontWeight: "600" }],
+            "body-semibold": ["15px", { lineHeight: "22px", letterSpacing: "0em", fontWeight: "600" }],
+            "metadata-caps": ["11px", { lineHeight: "14px", letterSpacing: "0.06em", fontWeight: "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    @keyframes cursor-blink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+    .animate-caret {
+      animation: cursor-blink 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    /* Tabular figures for weights, times, numbers */
+    .tnum {
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+<style>
+    body {
+      min-height: 100dvh;
+    }
+  </style>
+  </head>
+<body class="bg-[#0D0F12] text-[#F7F8F6] font-body-default min-h-screen flex items-center justify-center p-0 m-0 antialiased selection:bg-[#3D434A] selection:text-[#F7F8F6]">
+<!-- Mobile Tactical Container: Locked 390px width layout viewport shell -->
+<main class="relative w-full max-w-[390px] min-h-[100dvh] bg-[#0D0F12] overflow-hidden flex flex-col justify-between shadow-2xl border-x border-[#282B30]">
+<!-- ========================================== -->
+<!-- 1. BACKDROP: Realistic Dimmed Session View -->
+<!-- ========================================== -->
+<div aria-hidden="true" class="absolute inset-0 flex flex-col z-0 select-none overflow-hidden">
+<!-- Top Workout Status Bar -->
+<header class="flex items-center justify-between px-4 h-14 border-b border-[#282B30] bg-[#111316]">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-[#8e9290] text-[20px]">fitness_center</span>
+<span class="font-section-title text-section-title text-[#F7F8F6]">Workout — Push Day A</span>
+</div>
+<div class="flex items-center space-x-1.5 px-2.5 py-1 bg-[#1F2225] border border-[#282B30] rounded">
+<span class="material-symbols-outlined text-[#8e9290] text-[16px]">timer</span>
+<span class="font-metadata text-metadata text-[#C3C8CC] tnum font-semibold">32:14</span>
+</div>
+</header>
+<!-- Exercise Content Area -->
+<div class="p-4 space-y-4 opacity-75">
+<!-- Exercise Header Context -->
+<div class="flex justify-between items-start pb-2 border-b border-[#23262B]">
+<div>
+<div class="font-section-title text-section-title text-[#F7F8F6]">Barbell Bench Press</div>
+<div class="font-metadata text-metadata text-[#8e9290] mt-0.5">Olympic Bar • Chest / Triceps</div>
+</div>
+<span class="material-symbols-outlined text-[#8e9290]">more_vert</span>
+</div>
+<!-- Dimmed Set Logging Table -->
+<div class="bg-[#16181B] border border-[#282B30] rounded p-3 space-y-2">
+<!-- Table Columns Header -->
+<div class="grid grid-cols-12 gap-2 text-[#8e9290] font-metadata-caps text-[11px] uppercase tracking-wider pb-1 border-b border-[#282B30]">
+<div class="col-span-2 text-center">SET</div>
+<div class="col-span-3 text-center">PREV</div>
+<div class="col-span-3 text-center">KG</div>
+<div class="col-span-2 text-center">REPS</div>
+<div class="col-span-2 text-center">DONE</div>
+</div>
+<!-- Logged Row 1 -->
+<div class="grid grid-cols-12 gap-2 items-center text-sm py-1">
+<div class="col-span-2 text-center font-semibold text-[#8e9290]">1</div>
+<div class="col-span-3 text-center text-[#8e9290] tnum">100 × 8</div>
+<div class="col-span-3 text-center bg-[#1F2225] border border-[#282B30] py-1.5 rounded text-[#F7F8F6] tnum font-semibold">100</div>
+<div class="col-span-2 text-center bg-[#1F2225] border border-[#282B30] py-1.5 rounded text-[#F7F8F6] tnum font-semibold">8</div>
+<div class="col-span-2 flex justify-center">
+<div class="w-6 h-6 bg-[#F7F8F6] rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-[#0D0F12] text-[16px] font-bold">check</span>
+</div>
+</div>
+</div>
+<!-- Logged Row 2 -->
+<div class="grid grid-cols-12 gap-2 items-center text-sm py-1">
+<div class="col-span-2 text-center font-semibold text-[#8e9290]">2</div>
+<div class="col-span-3 text-center text-[#8e9290] tnum">100 × 8</div>
+<div class="col-span-3 text-center bg-[#1F2225] border border-[#282B30] py-1.5 rounded text-[#F7F8F6] tnum font-semibold">100</div>
+<div class="col-span-2 text-center bg-[#1F2225] border border-[#282B30] py-1.5 rounded text-[#F7F8F6] tnum font-semibold">8</div>
+<div class="col-span-2 flex justify-center">
+<div class="w-6 h-6 bg-[#F7F8F6] rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-[#0D0F12] text-[16px] font-bold">check</span>
+</div>
+</div>
+</div>
+<!-- Logged Row 3 (Current) -->
+<div class="grid grid-cols-12 gap-2 items-center text-sm py-1">
+<div class="col-span-2 text-center font-semibold text-[#8e9290]">3</div>
+<div class="col-span-3 text-center text-[#8e9290] tnum">100 × 7</div>
+<div class="col-span-3 text-center bg-[#1F2225] border border-[#282B30] py-1.5 rounded text-[#F7F8F6] tnum font-semibold">102.5</div>
+<div class="col-span-2 text-center bg-[#1F2225] border border-[#282B30] py-1.5 rounded text-[#F7F8F6] tnum font-semibold">6</div>
+<div class="col-span-2 flex justify-center">
+<div class="w-6 h-6 bg-[#F7F8F6] rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-[#0D0F12] text-[16px] font-bold">check</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Dimmed Background Overlay Veil (Strict 65% opacity, crisp edges, no blur) -->
+<div class="absolute inset-0 bg-black/65 z-10 pointer-events-auto"></div>
+</div>
+<!-- ========================================== -->
+<!-- 2. BOTTOM-ATTACHED MODAL SHEET             -->
+<!-- ========================================== -->
+<section class="relative z-20 mt-auto flex flex-col bg-[#16181B] rounded-t-2xl border-t border-x border-[#282B30] shadow-2xl transition-all duration-150">
+<!-- Top Grab Bar -->
+<div class="w-full flex justify-center pt-2.5 pb-1">
+<div class="w-9 h-1 rounded-full bg-[#282B30]"></div>
+</div>
+<!-- Sheet Navigation Bar Header -->
+<div class="relative flex items-center justify-between px-4 h-14 border-b border-[#23262B]">
+<!-- Left Control: 44px min touch circular button -->
+<button aria-label="Go back and autosave" class="w-11 h-11 rounded-full bg-[#1F2225] border border-[#282B30] flex items-center justify-center text-[#F7F8F6] hover:bg-[#282B30] active:opacity-85 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[20px]">arrow_back</span>
+</button>
+<!-- Centered Title: 23px Semibold (#F7F8F6) -->
+<h1 class="absolute left-1/2 -translate-x-1/2 font-sheet-header text-[23px] font-semibold text-[#F7F8F6] tracking-[-0.015em] pointer-events-none select-none">
+          Exercise note
+        </h1>
+<!-- Right Control: 44px min touch circular button -->
+<button aria-label="Close and autosave" class="w-11 h-11 rounded-full bg-[#1F2225] border border-[#282B30] flex items-center justify-center text-[#F7F8F6] hover:bg-[#282B30] active:opacity-85 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Modal Body Canvas -->
+<div class="p-4 space-y-3.5">
+<!-- Contextual Metadata Line -->
+<div class="flex items-center space-x-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-[#8e9290]"></span>
+<p class="font-metadata-caps text-[12px] font-semibold text-[#C3C8CC] uppercase tracking-wider">
+            Barbell Bench Press
+          </p>
+</div>
+<!-- Main Multiline Textarea Container (Live Editing State) -->
+<div class="relative w-full min-h-[156px] bg-[#1F2225] rounded-lg border border-[#3D434A] p-4 flex flex-col justify-between cursor-text">
+<div class="text-[15px] leading-relaxed text-[#F7F8F6] font-body-default font-normal inline select-text">
+            Pause at the chest. Keep the same grip for every set.<span class="inline-block w-[2px] h-[18px] bg-[#F7F8F6] align-middle ml-0.5 animate-caret"></span>
+</div>
+
+</div>
+<!-- Subtle Autosave Status (Strictly no fake buttons, counters, or filler) -->
+
+</div>
+<!-- ========================================== -->
+<!-- 3. KEYBOARD-AWARE DOCKED TEXT KEYBOARD     -->
+<!-- ========================================== -->
+<div aria-label="Virtual Keyboard" class="w-full bg-[#1F2225] border-t border-[#282B30] pt-2 pb-5 px-1.5 select-none">
+<!-- Row 1: QWERTY -->
+<div class="flex justify-center gap-1 mb-1.5">
+<button class="flex-1 max-w-[36px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">Q</button>
+<button class="flex-1 max-w-[36px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">W</button>
+<button class="flex-1 max-w-[36px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">E</button>
+<button class="flex-1 max-w-[36px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">R</button>
+<button class="flex-1 max-w-[36px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">T</button>
+<button class="flex-1 max-w-[36px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">Y</button>
+<button class="flex-1 max-w-[36px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">U</button>
+<button class="flex-1 max-w-[36px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">I</button>
+<button class="flex-1 max-w-[36px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">O</button>
+<button class="flex-1 max-w-[36px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">P</button>
+</div>
+<!-- Row 2: ASDFGHJKL -->
+<div class="flex justify-center gap-1 mb-1.5 px-3">
+<button class="flex-1 max-w-[36px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">A</button>
+<button class="flex-1 max-w-[36px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">S</button>
+<button class="flex-1 max-w-[36px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">D</button>
+<button class="flex-1 max-w-[36px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">F</button>
+<button class="flex-1 max-w-[36px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">G</button>
+<button class="flex-1 max-w-[36px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">H</button>
+<button class="flex-1 max-w-[36px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">J</button>
+<button class="flex-1 max-w-[36px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">K</button>
+<button class="flex-1 max-w-[36px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">L</button>
+</div>
+<!-- Row 3: Shift, ZXCVBNM, Backspace -->
+<div class="flex justify-between gap-1 mb-1.5 px-0.5">
+<!-- Shift Key -->
+<button aria-label="Shift" class="w-11 h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] flex items-center justify-center active:bg-[#282B30]" type="button">
+<span class="material-symbols-outlined text-[19px]">shift</span>
+</button>
+<div class="flex flex-1 justify-center gap-1">
+<button class="flex-1 max-w-[34px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">Z</button>
+<button class="flex-1 max-w-[34px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">X</button>
+<button class="flex-1 max-w-[34px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">C</button>
+<button class="flex-1 max-w-[34px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">V</button>
+<button class="flex-1 max-w-[34px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">B</button>
+<button class="flex-1 max-w-[34px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">N</button>
+<button class="flex-1 max-w-[34px] h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] text-base font-medium flex items-center justify-center active:bg-[#282B30]" type="button">M</button>
+</div>
+<!-- Backspace Key -->
+<button aria-label="Backspace" class="w-11 h-11 bg-[#16181B] text-[#F7F8F6] rounded border border-[#282B30] flex items-center justify-center active:bg-[#282B30]" type="button">
+<span class="material-symbols-outlined text-[19px]">backspace</span>
+</button>
+</div>
+<!-- Row 4: 123, Spacebar, Done/Return -->
+<div class="flex items-center gap-1.5 px-0.5">
+<button class="w-12 h-11 bg-[#16181B] text-[#C3C8CC] rounded border border-[#282B30] text-sm font-semibold flex items-center justify-center active:bg-[#282B30]" type="button">
+            123
+          </button>
+<!-- Space Bar -->
+<button aria-label="Space bar" class="flex-1 h-11 bg-[#16181B] text-[#8e9290] rounded border border-[#282B30] text-xs uppercase tracking-wider font-semibold flex items-center justify-center active:bg-[#282B30]" type="button">
+            space
+          </button>
+<!-- Return / Done Key -->
+<button class="px-4 h-11 bg-[#282A2D] text-[#F7F8F6] rounded border border-[#3D434A] text-sm font-semibold flex items-center justify-center active:opacity-85" type="button">
+            done
+          </button>
+</div>
+</div>
+</section>
+</main>
+</body></html>
