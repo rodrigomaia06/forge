@@ -1,3 +1,4 @@
+import { ForgeEntityName } from './ForgeEntityName';
 import { ForgePressable as Pressable } from './ForgePressable';
 import { ForgeSheetScrollView } from './ForgeSheetScrollView';
 import React, { type ReactNode } from 'react';
@@ -41,6 +42,7 @@ interface ForgeActionSheetProps {
   onClosed?: () => void;
   accessibilityLabel: string;
   title: string;
+  contextName?: string;
   titleNumberOfLines?: number;
   /** Gives a contextual choice enough visual hierarchy to stand apart from the backdrop. */
   emphasis?: 'default' | 'prominent';
@@ -77,6 +79,7 @@ export function ForgeActionSheet({
   onClosed,
   accessibilityLabel,
   title,
+  contextName,
   titleNumberOfLines,
   emphasis = 'default',
   description,
@@ -179,6 +182,7 @@ export function ForgeActionSheet({
                 showsVerticalScrollIndicator={false}
                 bounces={false}
               >
+              {contextName ? <ForgeEntityName style={[typeScale.body, { color: theme.textPrimary, padding: scaleUI(16) }]}>{contextName}</ForgeEntityName> : null}
                 {neutralActions.map((action, index) => (
                   <ActionRow
                     key={action.label}

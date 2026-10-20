@@ -122,9 +122,9 @@ final class ForgeRangeKeyboardView: ExpoView, UITextFieldDelegate {
     let size = max(1, fontSize)
     let font = UIFont(name: fontFamily, size: size) ?? UIFont.systemFont(ofSize: size)
     field.font = UIFontMetrics(forTextStyle: .body).scaledFont(
-      for: font, maximumPointSize: size * 1.5, compatibleWith: traitCollection
+      for: font, compatibleWith: traitCollection
     )
-    field.adjustsFontForContentSizeCategory = false
+    field.adjustsFontForContentSizeCategory = true
   }
 
   @objc private func valueChanged() {

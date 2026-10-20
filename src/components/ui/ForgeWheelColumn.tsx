@@ -1,8 +1,9 @@
 import { ForgePressable as Pressable } from './ForgePressable';
 import { scheduleOnRN } from 'react-native-worklets';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ScrollView,
+  useWindowDimensions,
   StyleSheet,
   View,
   type NativeScrollEvent,
@@ -36,7 +37,7 @@ export function ForgeWheelColumn({
   accessibilityRole = 'button',
   label,
   testID,
-  visibleRows = WHEEL_VISIBLE_ROWS,
+  visibleRows: requestedRows = WHEEL_VISIBLE_ROWS,
 }: {
   options: readonly number[];
   selectedValue: number;
@@ -50,6 +51,10 @@ export function ForgeWheelColumn({
   visibleRows?: number;
 }) {
   const styles = useThemedStyles(createStyles);
+  const { height } = useWindowDimensions();
+  const [rowHeight, setRowHeight] = useState(WHEEL_ROW_HEIGHT);
+  const availableRows = Math.max(1, Math.floor((height - 240) / rowHeight));
+  const visibleRows = Math.max(1, Math.min(requestedRows, availableRows % 2 ? availableRows : availableRows - 1));
   const scrollRef = useRef<ScrollView>(null);
   const selectedIndex = Math.max(0, options.indexOf(selectedValue));
   const programmaticScroll = useRef(false);
@@ -58,16 +63,16 @@ export function ForgeWheelColumn({
   // controlled prop: if it tracked `selectedIndex`, every selection change would
   // re-apply it on iOS and reposition the ScrollView mid-gesture, so a swipe
   // would "stick" until nudged. Later positioning is done imperatively below.
-  const initialScrollOffset = useRef(selectedIndex * WHEEL_ROW_HEIGHT).current;
+  const initialScrollOffset = useRef(selectedIndex * rowHeight).current;
   // Set when a value change originates from the user's own scroll settle, so the
   // external re-center effect doesn't issue a redundant scrollTo over the gesture.
   const settledFromScroll = useRef(false);
-  const scrollOffset = useSharedValue(selectedIndex * WHEEL_ROW_HEIGHT);
+  const scrollOffset = useSharedValue(selectedIndex * rowHeight);
   const hapticIndex = useSharedValue(selectedIndex);
-  const padding = WHEEL_ROW_HEIGHT * ((visibleRows - 1) / 2);
+  const padding = rowHeight * ((visibleRows - 1) / 2);
 
   const scrollToIndex = (index: number, animated: boolean): void => {
-    scrollRef.current?.scrollTo({ y: index * WHEEL_ROW_HEIGHT, animated });
+    scrollRef.current?.scrollTo({ y: index * rowHeight, animated });
   };
 
   // The reliable trigger: onLayout fires once the ScrollView has a real frame
@@ -89,14 +94,14 @@ export function ForgeWheelColumn({
       settledFromScroll.current = false;
       return;
     }
-    scrollOffset.value = selectedIndex * WHEEL_ROW_HEIGHT;
+    scrollOffset.value = selectedIndex * rowHeight;
     hapticIndex.value = selectedIndex;
     scrollToIndex(selectedIndex, false);
-  }, [hapticIndex, scrollOffset, selectedIndex]);
+  }, [hapticIndex, scrollOffset, selectedIndex, rowHeight]);
 
   const handleScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
-      const index = Math.max(0, Math.min(options.length - 1, Math.round(event.contentOffset.y / WHEEL_ROW_HEIGHT)));
+      const index = Math.max(0, Math.min(options.length - 1, Math.round(event.contentOffset.y / rowHeight)));
       scrollOffset.value = event.contentOffset.y;
       if (index !== hapticIndex.value) {
         hapticIndex.value = index;
@@ -106,7 +111,7 @@ export function ForgeWheelColumn({
   });
 
   const settleAtOffset = (offsetY: number): void => {
-    const index = Math.max(0, Math.min(options.length - 1, Math.round(offsetY / WHEEL_ROW_HEIGHT)));
+    const index = Math.max(0, Math.min(options.length - 1, Math.round(offsetY / rowHeight)));
     programmaticScroll.current = false;
     settledFromScroll.current = true;
     onSelect(options[index]);
@@ -119,7 +124,7 @@ export function ForgeWheelColumn({
     hapticIndex.value = nextIndex;
     selectionHaptic();
     onSelect(options[nextIndex]);
-    scrollOffset.value = nextIndex * WHEEL_ROW_HEIGHT;
+    scrollOffset.value = nextIndex * rowHeight;
     scrollToIndex(nextIndex, true);
     // An animated scrollTo does not reliably emit onMomentumScrollEnd on Android,
     // which would otherwise leave programmaticScroll latched and freeze external
@@ -129,14 +134,17 @@ export function ForgeWheelColumn({
 
   return (
     <View style={styles.column}>
+      <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" aria-hidden style={{ position: 'absolute', opacity: 0 }}>
+        <Text style={typeScale.metricLarge} onLayout={event => setRowHeight(Math.max(WHEEL_ROW_HEIGHT, Math.ceil(event.nativeEvent.layout.height) + 8))}>00:00</Text>
+      </View>
       {label ? <Text style={styles.columnLabel}>{label}</Text> : null}
-      <View style={[styles.wheel, { height: WHEEL_ROW_HEIGHT * visibleRows }]}>
-        <View style={[styles.selection, { top: padding }, styles.pointerEventsNone]} />
+      <View style={[styles.wheel, { height: rowHeight * visibleRows }]}>
+        <View style={[styles.selection, { top: padding, height: rowHeight }, styles.pointerEventsNone]} />
         <Animated.ScrollView
           ref={scrollRef}
           testID={testID}
           showsVerticalScrollIndicator={false}
-          snapToInterval={WHEEL_ROW_HEIGHT}
+          snapToInterval={rowHeight}
           snapToAlignment="start"
           // The iOS default deceleration ("normal") gives the long, smooth glide
           // of the Clock-app drum rather than the abrupt stop of a fast
@@ -161,9 +169,10 @@ export function ForgeWheelColumn({
               accessibilityState={accessibilityRole === 'radio' ? { checked: index === selectedIndex } : undefined}
               unstable_pressDelay={110}
               onPress={() => handleTap(index)}
-              style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+              style={({ pressed }) => [styles.row, { height: rowHeight }, pressed && styles.rowPressed]}
             >
               <WheelValue
+                rowHeight={rowHeight}
                 text={formatValue(item)}
                 index={index}
                 selected={index === selectedIndex}
@@ -179,21 +188,23 @@ export function ForgeWheelColumn({
 
 function WheelValue({
   text,
+  rowHeight,
   index,
   selected,
   scrollOffset,
 }: {
   text: string;
+  rowHeight: number;
   index: number;
   selected: boolean;
   scrollOffset: { value: number };
 }) {
   const styles = useThemedStyles(createStyles);
-  const center = index * WHEEL_ROW_HEIGHT;
+  const center = index * rowHeight;
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       scrollOffset.value,
-      [center - WHEEL_ROW_HEIGHT * 2, center - WHEEL_ROW_HEIGHT, center, center + WHEEL_ROW_HEIGHT, center + WHEEL_ROW_HEIGHT * 2],
+      [center - rowHeight * 2, center - rowHeight, center, center + rowHeight, center + rowHeight * 2],
       [0.24, 0.58, 1, 0.58, 0.24],
       Extrapolation.CLAMP,
     ),
@@ -201,7 +212,7 @@ function WheelValue({
       {
         scale: interpolate(
           scrollOffset.value,
-          [center - WHEEL_ROW_HEIGHT * 2, center - WHEEL_ROW_HEIGHT, center, center + WHEEL_ROW_HEIGHT, center + WHEEL_ROW_HEIGHT * 2],
+          [center - rowHeight * 2, center - rowHeight, center, center + rowHeight, center + rowHeight * 2],
           [0.88, 0.94, 1, 0.94, 0.88],
           Extrapolation.CLAMP,
         ),
@@ -209,7 +220,7 @@ function WheelValue({
     ],
   }));
   return (
-    <Animated.Text style={[styles.value, selected && styles.valueSelected, animatedStyle]}>
+    <Animated.Text maxFontSizeMultiplier={0} allowFontScaling style={[styles.value, selected && styles.valueSelected, animatedStyle]}>
       {text}
     </Animated.Text>
   );

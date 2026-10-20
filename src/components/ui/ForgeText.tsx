@@ -17,9 +17,9 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 // metrics the layouts are tuned for.
 const androidText = StyleSheet.create({ base: { includeFontPadding: false } });
 
-/** Shared text primitives preserve the user's preferred text size up to Forge's 1.5× cap. */
+/** Shared text primitives follow the complete system text-size preference. */
 export function ForgeText({ maxFontSizeMultiplier: _max, style, ...props }: TextProps) {
-  return <NativeText {...props} style={[androidText.base, style]} maxFontSizeMultiplier={maxFontSizeMultiplier} />;
+  return <NativeText {...props} style={[androidText.base, style]} allowFontScaling maxFontSizeMultiplier={maxFontSizeMultiplier} />;
 }
 
 export const ForgeTextInput = React.forwardRef<NativeTextInput, TextInputProps & { lockCursorToEnd?: boolean }>(
@@ -48,7 +48,7 @@ export const ForgeTextInput = React.forwardRef<NativeTextInput, TextInputProps &
         }}
         style={[androidText.base, style]}
         keyboardAppearance={keyboardAppearance ?? theme.colorScheme}
-        maxFontSizeMultiplier={maxFontSizeMultiplier}
+        allowFontScaling maxFontSizeMultiplier={maxFontSizeMultiplier}
       />
     );
   },

@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { REST_DURATION_OPTIONS } from '../../domain/rest/restDurationOptions';
 import { ForgeBottomSheet, ForgeBottomSheetHandle } from './ForgeBottomSheet';
 import { ForgeSheetHeader } from './ForgeSheetHeader';
-import { ForgeWheelColumn, WHEEL_ROW_HEIGHT, WHEEL_VISIBLE_ROWS } from './ForgeWheelColumn';
+import { ForgeWheelColumn } from './ForgeWheelColumn';
 
 /** mm:ss for a duration in seconds. */
 export function formatDurationValue(seconds: number): string {
@@ -68,7 +68,7 @@ export function ForgeRestDurationSheet({
       {(close) => (
         <View testID={`${testID}-surface`} style={[sheetStyles.sheet, { paddingBottom: Math.max(insets.bottom, 24) }]}>
           <ForgeBottomSheetHandle />
-          <ForgeSheetHeader title={title} compactTitle autoShrinkTitle titleInset={50} onClose={close} closeAccessibilityLabel={`Close ${title.toLowerCase()} picker`} />
+          <ForgeSheetHeader title={title} compactTitle titleInset={50} onClose={close} closeAccessibilityLabel={`Close ${title.toLowerCase()} picker`} />
           <ForgeDurationWheel selectedDuration={selectedDuration} onSelect={onSelect} />
         </View>
       )}
@@ -86,5 +86,5 @@ const sheetStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   // A little breathing room below the wheel so the last row never sits flush
   // against the sheet's bottom edge.
-  wheel: { height: WHEEL_ROW_HEIGHT * WHEEL_VISIBLE_ROWS, flexShrink: 0, marginTop: 8, marginBottom: 16, marginHorizontal: 20 },
+  wheel: { flexShrink: 0, marginTop: 8, marginBottom: 16, marginHorizontal: 20 },
 });

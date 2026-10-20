@@ -62,3 +62,7 @@ export { errorHaptic, lightHaptic, mediumHaptic, selectionHaptic, successHaptic 
 export { ForgeSheetScrollView } from './ForgeSheetScrollView';
 
 export { ForgePressable } from './ForgePressable';
+
+export { ForgeEntityName } from './ForgeEntityName';
+export type { EntityNamePresentation } from './ForgeEntityName';
+export { useForgeDetailHeading } from './ForgeDetailHeading';

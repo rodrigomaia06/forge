@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   // Light-only raised-control shadow (dark sets cardShadowOpacity 0, so this stays
   // flat there). Matches ForgeCard so borderless buttons separate like nested cards.
   tonalShadow: { ...shadows.tonalControl },
-  label: typeScale.controlLabel,
+  label: { ...typeScale.controlLabel, flexShrink: 1, minWidth: 0, textAlign: 'center' },
   disabled: { opacity: 1 },
 });
 

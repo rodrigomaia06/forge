@@ -1,3 +1,4 @@
+import { ForgeEntityName } from './ForgeEntityName';
 import { ForgePressable as Pressable } from './ForgePressable';
 import { ForgeSheetScrollView } from './ForgeSheetScrollView';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -176,14 +177,14 @@ export function ForgeSwipeableAttributeRow({
           <View style={[styles.row, compact && styles.rowCompact, divider && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
             <View style={styles.directAttributeMeta}>
               <Icon name={icon} size={22} color={theme.textPrimary} />
-              <ForgeText numberOfLines={2} style={[styles.directAttributeLabel, { color: theme.textPrimary }]}>{label}</ForgeText>
+              <ForgeText style={[styles.directAttributeLabel, { color: theme.textPrimary }]}>{label}</ForgeText>
             </View>
             <View style={styles.directAttributeValue}>{valueInput}</View>
           </View>
         ) : (
           <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${label} attribute`} onPress={() => { if (swipeActivated.get()) return; lightHaptic(); onEdit?.(); }} style={[styles.row, compact && styles.rowCompact, divider && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
             <Icon name={icon} size={22} color={theme.textPrimary} />
-            <ForgeText numberOfLines={2} style={[styles.rowLabel, { color: theme.textPrimary }]}>{label}</ForgeText>
+            <ForgeText style={[styles.rowLabel, { color: theme.textPrimary }]}>{label}</ForgeText>
             <ForgeText style={[styles.rowValue, { color: theme.slate }]}>{value || 'Add value'}</ForgeText>
             <Icon name="chevron-forward" size={20} color={theme.slate} />
           </Pressable>
@@ -229,9 +230,9 @@ export function ForgeAttributeRow({
       ]}
     >
       <Icon name={icon} size={18} color={theme.slate} />
-      <ForgeText numberOfLines={1} style={[styles.attributeReadLabel, { color: theme.slate }]}>{label}</ForgeText>
+      <ForgeText style={[styles.attributeReadLabel, { color: theme.slate }]}>{label}</ForgeText>
       {value ? (
-        <ForgeText numberOfLines={1} style={[styles.attributeReadValue, { color: theme.textPrimary }]}>{value}</ForgeText>
+        <ForgeText style={[styles.attributeReadValue, { color: theme.textPrimary }]}>{value}</ForgeText>
       ) : null}
     </View>
   );
@@ -265,7 +266,7 @@ export function ForgeWorkoutTypePicker({
               const selected = type.name === selectedType;
               return <Pressable key={type.id} accessibilityRole="radio" accessibilityLabel={type.name} accessibilityState={{ checked: selected }} onPress={() => { selectionHaptic(); onSelect(type.name); }} style={[styles.typeChoice, selected && { backgroundColor: theme.successSurface }, index > 0 ? { borderTopColor: theme.divider } : { borderTopWidth: 0 }]}>
                 <Icon name={iconForType(type)} size={20} color={theme.textPrimary} />
-                <ForgeText style={[styles.rowLabel, { color: theme.textPrimary }]}>{type.name}</ForgeText>
+                <ForgeEntityName style={[styles.rowLabel, { color: theme.textPrimary }]}>{type.name}</ForgeEntityName>
                 {selected ? <Icon name="check" size={20} color={theme.selectionIndicator} weight="bold" /> : null}
               </Pressable>;
             })}
@@ -323,7 +324,7 @@ export function ForgeWorkoutTypeSheet({
                       style={({ pressed }) => [styles.typeSheetRow, index > 0 ? { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider } : null, pressed && pressedFeedback]}
                     >
                       <View style={[styles.typeSheetDot, { backgroundColor: type.color }]} />
-                      <ForgeText style={[styles.typeSheetLabel, { color: theme.textPrimary }]}>{type.name}</ForgeText>
+                      <ForgeEntityName style={[styles.typeSheetLabel, { color: theme.textPrimary }]}>{type.name}</ForgeEntityName>
                       {selected ? <Icon name="check" size={20} color={theme.selectionIndicator} weight="bold" /> : null}
                     </Pressable>
                   );

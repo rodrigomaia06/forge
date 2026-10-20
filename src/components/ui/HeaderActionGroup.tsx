@@ -70,7 +70,7 @@ export function HeaderActionGroup({
 
 const styles = StyleSheet.create({
   group: {
-    height: 44,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 22,

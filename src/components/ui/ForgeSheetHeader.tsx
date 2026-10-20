@@ -12,9 +12,6 @@ interface ForgeSheetHeaderProps {
   title: string;
   /** Use for a deliberately descriptive sheet title that cannot fit on one line. */
   titleNumberOfLines?: number;
-  /** Keep the title on one line, shrinking the font to fit (then ellipsis), for a
-   * long single value such as an exercise name. Overrides titleNumberOfLines. */
-  autoShrinkTitle?: boolean;
   /** Compact semantic title for a dense, chooser-style sheet header. */
   compactTitle?: boolean;
   /**
@@ -35,8 +32,7 @@ interface ForgeSheetHeaderProps {
 /** Shared title bar for Forge's bottom-attached sheets. */
 export function ForgeSheetHeader({
   title,
-  titleNumberOfLines = 1,
-  autoShrinkTitle = false,
+  titleNumberOfLines = 0,
   compactTitle = false,
   titleInset,
   onClose,
@@ -61,9 +57,7 @@ export function ForgeSheetHeader({
         {leading}
       </View>
       <Text
-        numberOfLines={autoShrinkTitle ? 1 : titleNumberOfLines}
-        adjustsFontSizeToFit={autoShrinkTitle || undefined}
-        minimumFontScale={autoShrinkTitle ? 0.8 : undefined}
+        numberOfLines={titleNumberOfLines}
         style={[styles.title, compactTitle && styles.compactTitle, titleInset !== undefined && { marginHorizontal: titleInset }, { color: theme.textPrimary }]}
       >
         {title}

@@ -160,7 +160,6 @@ export function HeaderAction({
 
 const styles = StyleSheet.create({
   base: {
-    height: 44,
     minHeight: 44,
     borderRadius: 21,
   },

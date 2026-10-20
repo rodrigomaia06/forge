@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Modal, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Modal, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from './Button';
 import { ForgeCard } from './ForgeCard';
@@ -24,19 +24,20 @@ export function ForgeDropdown<T extends string>({
   onChange: (value: T) => void;
 }) {
   const anchor = useRef<View>(null);
-  const { width, height } = useWindowDimensions();
+  const { width, height, fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [contentWidth, setContentWidth] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
   const [position, setPosition] = useState<{ left: number; top: number; width: number } | null>(
     null,
   );
-  useEffect(() => setPosition(null), [width, height]);
+  useEffect(() => { if (position) open(); }, [width, height, fontScale, contentWidth, contentHeight]);
   const close = () => setPosition(null);
   const open = () =>
     anchor.current?.measureInWindow((x, y, anchorWidth, anchorHeight) => {
       const edge = scaleUI(20);
       const menuWidth = Math.min(Math.max(anchorWidth, Math.ceil(contentWidth)), width - edge * 2);
-      const menuHeight = Math.min(options.length, 6) * scaleUI(60) + scaleUI(24);
+      const menuHeight = Math.min(contentHeight || Math.min(options.length, 6) * scaleUI(60) + scaleUI(24), height - insets.top - insets.bottom - edge * 2);
       const below = y + anchorHeight + scaleUI(8);
       const top =
         below + menuHeight <= height - insets.bottom - edge
@@ -113,7 +114,8 @@ export function ForgeDropdown<T extends string>({
               accessibilityLabel={`${accessibilityLabel} choices`}
             >
               <ForgeCard size="compact" style={styles.choices}>
-                <ForgeSingleSelectList
+                <ScrollView style={{ flexShrink: 1 }} onContentSizeChange={(_width, nextHeight) => setContentHeight(nextHeight)}><ForgeSingleSelectList
+                  disableVirtualization
                   embedded
                   appearance="menu"
                   options={options}
@@ -123,7 +125,7 @@ export function ForgeDropdown<T extends string>({
                     close();
                   }}
                   onSelectedPress={close}
-                />
+                /></ScrollView>
               </ForgeCard>
             </View>
           ) : null}

@@ -1,7 +1,12 @@
 import { ForgePressable as Pressable } from './ForgePressable';
 import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import { useForgeTheme } from '../../theme/ThemeProvider';
@@ -59,10 +64,14 @@ export function ForgeSegmentedSwitch<T extends string | number>({
   const labelWidth = useSharedValue(0);
   const labelPosition = useSharedValue(index);
   useEffect(() => {
-    labelPosition.set(reducedMotion ? index : withTiming(index, {
-      duration: forgeMotion.state,
-      easing: forgeMotion.easing,
-    }));
+    labelPosition.set(
+      reducedMotion
+        ? index
+        : withTiming(index, {
+            duration: forgeMotion.state,
+            easing: forgeMotion.easing,
+          }),
+    );
   }, [index, labelPosition, reducedMotion]);
   const labelIndicatorStyle = useAnimatedStyle(() => ({
     width: labelWidth.get(),
@@ -78,12 +87,18 @@ export function ForgeSegmentedSwitch<T extends string | number>({
       >
         <View
           style={styles.labelSegments}
-          onLayout={(event) => labelWidth.set(event.nativeEvent.layout.width / Math.max(1, options.length))}
+          onLayout={(event) =>
+            labelWidth.set(event.nativeEvent.layout.width / Math.max(1, options.length))
+          }
         >
           <Animated.View
             testID="forge-segmented-label-indicator"
             pointerEvents="none"
-            style={[styles.labelIndicator, { backgroundColor: theme.actionPrimary }, labelIndicatorStyle]}
+            style={[
+              styles.labelIndicator,
+              { backgroundColor: theme.actionPrimary },
+              labelIndicatorStyle,
+            ]}
           />
           {options.map((option) => (
             <Pressable
@@ -102,6 +117,7 @@ export function ForgeSegmentedSwitch<T extends string | number>({
               <Text
                 style={[
                   typeScale.controlLabel,
+                  styles.labelText,
                   { color: option.value === value ? theme.onActionPrimary : theme.textSecondary },
                 ]}
               >
@@ -152,9 +168,20 @@ export function ForgeSegmentedSwitch<T extends string | number>({
 }
 
 const styles = StyleSheet.create({
+  labelText: { alignSelf: 'stretch', textAlign: 'center', minWidth: 0, flexShrink: 1 },
   labelSegments: { flex: 1, flexDirection: 'row', position: 'relative' },
   labelIndicator: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 999 },
-  labelSegment: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 999, overflow: 'hidden', paddingHorizontal: 8 },
+  labelSegment: {
+    flex: 1,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+    overflow: 'hidden',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    minWidth: 0,
+  },
   track: {
     flexDirection: 'row',
     padding: PAD,

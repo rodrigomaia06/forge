@@ -195,7 +195,7 @@ export const typeScale = Object.fromEntries(
   Object.entries(baseTypeScale).map(([role, style]) => [role, scaleTextStyle(style)]),
 ) as typeof baseTypeScale;
 
-export const maxFontSizeMultiplier = 1.5;
+export const maxFontSizeMultiplier = 0;
 
 /** Fixed timer phases shared by header and sheet, matching the native activity. */
 export const restTimerColors = { warning: '#C58A45', overdue: '#C85C5C' } as const;

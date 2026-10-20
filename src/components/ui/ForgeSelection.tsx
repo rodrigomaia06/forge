@@ -1,6 +1,6 @@
 import { ForgePressable as Pressable } from './ForgePressable';
-import React from 'react';
-import { FlatList, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { FlatList, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo } from 'react-native';
 
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { scaleUI } from '../../theme/scale';
@@ -67,6 +67,10 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
   embedded = false,
   appearance = 'list',
 }: ForgeSingleSelectListProps<T>) {
+  const listRef = useRef<FlatList<ForgeSingleSelectOption<T>>>(null);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retries = useRef(0);
+  const { width, fontScale } = useWindowDimensions();
   const theme = useForgeTheme();
   const menu = appearance === 'menu';
   const rowHeight = menu ? MENU_ROW_HEIGHT : SELECTION_ROW_HEIGHT;
@@ -90,7 +94,15 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
     0,
     options.findIndex((option) => option.value === selectedValue),
   );
-  const initialScrollIndex = Math.max(0, selectedIndex - Math.floor(visibleRows / 2));
+  useEffect(() => {
+    retries.current = 0;
+    if (!virtualized || selectedIndex === 0) return;
+    const timer = setTimeout(() => listRef.current?.scrollToIndex({ index: selectedIndex, viewPosition: 0.5, animated: false }), 100);
+    return () => {
+      clearTimeout(timer);
+      if (retryTimer.current) clearTimeout(retryTimer.current);
+    };
+  }, [virtualized, selectedIndex, width, fontScale]);
   const renderOption = (option: ForgeSingleSelectOption<T>) => (
     <ForgeSelectionRow
       key={String(option.value)}
@@ -98,7 +110,6 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
       selected={option.value === selectedValue}
       selectedTone={selectedTone}
       menu={menu}
-      fixedHeight={virtualized}
       onSelect={onSelect}
       onSelectedPress={onSelectedPress}
     />
@@ -130,6 +141,7 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
       >
         {surface(
           <FlatList
+            ref={listRef}
             style={styles.virtualizedList}
             data={options}
             extraData={selectedValue}
@@ -137,12 +149,17 @@ export function ForgeSingleSelectList<T extends SelectionValue>({
               renderOption(item)
             }
             keyExtractor={(item) => String(item.value)}
-            getItemLayout={(_, index) => ({
-              length: rowHeight,
-              offset: rowPitch * index,
-              index,
-            })}
-            initialScrollIndex={initialScrollIndex}
+            onScrollToIndexFailed={({ index, averageItemLength }) => {
+              // Variable-height labels must be measured before exact positioning.
+              listRef.current?.scrollToOffset({ offset: index * averageItemLength, animated: false });
+              if (retries.current++ < 3) {
+                retryTimer.current = setTimeout(() => listRef.current?.scrollToIndex({ index, viewPosition: 0.5, animated: false }), 100);
+              }
+            }}
+            onScrollBeginDrag={() => {
+              retries.current = 3;
+              if (retryTimer.current) clearTimeout(retryTimer.current);
+            }}
             initialNumToRender={visibleRows + 2}
             ItemSeparatorComponent={() => divider}
             showsVerticalScrollIndicator
@@ -171,7 +188,6 @@ interface ForgeSelectionRowProps<T extends SelectionValue> {
   option: ForgeSingleSelectOption<T>;
   selected: boolean;
   selectedTone: 'neutral' | 'success';
-  fixedHeight: boolean;
   menu: boolean;
   onSelect: (value: T) => void;
   onSelectedPress?: (value: T) => void;
@@ -181,7 +197,6 @@ function ForgeSelectionRow<T extends SelectionValue>({
   option,
   selected,
   selectedTone,
-  fixedHeight,
   menu,
   onSelect,
   onSelectedPress,
@@ -216,16 +231,13 @@ function ForgeSelectionRow<T extends SelectionValue>({
       unstable_pressDelay={80}
       style={[
         styles.selectionRow,
-        fixedHeight && styles.fixedSelectionRow,
         menu && styles.menuRow,
-        menu && fixedHeight && { height: MENU_ROW_HEIGHT, paddingVertical: 0 },
         { backgroundColor },
       ]}
     >
       {option.leading ? <View style={{ marginRight: scaleUI(12) }}>{option.leading}</View> : null}
       <View style={styles.selectionCopy}>
         <Text
-          numberOfLines={fixedHeight ? 1 : undefined}
           style={[
             styles.selectionLabel,
             menu && styles.menuLabel,
@@ -347,7 +359,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  fixedSelectionRow: { height: SELECTION_ROW_HEIGHT, paddingVertical: 0 },
   selectionCopy: { flex: 1, minWidth: 0, gap: 2 },
   selectionLabel: { ...typeScale.body },
   selectionLabelEmphasized: { fontFamily: typeScale.display.fontFamily, fontWeight: '700' },
