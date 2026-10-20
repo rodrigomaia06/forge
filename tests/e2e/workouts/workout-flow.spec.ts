@@ -734,7 +734,7 @@ test.describe('Active workout flow', () => {
     await expect(sheet.getByRole('button', { name: 'Delete Set 1' })).toBeVisible();
     await expect(page.getByText('Set kind', { exact: true })).toBeVisible();
     await expect(page.getByText('Session note & effort', { exact: true })).toBeVisible();
-    await expect(page.getByText('Next session', { exact: true })).toBeVisible();
+    await expect(page.getByText('Next session target', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Type help' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Next-time target help' })).toHaveCount(0);
 
@@ -774,13 +774,19 @@ test.describe('Active workout flow', () => {
     }
 
     const effort = page.getByRole('radiogroup', { name: 'Set effort' });
-    await effort.getByRole('radio', { name: 'RPE 8', exact: true }).click();
-    await expect(effort.getByRole('radio', { name: 'RPE 8', exact: true })).toHaveAttribute('aria-checked', 'true');
+    const zeroRir = effort.getByRole('radio', { name: 'RIR 0', exact: true });
+    await expect(zeroRir).toHaveAttribute('aria-checked', 'false');
+    await zeroRir.click();
+    await expect(zeroRir).toHaveAttribute('aria-checked', 'true');
+    await zeroRir.click();
+    await expect(zeroRir).toHaveAttribute('aria-checked', 'false');
+    await effort.getByRole('radio', { name: 'RIR 2', exact: true }).click();
+    await expect(effort.getByRole('radio', { name: 'RIR 2', exact: true })).toHaveAttribute('aria-checked', 'true');
     const [effortScrollBox, selectedRpeBox] = await Promise.all([
       page.getByTestId('set-effort-scroll').boundingBox(),
-      effort.getByRole('radio', { name: 'RPE 8', exact: true }).boundingBox(),
+      effort.getByRole('radio', { name: 'RIR 2', exact: true }).boundingBox(),
     ]);
-    if (!effortScrollBox || !selectedRpeBox) throw new Error('Expected horizontal RPE selector geometry');
+    if (!effortScrollBox || !selectedRpeBox) throw new Error('Expected horizontal RIR selector geometry');
     expect(selectedRpeBox.height).toBeGreaterThanOrEqual(44);
     expect(Math.abs(selectedRpeBox.x + selectedRpeBox.width / 2 - (effortScrollBox.x + effortScrollBox.width / 2))).toBeLessThanOrEqual(3);
     if (testInfo.project.use.isMobile === true) {
@@ -808,9 +814,10 @@ test.describe('Active workout flow', () => {
       );
     if (targetRects.length !== 2) throw new Error('Expected two target inputs to be measurable');
     const [firstTarget, secondTarget] = [...targetRects].sort((a, b) => a.y - b.y);
-    expect(firstTarget.height).toBeCloseTo(56, 0);
-    expect(secondTarget.y).toBeGreaterThanOrEqual(firstTarget.y + 55);
-    expect(firstTarget.width).toBeGreaterThanOrEqual(280);
+    expect(firstTarget.height).toBeGreaterThanOrEqual(80);
+    expect(secondTarget.y).toBeCloseTo(firstTarget.y, 0);
+    expect(secondTarget.x).toBeGreaterThanOrEqual(firstTarget.x + firstTarget.width);
+    expect(firstTarget.width).toBeGreaterThanOrEqual(120);
     expect(Math.abs(firstTarget.width - secondTarget.width)).toBeLessThanOrEqual(1);
     await page.getByRole('textbox', { name: 'Next-time kg target for set 1' }).fill('62');
     if (testInfo.project.use.isMobile === true) {
@@ -837,45 +844,31 @@ test.describe('Active workout flow', () => {
 
     await sheet.getByRole('button', { name: 'Close Set 1' }).click();
     await expect(page.getByText('Set kind', { exact: true })).toHaveCount(0);
-    const [targetChipBox, targetDotBox, rpeBox] = await Promise.all([
-      page.getByTestId('live-set-number-chip-1').boundingBox(),
-      page.getByLabel('Set 1 has a next session target').boundingBox(),
-      page.getByLabel('Set 1 RPE 8').boundingBox(),
-    ]);
-    if (!targetChipBox || !targetDotBox || !rpeBox) throw new Error('Expected target and RPE set indicators to be measurable');
-    // The next-session target dot uses setTargetIndicator, which in Light is a dark
-    // tone (#55585C) so it reads on the light set-number chip (white only in Dark).
-    await expect(page.getByLabel('Set 1 has a next session target')).toHaveCSS('background-color', 'rgb(85, 88, 92)');
-    expect(targetDotBox.x).toBeLessThan(targetChipBox.x + targetChipBox.width / 2);
-    expect(targetDotBox.y).toBeLessThan(targetChipBox.y + targetChipBox.height / 2);
-    expect(rpeBox.x).toBeLessThan(targetChipBox.x + targetChipBox.width / 2);
-    expect(rpeBox.y + rpeBox.height).toBeGreaterThan(targetChipBox.y + targetChipBox.height / 2);
+    await expect(page.getByLabel('Set 1 has a next session target')).toBeVisible();
+    await expect(page.getByLabel('Set 1 RIR 2')).toBeVisible();
+    await expect(page.getByTestId('live-set-number-chip-1')).not.toContainText('RIR');
 
     await page.getByLabel('Open details for set 1').click();
-    await page.getByLabel('Comment for set 1').fill('Keep this form');
+    const comment = page.getByLabel('Comment for set 1');
+    const shortHeight = (await comment.boundingBox())!.height;
+    const sheetHeight = (await sheet.boundingBox())!.height;
+    const longComment = 'Keep the same grip and pause at the chest. '.repeat(20);
+    await comment.fill(longComment);
+    await expect(comment).toHaveValue(longComment);
+    expect((await comment.boundingBox())!.height).toBe(shortHeight);
+    expect((await sheet.boundingBox())!.height).toBe(sheetHeight);
+    await page.screenshot({ path: testInfo.outputPath('set-comment-long-fixed-height.png') });
+    await comment.fill('Keep this form');
     await expect(page.getByText('14/120', { exact: true })).toHaveCount(0);
     await page.getByTestId('set-details-sheet').getByRole('button', { name: 'Close Set 1' }).click();
     await expect(page.getByTestId('set-details-sheet')).toHaveCount(0);
     await expect(page.getByText('Keep this form', { exact: true })).toHaveCount(0);
     await expect(page.getByLabel('Set 1 has a comment')).toBeVisible();
-    const [chipBox, dotBox] = await Promise.all([
-      page.getByTestId('live-set-number-chip-1').boundingBox(),
-      page.getByLabel('Set 1 has a comment').boundingBox(),
-    ]);
-    expect(chipBox).not.toBeNull();
-    expect(dotBox).not.toBeNull();
-    if (!chipBox || !dotBox) throw new Error('Expected a measurable set chip and comment dot');
-    await expect(page.getByLabel('Set 1 has a comment').locator('svg')).toHaveCount(0);
-    expect(dotBox.width).toBeCloseTo(7, 0);
-    expect(dotBox.height).toBeCloseTo(7, 0);
-    expect(dotBox.x).toBeGreaterThan(chipBox.x + chipBox.width / 2);
-    expect(dotBox.y).toBeGreaterThan(chipBox.y + chipBox.height / 2);
-    expect(dotBox.x).toBeLessThan(chipBox.x + chipBox.width);
-    expect(dotBox.y).toBeLessThan(chipBox.y + chipBox.height);
-    expect(dotBox.x + dotBox.width).toBeLessThanOrEqual(chipBox.x + chipBox.width);
-    expect(dotBox.y + dotBox.height).toBeLessThanOrEqual(chipBox.y + chipBox.height);
-    expect(dotBox.x + dotBox.width).toBeLessThanOrEqual(chipBox.x + chipBox.width - 3);
-    expect(dotBox.y + dotBox.height).toBeLessThanOrEqual(chipBox.y + chipBox.height - 3);
+    const chipBox = (await page.getByTestId('live-set-number-chip-1').boundingBox())!;
+    const commentBoxOutside = (await page.getByLabel('Set 1 has a comment').boundingBox())!;
+    expect(commentBoxOutside.y).toBeGreaterThanOrEqual(chipBox.y);
+    expect(commentBoxOutside.y + commentBoxOutside.height).toBeLessThanOrEqual(chipBox.y + chipBox.height);
+    await expect(page.getByLabel('Set 1 has a comment')).toBeVisible();
     if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('set-comment-indicator-iphone.png') });
     }
@@ -921,7 +914,7 @@ test.describe('Active workout flow', () => {
     }
   });
 
-  test('inverts a set comment dot in Dark appearance', async ({ page }, testInfo) => {
+  test('labels a set comment in Dark appearance', async ({ page }, testInfo) => {
     await page.addInitScript(() => {
       localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance: 'dark' }));
     });
@@ -932,13 +925,13 @@ test.describe('Active workout flow', () => {
     await expect(page.getByTestId('set-details-sheet')).toHaveCount(0);
 
     const dot = page.getByLabel('Set 1 has a comment');
-    await expect(dot).toHaveCSS('background-color', 'rgb(247, 248, 246)');
+    await expect(dot).toBeVisible();
     if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('dark-set-comment-indicator-iphone.png') });
     }
   });
 
-  test('keeps a next-session target dot white in Dark appearance', async ({ page }, testInfo) => {
+  test('labels a next-session target in Dark appearance', async ({ page }, testInfo) => {
     await page.addInitScript(() => {
       localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance: 'dark' }));
     });
@@ -949,7 +942,7 @@ test.describe('Active workout flow', () => {
     await expect(page.getByTestId('set-details-sheet')).toHaveCount(0);
 
     const dot = page.getByLabel('Set 1 has a next session target');
-    await expect(dot).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+    await expect(dot).toBeVisible();
     if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('dark-set-target-indicator-iphone.png') });
     }
@@ -1125,7 +1118,7 @@ test.describe('Active workout flow', () => {
       page.getByRole('button', { name: 'Remove Barbell Bench Press' }).locator('svg'),
     ).toHaveCount(1);
     await page.getByRole('button', { name: 'Remove Barbell Bench Press' }).click();
-    await expect(page.getByText('Remove Barbell Bench Press?', { exact: true })).toBeVisible();
+    await expect(page.getByText('Remove exercise?', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Keep exercise' }).click();
     await expect(page.getByText('Barbell Bench Press', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
@@ -1134,6 +1127,57 @@ test.describe('Active workout flow', () => {
     await expect(page.getByText('Start with an exercise', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Add exercise' }).last()).toBeVisible();
   });
+
+  for (const appearance of ['light', 'dark']) {
+    test(`groups exercise actions into setup tiles and review rows (${appearance})`, async ({ page }, testInfo) => {
+      await page.addInitScript((appearance) => {
+        localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance }));
+      }, appearance);
+      await startEmptyWorkoutWithExercise(page);
+      await expect(page.getByTestId('workout-timer-strip')).toHaveCSS(
+        'background-color', appearance === 'light' ? 'rgb(244, 244, 244)' : 'rgb(31, 34, 37)',
+      );
+      await page.screenshot({ path: testInfo.outputPath(`workout-timer-strip-${appearance}.png`) });
+      await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
+      const setup = page.getByTestId('action-section-Log & setup');
+      await expect(setup).toBeVisible();
+      const sheet = page.getByRole('dialog').filter({ has: setup });
+      const title = sheet.getByText('Exercise options', { exact: true });
+      await expect(title).toHaveCSS('font-size', '23px');
+      await expect(title).toHaveCSS('height', '28px');
+      await expect(title).toHaveCSS('font-family', /Manrope_600SemiBold/);
+      await expect(sheet.getByText('Barbell Bench Press', { exact: true })).toHaveCount(0);
+      for (const name of ['Log & setup', 'Review', 'Change exercise']) {
+        const heading = sheet.getByRole('heading', { name, exact: true });
+        await expect(heading).toHaveCSS('font-size', '18px');
+        await expect(heading).toHaveCSS('font-family', /Manrope_600SemiBold/);
+      }
+      await page.waitForTimeout(300);
+      for (const name of ['Tracking', 'Add note', 'Warm-up sets']) {
+        const button = setup.getByRole('button', { name, exact: true });
+        await expect(button).toBeVisible();
+        const bounds = (await button.boundingBox())!;
+        expect(bounds.width).toBeGreaterThanOrEqual(44);
+        expect(bounds.height).toBeGreaterThanOrEqual(44);
+      }
+      const tracking = (await setup.getByRole('button', { name: 'Tracking', exact: true }).boundingBox())!;
+      const warmup = (await setup.getByRole('button', { name: 'Warm-up sets', exact: true }).boundingBox())!;
+      expect(warmup.x).toBeGreaterThan(tracking.x + tracking.width);
+      expect(Math.abs(warmup.y - tracking.y)).toBeLessThan(2);
+      const review = page.getByTestId('action-section-Review');
+      await expect(review.getByRole('button', { name: 'Previous sessions', exact: true })).toBeVisible();
+      await expect(review.getByRole('button', { name: 'Exercise info', exact: true })).toBeVisible();
+      await expect(page.getByTestId('action-section-Change exercise').getByRole('button', { name: 'Replace exercise', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Remove Barbell Bench Press', exact: true })).toBeVisible();
+      await page.waitForTimeout(300);
+      await page.screenshot({ path: testInfo.outputPath(`grouped-exercise-menu-${appearance}.png`) });
+      await page.getByRole('button', { name: 'Mark Barbell Bench Press as done off-session', exact: true }).click();
+      await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
+      await expect(page.getByRole('button', { name: 'Count Barbell Bench Press in this session', exact: true })).toBeVisible();
+      await page.getByRole('button', { name: 'Close Exercise options', exact: true }).click();
+      await expect(page.getByTestId('action-section-Review')).toHaveCount(0);
+    });
+  }
 
   test('makes every active exercise option substantive without changing its tracking type', async ({ page }, testInfo) => {
     await startEmptyWorkoutWithExercise(page);
