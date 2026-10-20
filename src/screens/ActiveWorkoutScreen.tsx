@@ -404,7 +404,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
             {finishError}
           </Text>
         ) : null}
-        <View style={styles.elapsedPanel}>
+        <View testID="workout-timer-strip" style={styles.elapsedPanel}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Open workout duration"

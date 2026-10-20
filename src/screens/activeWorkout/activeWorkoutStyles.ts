@@ -49,22 +49,20 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       justifyContent: 'center',
     },
     elapsedPanel: {
-      minHeight: 44,
+      height: 44,
       marginTop: 10,
       overflow: 'hidden',
       flexDirection: 'row',
       alignItems: 'center',
       borderRadius: 12,
-      // Raised-card tone (#1F2225 in dark, ~#202225): the color requested for the
-      // header timer panel.
-      backgroundColor: dashboardTheme.surfaceElevated,
+      backgroundColor: dashboardTheme.colorScheme === 'light'
+        ? dashboardTheme.surface
+        : dashboardTheme.surfaceElevated,
     },
     elapsedInfo: {
       flex: 1,
-      flexWrap: 'wrap',
-      paddingVertical: scaleUI(6),
       minWidth: 0,
-      minHeight: 44,
+      height: 44,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
@@ -81,10 +79,8 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
     },
     timerReset: {
       flex: 1,
-      flexWrap: 'wrap',
-      paddingVertical: scaleUI(6),
       minWidth: 0,
-      minHeight: 44,
+      height: 44,
       paddingHorizontal: 0,
       flexDirection: 'row',
       alignItems: 'center',
