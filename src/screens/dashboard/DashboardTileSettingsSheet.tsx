@@ -77,7 +77,7 @@ function Stepper({ value, min, max, onChange, label }: { value: number; min: num
   };
   return (
     <View style={styles.stepperRow}>
-      <Text style={styles.stepperLabel} numberOfLines={1}>{label}</Text>
+      <Text style={styles.stepperLabel}>{label}</Text>
       <View style={[styles.stepper, { backgroundColor: controlFill }]}>
         <Pressable accessibilityRole="button" accessibilityLabel={`Decrease ${label}`} accessibilityState={{ disabled: value <= min }} disabled={value <= min} onPress={() => step(-1)} style={({ pressed }) => [styles.stepBtn, pressed && pressedFeedback]}>
           <Text style={[styles.stepGlyph, { color: value <= min ? theme.textDisabled : theme.ink }]}>−</Text>
@@ -137,7 +137,7 @@ function ToggleRow({
       style={({ pressed }) => [styles.toggleRow, showDivider && styles.rowDivider, pressed && pressedFeedback]}
     >
       {color ? <View style={[styles.metricDot, { backgroundColor: color }]} /> : null}
-      <Text style={[styles.metricName, selected && styles.metricNameSelected]} numberOfLines={1}>{label}</Text>
+      <Text style={[styles.metricName, selected && styles.metricNameSelected]}>{label}</Text>
       {selected ? (
         <Icon name="check" size={19} color={theme.selectionIndicator} weight="bold" />
       ) : null}

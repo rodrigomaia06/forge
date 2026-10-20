@@ -1,3 +1,4 @@
+import { ForgeEntityName } from '../../components/ui';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -55,7 +56,7 @@ export function DashboardStartCard({
         </View>
         <View style={styles.startCopy}>
           {suggestion ? <Text style={styles.startEyebrow}>Suggested workout</Text> : null}
-          <Text style={styles.startTitle} numberOfLines={1}>{title}</Text>
+          <ForgeEntityName style={styles.startTitle} presentation="full">{title}</ForgeEntityName>
           <Text style={styles.startMeta} numberOfLines={1}>{meta}</Text>
         </View>
       </View>
@@ -245,7 +246,7 @@ export function DashboardLastWorkoutTile({
         <Text style={styles.tileLabel}>{DASHBOARD_TILE_DEFAULT_TITLE['last-workout']}</Text>
         {lastWorkout ? (
           <>
-            <Text style={styles.wideValue} numberOfLines={1}>{lastWorkout.name}</Text>
+            <ForgeEntityName style={styles.wideValue} presentation="preview">{lastWorkout.name}</ForgeEntityName>
             <Text style={styles.tileDetail} numberOfLines={1}>
               {lastDate} · {formatCompactDuration(lastWorkout.durationSeconds)}
             </Text>

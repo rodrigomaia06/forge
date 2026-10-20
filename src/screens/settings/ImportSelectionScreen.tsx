@@ -1,3 +1,4 @@
+import { ForgeEntityName } from '../../components/ui';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -181,8 +182,8 @@ export function ImportSelectionScreen({ navigation }: Props) {
                         {checked ? <Icon name="check" size={16} color={theme.onActionPrimary} /> : null}
                       </View>
                       <View style={styles.itemCopy}>
-                        <Text style={styles.itemLabel} numberOfLines={1}>{item.label}</Text>
-                        {item.sublabel ? <Text style={styles.itemSub} numberOfLines={1}>{item.sublabel}</Text> : null}
+                        <ForgeEntityName style={styles.itemLabel} presentation="full">{item.label}</ForgeEntityName>
+                        {item.sublabel ? <ForgeEntityName style={styles.itemSub} presentation="full">{item.sublabel}</ForgeEntityName> : null}
                       </View>
                       {onDevice[meta.key].has(item.id) ? <Text style={[styles.onDeviceTag, { color: theme.textSecondary }]}>On device</Text> : null}
                     </Pressable>

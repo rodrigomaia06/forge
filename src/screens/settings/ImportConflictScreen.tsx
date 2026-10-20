@@ -1,3 +1,4 @@
+import { ForgeEntityName } from '../../components/ui';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -146,7 +147,7 @@ export function ImportConflictScreen({ navigation }: Props) {
               <View testID="import-conflict-lead-icon">
                 <Icon name={leadIcon} size={20} color={theme.textSecondary} />
               </View>
-              <Text style={styles.leadTitle} numberOfLines={2}>{conflict.name}</Text>
+              <ForgeEntityName style={styles.leadTitle} presentation="full">{conflict.name}</ForgeEntityName>
             </View>
             <Text style={styles.leadSub}>This replaces the {noun} already on this device.</Text>
             <Text style={styles.leadSummary}>Choose what to keep. {conflict.summary}</Text>
@@ -204,8 +205,8 @@ export function ImportConflictScreen({ navigation }: Props) {
                         </View>
                       ) : null}
                       <View style={styles.itemCopy}>
-                        <Text style={styles.itemLabel} numberOfLines={1}>{change.label}</Text>
-                        {change.detail ? <Text style={styles.itemSub} numberOfLines={1}>{change.detail}</Text> : null}
+                        <ForgeEntityName style={styles.itemLabel} presentation="full">{change.label}</ForgeEntityName>
+                        {change.detail ? <ForgeEntityName style={styles.itemSub} presentation="full">{change.detail}</ForgeEntityName> : null}
                       </View>
                       <Text
                         style={[styles.marker, { color: markerColor(change.type, theme) }]}

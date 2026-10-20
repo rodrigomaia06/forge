@@ -1,3 +1,4 @@
+import { ForgeEntityName } from '../components/ui';
 import { ForgePressable as Pressable } from '../components/ui/ForgePressable';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, ScrollView, StyleSheet, View } from 'react-native';
@@ -658,9 +659,7 @@ const TimelineRow = React.memo(function TimelineRow({
               <Icon name={type.icon} size={26} color={type.color} />
             </View>
             <View style={styles.cardCopy}>
-              <Text style={styles.name} numberOfLines={1}>
-                {displayName}
-              </Text>
+              <ForgeEntityName style={styles.name} presentation="preview">{displayName}</ForgeEntityName>
               {hasExerciseSummary && (
                 <Text style={styles.stats} numberOfLines={1}>
                   {`${workout.exercises.length} exercise${workout.exercises.length === 1 ? '' : 's'}, ${setCount} set${setCount === 1 ? '' : 's'}`}

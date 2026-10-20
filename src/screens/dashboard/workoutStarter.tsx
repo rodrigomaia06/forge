@@ -198,7 +198,7 @@ function RoutineSourceContent({
     <View>
       <ForgeBottomSheetHandle />
       <ForgeSheetHeader
-        title={selectedPlan ? selectedPlan.name : 'Choose routine'}
+        title="Choose routine"
         onClose={closeSheet}
         closeAccessibilityLabel="Close routine chooser"
         leading={
@@ -213,6 +213,7 @@ function RoutineSourceContent({
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
+        {selectedPlan ? <Text style={[typeScale.sectionTitle, { color: theme.textPrimary }]}>{selectedPlan.name}</Text> : null}
         {selectedPlan ? (
           selectedPlan.routines.length ? (
             <RoutineChoiceCard routines={selectedPlan.routines} onPress={(routine) => onSelectRoutine(routine, selectedPlan)} />

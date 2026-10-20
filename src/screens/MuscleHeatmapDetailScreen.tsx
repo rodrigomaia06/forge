@@ -1,3 +1,4 @@
+import { ForgeEntityName } from '../components/ui';
 import { ForgePressable as Pressable } from '../components/ui/ForgePressable';
 import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -190,7 +191,7 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
             {ranking.length ? ranking.map((r, i) => (
               <View key={`${r.label}-${i}`} style={styles.rankRow}>
                 <View style={[styles.rankDot, { backgroundColor: MUSCLE_GROUP_COLORS[r.group] }]} />
-                <Text style={styles.rankLabel} numberOfLines={1}>{breakdown === 'muscle' ? r.label : r.group}</Text>
+                <ForgeEntityName style={styles.rankLabel} presentation="full">{breakdown === 'muscle' ? r.label : r.group}</ForgeEntityName>
                 <View style={[styles.rankTrack, { backgroundColor: theme.surfaceMuted }]}>
                   <View style={[styles.rankFill, { width: `${Math.round((r.sets / maxSets) * 100)}%`, backgroundColor: MUSCLE_GROUP_COLORS[r.group] }]} />
                 </View>

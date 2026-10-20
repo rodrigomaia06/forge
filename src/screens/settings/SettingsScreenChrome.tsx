@@ -12,8 +12,10 @@ export function SettingsDetailHeader({
   rightAction,
   backAccessibilityLabel = 'Back to Settings',
   elevated = false,
+  titleContent,
 }: {
   title: string;
+  titleContent?: React.ReactNode;
   navigation: { goBack: () => void };
   rightAction?: React.ReactNode;
   backAccessibilityLabel?: string;
@@ -27,15 +29,14 @@ export function SettingsDetailHeader({
         accessibilityLabel={backAccessibilityLabel}
         onPress={() => navigation.goBack()}
       />
-      <View style={[styles.titleWrap, styles.pointerEventsNone]}>
+      {titleContent ?? <View style={styles.titleWrap}>
         <Text
           testID="settings-detail-title"
           style={[styles.title, { color: theme.textPrimary }]}
-          numberOfLines={1}
         >
           {title}
         </Text>
-      </View>
+      </View>}
       <View style={styles.spacer}>{rightAction}</View>
       {elevated ? <HeaderEdge /> : null}
     </View>
@@ -48,7 +49,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     header: {
       position: 'relative',
       zIndex: 2,
-      height: 70,
+      minHeight: 70,
+      paddingVertical: 12,
+      gap: 12,
       paddingHorizontal: 20,
       alignItems: 'center',
       flexDirection: 'row',
@@ -56,11 +59,10 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       backgroundColor: theme.background,
     },
   titleWrap: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
+    flex: 1,
+    minWidth: 0,
       alignItems: 'center',
     },
     title: { ...typeScale.headerTitle, color: theme.ink },
-    spacer: { width: 100, height: 44, alignItems: 'flex-end', justifyContent: 'center' },
+    spacer: { minWidth: 44, minHeight: 44, alignItems: 'flex-end', justifyContent: 'center' },
   });

@@ -1,3 +1,4 @@
+import { ForgeEntityName } from '../../components/ui';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -407,7 +408,7 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
                   ]}
                 >
                   <View style={styles.metricPickerCopy}>
-                    <Text numberOfLines={1} style={styles.metricPickerName}>{definition.name}</Text>
+                    <ForgeEntityName style={styles.metricPickerName}>{definition.name}</ForgeEntityName>
                     {definition.unit ? <Text numberOfLines={1} style={styles.metricPickerUnit}>{definition.unit}</Text> : null}
                   </View>
                   {editing ? (
@@ -454,7 +455,7 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
                       <Icon name={selected.icon} size={22} color={selected.color} />
                     </View>
                   </View>
-                  <Text style={styles.metricCardName} numberOfLines={2}>{selected.name}</Text>
+                  <ForgeEntityName style={styles.metricCardName} presentation="full">{selected.name}</ForgeEntityName>
                   <View style={styles.metricCardSpacer} />
                   <Text style={styles.metricCardStatLabel}>Latest</Text>
                   <Text style={styles.metricCardValue} numberOfLines={1}>{formatValue(latest.value, displayUnit)}</Text>
@@ -581,8 +582,8 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
       />
       <ForgeConfirmationDialog
         visible={metricMenu !== null}
-        title={`Delete ${metricMenu?.name ?? 'metric'}?`}
-        message={`This removes the metric and all ${metricMenu ? preferences.dailyMeasurementEntries.filter((e) => e.definitionId === metricMenu.id).length : 0} records. This can't be undone.`}
+        title="Delete metric?"
+        message={`${metricMenu?.name ?? 'Metric'}\n\nThis removes the metric and all ${metricMenu ? preferences.dailyMeasurementEntries.filter((e) => e.definitionId === metricMenu.id).length : 0} records. This can't be undone.`}
         cancelLabel="Cancel"
         confirmLabel="Delete"
         confirmTone="destructive"
@@ -599,7 +600,8 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
         {(close) => (
           <View style={[styles.recordSheet, { paddingBottom: floatingCtaClearance }]}>
             <ForgeBottomSheetHandle />
-            <ForgeSheetHeader compactTitle autoShrinkTitle titleInset={50} title={`Record ${selected?.name ?? 'measurement'}`} onClose={recordSaving ? undefined : close} />
+            <ForgeSheetHeader compactTitle titleInset={50} title="Record measurement" onClose={recordSaving ? undefined : close} />
+            <ForgeEntityName style={[typeScale.sectionTitle, { color: theme.textPrimary }]}>{selected?.name}</ForgeEntityName>
             <Text style={styles.recordDate}>
               {recordDateKey === localDateKey() ? 'Today · ' : ''}{displayDate(recordDateKey)}
             </Text>

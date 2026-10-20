@@ -1,3 +1,4 @@
+import { useForgeDetailHeading } from '../../components/ui';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -88,6 +89,8 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
     () => (type ? workoutTypeUsage(type, completedWorkouts, plans, standaloneRoutines) : null),
     [type, completedWorkouts, plans, standaloneRoutines],
   );
+
+  const { headerTitle: recordHeaderTitle, contentTitle } = useForgeDetailHeading(type?.name.trim() || 'Workout type');
 
   if (!type)
     return (
@@ -185,6 +188,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
           </View>
         ) : (
           <SettingsDetailHeader
+            titleContent={recordHeaderTitle}
             title={type.name.trim() || 'Workout type'}
             navigation={navigation}
             backAccessibilityLabel="Back to Workout types"
@@ -203,6 +207,7 @@ export function WorkoutTypeEditorScreen({ navigation, route }: Props) {
           onScroll={(event) => setHeaderElevated(event.nativeEvent.contentOffset.y > 1)}
           scrollEventThrottle={16}
         >
+          {contentTitle}
           <ForgeCard variant="base" style={styles.identityCard}>
             <View testID="workout-type-name-row" style={styles.nameRow}>
               <Icon

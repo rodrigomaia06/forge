@@ -1,3 +1,4 @@
+import { ForgeEntityName } from '../../components/ui';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import React from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
@@ -506,7 +507,7 @@ export function DashboardMeasurementsTile({
                 <View style={styles.mCardTop}>
                   <View style={styles.mCardName}>
                     <View style={[styles.mDot, { backgroundColor: color }]} />
-                    <Text style={styles.mName} numberOfLines={1}>{def.name}</Text>
+                    <ForgeEntityName style={styles.mName} presentation="full">{def.name}</ForgeEntityName>
                   </View>
                   <View style={styles.mCardTopRight}>
                     {s.delta !== null && s.delta !== 0 ? (

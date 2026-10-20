@@ -958,8 +958,8 @@ function FormLinkCard({
           <Icon name={icon} size={20} color={theme.textSecondary} />
           <Icon name="chevron-forward" size={18} color={theme.textSecondary} />
         </View>
-        <Text numberOfLines={1} style={styles.formLinkLabel}>{label}</Text>
-        <Text numberOfLines={1} style={styles.formLinkValue}>{value}</Text>
+        <Text style={styles.formLinkLabel}>{label}</Text>
+        <Text style={styles.formLinkValue}>{value}</Text>
       </Pressable>
     </ForgeCard>
   );
@@ -1080,7 +1080,6 @@ const Movement = React.memo(function Movement({
             >
               <SettingsRow
                 title={group}
-                shrinkTitle
                 subtitle={singleSubtitle}
                 trailing={
                   <View style={styles.variationIcons}>
@@ -1108,7 +1107,6 @@ const Movement = React.memo(function Movement({
           <>
             <SettingsRow
               title={group}
-              shrinkTitle
               subtitle={singleSubtitle}
               accessibilityLabel={`Open ${group}`}
               onPress={() => onOpen(item)}
@@ -1136,7 +1134,6 @@ const Movement = React.memo(function Movement({
     <SettingsSection>
       <SettingsRow
         title={group}
-        shrinkTitle
         subtitle={`${items.length} ${items.length === 1 ? 'variation' : 'variations'}`}
         accessibilityLabel={`${group} & ${items.length} variations`}
         accessibilityState={{ expanded }}
@@ -1167,7 +1164,7 @@ const Movement = React.memo(function Movement({
                       pressed && { backgroundColor: theme.pressed },
                     ]}
                   >
-                    <ForgeExerciseName style={styles.variationName}>{label}</ForgeExerciseName>
+                    <ForgeExerciseName presentation="preview" style={styles.variationName}>{label}</ForgeExerciseName>
                     <View style={styles.variationIcons}>
                       {item.laterality === 'unilateral' && (
                         <UnilateralBadge size={18} color={theme.textSecondary} />

@@ -1,3 +1,4 @@
+import { ForgeEntityName } from './ui';
 import { ForgePressable as Pressable } from './ui/ForgePressable';
 import React, { useMemo, useState } from 'react';
 import { LayoutAnimation, Platform, StyleSheet, UIManager, useWindowDimensions, View } from 'react-native';
@@ -17,10 +18,12 @@ export function WorkoutSummaryCard({
   workout,
   workoutTypes,
   testID,
+  showName = true,
 }: {
   workout: Workout;
   workoutTypes: WorkoutTypePreference[];
   testID?: string;
+  showName?: boolean;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
@@ -69,7 +72,7 @@ export function WorkoutSummaryCard({
               <Icon name={type.icon} size={26} color={type.color} />
             </View>
             <View style={styles.identityCopy}>
-              <Text testID={testID ? `${testID}-title` : undefined} style={styles.name} numberOfLines={2}>{workout.name}</Text>
+              {showName ? <ForgeEntityName testID={testID ? `${testID}-title` : undefined} style={styles.name}>{workout.name}</ForgeEntityName> : null}
               <Text style={styles.summary} numberOfLines={2}>
                 {`${workout.exercises.length} ${workout.exercises.length === 1 ? 'exercise' : 'exercises'} · ${setCount} ${setCount === 1 ? 'set' : 'sets'}`}
               </Text>

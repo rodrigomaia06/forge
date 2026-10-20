@@ -36,7 +36,7 @@ export function DashboardHeader({
       style={[styles.container, { backgroundColor: theme.background }, style]}
     >
       <View testID={`dashboard-header-${variant}`} style={styles.copy}>
-        <ScreenTitle testID="dashboard-header-title" numberOfLines={1} color={theme.ink}>
+        <ScreenTitle testID="dashboard-header-title" color={theme.ink}>
           {content.title}
         </ScreenTitle>
         {content.subtitle && (
@@ -89,7 +89,7 @@ function getDashboardGreeting(date = new Date()): string {
 
 const styles = StyleSheet.create({
   container: {
-    height: 70,
+    minHeight: 70,
     flexShrink: 0,
     zIndex: 20,
     flexDirection: 'row',
