@@ -334,6 +334,34 @@ for (const appearance of ['light', 'dark']) {
 }
 
 for (const appearance of ['light', 'dark']) {
+  test(`empty progress range retains controls (${appearance})`, async ({ page }, info) => {
+    await seedProgress(page, appearance, 2);
+    await page.addInitScript(() => {
+      const workouts = JSON.parse(localStorage.getItem('@forge/completed-workouts')!);
+      for (const workout of workouts) {
+        workout.startedAt -= 100 * 86400000;
+        workout.completedAt -= 100 * 86400000;
+      }
+      localStorage.setItem('@forge/completed-workouts', JSON.stringify(workouts));
+    });
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'History' }).click();
+    await page.getByRole('button', { name: 'Open Session 1', exact: true }).click();
+    await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
+    await page.getByRole('button', { name: 'Exercise info', exact: true }).click();
+    await page.getByRole('radio', { name: 'Progress', exact: true }).click();
+    await page.getByRole('button', { name: 'Progress date range', exact: true }).click();
+    await page.getByRole('radio', { name: '7d', exact: true }).click();
+    await expect(page.getByTestId('exercise-progress-empty')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Progress metric', exact: true })).toBeVisible();
+    await expect(page.getByTestId('exercise-progress-record')).toHaveCount(0);
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: info.outputPath('exercise-progress-empty-range.png') });
+    await page.getByRole('button', { name: 'Progress date range', exact: true }).click();
+    await page.getByRole('radio', { name: 'All', exact: true }).click();
+    await expect(page.getByTestId('exercise-progress-selection')).toBeVisible();
+  });
+
   test(`empty and single-session progress (${appearance})`, async ({ page }, testInfo) => {
     await seedProgress(page, appearance, 1);
     await page.goto('/');
@@ -343,11 +371,18 @@ for (const appearance of ['light', 'dark']) {
     await page.getByRole('button', { name: 'Exercise info', exact: true }).click();
     await page.getByRole('radio', { name: 'Progress', exact: true }).click();
     await expect(page.getByText('Complete working sets to see progress.')).toBeVisible();
+    await expect(page.getByTestId('exercise-progress-empty')).toHaveCSS('justify-content', 'center');
+    await expect(page.getByTestId('exercise-progress-empty').locator('svg')).toHaveCount(1);
+    await expect(page.getByTestId('exercise-progress-record')).toHaveCount(0);
+    await page.waitForTimeout(300);
     await page.screenshot({
       path: testInfo.outputPath(`exercise-progress-empty-${appearance}.png`),
     });
     await page.getByRole('radio', { name: 'History', exact: true }).click();
     await expect(page.getByText('No completed sessions for this exercise yet.')).toBeVisible();
+    await expect(page.getByTestId('exercise-history-empty')).toHaveCSS('justify-content', 'center');
+    await expect(page.getByTestId('exercise-history-empty').locator('svg')).toHaveCount(1);
+    await page.waitForTimeout(300);
     await page.screenshot({
       path: testInfo.outputPath(`exercise-history-empty-${appearance}.png`),
     });

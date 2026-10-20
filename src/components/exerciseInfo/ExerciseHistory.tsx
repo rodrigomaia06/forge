@@ -1,3 +1,4 @@
+import { EmptyState, HistoryArt } from '../EmptyState';
 import { ForgeEntityName } from '../ui/ForgeEntityName';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useIsFocused } from '@react-navigation/native';
@@ -221,7 +222,26 @@ export function ExerciseHistory({
   };
   return (
     <>
-      {showAll ? (
+      {!sessions.length ? (
+        <PreviewScroll
+          {...(!page ? { dragToDismiss: false } : {})}
+          style={page ? { flex: 1 } : undefined}
+          contentContainerStyle={[
+            styles.emptyContent,
+            { paddingBottom: scaleUI(24) + bottomInset },
+          ]}
+          testID="exercise-history-empty-scroll"
+        >
+          {contentTitle}
+          <EmptyState
+            testID="exercise-history-empty"
+            illustration={<HistoryArt />}
+            title="No exercise history"
+            subtitle="No completed sessions for this exercise yet."
+            style={styles.emptyState}
+          />
+        </PreviewScroll>
+      ) : showAll ? (
         <View
           style={page ? { flex: 1, minHeight: 0 } : { height: height * 0.66, flexShrink: 1 }}
           testID="exercise-history-expanded"
@@ -241,11 +261,6 @@ export function ExerciseHistory({
             onLayout={restore}
             onScroll={(event) => recordScroll(event.nativeEvent.contentOffset.y)}
             scrollEventThrottle={16}
-            ListEmptyComponent={
-              <Text style={[styles.caption, { color: theme.textSecondary }]}>
-                No completed sessions for this exercise yet.
-              </Text>
-            }
           />
         </View>
       ) : (
@@ -278,11 +293,6 @@ export function ExerciseHistory({
               }}
             />
           ) : null}
-          {!sessions.length ? (
-            <Text style={[styles.caption, { color: theme.textSecondary }]}>
-              No completed sessions for this exercise yet.
-            </Text>
-          ) : null}
         </PreviewScroll>
       )}
       {openSet ? (
@@ -306,6 +316,8 @@ function isCompletedSet(set: WorkoutSet): boolean {
   );
 }
 const styles = StyleSheet.create({
+  emptyContent: { flexGrow: 1, minHeight: scaleUI(320), paddingTop: scaleUI(24) },
+  emptyState: { flex: 1, justifyContent: 'center', paddingVertical: scaleUI(24) },
   content: {
     paddingHorizontal: scaleUI(20),
     paddingTop: scaleUI(4),

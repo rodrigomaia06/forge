@@ -1,3 +1,4 @@
+import { EmptyState, HistoryArt } from '../EmptyState';
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { ForgeCard, ForgeText as Text, Button } from '../ui';
@@ -75,44 +76,64 @@ export function ExerciseProgressPanel({
   const format = (value: number) => formatProgressValue(metric, value, units);
   const color = { color: theme.textPrimary };
   const secondary = { color: theme.textSecondary };
+  const toolbar = (
+    <ForgeCard style={styles.toolbar} testID="exercise-progress-toolbar">
+      <View style={styles.selectors}>
+        <ForgeDropdown
+          label={metricLabel(metric, mode)}
+          accessibilityLabel="Progress metric"
+          value={metric}
+          options={metrics.map((value) => ({ value, label: metricLabel(value, mode) }))}
+          onChange={onMetricChange}
+        />
+        <ForgeDropdown
+          label={range === 'all' ? 'All' : `${range}d`}
+          accessibilityLabel="Progress date range"
+          value={range}
+          options={ranges}
+          onChange={onRangeChange}
+        />
+      </View>
+      <View style={styles.navigation}>
+        <Button
+          icon="chevron-back"
+          accessibilityLabel="Previous session point"
+          variant="secondary"
+          style={styles.sessionAction}
+          disabled={!selected || selectedIndex === 0}
+          onPress={() => setIndex(selectedIndex - 1)}
+        />
+        <Button
+          icon="chevron-forward"
+          accessibilityLabel="Next session point"
+          variant="secondary"
+          style={styles.sessionAction}
+          disabled={!selected || selectedIndex === included.length - 1}
+          onPress={() => setIndex(selectedIndex + 1)}
+        />
+      </View>
+    </ForgeCard>
+  );
+  if (!included.length)
+    return (
+      <View style={[styles.panel, styles.emptyPanel]}>
+        {hasHistory ? toolbar : null}
+        <EmptyState
+          testID="exercise-progress-empty"
+          illustration={<HistoryArt />}
+          title={hasHistory ? 'No progress in this period' : 'No progress yet'}
+          subtitle={
+            hasHistory
+              ? 'No included sessions in this range.'
+              : 'Complete working sets to see progress.'
+          }
+          style={styles.emptyState}
+        />
+      </View>
+    );
   return (
     <View style={styles.panel}>
-      <ForgeCard style={styles.toolbar} testID="exercise-progress-toolbar">
-        <View style={styles.selectors}>
-          <ForgeDropdown
-            label={metricLabel(metric, mode)}
-            accessibilityLabel="Progress metric"
-            value={metric}
-            options={metrics.map((value) => ({ value, label: metricLabel(value, mode) }))}
-            onChange={onMetricChange}
-          />
-          <ForgeDropdown
-            label={range === 'all' ? 'All' : `${range}d`}
-            accessibilityLabel="Progress date range"
-            value={range}
-            options={ranges}
-            onChange={onRangeChange}
-          />
-        </View>
-        <View style={styles.navigation}>
-          <Button
-            icon="chevron-back"
-            accessibilityLabel="Previous session point"
-            variant="secondary"
-            style={styles.sessionAction}
-            disabled={!selected || selectedIndex === 0}
-            onPress={() => setIndex(selectedIndex - 1)}
-          />
-          <Button
-            icon="chevron-forward"
-            accessibilityLabel="Next session point"
-            variant="secondary"
-            style={styles.sessionAction}
-            disabled={!selected || selectedIndex === included.length - 1}
-            onPress={() => setIndex(selectedIndex + 1)}
-          />
-        </View>
-      </ForgeCard>
+      {toolbar}
       <ForgeCard style={styles.chartCard} testID="exercise-progress-card">
         {selected ? (
           <>
@@ -220,6 +241,8 @@ export function ExerciseProgressPanel({
 }
 
 const styles = StyleSheet.create({
+  emptyPanel: { flex: 1, minHeight: scaleUI(320) },
+  emptyState: { flex: 1, justifyContent: 'center', paddingVertical: scaleUI(24) },
   panel: { gap: scaleUI(16) },
   toolbar: {
     flexDirection: 'row',

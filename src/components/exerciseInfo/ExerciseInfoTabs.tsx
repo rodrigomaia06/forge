@@ -141,7 +141,11 @@ export function ExerciseInfoTabs({
           {...(!page ? { dragToDismiss: false } : {})}
           testID="exercise-progress-content"
           style={page ? styles.scroll : undefined}
-          contentContainerStyle={[styles.content, { paddingBottom: scaleUI(32) + bottomInset }]}
+          contentContainerStyle={[
+            styles.content,
+            !visible.some((point) => !point.excluded) && { flexGrow: 1 },
+            { paddingBottom: scaleUI(32) + bottomInset },
+          ]}
           scrollEventThrottle={16}
           onScroll={(event) => onScrollOffsetChange?.(event.nativeEvent.contentOffset.y)}
         >
