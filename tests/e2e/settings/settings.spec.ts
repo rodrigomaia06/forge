@@ -67,7 +67,7 @@ test.describe('Settings', () => {
     await expect(page.getByRole('button', { name: 'Measurements' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'General' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Backup & Export' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Logs' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Logs' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'About' })).toBeVisible();
     // Insights (Muscle heatmap, Measurements) sits above the Exercises group.
     const heatmapBox = await page.getByRole('button', { name: 'Muscle heatmap' }).boundingBox();
@@ -107,13 +107,53 @@ test.describe('Settings', () => {
     await expect(page.getByRole('button', { name: 'Import data' })).toBeVisible();
     await page.getByRole('button', { name: 'Back to Settings' }).click();
 
-    await page.getByRole('button', { name: 'Logs' }).click();
-    await expect(page.getByTestId('settings-detail-title')).toHaveText('Logs');
-    await page.getByRole('button', { name: 'Back to Settings' }).click();
-
     await page.getByRole('button', { name: 'About' }).click();
     await expect(page.getByTestId('settings-detail-title')).toHaveText('About');
   });
+
+  for (const appearance of ['light', 'dark']) {
+    test(`unlocks and hides Logs with three About logo presses (${appearance})`, async ({ page }, testInfo) => {
+      await page.addInitScript((appearance) => {
+        if (!localStorage.getItem('@forge/settings-preferences')) {
+          localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance }));
+        }
+      }, appearance);
+      await page.goto('/');
+      await page.getByRole('tab', { name: 'Settings', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Logs', exact: true })).toHaveCount(0);
+      await page.waitForTimeout(300);
+      await page.screenshot({ path: testInfo.outputPath('logs-hidden.png') });
+      await page.getByRole('button', { name: 'About', exact: true }).click();
+      const logo = page.getByRole('button', { name: 'Forge logo', exact: true });
+      await logo.click();
+      await logo.click();
+      await expect(page.getByTestId('logs-toggle-notice')).toHaveCount(0);
+      await logo.click();
+      const notice = page.getByTestId('logs-toggle-notice');
+      await expect(notice).toContainText('Logs enabled');
+      await page.waitForTimeout(300);
+      await page.screenshot({ path: testInfo.outputPath('logs-enabled-notice.png') });
+      await notice.getByRole('button', { name: 'Done', exact: true }).click();
+      await page.getByRole('button', { name: 'Back to Settings', exact: true }).click();
+      await page.getByRole('button', { name: 'Logs', exact: true }).click();
+      await expect(page.getByTestId('settings-detail-title')).toHaveText('Logs');
+      await page.goto('/');
+      await page.getByRole('tab', { name: 'Settings', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Logs', exact: true })).toBeVisible();
+      await page.getByRole('button', { name: 'About', exact: true }).click();
+      await logo.click();
+      await logo.click();
+      await expect(notice).toHaveCount(0);
+      await logo.click();
+      await expect(notice).toContainText('Logs disabled');
+      await page.waitForTimeout(300);
+      await page.screenshot({ path: testInfo.outputPath('logs-disabled-notice.png') });
+      await notice.getByRole('button', { name: 'Done', exact: true }).click();
+      await page.goto('/');
+      await page.getByRole('tab', { name: 'Settings', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Logs', exact: true })).toHaveCount(0);
+    });
+  }
 
   test('starts Measurements empty, then records and persists body weight with history', async ({ page }) => {
     await page.goto('/');
@@ -604,10 +644,24 @@ test.describe('Settings', () => {
     await expect.poll(readAppearance).toBe('light');
     await page.waitForTimeout(300);
     await page.screenshot({ path: testInfo.outputPath('compact-appearance-light.png') });
-    await page.getByRole('radio', { name: 'Dark' }).click();
+    const capturePressTint = async (name: string, appearance: string) => {
+      const option = page.getByRole('radio', { name, exact: true });
+      const target = (await option.boundingBox())!;
+      expect(target.height).toBe(44);
+      await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2);
+      await page.mouse.down();
+      const tint = option.getByTestId('forge-press-state-layer');
+      await expect(tint).toBeVisible();
+      expect((await tint.boundingBox())!.height).toBe(32);
+      await page.screenshot({ path: testInfo.outputPath(`compact-appearance-pressed-${appearance}.png`) });
+      await page.mouse.up();
+    };
+    await capturePressTint('Dark', 'light');
     await expect.poll(readAppearance).toBe('dark');
     await page.waitForTimeout(300);
     await page.screenshot({ path: testInfo.outputPath('compact-appearance-dark.png') });
+    await capturePressTint('Light', 'dark');
+    await expect.poll(readAppearance).toBe('light');
   });
 
   test('keeps a new workout type as a draft until Save', async ({ page }) => {

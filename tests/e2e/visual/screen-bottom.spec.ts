@@ -32,6 +32,7 @@ test.describe('Page bottom safe areas', () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize(viewport);
     await page.addInitScript(() => {
+      localStorage.setItem('@forge/settings-preferences', JSON.stringify({ logsEnabled: true }));
       const completedAt = Date.now() - 3600000;
       localStorage.setItem('@forge/completed-workouts', JSON.stringify([{
         id: 'bottom-layout-workout', name: 'Bottom layout session', type: 'Strength',

@@ -4,6 +4,7 @@ import { builtInWorkoutTypeColors } from '../domain/workouts/workoutTypeDefaults
 /** Static first-install settings; persistence and upgrade behavior live in the repository. */
 export const defaultSettingsPreferences: SettingsPreferences = {
   appearance: 'system',
+  logsEnabled: false,
   units: 'metric',
   bodyweightKg: 0,
   weekStartsOn: 1,

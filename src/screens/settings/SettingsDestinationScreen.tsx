@@ -666,17 +666,43 @@ function logEntryLine(entry: DiagnosticEntry): string {
 }
 function About() {
   const theme = useForgeTheme();
+  const { preferences, updatePreferences } = useSettings();
+  const logoPresses = React.useRef(0);
+  const togglingLogs = React.useRef(false);
+  const [notice, setNotice] = React.useState<{ title: string; message: string } | null>(null);
+  const toggleLogs = async (): Promise<void> => {
+    if (togglingLogs.current || notice) return;
+    logoPresses.current += 1;
+    if (logoPresses.current < 3) return;
+    logoPresses.current = 0;
+    togglingLogs.current = true;
+    try {
+      const enabled = !preferences.logsEnabled;
+      const saved = await updatePreferences({ logsEnabled: enabled });
+      setNotice(saved ? {
+        title: enabled ? 'Logs enabled' : 'Logs disabled',
+        message: enabled ? 'The Logs screen is now available in More.' : 'The Logs screen is now hidden from More.',
+      } : {
+        title: 'Could not update Logs',
+        message: 'Your setting was not changed. Tap the logo three times to try again.',
+      });
+    } finally {
+      togglingLogs.current = false;
+    }
+  };
   const openExternal = (url: string): void => {
     void Linking.openURL(url);
   };
   return (
     <View style={styles.stack}>
       <View style={styles.brand}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Forge logo" onPress={() => void toggleLogs()} style={styles.logo}>
         <Image
           source={require('../../../assets/forge-app-icon.png')}
           style={styles.logo}
           accessibilityLabel="Forge icon"
         />
+        </Pressable>
         <View>
           <Text style={[styles.brandTitle, { color: theme.textPrimary }]}>Forge 0.1.0</Text>
           <Text style={[styles.brandSubtitle, { color: theme.textSecondary }]}>
@@ -704,6 +730,18 @@ function About() {
           Forge keeps your workouts on this device. No account, no server, no tracking.
         </Text>
       </SettingsSection>
+      <ForgeConfirmationDialog
+        visible={!!notice}
+        title={notice?.title ?? ''}
+        message={notice?.message ?? ''}
+        cancelLabel="Done"
+        confirmLabel="Done"
+        showCancel={false}
+        onCancel={() => setNotice(null)}
+        onConfirm={() => setNotice(null)}
+        testID="logs-toggle-notice"
+        confirmTone="neutral"
+      />
     </View>
   );
 }

@@ -35,6 +35,7 @@ export interface DailyMeasurementEntry {
 
 export interface SettingsPreferences {
   appearance: AppearancePreference;
+  logsEnabled: boolean;
   units: UnitsPreference;
   bodyweightKg: number;
   weekStartsOn: WeekStartsOn;

@@ -50,7 +50,7 @@ for (const appearance of ['light', 'dark']) {
 
 for (const appearance of ['light', 'dark']) {
   test(`log choices form a connected list with visible boundaries (${appearance})`, async ({ page }, info) => {
-    await page.addInitScript(appearance => { localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance })); localStorage.setItem('@forge/diagnostics-v1', JSON.stringify([{ id: 'test-log', kind: 'app-opened', at: Date.now() }])); }, appearance);
+    await page.addInitScript(appearance => { localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance, logsEnabled: true })); localStorage.setItem('@forge/diagnostics-v1', JSON.stringify([{ id: 'test-log', kind: 'app-opened', at: Date.now() }])); }, appearance);
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings', exact: true }).click();
     await page.getByRole('button', { name: 'Logs', exact: true }).click();

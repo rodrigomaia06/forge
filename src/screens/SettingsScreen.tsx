@@ -8,11 +8,13 @@ import { spacing } from '../theme/tokens';
 import type { RootStackParamList, RootTabScreenProps } from '../types';
 import { SettingsRow, SettingsSection, settingsLayout } from './settings/SettingsRow';
 import { useForgeDockScrollInset } from '../components/DockChrome';
+import { useSettings } from '../state/SettingsContext';
 
 type Props = RootTabScreenProps<'Settings'>;
 
 export function SettingsScreen({ navigation }: Props) {
   const theme = useForgeTheme();
+  const { preferences } = useSettings();
   const styles = useThemedStyles(createStyles);
   const dockScrollInset = useForgeDockScrollInset();
   const open = (screen: keyof RootStackParamList): void => {
@@ -93,15 +95,6 @@ export function SettingsScreen({ navigation }: Props) {
               disclosure
             />
             <SettingsRow
-              icon="clipboard"
-              iconSize={26}
-              title="Logs"
-              onPress={() => open('Logs')}
-              disclosure
-            />
-          </SettingsSection>
-          <SettingsSection>
-            <SettingsRow
               icon="info"
               iconSize={26}
               title="About"
@@ -109,6 +102,15 @@ export function SettingsScreen({ navigation }: Props) {
               disclosure
             />
           </SettingsSection>
+          {preferences.logsEnabled ? <SettingsSection>
+            <SettingsRow
+              icon="clipboard"
+              iconSize={26}
+              title="Logs"
+              onPress={() => open('Logs')}
+              disclosure
+            />
+          </SettingsSection> : null}
         </ScrollView>
       </View>
     </AppScreen>

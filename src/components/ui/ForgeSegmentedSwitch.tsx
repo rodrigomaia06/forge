@@ -1,4 +1,4 @@
-import { ForgePressable as Pressable } from './ForgePressable';
+import { centeredPressFeedback, ForgePressable as Pressable } from './ForgePressable';
 import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
@@ -171,6 +171,7 @@ export function ForgeSegmentedSwitch<T extends string | number>({
               onChange(option.value);
             }}
             style={styles.segment}
+            pressFeedbackStyle={size === 'compact' ? centeredPressFeedback(SIZE, 999, 32) : undefined}
           >
             <Icon name={option.icon} size={17} color={active ? theme.textPrimary : theme.muted} />
           </Pressable>

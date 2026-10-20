@@ -1,5 +1,6 @@
 import { Platform, View } from 'react-native';
 import { usePlans } from '../state/PlansContext';
+import { useSettings } from '../state/SettingsContext';
 import { AppScreen, Button, ForgeText } from '../components/ui';
 import { typeScale } from '../theme/tokens';
 import React, { useMemo } from 'react';
@@ -49,6 +50,7 @@ const linking: LinkingOptions<RootStackParamList> = {
 enableFreeze(true);
 
 export function AppNavigator() {
+  const { preferences } = useSettings();
   const { ready } = useWorkouts();
   const { ready: plansReady } = usePlans();
   const theme = useForgeTheme();
@@ -157,11 +159,11 @@ export function AppNavigator() {
           component={ImportConflictScreen}
           options={{ gestureEnabled: true }}
         />
-        <Stack.Screen
+        {preferences.logsEnabled ? <Stack.Screen
           name="Logs"
           component={SettingsDestinationScreen}
           options={{ gestureEnabled: true }}
-        />
+        /> : null}
         <Stack.Screen
           name="About"
           component={SettingsDestinationScreen}
