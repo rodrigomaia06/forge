@@ -33,6 +33,10 @@ export const ForgeTextInput = React.forwardRef<NativeTextInput, TextInputProps &
       <NativeTextInput
         ref={inputRef}
         {...props}
+        autoCorrect={false}
+        spellCheck={false}
+        autoComplete="off"
+        textContentType="none"
         selection={lockCursorToEnd ? endSelection : props.selection}
         onSelectionChange={(event) => {
           // Keep the insertion caret at the end. A deliberate text selection

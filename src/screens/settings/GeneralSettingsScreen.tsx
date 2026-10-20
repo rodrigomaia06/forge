@@ -1,9 +1,9 @@
+import { ForgeTextInput as TextInput } from '../../components/ui/ForgeText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { startTransition, useMemo } from 'react';
 import {
   ScrollView,
   StyleSheet,
-  TextInput,
   View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';

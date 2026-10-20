@@ -15,3 +15,6 @@ Forge preserves original entity names and semantic font sizes across exercises, 
 Validation includes ordinary and long names, identical prefixes with distinct suffixes, unbroken strings, emoji, CJK, RTL and expanded labels. Check both themes on iPhone Air and Galaxy S24 and web enlargement through 200%. Verify actual iOS accessibility categories and Android maximum text size in native builds; browser emulation cannot establish native scaling support.
 
 This policy changes presentation only, without changing storage, identities or navigation routes. Exercise Info retains its accepted grouped layout; wrapping is now the app-wide full-heading behavior rather than a page-specific exception.
+
+
+- Text entry disables autocorrection, spell-checking and autocomplete suggestions across notes, comments, names, search and other editable fields. Shared Forge text inputs apply this consistently, including dashboard notes and numeric entry; normal capitalization and numeric keyboard selection remain independent.
