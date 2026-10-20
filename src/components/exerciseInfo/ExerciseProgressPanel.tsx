@@ -121,7 +121,6 @@ export function ExerciseProgressPanel({
               accessibilityLiveRegion="polite"
               style={styles.readout}
             >
-              <Text style={[typeScale.label, secondary]}>Selected session</Text>
               <Text style={[typeScale.metricLarge, color]}>{format(selected.value)}</Text>
               <Text style={[typeScale.supporting, secondary]}>
                 {new Date(selected.date).toLocaleString(undefined, {
@@ -198,9 +197,6 @@ export function ExerciseProgressPanel({
                 ? 'No eligible sets in this period'
                 : 'No included sessions'}
           </Text>
-          {mode !== 'weight-reps' ? (
-            <Text style={[typeScale.label, secondary]}>{metricLabel(metric, mode)}</Text>
-          ) : null}
         </ForgeCard>
         <ForgeCard
           testID="exercise-progress-change"
@@ -214,10 +210,9 @@ export function ExerciseProgressPanel({
             {change
               ? change.percent === undefined
                 ? 'From first to last session'
-                : `${signed(change.percent, `${Number(Math.abs(change.percent).toFixed(1))}%`)} · first to last`
+                : signed(change.percent, `${Number(Math.abs(change.percent).toFixed(1))}%`)
               : 'Needs 2 included sessions'}
           </Text>
-          <Text style={[typeScale.label, secondary]}>{metricLabel(metric, mode)}</Text>
         </ForgeCard>
       </View>
     </View>

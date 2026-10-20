@@ -46,6 +46,7 @@ interface ForgeActionSheetProps {
   titleNumberOfLines?: number;
   /** Gives a contextual choice enough visual hierarchy to stand apart from the backdrop. */
   emphasis?: 'default' | 'prominent';
+  appearance?: 'default' | 'compact';
   description?: string;
   backdropIntensity?: 'default' | 'strong';
   actions: readonly ForgeActionSheetAction[];
@@ -82,6 +83,7 @@ export function ForgeActionSheet({
   contextName,
   titleNumberOfLines,
   emphasis = 'default',
+  appearance = 'default',
   description,
   backdropIntensity,
   actions,
@@ -178,6 +180,8 @@ export function ForgeActionSheet({
                   styles.actionList,
                   emphasis === 'prominent' && styles.prominentActionList,
                   { borderColor: theme.border, backgroundColor: theme.surface },
+                  appearance === 'compact' && styles.compactActionList,
+                  appearance === 'compact' && { backgroundColor: theme.surfaceElevated },
                 ]}
                 showsVerticalScrollIndicator={false}
                 bounces={false}
@@ -189,6 +193,7 @@ export function ForgeActionSheet({
                     action={action}
                     close={close}
                     divider={index < neutralActions.length - 1}
+                    compact={appearance === 'compact'}
                   />
                 ))}
               </ForgeSheetScrollView>
@@ -216,10 +221,12 @@ function ActionRow({
   action,
   close,
   divider = false,
+  compact = false,
 }: {
   action: ForgeActionSheetAction;
   close: () => void;
   divider?: boolean;
+  compact?: boolean;
 }) {
   const theme = useForgeTheme();
   const destructive = action.tone === 'destructive';
@@ -239,6 +246,7 @@ function ActionRow({
         }}
       style={({ pressed }) => [
         styles.actionRow,
+          compact && styles.compactActionRow,
           action.description && styles.descriptiveActionRow,
           destructive && styles.destructiveAction,
           action.disabled && styles.disabledAction,
@@ -252,6 +260,7 @@ function ActionRow({
               backgroundColor: destructive ? theme.destructiveSurfacePressed : theme.surfaceMuted,
               borderColor: destructive ? theme.textDestructive : theme.border,
             },
+            compact && styles.compactIcon,
           ]}
         >
           <Icon name={action.icon} size={21} color={action.disabled ? theme.textDisabled : color} />
@@ -304,6 +313,9 @@ const styles = StyleSheet.create({
     borderRadius: scaleUI(16),
   },
   prominentActionList: { marginTop: scaleUI(12) },
+  compactActionList: { borderWidth: 0, paddingHorizontal: scaleUI(4), borderRadius: scaleUI(18) },
+  compactActionRow: { minHeight: Math.max(44, scaleUI(56)), borderRadius: scaleUI(14) },
+  compactIcon: { backgroundColor: 'transparent', borderWidth: 0, width: scaleUI(30), height: scaleUI(30) },
   destructiveList: {
     marginHorizontal: scaleUI(20),
     marginTop: scaleUI(14),

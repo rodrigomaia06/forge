@@ -26,31 +26,24 @@ const shared = {
   topBar: true as const,
   headerVariant: 'greeting' as const,
   startButtonVariant: 'outline-compact',
-  summaryGradientStart: '#F8F8F6',
-  summaryGradientEnd: '#ECEDEB',
-  summaryBorder: '#E2E3E0',
+  summaryGradientStart: '#F8F8F8',
+  summaryGradientEnd: '#ECECEC',
+  summaryBorder: '#E2E2E2',
   summaryGlow: '#FFFFFF',
 };
 
 export const lightTheme: ForgeTheme = {
   ...shared,
   colorScheme: 'light',
-  // Light elevation ramp (mirrors Dark's distinct tone steps so borderless surfaces
-  // separate by tone, not outlines): page < base surface < elevated. Sheets are painted
-  // the base `surface`, so elevated controls/nested cards (surfaceElevated = white) pop
-  // on them and on the darker header.
-  background: '#E3E4E1',
-  header: '#E3E4E1',
-  surface: '#F4F5F2',
+  background: '#FFFFFF',
+  header: '#FFFFFF',
+  surface: '#F4F4F4',
   surfaceElevated: '#FFFFFF',
-  surfaceInset: '#DEDFDC',
-  input: '#E8E9E6',
-  dock: '#FAFAF8',
+  surfaceInset: '#DEDEDE',
+  input: '#E8E8E8',
+  dock: '#FAFAFA',
   overlay: 'rgba(23,25,28,0.24)',
-  // The raised-control / selection / nested tone. Deepened from #E8E9E6 so a
-  // borderless tonal control reads on the base surface and on white cards
-  // (the old value sat within ~5 of the page tones and vanished).
-  surfaceMuted: '#DEDFDB',
+  surfaceMuted: '#DEDEDE',
   ink: '#17191C',
   textPrimary: '#17191C',
   textSecondary: '#55585C',
@@ -62,8 +55,8 @@ export const lightTheme: ForgeTheme = {
   muted: '#8A969E',
   // Divider stays a hairline tone for row separators; `border` is deepened so the
   // few elements that keep an outline (search/text fields) actually show one on light.
-  divider: '#C9CCC6',
-  border: '#CDCFC9',
+  divider: '#CACACA',
+  border: '#CECECE',
   pressed: 'rgba(23,25,28,0.14)',
   focus: '#1D252D',
   shadow: '#17191C',

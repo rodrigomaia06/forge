@@ -139,6 +139,7 @@ export function GeneralSettingsScreen({ navigation }: Props) {
                   value={preferences.appearance}
                   onChange={(value) => choose({ appearance: value })}
                   accessibilityLabel="Appearance"
+                  size="compact"
                 />
               }
             />

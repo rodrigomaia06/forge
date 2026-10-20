@@ -1153,7 +1153,7 @@ test.describe('Active workout flow', () => {
 
     await page.getByRole('button', { name: 'Previous sessions' }).click();
     await expect(page.getByText('No completed sessions for this exercise yet.', { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: /Close exercise info/i }).click();
+    await page.getByRole('button', { name: 'Back from exercise info', exact: true }).click();
     await expect(page.getByText('Previous sessions', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Pause at the chest', { exact: true })).toHaveCount(0);
     await expect(page.locator('svg[aria-label="Exercise has a comment"]')).toBeVisible();
@@ -1176,10 +1176,7 @@ test.describe('Active workout flow', () => {
     await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
     await expect(page.getByText('Exercise options', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Exercise info' }).click();
-    // The Exercise info sheet now renders the shared ExerciseDetailBody: an
-    // Essentials fact grid (Category, Equipment, Tracking, Movement family)
-    // rather than the old Exercise/Variation labelled rows.
-    await expect(page.getByText('Essentials', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Exercise essentials', exact: true })).toBeVisible();
     await expect(page.getByText('Category', { exact: true })).toBeVisible();
     await expect(page.getByText('Movement family', { exact: true })).toBeVisible();
     // The movement family for Barbell Bench Press reads "Bench Press".

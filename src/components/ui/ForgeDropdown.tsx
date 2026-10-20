@@ -8,6 +8,7 @@ import { ForgePressable } from './ForgePressable';
 import { scaleUI } from '../../theme/scale';
 import { ForgeText as Text } from './ForgeText';
 import { typeScale } from '../../theme/tokens';
+import { useForgeTheme } from '../../theme/ThemeProvider';
 
 /** A bounded choice menu anchored to its shared Forge button. */
 export function ForgeDropdown<T extends string>({
@@ -24,6 +25,7 @@ export function ForgeDropdown<T extends string>({
   onChange: (value: T) => void;
 }) {
   const anchor = useRef<View>(null);
+  const theme = useForgeTheme();
   const { width, height, fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [contentWidth, setContentWidth] = useState(0);
@@ -98,7 +100,7 @@ export function ForgeDropdown<T extends string>({
       >
         <View style={StyleSheet.absoluteFill} accessibilityViewIsModal>
           <ForgePressable
-            style={StyleSheet.absoluteFill}
+            style={[StyleSheet.absoluteFill, { backgroundColor: theme.overlay, opacity: 0.35 }]}
             accessibilityRole="button"
             accessibilityLabel={`Close ${accessibilityLabel.toLowerCase()} menu`}
             onPress={close}
@@ -106,14 +108,19 @@ export function ForgeDropdown<T extends string>({
           />
           {position ? (
             <View
+              testID="forge-dropdown-panel"
               style={[
                 styles.menu,
+                {
+                  backgroundColor: theme.surfaceElevated,
+                  boxShadow: [{ offsetX: 0, offsetY: 8, blurRadius: 24, color: `${theme.shadow}38` }],
+                },
                 position,
                 { maxHeight: height - position.top - insets.bottom - scaleUI(20) },
               ]}
               accessibilityLabel={`${accessibilityLabel} choices`}
             >
-              <ForgeCard size="compact" style={styles.choices}>
+              <ForgeCard variant="nested" size="compact" style={styles.choices}>
                 <ScrollView style={{ flexShrink: 1 }} onContentSizeChange={(_width, nextHeight) => setContentHeight(nextHeight)}><ForgeSingleSelectList
                   disableVirtualization
                   embedded
@@ -136,7 +143,11 @@ export function ForgeDropdown<T extends string>({
 }
 
 const styles = StyleSheet.create({
-  menu: { position: 'absolute', flexShrink: 1 },
+  menu: {
+    position: 'absolute',
+    flexShrink: 1,
+    borderRadius: scaleUI(18),
+  },
   choices: { flexShrink: 1 },
   measurementClip: { position: 'absolute', width: 0, height: 0, overflow: 'hidden' },
   measurement: {

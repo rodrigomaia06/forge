@@ -99,6 +99,7 @@ for (const appearance of ['light', 'dark']) {
     await expect(change).toContainText('+400 kg · reps');
     await expect(change).toContainText('+50%');
     await expect(page.getByTestId('exercise-progress-card')).toContainText('1200 kg · reps');
+    await expect(page.getByText('Selected session', { exact: true })).toHaveCount(0);
     await page.waitForTimeout(220);
     await page.screenshot({ path: info.outputPath(`progress-${appearance}.png`) });
     await change.scrollIntoViewIfNeeded();

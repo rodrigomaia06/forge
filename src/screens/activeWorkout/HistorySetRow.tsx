@@ -100,6 +100,7 @@ export function HistorySetRow({
             !showPrevious && styles.flexibleValue,
             stacked && styles.stackedField,
             { borderColor: theme.divider, backgroundColor: theme.surfaceMuted },
+            compact && { borderWidth: 0, backgroundColor: 'transparent' },
           ]}
         >
           {stacked ? <Text style={styles.valueText}>{trackingFieldLabel(trackingType, kind)}</Text> : null}

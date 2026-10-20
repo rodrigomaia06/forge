@@ -53,11 +53,14 @@ test.describe('Settings', () => {
     });
   }
 
-  test('shows grouped settings and opens each destination', async ({ page }) => {
+  test('shows grouped settings and opens each destination', async ({ page }, testInfo) => {
     await page.goto('/');
     await page.getByRole('tab', { name: 'Settings' }).click();
 
     await expect(page.getByTestId('settings-title')).toBeVisible();
+    await expect(page.getByTestId('settings-title')).toHaveText('More');
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: testInfo.outputPath('more-screen-title.png') });
     await expect(page.getByRole('button', { name: 'Muscle heatmap' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Exercises' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Workout types' })).toBeVisible();
@@ -596,10 +599,15 @@ test.describe('Settings', () => {
     const readAppearance = () =>
       page.evaluate(() => JSON.parse(localStorage.getItem('@forge/settings-preferences') ?? '{}').appearance);
     await expect(page.getByRole('radiogroup', { name: 'Appearance' })).toBeVisible();
+    expect((await page.getByRole('radiogroup', { name: 'Appearance' }).boundingBox())!.height).toBeLessThanOrEqual(44);
     await page.getByRole('radio', { name: 'Light' }).click();
     await expect.poll(readAppearance).toBe('light');
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: testInfo.outputPath('compact-appearance-light.png') });
     await page.getByRole('radio', { name: 'Dark' }).click();
     await expect.poll(readAppearance).toBe('dark');
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: testInfo.outputPath('compact-appearance-dark.png') });
   });
 
   test('keeps a new workout type as a draft until Save', async ({ page }) => {

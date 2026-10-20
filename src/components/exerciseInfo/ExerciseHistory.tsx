@@ -130,50 +130,51 @@ export function ExerciseHistory({
     latestOffset.current = offset;
     onPageScroll?.(offset);
   };
-  const SessionSurface = ForgeCard;
   const renderSession = ({ workout, exercises }: ExerciseSession) => {
     return (
-      <SessionSurface
+      <ForgeCard
         testID={`previous-session-card-${workout.id}`}
         variant={page ? 'base' : 'nested'}
+        size="compact"
         style={styles.card}
       >
-        <View style={styles.header}>
-          <Pressable
-            accessibilityRole={onOpenWorkout ? 'button' : undefined}
-            accessibilityLabel={onOpenWorkout ? `Open ${workout.name}` : undefined}
-            onPress={() => {
-              if (!onOpenWorkout) return;
-              // Hiding the route can emit a zero offset before focus updates.
-              openingWorkout.current = true;
-              onOpenWorkout(workout.id);
-            }}
-            style={styles.workoutAction}
-          >
-            <View style={styles.copy}>
-              <ForgeEntityName presentation={onOpenWorkout ? 'preview' : 'full'} style={[styles.title, { color: theme.textPrimary }]}>
-                {workout.name}
-              </ForgeEntityName>
-              <Text style={[styles.caption, { color: theme.textSecondary }]}>
-                {new Date(workout.startedAt).toLocaleString(undefined, {
-                  month: 'short',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </Text>
-            </View>
-          </Pressable>
+        <Pressable
+          accessibilityRole={onOpenWorkout ? 'button' : undefined}
+          accessibilityLabel={onOpenWorkout ? `Open ${workout.name}` : undefined}
+          onPress={() => {
+            if (!onOpenWorkout) return;
+            // Hiding the route can emit a zero offset before focus updates.
+            openingWorkout.current = true;
+            onOpenWorkout(workout.id);
+          }}
+          style={[styles.header, styles.workoutAction]}
+        >
+          <View style={styles.copy}>
+            <ForgeEntityName
+              presentation={onOpenWorkout ? 'preview' : 'full'}
+              style={[styles.title, { color: theme.textPrimary }]}
+            >
+              {workout.name}
+            </ForgeEntityName>
+            <Text style={[styles.caption, { color: theme.textSecondary }]}>
+              {new Date(workout.startedAt).toLocaleString(undefined, {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </Text>
+          </View>
           {onOpenWorkout ? (
             <Icon name="chevron-forward" size={18} color={theme.textSecondary} />
           ) : null}
-        </View>
+        </Pressable>
         {exercises.map((block) => {
           const sets = block.sets
             .map((set, index) => ({ set, index }))
             .filter(({ set }) => isCompletedSet(set));
           return (
-            <SetTableSurface key={block.id} page={page}>
+            <View key={block.id} style={styles.setTable}>
               {block.offSession ? (
                 <Text
                   style={[styles.caption, { color: theme.textSecondary, paddingHorizontal: 14 }]}
@@ -181,7 +182,7 @@ export function ExerciseHistory({
                   Off-session
                 </Text>
               ) : null}
-              <View style={styles.setHeader}>
+              <View style={[styles.setHeader, { borderBottomColor: theme.divider }]}>
                 <Text style={[styles.setColumn, styles.caption, { color: theme.textSecondary }]}>
                   Set
                 </Text>
@@ -212,10 +213,10 @@ export function ExerciseHistory({
                   />
                 </View>
               ))}
-            </SetTableSurface>
+            </View>
           );
         })}
-      </SessionSurface>
+      </ForgeCard>
     );
   };
   return (
@@ -299,16 +300,12 @@ export function ExerciseHistory({
     </>
   );
 }
-function SetTableSurface({ page, children }: { page: boolean; children: React.ReactNode }) {
-  return <View>{children}</View>;
-}
 function isCompletedSet(set: WorkoutSet): boolean {
   return (
     set.completed && (!set.sideCompletion || (set.sideCompletion.left && set.sideCompletion.right))
   );
 }
 const styles = StyleSheet.create({
-  openSession: { gap: scaleUI(4) },
   content: {
     paddingHorizontal: scaleUI(20),
     paddingTop: scaleUI(4),
@@ -317,36 +314,28 @@ const styles = StyleSheet.create({
   },
   card: { padding: 0, overflow: 'hidden' },
   header: {
-    paddingHorizontal: scaleUI(12),
+    paddingHorizontal: scaleUI(16),
     flexDirection: 'row',
     alignItems: 'center',
     gap: scaleUI(8),
   },
   workoutAction: {
-    flex: 1,
     minWidth: 0,
-    minHeight: 56,
-    justifyContent: 'center',
-    paddingVertical: scaleUI(8),
-    borderRadius: scaleUI(12),
+    minHeight: 64,
+    paddingVertical: scaleUI(14),
   },
-  copy: { minWidth: 0, gap: scaleUI(2) },
+  copy: { flex: 1, minWidth: 0, gap: scaleUI(4) },
   title: { ...typeScale.cardTitle },
   caption: { ...typeScale.label },
+  setTable: { paddingHorizontal: scaleUI(4), paddingBottom: scaleUI(8) },
   setHeader: {
     paddingHorizontal: scaleUI(12),
-    minHeight: scaleUI(24),
+    minHeight: scaleUI(32),
+    borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
   setColumn: { width: 46, textAlign: 'center' },
   measurementColumn: { flex: 1, minWidth: 0, textAlign: 'center' },
-  status: {
-    minHeight: 44,
-    width: 44,
-    borderRadius: scaleUI(12),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 });

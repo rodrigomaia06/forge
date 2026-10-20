@@ -909,6 +909,7 @@ export function ExerciseOptionsSheet({
       onClosed={handleClosed}
       accessibilityLabel="Close options"
       title="Exercise options"
+      appearance="compact"
       dragEnabled={!trackingConfirmation}
       onBackRequest={() => {
         if (!trackingConfirmation) return false;

@@ -227,6 +227,7 @@ export function ExerciseInfoScreen({ navigation, route }: Props) {
         onClosed={onClosed}
         accessibilityLabel="Close exercise options"
         title="Exercise options"
+        appearance="compact"
         actions={[
           {
             label: 'Edit exercise',

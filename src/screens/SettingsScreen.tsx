@@ -24,7 +24,7 @@ export function SettingsScreen({ navigation }: Props) {
       <View style={styles.screen}>
         <View style={styles.header}>
           <ScreenTitle testID="settings-title" color={theme.textPrimary}>
-            Settings
+            More
           </ScreenTitle>
         </View>
         <ScrollView

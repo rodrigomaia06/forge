@@ -23,8 +23,14 @@ for (const appearance of ['light', 'dark']) {
     await page.getByRole('tab', { name: 'History' }).click();
     await page.getByRole('button', { name: 'Open Session 1', exact: true }).click();
     await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
+    await expect(page.getByRole('button', { name: 'Previous sessions', exact: true })).toBeVisible();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: testInfo.outputPath(`exercise-options-${appearance}.png`) });
     await page.getByRole('button', { name: 'Previous sessions', exact: true }).click();
     const sheet = page.getByTestId('exercise-info-screen');
+    await expect(page.getByTestId('previous-session-card-progress-1')).toBeVisible();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: testInfo.outputPath(`exercise-history-${appearance}.png`) });
     await expect(
       page.getByTestId('previous-sessions-scroll').getByTestId('forge-sheet-drag-area'),
     ).toHaveCount(0);
@@ -188,6 +194,7 @@ for (const appearance of ['light', 'dark']) {
       0,
     );
     const selectedRange = page.getByRole('radio', { name: '90d', exact: true });
+    await expect(page.getByTestId('forge-dropdown-panel')).not.toHaveCSS('box-shadow', 'none');
     await expect(selectedRange).toHaveAttribute('aria-checked', 'true');
     expect((await selectedRange.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     expect(

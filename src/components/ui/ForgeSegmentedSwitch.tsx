@@ -36,12 +36,14 @@ export function ForgeSegmentedSwitch<T extends string | number>({
   onChange,
   accessibilityLabel,
   showLabels = false,
+  size = 'standard',
 }: {
   options: readonly ForgeSegmentedOption<T>[];
   value: T;
   onChange: (value: T) => void;
   accessibilityLabel?: string;
   showLabels?: boolean;
+  size?: 'standard' | 'compact';
 }) {
   const theme = useForgeTheme();
   const reducedMotion = useForgeReducedMotion();
@@ -83,7 +85,7 @@ export function ForgeSegmentedSwitch<T extends string | number>({
       <View
         accessibilityRole="radiogroup"
         accessibilityLabel={accessibilityLabel}
-        style={[styles.track, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}
+        style={[styles.track, { backgroundColor: theme.colorScheme === 'light' ? theme.border : theme.surfaceMuted, borderColor: theme.border }]}
       >
         <View
           style={styles.labelSegments}
@@ -118,7 +120,7 @@ export function ForgeSegmentedSwitch<T extends string | number>({
                 style={[
                   typeScale.controlLabel,
                   styles.labelText,
-                  { color: option.value === value ? theme.onActionPrimary : theme.textSecondary },
+                  { color: option.value === value ? theme.onActionPrimary : theme.textPrimary },
                 ]}
               >
                 {option.label}
@@ -133,14 +135,25 @@ export function ForgeSegmentedSwitch<T extends string | number>({
     <View
       accessibilityRole="radiogroup"
       accessibilityLabel={accessibilityLabel}
-      style={[styles.track, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}
+      style={[
+        styles.track,
+        { backgroundColor: theme.surfaceMuted, borderColor: theme.border },
+        size === 'compact' && styles.compactTrack,
+      ]}
     >
+      {size === 'compact' ? (
+        <View
+          pointerEvents="none"
+          style={[styles.compactTrackFill, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}
+        />
+      ) : null}
       <Animated.View
         pointerEvents="none"
         style={[
           styles.indicator,
           indicatorStyle,
           { backgroundColor: theme.surface, borderColor: theme.border },
+          size === 'compact' && styles.compactIndicator,
         ]}
       />
       {options.map((option) => {
@@ -190,6 +203,12 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     position: 'relative',
   },
+  compactTrack: { paddingVertical: 0, borderWidth: 0, backgroundColor: 'transparent' },
+  compactTrackFill: {
+    position: 'absolute', top: 3, bottom: 3, left: 0, right: 0,
+    borderRadius: 999, borderWidth: StyleSheet.hairlineWidth,
+  },
+  compactIndicator: { top: 6, height: 32 },
   indicator: {
     position: 'absolute',
     top: PAD,
