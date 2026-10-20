@@ -1,0 +1,187 @@
+name: Build signed Apple Ad Hoc IPA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-ipa-signed-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  build-ipa:
+    name: Build signed Apple Ad Hoc IPA
+    # Xcode is necessary for a device IPA. This direct macOS build avoids the
+    # EAS iOS-build quota; the EXPO_TOKEN secret may remain configured but is
+    # intentionally not required by this workflow.
+    runs-on: macos-15
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+      - name: Install Apple signing credentials
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          APP_PROVISION_PROFILE_BASE64: ${{ secrets.APP_PROVISION_PROFILE_BASE64 }}
+          WIDGET_PROVISION_PROFILE_BASE64: ${{ secrets.WIDGET_PROVISION_PROFILE_BASE64 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          for SECRET_NAME in BUILD_CERTIFICATE_BASE64 P12_PASSWORD APP_PROVISION_PROFILE_BASE64 WIDGET_PROVISION_PROFILE_BASE64; do
+            if [ -z "${!SECRET_NAME}" ]; then
+              echo "::error::Missing repository secret: $SECRET_NAME"
+              exit 1
+            fi
+          done
+          SIGNING_DIRECTORY="$RUNNER_TEMP/forge-signing"
+          mkdir -p "$SIGNING_DIRECTORY"
+          export SIGNING_DIRECTORY
+          python3 - <<'PYTHON'
+          import base64, os
+          from pathlib import Path
+          directory = Path(os.environ['SIGNING_DIRECTORY'])
+          for secret, filename in {
+              'BUILD_CERTIFICATE_BASE64': 'distribution.p12',
+              'APP_PROVISION_PROFILE_BASE64': 'app.mobileprovision',
+              'WIDGET_PROVISION_PROFILE_BASE64': 'widget.mobileprovision',
+          }.items():
+              (directory / filename).write_bytes(base64.b64decode(os.environ[secret], validate=True))
+          PYTHON
+          KEYCHAIN_PATH="$RUNNER_TEMP/forge-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 32)"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$SIGNING_DIRECTORY/distribution.p12" -P "$P12_PASSWORD" -t cert -f pkcs12 -k "$KEYCHAIN_PATH" -T /usr/bin/codesign -T /usr/bin/security >/dev/null
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN_PATH" "$HOME/Library/Keychains/login.keychain-db"
+          openssl pkcs12 -in "$SIGNING_DIRECTORY/distribution.p12" -passin env:P12_PASSWORD -clcerts -nokeys -out "$SIGNING_DIRECTORY/certificate.pem"
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+          for PROFILE in app widget; do
+            security cms -D -i "$SIGNING_DIRECTORY/$PROFILE.mobileprovision" > "$SIGNING_DIRECTORY/$PROFILE.plist"
+            cp "$SIGNING_DIRECTORY/$PROFILE.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/forge-$PROFILE.mobileprovision"
+            cp "$SIGNING_DIRECTORY/$PROFILE.mobileprovision" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/forge-$PROFILE.mobileprovision"
+          done
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.x
+          cache: npm
+      - name: Select Xcode with Swift 6.2
+        # ExpoModulesJSI's SwiftPM package declares swift-tools-version 6.2.
+        # macos-15 still defaults to Xcode 16.4 (Swift 6.1), even though the
+        # image also includes Xcode 26.3.
+        run: sudo xcode-select --switch /Applications/Xcode_26.3.app/Contents/Developer
+      - name: Install JavaScript dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Patch ExpoModulesJSI for Xcode 26
+        # SDK 57 annotates C++ constructors with SWIFT_RETURNS_RETAINED. Xcode
+        # 26's Swift 6.2 compiler rejects that annotation on constructors;
+        # removing the two annotations preserves their normal shared-reference
+        # ownership semantics. Its actor-isolated raw-pointer trampolines need
+        # the package's own NonisolatedUnsafeVar wrapper under Swift 6.2. Keep
+        # the count checks so an Expo update cannot silently drift this patch.
+        run: |
+          set -euo pipefail
+          HEADER='node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI-Cxx/include/RuntimeScheduler.h'
+          RUNTIME='node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptRuntime.swift'
+          test "$(grep -F -c 'SWIFT_RETURNS_RETAINED RuntimeScheduler' "$HEADER")" -eq 2
+          test "$(grep -F -c 'nonisolated(unsafe) let resultPtr = resultPtr' "$RUNTIME")" -eq 3
+          test "$(grep -F -c 'nonisolated(unsafe) let thisPtr = thisPtr' "$RUNTIME")" -eq 2
+          test "$(grep -F -c 'nonisolated(unsafe) let argumentsPtr = argumentsPtr' "$RUNTIME")" -eq 2
+          perl -0pi -e 's/SWIFT_RETURNS_RETAINED RuntimeScheduler/RuntimeScheduler/g' "$HEADER"
+          perl -0pi -e 's/nonisolated\(unsafe\) let resultPtr = resultPtr/let resultPtr = NonisolatedUnsafeVar(resultPtr)/g; s/nonisolated\(unsafe\) let thisPtr = thisPtr/let thisPtr = NonisolatedUnsafeVar(thisPtr)/g; s/nonisolated\(unsafe\) let argumentsPtr = argumentsPtr/let argumentsPtr = NonisolatedUnsafeVar(argumentsPtr)/g; s/writeJSIValue\(to: resultPtr\)/writeJSIValue(to: resultPtr.value)/g; s/UnsafeMutablePointer\(mutating: thisPtr\)/UnsafeMutablePointer(mutating: thisPtr.value)/g; s/start: argumentsPtr/start: argumentsPtr.value/g; s/runtime\.pointee, thisPtr\)/runtime.pointee, thisPtr.value)/g' "$RUNTIME"
+          ! grep -F 'SWIFT_RETURNS_RETAINED RuntimeScheduler' "$HEADER"
+          test "$(grep -F -c 'let resultPtr = NonisolatedUnsafeVar(resultPtr)' "$RUNTIME")" -eq 3
+          test "$(grep -F -c 'let thisPtr = NonisolatedUnsafeVar(thisPtr)' "$RUNTIME")" -eq 2
+          test "$(grep -F -c 'let argumentsPtr = NonisolatedUnsafeVar(argumentsPtr)' "$RUNTIME")" -eq 2
+      - name: Generate the iOS project
+        # Prebuild also runs Forge's local plugin, which adds the direct
+        # ActivityKit extension and the app-local numeric range keyboard.
+        run: npx expo prebuild --no-install --platform ios
+      - name: Install CocoaPods
+        working-directory: ios
+        run: pod install
+      - name: Configure app and extension signing
+        env:
+          FORGE_SIGNING_DIRECTORY: ${{ runner.temp }}/forge-signing
+        run: node scripts/ios-signing.cjs
+      - name: Archive signed device app
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          xcodebuild \
+            -workspace ios/Forge.xcworkspace \
+            -scheme Forge \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$PWD/build/Forge-signed.xcarchive" \
+            archive \
+            DEVELOPMENT_TEAM="$(cat "$RUNNER_TEMP/forge-signing/team.txt")" \
+            OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/forge-signing.keychain-db" \
+            | tee build/xcodebuild-signed.log
+      - name: Export and validate signed IPA
+        run: |
+          set -euo pipefail
+          xcodebuild -exportArchive \
+            -archivePath "$PWD/build/Forge-signed.xcarchive" \
+            -exportPath "$PWD/artifacts/signed" \
+            -exportOptionsPlist "$RUNNER_TEMP/forge-signing/ExportOptions.plist" \
+            | tee build/export-signed.log
+          test -f artifacts/signed/Forge.ipa
+          unzip -q artifacts/signed/Forge.ipa -d "$RUNNER_TEMP/forge-signed-validation"
+          APP_PATH="$RUNNER_TEMP/forge-signed-validation/Payload/Forge.app"
+          WIDGET_PATH="$APP_PATH/PlugIns/ForgeRestTimerWidget.appex"
+          test -x "$APP_PATH/Forge"
+          test -x "$WIDGET_PATH/ForgeRestTimerWidget"
+          test -f "$APP_PATH/embedded.mobileprovision"
+          test -f "$WIDGET_PATH/embedded.mobileprovision"
+          EXPECTED_BUNDLE_ID="$(node -p "require('./app.json').expo.ios.bundleIdentifier")"
+          APP_BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist")"
+          WIDGET_BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$WIDGET_PATH/Info.plist")"
+          test "$APP_BUNDLE_ID" = "$EXPECTED_BUNDLE_ID"
+          test "$WIDGET_BUNDLE_ID" = "$EXPECTED_BUNDLE_ID.resttimer"
+          printf 'Exported app Bundle ID: %s\nExported extension Bundle ID: %s\n' "$APP_BUNDLE_ID" "$WIDGET_BUNDLE_ID"
+          codesign --verify --deep --strict "$APP_PATH"
+          codesign --verify --strict "$WIDGET_PATH"
+          mv artifacts/signed/Forge.ipa artifacts/Forge-signed-adhoc.ipa
+          {
+            echo '## Signed Apple Ad Hoc IPA'
+            echo
+            echo "Commit: \`$GITHUB_SHA\`"
+            echo "App Bundle ID: $APP_BUNDLE_ID"
+            echo "Extension Bundle ID: $WIDGET_BUNDLE_ID"
+            echo 'Signed app and rest-timer extension; installation is limited to devices in the provisioning profiles.'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload signed IPA
+        uses: actions/upload-artifact@v6
+        with:
+          name: Forge-signed-adhoc-ios-ipa
+          path: artifacts/Forge-signed-adhoc.ipa
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+      - name: Upload signed build logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: Forge-signed-ios-build-logs
+          path: |
+            build/xcodebuild-signed.log
+            build/export-signed.log
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Remove signing credentials
+        if: ${{ always() }}
+        run: |
+          security delete-keychain "$RUNNER_TEMP/forge-signing.keychain-db" || true
+          rm -rf "$RUNNER_TEMP/forge-signing" "$RUNNER_TEMP/forge-signed-validation"
+          for PROFILE in app widget; do
+            rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/forge-$PROFILE.mobileprovision"
+            rm -f "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/forge-$PROFILE.mobileprovision"
+          done

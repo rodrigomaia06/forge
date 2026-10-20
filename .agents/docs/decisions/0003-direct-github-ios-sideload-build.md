@@ -35,10 +35,38 @@ workflow. No Apple account or EAS build is needed.
 ## Consequences
 
 The workflow consumes GitHub Actions macOS time rather than EAS iOS builds.
-It remains suitable only for unsigned sideload testing: iLoader must re-sign
-the artifact with the user's Apple ID. Native errors are visible in the GitHub
+The unsigned workflow remains suitable for sideload testing: iLoader must
+re-sign that artifact with the user's Apple ID. Native errors are visible in the GitHub
 build log, and the direct WidgetKit/ActivityKit extension remains part of the
 archived app.
+
+## Signed Ad Hoc workflow (2026-10-20)
+
+At the user's request, `.github/workflows/build-ipa-signed.yml` provides a separate
+manual Apple-signed build while preserving the unsigned workflow. It uses the
+same direct macOS/Xcode toolchain and guarded Expo patches, without EAS. The iOS
+Bundle ID is `com.rodrigo.forge.training`; the local plugin derives the extension
+ID as `com.rodrigo.forge.training.resttimer`. Android's application ID and the
+portable Forge document type are independent and remain unchanged.
+
+The signed workflow decodes a distribution identity and two Ad Hoc profiles from
+GitHub repository secrets. A temporary keychain holds the imported identity.
+Before archiving, the workflow checks profile expiry, exact app and extension
+identities, matching teams, a common registered device, distribution signing and
+certificate membership in both profiles. The app profile must authorize Time
+Sensitive Notifications and production push notifications; generated Release
+entitlements use production APNs. Manual signing assigns a separate profile to
+each Release target. Export produces a signed registered-device IPA and validates
+both signatures and Bundle IDs, showing the identifiers in the build logs and
+summary without printing signing secrets or device identifiers. Cleanup runs on
+success or failure; only the signed IPA and build logs are uploaded as artifacts.
+
+The signing inputs are `BUILD_CERTIFICATE_BASE64`, `P12_PASSWORD`,
+`APP_PROVISION_PROFILE_BASE64` and `WIDGET_PROVISION_PROFILE_BASE64`. Regenerating
+profiles for an additional device requires replacing the corresponding secrets
+and running another signed build. This workflow does not submit to TestFlight or
+the App Store. Linux checks cover signing configuration and workflow structure;
+macOS archive/export and installation remain native verification steps.
 
 ## Alternatives considered
 

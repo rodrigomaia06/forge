@@ -78,9 +78,21 @@ Manual workflows in GitHub Actions generate device builds without using EAS buil
 | Platform | Workflow                                                  | Download artifact        | Distribution                                                                           |
 | -------- | --------------------------------------------------------- | ------------------------ | -------------------------------------------------------------------------------------- |
 | iOS      | [Build unsigned iOS IPA](.github/workflows/build-ipa.yml) | `Forge-unsigned-ios-ipa` | Unsigned IPA; requires signing before installation. The app targets iOS 16.4 or newer. |
+| iOS (Ad Hoc) | [Build signed Apple Ad Hoc IPA](.github/workflows/build-ipa-signed.yml) | `Forge-signed-adhoc-ios-ipa` | Signed IPA for devices included in the Apple provisioning profiles. |
 | Android  | [Build Android APK](.github/workflows/build-apk.yml)      | `Forge-android-apk`      | ARM64 APK signed with a debug key, for testing on compatible devices.                  |
 
 Choose the workflow in **Actions → Run workflow**, select the branch, and download the artifact when it finishes. These workflows upload artifacts to the workflow run, rather than publishing GitHub Releases.
+
+The signed Apple workflow uses these GitHub Actions repository secrets:
+
+- `BUILD_CERTIFICATE_BASE64`: Base64-encoded Apple Distribution `.p12`.
+- `P12_PASSWORD`: the `.p12` export password.
+- `APP_PROVISION_PROFILE_BASE64`: Base64-encoded Ad Hoc profile for `com.rodrigo.forge.training`.
+- `WIDGET_PROVISION_PROFILE_BASE64`: Base64-encoded Ad Hoc profile for `com.rodrigo.forge.training.resttimer`.
+
+The workflow decodes the files into a temporary directory, imports the signing identity into a temporary keychain, and validates the profiles' identifiers, expiry, common registered device and distribution certificate before archiving. The app profile must enable Push Notifications and Time Sensitive Notifications. The signed build configures production APNs entitlements, exports an Ad Hoc IPA, checks both signatures and Bundle IDs, and reports the IDs in its logs and run summary. Credentials are removed even if the build fails. Keep signing files outside Git; they are not workflow artifacts. See [GitHub's signing guide](https://docs.github.com/en/actions/how-tos/deploy/deploy-to-third-party-platforms/sign-xcode-applications).
+
+Run **Build signed Apple Ad Hoc IPA** for registered-device distribution, or **Build unsigned iOS IPA** for the existing sideloading route. These are separate manual workflows with separate artifacts; the signed build does not use EAS or submit to App Store Connect. Adding an iPhone requires updated profiles containing its UDID and another signed build. Changing the iOS Bundle ID creates a different app installation; this configuration leaves the Android application ID and Forge document type unchanged.
 
 For iOS sideloading, I recommend [iLoader](https://github.com/nab138/iloader). Download it from the official repository or [iloader.app](https://iloader.app/), extract the workflow artifact, then import the unsigned `.ipa` and follow iLoader's device and Apple Account prompts. iLoader handles signing for installation; the downloaded IPA itself is unsigned.
 
