@@ -316,8 +316,8 @@ test.describe('Exercise library', () => {
     await expect(screen.getByText('Bench Press', { exact: true })).toBeVisible();
     await expect(screen.getByText('Primary muscle', { exact: true })).toBeVisible();
     await expect(screen.getByText('Chest', { exact: true }).first()).toBeVisible();
-    await expect(screen.getByText('Essentials', { exact: true })).toHaveCount(0);
-    await expect(screen.getByText('Training profile', { exact: true })).toHaveCount(0);
+    await expect(screen.getByRole('heading', { name: 'Exercise essentials', exact: true })).toBeVisible();
+    await expect(screen.getByRole('heading', { name: 'Muscle profile', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Change rest time, currently Default' }).click();
     const picker = page.getByTestId('exercise-rest-selection-list');
     await expect(picker).toBeVisible();

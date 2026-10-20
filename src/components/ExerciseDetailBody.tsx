@@ -5,7 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import type { ExerciseCatalogItem } from '../data/exerciseCatalog';
-import type { ForgeTheme, WorkoutSide } from '../types';
+import type { ForgeTheme, IconName, WorkoutSide } from '../types';
 import type { WorkoutTypePreference } from '../types/settings';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
@@ -19,12 +19,7 @@ export function formatTrackingType(type: ExerciseCatalogItem['trackingType']): s
   return trackingModeLabel((type ?? 'weight-reps'));
 }
 
-/**
- * The shared exercise-detail body: a rest-time card, an ESSENTIALS fact grid,
- * and a TRAINING PROFILE card. Used both by the Exercise Library detail and the
- * live-workout "Exercise info" so the two read identically. Pass `onPressRest`
- * to make the rest card interactive; omit it for a static readout.
- */
+/** Exercise facts and settings shared by catalogue and workout details. */
 export function ExerciseDetailBody({
   detail,
   workoutTypes,
@@ -53,31 +48,29 @@ export function ExerciseDetailBody({
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   if (presentation === 'screen') {
-    const facts = [
-      ['Category', detail.category],
-      ['Equipment', detail.equipment],
-      ['Tracking', formatTrackingType(detail.trackingType)],
-      ['Movement family', detail.group],
-      ['Primary muscle', detail.primaryMuscle],
-      ...(detail.secondaryMuscles.length ? [['Secondary muscles', detail.secondaryMuscles.join(', ')]] : []),
-      ...(detail.workoutTypeIds.length ? [['Workout types', detail.workoutTypeIds.map(id => workoutTypes.find(type => type.id === id)?.name ?? id).join(', ')]] : []),
-    ].filter(([, value]) => Boolean(value));
+    const essentials: DetailFact[] = [
+      { label: 'Category', value: detail.category, icon: 'tag' },
+      { label: 'Equipment', value: detail.equipment, icon: 'weight' },
+      { label: 'Tracking', value: formatTrackingType(detail.trackingType), icon: 'task-list' },
+      { label: 'Movement family', value: detail.group, icon: 'layers' },
+    ];
+    const muscles: DetailFact[] = [
+      { label: 'Primary muscle', value: detail.primaryMuscle, icon: 'goal' },
+      { label: 'Secondary muscles', value: detail.secondaryMuscles.join(', '), icon: 'fitness-outline' },
+      { label: 'Workout types', value: detail.workoutTypeIds.map(id => workoutTypes.find(type => type.id === id)?.name ?? id).join(', '), icon: 'clipboard' },
+    ];
     return (
-      <View style={[styles.detailContent, bottomPadding !== undefined && { paddingBottom: bottomPadding }]}>
-        <View style={styles.openFacts}>
-          {facts.map(([label, value], index) => (
-            <View key={label} style={[styles.openFact, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }]}>
-              <Text style={styles.openFactLabel}>{label}</Text>
-              <Text style={styles.openFactValue}>{value}</Text>
-            </View>
-          ))}
+      <View style={[styles.detailContent, styles.screenContent, bottomPadding !== undefined && { paddingBottom: bottomPadding }]}>
+        <DetailFactSection title="Exercise essentials" facts={essentials} />
+        <DetailFactSection title="Muscle profile" facts={muscles} />
+        <View style={styles.screenSection}>
+          <Text accessibilityRole="header" style={styles.screenSectionLabel}>Exercise settings</Text>
+          <ForgeCard testID="exercise-settings-group">
+            <RestRow title="Rest time" value={restLabel} onPress={onPressRest} presentation="screen" />
+            {secondaryRest ? <><View style={styles.screenDivider} /><RestRow title={secondaryRest.title} value={secondaryRest.value} onPress={secondaryRest.onPress} presentation="screen" /></> : null}
+            {settingsFooter ? <><View style={styles.screenDivider} />{settingsFooter}</> : null}
+          </ForgeCard>
         </View>
-        <Text style={styles.detailSectionLabel}>Exercise settings</Text>
-        <ForgeCard style={styles.restTimeCard}>
-          <RestRow title="Rest time" value={restLabel} onPress={onPressRest} />
-          {secondaryRest ? <><View style={styles.restRowDivider} /><RestRow title={secondaryRest.title} value={secondaryRest.value} onPress={secondaryRest.onPress} /></> : null}
-          {settingsFooter ? <><View style={styles.restRowDivider} />{settingsFooter}</> : null}
-        </ForgeCard>
         {footer}
       </View>
     );
@@ -138,7 +131,35 @@ export function ExerciseDetailBody({
   );
 }
 
-function RestRow({ title, value, onPress }: { title: string; value: string; onPress?: () => void }) {
+type DetailFact = { label: string; value: string; icon: IconName };
+
+function DetailFactSection({ title, facts }: { title: string; facts: DetailFact[] }) {
+  const theme = useForgeTheme();
+  const styles = useThemedStyles(createStyles);
+  const available = facts.filter(({ value }) => value.trim().length > 0);
+  if (!available.length) return null;
+  return (
+    <View style={styles.screenSection}>
+      <Text accessibilityRole="header" style={styles.screenSectionLabel}>{title}</Text>
+      <ForgeCard>
+        {available.map(({ label, value, icon }, index) => (
+          <React.Fragment key={label}>
+            {index > 0 ? <View style={styles.screenDivider} /> : null}
+            <View testID={`exercise-fact-${label.toLowerCase().replaceAll(' ', '-')}`} style={styles.screenFact}>
+              <View style={styles.screenFactCopy}>
+                <Icon name={icon} size={scaleUI(20)} color={theme.textSecondary} />
+                <Text style={styles.screenFactLabel}>{label}</Text>
+              </View>
+              <Text style={styles.screenFactValue}>{value}</Text>
+            </View>
+          </React.Fragment>
+        ))}
+      </ForgeCard>
+    </View>
+  );
+}
+
+function RestRow({ title, value, onPress, presentation = 'sheet' }: { title: string; value: string; onPress?: () => void; presentation?: 'sheet' | 'screen' }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   return (
@@ -152,13 +173,13 @@ function RestRow({ title, value, onPress }: { title: string; value: string; onPr
         lightHaptic();
         onPress();
       }}
-      style={({ pressed }) => [styles.restTimeCardPressable, pressed && onPress && pressedFeedback]}
+      style={({ pressed }) => [styles.restTimeCardPressable, presentation === 'screen' && styles.screenSetting, pressed && onPress && pressedFeedback]}
     >
-      <View style={styles.restTimeCardIcon}>
+      <View style={[styles.restTimeCardIcon, presentation === 'screen' && styles.screenSettingIcon]}>
         <Icon name="stopwatch-outline" size={scaleUI(20)} color={theme.textSecondary} />
       </View>
       <View style={styles.restTimeCardCopy}>
-        <Text style={styles.restTimeCardTitle}>{title}</Text>
+        <Text style={[styles.restTimeCardTitle, presentation === 'screen' && styles.screenSettingTitle]}>{title}</Text>
       </View>
       <View style={styles.detailAction}>
         <Text style={styles.detailSelectableValue}>{value}</Text>
@@ -173,7 +194,7 @@ function Fact({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.detailFact}>
       <Text style={styles.detailFactLabel}>{label}</Text>
-      <Text numberOfLines={2} style={styles.detailFactValue}>
+      <Text style={styles.detailFactValue}>
         {value}
       </Text>
     </View>
@@ -199,11 +220,11 @@ export function UnilateralDetailSection({
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const row = (
-    <View style={styles.uniRow}>
-      <View style={styles.uniRowIcon}>
+    <View style={[styles.uniRow, presentation === 'screen' && styles.screenSetting]}>
+      <View style={[styles.uniRowIcon, presentation === 'screen' && styles.screenSettingIcon]}>
         <Icon name="square-rounded-letter-s" size={scaleUI(20)} color={theme.textSecondary} />
       </View>
-      <Text style={styles.uniRowTitle}>Leading side</Text>
+      <Text style={[styles.uniRowTitle, presentation === 'screen' && styles.screenSettingTitle]}>Leading side</Text>
       {onToggleLeadSide ? (
         <LeadingSideToggle value={leadSide} onChange={(side) => { if (side !== leadSide) onToggleLeadSide(); }} />
       ) : <Text style={styles.uniRowValue}>{leadSide === 'right' ? 'Right' : 'Left'}</Text>}
@@ -252,10 +273,17 @@ function LeadingSideToggle({ value, onChange }: { value: WorkoutSide; onChange: 
 
 const createStyles = (theme: ForgeTheme) =>
   StyleSheet.create({
-    openFacts: { marginBottom: scaleUI(16) },
-    openFact: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: scaleUI(20), paddingVertical: scaleUI(15) },
-    openFactLabel: { flex: 1, minWidth: 0, ...typeScale.body, color: theme.textSecondary },
-    openFactValue: { flex: 1.3, minWidth: 0, textAlign: 'right', ...typeScale.body, color: theme.textPrimary },
+    screenContent: { paddingHorizontal: scaleUI(20), paddingTop: scaleUI(16), gap: scaleUI(24) },
+    screenSection: { gap: scaleUI(8) },
+    screenSectionLabel: { marginLeft: scaleUI(4), ...typeScale.sectionTitle, color: theme.textPrimary },
+    screenFact: { flexDirection: 'row', alignItems: 'center', gap: scaleUI(16), minHeight: Math.max(44, scaleUI(64)), padding: scaleUI(16) },
+    screenFactCopy: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: scaleUI(12) },
+    screenFactLabel: { flex: 1, minWidth: 0, ...typeScale.body, color: theme.textSecondary },
+    screenFactValue: { flex: 1.15, minWidth: 0, textAlign: 'right', ...typeScale.body, color: theme.textPrimary },
+    screenDivider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.divider, marginHorizontal: scaleUI(16) },
+    screenSetting: { padding: scaleUI(16), gap: scaleUI(12), minHeight: Math.max(44, scaleUI(64)) },
+    screenSettingIcon: { width: scaleUI(20), height: scaleUI(24), backgroundColor: 'transparent', borderRadius: 0 },
+    screenSettingTitle: { ...typeScale.body, color: theme.textPrimary },
     detailContent: { paddingHorizontal: 20, paddingBottom: 30, paddingTop: 2, gap: 8 },
     detailSectionLabel: { marginTop: 8, marginLeft: 6, color: theme.textPrimary, ...typeScale.sectionTitle },
     restTimeCard: { overflow: 'hidden', borderRadius: scaleUI(18) },
