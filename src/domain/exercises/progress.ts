@@ -85,12 +85,8 @@ export function metricLabel(metric: ProgressMetric, mode: TrackingType): string 
     pace: 'Average pace',
   }[metric];
 }
-function sessionValue(
-  session: ExerciseSession,
-  mode: TrackingType,
-  metric: ProgressMetric,
-): number | undefined {
-  const values = session.exercises.flatMap((exercise) =>
+export function completedProgressSets(session: ExerciseSession, mode: TrackingType) {
+  return session.exercises.flatMap((exercise) =>
     exercise.offSession
       ? []
       : exercise.sets.flatMap((set) => {
@@ -123,6 +119,13 @@ function sessionValue(
           return [fields];
         }),
   );
+}
+function sessionValue(
+  session: ExerciseSession,
+  mode: TrackingType,
+  metric: ProgressMetric,
+): number | undefined {
+  const values = completedProgressSets(session, mode);
   if (!values.length) return undefined;
   const sum = (kind: SetMeasurementKind) =>
     values.reduce((total, set) => total + (set[kind] ?? 0), 0);
