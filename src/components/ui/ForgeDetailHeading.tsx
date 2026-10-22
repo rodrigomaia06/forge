@@ -13,7 +13,7 @@ export function useForgeDetailHeading(name: string, testID?: string, style?: Sty
   const insets = useSafeAreaInsets();
   const [measured, setMeasured] = useState({ name: '', height: 0 });
   const tall = measured.name === name && measured.height > (height - insets.top - insets.bottom) * 0.4;
-  const titleStyle = [typeScale.headerTitle, { color: theme.textPrimary }, style];
+  const titleStyle = [typeScale.headerTitle, { color: theme.textPrimary, textAlign: 'center' as const }, style];
   const headerTitle = <View style={styles.headerTitle}>
     <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" aria-hidden style={styles.measurement}>
       <ForgeEntityName style={titleStyle} onLayout={event => {

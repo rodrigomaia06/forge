@@ -1,4 +1,10 @@
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
+
+async function expectCentered(page: Page, title: Locator) {
+  const box = (await title.boundingBox())!;
+  expect(Math.abs(box.x + box.width / 2 - page.viewportSize()!.width / 2)).toBeLessThan(1);
+  await expect(title).toHaveCSS('text-align', 'center');
+}
 
 async function inspectControls(page: Page, info: TestInfo, state: string, labels: string[]) {
   let top = Infinity;
@@ -31,8 +37,8 @@ async function inspectControls(page: Page, info: TestInfo, state: string, labels
       }
       return 0;
     });
-    // Catch near-identical painted tones as well as entirely missing fills.
-    expect(separation, `${state}: ${name} surface separation`).toBeGreaterThanOrEqual(12);
+    // The Light surface (#F1F1F1) differs from its white page by 14.
+    expect(separation, `${state}: ${name} surface separation`).toBeGreaterThanOrEqual(14);
     const box = (await button.boundingBox())!;
     top = Math.min(top, box.y);
     bottom = Math.max(bottom, box.y + box.height);
@@ -56,15 +62,19 @@ for (const appearance of ['light', 'dark']) {
       localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance }));
     }, appearance);
     await page.goto('/');
+    await expect(page.getByTestId('dashboard-header-title')).toHaveCSS('text-align', 'start');
     await inspectControls(page, info, 'dashboard', ['Edit dashboard', 'Start workout']);
     await page.getByRole('button', { name: 'Edit dashboard', exact: true }).click();
     await inspectControls(page, info, 'dashboard-editing', ['Done editing dashboard']);
     await page.getByRole('button', { name: 'Done editing dashboard', exact: true }).click();
     await page.getByRole('tab', { name: 'History', exact: true }).click();
+    await expect(page.getByTestId('history-title')).toHaveCSS('text-align', 'start');
     await inspectControls(page, info, 'history', ['Add past workout', 'Filter']);
     await page.getByRole('tab', { name: 'Plans', exact: true }).click();
+    await expect(page.getByText('Plans', { exact: true }).first()).toHaveCSS('text-align', 'start');
     await inspectControls(page, info, 'plans', ['Create workout, routine, or plan']);
     await page.getByRole('tab', { name: 'Settings', exact: true }).click();
+    await expect(page.getByTestId('settings-title')).toHaveCSS('text-align', 'start');
     await page.getByRole('button', { name: 'General', exact: true }).click();
     await inspectControls(page, info, 'settings', ['Back to Settings']);
     await page.getByRole('button', { name: 'Default rest time', exact: true }).click();
@@ -94,6 +104,7 @@ for (const appearance of ['light', 'dark']) {
       .getByTestId('dashboard-workout-source-chooser')
       .getByRole('button', { name: 'Blank workout', exact: true })
       .click();
+    await expectCentered(page, page.getByTestId('live-workout-header-title'));
     await inspectControls(page, info, 'live-workout', ['Cancel workout', 'Finish workout']);
     await page.getByRole('button', { name: 'Add exercise', exact: true }).click();
     await inspectControls(page, info, 'add-exercises', ['Close add exercises']);

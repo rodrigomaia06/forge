@@ -375,29 +375,33 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     >
       <View style={styles.header}>
         <View testID="live-workout-header" style={styles.headerTop}>
-          <HeaderActionGroup testID="live-workout-leading-actions">
-            <HeaderAction
-              accessibilityLabel="Cancel workout"
-              icon="close"
-              label="Cancel"
-              iconOnly
-              onPress={handleCancel}
-              disabled={Boolean(finishSnapshot)}
-              variant="ghost"
-              style={styles.joinedHeaderAction}
-            />
-            <HeaderAction
-              accessibilityLabel="Edit live workout"
-              icon="note"
-              iconOnly
-              onPress={openWorkoutEditor}
-              disabled={Boolean(finishSnapshot)}
-              variant="ghost"
-              style={styles.joinedHeaderAction}
-            />
-          </HeaderActionGroup>
+          <View style={{ width: 90 }}>
+            <HeaderActionGroup testID="live-workout-leading-actions">
+              <HeaderAction
+                accessibilityLabel="Cancel workout"
+                icon="close"
+                label="Cancel"
+                iconOnly
+                onPress={handleCancel}
+                disabled={Boolean(finishSnapshot)}
+                variant="ghost"
+                style={styles.joinedHeaderAction}
+              />
+              <HeaderAction
+                accessibilityLabel="Edit live workout"
+                icon="note"
+                iconOnly
+                onPress={openWorkoutEditor}
+                disabled={Boolean(finishSnapshot)}
+                variant="ghost"
+                style={styles.joinedHeaderAction}
+              />
+            </HeaderActionGroup>
+          </View>
           {recordHeaderTitle}
-          <ForgeWorkoutFinishAction onPress={() => void handleFinish()} loading={finishingDirect} />
+          <View style={{ width: 90, alignItems: 'flex-end' }}>
+            <ForgeWorkoutFinishAction onPress={() => void handleFinish()} loading={finishingDirect} />
+          </View>
         </View>
         {finishError ? (
           <Text accessibilityRole="alert" style={{ ...styles.muted, color: theme.textDestructive }}>

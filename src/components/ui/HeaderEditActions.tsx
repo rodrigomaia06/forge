@@ -68,7 +68,7 @@ export function HeaderEditActions({
             style={({ pressed }) => [
               styles.donePill,
               {
-                backgroundColor: isDark ? theme.surfaceMuted : theme.surfaceElevated,
+                backgroundColor: isDark ? theme.surfaceMuted : theme.surface,
                 borderColor: theme.border,
                 borderWidth: 0,
               },

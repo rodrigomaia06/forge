@@ -122,7 +122,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     screen: { flex: 1 },
     scroll: { flex: 1 },
     header: {
-      height: 70,
+      minHeight: 70,
       justifyContent: 'center',
       paddingHorizontal: spacing.screen,
       backgroundColor: theme.background,

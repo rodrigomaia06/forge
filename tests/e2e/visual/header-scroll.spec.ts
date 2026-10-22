@@ -74,7 +74,7 @@ for (const appearance of ['light', 'dark']) {
       const surface = page.getByRole('button', { name, exact: true }).locator('..');
       await expect(surface).toHaveCSS(
         'background-color',
-        appearance === 'light' ? 'rgb(244, 244, 244)' : 'rgb(43, 47, 52)',
+        appearance === 'light' ? 'rgb(241, 241, 241)' : 'rgb(43, 47, 52)',
       );
       await expect(surface).toHaveCSS('border-radius', '22px');
       await expect(surface).toHaveCSS('width', '44px');

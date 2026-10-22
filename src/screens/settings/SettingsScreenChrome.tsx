@@ -63,6 +63,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     minWidth: 0,
       alignItems: 'center',
     },
-    title: { ...typeScale.headerTitle, color: theme.ink },
+    title: { ...typeScale.headerTitle, color: theme.ink, textAlign: 'center' },
     spacer: { minWidth: 44, minHeight: 44, alignItems: 'flex-end', justifyContent: 'center' },
   });

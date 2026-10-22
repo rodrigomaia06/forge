@@ -763,7 +763,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   header: {
     position: 'relative',
     zIndex: 2,
-    height: 70,
+    minHeight: 70,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

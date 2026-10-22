@@ -461,25 +461,27 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
             // options join into the app's canonical divided pill instead of
             // reading as two loose circles. Save stays a standalone confirm on
             // the opposite edge — the live-workout header's pattern.
-            <HeaderActionGroup testID="routine-editor-leading-actions">
-              <HeaderAction
-                accessibilityLabel="Cancel editing routine"
-                icon="close"
-                iconOnly
-                variant="ghost"
-                style={joinedHeaderAction}
-                onPress={discard}
-              />
-              <HeaderAction
-                accessibilityLabel="Routine options"
-                icon="ellipsis-horizontal"
-                iconSize={20}
-                iconOnly
-                variant="ghost"
-                style={joinedHeaderAction}
-                onPress={() => setOptionsOpen(true)}
-              />
-            </HeaderActionGroup>
+            <View style={{ width: 90 }}>
+              <HeaderActionGroup testID="routine-editor-leading-actions">
+                <HeaderAction
+                  accessibilityLabel="Cancel editing routine"
+                  icon="close"
+                  iconOnly
+                  variant="ghost"
+                  style={joinedHeaderAction}
+                  onPress={discard}
+                />
+                <HeaderAction
+                  accessibilityLabel="Routine options"
+                  icon="ellipsis-horizontal"
+                  iconSize={20}
+                  iconOnly
+                  variant="ghost"
+                  style={joinedHeaderAction}
+                  onPress={() => setOptionsOpen(true)}
+                />
+              </HeaderActionGroup>
+            </View>
           ) : (
             <HeaderAction
               accessibilityLabel="Cancel editing routine"
@@ -489,7 +491,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
             />
           )}
           {recordHeaderTitle}
-          <View style={styles.headerActions}>
+          <View style={[styles.headerActions, { width: !creating && !viewing ? 90 : 44, justifyContent: 'flex-end' }]}>
             {viewing ? (
               <HeaderAction
                 accessibilityLabel="Routine options"

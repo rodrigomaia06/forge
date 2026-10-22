@@ -85,7 +85,7 @@ export function ForgeSegmentedSwitch<T extends string | number>({
       <View
         accessibilityRole="radiogroup"
         accessibilityLabel={accessibilityLabel}
-        style={[styles.track, { backgroundColor: theme.colorScheme === 'light' ? theme.border : theme.surfaceMuted, borderColor: theme.border }]}
+        style={[styles.track, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}
       >
         <View
           style={styles.labelSegments}

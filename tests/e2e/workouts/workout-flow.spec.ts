@@ -1135,7 +1135,7 @@ test.describe('Active workout flow', () => {
       }, appearance);
       await startEmptyWorkoutWithExercise(page);
       await expect(page.getByTestId('workout-timer-strip')).toHaveCSS(
-        'background-color', appearance === 'light' ? 'rgb(244, 244, 244)' : 'rgb(31, 34, 37)',
+        'background-color', appearance === 'light' ? 'rgb(241, 241, 241)' : 'rgb(31, 34, 37)',
       );
       await page.screenshot({ path: testInfo.outputPath(`workout-timer-strip-${appearance}.png`) });
       await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();
