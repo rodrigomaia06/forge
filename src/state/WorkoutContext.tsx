@@ -1,3 +1,4 @@
+import { registerPersistenceFlush } from '../data/persistenceLifecycle';
 import { persistWorkoutFinish } from '../data/workoutFinishRepository';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AppState } from 'react-native';
@@ -54,6 +55,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
   // requests only replace the pending snapshot, so rapid input persists just the
   // newest state instead of queueing every intermediate full-workout write.
   const pendingActiveRef = React.useRef<{ value: Workout | null } | null>(null);
+  const activeWriteErrorRef = React.useRef<unknown>(null);
   const activeWriteInFlightRef = React.useRef<Promise<void> | null>(null);
   const drainActiveWrites = useCallback((): Promise<void> => {
     if (activeWriteInFlightRef.current) return activeWriteInFlightRef.current;
@@ -61,7 +63,8 @@ export function WorkoutProvider({ children }: ChildrenProps) {
       while (pendingActiveRef.current) {
         const next = pendingActiveRef.current;
         pendingActiveRef.current = null;
-        await saveActiveWorkout(next.value).catch(() => undefined);
+        activeWriteErrorRef.current = null;
+        await saveActiveWorkout(next.value).catch(error => { activeWriteErrorRef.current = error; });
       }
     };
     const promise = run().finally(() => {
@@ -86,6 +89,16 @@ export function WorkoutProvider({ children }: ChildrenProps) {
     },
     [queueActiveSave],
   );
+  useEffect(() => registerPersistenceFlush(async () => {
+    if (!activeHydratedRef.current) return;
+    if (activeSaveTimerRef.current) {
+      clearTimeout(activeSaveTimerRef.current);
+      activeSaveTimerRef.current = null;
+    }
+    await queueActiveSave(activeWorkoutRef.current);
+    if (activeWriteErrorRef.current) throw activeWriteErrorRef.current;
+  }), [queueActiveSave]);
+
   const reload = useCallback(async (): Promise<void> => {
     if (activeSaveTimerRef.current) {
       clearTimeout(activeSaveTimerRef.current);

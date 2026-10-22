@@ -1,3 +1,4 @@
+import { notifyPersistenceReset, subscribePersistenceReset } from '../../data/persistenceLifecycle';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React from 'react';
@@ -87,7 +88,7 @@ function BackupExport() {
   const { runAfterClose: runAfterTransferClose, onClosed: onTransferSheetClosed } = useAfterSheetClose();
   const [history, setHistory] = React.useState<BackupHistory>({});
   const reloadHistory = React.useCallback(() => { void loadBackupHistory().then(setHistory); }, []);
-  React.useEffect(() => { reloadHistory(); }, [reloadHistory]);
+  React.useEffect(() => { reloadHistory(); return subscribePersistenceReset(reloadHistory); }, [reloadHistory]);
   const theme = useForgeTheme();
   const { reload: reloadSettings } = useSettings();
   const { reload: reloadPlans } = usePlans();
@@ -95,9 +96,8 @@ function BackupExport() {
   const { reload: reloadExercises } = useExerciseCatalog();
   const { stop: stopRestTimer } = useRestTimer();
   const refresh = React.useCallback(async () => {
-    stopRestTimer();
     await Promise.all([reloadSettings(), reloadPlans(), reloadWorkouts(), reloadExercises()]);
-  }, [reloadExercises, reloadPlans, reloadSettings, reloadWorkouts, stopRestTimer]);
+  }, [reloadExercises, reloadPlans, reloadSettings, reloadWorkouts]);
   // A synchronous re-entry lock. Driving the guard off a ref (not the `busy`
   // state) means a completed operation always frees the button on the next tap,
   // immune to a batched state update or a stale `run` closure. `busy` state is
@@ -219,6 +219,8 @@ function BackupExport() {
     void run(async () => {
       await restoreSqliteBackup(inspection);
       await refresh();
+      notifyPersistenceReset();
+      reloadHistory();
       await recordDiagnostic('backup-restored');
       setNotice({
         title: 'Backup restored',

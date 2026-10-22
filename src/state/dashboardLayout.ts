@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { loadAppState, saveAppState } from '../data/appStateRepository';
+import { subscribePersistenceReset } from '../data/persistenceLifecycle';
 
 import type { IconName } from '../types';
 
@@ -208,7 +209,7 @@ export function useDashboardLayout(): {
 
   useEffect(() => {
     let mounted = true;
-    AsyncStorage.getItem(STORAGE_KEY)
+    const load = () => loadAppState(STORAGE_KEY)
       .then((value) => {
         if (!mounted) return;
         if (value) {
@@ -225,14 +226,16 @@ export function useDashboardLayout(): {
           setReady(true);
         }
       });
+    void load();
+    const unsubscribe = subscribePersistenceReset(() => { setLayoutState(defaultDashboardLayout); void load(); });
     return () => {
-      mounted = false;
+      mounted = false; unsubscribe();
     };
   }, []);
 
   const setLayout = useCallback((next: DashboardTileConfig[]) => {
     setLayoutState(next);
-    void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    void saveAppState(STORAGE_KEY, JSON.stringify(next));
   }, []);
 
   return { layout, ready, setLayout };

@@ -1,7 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { loadAppState, saveAppState } from '../data/appStateRepository';
+import { subscribePersistenceReset } from '../data/persistenceLifecycle';
 
 import { successHaptic } from '../components/ui/haptics';
 import { useSettings } from './SettingsContext';
@@ -179,18 +180,22 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
     }).catch(() => undefined);
   }, []);
 
+  const [storageRevision, setStorageRevision] = useState(0);
+  useEffect(() => subscribePersistenceReset(() => { setHydrated(false); setStorageRevision(value => value + 1); }), []);
+
   useEffect(() => {
     if (!workoutsReady) return;
     const generation = ++hydrationGeneration.current;
+    didNotifyCompletion.current = false;
     if (!activeWorkoutId) {
       didNotifyCompletion.current = false;
       setEndAt(null); setDuration(0); setHydrated(true);
-      void AsyncStorage.removeItem(restTimerStorageKey);
+      void saveAppState(restTimerStorageKey, null);
       return;
     }
     setHydrated(false);
     let mounted = true;
-    void AsyncStorage.getItem(restTimerStorageKey).then((raw) => {
+    void loadAppState(restTimerStorageKey).then((raw) => {
       if (!mounted || generation !== hydrationGeneration.current) return;
       try {
         const saved = JSON.parse(raw ?? 'null') as { workoutId?: unknown; endAt?: unknown; duration?: unknown } | null;
@@ -204,12 +209,12 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
       } finally { if (mounted) setHydrated(true); }
     });
     return () => { mounted = false; };
-  }, [activeWorkoutId, workoutsReady]);
+  }, [activeWorkoutId, workoutsReady, storageRevision]);
 
   useEffect(() => {
     if (!hydrated) return;
-    if (!endAt) { void AsyncStorage.removeItem(restTimerStorageKey); return; }
-    void AsyncStorage.setItem(restTimerStorageKey, JSON.stringify({ workoutId: activeWorkoutId, endAt, duration }));
+    if (!endAt) { void saveAppState(restTimerStorageKey, null); return; }
+    void saveAppState(restTimerStorageKey, JSON.stringify({ workoutId: activeWorkoutId, endAt, duration }));
   }, [activeWorkoutId, duration, endAt, hydrated]);
 
   useEffect(() => {

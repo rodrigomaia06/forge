@@ -18,7 +18,7 @@ A migration requires an explicit task or an approved architectural decision.
 
 ## Persistence boundary
 
-UI components and screens should not directly own durable storage mechanics. Keep persistence access behind data/repository modules so storage technology can change without rewriting presentation code.
+UI components and screens should not directly own durable storage mechanics. Keep persistence access behind data/repository modules so storage technology can change without rewriting presentation code. All persistent native app state belongs in the shared SQLite database, including preferences and auxiliary state. Full backups drain pending provider writes before snapshotting and restore all persistent state; selective transfers remain independent. Browser adapters preserve behaviour without introducing browser SQLite.
 
 Bundled exercise catalogues are immutable versioned release snapshots. SQLite seeds each release as Forge-owned baseline data, upgrades only those baseline rows, and never overwrites custom exercises, preferences, routines, or workout history. An explicit, versioned canonical-identity migration may update a recognised catalogue exercise's identifier, display name and immutable snapshot across routines and workout history, but preserves user sets, notes, completion and ordering; custom or unrecognised records are never guessed or renamed. Forge serializes all SQLite transactions through the repository boundary because providers share one native database connection.
 

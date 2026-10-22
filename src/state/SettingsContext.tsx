@@ -6,6 +6,8 @@ import {
 } from '../data/settingsRepository';
 import type { ChildrenProps, SettingsContextValue, SettingsPreferences } from '../types';
 
+import { registerPersistenceFlush } from '../data/persistenceLifecycle';
+
 const SettingsContext = createContext<SettingsContextValue | null>(null);
 
 export function SettingsProvider({ children }: ChildrenProps) {
@@ -33,6 +35,8 @@ export function SettingsProvider({ children }: ChildrenProps) {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => registerPersistenceFlush(() => saveQueue.current), []);
 
   const updatePreferences = useCallback((changes: Partial<SettingsPreferences>): Promise<boolean> => {
     const save = saveQueue.current.then(async () => {

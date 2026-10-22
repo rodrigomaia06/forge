@@ -48,7 +48,7 @@ I use TypeScript, React Native and Expo, with native integrations for rest timer
 
 Forge stores training data in a local SQLite database on your device. Forge has no account system, cloud sync, advertising SDK or analytics SDK. Imports and exports are initiated by you.
 
-Use **Settings → Backup & Export** to create a portable backup. Full SQLite backup and restore are available in native builds. The same area contains **Import from another app** and **Delete all app data**.
+Use **Settings → Backup & Export** to create a portable backup. Full SQLite backup and restore are available in native builds and include preferences, dashboard layout and notes, timer recovery, diagnostics, and backup history. The same area contains **Import from another app** and **Delete all app data**.
 
 > [!IMPORTANT]
 > Keep backups outside the app. Uninstalling Forge or deleting app data can remove your local journal.

@@ -1,3 +1,5 @@
+import { flushPersistence, notifyPersistenceReset } from './persistenceLifecycle';
+import { prepareRestoredAppState } from './appStateMigration';
 import { mergeProgressOverrides } from '../domain/exercises/progress';
 import * as DocumentPicker from 'expo-document-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -544,6 +546,7 @@ export async function importJson(): Promise<DataTransferMergeResult | null> {
 }
 
 export async function createSqliteBackup(): Promise<void> {
+  await flushPersistence();
   await withDatabaseMaintenance(async (db) => {
     const bytes = await db.serializeAsync();
     await shareFile(cacheFile(filename('sqlite'), bytes), 'application/vnd.sqlite3');
@@ -632,10 +635,12 @@ export async function pickSqliteBackup(): Promise<BackupInspection | null> {
 
 /** Replaces the database only after validating an in-memory copy and retaining an in-app safety copy. */
 export async function restoreSqliteBackup(inspection: BackupInspection): Promise<void> {
+  await flushPersistence();
   await withDatabaseMaintenance(async (live) => {
     await inspectBytes(inspection.bytes);
     cacheFile(`forge-safety-before-restore-${stamp()}.sqlite`, await live.serializeAsync());
     await withTemporaryBackupDatabase(inspection.bytes, async (candidate) => {
+      await prepareRestoredAppState(candidate);
       await SQLite.backupDatabaseAsync({ sourceDatabase: candidate, destDatabase: live });
     });
   });
@@ -646,6 +651,7 @@ export async function restoreSqliteBackup(inspection: BackupInspection): Promise
  * exercise catalogue needed to start a fresh local installation.
  */
 export async function eraseAllForgeData(): Promise<void> {
+  await flushPersistence();
   await withDatabaseMaintenance(async (db) => {
     await db.withTransactionAsync(async () => {
       await db.execAsync(`
@@ -657,6 +663,8 @@ export async function eraseAllForgeData(): Promise<void> {
         DELETE FROM custom_exercises;
         DELETE FROM workout_types;
         DELETE FROM preferences;
+        DELETE FROM app_state;
+        DELETE FROM forge_meta WHERE key = 'csv-exercise-mappings-v1';
       `);
     });
   });
@@ -673,6 +681,7 @@ export async function eraseAllForgeData(): Promise<void> {
     '@forge/dashboard-layout-v1',
     '@forge/backup-history-v1',
   ]);
+  notifyPersistenceReset();
 }
 
 export async function databaseStatus(): Promise<{ tables: number; database: string }> {

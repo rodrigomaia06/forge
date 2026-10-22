@@ -1,3 +1,5 @@
+import { queueWebWrite } from './webWriteQueue';
+import { flushPersistence, notifyPersistenceReset } from './persistenceLifecycle';
 import { mergeProgressOverrides } from '../domain/exercises/progress';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -419,7 +421,8 @@ export async function restoreSqliteBackup(): Promise<void> {
 }
 
 export async function eraseAllForgeData(): Promise<void> {
-  await AsyncStorage.multiRemove([
+  await flushPersistence();
+  await queueWebWrite(() => AsyncStorage.multiRemove([
     '@forge/diagnostics-v1',
     '@forge/rest-timer-v1',
     '@forge/active-workout',
@@ -433,7 +436,8 @@ export async function eraseAllForgeData(): Promise<void> {
     // backup-history footer, so "Delete all data" leaves no user data behind.
     '@forge/dashboard-layout-v1',
     '@forge/backup-history-v1',
-  ]);
+  ]));
+  notifyPersistenceReset();
 }
 
 export async function databaseStatus(): Promise<{ tables: number; database: string }> {

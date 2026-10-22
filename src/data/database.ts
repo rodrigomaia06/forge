@@ -6,6 +6,8 @@ import type { PlansState, SettingsPreferences, Workout, WorkoutState } from '../
 import { uniqueById } from './uniqueById';
 import { canonicalizeExerciseRecord } from './exerciseCanonicalization';
 
+import { migrateAppState } from './appStateMigration';
+
 const DATABASE = 'forge.db';
 export const BUNDLED_CATALOG_VERSION = bundledCatalogVersion;
 const LEGACY_KEYS = ['@forge/active-workout', '@forge/completed-workouts', '@forge/plans-v1', '@forge/settings-preferences', '@forge/custom-exercises'];
@@ -51,6 +53,7 @@ export function openForgeDatabase(): Promise<ForgeDatabase> {
     `);
     await migrateBundledCatalog(db);
     await importLegacyOnce(db);
+    await migrateAppState(db, AsyncStorage);
     await migrateCanonicalExerciseRecords(db);
     return db;
   });
