@@ -6,6 +6,9 @@ on:
 permissions:
   contents: read
 
+env:
+  EXPO_PUBLIC_BUILD_COMMIT: ${{ github.sha }}
+
 concurrency:
   group: ios-ipa-signed-${{ github.repository }}
   cancel-in-progress: false

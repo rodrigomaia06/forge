@@ -1,3 +1,4 @@
+import appConfig from '../../../app.json';
 import { notifyPersistenceReset, subscribePersistenceReset } from '../../data/persistenceLifecycle';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -666,6 +667,8 @@ function diagnosticLabel(entry: DiagnosticEntry): string {
 function logEntryLine(entry: DiagnosticEntry): string {
   return `${new Date(entry.at).toISOString()} ${entry.kind}${entry.detail ? ` (${entry.detail})` : ''}`;
 }
+const buildCommit = process.env.EXPO_PUBLIC_BUILD_COMMIT?.slice(0, 7);
+
 function About() {
   const theme = useForgeTheme();
   const { preferences, updatePreferences } = useSettings();
@@ -705,8 +708,10 @@ function About() {
           accessibilityLabel="Forge icon"
         />
         </Pressable>
-        <View>
-          <Text style={[styles.brandTitle, { color: theme.textPrimary }]}>Forge 0.1.0</Text>
+        <View style={styles.brandCopy}>
+          <Text testID="about-build-version" style={[styles.brandTitle, { color: theme.textPrimary }]}>
+            Forge {appConfig.expo.version}{buildCommit ? ` (${buildCommit})` : ''}
+          </Text>
           <Text style={[styles.brandSubtitle, { color: theme.textSecondary }]}>
             Training, kept simple.
           </Text>
@@ -830,6 +835,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
   },
+  brandCopy: { flex: 1, minWidth: 0 },
   brandTitle: { color: dashboardTheme.ink, ...typeScale.sectionTitle },
   brandSubtitle: { marginTop: 3, color: dashboardTheme.slate, ...typeScale.supporting },
   privacy: { padding: 18, color: dashboardTheme.slate, ...typeScale.supporting },

@@ -6,6 +6,9 @@ on:
 permissions:
   contents: read
 
+env:
+  EXPO_PUBLIC_BUILD_COMMIT: ${{ github.sha }}
+
 concurrency:
   group: android-apk-${{ github.repository }}
   cancel-in-progress: false
