@@ -12,8 +12,6 @@ interface ForgeSheetHeaderProps {
   title: string;
   /** Use for a deliberately descriptive sheet title that cannot fit on one line. */
   titleNumberOfLines?: number;
-  /** Compact semantic title for a dense, chooser-style sheet header. */
-  compactTitle?: boolean;
   /**
    * Horizontal room reserved on each side of the centred title so it clears the
    * leading/trailing controls. The default fits a single circular control; a
@@ -33,7 +31,6 @@ interface ForgeSheetHeaderProps {
 export function ForgeSheetHeader({
   title,
   titleNumberOfLines = 0,
-  compactTitle = false,
   titleInset,
   onClose,
   closeAccessibilityLabel,
@@ -58,7 +55,7 @@ export function ForgeSheetHeader({
       </View>
       <Text
         numberOfLines={titleNumberOfLines}
-        style={[styles.title, compactTitle && styles.compactTitle, titleInset !== undefined && { marginHorizontal: titleInset }, { color: theme.textPrimary }]}
+        style={[styles.title, titleInset !== undefined && { marginHorizontal: titleInset }, { color: theme.textPrimary }]}
       >
         {title}
       </Text>
@@ -91,9 +88,8 @@ const styles = StyleSheet.create({
     // overflows to the container edge, sliding under the trailing control
     // instead of truncating clear of it.
     alignSelf: 'stretch',
-    marginHorizontal: scaleUI(74),
+    marginHorizontal: scaleUI(52),
   },
-  compactTitle: { ...typeScale.sectionTitle },
   leading: {
     position: 'absolute',
     left: 20,

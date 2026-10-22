@@ -132,7 +132,6 @@ export function WorkoutDetailsScreen({ navigation, route }: Props) {
           onClosed={onOptionsClosed}
           accessibilityLabel="Close workout options"
           title="Workout options"
-          contextName={workout.name}
           actions={[
             { label: 'Share workout', icon: 'share', onPress: () => runAfterClose(() => shareItem({ kind: 'workout', id: workout.id })) },
             { label: 'Edit workout', icon: 'note', onPress: () => navigation.navigate('HistoryWorkoutEditor', { mode: 'edit', workoutId: workout.id }) },

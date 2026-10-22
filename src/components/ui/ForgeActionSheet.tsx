@@ -1,4 +1,3 @@
-import { ForgeEntityName } from './ForgeEntityName';
 import { ForgePressable as Pressable } from './ForgePressable';
 import { ForgeSheetScrollView } from './ForgeSheetScrollView';
 import React, { type ReactNode } from 'react';
@@ -49,7 +48,6 @@ interface ForgeActionSheetProps {
   onClosed?: () => void;
   accessibilityLabel: string;
   title: string;
-  contextName?: string;
   titleNumberOfLines?: number;
   /** Gives a contextual choice enough visual hierarchy to stand apart from the backdrop. */
   emphasis?: 'default' | 'prominent';
@@ -89,7 +87,6 @@ export function ForgeActionSheet({
   onClosed,
   accessibilityLabel,
   title,
-  contextName,
   titleNumberOfLines,
   emphasis = 'default',
   appearance = 'default',
@@ -148,8 +145,6 @@ export function ForgeActionSheet({
             <ForgeBottomSheetHandle />
             <ForgeSheetHeader
               title={title}
-              compactTitle={!!sections && !grouped}
-              titleInset={grouped ? scaleUI(52) : undefined}
               titleNumberOfLines={titleNumberOfLines}
               onClose={close}
               closePosition={headerDestructiveAction ? 'left' : 'right'}
@@ -188,7 +183,6 @@ export function ForgeActionSheet({
             ) : null}
             {grouped ? (
               <ForgeSheetScrollView style={styles.sectionScroll} contentContainerStyle={styles.sections}>
-                {contextName ? <ForgeEntityName style={[styles.contextName, { color: theme.textSecondary }]}>{contextName}</ForgeEntityName> : null}
                 {sections.filter((section) => section.actions.some((action) => action.tone !== 'destructive')).map((section) => {
                   const items = section.actions.filter((action) => action.tone !== 'destructive');
                   return (
@@ -225,7 +219,6 @@ export function ForgeActionSheet({
                 showsVerticalScrollIndicator={false}
                 bounces={false}
               >
-              {contextName ? <ForgeEntityName style={[typeScale.body, { color: theme.textPrimary, padding: scaleUI(16) }]}>{contextName}</ForgeEntityName> : null}
                 {neutralActions.map((action, index) => (
                   <ActionRow
                     key={action.label}
@@ -338,7 +331,6 @@ const styles = StyleSheet.create({
   prominentSheet: { paddingBottom: scaleUI(34) },
   sectionScroll: { flexGrow: 0, flexShrink: 1 },
   sections: { paddingHorizontal: scaleUI(20), gap: scaleUI(16), paddingTop: scaleUI(4), paddingBottom: scaleUI(4) },
-  contextName: { ...typeScale.body, textAlign: 'center', marginBottom: scaleUI(2) },
   section: { gap: scaleUI(8) },
   tiles: { flexDirection: 'row', alignItems: 'stretch', gap: scaleUI(8) },
   tileCard: { flex: 1, minWidth: 0 },

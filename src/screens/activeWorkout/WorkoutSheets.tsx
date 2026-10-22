@@ -357,7 +357,6 @@ export const AddExerciseSheet = React.memo(function AddExerciseSheet({
             <ForgeBottomSheetHandle />
             <ForgeSheetHeader
               title={title}
-              compactTitle={selectionLimit === 1}
               onClose={closeSheet}
               closeAccessibilityLabel="Close add exercises"
               horizontalInset={0}
@@ -486,7 +485,7 @@ function ExerciseOutputChooser({ resolution, selectionLimit, onBack, onClose, on
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
   return <>
     <ForgeBottomSheetHandle />
-    <ForgeSheetHeader title={selectionLimit === 1 ? 'Choose one' : 'Choose exercises'} compactTitle onClose={onClose} leading={<ForgeEditorBackButton onPress={onBack} accessibilityLabel="Back to exercise choices" />} />
+    <ForgeSheetHeader title={selectionLimit === 1 ? 'Choose one' : 'Choose exercises'} onClose={onClose} leading={<ForgeEditorBackButton onPress={onBack} accessibilityLabel="Back to exercise choices" />} />
     <FlatList
       testID="variation-output-chooser"
       // Always-full (ADR 0005): fill the fixed-height picker card like the

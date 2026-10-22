@@ -600,7 +600,7 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
         {(close) => (
           <View style={styles.recordSheet}>
             <ForgeBottomSheetHandle />
-            <ForgeSheetHeader compactTitle titleInset={50} title="Record measurement" onClose={recordSaving ? undefined : close} />
+            <ForgeSheetHeader titleInset={50} title="Record measurement" onClose={recordSaving ? undefined : close} />
             <ForgeSheetScrollView contentContainerStyle={{ paddingBottom: floatingCtaClearance }} keyboardShouldPersistTaps="handled">
               <ForgeEntityName style={[typeScale.sectionTitle, { color: theme.textPrimary, marginHorizontal: 20 }]}>{selected?.name}</ForgeEntityName>
               <Text style={styles.recordDate}>

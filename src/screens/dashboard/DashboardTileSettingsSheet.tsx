@@ -181,7 +181,6 @@ export function DashboardTileSettingsSheet({
       <ForgeBottomSheetHandle />
       <ForgeSheetHeader
         title={config?.title ?? (kind ? DASHBOARD_TILE_DEFAULT_TITLE[kind] : 'Settings')}
-        compactTitle
         onClose={onClose}
       />
       {elevated ? <View style={styles.headerDivider} /> : null}
