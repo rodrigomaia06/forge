@@ -384,7 +384,7 @@ export function PlansScreen({ navigation, route }: Props) {
                 iconOnly
                 onPress={() => setCreateSheetOpen(true)}
                 variant="ghost"
-                style={{ backgroundColor: theme.colorScheme === 'dark' ? theme.surfaceMuted : theme.surfaceElevated }}
+                style={{ backgroundColor: theme.colorScheme === 'dark' ? theme.surfaceMuted : theme.surface }}
               />
             )}
           </View>
@@ -1003,7 +1003,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
     header: {
       position: 'relative',
       zIndex: 2,
-      height: 70,
+      minHeight: 70,
       paddingHorizontal: spacing.screen,
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -1038,7 +1038,7 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       // its routine rows.
       minWidth: 0,
       paddingHorizontal: 16,
-      paddingVertical: 11,
+      paddingVertical: 4,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
