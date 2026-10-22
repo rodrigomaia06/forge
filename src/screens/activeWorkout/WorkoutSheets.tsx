@@ -962,7 +962,7 @@ export function ExerciseOptionsSheet({
           ],
         },
         {
-          title: 'Review',
+          title: 'Explore',
           actions: [
             ...(onOpenPreviousSessions ? [{ icon: 'history' as const, label: 'Previous sessions', dismiss: false, onPress: () => openInfo('history') }] : []),
             ...(onOpenExerciseInfo ? [{ icon: 'info' as const, label: 'Exercise info', dismiss: false, onPress: () => openInfo('info') }] : []),

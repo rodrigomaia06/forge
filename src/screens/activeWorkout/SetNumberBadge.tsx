@@ -4,15 +4,16 @@ import { ForgeText as Text } from '../../components/ui';
 import { setRirText } from '../../domain/workouts/setEffort';
 import { hasNextSessionTarget, setTagPresentation } from '../../domain/workouts/setPresentation';
 import { useForgeTheme } from '../../theme/ThemeProvider';
+import { centeredPressFeedback } from '../../components/ui/ForgePressable';
 import { scaleUI } from '../../theme/scale';
 import { typeScale } from '../../theme/tokens';
 import type { WorkoutSet } from '../../types';
 
 export function useSetNumberBadgeLayout() {
   return {
-    width: scaleUI(36),
-    height: scaleUI(36),
-    feedback: { borderRadius: scaleUI(9) },
+    width: scaleUI(34),
+    height: scaleUI(34),
+    feedback: centeredPressFeedback(scaleUI(34), scaleUI(9)),
   };
 }
 

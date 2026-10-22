@@ -412,7 +412,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   inputColumn: { width: scaleUI(60) },
   firstInputWithoutPrevious: { marginLeft: 'auto' },
   input: {
-    minHeight: 44,
+    minHeight: scaleUI(36),
     borderWidth: 1,
     borderRadius: scaleUI(8),
     ...typeScale.body,
@@ -421,7 +421,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     // padding otherwise pushes it off-centre and inflates the row.
     textAlignVertical: 'center',
     includeFontPadding: false,
-    paddingVertical: scaleUI(6),
+    paddingVertical: 0,
     paddingHorizontal: 3,
   },
   inputFilled: {

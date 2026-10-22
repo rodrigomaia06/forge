@@ -88,6 +88,23 @@ for (const appearance of ['light', 'dark'] as const) {
         await page.mouse.up();
         await expect(page.getByTestId('history-set-number-chip-1')).toBeVisible();
       }
+      if (mode === 'live') {
+        await expect(page.getByText('Weighted Pull-Up', { exact: true })).toHaveCSS('text-align', 'start');
+        const weight = page.getByRole('textbox', { name: /^(Added kg|Kg) for set 1$/, exact: true });
+        const reps = page.getByRole('textbox', { name: 'Reps for set 1', exact: true });
+        for (const input of [weight, reps]) {
+          const bounds = (await input.boundingBox())!;
+          expect(bounds.width).toBe(60);
+          expect(bounds.height).toBeCloseTo(36, 2);
+          await expect(input).toHaveAttribute('spellcheck', 'false');
+        }
+        await page.screenshot({ path: info.outputPath(`${appearance}-compact-fields.png`) });
+        await page.getByRole('button', { name: 'More options for Weighted Pull-Up', exact: true }).click();
+        await expect(page.getByText('Explore', { exact: true })).toBeVisible();
+        await page.waitForTimeout(250);
+        await page.screenshot({ path: info.outputPath(`${appearance}-explore-options.png`) });
+        await page.getByRole('button', { name: 'Close Exercise options', exact: true }).click();
+      }
       for (const index of [1, 2, 10]) {
         const badgeId = `${mode === 'live' ? 'live' : 'history'}-set-number-chip-${index}`;
         const badge = page.getByTestId(badgeId);
@@ -103,8 +120,8 @@ for (const appearance of ['light', 'dark'] as const) {
         });
         const comment = page.getByLabel(`Set ${index} has a comment`, { exact: true });
         const target = page.getByLabel(`Set ${index} has a next session target`, { exact: true });
-        await expect(badge).toHaveCSS('width', '36px');
-        await expect(badge).toHaveCSS('height', '36px');
+        await expect(badge).toHaveCSS('width', '34px');
+        await expect(badge).toHaveCSS('height', '34px');
         const dotColor = await effort.evaluate(element => getComputedStyle(element).backgroundColor);
         await expect(comment).toHaveCSS('background-color', dotColor);
         await expect(target).toHaveCSS('background-color', dotColor);
@@ -146,7 +163,24 @@ for (const appearance of ['light', 'dark'] as const) {
           .locator('..')
           .screenshot({ path: info.outputPath(`${appearance}-${mode}-set-${index}.png`) });
       }
-      await page.getByRole('button', { name: 'Open details for set 10', exact: true }).click();
+      if (mode === 'live') {
+        const badge = page.getByTestId('live-set-number-chip-10');
+        const trigger = page.getByRole('button', { name: 'Open details for set 10', exact: true });
+        const box = (await badge.boundingBox())!;
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        await page.mouse.down();
+        const tint = trigger.getByTestId('forge-press-state-layer');
+        await expect(tint).toBeVisible();
+        const tintBox = (await tint.boundingBox())!;
+        expect(Math.abs(tintBox.x - box.x)).toBeLessThan(1);
+        expect(Math.abs(tintBox.y - box.y)).toBeLessThan(1);
+        expect(tintBox.width).toBe(box.width);
+        expect(tintBox.height).toBe(box.height);
+        await page.screenshot({ path: info.outputPath(`${appearance}-badge-tint.png`) });
+        await page.mouse.up();
+      } else {
+        await page.getByRole('button', { name: 'Open details for set 10', exact: true }).click();
+      }
       if (mode === 'live')
         await expect(page.getByLabel('Comment for set 10')).toHaveValue('Keep form');
       else
