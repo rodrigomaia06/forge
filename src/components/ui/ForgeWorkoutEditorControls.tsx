@@ -14,6 +14,7 @@ import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from './Button';
 import { ForgeCard } from './ForgeCard';
+import { useForgeControlSurface } from './ForgeControlSurface';
 import { ForgeBottomSheet, ForgeBottomSheetHandle } from './ForgeBottomSheet';
 import { ForgeSheetHeader } from './ForgeSheetHeader';
 import { ForgeText, ForgeTextInput } from './ForgeText';
@@ -132,6 +133,7 @@ export function ForgeSwipeableAttributeRow({
   valueInput?: React.ReactNode;
 }) {
   const theme = useForgeTheme();
+  const surface = useForgeControlSurface();
   const reducedMotion = useForgeReducedMotion();
   const [deleteRevealed, setDeleteRevealed] = useState(false);
   const translateX = useSharedValue(0);
@@ -172,9 +174,9 @@ export function ForgeSwipeableAttributeRow({
           <Icon name="trash" size={18} color={theme.textDestructive} />
         </Pressable>
       </View>
-      <Animated.View style={[styles.swipeAttributeContent, { backgroundColor: theme.surface }, swipeStyle]}>
+      <Animated.View style={[styles.swipeAttributeContent, { backgroundColor: surface }, swipeStyle]}>
         {valueInput ? (
-          <View style={[styles.row, compact && styles.rowCompact, divider && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
+          <View style={[styles.row, compact && styles.rowCompact, divider && { borderTopWidth: 1, borderTopColor: theme.divider }]}>
             <View style={styles.directAttributeMeta}>
               <Icon name={icon} size={22} color={theme.textPrimary} />
               <ForgeText style={[styles.directAttributeLabel, { color: theme.textPrimary }]}>{label}</ForgeText>
@@ -182,7 +184,7 @@ export function ForgeSwipeableAttributeRow({
             <View style={styles.directAttributeValue}>{valueInput}</View>
           </View>
         ) : (
-          <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${label} attribute`} onPress={() => { if (swipeActivated.get()) return; lightHaptic(); onEdit?.(); }} style={[styles.row, compact && styles.rowCompact, divider && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${label} attribute`} onPress={() => { if (swipeActivated.get()) return; lightHaptic(); onEdit?.(); }} style={[styles.row, compact && styles.rowCompact, divider && { borderTopWidth: 1, borderTopColor: theme.divider }]}>
             <Icon name={icon} size={22} color={theme.textPrimary} />
             <ForgeText style={[styles.rowLabel, { color: theme.textPrimary }]}>{label}</ForgeText>
             <ForgeText style={[styles.rowValue, { color: theme.slate }]}>{value || 'Add value'}</ForgeText>
@@ -226,7 +228,7 @@ export function ForgeAttributeRow({
         styles.attributeReadRow,
         compact && styles.attributeReadRowCompact,
         flush && styles.attributeReadRowFlush,
-        showDivider && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
+        showDivider && { borderTopWidth: 1, borderTopColor: theme.divider },
       ]}
     >
       <Icon name={icon} size={18} color={theme.slate} />

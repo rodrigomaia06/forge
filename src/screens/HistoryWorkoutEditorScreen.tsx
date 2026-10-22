@@ -458,7 +458,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
               lightHaptic();
               setAttributeDraft({ label: '', value: '', icon: 'note' });
             }}
-            style={({ pressed }) => [styles.addAttribute, { backgroundColor: theme.surface }, Object.keys(draft.attributes ?? {}).length > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider }, pressed && pressedFeedbackSubtle]}
+            style={({ pressed }) => [styles.addAttribute, Object.keys(draft.attributes ?? {}).length > 0 && { borderTopWidth: 1, borderTopColor: theme.divider }, pressed && pressedFeedbackSubtle]}
           >
             <Icon name="add" size={20} color={theme.ink} />
             <Text style={styles.addAttributeText}>Add attribute</Text>
@@ -1080,13 +1080,13 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     minHeight: 44,
     paddingHorizontal: 10,
     borderWidth: 1,
-    borderColor: theme.divider,
+    borderColor: theme.border,
     borderRadius: 12,
-    backgroundColor: theme.surfaceMuted,
+    backgroundColor: theme.colorScheme === 'light' ? theme.surfaceElevated : theme.input,
     color: theme.ink,
     ...typeScale.body,
   },
-  typePickerValue: { minHeight: 44, paddingHorizontal: 10, borderWidth: 1, borderColor: theme.divider, borderRadius: 12, backgroundColor: theme.surfaceMuted, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  typePickerValue: { minHeight: 44, paddingHorizontal: 10, borderWidth: 1, borderColor: theme.border, borderRadius: 12, backgroundColor: theme.colorScheme === 'light' ? theme.surfaceElevated : theme.input, flexDirection: 'row', alignItems: 'center', gap: 7 },
   typeText: { flex: 1, color: theme.ink, ...typeScale.body },
   cardDivider: { height: 1, marginVertical: 2, backgroundColor: theme.divider },
   formRow: { flexDirection: 'row', gap: 10 },
@@ -1100,11 +1100,11 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   input: {
     minHeight: 40,
     borderWidth: 1,
-    borderColor: theme.divider,
+    borderColor: theme.border,
     borderRadius: 10,
     paddingHorizontal: 10,
     color: theme.ink,
-    backgroundColor: theme.surfaceMuted,
+    backgroundColor: theme.colorScheme === 'light' ? theme.surfaceElevated : theme.input,
     ...typeScale.supporting,
   },
   notesInput: { minHeight: 72, paddingTop: 9, textAlignVertical: 'top' },
@@ -1116,9 +1116,9 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     minHeight: 44,
     paddingHorizontal: 10,
     borderWidth: 1,
-    borderColor: theme.divider,
+    borderColor: theme.border,
     borderRadius: 10,
-    backgroundColor: theme.surfaceMuted,
+    backgroundColor: theme.colorScheme === 'light' ? theme.surfaceElevated : theme.input,
     justifyContent: 'center',
   },
   pickerValue: {
@@ -1134,7 +1134,7 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
     justifyContent: 'center',
     gap: 4,
     borderWidth: 1,
-    borderColor: theme.divider,
+    borderColor: theme.border,
     borderRadius: 12,
     backgroundColor: theme.surface,
   },
