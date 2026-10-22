@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ScrollView, View, type ScrollViewProps } from 'react-native';
-import { ForgeBottomSheetDragArea } from './ForgeBottomSheet';
+import { ForgeBottomSheetDragArea, useForgeSheetKeyboardVisible } from './ForgeBottomSheet';
 
 /** Compact sheets drag as a card; only overflowing content owns a scroll gesture. */
 export const ForgeSheetScrollView = React.forwardRef<
@@ -19,12 +19,14 @@ export const ForgeSheetScrollView = React.forwardRef<
     },
     ref,
   ) => {
+    const keyboardVisible = useForgeSheetKeyboardVisible();
     const [viewport, setViewport] = useState(0);
     const [content, setContent] = useState(0);
     const overflowing = viewport > 0 && content > viewport + 1;
     const body = <View style={contentContainerStyle}>{children}</View>;
     return (
       <ScrollView
+        keyboardShouldPersistTaps="handled"
         {...props}
         ref={ref}
         style={[{ flexShrink: 1 }, style]}
@@ -41,7 +43,7 @@ export const ForgeSheetScrollView = React.forwardRef<
         }}
       >
         {dragToDismiss ? (
-          <ForgeBottomSheetDragArea enabled={!overflowing}>{body}</ForgeBottomSheetDragArea>
+          <ForgeBottomSheetDragArea enabled={!overflowing && !keyboardVisible}>{body}</ForgeBottomSheetDragArea>
         ) : (
           body
         )}

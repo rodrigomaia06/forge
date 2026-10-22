@@ -35,6 +35,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // attach one instance to one view. Handle/header/body each need their own pan.
 const SheetDragContext = createContext<(() => ReturnType<typeof Gesture.Pan>) | null>(null);
 const SheetDragAreaContext = createContext(false);
+const SheetKeyboardContext = createContext(false);
+export const useForgeSheetKeyboardVisible = () => useContext(SheetKeyboardContext);
 /** Shared sheet-header geometry keeps titles and close actions aligned. */
 export const forgeSheetHeader = {
   height: scaleUI(56),
@@ -66,7 +68,6 @@ interface ForgeBottomSheetProps {
   onClosed?: () => void;
   onBackRequest?: () => boolean;
   keyboardAvoiding?: boolean;
-  dismissTextKeyboardOnTap?: boolean;
   backdropTestID?: string;
   surfaceTestID?: string;
   dragArea?: (children: React.ReactNode) => React.ReactNode;
@@ -112,7 +113,6 @@ export function ForgeBottomSheet({
   onClosed,
   onBackRequest,
   keyboardAvoiding = true,
-  dismissTextKeyboardOnTap = true,
   backdropTestID,
   surfaceTestID,
   dragArea,
@@ -425,6 +425,7 @@ export function ForgeBottomSheet({
         ) : null}
         <View style={[styles.keyboardArea, styles.pointerEventsBoxNone]} accessibilityElementsHidden={Boolean(overlay)} importantForAccessibility={overlay ? 'no-hide-descendants' : 'auto'}>
           <SheetDragContext.Provider value={dragEnabled ? createPan : null}>
+          <SheetKeyboardContext.Provider value={keyboardVisible}>
             <Animated.View
               testID={surfaceTestID}
               layout={animateContentLayout && !reducedMotion ? LinearTransition.duration(240) : undefined}
@@ -441,8 +442,6 @@ export function ForgeBottomSheet({
                   setEntryContentReady(true);
                 }
               }}
-              onStartShouldSetResponderCapture={() => keyboardVisible && dismissTextKeyboardOnTap}
-              onResponderRelease={dismissForgeKeyboard}
               style={[
                 styles.sheet,
                 // The sheet is a base surface; elevated controls and nested cards
@@ -468,6 +467,7 @@ export function ForgeBottomSheet({
                 {dragArea ? dragArea(renderedChildren) : renderedChildren}
               </ForgeControlSurface.Provider>
             </Animated.View>
+          </SheetKeyboardContext.Provider>
           </SheetDragContext.Provider>
         </View>
         {overlay}

@@ -65,7 +65,6 @@ export function SetDetailsCard({
   targetMode = 'next-session',
 }: SetDetailsCardProps) {
   const styles = useThemedStyles(createStyles);
-  const [dismissTextKeyboardOnTap, setDismissTextKeyboardOnTap] = React.useState(true);
   const [editorView, setEditorView] = useState<'details' | 'set-kind'>('details');
   const detailsScrollRef = useRef<ScrollView>(null);
   const targetFocusedRef = useRef(false);
@@ -89,7 +88,6 @@ export function SetDetailsCard({
       accessibilityLabel="Close set details"
       testID="set-details-sheet"
       style={styles.setDetailsSheet}
-      dismissTextKeyboardOnTap={dismissTextKeyboardOnTap}
     >
       {(closeSheet) => (
         <>
@@ -158,7 +156,6 @@ export function SetDetailsCard({
                   onChange={onChange}
                   onTextFocus={() => {
                     targetFocusedRef.current = false;
-                    setDismissTextKeyboardOnTap(true);
                   }}
                 />
                 <TargetsSection
@@ -170,7 +167,6 @@ export function SetDetailsCard({
                   onChange={onChange}
                   onNumberFocus={() => {
                     targetFocusedRef.current = true;
-                    setDismissTextKeyboardOnTap(false);
                     detailsScrollRef.current?.scrollToEnd({ animated: false });
                   }}
                 />

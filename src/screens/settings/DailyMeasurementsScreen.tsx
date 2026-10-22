@@ -596,7 +596,6 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
         onClose={() => { if (!recordSaving) setRecordOpen(false); }}
         accessibilityLabel="Close record measurement"
         keyboardAvoiding
-        dismissTextKeyboardOnTap={false}
       >
         {(close) => (
           <View style={styles.recordSheet}>
@@ -647,7 +646,6 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
         onClose={() => setMetricOpen(false)}
         accessibilityLabel="Close add measure"
         keyboardAvoiding
-        dismissTextKeyboardOnTap={false}
       >
         {(close) => (
           <View style={styles.metricSheet}>

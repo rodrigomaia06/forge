@@ -49,8 +49,8 @@ async function reducedViewport(page: Page) {
   await page.setViewportSize({ width: page.viewportSize()!.width, height: 360 });
 }
 
-async function expectTypingSettings(input: Locator) {
-  await expect(input).toHaveAttribute('spellcheck', 'false');
+async function expectTypingSettings(input: Locator, correction = true) {
+  await expect(input).toHaveAttribute('spellcheck', String(correction));
   await expect(input).toHaveAttribute('autocomplete', 'off');
 }
 
@@ -91,6 +91,10 @@ for (const appearance of ['light', 'dark'] as const) {
     const description = page.getByLabel('Plan description', { exact: true });
     await description.fill('A training block without unwanted corrections.');
     await expectTypingSettings(description);
+    await description.evaluate((element: HTMLInputElement) => element.setSelectionRange(2, 10));
+    await page.keyboard.insertText('selected text');
+    await expect(description).toBeFocused();
+    await expect(description).toHaveValue('A selected text block without unwanted corrections.');
     await captureVisible(page, description, info, 'plan-description');
     await page.getByRole('button', { name: 'Save plan', exact: true }).click();
     await expect(description).toHaveCount(0);
@@ -116,7 +120,7 @@ for (const appearance of ['light', 'dark'] as const) {
     await page.getByRole('button', { name: 'Record measurement', exact: true }).click();
     const value = page.getByLabel('Body weight value', { exact: true });
     await value.fill('81.4');
-    await expectTypingSettings(value);
+    await expectTypingSettings(value, false);
     await expectMatchingFade(page);
     const unitLabel = page.getByText('kg', { exact: true }).last();
     const unitBox = (await unitLabel.boundingBox())!;

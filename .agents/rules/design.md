@@ -28,7 +28,7 @@ Persistent screen headers remain unlined at every scroll position. Scrolling con
 
 Bottom-attached lists of discrete actions use `ForgeActionSheet`. It owns the handle, semantic centred title, 44 pt close control, grouped neutral icon rows with chevrons, and promotes the primary destructive action to the header's right edge while moving Close to the left. Do not use it for radio/selection lists, pickers, forms, detail sheets, or confirmation dialogs; those retain their specialised primitives and semantics.
 
-When a text keyboard is visible in a shared sheet, the first tap elsewhere in the sheet dismisses it instead of activating the tapped control. Number-pad editing in Live Workout remains exempt so repeated set entry is uninterrupted.
+Shared sheets never capture text-selection, caret or keyboard-suggestion touches to dismiss the keyboard. Inputs and handled controls retain their normal focus behaviour. The backdrop, close controls and explicitly configured scroll gestures own intentional dismissal. Compact scroll-body drag-to-dismiss yields while the keyboard is visible; the header and handle retain their dismissal gestures.
 
 On iOS, switching to another app and returning preserves the focused input and keyboard-related layout. Background or other-app keyboard notifications must not collapse sheets, reset workout scroll position, or replay an unchanged keyboard layout on return. Explicit keyboard dismissal and genuinely changed keyboard frames still update the layout normally.
 

@@ -149,3 +149,16 @@ test('native handle, header and compact body own different handlers but share di
   pans[2].onEnd({ translationY: 90, velocityY: 0 });
   expect(closed).toBe(1);
 });
+
+function nodes(node: any): any[] {
+  if (!node || typeof node !== 'object') return [];
+  return [node, ...(node.props?.children ?? []).flat().flatMap(nodes)];
+}
+test('sheet surface does not capture text-selection touches for keyboard dismissal', () => {
+  const { exports } = loadSheet();
+  const tree = exports.ForgeBottomSheet({ visible: true, onClose: () => undefined, children: 'Editable content' });
+  for (const node of nodes(tree)) {
+    expect(node.props.onStartShouldSetResponderCapture).toBeUndefined();
+    expect(node.props.onResponderRelease).toBeUndefined();
+  }
+});

@@ -19,29 +19,58 @@ const androidText = StyleSheet.create({ base: { includeFontPadding: false } });
 
 /** Shared text primitives follow the complete system text-size preference. */
 export function ForgeText({ maxFontSizeMultiplier: _max, style, ...props }: TextProps) {
-  return <NativeText {...props} style={[androidText.base, style]} allowFontScaling maxFontSizeMultiplier={maxFontSizeMultiplier} />;
+  return (
+    <NativeText
+      {...props}
+      style={[androidText.base, style]}
+      allowFontScaling
+      maxFontSizeMultiplier={maxFontSizeMultiplier}
+    />
+  );
 }
 
-export const ForgeTextInput = React.forwardRef<NativeTextInput, TextInputProps & { lockCursorToEnd?: boolean }>(
-  ({ maxFontSizeMultiplier: _max, keyboardAppearance, style, lockCursorToEnd = false, ...props }, ref) => {
+export const ForgeTextInput = React.forwardRef<
+  NativeTextInput,
+  TextInputProps & { lockCursorToEnd?: boolean }
+>(
+  (
+    { maxFontSizeMultiplier: _max, keyboardAppearance, style, lockCursorToEnd = false, ...props },
+    ref,
+  ) => {
     const theme = useForgeTheme();
     const inputRef = React.useRef<NativeTextInput>(null);
     React.useImperativeHandle(ref, () => inputRef.current!);
+    const numeric =
+      [
+        'decimal-pad',
+        'number-pad',
+        'numeric',
+        'phone-pad',
+        'numbers-and-punctuation',
+        'ascii-capable-number-pad',
+      ].includes(props.keyboardType ?? '') ||
+      props.inputMode === 'numeric' ||
+      props.inputMode === 'decimal';
     const end = props.value?.length ?? 0;
     const endSelection = React.useMemo(() => ({ start: end, end }), [end]);
     return (
       <NativeTextInput
         ref={inputRef}
         {...props}
-        autoCorrect={false}
-        spellCheck={false}
-        autoComplete="off"
-        textContentType="none"
+        hitSlop={props.hitSlop ?? (numeric ? { top: 4, bottom: 4 } : undefined)}
+        autoCorrect={props.autoCorrect ?? !numeric}
+        spellCheck={props.spellCheck ?? props.autoCorrect ?? !numeric}
+        autoComplete={props.autoComplete ?? 'off'}
+        textContentType={props.textContentType ?? 'none'}
         selection={lockCursorToEnd ? endSelection : props.selection}
         onSelectionChange={(event) => {
           // Keep the insertion caret at the end. A deliberate text selection
           // still permits replacing/clearing the value from a hardware keyboard.
-          if (lockCursorToEnd && event.nativeEvent.selection.start === event.nativeEvent.selection.end && event.nativeEvent.selection.end !== end) {
+          if (
+            lockCursorToEnd &&
+            event.nativeEvent.selection.start === event.nativeEvent.selection.end &&
+            event.nativeEvent.selection.end !== end
+          ) {
             if (Platform.OS === 'web') {
               (inputRef.current as unknown as HTMLInputElement | null)?.setSelectionRange(end, end);
             } else {
@@ -52,7 +81,8 @@ export const ForgeTextInput = React.forwardRef<NativeTextInput, TextInputProps &
         }}
         style={[androidText.base, style]}
         keyboardAppearance={keyboardAppearance ?? theme.colorScheme}
-        allowFontScaling maxFontSizeMultiplier={maxFontSizeMultiplier}
+        allowFontScaling
+        maxFontSizeMultiplier={maxFontSizeMultiplier}
       />
     );
   },
