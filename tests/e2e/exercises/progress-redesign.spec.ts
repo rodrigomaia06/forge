@@ -6,6 +6,7 @@ async function openProgress(
   mode = 'weight-reps',
   units = 'metric',
   name = 'Dumbbell Shoulder Press',
+  selectProgress = true,
 ) {
   await page.addInitScript(
     ({ appearance, mode, units, name }) => {
@@ -65,7 +66,27 @@ async function openProgress(
   await page.goto('/');
   await page.getByRole('button', { name: `More options for ${name}`, exact: true }).click();
   await page.getByRole('button', { name: 'Exercise info', exact: true }).click();
-  await page.getByRole('radio', { name: 'Progress', exact: true }).click();
+  if (selectProgress) await page.getByRole('radio', { name: 'Progress', exact: true }).click();
+}
+
+for (const appearance of ['light', 'dark']) {
+  test(`Progress prepares while hidden and preserves its mounted chart (${appearance})`, async ({ page }, info) => {
+    await openProgress(page, appearance, 'weight-reps', 'metric', 'Dumbbell Shoulder Press', false);
+    const prepared = page.getByTestId('exercise-progress-prepared');
+    await expect(prepared).toHaveAttribute('aria-hidden', 'true');
+    await expect(page.getByRole('button', { name: 'Progress metric', exact: true })).toHaveCount(0);
+    const graph = page.getByTestId('exercise-progress-card');
+    await expect(graph).toBeAttached();
+    await graph.evaluate(element => { element.setAttribute('data-retained', 'yes'); });
+    await page.getByRole('radio', { name: 'Progress', exact: true }).click();
+    await expect(graph).toHaveAttribute('data-retained', 'yes');
+    await expect(prepared).not.toHaveAttribute('aria-hidden', 'true');
+    await page.getByRole('radio', { name: 'History', exact: true }).click();
+    await page.getByRole('radio', { name: 'Progress', exact: true }).click();
+    await expect(graph).toHaveAttribute('data-retained', 'yes');
+    await page.waitForTimeout(250);
+    await page.screenshot({ path: info.outputPath(`prepared-progress-${appearance}.png`) });
+  });
 }
 
 for (const appearance of ['light', 'dark']) {
@@ -119,6 +140,8 @@ for (const appearance of ['light', 'dark']) {
     await expect(record).toContainText('100 kg');
     await page.getByRole('radio', { name: 'History', exact: true }).click();
     await expect(page.getByTestId('previous-session-card-stats-2')).toBeVisible();
+    await page.waitForTimeout(250);
+    await page.screenshot({ path: info.outputPath(`previous-session-typography-${appearance}.png`) });
     await page.getByRole('radio', { name: 'Progress', exact: true }).click();
     await expect(
       page.getByRole('button', { name: 'Progress date range', exact: true }),
