@@ -144,6 +144,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     valueText: { flexShrink: 1, minWidth: 0, color: theme.ink, ...typeScale.body },
     previous: { flex: 1, minWidth: 0, color: theme.ink, ...typeScale.body, textAlign: 'center' },
     check: { width: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-    insetRow: { paddingHorizontal: scaleUI(12) },
+    // Compact history cards drop the row's vertical padding; the 44 pt set
+    // chip still sets the floor, so the tap target is unchanged.
+    insetRow: { paddingHorizontal: scaleUI(12), paddingVertical: 0, minHeight: 44 },
     flexibleValue: { flex: 1, minWidth: 0 },
   });
