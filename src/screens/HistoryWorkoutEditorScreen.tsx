@@ -136,7 +136,8 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
     // leave (Save, or a confirmed discard) must flag itself as allowed or the
     // guard would re-prompt on the way out.
     allowNavigationRef.current = true;
-    if (isActive) {
+    // Live edits and creations started from Calendar return to where they began.
+    if (isActive || (params.mode === 'create' && params.returnTo === 'Calendar')) {
       navigation.goBack();
       return;
     }

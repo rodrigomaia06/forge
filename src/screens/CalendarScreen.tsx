@@ -6,7 +6,7 @@ import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { AppScreen, ForgeText as Text, Icon, pressedFeedback, selectionHaptic } from '../components/ui';
+import { AppScreen, ForgeText as Text, HeaderAction, Icon, pressedFeedback, selectionHaptic } from '../components/ui';
 import { SettingsDetailHeader } from './settings/SettingsScreenChrome';
 import { useWorkouts } from '../state/WorkoutContext';
 import { useSettings } from '../state/SettingsContext';
@@ -146,10 +146,16 @@ export function CalendarScreen({ navigation }: Props) {
     return list;
   }, [earliest, today]);
 
-  const openWorkout = (dayWorkouts: Workout[]) => {
-    if (!dayWorkouts.length) return;
+  // An empty past (or today's) day opens the historical-workout editor for that
+  // date, which presents its own "Add historical workout" chooser; leaving it
+  // returns here.
+  const openDay = (date: Date, dayWorkouts: Workout[]) => {
     selectionHaptic();
-    navigation.navigate('WorkoutDetails', { workoutId: dayWorkouts[0].id });
+    if (dayWorkouts.length) {
+      navigation.navigate('WorkoutDetails', { workoutId: dayWorkouts[0].id });
+      return;
+    }
+    navigation.navigate('HistoryWorkoutEditor', { mode: 'create', selectedDate: calendarDateKey(date), returnTo: 'Calendar' });
   };
 
 
@@ -162,19 +168,18 @@ export function CalendarScreen({ navigation }: Props) {
           elevated={elevated}
           rightAction={
             <View collapsable={false}>
-              <Pressable
-                accessibilityRole="button"
+              <HeaderAction
                 accessibilityLabel={`Calendar view: ${VIEW_LABEL[view]}. Toggle`}
+                icon="calendar"
+                label={VIEW_LABEL[view]}
+                haptic="none"
                 onPress={() => {
                   selectionHaptic();
                   const next: CalendarView = view === 'month' ? 'year' : 'month';
                   if (next === 'month') { scrollTarget.current = { year: today.getFullYear(), month: today.getMonth() }; scrolledRef.current = false; }
                   setView(next);
                 }}
-                style={({ pressed }) => [styles.viewToggle, pressed && pressedFeedback]}
-              >
-                <Text style={styles.viewToggleText}>{VIEW_LABEL[view]}</Text>
-              </Pressable>
+              />
             </View>
           }
         />
@@ -223,13 +228,14 @@ export function CalendarScreen({ navigation }: Props) {
                         const dayWorkouts = byDay.get(key) ?? [];
                         const has = dayWorkouts.length > 0;
                         const isToday = key === todayKey;
+                        const isFuture = key > todayKey;
                         return (
                           <Pressable
                             key={di}
                             accessibilityRole="button"
-                            accessibilityLabel={`${date.getDate()} ${MONTHS[month]}${has ? `, ${dayWorkouts[0].name}` : ''}`}
-                            disabled={!has}
-                            onPress={() => openWorkout(dayWorkouts)}
+                            accessibilityLabel={`${date.getDate()} ${MONTHS[month]}${has ? `, ${dayWorkouts[0].name}` : isFuture ? '' : ', add workout'}`}
+                            disabled={!has && isFuture}
+                            onPress={() => openDay(date, dayWorkouts)}
                             style={styles.dayCell}
                             pressFeedbackStyle={styles.dayFeedback}
                           >
@@ -342,10 +348,6 @@ function MiniMonth({ label, year, month, weekStart, colorFor, onPress, theme, st
 
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   screen: { flex: 1 },
-  // Raised control surface: pick the lighter tone per theme (like the Back button) so
-  // the pill pops against the header in both — surfaceMuted read too faint on the light header.
-  viewToggle: { minWidth: 68, paddingHorizontal: 16, height: 40, borderRadius: 20, backgroundColor: theme.colorScheme === 'dark' ? theme.surfaceMuted : theme.surfaceElevated, alignItems: 'center', justifyContent: 'center' },
-  viewToggleText: { ...typeScale.controlLabel, color: theme.textPrimary },
   dropdownItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 12, height: 44, borderRadius: 12 },
   dropdownText: { ...typeScale.controlLabel, color: theme.textPrimary },
   scroll: { flex: 1 },

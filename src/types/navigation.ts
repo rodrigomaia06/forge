@@ -32,7 +32,7 @@ export type RootStackParamList = {
   };
   HistoryWorkoutEditor:
     | { mode: 'edit'; workoutId: string }
-    | { mode: 'create'; selectedDate: string }
+    | { mode: 'create'; selectedDate: string; returnTo?: 'Calendar' }
     | { mode: 'active' };
   RoutineEditor:
     | { mode: 'create'; planId?: string }
