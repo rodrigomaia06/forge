@@ -164,3 +164,73 @@ test('cold-starts standalone-first when both standalone and plan exist', () => {
   const suggestion = suggestNextWorkout({ completedWorkouts: [], plans, standaloneRoutines: [routine('s', 'S')], now: MON });
   expect(suggestion?.routine.id).toBe('s');
 });
+
+function withMuscles(base: WorkoutRoutine, primaryMuscle: string): WorkoutRoutine {
+  return { ...base, exercises: [{ name: `${primaryMuscle} move`, exerciseSnapshot: { name: `${primaryMuscle} move`, trackingType: 'weight-reps', primaryMuscle }, sets: [] }] };
+}
+
+function trained(routineId: string, completedAt: number, primaryMuscle: string, planId?: string): Workout {
+  return workout({
+    completedAt, routineId, planId,
+    exercises: [{ id: `e-${completedAt}`, name: 'Move', exerciseSnapshot: { name: 'Move', trackingType: 'weight-reps', primaryMuscle }, sets: [{ id: 's', weight: '', reps: '', completed: true }] }],
+  });
+}
+
+test('muscles trained yesterday push an equally due routine below one that is recovered', () => {
+  const push = withMuscles(routine('push', 'Push'), 'Chest');
+  const legs = withMuscles(routine('legs', 'Legs'), 'Quadriceps');
+  const completed = [
+    trained('push', day(-8), 'Chest'),
+    trained('legs', day(-8, 11), 'Quadriceps'),
+    // Yesterday's ad-hoc chest work (no routine) leaves chest recovering.
+    { ...trained('none', day(-1), 'Chest'), routineId: undefined },
+  ];
+  const suggestion = suggestNextWorkout({ completedWorkouts: completed, plans: [], standaloneRoutines: [push, legs], now: MON });
+  expect(suggestion?.routine.id).toBe('legs');
+});
+
+test('a weekday habit breaks a near tie in how due two routines are', () => {
+  const a = routine('a', 'A');
+  const b = routine('b', 'B');
+  const completed = [
+    workout({ completedAt: day(-14), routineId: 'b' }),
+    workout({ completedAt: day(-7), routineId: 'b' }), // Mondays
+    // Equally due (one full cadence each), but on weekend days; A also comes
+    // first in definition order, so only the Monday habit can lift B.
+    workout({ completedAt: day(-16), routineId: 'a' }),
+    workout({ completedAt: day(-8), routineId: 'a' }),
+  ];
+  const suggestion = suggestNextWorkout({ completedWorkouts: completed, plans: [], standaloneRoutines: [a, b], now: MON });
+  expect(suggestion?.routine.id).toBe('b');
+  expect(suggestion?.reasons?.some((reason) => reason.kind === 'weekday-habit')).toBe(true);
+});
+
+test('a plan abandoned while training elsewhere ranks below the active plan', () => {
+  const old = plan('old', [routine('o', 'O', 'old')]);
+  const current = plan('cur', [routine('c1', 'C1', 'cur'), routine('c2', 'C2', 'cur')]);
+  const completed = [
+    workout({ completedAt: day(-60), planId: 'old', routineId: 'o' }),
+    workout({ completedAt: day(-4), planId: 'cur', routineId: 'c1' }),
+    workout({ completedAt: day(-2), planId: 'cur', routineId: 'c2' }),
+  ];
+  const suggestion = suggestNextWorkout({ completedWorkouts: completed, plans: [old, current], standaloneRoutines: [], now: MON });
+  expect(suggestion?.routine.id).toBe('c1');
+});
+
+test('a routine passed over for many sessions is no longer treated as most due', () => {
+  const used = routine('used', 'Used');
+  const ignored = routine('ignored', 'Ignored');
+  const completed = [-12, -10, -8, -6, -4, -2].map((offset) => workout({ completedAt: day(offset), routineId: 'used' }));
+  const suggestion = suggestNextWorkout({ completedWorkouts: completed, plans: [], standaloneRoutines: [ignored, used], now: MON });
+  expect(suggestion?.routine.id).toBe('used');
+});
+
+test('imported sessions without a routine id count by routine name', () => {
+  const plans = [plan('PPL', [routine('push', 'Push', 'PPL'), routine('pull', 'Pull', 'PPL')])];
+  const completed = [
+    workout({ completedAt: day(-3), name: 'PPL - Pull' }),
+    workout({ completedAt: day(-1), name: 'push' }),
+  ];
+  const suggestion = suggestNextWorkout({ completedWorkouts: completed, plans, standaloneRoutines: [], now: MON });
+  expect(suggestion?.routine.id).toBe('pull');
+});

@@ -1,3 +1,4 @@
 # Dashboard
 
 - The calendar widget uses the same split workout-day marker as the week tile and full Calendar: one colour segment per recorded workout, including repeated workouts of the same type. The date remains visible over the clipped marker, and empty days and today retain their normal treatment.
+- The Suggested workout card keeps its established look; only the choice behind it is smart. The routine is chosen by a priority score that weighs many signals from the user's own history — how due it is against its usual cadence, never-trained and newly created routines, weekday and time-of-day habits, whether its plan is active or has gone quiet, muscles still recovering from the last two days, long-dormant routines and an immediate back-to-back repeat — rather than a single rule. A routine already completed today is never suggested.
