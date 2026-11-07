@@ -30,7 +30,7 @@ import {
   updateWorkoutSet,
   recordRestTimerSample,
 } from './workoutMutations';
-import { exercisesWithAddedPrevious } from '../domain/workouts/nextSessionTargets';
+import { withPreviousForAppended } from '../domain/workouts/nextSessionTargets';
 import { useActiveWorkoutState } from './useActiveWorkoutState';
 
 const WorkoutContext = createContext<WorkoutContextValue | null>(null);
@@ -175,10 +175,7 @@ export function WorkoutProvider({ children }: ChildrenProps) {
     if (!next) return next;
     const added = next.exercises.length - (previous?.exercises.length ?? 0);
     if (added <= 0) return next;
-    const head = next.exercises.slice(0, next.exercises.length - added);
-    const filled = exercisesWithAddedPrevious(next.exercises, completedWorkoutsRef.current).slice(-added,
-    );
-    return { ...next, exercises: [...head, ...filled] };
+    return { ...next, exercises: withPreviousForAppended(next.exercises, added, completedWorkoutsRef.current) };
   };
 
   const addExercise = useCallback((exercise: WorkoutExerciseInput | string): void => {

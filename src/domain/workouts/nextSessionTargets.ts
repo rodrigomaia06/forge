@@ -19,9 +19,7 @@ export function exercisesWithHistoricalPrevious(
   if (!priorHistory.length) return workout.exercises;
   return workout.exercises.map((exercise) => {
     const trackingType = effectiveTracking(exercise);
-    const previousSets = latestSetsForExercise(exercise, priorHistory, true,
-      occurrence(workout.exercises, exercise),
-    );
+    const previousSets = latestSetsForExercise(exercise, priorHistory, true, workout.exercises);
     if (!previousSets) return exercise;
     return {
       ...exercise,
@@ -53,9 +51,7 @@ export function exercisesWithAddedPrevious(
   if (!history.length) return exercises as WorkoutExercise[];
   return exercises.map((exercise) => {
     const trackingType = effectiveTracking(exercise);
-    const previousSets = latestSetsForExercise(exercise, history, true,
-      occurrence(exercises, exercise),
-    );
+    const previousSets = latestSetsForExercise(exercise, history, true, exercises);
     if (!previousSets) return exercise;
     return {
       ...exercise,
@@ -69,6 +65,40 @@ export function exercisesWithAddedPrevious(
       }),
     };
   });
+}
+
+/**
+ * Fills `previous` only for the trailing `addedCount` exercises of a workout —
+ * the ones just appended — leaving earlier exercises (and any values they
+ * already captured) untouched. Shared by every add-exercise path so a removed
+ * and re-added movement gets its last-session values back.
+ */
+export function withPreviousForAppended(
+  exercises: readonly WorkoutExercise[],
+  addedCount: number,
+  completedWorkouts: readonly Workout[],
+): WorkoutExercise[] {
+  if (addedCount <= 0) return exercises as WorkoutExercise[];
+  const head = exercises.slice(0, exercises.length - addedCount);
+  const filled = exercisesWithAddedPrevious(exercises, completedWorkouts).slice(-addedCount);
+  return [...head, ...filled];
+}
+
+/**
+ * Recomputes `previous` for one exercise whose movement changed (Replace
+ * exercise): the old movement's values are dropped, then refilled from the
+ * replacement's own history. Other exercises are returned unchanged.
+ */
+export function withPreviousRefreshed(
+  exercises: readonly WorkoutExercise[],
+  exerciseId: string,
+  completedWorkouts: readonly Workout[],
+): WorkoutExercise[] {
+  const cleared = exercises.map((exercise) => exercise.id === exerciseId
+    ? { ...exercise, sets: exercise.sets.map(({ previous: _previous, ...set }) => set) }
+    : exercise);
+  const filled = exercisesWithAddedPrevious(cleared, completedWorkouts);
+  return cleared.map((exercise, index) => (exercise.id === exerciseId ? filled[index] : exercises[index]));
 }
 
 /**
@@ -96,12 +126,8 @@ export function routineExercisesWithNextSessionTargets(
     // The next-session target may progress from an off-session effort, but the
     // greyed "previous" placeholder must ignore off-session work — so the two
     // are sourced separately.
-    const targetSets = latestSetsForExercise(exercise, history, false,
-      occurrence(routine.exercises, exercise),
-    );
-    const previousSets = latestSetsForExercise(exercise, history, true,
-      occurrence(routine.exercises, exercise),
-    );
+    const targetSets = latestSetsForExercise(exercise, history, false, routine.exercises);
+    const previousSets = latestSetsForExercise(exercise, history, true, routine.exercises);
     if (!targetSets && !previousSets) return exercise;
     return {
       ...exercise,
@@ -122,8 +148,9 @@ function latestSetsForExercise(
   // Off-session exercises never seed the greyed "previous" placeholder, but may
   // still inform the next-session target — so the two lookups differ only here.
   skipOffSession: boolean,
-  ordinal: number,
+  list: readonly WorkoutExerciseInput[],
 ): WorkoutSet[] | undefined {
+  const ordinal = occurrence(list, exercise);
   for (const workout of workoutsNewestFirst) {
     const match = workout.exercises.filter((candidate) =>
         sameMovement(exercise, candidate)
@@ -131,6 +158,20 @@ function latestSetsForExercise(
         effectiveTracking(candidate) === effectiveTracking(exercise),
     )[ordinal];
     if (skipOffSession && match?.offSession) continue;
+    if (match) return match.sets;
+  }
+  // The greyed "previous" placeholder falls back to the newest session of the
+  // same movement logged under a different tracking mode (e.g. an older
+  // weight + reps log of a now bodyweight exercise). Callers format only the
+  // fields the current mode shares, so nothing foreign is shown. Next-session
+  // targets (`skipOffSession === false`) never take this fallback.
+  if (!skipOffSession) return undefined;
+  // Position among every copy of the movement, regardless of mode, so a
+  // second copy never borrows the first copy's history.
+  const movementOrdinal = list.slice(0, list.indexOf(exercise)).filter((item) => sameMovement(item, exercise)).length;
+  for (const workout of workoutsNewestFirst) {
+    const match = workout.exercises.filter((candidate) => sameMovement(exercise, candidate))[movementOrdinal];
+    if (match?.offSession) continue;
     if (match) return match.sets;
   }
   return undefined;

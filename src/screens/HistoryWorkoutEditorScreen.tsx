@@ -3,6 +3,7 @@ import { scaleUI } from '../theme/scale';
 import { centeredPressFeedback, ForgePressable as Pressable } from '../components/ui/ForgePressable';
 import { ForgeSheetScrollView } from '../components/ui/ForgeSheetScrollView';
 import { makeWorkoutId } from '../state/workoutMutations';
+import { withPreviousForAppended } from '../domain/workouts/nextSessionTargets';
 import { changeExerciseTracking } from '../domain/exercises/trackingChanges';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useMemo, useRef, useState } from 'react';
@@ -576,9 +577,18 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         onClose={() => setAddExerciseOpen(false)}
         onSubmit={(exercises) => {
           animateLayout(reducedMotion);
-          exercises.forEach((exercise) =>
-            updateDraft((current) => addExerciseToWorkout(current, { exerciseId: exercise.id, name: exercise.name, trackingType: exercise.trackingType, exerciseSnapshot: createExerciseSnapshot(exercise) }) as Workout),
-          );
+          updateDraft((current) => {
+            const next = exercises.reduce<Workout>(
+              (workout, exercise) => addExerciseToWorkout(workout, { exerciseId: exercise.id, name: exercise.name, trackingType: exercise.trackingType, exerciseSnapshot: createExerciseSnapshot(exercise) }) as Workout,
+              current,
+            );
+            // A live workout edited here fills "previous" for the appended
+            // exercises exactly as the live Add exercise path does; recorded
+            // history drafts keep their own, date-relative treatment.
+            return isActive
+              ? { ...next, exercises: withPreviousForAppended(next.exercises, next.exercises.length - current.exercises.length, completedWorkouts) }
+              : next;
+          });
           setAddExerciseOpen(false);
         }}
       />

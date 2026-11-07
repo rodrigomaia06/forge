@@ -50,6 +50,7 @@ import { createActiveWorkoutStyles } from './activeWorkout/activeWorkoutStyles';
 import { useFocusedSetKeyboardLift } from './activeWorkout/useFocusedSetKeyboardLift';
 import { calendarDateKey } from '../domain/workouts/calendarDate';
 import { createExerciseSnapshot } from '../domain/exercises/exerciseSnapshot';
+import { withPreviousRefreshed } from '../domain/workouts/nextSessionTargets';
 import { recordRestTimerSample } from '../state/workoutMutations';
 import { useSynchronizedNow } from '../domain/rest/synchronizedClock';
 
@@ -76,6 +77,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     updateActiveWorkout,
     cancelWorkout,
     finishWorkout,
+    completedWorkouts,
   } = useWorkouts();
   const { exercises: catalogExercises } = useExerciseCatalog();
   const [restSelection, setRestSelection] = useState(90);
@@ -253,16 +255,18 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     if (!replacement || !exerciseId) return;
     updateActiveWorkout((current) => ({
       ...current,
-      exercises: current.exercises.map((exercise) => exercise.id === exerciseId ? {
+      // The replacement is a different movement, so its "previous" comes
+      // from its own history rather than the replaced exercise's.
+      exercises: withPreviousRefreshed(current.exercises.map((exercise) => exercise.id === exerciseId ? {
         ...exercise,
         exerciseId: replacement.id,
         name: replacement.name,
         trackingType: replacement.trackingType,
         exerciseSnapshot: createExerciseSnapshot(replacement),
-      } : exercise),
+      } : exercise), exerciseId, completedWorkouts),
     }));
     setReplacingExerciseId(null);
-  }, [replacingExerciseId, updateActiveWorkout]);
+  }, [completedWorkouts, replacingExerciseId, updateActiveWorkout]);
   const returnToDashboard = (finished: Workout | null): void =>
     navigation.navigate(
       'Dashboard',

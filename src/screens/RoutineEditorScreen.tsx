@@ -53,7 +53,8 @@ import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
 import { usePlans } from '../state/PlansContext';
 import { useWorkouts } from '../state/WorkoutContext';
-import { routineExercisesWithNextSessionTargets } from '../domain/workouts/nextSessionTargets';
+import { exercisesWithAddedPrevious, routineExercisesWithNextSessionTargets } from '../domain/workouts/nextSessionTargets';
+import { effectiveTracking } from '../domain/exercises/tracking';
 import { useSettings } from '../state/SettingsContext';
 import { makeWorkoutId } from '../state/workoutMutations';
 import { createExerciseSnapshot } from '../domain/exercises/exerciseSnapshot';
@@ -103,6 +104,23 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
   const viewingExercises = useMemo(
     () => (viewing && draft ? routineExercisesWithNextSessionTargets(draft, completedWorkouts) : null),
     [viewing, draft, completedWorkouts],
+  );
+  // While editing, the set table's greyed "previous" is display-only: derive
+  // it from history (never persisted) so a removed and re-added exercise shows
+  // its last session again. Keyed on exercise identity, tracking and set count
+  // so typing into set fields does not rescan history on every keystroke.
+  const editingPreviousKey = !viewing && draft
+    ? draft.exercises.map((exercise) => `${exercise.id}|${exercise.exerciseId ?? exercise.name}|${effectiveTracking(exercise)}|${exercise.sets?.length ?? 0}`).join('\n')
+    : null;
+  const editingPrevious = useMemo(
+    () => (editingPreviousKey !== null && draft
+      ? exercisesWithAddedPrevious(
+        draft.exercises.map((exercise, index) => asWorkoutExercise(exercise, [], exercise.id ?? `routine-exercise-${index}`)),
+        completedWorkouts,
+      ).map((exercise) => exercise.sets.map((set) => set.previous))
+      : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [editingPreviousKey, completedWorkouts],
   );
   const [typeSheetOpen, setTypeSheetOpen] = useState(false);
   const [addingExercises, setAddingExercises] = useState(false);
@@ -218,6 +236,8 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
         name: replacement.name,
         trackingType: replacement.trackingType,
         exerciseSnapshot: createExerciseSnapshot(replacement),
+        // A stored "previous" belongs to the replaced movement.
+        sets: exercise.sets?.map(({ previous: _previous, ...set }) => set),
       } : exercise),
     }));
     setReplacingExerciseIndex(null);
@@ -372,7 +392,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
       <ExerciseSection
         index={index}
         testID={`routine-exercise-${exerciseId}`}
-        exercise={asWorkoutExercise(exercise, completedRoutineSetIds, exerciseId)}
+        exercise={withDisplayPrevious(asWorkoutExercise(exercise, completedRoutineSetIds, exerciseId), editingPrevious?.[index])}
         onTrackingChange={(_, mode) => change((current) => ({
           ...current,
           exercises: changeExerciseTracking(current.exercises.map((item, index) => asWorkoutExercise(item, [], `routine-exercise-${index}`)), exerciseId, mode, () => makeWorkoutId('routine-tracking')),
@@ -760,6 +780,11 @@ function RoutineExerciseDragHandle({
       <Icon name="drag" size={19} color={theme.muted} />
     </Pressable>
   );
+}
+
+function withDisplayPrevious(exercise: WorkoutExercise, previous: (string | undefined)[] | undefined): WorkoutExercise {
+  if (!previous?.some(Boolean)) return exercise;
+  return { ...exercise, sets: exercise.sets.map((set, index) => (previous[index] ? { ...set, previous: previous[index] } : set)) };
 }
 
 function asWorkoutExercise(
