@@ -549,12 +549,13 @@ function TargetsSection({
             editable={editable}
             commaAsDecimal={commaAsDecimal}
             timeValue={!isRoutineInterval && kind === 'duration'}
+            // Weight and reps targets use the same range keypad as the live set
+            // inputs (with `,` and `-`), so `82,5` or `8-10` can be entered;
+            // next-session durations keep the mm:ss decimal pad.
             keyboardType={
-              isRoutineInterval
+              isRoutineInterval || kind !== 'duration'
                 ? 'numbers-and-punctuation'
-                : kind === 'reps'
-                  ? 'number-pad'
-                  : 'decimal-pad'
+                : 'decimal-pad'
             }
             accessibilityLabel={`${isRoutineInterval ? 'Routine' : 'Next-time'} ${(isRoutineInterval && kind === 'duration' ? 'Sec' : trackingFieldLabel(trackingType, kind)).toLowerCase()} ${isRoutineInterval ? 'interval' : 'target'} for ${setLabel.toLowerCase()}`}
             onChangeText={(value) =>

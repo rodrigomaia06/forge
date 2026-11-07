@@ -907,7 +907,11 @@ test.describe('Active workout flow', () => {
     const repsOnlyTarget = page.getByRole('textbox', { name: 'Next-time reps target for set 1' });
     await expect(repsOnlyTarget).toBeVisible();
     await expect(page.locator('input[aria-label^="Next-time"]')).toHaveCount(1);
-    await expect(repsOnlyTarget).toHaveAttribute('inputmode', 'numeric');
+    // Next-session targets use the live range keypad (web maps it to decimal).
+    await expect(repsOnlyTarget).toHaveAttribute('inputmode', 'decimal');
+    await repsOnlyTarget.fill('8-10');
+    await repsOnlyTarget.blur();
+    await expect(repsOnlyTarget).toHaveValue('8–10');
     if (testInfo.project.use.isMobile) {
       await page.getByTestId('set-next-session-section').scrollIntoViewIfNeeded();
       await page.screenshot({ path: testInfo.outputPath('reps-only-next-session-targets.png') });
