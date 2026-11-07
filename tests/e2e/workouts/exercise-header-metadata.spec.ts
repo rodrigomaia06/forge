@@ -114,3 +114,42 @@ for (const appearance of ['light', 'dark'] as const) {
     await inspectHeader(page, capture('live-editor-header'));
   });
 }
+
+for (const appearance of ['light', 'dark'] as const) {
+  test(`${appearance} wrapped routine exercise names keep vertical breathing room`, async ({ page }, info) => {
+    const triceps = [...exerciseCatalogById.values()].find(
+      (item) => item.name === 'Kneeling Cable Triceps Extension',
+    )!;
+    const wrapped: WorkoutExercise = {
+      id: 'wrapped',
+      exerciseId: triceps.id,
+      name: triceps.name,
+      trackingType: triceps.trackingType,
+      exerciseSnapshot: createExerciseSnapshot(triceps),
+      sets: [{ id: 'wrapped-set', weight: '20', reps: '10', completed: false }, { id: 'wrapped-set-2', weight: '20', reps: '10', completed: false }],
+    };
+    await page.addInitScript(
+      ({ appearance, exercises }) => {
+        localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance }));
+        localStorage.setItem('@forge/plans-v1', JSON.stringify({ plans: [], standaloneRoutines: [{
+          id: 'wrap-routine', name: 'Wrap routine', type: 'Strength', createdAt: 1, updatedAt: 1, exercises,
+        }] }));
+      },
+      { appearance, exercises: [wrapped, block] },
+    );
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Plans', exact: true }).click();
+    await page.getByRole('button', { name: 'Routine actions for Wrap routine', exact: true }).click();
+    await page.getByTestId('plans-options-sheet').getByRole('button', { name: 'Edit', exact: true }).click();
+    const header = page.getByRole('button', { name: `Expand ${triceps.name}`, exact: true });
+    await expect(header).toContainText('2 sets');
+    const name = header.getByText(triceps.name, { exact: true });
+    const meta = header.getByText('2 sets', { exact: true });
+    const [headerBox, nameBox, metaBox] = await Promise.all([header.boundingBox(), name.boundingBox(), meta.boundingBox()]);
+    // The name wraps on phone widths; it must keep padding from the card edges.
+    expect(nameBox!.y - headerBox!.y).toBeGreaterThanOrEqual(8);
+    expect(headerBox!.y + headerBox!.height - (metaBox!.y + metaBox!.height)).toBeGreaterThanOrEqual(8);
+    await page.waitForTimeout(350);
+    await header.locator('..').screenshot({ path: info.outputPath(`wrapped-routine-row-${appearance}.png`) });
+  });
+}

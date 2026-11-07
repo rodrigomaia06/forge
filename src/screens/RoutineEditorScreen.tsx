@@ -47,6 +47,7 @@ import { AddExerciseSheet } from './activeWorkout/WorkoutSheets';
 import { ExerciseSection, ReadOnlyExerciseSection } from './activeWorkout/ExerciseSection';
 import { useFocusedSetKeyboardLift } from './activeWorkout/useFocusedSetKeyboardLift';
 import { useForgeTheme } from '../theme/ThemeProvider';
+import { ForgeControlSurface } from '../components/ui/ForgeControlSurface';
 import { useForgeReducedMotion } from '../theme/motion';
 import { animateLayout } from './activeWorkout/activeWorkoutFeedback';
 import { useThemedStyles } from '../theme/useThemedStyles';
@@ -556,6 +557,9 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           ListHeaderComponent={
             <View style={styles.listHeader}>{contentTitle}
               <View style={styles.sessionCard}>
+                {/* The card paints `surface` itself, so publish it for nested
+                    controls such as the swipeable attribute rows. */}
+                <ForgeControlSurface.Provider value={theme.surface}>
                 <TextInput
                   accessibilityLabel="Routine name"
                   value={draft.name}
@@ -650,6 +654,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                     </Pressable>
                   </>
                 )}
+                </ForgeControlSurface.Provider>
               </View>
               {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
               <Text style={styles.sectionTitle}>Exercises</Text>
@@ -1001,7 +1006,8 @@ const createStyles = (theme: import('../types').ForgeTheme) =>
       textAlignVertical: 'center',
       textAlign: 'left',
     },
-    divider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.divider },
+    // Matches the 1px top divider the shared attribute rows draw in this card.
+    divider: { height: 1, backgroundColor: theme.divider },
     // Edit and view share one row layout: the label on the left and the type
     // value on the right (before the edit-only chevron), so the two modes read
     // identically instead of the editor stacking the value under the label.

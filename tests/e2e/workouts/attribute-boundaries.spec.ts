@@ -39,3 +39,30 @@ for (const appearance of ['light', 'dark']) {
     await expect(location).toBeVisible();
   });
 }
+
+for (const appearance of ['light', 'dark']) {
+  test(`routine editor attribute rows share the routine card surface (${appearance})`, async ({ page }, info) => {
+    await page.addInitScript(appearance => {
+      localStorage.setItem('@forge/settings-preferences', JSON.stringify({ appearance }));
+      localStorage.setItem('@forge/plans-v1', JSON.stringify({ plans: [], standaloneRoutines: [{
+        id: 'attribute-routine', name: 'Shoulder', type: 'Strength', createdAt: 1, updatedAt: 1,
+        attributes: { Location: '' }, attributeIcons: { Location: 'location' },
+        exercises: [{ id: 'attribute-press', exerciseId: 'barbell-bench-press', name: 'Barbell Bench Press', trackingType: 'weight-reps', sets: [{ id: 'attribute-set', weight: '60', reps: '8' }] }],
+      }] }));
+    }, appearance);
+    await page.goto('/');
+    await page.getByRole('tab', { name: 'Plans', exact: true }).click();
+    await page.getByRole('button', { name: 'Routine actions for Shoulder', exact: true }).click();
+    await page.getByTestId('plans-options-sheet').getByRole('button', { name: 'Edit' }).click();
+    const location = page.getByRole('button', { name: 'Edit Location attribute', exact: true });
+    const add = page.getByRole('button', { name: 'Add attribute', exact: true });
+    await expect(location).toBeVisible();
+    const card = add.locator('..');
+    const cardFill = await card.evaluate(node => getComputedStyle(node).backgroundColor);
+    // The swipe surface behind the row must match the card, never the page background.
+    await expect(location.locator('..')).toHaveCSS('background-color', cardFill);
+    await expect(location).toHaveCSS('border-top-width', '1px');
+    await page.waitForTimeout(300);
+    await card.screenshot({ path: info.outputPath(`routine-attribute-card-${appearance}.png`) });
+  });
+}
