@@ -47,6 +47,8 @@ export function DashboardStartCard({
   // Name the plan alongside the routine, the same "Plan - Routine" form the
   // history timeline uses for plan-based sessions, so the suggestion reads the same.
   const title = routine ? (plan ? `${plan.name} - ${routine.name}` : routine.name) : 'Start a workout';
+  // Keep a long title clear of the edit-mode Hide control in the corner.
+  const inset = tileHeaderRightInset(useTileChrome());
 
   return (
     <View style={styles.startInner}>
@@ -54,7 +56,7 @@ export function DashboardStartCard({
         <View style={[styles.startIcon, { backgroundColor: presentation.background }]}>
           <Icon name={routine ? presentation.icon : 'fitness'} size={26} color={presentation.color} />
         </View>
-        <View style={styles.startCopy}>
+        <View style={[styles.startCopy, inset ? { paddingRight: inset } : null]}>
           {suggestion ? <Text style={styles.startEyebrow}>Suggested workout</Text> : null}
           <ForgeEntityName style={styles.startTitle} presentation="full">{title}</ForgeEntityName>
           <Text style={styles.startMeta} numberOfLines={1}>{meta}</Text>

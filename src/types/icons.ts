@@ -52,6 +52,8 @@ export type IconName =
   | 'hourglass'
   | 'alarm-average'
   | 'trash'
+  | 'eye'
+  | 'eye-off'
   | 'duplicate'
   | 'replace'
   | 'check'

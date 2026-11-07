@@ -13,7 +13,8 @@ export function useTileChrome(): TileChrome {
   return useContext(TileChromeContext);
 }
 
-/** Right padding a tile header needs to clear the edit-mode gear button. */
+/** Right padding a tile header needs to clear the edit-mode Hide (and gear) buttons. */
 export function tileHeaderRightInset(chrome: TileChrome): number {
-  return chrome.editing && chrome.hasSettings ? 34 : 0;
+  if (!chrome.editing) return 0;
+  return chrome.hasSettings ? 68 : 34;
 }

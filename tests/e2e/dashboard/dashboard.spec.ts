@@ -1,16 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
-/** Slides a card to the left to reveal its swipe-to-delete action. */
-async function swipeCardLeft(page: Page, card: Locator): Promise<void> {
-  const box = await card.boundingBox();
-  if (!box) throw new Error('Expected a measurable card to swipe');
-  const y = box.y + box.height / 2;
-  const startX = box.x + box.width - 24;
-  await page.mouse.move(startX, y);
-  await page.mouse.down();
-  await page.mouse.move(startX - 100, y, { steps: 12 });
-  await page.mouse.up();
-}
 
 // The dashboard now ships empty and the user adds tiles themselves, so these
 // tests seed the full set of tiles (the previous default) to exercise tile
@@ -50,7 +39,7 @@ test.describe('Dashboard', () => {
     await expect(page.getByTestId('dashboard-week-card')).toHaveCount(0);
 
     await page.getByRole('button', { name: 'Add widgets' }).click();
-    await page.getByRole('button', { name: 'This week' }).click();
+    await page.getByRole('button', { name: 'Show This week tile' }).click();
     await expect(page.getByTestId('dashboard-week-card')).toBeVisible();
   });
 
@@ -151,32 +140,75 @@ test.describe('Dashboard', () => {
     await expect(page.getByTestId('workout-details-summary-title')).toHaveText('Leg Day');
   });
 
-  test('removes and re-adds a dashboard tile in edit mode, persisting across reloads', async ({ page }, testInfo) => {
+  test('hides and re-shows a dashboard tile in edit mode, persisting across reloads', async ({ page }, testInfo) => {
     await page.goto('/');
     await expect(page.getByTestId('dashboard-week-card')).toBeVisible();
-    // No delete control outside edit mode.
-    await expect(page.getByRole('button', { name: 'Delete This week tile' })).toHaveCount(0);
+    // No hide control outside edit mode.
+    await expect(page.getByRole('button', { name: 'Hide This week tile' })).toHaveCount(0);
 
-    // Enter edit mode from the header, then swipe the tile left and delete it.
+    // Edit mode shows an explicit Hide control on every tile.
     await page.getByRole('button', { name: 'Edit dashboard' }).click();
-    await swipeCardLeft(page, page.getByTestId('dashboard-week-card'));
+    await page.waitForTimeout(250);
     if (testInfo.project.use.isMobile === true) {
-      await page.screenshot({ path: testInfo.outputPath('tile-swipe-revealed.png') });
+      await page.screenshot({ path: testInfo.outputPath('dashboard-editing.png') });
     }
-    await page.getByRole('button', { name: 'Delete This week tile' }).click();
+    await page.getByRole('button', { name: 'Hide This week tile' }).click();
     await expect(page.getByTestId('dashboard-week-card')).toHaveCount(0);
 
-    // The removal persists across a fresh load.
+    // The hidden tile is listed under Hidden tiles while editing.
+    const hidden = page.getByTestId('dashboard-hidden-tiles');
+    await hidden.scrollIntoViewIfNeeded();
+    await expect(hidden.getByRole('button', { name: 'Show This week tile' })).toBeVisible();
+    if (testInfo.project.use.isMobile === true) {
+      await page.waitForTimeout(250);
+      await hidden.screenshot({ path: testInfo.outputPath('dashboard-hidden-tiles.png') });
+    }
+
+    // The change persists across a fresh load.
     await page.goto('/');
     await expect(page.getByTestId('dashboard-week-card')).toHaveCount(0);
 
-    // Re-add it from the edit-mode Add tile chooser.
     await page.getByRole('button', { name: 'Edit dashboard' }).click();
-    const addTile = page.getByRole('button', { name: 'Add tile' });
-    await addTile.scrollIntoViewIfNeeded();
-    await addTile.click();
-    await page.getByRole('button', { name: 'This week' }).click();
+    const show = page.getByRole('button', { name: 'Show This week tile' });
+    await show.scrollIntoViewIfNeeded();
+    await show.click();
     await expect(page.getByTestId('dashboard-week-card')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Show This week tile' })).toHaveCount(0);
+  });
+
+  test('a dragged tile cannot be moved over the More tiles list', async ({ page }, testInfo) => {
+    // Two small tiles, so the whole edit list (and More tiles) fits on screen.
+    await page.addInitScript((kinds) => {
+      localStorage.setItem(
+        '@forge/dashboard-layout-v1',
+        JSON.stringify(kinds.map((kind) => ({ id: kind, kind, visible: kind === 'streak' || kind === 'last-workout' }))),
+      );
+    }, DASHBOARD_TILE_KINDS);
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Edit dashboard' }).click();
+    const more = page.getByTestId('dashboard-hidden-tiles');
+    await expect(more).toBeVisible();
+    const moreBox = (await more.boundingBox())!;
+    const handle = page.getByRole('button', { name: /^Reorder .* tile$/ }).first();
+    const handleBox = (await handle.boundingBox())!;
+    const startX = handleBox.x + handleBox.width / 2;
+    const startY = handleBox.y + handleBox.height / 2;
+    const endY = moreBox.y + moreBox.height - 10;
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.waitForTimeout(180);
+    for (let step = 1; step <= 20; step += 1) {
+      await page.mouse.move(startX, startY + ((endY - startY) * step) / 20);
+      await page.waitForTimeout(16);
+    }
+    await page.waitForTimeout(150);
+    // While held at the bottom, the dragged tile stops above More tiles.
+    const dragged = (await handle.locator('xpath=..').boundingBox())!;
+    expect(dragged.y + dragged.height).toBeLessThanOrEqual(moreBox.y + 1);
+    if (testInfo.project.use.isMobile === true) {
+      await page.screenshot({ path: testInfo.outputPath('dashboard-drag-limit.png') });
+    }
+    await page.mouse.up();
   });
 
   test('collapses the header to a single Done control while editing', async ({ page }, testInfo) => {

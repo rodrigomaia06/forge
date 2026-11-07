@@ -1,25 +1,18 @@
 import { scaleUI } from '../theme/scale';
 import { centeredPressFeedback, ForgePressable as Pressable } from '../components/ui/ForgePressable';
-import { scheduleOnRN } from 'react-native-worklets';
 import React, { useEffect, useMemo, useState } from 'react';
 import { LayoutAnimation, Platform, StyleSheet, UIManager, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import {
   AppScreen,
   Button,
-  ForgeActionSheet,
-  useAfterSheetClose,
   ForgeCard,
   ForgeText as Text,
   HeaderEdge,
   Icon,
   lightHaptic,
-  mediumHaptic,
-  pressedFeedback,
   selectionHaptic,
 } from '../components/ui';
 import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
@@ -131,10 +124,10 @@ export function DashboardScreen() {
   const starter = useWorkoutStarter();
   const { layout, setLayout } = useDashboardLayout();
   const [editing, setEditing] = useState(false);
-  const [addTileOpen, setAddTileOpen] = useState(false);
+  // Height of the More tiles list, kept out of the drag range so a tile can
+  // only be dropped among the other tiles.
+  const [footerHeight, setFooterHeight] = useState(0);
   const [settingsTileId, setSettingsTileId] = useState<string | null>(null);
-  // Open a new tile's settings only after the add-tile sheet has fully closed.
-  const { runAfterClose: runAfterAddTileClose, onClosed: onAddTileClosed } = useAfterSheetClose();
   const [headerElevated, setHeaderElevated] = useState(false);
   const reducedMotion = useForgeReducedMotion();
   // Smoothly reflow the tile list when a tile is added/removed or edit mode
@@ -249,10 +242,16 @@ export function DashboardScreen() {
 
   const persistOrder = (nextVisible: DashboardTileConfig[]) =>
     setLayout([...nextVisible, ...layout.filter((tile) => !tile.visible)]);
+  // Built-in tiles are hidden and stay listed under Hidden tiles; Measurements
+  // cards can exist more than once, so hiding one removes that instance (a new
+  // one is added from the same list).
   const hideTile = (id: string) => {
     selectionHaptic();
     reflowTiles();
-    setLayout(layout.map((tile) => (tile.id === id ? { ...tile, visible: false } : tile)));
+    setLayout(layout.flatMap((tile) => {
+      if (tile.id !== id) return [tile];
+      return tile.kind === 'measurement' || tile.kind === 'measurements' ? [] : [{ ...tile, visible: false }];
+    }));
   };
   // Upserts a tile by id: re-shows a hidden one, or appends a brand-new one
   // (e.g. a measurement tile that has no prior layout entry).
@@ -263,14 +262,11 @@ export function DashboardScreen() {
       ...layout.filter((tile) => tile.id !== config.id),
       { ...config, visible: true },
     ]);
-    // A fresh measurement card opens its settings so you can pick the metric(s)
-    // and window straight away, rather than staring at an empty tile — but only
-    // once the add-tile sheet has fully closed, so the two bottom sheets never
-    // overlap on native.
-    if (tileHasSettings(config.kind)) {
-      runAfterAddTileClose(() => setSettingsTileId(config.id));
-    }
-    setAddTileOpen(false);
+    // A brand-new card with settings (e.g. Measurements) opens them straight
+    // away so you pick its metric(s) rather than staring at an empty tile; a
+    // re-shown tile keeps the settings it already had.
+    const isNew = !layout.some((tile) => tile.id === config.id);
+    if (isNew && tileHasSettings(config.kind)) setSettingsTileId(config.id);
   };
 
   const updateTileSettings = (id: string, settings: DashboardTileSettings) =>
@@ -281,7 +277,7 @@ export function DashboardScreen() {
   // Measurements card and choose which metrics it shows in its settings.
   const measurementsCardCount = layout.filter((tile) => tile.kind === 'measurements' && tile.visible).length;
   const canAddMeasurements = preferences.dailyMeasurementDefinitions.length > measurementsCardCount;
-  const addableTiles: { key: string; label: string; icon: IconName; onPress: () => void }[] = [
+  const addableTiles: { key: string; label: string; icon: IconName; isNew?: boolean; onPress: () => void }[] = [
     ...hiddenTiles
       .filter((tile) => tile.kind !== 'measurement' && tile.kind !== 'measurements')
       .map((tile) => ({
@@ -297,6 +293,7 @@ export function DashboardScreen() {
           key: 'add-measurements',
           label: DASHBOARD_TILE_DEFAULT_TITLE.measurements,
           icon: DASHBOARD_TILE_ICON.measurements,
+          isNew: true,
           onPress: () => addTile({ id: newMeasurementsTileId(), kind: 'measurements' as const, visible: true, settings: { ...DASHBOARD_TILE_DEFAULT_SETTINGS.measurements } }),
         }]
       : []),
@@ -305,6 +302,7 @@ export function DashboardScreen() {
       key: kind,
       label: DASHBOARD_TILE_DEFAULT_TITLE[kind],
       icon: DASHBOARD_TILE_ICON[kind],
+      isNew: true,
       onPress: () => addTile({ id: kind, kind, visible: true, settings: { ...DASHBOARD_TILE_DEFAULT_SETTINGS[kind] } }),
     })),
   ];
@@ -436,6 +434,7 @@ export function DashboardScreen() {
           keyExtractor={(tile) => tile.id}
           extraData={{ summary, editing }}
           activationDistance={editing ? 12 : 100000}
+          dragEndInset={(editing && addableTiles.length ? footerHeight : 0) + dockScrollInset}
           showsVerticalScrollIndicator={false}
           // The list's wrapper must be flex-bounded (minHeight: 0) or it grows to
           // content height on web and the tiles below the fold become unreachable.
@@ -461,7 +460,6 @@ export function DashboardScreen() {
                     onPress={() => {
                       reflowTiles();
                       setEditing(true);
-                      setAddTileOpen(true);
                     }}
                     haptic="light"
                   />
@@ -470,22 +468,31 @@ export function DashboardScreen() {
             )
           }
           ListFooterComponent={
-            <View>
-              {editing && addableTiles.length ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Add tile"
-                  onPress={() => {
-                    lightHaptic();
-                    setAddTileOpen(true);
-                  }}
-                  style={({ pressed }) => [styles.addTileRow, pressed && pressedFeedback]}
-                >
-                  <Icon name="add" size={20} color={theme.ink} />
-                  <Text style={styles.addTileLabel}>Add tile</Text>
-                </Pressable>
-              ) : null}
-            </View>
+            editing && addableTiles.length ? (
+              // Every tile not on the dashboard, in one list: tap a row to show it.
+              <View
+                style={styles.hiddenSection}
+                testID="dashboard-hidden-tiles"
+                onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height + styles.hiddenSection.marginTop + styles.hiddenSection.marginBottom)}
+              >
+                <Text accessibilityRole="header" style={styles.hiddenTitle}>More tiles</Text>
+                <ForgeCard style={styles.hiddenCard}>
+                  {addableTiles.map((tile, index) => (
+                    <Pressable
+                      key={tile.key}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${tile.isNew ? 'Add' : 'Show'} ${tile.label} tile`}
+                      onPress={tile.onPress}
+                      style={[styles.hiddenRow, index > 0 && styles.hiddenRowDivider]}
+                    >
+                      <Icon name={tile.icon} size={20} color={theme.textPrimary} />
+                      <Text style={styles.hiddenLabel}>{tile.label}</Text>
+                      <Icon name={tile.isNew ? 'add' : 'eye'} size={20} color={theme.slate} />
+                    </Pressable>
+                  ))}
+                </ForgeCard>
+              </View>
+            ) : null
           }
           onDragEnd={({ data }) => persistOrder(data)}
           renderItem={({ item, drag, isActive }) => (
@@ -495,7 +502,7 @@ export function DashboardScreen() {
               editing={editing}
               isActive={isActive}
               onDrag={drag}
-              onRemove={() => hideTile(item.id)}
+              onHide={() => hideTile(item.id)}
               onOpenSettings={tileHasSettings(item.kind) ? () => { selectionHaptic(); setSettingsTileId(item.id); } : undefined}
             >
               {renderTileContent(item)}
@@ -503,19 +510,6 @@ export function DashboardScreen() {
           )}
         />
         {starter.sheet}
-        <ForgeActionSheet
-          visible={addTileOpen}
-          onClose={() => setAddTileOpen(false)}
-          onClosed={onAddTileClosed}
-          accessibilityLabel="Dismiss add tile chooser"
-          title="Add tile"
-          testID="add-tile-sheet"
-          actions={addableTiles.map((tile) => ({
-            label: tile.label,
-            icon: tile.icon,
-            onPress: tile.onPress,
-          }))}
-        />
         <DashboardTileSettingsSheet
           config={settingsTileId ? (layout.find((tile) => tile.id === settingsTileId) ?? null) : null}
           workoutTypes={preferences.workoutTypes}
@@ -534,7 +528,7 @@ function DashboardTileFrame({
   editing,
   isActive,
   onDrag,
-  onRemove,
+  onHide,
   onOpenSettings,
   children,
 }: {
@@ -543,127 +537,69 @@ function DashboardTileFrame({
   editing: boolean;
   isActive: boolean;
   onDrag: () => void;
-  onRemove: () => void;
+  onHide: () => void;
   onOpenSettings?: () => void;
   children: React.ReactNode;
 }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const reducedMotion = useForgeReducedMotion();
-  const translateX = useSharedValue(0);
-  const open = useSharedValue(false);
-  const [revealed, setRevealed] = useState(false);
-  const [deletePressed, setDeletePressed] = useState(false);
-  const cardStyle = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value }] }));
-  const deleteLayerStyle = useAnimatedStyle(() => ({
-    opacity: Math.min(1, Math.max(0, -translateX.value / TILE_DELETE_WIDTH)),
-  }));
-
   const chrome = { editing, hasSettings: Boolean(onOpenSettings) };
-
-  const remove = (): void => {
-    mediumHaptic();
-    onRemove();
-  };
-  const settle = (shouldOpen: boolean): void => {
-    setRevealed(shouldOpen);
-    open.value = shouldOpen;
-    translateX.value = reducedMotion
-      ? (shouldOpen ? -TILE_DELETE_WIDTH : 0)
-      : withSpring(shouldOpen ? -TILE_DELETE_WIDTH : 0, forgeMotion.swipeSpring);
-  };
-  // A single structure across both modes so the tile body (and its charts) stays
-  // mounted when edit mode toggles — the reorder/swipe chrome only enables and
-  // fades in, it never re-creates the content. Whichever axis clears 16 pt first
-  // wins, so a horizontal slide is not mistaken for a scroll.
-  const swipe = Gesture.Pan()
-    .enabled(editing)
-    .activeOffsetX([-16, 16])
-    .failOffsetY([-16, 16])
-    .onUpdate((gesture) => {
-      if (!open.value && gesture.translationX >= 0) return;
-      const base = open.value ? -TILE_DELETE_WIDTH : 0;
-      translateX.value = Math.max(-TILE_DELETE_WIDTH, Math.min(0, base + gesture.translationX));
-    })
-    .onEnd((gesture) => {
-      const offset = (open.value ? -TILE_DELETE_WIDTH : 0) + gesture.translationX;
-      const shouldOpen = Math.max(-TILE_DELETE_WIDTH, Math.min(0, offset)) < -TILE_DELETE_WIDTH * 0.5;
-      scheduleOnRN(settle, shouldOpen);
-    });
-
+  const editOnly = { opacity: editing ? 1 : 0, pointerEvents: editing ? 'auto' : 'none' } as const;
+  const editA11y = {
+    accessibilityElementsHidden: !editing,
+    importantForAccessibility: editing ? 'auto' : 'no-hide-descendants',
+  } as const;
+  // The tile body (and its charts) stays mounted when edit mode toggles: the
+  // reorder rail only enables, and the Hide/settings controls are siblings.
   return (
     <View style={styles.tileWrap}>
-      <GestureDetector gesture={swipe}>
-        <View style={[styles.tileSwipeRow, editing && deletePressed && { backgroundColor: theme.destructiveSurfacePressed }]}>
-          <Animated.View
-            style={[
-              styles.tileDeleteLayer,
-              deleteLayerStyle,
-              { backgroundColor: deletePressed ? theme.destructiveSurfacePressed : theme.destructiveSurface, pointerEvents: revealed && editing ? 'auto' : 'none' },
-            ]}
-          >
-            {editing ? (
+      <ForgeCard testID={testID} style={[styles.tileCard, isActive && styles.tileCardActive]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Reorder ${name} tile`}
+          pressFeedbackStyle={centeredPressFeedback(scaleUI(28), scaleUI(14), scaleUI(40))}
+          {...editA11y}
+          onLongPress={editing ? onDrag : undefined}
+          delayLongPress={140}
+          style={[styles.dragRail, editOnly]}
+        >
+          <Icon name="drag" size={18} color={theme.muted} />
+        </Pressable>
+        <View style={[styles.tileBody, { paddingLeft: editing ? DRAG_RAIL_WIDTH : 16 }]}>
+          <TileChromeContext.Provider value={chrome}>{children}</TileChromeContext.Provider>
+        </View>
+        {/* Rendered only while editing; a sibling of the body, so toggling it
+            never remounts the tile content. */}
+        {editing ? (
+          <View style={styles.tileControls}>
+            {onOpenSettings ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Delete ${name} tile`}
-                onPress={remove}
-                onPressIn={() => setDeletePressed(true)}
-                onPressOut={() => setDeletePressed(false)}
-                style={styles.tileDeleteAction}
+                accessibilityLabel={`${name} tile settings`}
+                onPress={onOpenSettings}
+                hitSlop={8}
+                style={({ pressed }) => [styles.tileControl, pressed && styles.tileControlPressed]}
               >
-                <Icon name="trash" size={20} color={theme.textDestructive} />
-                <Text style={styles.tileDeleteText}>Delete</Text>
+                <Icon name="settings" size={16} color={theme.slate} />
               </Pressable>
             ) : null}
-          </Animated.View>
-          <Animated.View
-            style={[styles.tileSwipeContent, cardStyle]}
-            accessibilityActions={editing ? [{ name: 'delete', label: `Delete ${name} tile` }] : []}
-            onAccessibilityAction={(event) => {
-              if (event.nativeEvent.actionName === 'delete') remove();
-            }}
-          >
-            <ForgeCard testID={testID} style={[styles.tileCard, isActive && styles.tileCardActive]}>
-              {/* A generous left rail is the drag zone — hidden and inert until edit
-                  mode, so its show/hide never remounts the body beside it. */}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Reorder ${name} tile`}
-                pressFeedbackStyle={centeredPressFeedback(scaleUI(28), scaleUI(14), scaleUI(40))}
-                accessibilityElementsHidden={!editing}
-                importantForAccessibility={editing ? 'auto' : 'no-hide-descendants'}
-                onLongPress={editing ? onDrag : undefined}
-                delayLongPress={140}
-                style={[styles.dragRail, { opacity: editing ? 1 : 0, pointerEvents: editing ? 'auto' : 'none' }]}
-              >
-                <Icon name="drag" size={18} color={theme.muted} />
-              </Pressable>
-              <View style={[styles.tileBody, { paddingLeft: editing ? DRAG_RAIL_WIDTH : 16 }]}>
-                <TileChromeContext.Provider value={chrome}>{children}</TileChromeContext.Provider>
-              </View>
-              {onOpenSettings ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${name} tile settings`}
-                  accessibilityElementsHidden={!editing}
-                  importantForAccessibility={editing ? 'auto' : 'no-hide-descendants'}
-                  onPress={onOpenSettings}
-                  hitSlop={8}
-                  style={({ pressed }) => [styles.settingsButton, { opacity: editing ? 1 : 0, pointerEvents: editing ? 'auto' : 'none' }, pressed && styles.settingsButtonPressed]}
-                >
-                  <Icon name="settings" size={16} color={theme.slate} />
-                </Pressable>
-              ) : null}
-            </ForgeCard>
-          </Animated.View>
-        </View>
-      </GestureDetector>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Hide ${name} tile`}
+              onPress={onHide}
+              hitSlop={8}
+              style={({ pressed }) => [styles.tileControl, pressed && styles.tileControlPressed]}
+            >
+              <Icon name="eye-off" size={16} color={theme.slate} />
+            </Pressable>
+          </View>
+        ) : null}
+      </ForgeCard>
     </View>
   );
 }
 
 const DRAG_RAIL_WIDTH = 40;
-const TILE_DELETE_WIDTH = 64;
 
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   appShell: { flex: 1, minHeight: 0 },
@@ -692,52 +628,37 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
     paddingVertical: 16,
     minHeight: 44,
   },
-  // Swipe-to-delete, matching the live-workout set/exercise cards: the rounded
-  // row is destructive-red, and the card slides left to reveal the trash action.
-  tileSwipeRow: {
-    position: 'relative',
-    overflow: 'hidden',
-    borderRadius: 24,
-    backgroundColor: theme.destructiveSurface,
-  },
-  tileSwipeContent: { zIndex: 1 },
-  tileDeleteLayer: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    width: TILE_DELETE_WIDTH,
-    backgroundColor: theme.destructiveSurface,
-  },
-  tileDeleteAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
-  tileDeleteText: { color: theme.textDestructive, ...typeScale.caption },
-  settingsButton: {
+  // Edit-mode controls in the top-right corner: settings (when the tile has
+  // any) then Hide. Tile headers reserve this width via tileHeaderRightInset.
+  tileControls: {
     position: 'absolute',
     top: 8,
     right: 8,
+    flexDirection: 'row',
+    gap: 4,
+    zIndex: 3,
+  },
+  tileControl: {
     width: 30,
     height: 30,
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 3,
     backgroundColor: theme.surfaceMuted,
   },
-  settingsButtonPressed: { backgroundColor: theme.pressed },
-  addTileRow: {
-    marginTop: 2,
-    marginBottom: 14,
-    marginHorizontal: 20,
+  tileControlPressed: { backgroundColor: theme.pressed },
+  hiddenSection: { marginTop: 6, marginBottom: 14, paddingHorizontal: 20, gap: 10 },
+  hiddenTitle: { ...typeScale.sectionTitle, color: theme.textPrimary },
+  hiddenCard: { padding: 0, overflow: 'hidden' },
+  hiddenRow: {
     minHeight: 52,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: theme.border,
-    borderStyle: 'dashed',
+    gap: 12,
   },
-  addTileLabel: { color: theme.ink, ...typeScale.controlLabel },
+  hiddenRowDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.divider },
+  hiddenLabel: { flex: 1, minWidth: 0, color: theme.textPrimary, ...typeScale.body },
   tileMissing: { color: theme.muted, ...typeScale.body },
 });

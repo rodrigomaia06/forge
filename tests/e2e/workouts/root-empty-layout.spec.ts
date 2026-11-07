@@ -40,7 +40,7 @@ for (const appearance of ['light', 'dark'] as const) {
     await expect(page.getByTestId('dashboard-empty-illustration')).toBeVisible();
     expect((await page.getByTestId('dashboard-empty-illustration').boundingBox())!.y).toBe(positions[0].artY);
     await page.getByRole('button', { name: 'Add widgets', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'This week', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Show This week tile', exact: true })).toBeVisible();
   });
 
   test(`${appearance} populated Plans root retains the original edit/add separator`, async ({ page }, info) => {
