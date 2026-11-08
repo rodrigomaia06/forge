@@ -22,3 +22,6 @@ design-proposals/
 *.mobileprovision
 *.p8
 *.key
+
+# direnv's cache of the flake shell.
+.direnv/
