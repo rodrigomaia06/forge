@@ -66,6 +66,9 @@ export function NavigationItem({
     <View style={styles.itemAnimation}>
       <Pressable
         testID={active ? 'dashboard-nav-active' : `dashboard-nav-${label.toLowerCase()}`}
+        // The dock's feedback is the moving selection pill and the icon's own selected
+        // size; also shrinking the whole tab on press made the icon resample (soft) on iOS.
+        pressScale={false}
         accessibilityRole="tab"
         accessibilityLabel={accessibilityLabel ?? label}
         accessibilityState={{ selected: active }}

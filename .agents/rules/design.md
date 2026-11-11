@@ -67,7 +67,7 @@ Forge motion is quiet and purposeful: use it only to confirm a direct action, pr
 
 Refined press and value motion is part of the shared primitives, not per-screen decoration:
 
-- `ForgePressable` settles rounded painted surfaces slightly inward while pressed (a fixed few points, never below 0.97 scale) on top of the shared tint layer. Square full-width rows, grouped segments, disabled controls and backdrops do not scale.
+- `ForgePressable` settles rounded painted surfaces slightly inward while pressed (a fixed few points, never below 0.97 scale) on top of the shared tint layer. Square full-width rows, grouped segments, disabled controls, backdrops and primary dock tabs (whose feedback is the moving selection pill and the icon's selected size) do not scale.
 - Live and changing numeric readouts (the elapsed clock and rest countdowns) use `ForgeRollingNumber`: only changed digits roll, upward when the value grows and downward when it shrinks, with tabular figures so the row never shifts width. Do not roll static values or values on first display.
 - A completed set check traces its Tabler check stroke in (`DrawnCheckIcon`) instead of fading it.
 - Native layout changes (expand/collapse, list reflow, sheet content swaps) go through `animateNextLayout`, which uses ease-out at the shared feedback/transition durations. Do not configure `LayoutAnimation` presets or ease-in-out curves locally; the only exception is a sheet following the system keyboard, which matches the keyboard's own curve.

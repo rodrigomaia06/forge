@@ -109,6 +109,11 @@ export function ForgePressableGroup({ style, children, ...props }: ViewProps) {
 }
 
 type ForgePressableProps = PressableProps & {
+  /**
+   * Whether a rounded surface settles inward while pressed (default). Controls with
+   * their own selection motion, such as dock tabs, opt out.
+   */
+  pressScale?: boolean;
   pressFeedback?: 'self' | 'group';
   /** Only inset visible controls use a smaller layer than their touch target. */
   pressFeedbackStyle?: StyleProp<ViewStyle>;
@@ -120,7 +125,7 @@ type ForgePressableProps = PressableProps & {
  * Reduce Motion, for disabled controls, grouped segments and full-screen backdrops).
  */
 export const ForgePressable = forwardRef<View, ForgePressableProps>(function ForgePressable(
-  { style, children, pressFeedback = 'self', pressFeedbackStyle, onPressIn, onPressOut, onLayout, ...props },
+  { style, children, pressScale = true, pressFeedback = 'self', pressFeedbackStyle, onPressIn, onPressOut, onLayout, ...props },
   ref,
 ) {
   const group = useContext(GroupFeedback);
@@ -145,6 +150,7 @@ export const ForgePressable = forwardRef<View, ForgePressableProps>(function For
     base.right === 0 &&
     !base.borderRadius;
   const scalable =
+    pressScale &&
     !reducedMotion &&
     !groupFeedback &&
     !props.disabled &&
