@@ -15,6 +15,9 @@ import { forgeDockGeometry } from '../dockGeometry';
 import { forgeMotion, forgeMotionDuration, useForgeReducedMotion } from '../../theme/motion';
 import type { ForgeTheme, IconName } from '../../types';
 
+const RESTING_ICON_SCALE = 0.96;
+const SELECTED_ICON_SCALE = 1.1;
+
 interface NavigationItemProps {
   icon: IconName;
   label: string;
@@ -42,6 +45,12 @@ export function NavigationItem({
   accessibilityLabel,
 }: NavigationItemProps) {
   const activeProgress = useRef(new RNAnimated.Value(0)).current;
+  // The selected icon reads 10% larger. A transform that scales a view above 1
+  // stretches its already-rendered glyph, which pixelates mid-animation, so draw the
+  // icon at the selected size and only ever scale it down (resting ≈0.87, selected 1).
+  const drawnIconSize = Math.round(iconSize * SELECTED_ICON_SCALE);
+  const restingScale = (iconSize * RESTING_ICON_SCALE) / drawnIconSize;
+  const selectedScale = (iconSize * SELECTED_ICON_SCALE) / drawnIconSize;
   const reducedMotion = useForgeReducedMotion();
 
   useEffect(() => {
@@ -84,7 +93,7 @@ export function NavigationItem({
                     {
                       scale: activeProgress.interpolate({
                         inputRange: [0, 1],
-                        outputRange: [0.96, 1.1],
+                        outputRange: [restingScale, selectedScale],
                       }),
                     },
                   ],
@@ -97,7 +106,7 @@ export function NavigationItem({
                 ? icon.replace('-outline', '')
                 : icon) as import('../../types').IconName
             }
-            size={iconSize}
+            size={emphasis ? iconSize : drawnIconSize}
             color={
               active
                 ? theme.dockForeground || theme.surface
