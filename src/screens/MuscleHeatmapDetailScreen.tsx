@@ -1,4 +1,4 @@
-import { ForgeEntityName } from '../components/ui';
+import { ForgeEntityName, ForgeSegmentedSwitch } from '../components/ui';
 import { ForgePressable as Pressable } from '../components/ui/ForgePressable';
 import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -6,7 +6,7 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { AppScreen, ForgeCard, ForgeText as Text, HeaderAction, HeaderActionGroup, Icon, joinedHeaderAction, pressedFeedback, selectionHaptic } from '../components/ui';
+import { AppScreen, ForgeCard, ForgeText as Text, HeaderAction, HeaderActionGroup, Icon, joinedHeaderAction, selectionHaptic } from '../components/ui';
 import { SettingsDetailHeader } from './settings/SettingsScreenChrome';
 import { MuscleMap, muscleHeatColors } from '../components/anatomy/MuscleMap';
 import { HEATMAP_ACCENT, MUSCLE_GROUP_COLORS } from './dashboard/DashboardWidgetTiles';
@@ -64,27 +64,7 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
   const maxSets = Math.max(1, ...ranking.map((r) => r.sets));
   const anyData = Object.values(heat).some((v) => v > 0);
 
-  function Segmented<T>({ options, value, onChange, format }: { options: readonly T[]; value: T; onChange: (v: T) => void; format: (v: T) => string }) {
-    return (
-      <View style={styles.segmented}>
-        {options.map((opt) => {
-          const active = opt === value;
-          return (
-            <Pressable
-              key={String(opt)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              accessibilityLabel={format(opt)}
-              onPress={() => onChange(opt)}
-              style={({ pressed }) => [styles.segment, { backgroundColor: active ? theme.selectionIndicator : theme.surfaceMuted }, pressed && !active && pressedFeedback]}
-            >
-              <Text style={[styles.segmentText, { color: active ? (theme.onActionPrimary ?? theme.surface) : theme.slate }]}>{format(opt)}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    );
-  }
+
 
   return (
     <AppScreen edges={['top']} backgroundColor={theme.background}>
@@ -127,14 +107,26 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
         >
           {editing ? (
             <Animated.View entering={reducedMotion ? undefined : FadeIn.duration(200)}>
-              <Segmented options={WINDOWS} value={windowDays} onChange={(v) => setView({ windowDays: v })} format={(v) => trendDayLabel(v)} />
+              <ForgeSegmentedSwitch
+                showLabels
+                accessibilityLabel="Trend window"
+                options={WINDOWS.map((days) => ({ value: days, label: trendDayLabel(days) }))}
+                value={windowDays}
+                onChange={(days) => setView({ windowDays: days })}
+              />
             </Animated.View>
           ) : null}
 
           <ForgeCard style={styles.figuresCard}>
             {editing ? (
               <Animated.View entering={reducedMotion ? undefined : FadeIn.duration(200)}>
-                <Segmented options={['male', 'female'] as const} value={gender} onChange={(v) => setView({ gender: v })} format={(v) => (v === 'male' ? 'Male' : 'Female')} />
+                <ForgeSegmentedSwitch
+                  showLabels
+                  accessibilityLabel="Body model"
+                  options={[{ value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }] as const}
+                  value={gender}
+                  onChange={(next) => setView({ gender: next })}
+                />
               </Animated.View>
             ) : null}
             {anyData ? (
@@ -166,25 +158,15 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
             <View style={styles.rankHeader}>
               <Text style={styles.rankTitle}>Working sets by {breakdown === 'muscle' ? 'muscle' : 'group'}</Text>
               {editing ? (
-                <Animated.View
-                  entering={reducedMotion ? undefined : FadeIn.duration(200)}
-                  style={styles.breakdownToggle}
-                >
-                  {(['group', 'muscle'] as const).map((b) => {
-                    const active = b === breakdown;
-                    return (
-                      <Pressable
-                        key={b}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: active }}
-                        accessibilityLabel={b === 'group' ? 'By group' : 'By muscle'}
-                        onPress={() => setView({ breakdown: b })}
-                        style={({ pressed }) => [styles.breakdownSeg, active && { backgroundColor: theme.selectionIndicator }, pressed && !active && pressedFeedback]}
-                      >
-                        <Text style={[styles.breakdownText, { color: active ? (theme.onActionPrimary ?? theme.surface) : theme.slate }]}>{b === 'group' ? 'Groups' : 'Muscles'}</Text>
-                      </Pressable>
-                    );
-                  })}
+                <Animated.View entering={reducedMotion ? undefined : FadeIn.duration(200)}>
+                  <ForgeSegmentedSwitch
+                    showLabels
+                    size="compact"
+                    accessibilityLabel="Working sets breakdown"
+                    options={[{ value: 'group', label: 'Groups' }, { value: 'muscle', label: 'Muscles' }] as const}
+                    value={breakdown}
+                    onChange={(next) => setView({ breakdown: next })}
+                  />
                 </Animated.View>
               ) : null}
             </View>
@@ -223,9 +205,6 @@ const createStyles = (theme: ForgeTheme) => {
     borderColor: theme.border,
     borderWidth: 0,
   },
-  segmented: { flexDirection: 'row', gap: 8 },
-  segment: { flex: 1, minHeight: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  segmentText: { ...typeScale.controlLabel },
   figuresCard: { padding: 16, gap: 12 },
   figures: { flexDirection: 'row', gap: 8 },
   figureCol: { flex: 1, alignItems: 'center', gap: 4 },
@@ -237,9 +216,6 @@ const createStyles = (theme: ForgeTheme) => {
   rankCard: { padding: 16, gap: 12 },
   rankHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   rankTitle: { color: theme.ink, ...typeScale.controlLabel },
-  breakdownToggle: { flexDirection: 'row', gap: 2, padding: 3, borderRadius: 11, backgroundColor: theme.surfaceMuted },
-  breakdownSeg: { paddingHorizontal: 12, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  breakdownText: { ...typeScale.caption, fontWeight: '700' },
   rankRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   rankDot: { width: 10, height: 10, borderRadius: 5 },
   rankLabel: { width: 74, color: theme.slate, ...typeScale.caption },

@@ -52,6 +52,11 @@ async function seed(page: Page, appearance: 'light' | 'dark', live = false) {
   await page.goto('/');
 }
 
+function expectPressedSize(actual: number, resting: number) {
+  expect(actual).toBeGreaterThanOrEqual(resting * 0.96);
+  expect(actual).toBeLessThanOrEqual(resting + 0.5);
+}
+
 async function pressShape(
   page: Page,
   control: Locator,
@@ -68,10 +73,13 @@ async function pressShape(
   const layer = control.getByTestId('forge-press-state-layer');
   await expect(layer).toBeVisible();
   const tint = await layer.boundingBox();
-  expect(tint!.width).toBeCloseTo(size, 0);
-  expect(tint!.height).toBeCloseTo(size, 0);
-  expect(tint!.x + size / 2).toBeCloseTo(bounds.x + bounds.width / 2, 0);
-  expect(tint!.y + size / 2).toBeCloseTo(bounds.y + bounds.height / 2, 0);
+  // Rounded pressables settle slightly inward while held (the shared press scale,
+  // never below 0.97), so the tint is up to a few percent under its resting size
+  // but stays centred on the control.
+  expectPressedSize(tint!.width, size);
+  expectPressedSize(tint!.height, size);
+  expect(tint!.x + tint!.width / 2).toBeCloseTo(bounds.x + bounds.width / 2, 0);
+  expect(tint!.y + tint!.height / 2).toBeCloseTo(bounds.y + bounds.height / 2, 0);
   await expect(layer).toHaveCSS('border-radius', `${radius}px`);
   await page.screenshot({ path: info.outputPath(`${name}-pressed.png`) });
   await page.mouse.up();
@@ -102,9 +110,10 @@ for (const appearance of ['light', 'dark'] as const) {
     const layer = control.getByTestId('forge-press-state-layer');
     await expect(layer).toHaveCSS('border-radius', '12px');
     const tint = await layer.boundingBox();
-    // The tint fills the button inside its existing one-pixel field border.
-    expect(tint!.height).toBeCloseTo(bounds!.height - 2, 0);
-    expect(tint!.width).toBeCloseTo(bounds!.width - 2, 0);
+    // The tint fills the button inside its existing one-pixel field border (allowing
+    // for the shared press scale while it is held).
+    expectPressedSize(tint!.height, bounds!.height - 2);
+    expectPressedSize(tint!.width, bounds!.width - 2);
     expect(tint!.y).toBeGreaterThan(labelBounds!.y + labelBounds!.height);
     await page.screenshot({ path: info.outputPath('history-editor-type-pressed.png') });
     await page.mouse.up();
@@ -240,13 +249,14 @@ for (const appearance of ['light', 'dark'] as const) {
     await page.getByRole('button', { name: 'Open Pistol Squat', exact: true }).click();
     await page.waitForTimeout(350);
     for (const side of ['left', 'right']) {
-      const control = page.getByRole('button', { name: `Lead with the ${side} side`, exact: true });
+      const control = page.getByRole('radio', { name: `Lead with the ${side} side`, exact: true });
       await control.scrollIntoViewIfNeeded();
       const bounds = await control.boundingBox();
       await page.mouse.move(bounds!.x + bounds!.width / 2, bounds!.y + bounds!.height / 2);
       await page.mouse.down();
       const layer = control.getByTestId('forge-press-state-layer');
-      await expect(layer).toHaveCSS('border-radius', '8px');
+      // The shared segmented switch's segments are full pills, and the tint follows them.
+      await expect(layer).toHaveCSS('border-radius', '999px');
       await page.screenshot({ path: info.outputPath(`library-${side}-pressed.png`) });
       await page.mouse.up();
       await expect(layer).toHaveCount(0);

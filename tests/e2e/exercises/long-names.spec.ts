@@ -89,7 +89,7 @@ for (const appearance of ['light', 'dark']) {
     expect(headingGeometry.fits).toBe(true);
     await expect(page.getByRole('button', { name: 'Exercise options', exact: true })).toBeInViewport();
     await page.screenshot({ path: info.outputPath(`long-exercise-info-${appearance}.png`) });
-    const rightSide = page.getByRole('button', { name: 'Lead with the right side', exact: true });
+    const rightSide = page.getByRole('radio', { name: 'Lead with the right side', exact: true });
     await rightSide.scrollIntoViewIfNeeded();
     await rightSide.click();
     await expect
@@ -116,7 +116,7 @@ for (const appearance of ['light', 'dark']) {
     // The shared side indicator takes 190ms to reach its selected position.
     await page.waitForTimeout(220);
     await page.screenshot({ path: info.outputPath(`long-exercise-settings-${appearance}.png`) });
-    await page.getByRole('button', { name: 'Lead with the left side', exact: true }).click();
+    await page.getByRole('radio', { name: 'Lead with the left side', exact: true }).click();
   });
 }
 

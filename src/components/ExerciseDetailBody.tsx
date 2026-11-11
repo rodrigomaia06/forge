@@ -1,9 +1,7 @@
 import { ForgePressable as Pressable } from './ui/ForgePressable';
 import { trackingModeLabel } from '../domain/exercises/tracking';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
 
 import type { ExerciseCatalogItem } from '../data/exerciseCatalog';
 import type { ForgeTheme, IconName, WorkoutSide } from '../types';
@@ -13,7 +11,7 @@ import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
 import { scaleUI } from '../theme/scale';
 import { workoutTypeIcon } from '../screens/settings/workoutTypeIcon';
-import { ForgeCard, ForgeText as Text, Icon, lightHaptic, pressedFeedback } from './ui';
+import { ForgeCard, ForgeSegmentedSwitch, ForgeText as Text, Icon, lightHaptic, pressedFeedback } from './ui';
 
 /** Human tracking label, e.g. "Weight + reps". Shared with the exercise library. */
 export function formatTrackingType(type: ExerciseCatalogItem['trackingType']): string {
@@ -239,40 +237,20 @@ export function UnilateralDetailSection({
   );
 }
 
-/** A two-option segmented control whose selected pill slides between sides. */
+/** The leading side, as the shared compact segmented switch. */
 function LeadingSideToggle({ value, onChange }: { value: WorkoutSide; onChange: (side: WorkoutSide) => void }) {
-  const styles = useThemedStyles(createStyles);
-  const [innerWidth, setInnerWidth] = useState(0);
-  const reducedMotion = useForgeReducedMotion();
-  const progress = useSharedValue(value === 'right' ? 1 : 0);
-  useEffect(() => {
-    const target = value === 'right' ? 1 : 0;
-    progress.value = reducedMotion
-      ? target
-      : withTiming(target, { duration: forgeMotion.state, easing: forgeMotion.easing });
-  }, [progress, reducedMotion, value]);
-  const pillStyle = useAnimatedStyle(() => ({ transform: [{ translateX: progress.value * (innerWidth / 2) }] }));
   return (
-    <View
-      style={styles.sideToggle}
-      onLayout={(event) => setInnerWidth(event.nativeEvent.layout.width - 4)}
-    >
-      {innerWidth > 0 ? <Animated.View style={[styles.sidePill, { width: innerWidth / 2 }, pillStyle]} /> : null}
-      {(['left', 'right'] as const).map((side) => (
-        <Pressable
-          key={side}
-          accessibilityRole="button"
-          accessibilityState={{ selected: value === side }}
-          accessibilityLabel={`Lead with the ${side} side`}
-          onPress={() => onChange(side)}
-          style={styles.sideOption}
-        >
-          <Text style={[styles.sideOptionText, value === side && styles.sideOptionTextActive]}>
-            {side === 'left' ? 'Left' : 'Right'}
-          </Text>
-        </Pressable>
-      ))}
-    </View>
+    <ForgeSegmentedSwitch
+      showLabels
+      size="compact"
+      accessibilityLabel="Leading side"
+      options={[
+        { value: 'left', label: 'Left', accessibilityLabel: 'Lead with the left side' },
+        { value: 'right', label: 'Right', accessibilityLabel: 'Lead with the right side' },
+      ]}
+      value={value}
+      onChange={onChange}
+    />
   );
 }
 
@@ -315,9 +293,4 @@ const createStyles = (theme: ForgeTheme) =>
     uniRowIcon: { width: scaleUI(38), height: scaleUI(38), borderRadius: scaleUI(12), alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceMuted },
     uniRowTitle: { flex: 1, color: theme.textPrimary, ...typeScale.cardTitle },
     uniRowValue: { color: theme.textSecondary, ...typeScale.body },
-    sideToggle: { width: scaleUI(132), flexDirection: 'row', borderRadius: scaleUI(10), padding: scaleUI(2), position: 'relative', backgroundColor: theme.surfaceMuted, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border },
-    sidePill: { position: 'absolute', top: 2, bottom: 2, left: 2, borderRadius: scaleUI(8), backgroundColor: theme.surface },
-    sideOption: { flex: 1, borderRadius: scaleUI(8), paddingVertical: scaleUI(7), alignItems: 'center' },
-    sideOptionText: { color: theme.textSecondary, ...typeScale.label },
-    sideOptionTextActive: { color: theme.ink, fontWeight: '600' },
   });

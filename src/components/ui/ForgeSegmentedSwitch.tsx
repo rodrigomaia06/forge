@@ -1,5 +1,5 @@
 import { centeredPressFeedback, ForgePressable as Pressable } from './ForgePressable';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -22,13 +22,21 @@ const SIZE = 44;
 export type ForgeSegmentedOption<T> = {
   value: T;
   label: string;
-  icon: IconName;
+  /** Required for the icon pill; labelled switches (`showLabels`) show only the label. */
+  icon?: IconName;
+  /** A fuller spoken name when the visible label is terse (e.g. "Left"). */
+  accessibilityLabel?: string;
 };
 
 /**
  * A compact icon pill whose selection is marked by a ring that springs between
  * options — the sliding-indicator pattern. Each option is a fixed circular
  * button, so the indicator can slide by a constant step without measuring.
+ *
+ * With `showLabels` it is a text segmented control whose filled pill slides
+ * between equal-width segments: `standard` fills its row, `compact` hugs its
+ * labels (each segment as wide as the widest label) for card headers while
+ * keeping the 15 pt control label and a 44 pt touch target.
  */
 export function ForgeSegmentedSwitch<T extends string | number>({
   options,
@@ -75,6 +83,21 @@ export function ForgeSegmentedSwitch<T extends string | number>({
           }),
     );
   }, [index, labelPosition, reducedMotion]);
+  // Compact labelled segments size to the widest label so the pill can slide by an
+  // even step; standard segments share the measured row width instead.
+  const compactLabels = showLabels && size === 'compact';
+  const [segmentWidth, setSegmentWidth] = useState(0);
+  const measuredSegments = useRef<number[]>([]);
+  const measureSegment = (segment: number, width: number) => {
+    measuredSegments.current[segment] = width;
+    const widths = measuredSegments.current.slice(0, options.length);
+    if (widths.length < options.length || widths.some((w) => !w)) return;
+    const widest = Math.ceil(Math.max(...widths));
+    if (widest > segmentWidth) {
+      setSegmentWidth(widest);
+      labelWidth.set(widest);
+    }
+  };
   const labelIndicatorStyle = useAnimatedStyle(() => ({
     width: labelWidth.get(),
     transform: [{ translateX: labelPosition.get() * labelWidth.get() }],
@@ -85,12 +108,18 @@ export function ForgeSegmentedSwitch<T extends string | number>({
       <View
         accessibilityRole="radiogroup"
         accessibilityLabel={accessibilityLabel}
-        style={[styles.track, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}
+        style={[
+          styles.track,
+          { backgroundColor: theme.surfaceMuted, borderColor: theme.border },
+          compactLabels && styles.compactLabelTrack,
+        ]}
       >
         <View
-          style={styles.labelSegments}
-          onLayout={(event) =>
-            labelWidth.set(event.nativeEvent.layout.width / Math.max(1, options.length))
+          style={compactLabels ? styles.compactLabelSegments : styles.labelSegments}
+          onLayout={
+            compactLabels
+              ? undefined
+              : (event) => labelWidth.set(event.nativeEvent.layout.width / Math.max(1, options.length))
           }
         >
           <Animated.View
@@ -102,24 +131,35 @@ export function ForgeSegmentedSwitch<T extends string | number>({
               labelIndicatorStyle,
             ]}
           />
-          {options.map((option) => (
+          {options.map((option, segment) => (
             <Pressable
               key={String(option.value)}
               accessibilityRole="radio"
               accessibilityState={{ checked: option.value === value }}
               aria-checked={option.value === value}
-              accessibilityLabel={option.label}
+              accessibilityLabel={option.accessibilityLabel ?? option.label}
               onPress={() => {
                 if (option.value === value) return;
                 selectionHaptic();
                 onChange(option.value);
               }}
-              style={styles.labelSegment}
+              onLayout={
+                compactLabels
+                  ? (event) => measureSegment(segment, event.nativeEvent.layout.width)
+                  : undefined
+              }
+              hitSlop={compactLabels ? { top: 6, bottom: 6 } : undefined}
+              style={
+                compactLabels
+                  ? [styles.compactLabelSegment, segmentWidth ? { minWidth: segmentWidth } : null]
+                  : styles.labelSegment
+              }
             >
               <Text
+                numberOfLines={compactLabels ? 1 : undefined}
                 style={[
                   typeScale.controlLabel,
-                  styles.labelText,
+                  compactLabels ? styles.compactLabelText : styles.labelText,
                   { color: option.value === value ? theme.onActionPrimary : theme.textPrimary },
                 ]}
               >
@@ -173,7 +213,9 @@ export function ForgeSegmentedSwitch<T extends string | number>({
             style={styles.segment}
             pressFeedbackStyle={size === 'compact' ? centeredPressFeedback(SIZE, 999, 32) : undefined}
           >
-            <Icon name={option.icon} size={17} color={active ? theme.textPrimary : theme.muted} />
+            {option.icon ? (
+              <Icon name={option.icon} size={17} color={active ? theme.textPrimary : theme.muted} />
+            ) : null}
           </Pressable>
         );
       })}
@@ -185,6 +227,23 @@ const styles = StyleSheet.create({
   labelText: { alignSelf: 'stretch', textAlign: 'center', minWidth: 0, flexShrink: 1 },
   labelSegments: { flex: 1, flexDirection: 'row', position: 'relative' },
   labelIndicator: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 999 },
+  compactLabelTrack: { alignSelf: 'flex-start' },
+  // Compact segments hug their label (content-sized, never shrinking — not `flex: 0`,
+  // which collapses to a zero basis on web), so each measures its real width and
+  // the widest one sets the shared step for the sliding pill.
+  compactLabelSegments: { flexDirection: 'row', position: 'relative', flexGrow: 0, flexShrink: 0 },
+  compactLabelSegment: {
+    flexGrow: 0,
+    flexShrink: 0,
+    minHeight: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+    overflow: 'hidden',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+  },
+  compactLabelText: { textAlign: 'center', flexShrink: 0 },
   labelSegment: {
     flex: 1,
     minHeight: 44,

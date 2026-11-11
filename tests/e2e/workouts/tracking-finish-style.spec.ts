@@ -229,7 +229,7 @@ for (const appearance of ['light', 'dark'] as const) {
     for (const gender of ['male', 'female'] as const) {
       if (gender === 'female') {
         await page.getByRole('button', { name: 'Edit view', exact: true }).click();
-        await page.getByRole('button', { name: 'Female', exact: true }).click();
+        await page.getByRole('radio', { name: 'Female', exact: true }).click();
         await page.getByRole('button', { name: 'Done editing', exact: true }).click();
       }
       const figures = page.locator(
@@ -239,7 +239,7 @@ for (const appearance of ['light', 'dark'] as const) {
       // Untrained calves must use the theme neutral, not the asset's fixed charcoal.
       await expect(figures.first().locator('path[id="calves"]').first()).toHaveAttribute(
         'fill',
-        appearance === 'light' ? '#D4D7D2' : '#2B2F34',
+        appearance === 'light' ? '#D4D7D2' : '#2C2C31',
       );
       const boxes = await figures.evaluateAll((elements) =>
         elements.map((element) => {

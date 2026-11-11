@@ -18,7 +18,7 @@ import {
 } from '../../components/ui/ForgeControlSurface';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
-import { Icon } from '../../components/ui';
+import { ForgeSegmentedSwitch, Icon } from '../../components/ui';
 import { MUSCLES_BY_GROUP, MUSCLE_LABELS } from '../../domain/dashboard/widgetMetrics';
 import { TREND_DAY_OPTIONS, trendDayLabel } from '../../domain/trends';
 import { MUSCLE_GROUP_COLORS } from './DashboardWidgetTiles';
@@ -32,37 +32,19 @@ import {
 } from '../../state/dashboardLayout';
 
 /** A row of exclusive chips (e.g. a trend window). */
+/** A window choice: the shared labelled switch, whose pill slides between options. */
 function Segmented<T extends number>({
-  options, value, format, onSelect,
-}: { options: T[]; value: T; format: (v: T) => string; onSelect: (v: T) => void;
+  options, value, format, onSelect, accessibilityLabel,
+}: { options: T[]; value: T; format: (v: T) => string; onSelect: (v: T) => void; accessibilityLabel: string;
 }) {
-  const theme = useForgeTheme();
-  const styles = useThemedStyles(createStyles);
-  const controlFill = resolveForgeControlFill(theme, useForgeControlSurface());
   return (
-    <View style={styles.segmented}>
-      {options.map((option) => {
-        const active = option === value;
-        return (
-          <Pressable
-            key={option}
-            accessibilityRole="button"
-            accessibilityLabel={format(option)}
-            accessibilityState={{ selected: active }}
-            onPress={() => { selectionHaptic(); onSelect(option); }}
-            style={({ pressed }) => [
-              styles.segment,
-              { backgroundColor: active ? theme.actionPrimary : controlFill },
-              pressed && !active && pressedFeedback,
-            ]}
-          >
-            <Text style={[styles.segmentText, { color: active ? (theme.onActionPrimary ?? theme.surface) : theme.slate }]}>
-              {format(option)}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
+    <ForgeSegmentedSwitch
+      showLabels
+      accessibilityLabel={accessibilityLabel}
+      options={options.map((option) => ({ value: option, label: format(option) }))}
+      value={value}
+      onChange={onSelect}
+    />
   );
 }
 
@@ -198,34 +180,24 @@ export function DashboardTileSettingsSheet({
             {kind === 'muscle-heatmap' && dayOptions ? (
               <GroupCard title="Display">
                 <Text style={styles.subLabel}>Trend window</Text>
-                <Segmented options={dayOptions} value={settings.windowDays ?? dayOptions[0]} format={trendDayLabel} onSelect={(v) => patch({ windowDays: v })} />
+                <Segmented accessibilityLabel="Trend window" options={dayOptions} value={settings.windowDays ?? dayOptions[0]} format={trendDayLabel} onSelect={(v) => patch({ windowDays: v })} />
                 <Text style={styles.subLabel}>Body model</Text>
-                <View style={styles.chipWrap}>
-                  {(['male', 'female'] as const).map((g) => {
-                    const active = (settings.gender ?? 'male') === g;
-                    return (
-                      <Pressable
-                        key={g}
-                        accessibilityRole="radio"
-                        accessibilityState={{ checked: active }}
-                        accessibilityLabel={g === 'male' ? 'Male' : 'Female'}
-                        onPress={() => { selectionHaptic(); patch({ gender: g }); }}
-                        style={({ pressed }) => [styles.chip, active ? { backgroundColor: theme.selectionIndicator, borderColor: theme.selectionIndicator } : { backgroundColor: theme.surfaceMuted, borderColor: theme.border }, pressed && pressedFeedback]}
-                      >
-                        <Text style={[styles.chipText, { color: active ? (theme.onActionPrimary ?? theme.surface) : theme.slate }]}>{g === 'male' ? 'Male' : 'Female'}</Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+                <ForgeSegmentedSwitch
+                  showLabels
+                  accessibilityLabel="Body model"
+                  options={[{ value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }] as const}
+                  value={settings.gender ?? 'male'}
+                  onChange={(gender) => patch({ gender })}
+                />
               </GroupCard>
             ) : dayOptions ? (
               <GroupCard title="Trend window">
-                <Segmented options={dayOptions} value={settings.windowDays ?? dayOptions[0]} format={trendDayLabel} onSelect={(v) => patch({ windowDays: v })} />
+                <Segmented accessibilityLabel="Trend window" options={dayOptions} value={settings.windowDays ?? dayOptions[0]} format={trendDayLabel} onSelect={(v) => patch({ windowDays: v })} />
               </GroupCard>
             ) : null}
             {weekOptions ? (
               <GroupCard title="Window">
-                <Segmented options={weekOptions} value={settings.windowWeeks ?? weekOptions[0]} format={(v) => `${v} weeks`} onSelect={(v) => patch({ windowWeeks: v })} />
+                <Segmented accessibilityLabel="Window" options={weekOptions} value={settings.windowWeeks ?? weekOptions[0]} format={(v) => `${v} weeks`} onSelect={(v) => patch({ windowWeeks: v })} />
               </GroupCard>
             ) : null}
             {kind === 'measurement' ? (
@@ -385,10 +357,6 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   sectionIntro: { color: theme.muted, paddingHorizontal: 2, ...typeScale.caption },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   rowDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border },
-  segmented: { flexDirection: 'row', gap: 6 },
-  segment: { flex: 1,
-      minHeight: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  segmentText: { ...typeScale.label, fontWeight: '600' },
   stepperRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 },
   stepperLabel: { flex: 1, color: theme.ink, ...typeScale.label },
   stepper: { flexDirection: 'row', alignItems: 'center', borderRadius: 999, overflow: 'hidden' },

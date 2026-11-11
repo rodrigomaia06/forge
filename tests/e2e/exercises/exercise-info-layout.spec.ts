@@ -54,7 +54,7 @@ for (const appearance of ['light', 'dark']) {
         await page.getByTestId('exercise-rest-selection-list').getByRole('button', { name: 'Rest duration 01:40', exact: true }).click();
         await page.getByRole('button', { name: 'Close Between sides', exact: true }).click();
         await expect(screen.getByRole('button', { name: 'Change between sides, currently 1:40', exact: true })).toBeVisible();
-        await screen.getByRole('button', { name: 'Lead with the right side', exact: true }).click();
+        await screen.getByRole('radio', { name: 'Lead with the right side', exact: true }).click();
         await expect.poll(() => page.evaluate(() =>
           JSON.parse(localStorage.getItem('@forge/settings-preferences')!).exerciseLeadSide?.['info-layout'],
         )).toBe('right');

@@ -37,9 +37,25 @@ private struct RestCount: View {
     if isOverrun {
       Text(timerInterval: state.endDate...state.endDate.addingTimeInterval(60 * 60), countsDown: false)
         .foregroundStyle(color)
+        .forgeRollingDigits(countsDown: false)
     } else {
       Text(timerInterval: state.startDate...state.endDate, countsDown: true)
         .foregroundStyle(color)
+        .forgeRollingDigits(countsDown: true)
+    }
+  }
+}
+
+private extension View {
+  /// Matches the app's rolling timer digits: on iOS 17+ changed digits roll in the
+  /// counting direction when the activity's time changes (restart, +/- adjustment,
+  /// overrun). The per-second tick itself is drawn by the system.
+  @ViewBuilder
+  func forgeRollingDigits(countsDown: Bool) -> some View {
+    if #available(iOS 17.0, *) {
+      self.contentTransition(.numericText(countsDown: countsDown))
+    } else {
+      self
     }
   }
 }

@@ -75,6 +75,8 @@ Refined press and value motion is part of the shared primitives, not per-screen 
 - Horizontal swipe reveals share `swipeRevealShouldOpen`/`swipeRevealSettle`: a quick flick decides by direction before distance, and the release velocity carries into the no-overshoot swipe spring.
 - Springs used for state indicators (segmented pills, the dock) must not overshoot; reuse the shared clamped presets.
 - Content such as calendar grids and heatmaps is present at once; never fade cells in as a staggered wave.
+- Short mutually exclusive choices shown side by side (ranges such as 7d/30d/90d, Male/Female, Groups/Muscles, Left/Right, Info/Progress/History) use `ForgeSegmentedSwitch` with `showLabels`, whose filled pill slides between segments: `standard` fills its row, `compact` hugs its labels in card headers while keeping the 15 pt control label and a 44 pt touch target. Do not hand-build segment rows; longer or described choices keep the connected selection list, and multi-select keeps chips or checkboxes.
+- The rest-timer Live Activity mirrors the in-app rolling digits with SwiftUI's numeric content transition (iOS 17+). Its per-second tick is drawn by the system.
 
 Tabs retain a short cross-fade and selection indicator; drill-in screens use one hierarchy-aware push/pop transition; shared sheets own their single entrance/exit and must not add a nested directional entrance. Gesture-driven sheets and destructive-row swipes follow the finger, then use the corresponding shared settle preset.
 
