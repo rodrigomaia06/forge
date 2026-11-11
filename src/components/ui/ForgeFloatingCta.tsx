@@ -11,7 +11,12 @@ import { ForgeControlSurface } from './ForgeControlSurface';
 
 /** Geometry shared by scrollable sheet bodies and their floating confirmation action. */
 export const forgeFloatingCtaGeometry = {
-  fadeHeight: 142,
+  /**
+   * The fade rises only this far above the button. It matches `contentGap`, so the
+   * clearance that rests the final row above the CTA keeps that row untinted; only
+   * content actually scrolling under the button fades out.
+   */
+  fadeLead: 16,
   horizontalInset: 20,
   topInset: 8,
   buttonHeight: 46,
@@ -62,15 +67,23 @@ export function ForgeFloatingCta({
   // the shared checkmark by default (design.md) unless a caller sets its own icon.
   const resolvedIcon = icon ?? (tone === 'success' ? 'check' : undefined);
   const gradientId = `forgeFloatingCtaFade${React.useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+  const bottomInset = Math.max(forgeFloatingCtaGeometry.minimumBottomInset, insets.bottom - 4);
+  // Solid behind the button and its insets; transparent → opaque only across the
+  // short lead above it, rather than a tall veil reaching up over resting content.
+  const fadeHeight = forgeFloatingCtaGeometry.fadeLead
+    + forgeFloatingCtaGeometry.topInset
+    + forgeFloatingCtaGeometry.buttonHeight
+    + bottomInset;
+  const solidFrom = forgeFloatingCtaGeometry.fadeLead / fadeHeight;
   return (
     <>
-      <View testID="forge-floating-cta-fade" style={[styles.fade, { pointerEvents: 'none' }]}>
+      <View testID="forge-floating-cta-fade" style={[styles.fade, { height: fadeHeight, pointerEvents: 'none' }]}>
         <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
           <Defs>
             <LinearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
               <Stop offset="0" stopColor={surface} stopOpacity="0" />
-              <Stop offset="0.38" stopColor={surface} stopOpacity="0.48" />
-              <Stop offset="0.72" stopColor={surface} stopOpacity="0.9" />
+              <Stop offset={String(solidFrom * 0.5)} stopColor={surface} stopOpacity="0.6" />
+              <Stop offset={String(solidFrom)} stopColor={surface} stopOpacity="1" />
               <Stop offset="1" stopColor={surface} stopOpacity="1" />
             </LinearGradient>
           </Defs>
@@ -79,7 +92,7 @@ export function ForgeFloatingCta({
       </View>
       <Animated.View style={[
         styles.dock,
-        { paddingBottom: Math.max(forgeFloatingCtaGeometry.minimumBottomInset, insets.bottom - 4) },
+        { paddingBottom: bottomInset },
         style,
       ]}>
         <Button
@@ -101,8 +114,7 @@ export function ForgeFloatingCta({
 
 const styles = StyleSheet.create({
   fade: {
-    position: 'absolute', right: 0, bottom: 0, left: 0,
-    height: forgeFloatingCtaGeometry.fadeHeight, zIndex: 1,
+    position: 'absolute', right: 0, bottom: 0, left: 0, zIndex: 1,
   },
   dock: {
     position: 'absolute', right: forgeFloatingCtaGeometry.horizontalInset, bottom: 0,
