@@ -19,6 +19,7 @@ import { Icon } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { forgeMotion, forgeMotionDuration, useForgeReducedMotion } from '../../theme/motion';
+import { swipeRevealSettle, swipeRevealShouldOpen } from '../../components/ui/swipeReveal';
 import { mediumHaptic } from './activeWorkoutFeedback';
 import { SetDetailsCard } from './SetDetailsCard';
 import { SetRow } from './SetRow';
@@ -148,9 +149,9 @@ function SwipeableSetRowComponent({
     })
     .onEnd((gesture) => {
       const offset = (deleteOpen.value ? -DELETE_ACTION_WIDTH : 0) + gesture.translationX;
-      scheduleOnRN(settleDelete,
-        Math.max(-DELETE_ACTION_WIDTH, Math.min(0, offset)) < -DELETE_ACTION_WIDTH * 0.58,
-      );
+      const shouldOpen = swipeRevealShouldOpen(offset, gesture.velocityX, DELETE_ACTION_WIDTH, 0.58);
+      deleteTranslateX.value = swipeRevealSettle(shouldOpen ? -DELETE_ACTION_WIDTH : 0, gesture.velocityX, reducedMotion);
+      scheduleOnRN(settleDelete, shouldOpen);
     });
   const deleteSwipeStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: deleteTranslateX.value }],

@@ -4,13 +4,15 @@ import { ForgeSheetScrollView } from './ForgeSheetScrollView';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { scheduleOnRN } from 'react-native-worklets';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { LayoutAnimation, Platform, StyleSheet, UIManager, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { animateNextLayout } from '../../theme/layoutMotion';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import type { IconName, WorkoutTypePreference } from '../../types';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
 import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
+import { swipeRevealSettle, swipeRevealShouldOpen } from './swipeReveal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from './Button';
 import { ForgeCard } from './ForgeCard';
@@ -55,16 +57,7 @@ export function ForgeAttributeEditorSheet({
   // Ease the sheet height with a classic LayoutAnimation as the icon grid expands
   // and collapses. The host sheets disable the reanimated layout transition, which
   // fails to shrink a native Modal surface back and left dead space beneath.
-  const easeIconGrid = (): void => {
-    if (reducedMotion || Platform.OS === 'web') return;
-    if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
-    LayoutAnimation.configureNext({
-      duration: forgeMotion.transition,
-      create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
-      update: { type: LayoutAnimation.Types.easeInEaseOut },
-      delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
-    });
-  };
+  const easeIconGrid = (): void => animateNextLayout(reducedMotion);
   return (
     <>
       <ForgeBottomSheetHandle />
@@ -158,8 +151,8 @@ export function ForgeSwipeableAttributeRow({
       translateX.set(Math.max(-deleteWidth, Math.min(0, dragStart.get() + event.translationX)));
     })
     .onEnd((event) => {
-      const shouldOpen = event.velocityX < -500 || (event.velocityX <= 500 && translateX.get() < -deleteWidth * 0.58);
-      translateX.set(reducedMotion ? (shouldOpen ? -deleteWidth : 0) : withSpring(shouldOpen ? -deleteWidth : 0, forgeMotion.swipeSpring));
+      const shouldOpen = swipeRevealShouldOpen(translateX.get(), event.velocityX, deleteWidth, 0.58);
+      translateX.set(swipeRevealSettle(shouldOpen ? -deleteWidth : 0, event.velocityX, reducedMotion));
       scheduleOnRN(settle, shouldOpen);
     })
     .onFinalize((_event, success) => {

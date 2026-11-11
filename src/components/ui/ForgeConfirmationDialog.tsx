@@ -1,9 +1,10 @@
 import React from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
-import { forgeMotion } from '../../theme/motion';
+import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import { Button } from './Button';
 import { ForgeText as Text } from './ForgeText';
 import { mediumHaptic } from './haptics';
@@ -46,12 +47,27 @@ export function ForgeConfirmationDialog({
   testID,
 }: ForgeConfirmationDialogProps) {
   const theme = useForgeTheme();
+  const reducedMotion = useForgeReducedMotion();
 
-  // Keep the Modal mounted through its fade-out: the RN Modal only animates its
-  // exit while it stays rendered with `visible` toggling false, so unmounting on
-  // !visible would snap the card away. Defer the unmount until the fade finishes,
-  // and keep showing the last content so the text does not blank out mid-fade
-  // when the caller clears its state.
+  // Forge owns the dialog motion instead of the platform Modal fade: the backdrop
+  // fades while the card fades and grows from 0.96 (never from zero) with the shared
+  // ease-out, then leaves a little faster than it arrived. Reduce Motion keeps only
+  // the short fade. The host stays mounted through the exit, and keeps showing the
+  // last content so the text does not blank out mid-fade when the caller clears it.
+  const progress = useSharedValue(0);
+  React.useEffect(() => {
+    progress.value = withTiming(
+      visible ? 1 : 0,
+      visible
+        ? { duration: forgeMotion.transition, easing: forgeMotion.easing }
+        : { duration: forgeMotion.state, easing: forgeMotion.sheetExitEasing },
+    );
+  }, [progress, visible]);
+  const backdropStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
+  const cardMotionStyle = useAnimatedStyle(() => ({
+    opacity: progress.value,
+    transform: [{ scale: reducedMotion ? 1 : 0.96 + progress.value * 0.04 }],
+  }));
   const [rendered, setRendered] = React.useState(visible);
   const [shown, setShown] = React.useState({
     title,
@@ -110,8 +126,9 @@ export function ForgeConfirmationDialog({
       style={[styles.backdrop, presentation === 'embedded' && StyleSheet.absoluteFill]}
       pointerEvents={visible ? 'auto' : 'none'}
     >
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.scrim, backdropStyle]} />
       <Pressable accessible={false} onPress={cancel} style={StyleSheet.absoluteFill} />
-      <View
+      <Animated.View
         testID={testID}
         accessibilityRole="alert"
         accessibilityViewIsModal
@@ -124,6 +141,7 @@ export function ForgeConfirmationDialog({
             shadowColor: theme.shadow,
             borderRadius: theme.cardRadius,
           },
+          cardMotionStyle,
         ]}
       >
         <Text style={[styles.title, { color: theme.textPrimary }]}>{shown.title}</Text>
@@ -173,18 +191,12 @@ export function ForgeConfirmationDialog({
             style={styles.action}
           />
         </View>
-      </View>
+      </Animated.View>
     </View>
   );
   if (presentation === 'embedded') return content;
   return (
-    <Modal
-      transparent
-      animationType="fade"
-      visible={visible}
-      onRequestClose={cancel}
-      onDismiss={() => setRendered(false)}
-    >
+    <Modal transparent animationType="none" visible={rendered} onRequestClose={cancel}>
       {content}
     </Modal>
   );
@@ -196,8 +208,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 28,
-    backgroundColor: 'rgba(0,0,0,0.48)',
   },
+  scrim: { backgroundColor: 'rgba(0,0,0,0.48)' },
   card: {
     width: '100%',
     maxWidth: 360,

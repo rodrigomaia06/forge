@@ -20,6 +20,7 @@ import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import { scaleUI } from '../../theme/scale';
 import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
+import { swipeRevealSettle, swipeRevealShouldOpen } from '../../components/ui/swipeReveal';
 import {
   animateLayout,
   animateSetRemoval,
@@ -173,7 +174,9 @@ export const ExerciseSection = React.memo(function ExerciseSection({
     })
     .onEnd((gesture) => {
       const offset = (cardOpen.value ? -deleteActionWidth : 0) + gesture.translationX;
-      scheduleOnRN(settleCard, Math.max(-deleteActionWidth, Math.min(0, offset)) < -42);
+      const shouldOpen = swipeRevealShouldOpen(offset, gesture.velocityX, deleteActionWidth, 42 / deleteActionWidth);
+      cardTranslateX.value = swipeRevealSettle(shouldOpen ? -deleteActionWidth : 0, gesture.velocityX, reducedMotion);
+      scheduleOnRN(settleCard, shouldOpen);
     })
     .onFinalize(() => {
       scheduleOnRN(clearDeletePressGuard);

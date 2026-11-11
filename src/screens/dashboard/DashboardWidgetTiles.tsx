@@ -3,7 +3,6 @@ import { ForgeEntityName } from '../../components/ui';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 
 import { ForgeText as Text, Icon, pressedFeedback, selectionHaptic } from '../../components/ui';
@@ -13,7 +12,6 @@ import { computeWorkoutVolume, formatVolume } from './dashboardSummary';
 import { getWorkoutTypePresentation } from '../../domain/workouts/presentation';
 import { calendarDateKey } from '../../domain/workouts/calendarDate';
 import { trendDayLabel } from '../../domain/trends';
-import { useForgeReducedMotion } from '../../theme/motion';
 import { useTileChrome, tileHeaderRightInset } from './tileChrome';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
@@ -157,7 +155,6 @@ function consistencyLevel(load: number, maxLoad: number): number {
 export function DashboardConsistencyTile({ data }: { data: Consistency }) {
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
-  const reducedMotion = useForgeReducedMotion();
   const activity = theme.success;
   const cellColor = (load: number): string => {
     if (load < 0) return 'transparent'; // future day
@@ -196,12 +193,8 @@ export function DashboardConsistencyTile({ data }: { data: Consistency }) {
                 { backgroundColor: cellColor(count) },
                 count < 0 && { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border, backgroundColor: 'transparent' },
               ];
-              // A soft left-to-right wave as the grid fills in on mount.
-              return reducedMotion ? (
-                <View key={d} style={cellStyle} />
-              ) : (
-                <Animated.View key={d} entering={FadeIn.duration(320).delay(week * 16)} style={cellStyle} />
-              );
+              // The grid is content, so it is present at once: no staggered reveal.
+              return <View key={d} style={cellStyle} />;
             })}
           </View>
         ))}

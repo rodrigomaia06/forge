@@ -10,12 +10,11 @@ import {
   LayoutAnimation,
   FlatList,
   Platform,
-  ScrollView,
   StyleSheet,
-  UIManager,
   useWindowDimensions,
   View,
 } from 'react-native';
+import { animateNextLayout } from '../../theme/layoutMotion';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   AppScreen,
@@ -412,18 +411,12 @@ export function ExerciseBrowserScreen({ navigation, route }: Props) {
   // The form sheet has no reanimated content layout, so it animates its own
   // view swaps with LayoutAnimation.
   const transitionFormView = (nextView: ExerciseFormView) => {
-    if (!reducedMotion) {
-      if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    }
+    animateNextLayout(reducedMotion);
     setSelectorQuery('');
     setFormView(nextView);
   };
   const toggleOptionalDetails = () => {
-    if (!reducedMotion) {
-      if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    }
+    animateNextLayout(reducedMotion);
     selectionHaptic();
     setShowOptionalDetails((current) => !current);
   };

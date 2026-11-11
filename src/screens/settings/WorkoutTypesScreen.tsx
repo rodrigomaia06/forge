@@ -22,6 +22,7 @@ import { useActiveWorkout, useWorkouts } from '../../state/WorkoutContext';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
 import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
+import { swipeRevealSettle, swipeRevealShouldOpen } from '../../components/ui/swipeReveal';
 import type { RootStackParamList, WorkoutTypePreference } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
@@ -263,7 +264,8 @@ function SwipeTypeRow({
       x.value = Math.max(-width, Math.min(0, (open.value ? -width : 0) + event.translationX));
     })
     .onEnd((event) => {
-      const next = (open.value ? -width : 0) + event.translationX < -width * 0.55;
+      const next = swipeRevealShouldOpen((open.value ? -width : 0) + event.translationX, event.velocityX, width, 0.55);
+      x.value = swipeRevealSettle(next ? -width : 0, event.velocityX, reducedMotion);
       scheduleOnRN(settle, next, Math.abs(event.translationX) > 6);
     });
   const animated = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));

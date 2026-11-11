@@ -1,7 +1,8 @@
 import { scaleUI } from '../theme/scale';
 import { centeredPressFeedback, ForgePressable as Pressable } from '../components/ui/ForgePressable';
 import React, { useEffect, useMemo, useState } from 'react';
-import { LayoutAnimation, Platform, StyleSheet, UIManager, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { animateNextLayout } from '../theme/layoutMotion';
 import { useNavigation } from '@react-navigation/native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 
@@ -15,7 +16,7 @@ import {
   lightHaptic,
   selectionHaptic,
 } from '../components/ui';
-import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
+import { useForgeReducedMotion } from '../theme/motion';
 import { DashboardHeader } from '../components/DashboardHeader';
 import {
   DashboardLastWorkoutTile,
@@ -132,14 +133,7 @@ export function DashboardScreen() {
   const reducedMotion = useForgeReducedMotion();
   // Smoothly reflow the tile list when a tile is added/removed or edit mode
   // reveals its affordances, instead of letting the remaining tiles jump.
-  const reflowTiles = () => {
-    if (reducedMotion || Platform.OS === 'web') return;
-    if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental)
-      UIManager.setLayoutAnimationEnabledExperimental(true);
-    LayoutAnimation.configureNext(
-      LayoutAnimation.create(forgeMotion.transition, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity),
-    );
-  };
+  const reflowTiles = () => animateNextLayout(reducedMotion);
 
   const measurementDefById = useMemo(
     () => new Map(preferences.dailyMeasurementDefinitions.map((def) => [def.id, def])),

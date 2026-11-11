@@ -3,6 +3,7 @@ import { trackingModeLabel } from '../domain/exercises/tracking';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
 
 import type { ExerciseCatalogItem } from '../data/exerciseCatalog';
 import type { ForgeTheme, IconName, WorkoutSide } from '../types';
@@ -242,10 +243,14 @@ export function UnilateralDetailSection({
 function LeadingSideToggle({ value, onChange }: { value: WorkoutSide; onChange: (side: WorkoutSide) => void }) {
   const styles = useThemedStyles(createStyles);
   const [innerWidth, setInnerWidth] = useState(0);
+  const reducedMotion = useForgeReducedMotion();
   const progress = useSharedValue(value === 'right' ? 1 : 0);
   useEffect(() => {
-    progress.value = withTiming(value === 'right' ? 1 : 0, { duration: 190 });
-  }, [progress, value]);
+    const target = value === 'right' ? 1 : 0;
+    progress.value = reducedMotion
+      ? target
+      : withTiming(target, { duration: forgeMotion.state, easing: forgeMotion.easing });
+  }, [progress, reducedMotion, value]);
   const pillStyle = useAnimatedStyle(() => ({ transform: [{ translateX: progress.value * (innerWidth / 2) }] }));
   return (
     <View

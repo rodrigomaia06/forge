@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import Animated, { withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from './Button';
 import { ForgeCard } from './ForgeCard';
@@ -9,6 +10,21 @@ import { scaleUI } from '../../theme/scale';
 import { ForgeText as Text } from './ForgeText';
 import { typeScale } from '../../theme/tokens';
 import { useForgeTheme } from '../../theme/ThemeProvider';
+import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
+
+/**
+ * The menu grows from its trigger: a short fade with a slight scale from 0.96 (never
+ * from zero) around the corner nearest the button. Closing stays immediate so the
+ * dismissal takes effect from the tap itself.
+ */
+function menuEntering() {
+  'worklet';
+  const config = { duration: forgeMotion.state, easing: forgeMotion.easing };
+  return {
+    initialValues: { opacity: 0, transform: [{ scale: 0.96 }] },
+    animations: { opacity: withTiming(1, config), transform: [{ scale: withTiming(1, config) }] },
+  };
+}
 
 /** A bounded choice menu anchored to its shared Forge button. */
 export function ForgeDropdown<T extends string>({
@@ -30,9 +46,11 @@ export function ForgeDropdown<T extends string>({
   const insets = useSafeAreaInsets();
   const [contentWidth, setContentWidth] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
+  const reducedMotion = useForgeReducedMotion();
   const [position, setPosition] = useState<{ left: number; top: number; width: number } | null>(
     null,
   );
+  const [opensAbove, setOpensAbove] = useState(false);
   useEffect(() => { if (position) open(); }, [width, height, fontScale, contentWidth, contentHeight]);
   const close = () => setPosition(null);
   const open = () =>
@@ -41,10 +59,9 @@ export function ForgeDropdown<T extends string>({
       const menuWidth = Math.min(Math.max(anchorWidth, Math.ceil(contentWidth)), width - edge * 2);
       const menuHeight = Math.min(contentHeight || Math.min(options.length, 6) * scaleUI(60) + scaleUI(24), height - insets.top - insets.bottom - edge * 2);
       const below = y + anchorHeight + scaleUI(8);
-      const top =
-        below + menuHeight <= height - insets.bottom - edge
-          ? below
-          : Math.max(insets.top + edge, y - menuHeight - scaleUI(8));
+      const fitsBelow = below + menuHeight <= height - insets.bottom - edge;
+      const top = fitsBelow ? below : Math.max(insets.top + edge, y - menuHeight - scaleUI(8));
+      setOpensAbove(!fitsBelow);
       setPosition({
         left: Math.max(edge, Math.min(x + anchorWidth - menuWidth, width - menuWidth - edge)),
         top,
@@ -107,8 +124,9 @@ export function ForgeDropdown<T extends string>({
             pressFeedbackStyle={{ backgroundColor: 'transparent' }}
           />
           {position ? (
-            <View
+            <Animated.View
               testID="forge-dropdown-panel"
+              entering={reducedMotion ? undefined : menuEntering}
               style={[
                 styles.menu,
                 {
@@ -127,7 +145,11 @@ export function ForgeDropdown<T extends string>({
                       ],
                 },
                 position,
-                { maxHeight: height - position.top - insets.bottom - scaleUI(20) },
+                {
+                  maxHeight: height - position.top - insets.bottom - scaleUI(20),
+                  // Right-aligned to its trigger, so it grows from the trigger-side corner.
+                  transformOrigin: opensAbove ? 'right bottom' : 'right top',
+                },
               ]}
               accessibilityLabel={`${accessibilityLabel} choices`}
             >
@@ -145,7 +167,7 @@ export function ForgeDropdown<T extends string>({
                   onSelectedPress={close}
                 /></ScrollView>
               </ForgeCard>
-            </View>
+            </Animated.View>
           ) : null}
         </View>
       </Modal>

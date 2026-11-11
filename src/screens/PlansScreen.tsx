@@ -2,7 +2,8 @@ import { ForgeSheetScrollView } from '../components/ui/ForgeSheetScrollView';
 import { ForgeEntityName } from '../components/ui';
 import { ForgePressable as Pressable, ForgePressableGroup } from '../components/ui/ForgePressable';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, LayoutAnimation, Platform, StyleSheet, UIManager, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { animateNextLayout } from '../theme/layoutMotion';
 import type { PanGesture } from 'react-native-gesture-handler';
 import Animated, { scrollTo, useAnimatedRef, useAnimatedScrollHandler, useFrameCallback, useSharedValue, type SharedValue, type FrameInfo } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -36,7 +37,7 @@ import { useForgeTheme } from '../theme/ThemeProvider';
 import { scaleUI } from '../theme/scale';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { spacing, typography, typeScale } from '../theme/tokens';
-import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
+import { useForgeReducedMotion } from '../theme/motion';
 import { usePlans } from '../state/PlansContext';
 import { useSettings } from '../state/SettingsContext';
 import { useWorkouts } from '../state/WorkoutContext';
@@ -109,14 +110,7 @@ export function PlansScreen({ navigation, route }: Props) {
   const hasContent = plans.length > 0 || standaloneRoutines.length > 0;
   const reducedMotion = useForgeReducedMotion();
   // Animate the list reflow when a plan/routine row is created or deleted.
-  const reflowRows = (): void => {
-    if (reducedMotion || Platform.OS === 'web') return;
-    if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental)
-      UIManager.setLayoutAnimationEnabledExperimental(true);
-    LayoutAnimation.configureNext(
-      LayoutAnimation.create(forgeMotion.transition, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity),
-    );
-  };
+  const reflowRows = (): void => animateNextLayout(reducedMotion);
   const plansScrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       const offset = event.contentOffset.y;

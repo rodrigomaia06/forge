@@ -1,11 +1,13 @@
 import { ForgePressable as Pressable } from './ForgePressable';
 import { scheduleOnRN } from 'react-native-worklets';
 import React, { useEffect, useState } from 'react';
-import { LayoutAnimation, Platform, StyleSheet, UIManager, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { animateNextLayout } from '../../theme/layoutMotion';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
+import { swipeRevealSettle, swipeRevealShouldOpen } from './swipeReveal';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
 import { ForgeText as Text } from './ForgeText';
@@ -131,13 +133,7 @@ export function SwipeToDeleteRow({
     open.value = false;
     translateX.value = 0;
     // Collapse the row's height and fade siblings up rather than letting them jump.
-    if (!reducedMotion && Platform.OS !== 'web') {
-      if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental)
-        UIManager.setLayoutAnimationEnabledExperimental(true);
-      LayoutAnimation.configureNext(
-        LayoutAnimation.create(forgeMotion.feedback, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity),
-      );
-    }
+    animateNextLayout(reducedMotion, forgeMotion.feedback);
     onDelete();
   };
 
@@ -152,7 +148,8 @@ export function SwipeToDeleteRow({
     })
     .onEnd((gesture) => {
       const offset = (open.value ? -deleteWidth : 0) + gesture.translationX;
-      const shouldOpen = Math.max(-deleteWidth, Math.min(0, offset)) < -deleteWidth * 0.5;
+      const shouldOpen = swipeRevealShouldOpen(offset, gesture.velocityX, deleteWidth);
+      translateX.value = swipeRevealSettle(shouldOpen ? -deleteWidth : 0, gesture.velocityX, reducedMotion);
       scheduleOnRN(settle, shouldOpen);
     });
 

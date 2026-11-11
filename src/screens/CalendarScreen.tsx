@@ -10,7 +10,7 @@ import { AppScreen, ForgeText as Text, HeaderAction, Icon, pressedFeedback, sele
 import { SettingsDetailHeader } from './settings/SettingsScreenChrome';
 import { useWorkouts } from '../state/WorkoutContext';
 import { useSettings } from '../state/SettingsContext';
-import { useForgeReducedMotion } from '../theme/motion';
+import { forgeMotion, useForgeReducedMotion } from '../theme/motion';
 import { useForgeTheme } from '../theme/ThemeProvider';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
@@ -291,7 +291,9 @@ export function CalendarScreen({ navigation }: Props) {
 function MonthFlash({ color }: { color: string }) {
   const opacity = useSharedValue(0.85);
   useEffect(() => {
-    opacity.value = withTiming(0, { duration: 950 });
+    // Long enough to mark where you landed, short enough not to linger; it fades
+    // with the shared ease-out instead of easing in.
+    opacity.value = withTiming(0, { duration: 600, easing: forgeMotion.easing });
   }, [opacity]);
   const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
   // Sit just inside the section with breathing room top and bottom, not a tight

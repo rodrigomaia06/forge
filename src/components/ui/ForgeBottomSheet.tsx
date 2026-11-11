@@ -224,7 +224,7 @@ export function ForgeBottomSheet({
     translateY.value = withTiming(closeDistance, { duration: forgeMotion.sheetExit, easing: forgeMotion.sheetExitEasing }, (finished) => {
       if (finished) scheduleOnRN(completeExit);
     });
-    backdropOpacity.value = withTiming(0, { duration: forgeMotion.state });
+    backdropOpacity.value = withTiming(0, { duration: forgeMotion.state, easing: forgeMotion.sheetExitEasing });
     exitTimerRef.current = setTimeout(completeExit, forgeMotion.sheetExit + 160);
   }, [backdropOpacity, clearExitTimer, closeDistance, closing, completeExit, reducedMotion, translateY]);
 
@@ -286,7 +286,7 @@ export function ForgeBottomSheet({
       // decelerates into place — no spring "accelerate from rest" lag. The spring
       // stays for the interactive drag snap-back below.
       translateY.value = withTiming(0, { duration: forgeMotion.sheetEnter, easing: forgeMotion.easing });
-      backdropOpacity.value = withTiming(1, { duration: forgeMotion.transition });
+      backdropOpacity.value = withTiming(1, { duration: forgeMotion.transition, easing: forgeMotion.easing });
     });
     return () => cancelAnimationFrame(frame);
   }, [backdropOpacity, clearExitTimer, closing, entryContentReady, initialOffset, reducedMotion, translateY, visible, waitForContentLayoutBeforeEnter]);

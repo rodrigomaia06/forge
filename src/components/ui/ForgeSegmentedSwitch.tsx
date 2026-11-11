@@ -57,7 +57,7 @@ export function ForgeSegmentedSwitch<T extends string | number>({
     const target = index * SIZE;
     translateX.value = reducedMotion
       ? target
-      : withSpring(target, { damping: 18, stiffness: 220, mass: 0.7 });
+      : withSpring(target, forgeMotion.dockSpring);
   }, [index, reducedMotion, translateX]);
   const indicatorStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],

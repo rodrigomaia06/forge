@@ -1,7 +1,8 @@
 import { ForgeEntityName } from './ui';
 import { ForgePressable as Pressable } from './ui/ForgePressable';
 import React, { useMemo, useState } from 'react';
-import { LayoutAnimation, Platform, StyleSheet, UIManager, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { animateNextLayout } from '../theme/layoutMotion';
 import { useForgeReducedMotion } from '../theme/motion';
 
 import { ForgeAttributeRow, ForgeCard, ForgeText as Text, Icon, pressedFeedbackSubtle, selectionHaptic } from './ui';
@@ -119,10 +120,7 @@ export function WorkoutSummaryCard({
                 selectionHaptic();
                 // Ease the accordion open/closed instead of snapping the card's
                 // height, matching the app's other expand/collapse rows.
-                if (Platform.OS !== 'web' && !reducedMotion) {
-                  if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
-                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                }
+                animateNextLayout(reducedMotion);
                 setDetailsExpanded((current) => !current);
               }}
               style={({ pressed }) => [styles.detailsTrigger, pressed && pressedFeedbackSubtle]}

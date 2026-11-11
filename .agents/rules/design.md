@@ -70,6 +70,11 @@ Refined press and value motion is part of the shared primitives, not per-screen 
 - `ForgePressable` settles rounded painted surfaces slightly inward while pressed (a fixed few points, never below 0.97 scale) on top of the shared tint layer. Square full-width rows, grouped segments, disabled controls and backdrops do not scale.
 - Live and changing numeric readouts (the elapsed clock and rest countdowns) use `ForgeRollingNumber`: only changed digits roll, upward when the value grows and downward when it shrinks, with tabular figures so the row never shifts width. Do not roll static values or values on first display.
 - A completed set check traces its Tabler check stroke in (`DrawnCheckIcon`) instead of fading it.
+- Native layout changes (expand/collapse, list reflow, sheet content swaps) go through `animateNextLayout`, which uses ease-out at the shared feedback/transition durations. Do not configure `LayoutAnimation` presets or ease-in-out curves locally; the only exception is a sheet following the system keyboard, which matches the keyboard's own curve.
+- Anchored dropdown menus enter with a short fade and a 0.96 → 1 scale from the corner nearest their trigger, never from zero scale; they close immediately. Confirmation dialogs fade their backdrop while the card fades and grows from 0.96, and exit faster than they enter. Reduce Motion keeps only the short fade.
+- Horizontal swipe reveals share `swipeRevealShouldOpen`/`swipeRevealSettle`: a quick flick decides by direction before distance, and the release velocity carries into the no-overshoot swipe spring.
+- Springs used for state indicators (segmented pills, the dock) must not overshoot; reuse the shared clamped presets.
+- Content such as calendar grids and heatmaps is present at once; never fade cells in as a staggered wave.
 
 Tabs retain a short cross-fade and selection indicator; drill-in screens use one hierarchy-aware push/pop transition; shared sheets own their single entrance/exit and must not add a nested directional entrance. Gesture-driven sheets and destructive-row swipes follow the finger, then use the corresponding shared settle preset.
 
