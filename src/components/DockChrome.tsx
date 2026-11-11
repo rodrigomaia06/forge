@@ -1,5 +1,6 @@
 import React, { useEffect, type ReactNode, type Ref } from 'react';
 import {
+  Platform,
   StyleSheet,
   View,
   type LayoutChangeEvent,
@@ -19,12 +20,20 @@ import type { ForgeTheme } from '../types';
 import { forgeDockGeometry } from './dockGeometry';
 export { forgeDockGeometry } from './dockGeometry';
 
+/** Gesture navigation insets are ~16–24 dp; the 3-button bar is ~48 dp. */
+const ANDROID_BUTTON_BAR_MIN_INSET = 40;
+
 /**
  * Keeps the floating surface above the home indicator without introducing a
  * separate safe-area band below tab content.
  */
 export function useForgeDockBottomOffset(): number {
   const insets = useSafeAreaInsets();
+  // Android's 3-button bar (a tall inset) holds real controls: float fully above it.
+  // Gesture navigation and the iOS home indicator keep the shared overlapping offset.
+  if (Platform.OS === 'android' && insets.bottom >= ANDROID_BUTTON_BAR_MIN_INSET) {
+    return insets.bottom + forgeDockGeometry.surfaceToContentGap / 2;
+  }
   return Math.max(
     forgeDockGeometry.minimumBottomClearance,
     insets.bottom - forgeDockGeometry.minimumBottomClearance,

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { Appearance, Platform, useColorScheme } from 'react-native';
 import { runWhenIdle } from '../utils/idle';
 import * as SystemUI from 'expo-system-ui';
+import { NavigationBar } from 'expo-navigation-bar';
 import { useSettings } from '../state/SettingsContext';
 import type { ChildrenProps, ForgeTheme } from '../types';
 import { darkTheme, lightTheme } from './tokens';
@@ -35,6 +36,12 @@ export function ForgeThemeProvider({ children }: ChildrenProps) {
       console.warn('Unable to update the app background', error);
     });
   }, [theme.background]);
+  useEffect(() => {
+    // Android draws content behind a fully transparent navigation bar (its contrast
+    // scrim is disabled in app.json), like iOS behind the home indicator. Its buttons
+    // follow Forge's appearance rather than the system's, so they stay legible.
+    if (Platform.OS === 'android') NavigationBar.setStyle(theme.colorScheme === 'dark' ? 'dark' : 'light');
+  }, [theme.colorScheme]);
   useEffect(() => {
     // Pre-build the inactive appearance's StyleSheets while the UI is idle so a
     // later switch reuses the cache instead of rebuilding the whole tree on the
