@@ -13,9 +13,9 @@ I use TypeScript, React Native and Expo, with native integrations for rest timer
 ## What you can do
 
 - **Record different kinds of training:** weight, reps, duration and distance, with workout types for strength, cardio, mobility and other activities.
-- **Log a session:** exercise notes, set types, supersets, RPE, unilateral sets and rest timers. iOS supports a rest-timer Live Activity; Android has native timer notifications.
+- **Log a session:** exercise notes, set types, effort (RIR), next-session targets, unilateral sets and rest timers. iOS supports a rest-timer Live Activity; Android has native timer notifications.
 - **Prepare your training:** reusable standalone routines, plans and custom exercises, with searchable exercise variations.
-- **Review progress:** workout history, calendar, trends, muscle heatmaps and daily measurements. Add the widgets you want to your dashboard.
+- **Review progress:** workout history, calendar, per-exercise progress charts, muscle heatmaps and daily measurements. Add the widgets you want to your dashboard.
 - **Move your data:** portable JSON/`.forge` backups and shareable workouts, routines and plans, with selection and conflict review before saving.
 - **Import another tracker:** Hevy, Strong and FitNotes Android/iOS CSV exports, plus Strive SQLite backups on iOS and Android. Strive history and active routines import together; uncertain exercise matches stay reviewable.
 
