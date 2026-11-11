@@ -13,6 +13,28 @@ const OUT = 'tests/results/website-captures';
 // The profile's default viewport (420 × 719) leaves room for browser chrome; the
 // website's phone frame shows the full 420 × 912 screen (1260 × 2736 at 3x).
 const FULL_SCREEN = { width: 420, height: 912 };
+
+/**
+ * The website frames these captures in an iPhone bezel, so the app must leave
+ * room for the camera cutout and home indicator like it does on a device. The
+ * web safe-area provider measures a hidden element padded with
+ * `env(safe-area-inset-*)`, which is 0 in a browser; override that padding.
+ */
+async function deviceInsets(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    // Init scripts can run before <html> exists (WebKit); add the rule once it does.
+    const add = () => {
+      const style = document.createElement('style');
+      style.textContent = `div[style*="safe-area-inset-top"] {
+        padding-top: 62px !important;
+        padding-bottom: 34px !important;
+      }`;
+      document.head.appendChild(style);
+    };
+    if (document.head) add();
+    else document.addEventListener('DOMContentLoaded', add, { once: true });
+  });
+}
 // Dates are relative to the real clock: freezing the browser clock also freezes the
 // app's animations, so tab cross-fades and row entrances would never finish.
 const NOW = new Date();
@@ -213,6 +235,7 @@ for (const appearance of ['light', 'dark'] as const) {
 
     test(`gallery and hero tabs (${appearance})`, async ({ page }) => {
       await page.setViewportSize(FULL_SCREEN);
+      await deviceInsets(page);
       await seed(page, appearance, true);
       await page.goto('/');
       await page.getByRole('tab', { name: 'Dashboard' }).click();
