@@ -25,11 +25,26 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 1
-      - name: Set up Node
-        uses: actions/setup-node@v5
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
         with:
-          node-version: 22.x
-          cache: npm
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - name: Use the flake's Node
+        # flake.nix owns the JavaScript toolchain (its lean `ci` shell, without the e2e
+        # browsers). Only its Node directory joins PATH, so Xcode, CocoaPods, the JDK and
+        # the Android SDK keep running from the runner image, outside any Nix environment.
+        run: |
+          set -euo pipefail
+          NODE_BIN="$(nix develop .#ci --command sh -c 'dirname "$(command -v node)"')"
+          echo "$NODE_BIN" >> "$GITHUB_PATH"
+          "$NODE_BIN/node" --version
+      - name: Cache npm downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: npm-${{ runner.os }}-
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
