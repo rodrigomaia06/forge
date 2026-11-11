@@ -1,7 +1,12 @@
 import React from 'react';
-import type { SvgProps } from 'react-native-svg';
+import { Animated } from 'react-native';
+import Svg, { Path, type SvgProps } from 'react-native-svg';
 import {
   IconArrowRight,
+  IconChartLine,
+  IconTypography,
+  IconIcons,
+  IconBug,
   IconBallTennis,
   IconBarbell,
   IconBike,
@@ -160,6 +165,10 @@ const iconMap: Record<IconName, React.ComponentType<SvgProps>> = {
   stopwatch: IconStopwatch,
   'stopwatch-outline': IconStopwatch,
   hourglass: IconMoodEmpty,
+  'chart-line': IconChartLine,
+  'typography': IconTypography,
+  'icons': IconIcons,
+  bug: IconBug,
   'alarm-average': IconAlarmAverage,
   trash: IconTrash,
   eye: IconEye,
@@ -234,5 +243,39 @@ export function Icon({
   const strokeWidth = weight === 'thin' ? 1.5 : weight === 'bold' ? 2.5 : 2;
   return (
     <IconComponent width={size} height={size} color={color} strokeWidth={strokeWidth} {...props} />
+  );
+}
+
+// Tabler's `check` glyph (IconCheck: "M5 12l5 5l10 -10"), drawn as a stroke so a
+// completion can trace it in. Its path length is ~21.2; the dash covers it fully.
+const CHECK_PATH = 'M5 12l5 5l10 -10';
+const CHECK_LENGTH = 22;
+const AnimatedCheckPath = Animated.createAnimatedComponent(Path);
+
+/**
+ * The adapter's one animated glyph: the Tabler check, traced from its start
+ * point to its end as `progress` runs 0 → 1. Static icons still use `Icon`.
+ */
+export function DrawnCheckIcon({
+  progress,
+  size = 20,
+  color,
+}: {
+  progress: Animated.Value | Animated.AnimatedInterpolation<number>;
+  size?: number;
+  color?: string;
+}) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <AnimatedCheckPath
+        d={CHECK_PATH}
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeDasharray={CHECK_LENGTH}
+        strokeDashoffset={progress.interpolate({ inputRange: [0, 1], outputRange: [CHECK_LENGTH, 0] })}
+      />
+    </Svg>
   );
 }

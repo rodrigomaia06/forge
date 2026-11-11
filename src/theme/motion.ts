@@ -8,6 +8,16 @@ export const forgeMotion = {
   feedback: 120,
   state: 160,
   transition: 180,
+  // Press scale: rounded painted surfaces shrink by at most `pressInset` points per
+  // edge-pair (capped at `pressScaleMin`), so a 44 pt circle and a full-width card
+  // read as the same physical press. Ease-out, quick in and quick out.
+  pressScaleMin: 0.97,
+  pressInset: 6,
+  // Rolling digits settle with a strong ease-out so a change lands decisively.
+  roll: 520,
+  rollCurve: [0.23, 1, 0.32, 1] as const,
+  // A completed check draws its stroke rather than fading in.
+  checkDraw: 300,
   // Modal-sheet timings (per Material/HIG: ~300ms enter, slightly quicker exit,
   // both ease-out so they start moving at full speed rather than accelerating
   // from rest like a spring — which read as "slow at first").

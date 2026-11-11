@@ -167,7 +167,7 @@ test.describe('History screen', () => {
     // surface lives on the group, while each action is a borderless ghost button.
     const group = page.getByTestId('history-header-actions');
     await expect(group).toHaveCSS('border-width', '0px');
-    await expect(group).toHaveCSS('background-color', 'rgb(43, 47, 52)');
+    await expect(group).toHaveCSS('background-color', 'rgb(44, 44, 49)');
     const filter = page.getByRole('button', { name: 'Filter' });
     await expect(filter).toHaveCSS('border-width', '0px');
   });

@@ -129,7 +129,7 @@ test.describe('Interactive control consistency', () => {
     const finishButton = page.getByRole('button', { name: 'Finish workout' });
     const finish = await dimensions(finishButton);
     // Finish is now an icon-only primary action; its filled surface is the check.
-    expect(finish.background).toBe('rgb(245, 247, 248)');
+    expect(finish.background).toBe('rgb(250, 250, 250)');
 
     await page.getByRole('tab', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'General' }).click();
@@ -139,7 +139,7 @@ test.describe('Interactive control consistency', () => {
     // value rather than reading mid-transition.
     await expect
       .poll(async () => (await dimensions(page.getByTestId('general-switch-unfinished-workout-reminder'))).background)
-      .toBe('rgb(245, 247, 248)');
+      .toBe('rgb(250, 250, 250)');
     expect(toggle.background).not.toBe('rgb(124, 140, 248)');
 
     await page.getByRole('button', { name: 'Back to Settings' }).click();

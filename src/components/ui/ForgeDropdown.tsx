@@ -113,7 +113,18 @@ export function ForgeDropdown<T extends string>({
                 styles.menu,
                 {
                   backgroundColor: theme.surfaceElevated,
-                  boxShadow: [{ offsetX: 0, offsetY: 8, blurRadius: 24, color: `${theme.shadow}38` }],
+                  // A floating menu sits clearly above the cards: a tight contact shadow
+                  // plus a wide ambient one, both soft and ink-tinted rather than one
+                  // heavy pure-black blur (Dark needs more opacity to read at all).
+                  boxShadow: theme.colorScheme === 'dark'
+                    ? [
+                        { offsetX: 0, offsetY: 2, blurRadius: 4, color: `${theme.shadow}4D` },
+                        { offsetX: 0, offsetY: 12, blurRadius: 32, color: `${theme.shadow}66` },
+                      ]
+                    : [
+                        { offsetX: 0, offsetY: 2, blurRadius: 4, color: `${theme.shadow}1A` },
+                        { offsetX: 0, offsetY: 12, blurRadius: 32, color: `${theme.shadow}14` },
+                      ],
                 },
                 position,
                 { maxHeight: height - position.top - insets.bottom - scaleUI(20) },

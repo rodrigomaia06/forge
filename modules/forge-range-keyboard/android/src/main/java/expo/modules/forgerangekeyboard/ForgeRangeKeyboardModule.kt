@@ -328,9 +328,9 @@ private object RangeKeyboard {
   private fun createPanel(view: ForgeRangeKeyboardView): LinearLayout {
     val context = view.context
     val dark = view.appearance == "dark"
-    val surface = Color.parseColor(if (dark) "#202226" else "#D4D6D5")
-    val keySurface = Color.parseColor(if (dark) "#414448" else "#FFFFFF")
-    val foreground = Color.parseColor(if (dark) "#F7F8F6" else "#17191C")
+    val surface = Color.parseColor(if (dark) "#232327" else "#D4D6D5")
+    val keySurface = Color.parseColor(if (dark) "#3F3F46" else "#FFFFFF")
+    val foreground = Color.parseColor(if (dark) "#FAFAFA" else "#17191C")
     val content = LinearLayout(context).apply {
       orientation = LinearLayout.VERTICAL
       setBackgroundColor(surface)

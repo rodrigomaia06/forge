@@ -1,7 +1,7 @@
 import { ForgePressable as Pressable, centeredPressFeedback } from '../../components/ui/ForgePressable';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
-import { Icon } from '../../components/ui';
+import { DrawnCheckIcon, Icon } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { forgeMotion, forgeMotionDuration, useForgeReducedMotion } from '../../theme/motion';
@@ -20,6 +20,8 @@ export function CompletionCheck({
   const dashboardTheme = theme;
   const styles = useThemedStyles(createStyles);
   const progress = useRef(new Animated.Value(selected ? 1 : 0)).current;
+  // SVG stroke props cannot use the native driver, so the trace runs on its own value.
+  const draw = useRef(new Animated.Value(selected ? 1 : 0)).current;
   const reducedMotion = useForgeReducedMotion();
 
   useEffect(() => {
@@ -29,7 +31,13 @@ export function CompletionCheck({
       easing: Easing.out(Easing.cubic),
       useNativeDriver: Platform.OS !== 'web',
     }).start();
-  }, [progress, reducedMotion, selected]);
+    Animated.timing(draw, {
+      toValue: selected ? 1 : 0,
+      duration: forgeMotionDuration(reducedMotion, selected ? forgeMotion.checkDraw : forgeMotion.feedback),
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [draw, progress, reducedMotion, selected]);
 
   return (
     <Animated.View
@@ -52,22 +60,11 @@ export function CompletionCheck({
         },
       ]}
     >
-      <Animated.View
-        style={{
-          opacity: progress,
-          transform: [
-            {
-              scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }),
-            },
-          ],
-        }}
-      >
-        <Icon
-          name="check"
-          size={scaleUI(17)}
-          color={tone === 'selection' ? dashboardTheme.success : dashboardTheme.surface}
-        />
-      </Animated.View>
+      <DrawnCheckIcon
+        progress={draw}
+        size={scaleUI(17)}
+        color={tone === 'selection' ? dashboardTheme.success : dashboardTheme.surface}
+      />
     </Animated.View>
   );
 }

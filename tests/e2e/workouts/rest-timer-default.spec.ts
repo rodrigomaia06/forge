@@ -1,6 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { startBlankWorkout } from '../support/workoutFlow';
 
+// The rolling readout colours each glyph; the testID marks the row that holds them.
+const restGlyph = (page: import('@playwright/test').Page) =>
+  page.getByTestId('rest-timer-value').locator('div[dir="auto"]').first();
+
 test('timer uses percentages and holding rest resets to the default', async ({ page }, testInfo) => {
   await page.clock.install({ time: new Date('2026-10-06T12:00:00Z') });
   await startBlankWorkout(page);
@@ -9,9 +13,9 @@ test('timer uses percentages and holding rest resets to the default', async ({ p
   // 90s default extended to 100s; warning begins at 20s, rather than a fixed time.
   await page.getByRole('button', { name: 'Increase rest by 10 seconds' }).click();
   await page.clock.fastForward(79_000);
-  await expect(page.getByTestId('rest-timer-value')).not.toHaveCSS('color', 'rgb(197, 138, 69)');
+  await expect(restGlyph(page)).not.toHaveCSS('color', 'rgb(197, 138, 69)');
   await page.clock.fastForward(1_000);
-  await expect(page.getByTestId('rest-timer-value')).toHaveCSS('color', 'rgb(197, 138, 69)');
+  await expect(restGlyph(page)).toHaveCSS('color', 'rgb(197, 138, 69)');
   await page.screenshot({ path: testInfo.outputPath('timer-20-percent-warning.png') });
   await page.getByRole('button', { name: 'Close rest timer' }).last().click();
   const header = page.getByRole('button', { name: /Rest timer,.*seconds remaining/ });

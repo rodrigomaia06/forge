@@ -1,4 +1,4 @@
-import { useForgeDetailHeading } from '../components/ui';
+import { ForgeRollingNumber, useForgeDetailHeading } from '../components/ui';
 import { ForgePressable as Pressable } from '../components/ui/ForgePressable';
 import { FinishWorkoutSheet } from './activeWorkout/FinishWorkoutSheet';
 import { workoutNeedsFinishReview } from '../domain/workouts/finishWorkout';
@@ -547,7 +547,7 @@ const ElapsedTimer = React.memo(function ElapsedTimer({
   const elapsed = workout.automaticTimeTracking === false
     ? workout.durationSeconds ?? 0
     : Math.max(0, Math.floor((now - workout.startedAt) / 1000));
-  return <Text style={style}>{formatElapsed(elapsed)}</Text>;
+  return <ForgeRollingNumber style={style} value={formatElapsed(elapsed)} />;
 });
 
 /** Owns the rest clock so the editable workout screen never renders per second. */

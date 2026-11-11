@@ -521,9 +521,9 @@ test.describe('Active workout flow', () => {
     await page.getByLabel('Search exercises').fill('bench');
 
     const count = page.getByTestId('exercise-group-count-Bench Press');
-    await expect(count).toHaveCSS('background-color', 'rgb(31, 34, 37)');
-    await expect(count).toHaveCSS('border-color', 'rgb(58, 64, 70)');
-    await expect(count.getByText('0', { exact: true })).toHaveCSS('color', 'rgb(195, 200, 204)');
+    await expect(count).toHaveCSS('background-color', 'rgb(34, 34, 37)');
+    await expect(count).toHaveCSS('border-color', 'rgb(48, 48, 54)');
+    await expect(count.getByText('0', { exact: true })).toHaveCSS('color', 'rgb(161, 161, 170)');
   });
 
   test('starts the rest timer from the workout header', async ({ page }, testInfo) => {
@@ -590,9 +590,10 @@ test.describe('Active workout flow', () => {
 
     const timer = page.getByRole('button', { name: /Rest timer, 1 seconds remaining/ });
     await expect(timer).toBeVisible();
-    await expect(page.getByText('00:01', { exact: true }).first()).toHaveCSS('color', 'rgb(200, 92, 92)');
+    // Rolling readouts colour each glyph; read the colour from the first digit.
+    await expect(page.getByLabel('00:01', { exact: true }).first().locator('div[dir="auto"]').first()).toHaveCSS('color', 'rgb(200, 92, 92)');
 
-    await expect(page.getByText('+00:01', { exact: true })).toHaveCSS('color', 'rgb(200, 92, 92)');
+    await expect(page.getByLabel('+00:01', { exact: true }).locator('div[dir="auto"]').first()).toHaveCSS('color', 'rgb(200, 92, 92)');
     await expect(page.getByText('rest exceeded', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Extend rest by 10 seconds' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Extend rest by 30 seconds' })).toBeVisible();
@@ -1018,15 +1019,15 @@ test.describe('Active workout flow', () => {
     const workoutItem = page.getByRole('tab', { name: 'Workout', exact: true });
     const workoutIcon = workoutItem.locator('svg');
     const selectionPill = page.getByTestId('dashboard-nav-selection-pill');
-    await expect(selectionPill).toHaveCSS('background-color', 'rgba(247, 248, 246, 0.2)');
-    await expect(workoutIcon).toHaveAttribute('stroke', '#F7F8F6');
+    await expect(selectionPill).toHaveCSS('background-color', 'rgba(250, 250, 250, 0.2)');
+    await expect(workoutIcon).toHaveAttribute('stroke', '#FAFAFA');
 
     for (let attempt = 0; attempt < 3; attempt += 1) {
       await page.getByRole('tab', { name: 'Dashboard' }).click();
       await page.waitForTimeout(180);
       await workoutItem.click();
       await page.waitForTimeout(180);
-      await expect(workoutIcon).toHaveAttribute('stroke', '#F7F8F6');
+      await expect(workoutIcon).toHaveAttribute('stroke', '#FAFAFA');
     }
     if (testInfo.project.use.isMobile === true) {
       await page.screenshot({ path: testInfo.outputPath('dark-selected-workout-dock.png') });
@@ -1139,7 +1140,7 @@ test.describe('Active workout flow', () => {
       }, appearance);
       await startEmptyWorkoutWithExercise(page);
       await expect(page.getByTestId('workout-timer-strip')).toHaveCSS(
-        'background-color', appearance === 'light' ? 'rgb(241, 241, 241)' : 'rgb(31, 34, 37)',
+        'background-color', appearance === 'light' ? 'rgb(241, 241, 241)' : 'rgb(34, 34, 37)',
       );
       await page.screenshot({ path: testInfo.outputPath(`workout-timer-strip-${appearance}.png`) });
       await page.getByRole('button', { name: 'More options for Barbell Bench Press' }).click();

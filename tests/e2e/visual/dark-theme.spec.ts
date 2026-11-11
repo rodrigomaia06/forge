@@ -171,7 +171,7 @@ test('keeps layout stable and resolves Light, Dark and System at runtime', async
   await expect.poll(readAppearance).toBe('system');
   await expectThemeBackgrounds(page);
   await page.emulateMedia({ colorScheme: 'dark' });
-  await expect(page.getByTestId('app-root')).toHaveCSS('background-color', 'rgb(10, 11, 13)');
+  await expect(page.getByTestId('app-root')).toHaveCSS('background-color', 'rgb(9, 9, 11)');
   await expectThemeBackgrounds(page);
   await page.emulateMedia({ colorScheme: 'light' });
   await page.goto('/');

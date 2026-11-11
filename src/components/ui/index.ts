@@ -3,6 +3,7 @@ export { useAfterSheetClose } from './useAfterSheetClose';
 export { Button } from './Button';
 export { Divider } from './Divider';
 export { ForgeText, ForgeTextInput } from './ForgeText';
+export { ForgeRollingNumber } from './ForgeRollingNumber';
 export { ForgeExerciseName } from './ForgeExerciseName';
 export { ForgeNumericRangeInput } from './ForgeNumericRangeInput';
 export { ForgeSearchField } from './ForgeSearchField';
@@ -51,7 +52,7 @@ export {
 } from './ForgeCatalogFilters';
 export type { CatalogFilterFacet, CatalogFilterKey, CatalogFilterOption, CatalogFilterState } from './ForgeCatalogFilters';
 export { pressedFeedback, pressedFeedbackSubtle } from './pressFeedback';
-export { Icon } from './Icon';
+export { DrawnCheckIcon, Icon } from './Icon';
 export { SwipeToDeleteRow } from './SwipeToDeleteRow';
 export { UnilateralBadge } from './UnilateralBadge';
 export { NavigationItem } from './NavigationItem';

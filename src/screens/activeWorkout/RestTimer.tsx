@@ -1,7 +1,7 @@
 import { restTimerColors } from '../../theme/tokens';
 import React, { useEffect } from 'react';
 import { View } from 'react-native';
-import { Button, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeDurationWheel, ForgeSheetHeader, ForgeText as Text, Icon } from '../../components/ui';
+import { Button, ForgeBottomSheet, ForgeRollingNumber, ForgeBottomSheetHandle, ForgeDurationWheel, ForgeSheetHeader, ForgeText as Text, Icon } from '../../components/ui';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { createActiveWorkoutStyles } from './activeWorkoutStyles';
@@ -35,7 +35,7 @@ export function RestTimerIndicator({
     <View style={styles.timerIndicator}>
       <Icon name="stopwatch-outline" size={22} color={contentColor} />
       {running && (
-        <Text style={[styles.restValue, { color: contentColor }]}>{formatRest(liveRemaining)}</Text>
+        <ForgeRollingNumber style={[styles.restValue, { color: contentColor }]} value={formatRest(liveRemaining)} />
       )}
     </View>
   );
@@ -126,9 +126,11 @@ function ActiveRestTimer({
   return (
     <View style={styles.activeRestTimer}>
       <View style={styles.restTimeDisplay}>
-        <Text testID="rest-timer-value" style={[styles.restTimeValue, { color: stateColor }]}>
-          {isOverdue ? `+${formatRest(liveRemaining)}` : formatRest(liveRemaining)}
-        </Text>
+        <ForgeRollingNumber
+          testID="rest-timer-value"
+          style={[styles.restTimeValue, { color: stateColor }]}
+          value={isOverdue ? `+${formatRest(liveRemaining)}` : formatRest(liveRemaining)}
+        />
         <Text style={[styles.restTimeCaption, isOverdue && { color: stateColor }]}>
           {isOverdue ? 'rest exceeded' : 'remaining'}
         </Text>

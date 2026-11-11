@@ -269,7 +269,7 @@ export const createActiveWorkoutStyles = (theme: ForgeTheme) => {
       paddingTop: 12,
       paddingBottom: 20,
       gap: 8,
-      // Raised-card tone (#1F2225 in dark), matching the header timer panel.
+      // Raised-card tone (surfaceElevated in dark), matching the header timer panel.
       backgroundColor: dashboardTheme.surfaceElevated,
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
