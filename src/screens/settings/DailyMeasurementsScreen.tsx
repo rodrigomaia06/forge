@@ -455,27 +455,29 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
                     <View style={[styles.metricIcon, { backgroundColor: `${selected.color}24` }]}>
                       <Icon name={selected.icon} size={22} color={selected.color} />
                     </View>
+                    <ForgeEntityName style={styles.metricCardName} presentation="full">{selected.name}</ForgeEntityName>
                   </View>
-                  <ForgeEntityName style={styles.metricCardName} presentation="full">{selected.name}</ForgeEntityName>
-                  <View style={styles.metricCardSpacer} />
-                  <Text style={styles.metricCardStatLabel}>Latest</Text>
-                  <Text style={styles.metricCardValue} numberOfLines={1}>{formatValue(latest.value, displayUnit)}</Text>
+                  <View>
+                    <Text style={styles.metricCardStatLabel}>Latest</Text>
+                    <Text style={styles.metricCardValue}>{formatValue(latest.value, displayUnit)}</Text>
+                  </View>
                   <View style={styles.metricCardDivider} />
+                  {/* Stats sit side by side and wrap onto further rows when values or text size grow. */}
                   <View style={styles.metricStatList}>
                     {summaryStats.weekAverage ? (
-                      <View style={styles.metricStatRow}>
+                      <View style={styles.metricStat}>
                         <Text style={styles.metricStatKey}>7-day avg</Text>
-                        <Text style={styles.metricStatVal} numberOfLines={1}>{summaryStats.weekAverage}</Text>
+                        <Text style={styles.metricStatVal}>{summaryStats.weekAverage}</Text>
                       </View>
                     ) : null}
-                    <View style={styles.metricStatRow}>
+                    <View style={styles.metricStat}>
                       <Text style={styles.metricStatKey}>{range}d change</Text>
-                      <Text style={styles.metricStatVal} numberOfLines={1}>{trendDelta}</Text>
+                      <Text style={styles.metricStatVal}>{trendDelta}</Text>
                     </View>
                     {summaryStats.weeklyRate ? (
-                      <View style={styles.metricStatRow}>
+                      <View style={styles.metricStat}>
                         <Text style={styles.metricStatKey}>Rate</Text>
-                        <Text style={styles.metricStatVal} numberOfLines={1}>{summaryStats.weeklyRate}</Text>
+                        <Text style={styles.metricStatVal}>{summaryStats.weeklyRate}</Text>
                       </View>
                     ) : null}
                   </View>
@@ -512,14 +514,18 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
                         showTrendLine={displayEntries.length >= 3}
                       />
                       <View style={styles.chartFooter}>
-                        <Text style={styles.chartAxis}>{formatValue(Math.max(...displayEntries.map((e) => e.value)), displayUnit)}</Text>
-                        <Text style={styles.chartAxis}>{formatValue(Math.min(...displayEntries.map((e) => e.value)), displayUnit)}</Text>
+                        <Text style={styles.chartAxis}>
+                          Low <Text style={styles.chartAxisValue}>{formatValue(Math.min(...displayEntries.map((e) => e.value)), displayUnit)}</Text>
+                        </Text>
+                        <Text style={styles.chartAxis}>
+                          High <Text style={styles.chartAxisValue}>{formatValue(Math.max(...displayEntries.map((e) => e.value)), displayUnit)}</Text>
+                        </Text>
                       </View>
                     </>
                   ) : (
                     <View style={styles.trendEmpty}>
                       <View style={[styles.trendEmptyGlyph, { backgroundColor: `${selected.color}1F` }]}>
-                        <Icon name="hourglass" size={22} color={selected.color} />
+                        <Icon name="chart-line" size={22} color={selected.color} />
                       </View>
                       <Text style={styles.trendEmptyTitle}>No trend yet</Text>
                       <Text style={styles.trendEmptyBody}>
@@ -824,27 +830,27 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     shadowOffset: { width: 0, height: 1 },
     elevation: 2,
   },
-  rangeText: { ...typeScale.caption, color: theme.textSecondary },
+  rangeText: { ...typeScale.label, color: theme.textSecondary },
   rangeTextActive: { color: theme.textPrimary, fontWeight: '700' },
-  chartFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 6 },
-  chartAxis: { ...typeScale.caption, color: theme.textSecondary },
+  chartFooter: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: 12, rowGap: 4, marginTop: 6 },
+  chartAxis: { ...typeScale.label, color: theme.textSecondary },
+  chartAxisValue: { color: theme.textPrimary, fontVariant: ['tabular-nums'] },
   trendEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 9, paddingVertical: 24 },
   trendEmptyGlyph: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   trendEmptyTitle: { ...typeScale.controlLabel, color: theme.textPrimary },
   trendEmptyBody: { ...typeScale.caption, color: theme.textSecondary, textAlign: 'center', maxWidth: 210, lineHeight: 17 },
-  summaryRow: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
-  metricCard: { width: 150, padding: 14, gap: 8 },
-  metricCardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  metricCardSpacer: { flex: 1, minHeight: 8 },
-  metricCardName: { ...typeScale.controlLabel, color: theme.textPrimary },
-  metricCardValue: { fontSize: 23, fontWeight: '800', letterSpacing: -0.4, color: theme.textPrimary, fontVariant: ['tabular-nums'] },
-  metricCardDivider: { height: 1, backgroundColor: theme.border, marginTop: 4, marginBottom: 2 },
-  metricStatList: { gap: 7 },
-  metricStatRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
-  metricStatKey: { ...typeScale.caption, color: theme.textSecondary, flexShrink: 0 },
-  metricStatVal: { fontSize: 13, fontWeight: '700', color: theme.textPrimary, fontVariant: ['tabular-nums'], flexShrink: 1, textAlign: 'right' },
-  metricCardStatLabel: { ...typeScale.caption, color: theme.textSecondary },
-  trendCard: { flex: 1, padding: 14, gap: 8 },
+  summaryRow: { gap: 12 },
+  metricCard: { padding: 16, gap: 12 },
+  metricCardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  metricCardName: { ...typeScale.cardTitle, color: theme.textPrimary, flex: 1, minWidth: 0 },
+  metricCardValue: { ...typeScale.metricLarge, color: theme.textPrimary, fontVariant: ['tabular-nums'] },
+  metricCardDivider: { height: 1, backgroundColor: theme.divider },
+  metricStatList: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 12 },
+  metricStat: { flexGrow: 1, flexBasis: 92, minWidth: 0, gap: 2 },
+  metricStatKey: { ...typeScale.label, color: theme.textSecondary },
+  metricStatVal: { ...typeScale.controlLabel, fontWeight: '700', color: theme.textPrimary, fontVariant: ['tabular-nums'] },
+  metricCardStatLabel: { ...typeScale.label, color: theme.textSecondary },
+  trendCard: { padding: 16, gap: 8 },
   trendHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   showMore: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 44, marginTop: 2 },
   showMoreText: { ...typeScale.controlLabel, color: theme.textSecondary },
