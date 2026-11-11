@@ -13,4 +13,4 @@ Do not promote requirements from:
 - screenshots/examples
 - agent inference
 
-If an implementation task makes a durable product decision explicit, update the smallest relevant product document automatically as part of that task and report the change.
+When and how a task updates these files is defined in `.agents/rules/maintenance.md`.

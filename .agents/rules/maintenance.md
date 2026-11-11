@@ -1,131 +1,73 @@
-# Automatic knowledge maintenance
+# Knowledge maintenance, verification and commits
 
-Knowledge maintenance is part of every implementation task. The user does not need to request it.
+## Knowledge maintenance
 
-## After implementation: inspect the complete diff
+Part of every implementation task; the user does not need to ask. Before finishing, review the
+complete diff for a new or changed durable product requirement, architecture boundary or
+decision, Forge-wide design invariant, dependency exception, or external-guidance adoption, and
+update the smallest canonical file in the same task:
 
-Before finishing, review the complete change and ask whether it introduced or changed a durable:
+- product behavior → the relevant file in `.agents/docs/product/`
+- architecture → `.agents/rules/architecture.md` for a general invariant, or an ADR in
+  `.agents/docs/decisions/` (threshold in its README)
+- Forge-wide design invariant → `.agents/rules/design.md`
+- agent/process policy → the smallest relevant file in `.agents/rules/`
 
-- explicit product requirement
-- architectural boundary or accepted architecture decision
-- Forge-wide design invariant
-- dependency policy/exception
-- external-guidance exception or adoption policy
+When the user's requirement explicitly establishes or supersedes a rule or requirement, update it
+without asking again. When the agent merely infers that a new long-lived policy would be better,
+ask before promoting it.
 
-## If durable knowledge changed
+Durable documents state requirements, boundaries, rationale and adopted policy. Never store
+chat summaries, progress or "next task" notes, "not yet implemented" claims, rejected
+experiments, debugging or screenshot observations, or inventories derivable from source or
+`package.json`. Delete obsolete temporary documents instead of keeping a memory folder.
 
-Update the smallest canonical file in the same task.
+## Verification
 
-- Explicit product behavior -> relevant active file under `.agents/docs/product/`.
-- Architecture policy/boundary -> `.agents/rules/architecture.md` when it is a general invariant, or an ADR under `.agents/docs/decisions/` when a meaningful decision/trade-off should be preserved.
-- Forge-wide design invariant -> `.agents/rules/design.md`.
-- Agent/process policy -> the smallest relevant file under `.agents/rules/`.
+Verify every change, scoped to what changed: run `npm run typecheck` for TypeScript, then only the
+tests covering the changed files, their consumers and the behavior at risk. A changed shared
+primitive needs representative consumers for each affected mode. Run the full suite only when the
+change is genuinely repository-wide or the user asks.
 
-Do not create a document just to narrate the implementation.
+Run every check through `npm run typecheck`, `npm run test:visual -- <targeted arguments>` or
+`npm run verify:run -- <command> <arguments>`. They enforce `scripts/verification-budget.mjs`
+(reduced priority and a shared CPU pool of two thirds of the cores, inherited by browsers and
+Metro). Never bypass the guard with another config, invocation, environment or unwrapped
+command; if it cannot enforce its limits it refuses to start, so report that instead. This
+applies to delegated agents too. Run one resource-heavy suite at a time and reduce workers only
+for observed memory pressure.
 
-## Explicit versus inferred policy
+For every user-reported visual, layout, gesture, navigation or interaction condition, capture and
+inspect a screenshot of that exact changed state in each phone profile in `playwright.config.ts`,
+and say which state each screenshot verified. Desktop captures may help diagnosis but are not the
+visual check.
 
-If the user's requirement explicitly establishes a durable rule or requirement, update the canonical knowledge automatically without asking for a second confirmation.
+MCP browser tools may be used for exploratory checks when available; they complement but never
+replace the checks above, and they cannot validate native Swift/Kotlin behavior or system
+keyboards. Add a regression test when exploration finds a reproducible failure worth keeping.
 
-If the agent merely infers a new long-lived product/design/architecture policy, ask the user before promoting that inference into a rule or canonical product document.
+## Commits
 
-This distinction prevents implementation convenience from silently becoming project policy.
+Never commit or push unless the user asks in the current conversation; leave changes uncommitted
+for review.
 
-## Do not preserve transient state
+When asked, split the work into commits by cohesive concern, each with its relevant tests and
+durable knowledge, keeping imported skills and agent configuration separate from app changes. Use
+the scoped Conventional Commit subject `type(scope): concise description` in English, with a
+short body when scope or rationale is not obvious. Do not split inseparable changes artificially.
+Check `git diff --stat` before committing: look for a split above roughly 750 changed lines or 15
+files, never create one near 2,000 lines, and explain in the body why a larger commit cannot be
+split. Verify that the split commits together keep the complete behavior.
 
-Do not store these as durable repository knowledge:
+When the user asks for commits and a push before follow-up work, finish and verify that work,
+commit, and push before starting the follow-up.
 
-- chat summaries or conversation memory
-- debugging observations that are no longer needed
-- implementation progress or "next task" statements
-- rejected experiments
-- temporary screenshots/geometry observations
-- inventories derivable from source code or `package.json`
-- claims that a feature is "not yet implemented"
+## Requests and completion
 
-Delete obsolete temporary documentation instead of maintaining a generic memory folder.
+Address an explicit list of tasks in its order, confirming each item before the next.
 
-## Commit organization
-
-Do not create a Git commit unless the user explicitly asks for one in the current
-conversation. Staging and verification may be performed when appropriate, but
-leave uncommitted changes available for the user to review until requested.
-
-When a change is large or spans multiple responsibilities, divide it into commits by
-cohesive concern rather than committing the entire change as one mixed unit.
-
-- Keep each commit internally understandable and independently reviewable where practical.
-- Separate concerns such as dependencies/configuration, feature behavior, UI refactors, and tests when they form clear boundaries.
-- Use a Conventional Commit subject in the form `type: concise description` (for example, `fix: restore history cards and dock transitions` or `perf: reduce live workout render and input pressure`).
-- Write commit subjects in English, keep them concise, and add a short body for changes whose scope or rationale is not clear from the subject.
-- Do not create artificial commits for tiny or inseparable changes merely to increase the commit count.
-- Before splitting history, preserve the complete implementation and verify that the resulting commits together contain the same behavior.
-
-### Requested commit workflow
-
-The user prefers separate commits by cohesive concern, following the repository's
-existing scoped Conventional Commit style (`type(scope): concise description`).
-Keep each implementation change with its relevant tests and durable knowledge;
-keep imported skill packages and agent configuration separate from app fixes.
-
-When the user requests commits and a push before follow-up work, finish and verify
-that work, create the separate commits, and complete the normal push before
-starting the follow-up audit or task. Do not stop at preparing commit suggestions.
-This preference does not authorize unsolicited commits or pushes.
-
-### Commit size review
-
-Do not create commits around 2,000 changed lines. Before committing, inspect `git diff --stat` and proactively look for a cohesive split when a commit exceeds roughly 750 changed lines or touches more than 15 files.
-
-- Line/file counts are a review signal, not a reason to split an inseparable change artificially.
-- A larger commit is acceptable only when its parts cannot be reviewed, tested, or reverted meaningfully on their own; explain that constraint in the commit body.
-- If oversized commits are still local and the full behavior is preserved, rewrite them into smaller cohesive commits before sharing the branch.
-
-## Targeted verification
-
-Every implementation change must be verified, but verification should remain scoped to what changed.
-
-- Run the project typecheck for TypeScript changes, then run only the tests that directly cover the changed files, their affected consumers, and the behavior at risk.
-- Do not run unrelated test suites merely because they are available.
-- When a shared primitive changes, include representative consumers for each affected behavior or presentation mode; this can legitimately require several targeted test files.
-- Run the complete verification suite only when the change itself is repository-wide and the full suite is the smallest correct scope, or when the user explicitly requests it.
-- Report the exact checks executed and identify any affected behavior that could not be verified.
-
-### Exploratory browser checks through MCP
-
-When Playwright browser tools are available through MCP, use them for exploratory UI checks, reproducing reported problems, and interactive diagnosis with snapshots, screenshots, console messages, and network inspection. This guidance is provider-independent: do not require a particular connector or plugin. If suitable MCP tools are unavailable, continue with the repository's existing verification tools without blocking the task.
-
-MCP exploration complements the repository's automated tests; it does not replace required typechecks, targeted regression tests, or the phone-profile screenshot checks below. Add a meaningful repository regression test when exploration identifies a reproducible failure that warrants lasting coverage. Browser checks do not validate native Swift/Kotlin behavior or system keyboards. Do not use MCP tools to bypass the verification capacity policy below.
-
-### Verification capacity
-
-All agents must run verification through `npm run typecheck`, `npm run test:visual -- <targeted arguments>`, or `npm run verify:run -- <command> <arguments>`. These entry points enforce `scripts/verification-budget.mjs`: reduced scheduling priority on every existing thread and a shared CPU-affinity pool containing at most two thirds of the initially available CPUs, rounded down with a minimum of one. Child processes, browsers and the Playwright web-server/Metro export inherit the same pool; nested wrappers reuse the baseline instead of reducing it again. Agent processes must use the same lowest-ID pool so parallel agents cannot collectively consume all cores. Worker counts alone are not a CPU limit.
-
-`playwright.config.ts` invokes the same guard for direct Playwright calls and rejects worker overrides above the allowed count. Never bypass the guard with a temporary config, a different invocation, changed environment metadata or an unwrapped verification command. If CPU affinity or reduced priority cannot be enforced, the runner fails before verification starts; report the limitation and use an environment with enforceable limits. Run one resource-heavy suite at a time and reduce workers further when observed memory pressure requires it. This applies to every agent, including delegated work.
-
-Use the machine's available capacity to reduce verification time without making it unusable for the user. Run automated checks at reduced system priority and use up to two thirds of the available cores (rounded down, minimum one); do not default to a serial run merely because a suite is visual. Preserve memory headroom by running one resource-heavy suite at a time and reducing workers only for observed memory pressure. Do not use all cores or configure a check to consume all available RAM unless the user explicitly overrides this constraint.
-
-### Visual verification
-
-For every user-reported visual, layout, gesture, navigation, or interaction condition, capture and inspect a targeted screenshot of that exact changed state before completion. Keep screenshots narrowly scoped to the reported condition; do not substitute unrelated full-app captures, generic happy paths, or a visually similar sibling screen. Report which reported state each inspected artifact verified. Use the normal two-thirds CPU allowance at reduced priority, reducing concurrency only for observed memory pressure or a concrete shared-resource constraint.
-
-Capture and inspect product screenshots in every configured Forge phone Playwright profile: iPhone Air and Samsung Galaxy S24. Desktop browser captures may support functional diagnosis, but they are not the visual-verification artifact.
-
-## Explicit multi-item requests
-
-When a user supplies an explicit list of tasks, address the items in that order and confirm each one before moving to the next. Do not collapse the list into an unstructured aggregate.
-
-## ADR threshold
-
-Create an ADR only when the decision is important enough that a future contributor would reasonably ask "why did we choose this instead of the alternatives?"
-
-Do not create ADRs for routine refactors, local component choices, or straightforward implementation details.
-
-## Completion response
-
-Always report knowledge maintenance without being asked:
+Every completion response reports the verification performed and anything that could not be
+verified, names any rule change, and ends with one of:
 
 - `Knowledge: updated <file(s)> — <reason>.`
-- or `Knowledge: no durable knowledge change.`
-
-Also report verification performed and any verification that could not run.
+- `Knowledge: no durable knowledge change.`

@@ -1,44 +1,23 @@
 # Rule router
 
-Use this file to load the minimum useful context for a task.
+Load the minimum useful context for a task.
 
 ## Always
 
-- `core.md` — authority, ambiguity, language/dependency defaults, rule-change safety.
-- `maintenance.md` — automatic knowledge-impact review and completion reporting.
+- `core.md` — precedence, ambiguity, language, dependencies, rule-change safety.
+- `maintenance.md` — knowledge maintenance, verification, commits and the completion report.
 
-## Read `architecture.md` when changing
+## By task
 
-- navigation or routing
-- state ownership or providers
-- persistence or data access
-- module/folder boundaries
-- native Swift/Kotlin integration
-- build/runtime architecture
-- dependencies with architectural impact
+- `architecture.md` — navigation, state ownership, persistence, folder boundaries, native
+  Swift/Kotlin integration, build/runtime architecture, dependencies with architectural impact.
+- `design.md` — screens and reusable UI, layout, theme and typography, interaction, motion,
+  haptics, input and keyboard behavior, accessibility, platform-specific presentation.
+- `external.md` — when framework, platform, Expo or native behavior needs current guidance, or an
+  external rule pack is involved.
 
-## Read `design.md` when changing
+## Canonical documents
 
-- screens or reusable UI
-- visual hierarchy or layout
-- theme/tokens/typography
-- interaction behavior
-- animations, haptics, input, keyboard behavior
-- accessibility or platform-specific presentation
-
-## Read `external.md` when
-
-- framework/platform behavior needs current guidance
-- an Expo API/package is involved
-- iOS/Android behavior or native integration is involved
-- performance guidance from an external rule pack may help
-
-## Product requirements
-
-Read only relevant active files under `.agents/docs/product/` when the task touches product behavior that has already been explicitly promoted there.
-
-Do not infer requirements from `.agents/docs/archive/` or `.agents/docs/research/`.
-
-## Decisions
-
-Read relevant accepted ADRs under `.agents/docs/decisions/` when changing an architectural boundary they cover.
+- `.agents/docs/product/` — read only the files for product behavior the task touches.
+- `.agents/docs/decisions/` — read the ADRs covering an architectural boundary being changed.
+- `.agents/docs/research/`, `audits/` and `history/` are context, never requirements.

@@ -1,149 +1,231 @@
 # Design rules
 
-These are durable implementation/design guardrails, not a complete product design specification.
+Durable design guardrails, not a complete design specification. Values live in `src/theme/`.
 
-## Shared Forge identity
+## Identity and platform
 
-Forge should keep one coherent visual identity across iOS and Android. Do not make the app visually imitate stock iOS or Material solely because it runs on that platform.
+- Keep one Forge visual identity across iOS and Android; do not imitate stock iOS or Material
+  because of the platform. Platform differences address behavior, system integration,
+  accessibility, input or native capability.
+- Apple/Android guidance informs native expectations, modality, input, haptics and system
+  integration; it does not override Forge's hierarchy, brand or visual system unless the user
+  decides so.
+- Do not copy exact visual constants from an external guideline when the platform offers a
+  semantic value or Forge already owns the decision.
+- Visual screen explorations default to iPhone portrait; they are directional previews, not
+  assets or specifications.
 
-Use platform-specific behavior where it improves system integration, accessibility, input, navigation expectations, or native capability.
+## Colour
 
-## Semantic design system
+- Use shared semantic tokens and primitives; never duplicate raw visual values that a token covers.
+- Light: pure-white page and header, achromatic grey surfaces and controls, no green or warm tint.
+- Dark: a neutral zinc grey ramp with no blue-green cast and ascending elevation
+  (`background` < `surface` < `surfaceElevated`); secondary text is a mid grey, not near-white.
+- Forge has no brand accent colour; the monochrome hierarchy is deliberate. `actionPrimary` /
+  `onActionPrimary` is the only default filled action and `selectionIndicator` the generic
+  selected/toggle state.
+- Never infer colour from a label: Save, Add, Start, Finish and Done stay neutral, as do Back,
+  Close, Cancel, More, Filter, Skip and reversible Hide. Green is for success and the form-completion
+  action below, amber for warnings, red for actions that directly delete, remove or discard data.
+- The single treatment for a form's final confirmation (header Save, in-form Save, sheet confirm)
+  is the success outline with a checkmark when enabled and neutral when disabled; never substitute
+  a neutral or primary-filled Save.
+- Workout-type colours are data: only small type markers and badges, calendar markers, charts and
+  legends, and the type editor/colour selector. Never text, buttons, headers, navigation, checks,
+  switches, metrics or large backgrounds. Resolve them through the shared workout-type presentation
+  helper so custom colours and built-in fallbacks agree.
 
-Use shared semantic tokens and reusable primitives for recurring color, typography, spacing, shape, and interaction roles. Avoid duplicating raw visual values across feature components when a shared semantic value already exists.
+## Cards
 
-Painted controls must have a distinct resting fill from their containing card in both themes. Shared controls resolve that fill from the nearest painted container: in Light, use soft off-white controls on the page and muted tonal controls inside cards, avoiding stark pure-white default buttons; in Dark, retain the elevated/muted surface steps. Cards and sheets provide their actual surface through the shared control-surface context; secondary buttons, neutral outlined buttons, choice rows, and stepper groups use that context instead of local fill overrides. Primary and semantic success/destructive treatments retain their meaning; ghost actions remain transparent. Neutral circular header controls retain their shared frosted treatment and choose a contrasting tint for the containing surface. Disabled painted controls retain a distinct neutral fill and never show pressed feedback.
+- Every card is a `ForgeCard`; screens never hand-roll a card's background, border or radius, and
+  related rows use the shared grouped card.
+- Cards separate by tone, never by outline. Base cards (on a screen or sheet) use `surface` with
+  no border; every top-level card looks identical. Nested cards (inside a card) step up to
+  `surfaceElevated`, also borderless. Light adds the soft card shadow; Dark relies on tone. In
+  Light the base surface is light grey and nested cards are white; sheets are painted the base
+  `surface`.
+- `border` is the neutral ring for `outline` buttons and the edge of text/search fields (white
+  `surfaceElevated` fill in Light, `input` fill in Dark). `divider` is only for hairlines between
+  rows inside a card; the floating dock keeps a soft `divider` rim in Light.
 
-Finite single-choice lists use the shared Forge selection primitives as one connected rounded group with content-fitting row heights, visible inset dividers and a checked selected row. Individual choices do not each receive separate rounded cards or gaps. App dropdowns reuse `ForgeDropdown`, sizing the panel to its option content and checkmark space within the available viewport rather than a fixed wide minimum. Anchored dropdown menus use a scoped compact appearance within one shared panel: inset rounded rows, a quiet tonal selected fill, primary text and a checkmark, with at least 44 pt touch targets. Ordinary sheet choices retain the connected-list treatment. Distinct records such as workout sessions retain separate cards. Standalone choices use the Forge selection sheet; a value opened from an existing sheet replaces that sheet's content with an internal selection view and provides an explicit Back path to the prior content.
+## Controls
 
-Anchored dropdown panels separate from the content behind them through an elevated surface, an external shadow and a quiet backdrop tint. Keep the shadow outside the clipped option surface. In Light, labelled segmented tabs use a distinct neutral track and primary-colour unselected text so Info, Progress and History remain legible against the white page. The Appearance switch may use a shorter painted track while retaining 44 pt touch targets.
+- Painted controls have a resting fill distinct from their container, resolved from the nearest
+  painted container through the shared control-surface context (Light: soft off-white on the page,
+  muted tonal inside cards, never stark white; Dark: the elevated/muted steps). Secondary and
+  neutral outline buttons, choice rows and stepper groups use that context, never local fills.
+  Disabled painted controls keep a distinct neutral fill.
+- Button borders match across themes, with Dark as the reference: `outline` keeps its 2 px
+  semantic ring (grey, red or green by tone) in both; the "add" affordances (Add exercise, Add
+  variation) keep their dashed outline in both; `secondary` is borderless (tone in Dark,
+  container-aware tonal fill plus soft shadow in Light); `primary` is solid `actionPrimary`;
+  `ghost` is transparent.
+- Header actions use `HeaderAction`: icon-only actions are 44 pt circles, labelled pills use
+  `controlLabel`, and both stay neutral unless the screen promotes the action or it is directly
+  destructive.
+- Neutral circular header and sheet controls are borderless in both themes, separate by a
+  contrasting tone resolved from their container (never a grey or white ring), and use the frosted
+  surface below. Sheet close is `SheetCloseButton`; an in-sheet Back matches it.
+- The dock and neutral circular controls use a frosted surface (a `BlurView` plus a dock-tone tint
+  film) that is identical on every device. Forge does not use native Liquid Glass /
+  `expo-glass-effect`: it rendered inconsistently (iOS 26 only, native edge artifacts). Primary
+  filled actions such as the live-workout Finish keep solid `actionPrimary`; destructive and
+  success controls keep their semantic surfaces.
+- Joined action pills keep their internal vertical separators; each accessible segment fills its
+  share and the outer corners clip press feedback.
+- Shared switches are presentational; their rows own touch handling, accessibility and haptics.
 
-Icon-only dismiss and navigation header actions use the shared 44 pt circular overlay surface, pressed state, haptic feedback, and accessible name. Circular sheet/header controls are borderless in both themes: they separate by a contrasting tonal surface resolved from their container (soft off-white over Light page backgrounds and muted fills inside Light cards; muted/elevated steps in Dark), never a grey/white ring. Sheet close controls use `SheetCloseButton`, the same-sized neutral circle matched by an in-sheet Back action.
+## Choices and menus
 
-**Button borders match across themes: a button outlined in Dark is outlined in Light too.** Dark is the reference. The `outline` variant keeps its 2px semantic ring in *both* themes — grey (`border`), red (`textDestructive`) or green (`success`) by tone — and the "add" affordances (Add exercise, Add variation) keep their dashed outline in both. The deepened Light `border` token is what makes the neutral ring visible there. `secondary` is borderless in both themes: Dark separates it by tone, Light by its container-aware tonal fill (neutral / `destructiveSurface` / `successSurface`) plus the soft card shadow. `primary` is the solid `actionPrimary` fill, `ghost` is transparent, and circular sheet/header controls are borderless in both themes (the rule above). Colour still carries meaning on the tonal fills (soft red = destructive, soft green = success). When adding button work, keep Light and Dark borders in step rather than diverging them.
+- Finite single-choice lists are one connected rounded group with content-fitting rows, inset
+  dividers and a checked row, never separate cards per choice. Distinct records such as workout
+  sessions stay separate cards.
+- Standalone choices use the Forge selection sheet. A value opened from an existing sheet replaces
+  that sheet's content with an internal selection view and an explicit Back.
+- Short mutually exclusive choices side by side (7d/30d/90d, Male/Female, Groups/Muscles,
+  Left/Right, Info/Progress/History) use `ForgeSegmentedSwitch` with `showLabels`: `standard` fills
+  its row, `compact` hugs its labels in card headers with the 15 pt control label and 44 pt
+  targets. Never hand-build segment rows; described choices keep the connected list and
+  multi-select keeps chips or checkboxes. In Light the track is a distinct neutral with
+  primary-colour unselected text. The Appearance switch may use a shorter track with 44 pt targets.
+- Dropdowns use `ForgeDropdown`, sized to their options and checkmark within the viewport, with a
+  compact appearance in one panel: inset rounded rows, a quiet tonal selected fill, primary text,
+  a checkmark and 44 pt targets. The panel separates by an elevated surface, an external shadow
+  kept outside the clipped option surface, and a quiet backdrop tint.
+- Bottom-attached lists of discrete actions use `ForgeActionSheet` (handle, centred title, 44 pt
+  close, grouped neutral icon rows with chevrons; a primary destructive action moves to the header's
+  right edge and Close to the left). Never use it for selection lists, pickers, forms, detail sheets
+  or confirmations.
 
-Bottom-attached modal sheets use the shared Forge sheet presentation for their backdrop, drag handle, dismissal motion, corner treatment, shadow, close control, and pressed feedback. Their header uses the shared centred-title shell and 44 pt circular X dismiss control; the X aligns to the shared top-right sheet edge regardless of any content inset. The complete header zone—including the title—is always a drag-to-dismiss target. When a sheet's body does not scroll, the whole card is a drag-to-dismiss target as well (wrap the non-scrolling body in the shared sheet drag area), so a non-scrolling card dismisses from anywhere on it. Only a genuine page/list scroller exempts its own area, so the dismiss gesture never competes with the scroll. A value wheel is not a page scroller: a wheel picker stays drag-to-dismiss (its header and surrounding card dismiss; the wheel itself still spins). Specialised sheets may add Back, Save, Delete, or Default controls without replacing that shell. Backdrop opacity is animated in a layer behind the sheet, never on a parent that would make the sheet transparent; bottom sheets settle at their snap point without overshoot and their surface extends through the system navigation area. When a sheet input opens the keyboard, the shared sheet synchronizes its animation with the keyboard. A short sheet rises only far enough to remain fully visible above the keyboard with a small breathing gap; a taller sheet expands to the top safe-area inset and its content must remain scrollable. Both retain normal rounded upper corners and restore their compact height when the keyboard hides. Individual sheets may vary only their content and height.
+## Sheets
 
-Persistent screen headers remain unlined at every scroll position. Scrolling content beneath a header must not introduce a divider or elevation edge. Card-like press targets and filter choices inside scrolling content use a short press-recognition delay so a drag never leaves a control looking selected.
+- Bottom sheets use the shared Forge sheet for backdrop, handle, dismissal motion, corners, shadow,
+  close control and press feedback, with the shared centred-title header and 44 pt circular X
+  aligned to the sheet's top-right edge. Sheets may add Back, Save, Delete or Default controls and
+  vary only content and height.
+- The whole header, title included, is a drag-to-dismiss target. A non-scrolling body is too (wrap
+  it in the shared sheet drag area); only a genuine page or list scroller exempts its own area. A
+  value wheel is not a scroller: its sheet stays drag-to-dismiss while the wheel spins.
+- A sheet body scrolls only when its measured content overflows; fitting content neither bounces nor
+  claims the gesture, and overflow stays reachable above the keyboard.
+- Backdrop opacity animates in a layer behind the sheet, never on a parent of it. Sheets settle
+  without overshoot and their surface extends through the system navigation area.
+- With the keyboard open, the sheet moves in sync with it: a short sheet rises just enough to stay
+  fully visible with a small gap, a tall sheet expands to the top safe area and keeps scrolling, and
+  both restore their height when the keyboard hides.
+- Sheets never capture text-selection, caret or suggestion touches to dismiss the keyboard; the
+  backdrop, close controls and configured scroll gestures own dismissal. Scroll-body
+  drag-to-dismiss yields while the keyboard is visible; header and handle keep theirs.
+- On iOS, returning from another app preserves the focused input and keyboard layout: background or
+  other-app keyboard notifications never collapse sheets, reset workout scroll or replay an
+  unchanged layout. Explicit dismissal and genuinely changed keyboard frames still apply.
 
-Bottom-attached lists of discrete actions use `ForgeActionSheet`. It owns the handle, semantic centred title, 44 pt close control, grouped neutral icon rows with chevrons, and promotes the primary destructive action to the header's right edge while moving Close to the left. Do not use it for radio/selection lists, pickers, forms, detail sheets, or confirmation dialogs; those retain their specialised primitives and semantics.
+## Screens, dock and navigation
 
-Shared sheets never capture text-selection, caret or keyboard-suggestion touches to dismiss the keyboard. Inputs and handled controls retain their normal focus behaviour. The backdrop, close controls and explicitly configured scroll gestures own intentional dismissal. Compact scroll-body drag-to-dismiss yields while the keyboard is visible; the header and handle retain their dismissal gestures.
+- Persistent screen headers stay unlined at every scroll position.
+- Scrollable pages extend to the bottom edge and reserve the bottom safe area inside their content,
+  never as an opaque strip; primary tabs include the dock clearance there.
+- Backgrounds exposed during navigation gestures and transitions follow the active theme, including
+  the native root.
+- Dashboard, History and Plans empty states share the illustration frame, top anchoring, title
+  baseline and primary-action size and position; supporting copy may grow.
+- Primary tabs use the persistent Forge tab bar: a short cross-fade (never push or slide) with one
+  selection indicator, retapping the active tab preserves its navigation and scroll, and scroll
+  bodies run behind the safe area and dock fade with only the dock's reachability inset reserved.
+  The dock floats just above the home indicator at its established offset. Dock icons grow subtly
+  to a slightly enlarged selected state.
+- Android matches iOS: the navigation bar is fully transparent (contrast scrim disabled through the
+  `expo-navigation-bar` plugin) with its tint following Forge's appearance. Gesture navigation keeps
+  the iOS dock offset; the 3-button bar holds real controls, so the dock floats fully above it.
 
-On iOS, switching to another app and returning preserves the focused input and keyboard-related layout. Background or other-app keyboard notifications must not collapse sheets, reset workout scroll position, or replay an unchanged keyboard layout on return. Explicit keyboard dismissal and genuinely changed keyboard frames still update the layout normally.
+## Press feedback and haptics
 
-Use the shared grouped-card primitive whenever a feature presents related rows. It owns the common surface, border, radius, and shadow treatment in both themes; screens may not recreate a locally divergent card outline.
-
-### Card separation contract
-
-Card surfaces separate from their container by tone first, not by outline. Every card uses the shared `ForgeCard`; screens never hand-roll a card's background, border, or radius. A card has exactly one of two treatments, chosen by its container, in both themes:
-
-- **Base** (default): a card sitting on a screen background or on a sheet. It uses the base card surface (`theme.surface`) with **no border** — its tone alone separates it (lighter/raised over a dark page, darker/recessed on an elevated sheet), carried by the soft card shadow in Light and pure tone in Dark. Every top-level card — History rows, Dashboard cards, Settings sections, Plans cards, live-workout exercise cards, summary cards — is a base card and looks identical.
-- **Nested**: a card placed *inside* another card. It steps one tone up (`theme.surfaceElevated`) and is **borderless like the base card**, separating by tone in **both** themes — Light and Dark each give `surfaceElevated` a distinct step above `surface` — reinforced by the soft card shadow in Light. It never shows a grey outline.
-
-Light uses a pure-white page and header, with achromatic grey surfaces and controls; neutral backgrounds must not carry a green or warm tint. Dark uses a neutral zinc grey ramp (near-black `#09090B` page, `#18181B` cards) with no blue-green cast; secondary text is a mid zinc grey rather than a near-white. Forge has no brand accent colour: the monochrome hierarchy below is deliberate. Base cards use a light-grey `surface` and nested cards use white `surfaceElevated`, preserving tonal separation without requiring ascending luminance from the page. Dark retains its ascending elevation ramp (`background` < `surface` < `surfaceElevated`). Bottom sheets are painted the base `surface`, so elevated controls and nested cards read against them. Borders never define a card, base or nested. In Light, `theme.border` is the neutral ring tone for `outline` buttons and the edge for text/search fields, which also take a white `surfaceElevated` fill; `secondary` and circular controls stay borderless. In Dark those fields keep their `input` fill. `theme.divider` is reserved for hairline separators between rows inside a card, never a card's own outline. The floating dock keeps a soft rim (`divider` in Light), not the field border.
-
-Controls use a monochrome neutral hierarchy by default. `actionPrimary`/`onActionPrimary` are the only default filled-action treatment, and `selectionIndicator` is the monochrome generic selected/toggle state. The `outline` variant keeps its semantic ring in both themes; `secondary` is borderless and tonal (per the button rule above). Do not infer colour emphasis mechanically from labels such as Save, Add, Start, Finish, or Done; these actions remain neutral. An enabled final confirmation action in an add/edit form may use the success-outline treatment with a checkmark to make the ready-to-submit state explicit (a soft success surface with a green ring, in both themes); its disabled state remains neutral. This success-with-checkmark is the single shared treatment for that final form-completion action wherever it appears — an edit screen's header Save, an in-form Save button, or a sheet's confirm — so completing a form reads identically across editors; do not substitute a neutral or primary-filled Save for it. Green is reserved for success states and this explicit form-completion affordance, amber for warnings, and red for destructive actions that directly delete, remove, or confirm discarding data. Back, Close, Cancel, More, Filter, Skip, and reversible Hide remain neutral.
-
-Workout-type colours are data, not chrome. They may appear only in small type markers and badges, calendar markers, charts and legends, and the workout-type editor or colour selector. Do not use them for text, buttons, headers, navigation, checks, switches, metrics, or large decorative backgrounds. Resolve type-marker presentation through the shared workout-type presentation helper so saved custom colours and built-in fallbacks remain consistent.
-
-Header actions use `HeaderAction` only: icon-only controls are 44 pt circles and labelled pills use `controlLabel`. Their surface remains neutral unless the screen explicitly promotes the action or the action is directly destructive. Shared switches are presentational; their containing rows own touch handling, accessibility, and any haptic feedback.
-
-Joined action pills retain their established internal vertical separators in both themes. Their independently accessible segments fill their own share of the pill, with the group's outer corners clipping press feedback.
-
-Drag grips use an inset vertical oval press tint around the dots, with space between the tint and the containing row or card. Their existing drag/touch region stays intact. The shared Forge pressable applies a centered 40 pt circular press tint by default to standard 44 pt round controls, including three-dot menus, header/sheet actions and circular choices. Their touch targets stay unchanged; custom feedback remains scoped to its control. Joined header segments keep feedback filling their own segment. Other bare icon actions use rounded local feedback; painted buttons and full-row actions retain feedback matching their visible surface.
-
-Dashboard, History and Plans empty screens share the same illustration frame, top anchoring and title baseline. Empty-state primary actions use the same dimensions and vertical position; supporting copy may grow when text scaling or wrapping needs more space.
-
-Primary dock icons use the shared navigation item and animate subtly between their standard size and a slightly enlarged selected state.
-
-Primary dock tabs use the persistent Forge tab bar. They cross-fade through the shared short tab transition rather than using a push or lateral slide, while a single local selection indicator moves to the active item. Retapping the active tab preserves its current navigation and scroll position. Their scroll bodies extend behind the lower system safe area and dock fade; only the dock's reachability inset is reserved, never a separate empty tab-bar band. The dock floats just above the home indicator at its established offset; keep that placement. Android matches the iOS presentation: the system navigation bar is fully transparent (its contrast scrim is disabled through the `expo-navigation-bar` config plugin) so content runs behind it, and its button/handle tint follows Forge's resolved appearance, not the system's. Gesture navigation keeps the iOS dock offset; the 3-button bar holds real controls, so the dock floats fully above it.
-
-The dock and neutral circular header/sheet controls use a **frosted surface** — a `BlurView` plus a soft dock-tone tint film — for a glass-like feel that is identical on every device (iOS and Android). Forge does **not** use native Liquid Glass / `expo-glass-effect`; a real-glass rollout read inconsistently (iOS-26-only, native edge artifacts), so the frosted blur is the deliberate cross-platform treatment. Primary filled actions (e.g. the live-workout Finish check) keep their solid `actionPrimary` fill rather than a frosted surface, so the icon never vanishes into the backdrop; destructive/success controls keep their semantic surfaces. (The iOS 16.4 deployment target is still pinned — it is required by the native rest-timer Live Activity pod, not by any glass dependency.)
+- Every custom interactive control shows a pressed state across its whole visible surface through
+  the shared press-state tint layer, following its shape and keeping its colour; content never turns
+  translucent, disabled controls show none, and destructive actions keep stronger contrast without
+  relying on haptics.
+- Standard 44 pt round controls (three-dot menus, header/sheet actions, circular choices) get the
+  centred 40 pt circular tint; an inset circle or chip keeps its larger touch target with the tint
+  on the visible shape. Joined header segments tint their own segment, bare icon actions use rounded
+  local feedback, and painted buttons and full rows match their surface. Drag grips use an inset
+  vertical oval around the dots with space to the row, keeping their drag region. Routine-name
+  feedback includes the leading type icon and row padding. Chart plots show selection through their
+  point and guide, never a rectangular tint. A selector with a label above tints only its value
+  button.
+- Card-like targets and filter choices inside scrolling content use a short press-recognition delay
+  so a drag never leaves them looking selected.
+- Each interaction has one haptic owner (the primitive performing it, else the screen). Haptics are
+  for discrete causal actions only, never typing, scrolling or continuous gestures.
 
 ## Motion
 
-Forge motion is quiet and purposeful: use it only to confirm a direct action, preserve navigation hierarchy, or keep a gesture physically connected to its result. Shared motion presets own the 120 ms feedback, 160–180 ms state transition, no-overshoot sheet settle, and direct-manipulation swipe settle. Do not add decorative entrances, staggered content reveals, bounce effects, or motion that delays repeated task entry.
+Motion only confirms a direct action, preserves navigation hierarchy or keeps a gesture connected
+to its result. Shared presets in `src/theme/motion.ts` own the feedback, state, sheet-settle and
+swipe-settle timings. No decorative entrances, staggered reveals, bounce, or motion that delays
+repeated entry.
 
-Refined press and value motion is part of the shared primitives, not per-screen decoration:
+- Tabs cross-fade; drill-in screens use one hierarchy-aware push/pop; shared sheets own their single
+  entrance and exit with no nested directional entrance. Gesture-driven sheets and swipes follow the
+  finger, then use their shared settle preset.
+- `ForgePressable` settles rounded painted surfaces slightly inward while pressed (never below 0.97)
+  over the tint. Square full-width rows, grouped segments, disabled controls, backdrops and dock
+  tabs (whose feedback is the selection pill and the icon's selected size) do not scale.
+- Changing numeric readouts (elapsed and rest timers) use `ForgeRollingNumber`: changed digits roll
+  in the direction of change with tabular figures. Never roll static values or first display. The
+  rest-timer Live Activity mirrors this with SwiftUI's numeric content transition (iOS 17+); its
+  per-second tick is drawn by the system.
+- A completed set check traces its stroke (`DrawnCheckIcon`) instead of fading.
+- Native layout changes go through `animateNextLayout` (ease-out at the shared durations); never
+  configure `LayoutAnimation` presets or ease-in-out curves locally, except a sheet following the
+  system keyboard's own curve.
+- Dropdown menus enter with a short fade and 0.96 → 1 scale from the corner nearest their trigger,
+  never from zero, and close immediately. Confirmation dialogs fade their backdrop while the card
+  fades and grows from 0.96, exiting faster than they enter.
+- Swipe reveals share `swipeRevealShouldOpen` / `swipeRevealSettle`: a quick flick decides by
+  direction before distance, and release velocity carries into the no-overshoot spring.
+- State-indicator springs (segmented pills, the dock) never overshoot; reuse the clamped presets.
+- Grids and heatmaps are present at once, never revealed as a staggered wave.
+- Reduce Motion is the only motion setting: final states apply immediately for scale, lateral,
+  spring and layout changes, keeping only short opacity context where a transition would otherwise
+  disorient. Haptics, semantics and final states are unchanged.
 
-- `ForgePressable` settles rounded painted surfaces slightly inward while pressed (a fixed few points, never below 0.97 scale) on top of the shared tint layer. Square full-width rows, grouped segments, disabled controls, backdrops and primary dock tabs (whose feedback is the moving selection pill and the icon's selected size) do not scale.
-- Live and changing numeric readouts (the elapsed clock and rest countdowns) use `ForgeRollingNumber`: only changed digits roll, upward when the value grows and downward when it shrinks, with tabular figures so the row never shifts width. Do not roll static values or values on first display.
-- A completed set check traces its Tabler check stroke in (`DrawnCheckIcon`) instead of fading it.
-- Native layout changes (expand/collapse, list reflow, sheet content swaps) go through `animateNextLayout`, which uses ease-out at the shared feedback/transition durations. Do not configure `LayoutAnimation` presets or ease-in-out curves locally; the only exception is a sheet following the system keyboard, which matches the keyboard's own curve.
-- Anchored dropdown menus enter with a short fade and a 0.96 → 1 scale from the corner nearest their trigger, never from zero scale; they close immediately. Confirmation dialogs fade their backdrop while the card fades and grows from 0.96, and exit faster than they enter. Reduce Motion keeps only the short fade.
-- Horizontal swipe reveals share `swipeRevealShouldOpen`/`swipeRevealSettle`: a quick flick decides by direction before distance, and the release velocity carries into the no-overshoot swipe spring.
-- Springs used for state indicators (segmented pills, the dock) must not overshoot; reuse the shared clamped presets.
-- Content such as calendar grids and heatmaps is present at once; never fade cells in as a staggered wave.
-- Short mutually exclusive choices shown side by side (ranges such as 7d/30d/90d, Male/Female, Groups/Muscles, Left/Right, Info/Progress/History) use `ForgeSegmentedSwitch` with `showLabels`, whose filled pill slides between segments: `standard` fills its row, `compact` hugs its labels in card headers while keeping the 15 pt control label and a 44 pt touch target. Do not hand-build segment rows; longer or described choices keep the connected selection list, and multi-select keeps chips or checkboxes.
-- The rest-timer Live Activity mirrors the in-app rolling digits with SwiftUI's numeric content transition (iOS 17+). Its per-second tick is drawn by the system.
+## Icons
 
-Tabs retain a short cross-fade and selection indicator; drill-in screens use one hierarchy-aware push/pop transition; shared sheets own their single entrance/exit and must not add a nested directional entrance. Gesture-driven sheets and destructive-row swipes follow the finger, then use the corresponding shared settle preset.
-
-Respect the operating system Reduce Motion preference without a separate Forge setting. In that mode, use immediate final states for scale, lateral, spring, and layout changes; retain only short opacity context where a screen or sheet transition would otherwise be disorienting. Haptics, semantics, and final interaction states must be unchanged.
-
-Across all vertically scrollable pages, including nested settings, details, and editors, the scroll viewport extends to the bottom screen edge. Reserve the bottom safe area inside the scrollable content so the final control can clear the home indicator; do not create an opaque safe-area strip outside the scroll viewport. Primary tabs include their floating dock clearance in that trailing space.
-
-Backgrounds exposed behind pages during navigation gestures and transitions must follow the active Forge theme, including the native app root.
-
-All application icons are rendered through Forge's shared `Icon` adapter, backed by Tabler Icons. The adapter's `DrawnCheckIcon` is the only animated glyph: it traces Tabler's check path for completion feedback. Choose the icon semantically for the action or content it represents; screens must not import a separate icon library directly.
-
-When choosing or changing an icon, confirm the actual rendered glyph — never select by name alone. Tabler names routinely mislead (`hourglass` maps to a mood/face glyph; `activity` renders as a running person), so map the intended Forge name through `Icon.tsx` to its Tabler component and verify that component's real glyph before using it. Prefer icons already proven correct in the codebase.
-
-Visual screen explorations use iPhone portrait format by default unless a task explicitly calls for a different target. They are directional previews rather than app assets or implementation specifications.
-
-Do not copy exact visual constants from an external design guideline when the platform provides a semantic/system value or Forge already owns that visual decision.
+- Every icon renders through the shared `Icon` adapter (Tabler Icons); screens never import another
+  icon library. `DrawnCheckIcon` is its only animated glyph.
+- Confirm the rendered glyph, never the name: Tabler names mislead (`hourglass` maps to a face,
+  `activity` to a running person), so trace the Forge name through `Icon.tsx` to its Tabler
+  component and check that glyph. Prefer icons already proven in the codebase.
 
 ## Typography
 
-Use Forge's semantic type roles and shared text primitives rather than raw font values in product UI. Readable content must use at least the `label` role (13px); `caption` (12px) is reserved for non-essential compact metadata. Support the full operating-system accessibility text-size range. Shared text and inputs use uncapped scaling (`maxFontSizeMultiplier={0}`); do not disable scaling or counteract enlargement with fitting. Let controls and rows grow with their content.
+- Product UI uses the semantic type roles and shared text primitives, never raw font values.
+  Readable content is at least `label` (13 px); `caption` (12 px) is only for non-essential compact
+  metadata. Textual actions use `controlLabel` (15 px) with 44 pt targets, including in compact
+  header chrome.
+- Titles, section and field labels use sentence or title case, never all caps, except where caps
+  carry compact meaning: date rails and calendars, abbreviations such as RPE, units and initialisms
+  such as kg or km.
+- Text scaling, entity names, headings and wrapping follow the accepted
+  [typography requirements](../docs/product/typography.md).
 
-Descriptive titles, section labels, and field labels use sentence or title case, never all caps. Preserve all caps only where it carries compact semantic meaning: date rails and calendars, well-known abbreviations such as RPE, and units or initialisms such as kg or km.
+## Accessibility and responsiveness
 
-Entity names use shared semantic typography without automatic shrinking. Use two-line tail-ellipsized previews for browsing only when activation reveals the complete name; otherwise show a shared Show full name disclosure or wrap fully. Full record headings, active-workout headings, selection options and import-matching candidates wrap without a line limit. Compact navigation and selected-value controls may use one-line ellipsis when their opened content exposes the complete value. Preserve original strings, qualifiers and complete accessible labels.
+- Accessibility is correctness, not polish: never rely on colour alone, name icon-only actions, and
+  keep touch targets, safe areas, text scaling, keyboard use and reduced motion intact, even when
+  that changes layout.
+- Keep layouts stable during input and repeated interaction: no focus stealing or surprise
+  scrolling.
+- Input and navigation never wait on decorative work, full-list mounting or persistence. Back,
+  close, tab switches, the header and text input work immediately; heavy screens render their shell
+  first and may show a compact in-body loading state. Large content is virtualized or progressively
+  prepared. A dismissal takes effect from the interaction itself and never leaves a surface
+  capturing input. Background work is coalesced off the input path.
 
-Detail headers place the full name beside Back, with 12 pt top/bottom spacing after the safe area and a 12 pt gap from controls, preserving screen margins and 44 pt minimum targets. When the measured title exceeds 40% of available screen height, put it once at the beginning of scrollable content beneath a compact control row. Keep task titles concise and place long entity names separately in wrapping sheet/dialog content.
+## Device sizing
 
-Reflow dense set fields into labeled rows when measured content cannot fit; preserve field order and interaction. Badges fit their content without capped font-growth formulas. Picker rows retain a stable height within each picker derived from scaled text measurements. Dropdown placement and sheet overflow respond to layout/text-size changes. See [accepted typography requirements](../docs/product/typography.md).
-
-Textual actions use the shared `controlLabel` role (15px) and retain a 44pt minimum touch target. Do not use smaller labels simply because an action is placed in compact header chrome.
-
-## Accessibility is part of correctness
-
-Interactive UI must remain understandable without color alone. Icon-only actions need accessible names. Preserve useful touch targets, safe areas/system insets, text scaling where practical, keyboard usability, and reduced-motion preferences.
-
-Accessibility fixes may alter layout or interaction; do not treat them as optional polish.
-
-## Stable interaction
-
-Sheet bodies enable page scrolling only when their measured content exceeds the available viewport. Fitting content does not bounce or claim a scroll gesture and remains a drag-to-dismiss target; genuine overflow stays reachable, including above the keyboard. Value wheels retain their own scrolling behavior.
-
-Prefer stable, predictable layouts during active input and repeated interactions. Avoid unnecessary focus stealing, surprise scrolling, or decorative motion that interferes with task completion.
-
-### Responsiveness invariant
-
-User input and navigation must never wait on decorative work, full-list mounting, or background persistence. Navigation controls (back, close, tab switch), the screen header, and search/text input stay usable immediately on entry; a heavy screen or sheet renders its shell first and may show a compact in-body loading state while it prepares expensive projections. Large or unbounded content is virtualized or progressively prepared rather than mounted whole. A dismissal must take effect from the interaction itself, never only when an animation completes, and it must never leave an interactive surface that keeps capturing input. Persistence and other background work is coalesced and moved off the input path so repeated edits and rapid re-entry stay fluid.
-
-Custom interactive controls must provide a visible pressed state across their whole visible surface, not only their label or icon. An inset circle or chip retains its larger unpainted touch target; its tint follows the visible circle or chip. Routine-name feedback includes the leading type icon and row padding while adjacent actions remain independently accessible. Reuse Forge's shared press-state tint layer for buttons, rows, tabs and icon controls. Interactive chart plots provide selection feedback through their point and guide rather than painting a rectangular press tint over the plot. Other controls keep their shared surface feedback. The tint follows the control's shape and preserves its underlying color; content does not become translucent. Disabled controls do not show press feedback. Preserve stronger semantic contrast for destructive actions; do not rely on haptics alone.
-
-For a selector with a label above its button, keep the label outside the press surface; only the rounded value button receives tint.
-
-Each interaction has one haptic owner: the reusable primitive that performs the interaction, or the screen when no reusable owner exists. Do not trigger haptics from both layers. Use haptics sparingly for discrete causal actions, never typing, scrolling, or continuous gestures.
-
-### Device sizing scale
-
-Forge is authored against the iPhone Air canvas and adapts to other devices through
-`src/theme/scale.ts`. The reference device — and anything wider — renders the authored
-dp 1:1; only narrower devices scale down (the ratios are clamped at 1, never up), so the
-iPhone Air look is never inflated. Type, spacing, radii and most fixed sizes flow through
-`moderateScale` (already applied by the `typeScale`/`spacing` tokens); component dp (card,
-chip, button sizes) flow through `scaleUI`, so a narrower phone is a proportional copy of
-the reference rather than full-size boxes against shrunk text. Touch targets keep their
-accessible size (≥44 dp) instead of scaling below it. Scaling is native-only: the web build
-and the Playwright device profiles render at the authored base, so the e2e layout stays
-canonical. Do not hand-author raw dp for new component sizing that should scale, and do not
-rebase the guideline width away from the reference device.
-
-## Platform guidance is behavioral guidance
-
-Apple/Android guidance may inform native expectations, system components, accessibility, modality, input, haptics, and system integration. It does not override Forge's product hierarchy, brand, or shared visual system unless the user explicitly decides otherwise.
+Forge is authored on the iPhone Air canvas and adapts through `src/theme/scale.ts`: that width and
+wider render 1:1, narrower devices scale down (never up). Type, spacing and radii flow through
+`moderateScale` via the tokens; component sizes through `scaleUI`; touch targets never shrink below
+44 pt. Scaling is native-only, so web and the Playwright profiles render the authored base. Never
+hand-author raw dp for sizing that should scale, and never rebase the reference width.

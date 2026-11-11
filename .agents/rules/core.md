@@ -2,42 +2,43 @@
 
 ## 1. Do not manufacture product truth
 
-Explicit user requirements and active canonical product documents define product intent. Existing code, old docs, screenshots, external rule packs, and research may provide evidence or context but do not silently become requirements.
+When sources conflict, prefer, in order:
 
-If an unresolved decision would materially affect product behavior, architecture policy, or long-lived design policy, ask the user unless the task already made the decision explicit.
+1. the user's explicit current requirement
+2. accepted product requirements (`.agents/docs/product/`) and accepted ADRs (`.agents/docs/decisions/`)
+3. active Forge rules (`.agents/rules/`)
+4. official platform/framework documentation and tooling, for factual API and platform behavior
+5. maintained external skills and rule packs
+6. research, audits, history and inspiration
 
-## 2. Separate implementation state from durable knowledge
+Current code, tests, screenshots and previous chat context are evidence of implementation
+state, not product intent. If a blocking product, architecture or long-lived design decision
+cannot be resolved from 1–3, ask the user instead of inventing one.
 
-Do not write permanent docs that merely say what files/screens/components currently exist, what the next task is, or what is "not implemented yet". Those statements go stale quickly and are usually derivable from code.
+## 2. TypeScript is the project language
 
-Permanent knowledge should describe durable requirements, boundaries, rationale, or adopted policy.
+## 3. Dependencies
 
-## 3. Typescript remains the project language
+Prefer the platform, React Native and existing dependencies. Expo SDK packages may be added
+when they are the supported solution; install them through the Expo-compatible path rather
+than guessing a version.
 
-Typescript is the main language of the project
+Ask before adding any new third-party runtime or native dependency. A recommendation in an
+external skill, rule pack or example is not a reason to add one, and no Forge rule may be
+changed to justify one.
 
-## 4. Dependency policy
+## 4. Playwright server
 
-Prefer existing dependencies and platform/framework capabilities.
+Keep Playwright's `baseURL`, web-server URL and static-server command aligned on one local
+address (see `playwright.config.ts`).
 
-Expo SDK packages may be added when they are the appropriate supported solution. Use the Expo-compatible installation mechanism rather than guessing a version.
+## 5. Rules are harder to change than code
 
-Ask before adding any new third-party runtime or native dependency. Do not bypass this rule by changing another Forge rule to justify the dependency.
+Implementation conforms to active Forge rules. Never loosen a rule only to make an
+implementation or test pass. Name every rule change in the completion response; when a rule
+may be changed without asking is defined in `maintenance.md`.
 
-## 5. Playwright test server
+## 6. Keep routers small
 
-Run Playwright tests against the local web server on port `9021`. Keep the Playwright `baseURL`, web-server URL, and static-server command aligned to `http://127.0.0.1:9021`.
-
-## 6. Rules are harder to change than code
-
-Implementation should normally conform to active Forge rules.
-
-Automatically update a rule when the user's explicit requirement clearly supersedes it. If an agent merely infers that a new or changed long-lived policy would be better, ask before changing the rule.
-
-Never loosen a rule only to make an implementation or test pass.
-
-Every rule change must be named in the completion response.
-
-## 7. Keep routers small
-
-`AGENTS.md`, and this rule router exist to route context. Do not turn them into generated handbooks. Put detailed durable guidance in the smallest relevant rule or canonical document.
+`AGENTS.md` and `.agents/rules/README.md` route context; do not grow them into handbooks. Put
+durable guidance in the smallest relevant rule or canonical document.

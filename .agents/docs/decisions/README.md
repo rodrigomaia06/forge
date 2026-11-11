@@ -1,6 +1,7 @@
 # Architecture decision records
 
-Create an ADR only for a significant decision whose rationale and alternatives will matter later.
+Create an ADR only when a future contributor would reasonably ask why this was chosen over the
+alternatives. Routine refactors, local component choices and implementation details do not get one.
 
 Suggested filename: `0001-short-decision-title.md`.
 
