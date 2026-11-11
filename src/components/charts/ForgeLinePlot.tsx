@@ -27,6 +27,10 @@ export function ForgeLinePlot({
   dashed?: boolean;
 }) {
   if (points.length < 2 || width <= 0 || height <= 0) return null;
+  // A filled area needs evenly spaced samples so the fill closes straight down to the
+  // baseline at the last point (see `evenlySpaced`); plain lines keep exact samples.
+  const data = linePlotData(points, height, smooth, fill);
+  const evenSpacing = fill && data.length > 1 ? data[0].spacing : 0;
   return (
     <View
       testID="forge-line-plot"
@@ -35,14 +39,14 @@ export function ForgeLinePlot({
       style={{ position: 'absolute', top: 1, left: 0, width, height, opacity }}
     >
       <LineChart
-        data={linePlotData(points, height, smooth)}
+        data={data}
         width={width}
         height={height}
         maxValue={height}
         mostNegativeValue={0}
         initialSpacing={points[0].x}
         endSpacing={0}
-        spacing={0}
+        spacing={evenSpacing}
         yAxisLabelWidth={0}
         yAxisThickness={0}
         xAxisThickness={0}
