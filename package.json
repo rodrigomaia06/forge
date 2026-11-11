@@ -27,7 +27,8 @@
     "verify": "npm run typecheck && npm run test:visual",
     "format": "prettier --write \"App.tsx\" \"index.ts\" \"playwright.config.ts\" \"src/**/*.{ts,tsx}\" \"tests/**/*.ts\"",
     "test:visual": "node scripts/run-verification.mjs playwright test",
-    "screenshots": "node scripts/run-verification.mjs playwright test tests/e2e/visual/capture-screens.spec.ts --project=iphone-air"
+    "screenshots": "node scripts/run-verification.mjs playwright test tests/e2e/visual/capture-screens.spec.ts --project=iphone-air",
+    "website:captures": "node scripts/run-verification.mjs playwright test tests/e2e/visual/capture-website.spec.ts --project=iphone-air && node scripts/run-verification.mjs node scripts/website-captures.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/manrope": "^0.4.2",
