@@ -668,6 +668,13 @@ function logEntryLine(entry: DiagnosticEntry): string {
   return `${new Date(entry.at).toISOString()} ${entry.kind}${entry.detail ? ` (${entry.detail})` : ''}`;
 }
 const buildCommit = process.env.EXPO_PUBLIC_BUILD_COMMIT?.slice(0, 7);
+const FORGE_LINKS = {
+  source: 'https://github.com/rodrigomaia06/Forge',
+  issues: 'https://github.com/rodrigomaia06/Forge/issues',
+  license: 'https://github.com/rodrigomaia06/Forge/blob/main/LICENSE',
+  tabler: 'https://tabler.io/icons',
+  manrope: 'https://fonts.google.com/specimen/Manrope',
+} as const;
 
 function About() {
   const theme = useForgeTheme();
@@ -723,19 +730,37 @@ function About() {
           icon="git"
           iconSize={26}
           divider
-          onPress={() => openExternal('https://github.com/rodrigomaia06/Forge')}
+          onPress={() => openExternal(FORGE_LINKS.source)}
+        />
+        <Action
+          title="Issues"
+          subtitle="Report a problem or suggest a feature"
+          icon="bug"
+          iconSize={26}
+          divider
+          onPress={() => openExternal(FORGE_LINKS.issues)}
         />
         <Action
           title="License: GPL v3.0"
           icon="license"
           iconSize={26}
-          onPress={() => openExternal('https://github.com/rodrigomaia06/Forge/blob/main/LICENSE')}
+          onPress={() => openExternal(FORGE_LINKS.license)}
         />
       </SettingsSection>
-      <SettingsSection title="Privacy">
-        <Text style={[styles.privacy, { color: theme.textSecondary }]}>
-          Forge keeps your workouts on this device. No account, no server, no tracking.
-        </Text>
+      <SettingsSection title="Libraries">
+        <Action
+          title="Tabler Icons"
+          subtitle="MIT License"
+          icon="icons"
+          divider
+          onPress={() => openExternal(FORGE_LINKS.tabler)}
+        />
+        <Action
+          title="Manrope typeface"
+          subtitle="SIL Open Font License 1.1"
+          icon="typography"
+          onPress={() => openExternal(FORGE_LINKS.manrope)}
+        />
       </SettingsSection>
       <ForgeConfirmationDialog
         visible={!!notice}
@@ -838,7 +863,6 @@ const styles = StyleSheet.create({
   brandCopy: { flex: 1, minWidth: 0 },
   brandTitle: { color: dashboardTheme.ink, ...typeScale.sectionTitle },
   brandSubtitle: { marginTop: 3, color: dashboardTheme.slate, ...typeScale.supporting },
-  privacy: { padding: 18, color: dashboardTheme.slate, ...typeScale.supporting },
   copy: { padding: 20, color: dashboardTheme.slate, ...typeScale.body },
   value: { ...typeScale.supporting },
   logsEmpty: { paddingVertical: 32, paddingHorizontal: 20, alignItems: 'center', gap: 10 },

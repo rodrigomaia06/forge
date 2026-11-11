@@ -295,7 +295,9 @@ test.describe('Settings', () => {
 
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('button', { name: 'About' }).click();
+    // Single-line rows keep 56 pt; rows with a subtitle use the 68 pt two-line scale.
     await expectRowHeight(page.getByRole('button', { name: 'Source code' }), 56);
+    await expectRowHeight(page.getByRole('button', { name: /^Tabler Icons/ }), 68);
   });
 
   test('uses the enlarged semantic icon scale on Settings and About rows', async ({ page }) => {
@@ -652,7 +654,10 @@ test.describe('Settings', () => {
       await page.mouse.down();
       const tint = option.getByTestId('forge-press-state-layer');
       await expect(tint).toBeVisible();
-      expect((await tint.boundingBox())!.height).toBe(32);
+      // The pressed row settles slightly inward (shared press scale), so the tint is at most 32.
+      const tintHeight = (await tint.boundingBox())!.height;
+      expect(tintHeight).toBeGreaterThan(31);
+      expect(tintHeight).toBeLessThanOrEqual(32);
       await page.screenshot({ path: testInfo.outputPath(`compact-appearance-pressed-${appearance}.png`) });
       await page.mouse.up();
     };

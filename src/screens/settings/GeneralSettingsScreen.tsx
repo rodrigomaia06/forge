@@ -129,7 +129,6 @@ export function GeneralSettingsScreen({ navigation }: Props) {
           <SettingsSection
             title="Appearance"
             icon="contrast"
-            info="Dark and System are beta while the visual migration is completed."
           >
             <SettingsRow
               title="Appearance"
