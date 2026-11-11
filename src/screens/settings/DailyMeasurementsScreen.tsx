@@ -1,5 +1,5 @@
 import { ForgeSheetScrollView } from '../../components/ui/ForgeSheetScrollView';
-import { ForgeEntityName } from '../../components/ui';
+import { ForgeEntityName, ForgeSegmentedSwitch } from '../../components/ui';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -451,15 +451,19 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
             {latest ? (
               <View style={styles.summaryRow}>
                 <ForgeCard variant="base" style={styles.metricCard}>
+                  {/* Name left, latest value top-right; the value wraps beneath the name
+                      only when a long name or large text size cannot share the row. */}
                   <View style={styles.metricCardTop}>
-                    <View style={[styles.metricIcon, { backgroundColor: `${selected.color}24` }]}>
-                      <Icon name={selected.icon} size={22} color={selected.color} />
+                    <View style={styles.metricCardIdentity}>
+                      <View style={[styles.metricIcon, { backgroundColor: `${selected.color}24` }]}>
+                        <Icon name={selected.icon} size={22} color={selected.color} />
+                      </View>
+                      <ForgeEntityName style={styles.metricCardName} presentation="full">{selected.name}</ForgeEntityName>
                     </View>
-                    <ForgeEntityName style={styles.metricCardName} presentation="full">{selected.name}</ForgeEntityName>
-                  </View>
-                  <View>
-                    <Text style={styles.metricCardStatLabel}>Latest</Text>
-                    <Text style={styles.metricCardValue}>{formatValue(latest.value, displayUnit)}</Text>
+                    <View style={styles.metricCardLatest}>
+                      <Text style={styles.metricCardStatLabel}>Latest</Text>
+                      <Text style={styles.metricCardValue}>{formatValue(latest.value, displayUnit)}</Text>
+                    </View>
                   </View>
                   <View style={styles.metricCardDivider} />
                   {/* Stats sit side by side and wrap onto further rows when values or text size grow. */}
@@ -485,24 +489,14 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
                 <ForgeCard variant="base" style={styles.trendCard}>
                   <View style={styles.trendHeader}>
                     <Text style={styles.chartEyebrow}>Trend</Text>
-                    <View style={styles.rangeControls} accessibilityRole="tablist" accessibilityLabel="Chart range">
-                      {TREND_DAY_OPTIONS.map((value) => (
-                        <Pressable
-                          key={value}
-                          accessibilityRole="tab"
-                          accessibilityLabel={`Show ${value} day chart`}
-                          accessibilityState={{ selected: range === value }}
-                          onPress={() => { selectionHaptic(); setRange(value); }}
-                          style={({ pressed }) => [
-                            styles.rangeControl,
-                            range === value && styles.rangeControlActive,
-                            pressed && pressedFeedback,
-                          ]}
-                        >
-                          <Text style={[styles.rangeText, range === value && styles.rangeTextActive]}>{trendDayLabel(value)}</Text>
-                        </Pressable>
-                      ))}
-                    </View>
+                    <ForgeSegmentedSwitch
+                      showLabels
+                      size="compact"
+                      accessibilityLabel="Chart range"
+                      options={TREND_DAY_OPTIONS.map((days) => ({ value: days, label: trendDayLabel(days) }))}
+                      value={range}
+                      onChange={setRange}
+                    />
                   </View>
                   {displayEntries.length >= 2 ? (
                     <>
@@ -608,7 +602,7 @@ export function DailyMeasurementsScreen({ navigation, route }: Props) {
             <ForgeBottomSheetHandle />
             <ForgeSheetHeader titleInset={50} title="Record measurement" onClose={recordSaving ? undefined : close} />
             <ForgeSheetScrollView contentContainerStyle={{ paddingBottom: floatingCtaClearance }} keyboardShouldPersistTaps="handled">
-              <ForgeEntityName style={[typeScale.sectionTitle, { color: theme.textPrimary, marginHorizontal: 20 }]}>{selected?.name}</ForgeEntityName>
+              <ForgeEntityName style={[typeScale.sectionTitle, { color: theme.textPrimary, marginHorizontal: 20, textAlign: 'center' }]}>{selected?.name}</ForgeEntityName>
               <Text style={styles.recordDate}>
                 {recordDateKey === localDateKey() ? 'Today · ' : ''}{displayDate(recordDateKey)}
               </Text>
@@ -818,20 +812,6 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   metricTitle: { ...typeScale.headerTitle, color: theme.textPrimary },
   metricSubtitle: { ...typeScale.supporting, color: theme.textSecondary, marginTop: 1 },
   chartEyebrow: { ...typeScale.label, color: theme.textSecondary },
-  rangeControls: { flexDirection: 'row', padding: 3, gap: 2, borderRadius: 12, backgroundColor: isDark ? theme.surface : theme.surfaceMuted },
-  rangeControl: { minWidth: 34, minHeight: 30, borderRadius: 9, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
-  rangeControlActive: {
-    backgroundColor: isDark ? theme.divider : theme.surfaceElevated,
-    borderWidth: 0,
-    borderColor: theme.border,
-    shadowColor: '#000',
-    shadowOpacity: isDark ? 0.3 : 0.12,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 2,
-  },
-  rangeText: { ...typeScale.label, color: theme.textSecondary },
-  rangeTextActive: { color: theme.textPrimary, fontWeight: '700' },
   chartFooter: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: 12, rowGap: 4, marginTop: 6 },
   chartAxis: { ...typeScale.label, color: theme.textSecondary },
   chartAxisValue: { color: theme.textPrimary, fontVariant: ['tabular-nums'] },
@@ -841,8 +821,11 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   trendEmptyBody: { ...typeScale.caption, color: theme.textSecondary, textAlign: 'center', maxWidth: 210, lineHeight: 17 },
   summaryRow: { gap: 12 },
   metricCard: { padding: 16, gap: 12 },
-  metricCardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  metricCardName: { ...typeScale.cardTitle, color: theme.textPrimary, flex: 1, minWidth: 0 },
+  metricCardTop: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: 12, rowGap: 8 },
+  metricCardIdentity: { flexDirection: 'row', alignItems: 'center', gap: 12, flexGrow: 1, flexShrink: 1, flexBasis: 140, minWidth: 0 },
+  metricCardLatest: { alignItems: 'flex-end', flexShrink: 0, marginLeft: 'auto' },
+  // Name and latest value share one row, so the name uses the header scale rather than a small card title.
+  metricCardName: { ...typeScale.headerTitle, color: theme.textPrimary, flex: 1, minWidth: 0 },
   metricCardValue: { ...typeScale.metricLarge, color: theme.textPrimary, fontVariant: ['tabular-nums'] },
   metricCardDivider: { height: 1, backgroundColor: theme.divider },
   metricStatList: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 12 },
