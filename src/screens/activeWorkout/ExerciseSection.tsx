@@ -648,7 +648,9 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     },
     readOnlyExerciseTitleRow: {
       flexDirection: 'row',
-      alignItems: 'baseline',
+      // Centred, not baseline: a wrapped two-line name keeps the set count level with
+      // the row's chevron and More button instead of pinning it to the first line.
+      alignItems: 'center',
       gap: 4,
     },
     readOnlyExerciseNameRow: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 5 },
