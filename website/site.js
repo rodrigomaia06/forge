@@ -12,8 +12,14 @@
     button.replaceChildren(icon);
     button.setAttribute('aria-label', `Switch to ${next} theme`);
     button.title = `Switch to ${next} theme`;
+    // <picture> sources pick the system theme before any script runs; when the
+    // active theme differs (a saved override), point every source at it.
     document.querySelectorAll('[data-screen]').forEach((image) => {
-      image.src = `assets/${image.dataset.screen}-${theme}.webp`;
+      const url = `assets/${image.dataset.screen}-${theme}.webp`;
+      image.parentElement.querySelectorAll('source').forEach((source) => {
+        if (source.parentElement === image.parentElement) source.srcset = url;
+      });
+      if (!image.src.endsWith(url)) image.src = url;
     });
     document.dispatchEvent(new Event('forge-theme-change'));
   };
@@ -69,16 +75,17 @@
   });
   gallery.querySelectorAll('figure').forEach((figure) => {
     const image = figure.querySelector('img');
+    const media = image.closest('picture') ?? image;
     const open = document.createElement('button');
     open.type = 'button';
     open.className = 'screenshot-open';
     open.setAttribute('aria-label', `View ${figure.querySelector('h3').textContent} screenshot`);
-    image.before(open);
+    media.before(open);
     const frame = document.createElement('span');
     frame.className = 'gallery-phone';
     const display = document.createElement('span');
     display.className = 'gallery-display';
-    display.append(image);
+    display.append(media);
     const bezel = document.createElement('img');
     bezel.className = 'iphone-bezel';
     bezel.src = 'assets/iphone-frame.webp';
@@ -91,7 +98,7 @@
     open.addEventListener('click', () => {
       const preview = dialog.querySelector('img');
       preview.dataset.screen = image.dataset.screen;
-      preview.src = image.src;
+      preview.src = image.currentSrc || image.src;
       preview.alt = image.alt;
       dialog.querySelector('h2').textContent = figure.querySelector('h3').textContent;
       dialog.showModal();
