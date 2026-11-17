@@ -16,6 +16,24 @@ let writeQueue: Promise<void> = Promise.resolve();
 
 export type ForgeDatabase = SQLite.SQLiteDatabase;
 
+/** The Forge tables, shared by the live database and snapshot restores. */
+export const FORGE_SCHEMA_SQL = `
+  CREATE TABLE IF NOT EXISTS forge_meta (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS preferences (id INTEGER PRIMARY KEY CHECK (id = 1), value_json TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS plans (id TEXT PRIMARY KEY NOT NULL, position INTEGER NOT NULL, value_json TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS routines (id TEXT PRIMARY KEY NOT NULL, plan_id TEXT, position INTEGER NOT NULL, value_json TEXT NOT NULL,
+    FOREIGN KEY(plan_id) REFERENCES plans(id) ON DELETE SET NULL);
+  CREATE TABLE IF NOT EXISTS workouts (id TEXT PRIMARY KEY NOT NULL, is_active INTEGER NOT NULL, completed_at INTEGER, started_at INTEGER NOT NULL, value_json TEXT NOT NULL);
+  CREATE UNIQUE INDEX IF NOT EXISTS workouts_one_active ON workouts(is_active) WHERE is_active = 1;
+  CREATE INDEX IF NOT EXISTS workouts_completed_at ON workouts(completed_at DESC);
+  CREATE TABLE IF NOT EXISTS custom_exercises (id TEXT PRIMARY KEY NOT NULL, archived INTEGER NOT NULL DEFAULT 0, value_json TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS workout_types (id TEXT PRIMARY KEY NOT NULL, archived INTEGER NOT NULL DEFAULT 0, position INTEGER NOT NULL, value_json TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS bundled_exercises (id TEXT PRIMARY KEY NOT NULL, catalog_version INTEGER NOT NULL, value_json TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS bundled_catalog_taxonomies (catalog_version INTEGER NOT NULL, kind TEXT NOT NULL, value_json TEXT NOT NULL, PRIMARY KEY (catalog_version, kind));
+  CREATE TABLE IF NOT EXISTS set_measurements (id TEXT PRIMARY KEY NOT NULL, owner_set_id TEXT NOT NULL, kind TEXT NOT NULL, unit TEXT NOT NULL, value REAL NOT NULL);
+  CREATE TABLE IF NOT EXISTS set_targets (id TEXT PRIMARY KEY NOT NULL, owner_set_id TEXT NOT NULL, kind TEXT NOT NULL, unit TEXT NOT NULL, min_value REAL, max_value REAL);
+`;
+
 /** Expo SQLite uses one native connection; serialize transaction starts across repositories. */
 export function withDatabaseTransaction(work: (db: ForgeDatabase) => Promise<void>): Promise<void> {
   return withDatabaseMaintenance(async (db) => db.withTransactionAsync(async () => work(db)));
@@ -35,22 +53,7 @@ export function openForgeDatabase(): Promise<ForgeDatabase> {
   if (opening) return opening;
   opening = SQLite.openDatabaseAsync(DATABASE).then(async (db) => {
     await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
-    await db.execAsync(`
-      CREATE TABLE IF NOT EXISTS forge_meta (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);
-      CREATE TABLE IF NOT EXISTS preferences (id INTEGER PRIMARY KEY CHECK (id = 1), value_json TEXT NOT NULL);
-      CREATE TABLE IF NOT EXISTS plans (id TEXT PRIMARY KEY NOT NULL, position INTEGER NOT NULL, value_json TEXT NOT NULL);
-      CREATE TABLE IF NOT EXISTS routines (id TEXT PRIMARY KEY NOT NULL, plan_id TEXT, position INTEGER NOT NULL, value_json TEXT NOT NULL,
-        FOREIGN KEY(plan_id) REFERENCES plans(id) ON DELETE SET NULL);
-      CREATE TABLE IF NOT EXISTS workouts (id TEXT PRIMARY KEY NOT NULL, is_active INTEGER NOT NULL, completed_at INTEGER, started_at INTEGER NOT NULL, value_json TEXT NOT NULL);
-      CREATE UNIQUE INDEX IF NOT EXISTS workouts_one_active ON workouts(is_active) WHERE is_active = 1;
-      CREATE INDEX IF NOT EXISTS workouts_completed_at ON workouts(completed_at DESC);
-      CREATE TABLE IF NOT EXISTS custom_exercises (id TEXT PRIMARY KEY NOT NULL, archived INTEGER NOT NULL DEFAULT 0, value_json TEXT NOT NULL);
-      CREATE TABLE IF NOT EXISTS workout_types (id TEXT PRIMARY KEY NOT NULL, archived INTEGER NOT NULL DEFAULT 0, position INTEGER NOT NULL, value_json TEXT NOT NULL);
-      CREATE TABLE IF NOT EXISTS bundled_exercises (id TEXT PRIMARY KEY NOT NULL, catalog_version INTEGER NOT NULL, value_json TEXT NOT NULL);
-      CREATE TABLE IF NOT EXISTS bundled_catalog_taxonomies (catalog_version INTEGER NOT NULL, kind TEXT NOT NULL, value_json TEXT NOT NULL, PRIMARY KEY (catalog_version, kind));
-      CREATE TABLE IF NOT EXISTS set_measurements (id TEXT PRIMARY KEY NOT NULL, owner_set_id TEXT NOT NULL, kind TEXT NOT NULL, unit TEXT NOT NULL, value REAL NOT NULL);
-      CREATE TABLE IF NOT EXISTS set_targets (id TEXT PRIMARY KEY NOT NULL, owner_set_id TEXT NOT NULL, kind TEXT NOT NULL, unit TEXT NOT NULL, min_value REAL, max_value REAL);
-    `);
+    await db.execAsync(FORGE_SCHEMA_SQL);
     await migrateBundledCatalog(db);
     await importLegacyOnce(db);
     await migrateAppState(db, AsyncStorage);

@@ -117,13 +117,13 @@ function shareFilename(transfer: ForgeDataTransfer): string {
   return `Forge_export_${dateStamp()}.forge`;
 }
 
-async function shareFile(file: File, mimeType: string, UTI?: string): Promise<void> {
+export async function shareFile(file: File, mimeType: string, UTI?: string): Promise<void> {
   if (!(await Sharing.isAvailableAsync()))
     throw new Error('File sharing is not available on this device.');
   await Sharing.shareAsync(file.uri, { mimeType, ...(UTI ? { UTI } : {}), dialogTitle: 'Forge data' });
 }
 
-function cacheFile(name: string, contents: Uint8Array | string): File {
+export function cacheFile(name: string, contents: Uint8Array | string): File {
   const file = new File(Paths.cache, name);
   if (file.exists) file.delete();
   file.create({ intermediates: true });
@@ -605,7 +605,7 @@ async function inspectBytes(bytes: Uint8Array): Promise<BackupInspection> {
  * statement. Validate a cache-backed candidate instead, then always remove it
  * once the check or restore completes.
  */
-async function withTemporaryBackupDatabase<T>(
+export async function withTemporaryBackupDatabase<T>(
   bytes: Uint8Array,
   work: (database: SQLite.SQLiteDatabase) => Promise<T>,
 ): Promise<T> {
