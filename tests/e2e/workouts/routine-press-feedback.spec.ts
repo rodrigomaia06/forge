@@ -59,7 +59,7 @@ for (const appearance of ['light', 'dark'] as const) {
     await expect(page.getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0);
     await row.click();
     await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Close Pull day', exact: true }).click();
+    await page.getByRole('button', { name: 'Close Routine options', exact: true }).click();
     await page.getByRole('button', { name: 'Start Pull day', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Finish workout', exact: true })).toBeVisible();
   });

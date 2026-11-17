@@ -53,8 +53,12 @@ async function heldShape(
   await expect(layer).toBeVisible();
   await page.screenshot({ path: info.outputPath(`${name}-held.png`) });
   const tint = await layer.boundingBox();
-  expect(tint!.width).toBeCloseTo(width, 0);
-  expect(tint!.height).toBeCloseTo(height, 0);
+  // A rounded painted control may already be settling into the shared press
+  // scale (never below 0.97) when the held state is sampled.
+  expect(tint!.width).toBeGreaterThanOrEqual(width * 0.97 - 0.5);
+  expect(tint!.width).toBeLessThanOrEqual(width + 0.5);
+  expect(tint!.height).toBeGreaterThanOrEqual(height * 0.97 - 0.5);
+  expect(tint!.height).toBeLessThanOrEqual(height + 0.5);
   await expect(layer).toHaveCSS('border-radius', `${radius}px`);
   expect(tint!.x + width / 2).toBeCloseTo(box!.x + box!.width / 2, 0);
   expect(tint!.y + height / 2).toBeCloseTo(box!.y + box!.height / 2, 0);
@@ -116,9 +120,9 @@ for (const appearance of ['light', 'dark'] as const) {
         page.getByRole('button', { name: 'More options for Barbell Bench Press', exact: true }),
         info,
         'history-more',
-        44,
-        44,
-        22,
+        40,
+        40,
+        20,
       );
       await page.getByRole('button', { name: 'Back to History', exact: true }).click();
       await page.getByRole('tab', { name: 'Plans', exact: true }).click();

@@ -10,8 +10,11 @@ async function inspectPress(page: Page, control: Locator, info: TestInfo, name: 
   const layer = control.getByTestId('forge-press-state-layer');
   await expect(layer).toBeVisible();
   const tintBounds = await layer.boundingBox();
-  expect(Math.abs(tintBounds!.width - bounds.width)).toBeLessThanOrEqual(4);
-  expect(Math.abs(tintBounds!.height - bounds.height)).toBeLessThanOrEqual(4);
+  // Rounded painted controls settle into the shared press scale (never below 0.97).
+  expect(tintBounds!.width).toBeGreaterThanOrEqual(bounds.width * 0.97 - 4);
+  expect(tintBounds!.width).toBeLessThanOrEqual(bounds.width + 4);
+  expect(tintBounds!.height).toBeGreaterThanOrEqual(bounds.height * 0.97 - 4);
+  expect(tintBounds!.height).toBeLessThanOrEqual(bounds.height + 4);
   await expect(control).toHaveCSS('opacity', opacity);
   await control.screenshot({ path: info.outputPath(`${name}-pressed.png`) });
   if (!activate) await page.mouse.move(1, 1);

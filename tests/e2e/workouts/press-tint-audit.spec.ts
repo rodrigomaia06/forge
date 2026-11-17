@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
 
-async function held(page: Page, control: Locator, info: TestInfo, name: string, radius: string) {
+async function held(page: Page, control: Locator, info: TestInfo, name: string, radius: string, circle?: number) {
   await control.scrollIntoViewIfNeeded();
   await page.waitForTimeout(600);
   const joinedSurface = await control.evaluate(node => {
@@ -29,8 +29,15 @@ async function held(page: Page, control: Locator, info: TestInfo, name: string, 
   await page.screenshot({ path: info.outputPath(`${name}-held.png`) });
   await expect(layer).toHaveCSS('border-radius', radius);
   const tint = await layer.boundingBox();
-  expect(tint!.width).toBeCloseTo(box!.width, 0);
-  expect(tint!.height).toBeCloseTo(box!.height, 0);
+  if (circle) {
+    // Standalone round controls use the centred circle, settling into the press scale.
+    expect(tint!.width).toBeGreaterThanOrEqual(circle * 0.97 - 0.5);
+    expect(tint!.width).toBeLessThanOrEqual(circle + 0.5);
+    expect(tint!.height).toBeCloseTo(tint!.width, 0);
+  } else {
+    expect(tint!.width).toBeCloseTo(box!.width, 0);
+    expect(tint!.height).toBeCloseTo(box!.height, 0);
+  }
   await expect(control).toHaveCSS('opacity', opacity);
   await page.mouse.move(1, 1);
   await page.mouse.up();
@@ -56,7 +63,7 @@ for (const appearance of ['light', 'dark'] as const) {
     await page.getByRole('button', { name: 'Measurements', exact: true }).click();
     await held(page, page.getByRole('button', { name: 'Edit measurements', exact: true }), info, 'measurement-edit', '0px');
     await held(page, page.getByRole('button', { name: 'Record measurement', exact: true }), info, 'measurement-add', '0px');
-    await held(page, page.getByRole('button', { name: 'Back to Settings', exact: true }), info, 'settings-back', '22px');
+    await held(page, page.getByRole('button', { name: 'Back to Settings', exact: true }), info, 'settings-back', '20px', 40);
   });
 }
 

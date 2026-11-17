@@ -180,7 +180,7 @@ for (const appearance of ['light', 'dark'] as const) {
       page.getByRole('button', { name: 'Open details for set 1', exact: true }).first(),
       info,
       'history-number',
-      32,
+      34,
       9,
     );
   });
@@ -194,7 +194,7 @@ for (const appearance of ['light', 'dark'] as const) {
       page.getByRole('button', { name: 'Open details for set 1', exact: true }).first(),
       info,
       'live-number',
-      32,
+      34,
       9,
     );
     await page.getByRole('button', { name: 'Close Set 1', exact: true }).last().click();
