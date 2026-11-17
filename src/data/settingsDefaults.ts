@@ -6,6 +6,7 @@ export const defaultSettingsPreferences: SettingsPreferences = {
   appearance: 'system',
   logsEnabled: false,
   autoBackupEnabled: true,
+  iCloudBackupEnabled: false,
   units: 'metric',
   bodyweightKg: 0,
   weekStartsOn: 1,

@@ -38,6 +38,8 @@ export interface SettingsPreferences {
   logsEnabled: boolean;
   /** Weekly snapshot backup (local, mirrored to iCloud when available). On by default. */
   autoBackupEnabled: boolean;
+  /** Also copy each backup to the hidden iCloud container (iPhone, signed builds). Off by default. */
+  iCloudBackupEnabled: boolean;
   units: UnitsPreference;
   bodyweightKg: number;
   weekStartsOn: WeekStartsOn;

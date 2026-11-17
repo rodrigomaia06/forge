@@ -8,6 +8,7 @@ import { cacheFile, shareFile, withTemporaryBackupDatabase } from './backupRepos
 import { withDatabaseMaintenance, type ForgeDatabase } from './database';
 import { recordDiagnostic } from './diagnosticsRepository';
 import { flushPersistence } from './persistenceLifecycle';
+import { loadSettingsPreferences } from './settingsRepository';
 import {
   backupFolderFiles,
   backupFolderReachable,
@@ -108,7 +109,7 @@ async function captureRows(db: ForgeDatabase): Promise<Record<SnapshotTable, Sna
 
 let running: Promise<SnapshotRunResult> | null = null;
 
-export type SnapshotRunResult = { manifest: SnapshotManifest; cloud: CloudStatus };
+export type SnapshotRunResult = { manifest: SnapshotManifest; cloud: CloudStatus | 'off' };
 
 /**
  * Saves a snapshot on the phone (in the backup folder when one is chosen,
@@ -141,7 +142,8 @@ export function createSnapshot(trigger: SnapshotTrigger): Promise<SnapshotRunRes
       }
       if (!manifest) manifest = await writeSnapshot(local, rows, options);
       await pruneStore(local, attemptAt);
-      const cloud = await mirrorToCloud(local, manifest, attemptAt);
+      const { iCloudBackupEnabled } = await loadSettingsPreferences();
+      const cloud = iCloudBackupEnabled ? await mirrorToCloud(local, manifest, attemptAt) : undefined;
       await saveBackupState({
         lastAttemptAt: attemptAt.toISOString(),
         lastSuccessAt: attemptAt.toISOString(),
@@ -151,7 +153,7 @@ export function createSnapshot(trigger: SnapshotTrigger): Promise<SnapshotRunRes
         cloudManifestId: cloud === 'pending' ? manifest.id : undefined,
       });
       await recordDiagnostic('backup-created', cloud === 'no-space' ? 'icloud-no-space' : cloud === 'error' ? 'unknown' : undefined);
-      return { manifest, cloud };
+      return { manifest, cloud: cloud ?? 'off' };
     } catch (error) {
       await saveBackupState({
         lastAttemptAt: attemptAt.toISOString(),
@@ -191,6 +193,17 @@ export async function refreshCloudStatus(): Promise<BackupState> {
   await saveBackupState({ cloud: next, cloudManifestId: next === 'synced' ? undefined : state.cloudManifestId });
   if (next === 'no-space') await recordDiagnostic('operation-failed', 'icloud-no-space').catch(() => undefined);
   return { ...state, cloud: next };
+}
+
+export { isICloudAvailable };
+
+/**
+ * Turning the iCloud copy off clears its status, so a full iCloud stops
+ * prompting. Backups already in iCloud stay there and still appear in
+ * Manage backups.
+ */
+export function clearCloudStatus(): Promise<void> {
+  return saveBackupState({ cloud: undefined, cloudManifestId: undefined });
 }
 
 /** Runs the weekly automatic backup when it is on and due. Never throws. */

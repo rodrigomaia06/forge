@@ -4,7 +4,7 @@ import type { BackupState, SnapshotListing, SnapshotManifest, CloudStatus, Snaps
 
 export type { BackupState, SnapshotListing };
 export { shouldWarnAboutBackup } from './snapshots/snapshotCore';
-export type SnapshotRunResult = { manifest: SnapshotManifest; cloud: CloudStatus };
+export type SnapshotRunResult = { manifest: SnapshotManifest; cloud: CloudStatus | 'off' };
 
 const unavailable = () => Promise.reject(new Error('Backups are available in the iOS and Android builds.'));
 
@@ -21,3 +21,5 @@ export const chooseBackupFolder = async (): Promise<null> => null;
 export const stopUsingBackupFolder = async (): Promise<void> => undefined;
 export const isBackupFolderReachable = async (_state: BackupState): Promise<boolean> => false;
 export const refreshCloudStatus = async (): Promise<BackupState> => ({});
+export const isICloudAvailable = async (): Promise<boolean> => false;
+export const clearCloudStatus = async (): Promise<void> => undefined;

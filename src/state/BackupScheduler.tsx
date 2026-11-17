@@ -2,6 +2,7 @@ import React from 'react';
 import { AppState, Platform } from 'react-native';
 import { ForgeConfirmationDialog } from '../components/ui';
 import {
+  clearCloudStatus,
   createSnapshot,
   refreshCloudStatus,
   recordBackupWarningShown,
@@ -19,8 +20,8 @@ const LAUNCH_DELAY_MS = 8000;
 type Warning = {
   title: string;
   message: string;
-  /** Only an acknowledgement: backing up again cannot help (iCloud is full). */
-  informational?: boolean;
+  /** iCloud is full: backing up again cannot help, but the copy can be turned off for now. */
+  iCloudFull?: boolean;
 };
 
 function warningCopy(state: BackupState, autoBackupEnabled: boolean): Warning {
@@ -37,8 +38,8 @@ function warningCopy(state: BackupState, autoBackupEnabled: boolean): Warning {
   if (state.cloud === 'no-space')
     return {
       title: 'iCloud is full',
-      message: 'Your backups are saved on this phone, but not in iCloud. Free up iCloud storage so a lost phone does not take your training with it.',
-      informational: true,
+      message: 'Your backups are saved on this phone, but not in iCloud. Free up iCloud storage, or turn off iCloud copy for now.',
+      iCloudFull: true,
     };
   if (state.cloud === 'error')
     return {
@@ -57,7 +58,7 @@ function warningCopy(state: BackupState, autoBackupEnabled: boolean): Warning {
  * Work waits for an idle moment so it never competes with input.
  */
 export function BackupScheduler() {
-  const { ready, preferences } = useSettings();
+  const { ready, preferences, updatePreferences } = useSettings();
   const activeWorkout = useActiveWorkout();
   const inWorkout = React.useRef(false);
   inWorkout.current = Boolean(activeWorkout);
@@ -103,6 +104,15 @@ export function BackupScheduler() {
     };
   }, [check, ready]);
 
+  const turnOffICloud = (): void => {
+    setBusy(true);
+    void updatePreferences({ iCloudBackupEnabled: false })
+      .then(() => clearCloudStatus())
+      .then(() => setWarning(null))
+      .catch(() => setFailed('Could not change the setting. Try again in Backup & Export.'))
+      .finally(() => setBusy(false));
+  };
+
   const backUpNow = (): void => {
     setBusy(true);
     setFailed(undefined);
@@ -119,12 +129,11 @@ export function BackupScheduler() {
       error={failed}
       title={warning?.title ?? ''}
       message={warning?.message ?? ''}
-      cancelLabel="Not now"
-      confirmLabel={warning?.informational ? 'OK' : 'Back up now'}
-      confirmTone="success"
-      showCancel={!warning?.informational}
+      cancelLabel={warning?.iCloudFull ? 'OK' : 'Not now'}
+      confirmLabel={warning?.iCloudFull ? 'Turn off iCloud' : 'Back up now'}
+      confirmTone={warning?.iCloudFull ? 'neutral' : 'success'}
       onCancel={() => setWarning(null)}
-      onConfirm={warning?.informational ? () => setWarning(null) : backUpNow}
+      onConfirm={warning?.iCloudFull ? turnOffICloud : backUpNow}
       testID="backup-reminder"
     />
   );

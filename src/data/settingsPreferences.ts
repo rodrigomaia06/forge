@@ -72,6 +72,7 @@ export function parseSettingsPreferences(value: string | null): SettingsPreferen
   return {
     logsEnabled: parsed.logsEnabled === true,
     autoBackupEnabled: parsed.autoBackupEnabled !== false,
+    iCloudBackupEnabled: parsed.iCloudBackupEnabled === true,
     appearance: parsed.appearance === 'light' || parsed.appearance === 'dark' || parsed.appearance === 'system' ? parsed.appearance : 'system',
     units: parsed.units === 'imperial' ? parsed.units : 'metric',
     bodyweightKg: typeof parsed.bodyweightKg === 'number' && parsed.bodyweightKg >= 0 ? parsed.bodyweightKg : 0,

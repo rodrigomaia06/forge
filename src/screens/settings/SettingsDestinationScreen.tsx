@@ -25,7 +25,7 @@ import { freshenSharedIds } from '../../data/sharedImport';
 import { readForgeTransferFromUri } from '../../data/readForgeTransferFile';
 import { takePendingFileImport, subscribePendingFileImport } from '../../state/pendingFileImport';
 import { relativeTime } from '../../utils/relativeTime';
-import { backupFolderSupported, chooseBackupFolder, createSnapshot, isBackupFolderReachable, refreshCloudStatus, type BackupState } from '../../data/snapshotRepository';
+import { backupFolderSupported, chooseBackupFolder, clearCloudStatus, createSnapshot, isBackupFolderReachable, isICloudAvailable, refreshCloudStatus, type BackupState } from '../../data/snapshotRepository';
 import { useSettings } from '../../state/SettingsContext';
 import { usePlans } from '../../state/PlansContext';
 import { useWorkouts } from '../../state/WorkoutContext';
@@ -236,7 +236,7 @@ function BackupExport() {
       {Platform.OS === 'web' ? null : <SettingsSection
         title="Backups"
         icon="cloud"
-        info="Forge saves each backup on this phone, in the backup folder you choose so it survives deleting the app, and on iPhone with iCloud Drive on also copies it to a hidden iCloud folder only Forge can read. Each backup only stores what changed since the last one. Kept: every backup from the last 7 days, one per week for 8 weeks and one per month for a year."
+        info="Forge saves each backup on this phone: on iPhone in On My iPhone › Forge in the Files app, or in another backup folder you choose so it survives deleting the app. With iCloud copy on, it also copies each backup to a hidden iCloud folder only Forge can read. Each backup only stores what changed since the last one. Kept: every backup from the last 7 days, one per week for 8 weeks and one per month for a year."
         footer={backupFooter(backupState)}
       >
         <Action
@@ -264,7 +264,7 @@ function BackupExport() {
         {backupFolderSupported() ? <Action
           title="Backup folder"
           // Short enough for one line on narrow phones; the details live in the section info and footer.
-          subtitle={backupState.folder ? (folderReachable ? backupState.folder.name : 'Can’t reach folder') : 'Inside the app'}
+          subtitle={backupState.folder ? (folderReachable ? backupState.folder.name : 'Can’t reach folder') : DEFAULT_FOLDER_NAME}
           icon="folder"
           divider
           disabled={busy}
@@ -289,6 +289,37 @@ function BackupExport() {
           trailing={<ForgeSwitch value={preferences.autoBackupEnabled} testID="auto-backup-switch" />}
           showDivider
         />
+        {Platform.OS === 'ios' ? <SettingsRow
+          title="iCloud copy"
+          icon="cloud"
+          accessibilityRole="switch"
+          accessibilityState={{ checked: preferences.iCloudBackupEnabled }}
+          haptic="none"
+          disabled={busy}
+          onPress={() => void run(async () => {
+            if (preferences.iCloudBackupEnabled) {
+              await updatePreferences({ iCloudBackupEnabled: false });
+              await clearCloudStatus();
+              reloadBackupState();
+              return;
+            }
+            if (!(await isICloudAvailable())) {
+              setNotice({
+                title: 'iCloud isn’t available',
+                message: 'Sign in to iCloud with iCloud Drive turned on in the iPhone Settings app. Builds installed without a paid Apple developer account can’t use iCloud.',
+              });
+              return;
+            }
+            await updatePreferences({ iCloudBackupEnabled: true });
+            setNotice({
+              title: 'iCloud copy on',
+              message: 'From the next backup, Forge also copies it to a hidden iCloud folder only Forge can read. It uses your iCloud storage.',
+              tone: 'success',
+            });
+          })}
+          trailing={<ForgeSwitch value={preferences.iCloudBackupEnabled} testID="icloud-backup-switch" />}
+          showDivider
+        /> : null}
         <Action title="Manage backups" icon="history" onPress={() => navigation.navigate('ManageBackups')} />
       </SettingsSection>}
       <SettingsSection
@@ -369,14 +400,20 @@ function BackupExport() {
   );
 }
 
+/** On iPhone, backups without a chosen folder sit in Forge's own folder in Files (On My iPhone › Forge). */
+const DEFAULT_FOLDER_NAME = Platform.OS === 'ios' ? 'Forge' : 'Not chosen';
+
 function backupFooter(state: BackupState): string {
   if (state.lastError) return 'The last backup did not finish. Back up now to try again.';
   if (!state.lastSuccessAt) return 'No backup yet.';
-  const keepHint = state.folder ? '' : ' Choose a backup folder so backups survive deleting Forge.';
+  // Without iCloud or a folder outside the app, deleting Forge deletes the backups too.
+  const keepHint = state.folder || state.cloud === 'synced' || state.cloud === 'pending' ? ''
+    : Platform.OS === 'ios' ? ' Turn on iCloud copy to keep them if Forge is deleted.'
+    : ' Choose a backup folder so backups survive deleting Forge.';
   const when = `Last backup ${relativeTime(Date.parse(state.lastSuccessAt))}`;
   const phone = state.folderUnavailable
     ? 'in app storage because the backup folder could not be reached'
-    : state.folder ? `in ${state.folder.name}` : 'inside the app';
+    : state.folder ? `in ${state.folder.name}` : Platform.OS === 'ios' ? 'in On My iPhone › Forge' : 'inside the app';
   if (state.cloud === 'synced') return `${when}, ${phone} and in iCloud.${keepHint}`;
   if (state.cloud === 'pending') return `${when}, ${phone}. Waiting for iCloud to upload it.${keepHint}`;
   if (state.cloud === 'no-space') return `${when}, ${phone}. iCloud is full.${keepHint}`;
