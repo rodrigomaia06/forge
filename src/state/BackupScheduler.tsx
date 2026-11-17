@@ -16,7 +16,14 @@ import { useSettings } from './SettingsContext';
 /** Leave launch work (fonts, first render, catalogue) alone before checking backups. */
 const LAUNCH_DELAY_MS = 8000;
 
-function warningCopy(state: BackupState, autoBackupEnabled: boolean): { title: string; message: string } {
+type Warning = {
+  title: string;
+  message: string;
+  /** Only an acknowledgement: backing up again cannot help (iCloud is full). */
+  informational?: boolean;
+};
+
+function warningCopy(state: BackupState, autoBackupEnabled: boolean): Warning {
   if (state.lastError)
     return {
       title: 'Backup did not finish',
@@ -31,6 +38,7 @@ function warningCopy(state: BackupState, autoBackupEnabled: boolean): { title: s
     return {
       title: 'iCloud is full',
       message: 'Your backups are saved on this phone, but not in iCloud. Free up iCloud storage so a lost phone does not take your training with it.',
+      informational: true,
     };
   if (state.cloud === 'error')
     return {
@@ -54,7 +62,7 @@ export function BackupScheduler() {
   const inWorkout = React.useRef(false);
   inWorkout.current = Boolean(activeWorkout);
   const enabled = preferences.autoBackupEnabled;
-  const [warning, setWarning] = React.useState<{ title: string; message: string } | null>(null);
+  const [warning, setWarning] = React.useState<Warning | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [failed, setFailed] = React.useState<string | undefined>();
   const checking = React.useRef(false);
@@ -112,10 +120,11 @@ export function BackupScheduler() {
       title={warning?.title ?? ''}
       message={warning?.message ?? ''}
       cancelLabel="Not now"
-      confirmLabel="Back up now"
+      confirmLabel={warning?.informational ? 'OK' : 'Back up now'}
       confirmTone="success"
+      showCancel={!warning?.informational}
       onCancel={() => setWarning(null)}
-      onConfirm={backUpNow}
+      onConfirm={warning?.informational ? () => setWarning(null) : backUpNow}
       testID="backup-reminder"
     />
   );
