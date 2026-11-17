@@ -34,7 +34,8 @@ test('iOS registers a distinct owned document type and keeps copied-file access'
       LSItemContentTypes: [fileType.uti],
     },
   ]);
-  expect(plist.LSSupportsOpeningDocumentsInPlace).toBe(false);
+  expect(plist.LSSupportsOpeningDocumentsInPlace).toBe(true);
+  expect(plist.UIFileSharingEnabled).toBe(true);
   expect(plist.UISupportsDocumentBrowser).toBe(false);
 });
 

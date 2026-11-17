@@ -17,10 +17,13 @@ Developer account) and as a free-signed build that cannot carry iCloud entitleme
   becomes one object named by the SHA-256 of its canonical JSON (`objects/<aa>/<hash>.json`);
   a manifest (`snapshots/<id>.json`) lists the object hashes per table. Unchanged rows reuse
   their object, so a new snapshot stores only what changed, like git.
-- Snapshots are written to the phone first, into a backup folder the person picks outside the
-  app sandbox (iOS Files via a security-scoped bookmark; Android via a persisted Storage Access
-  Framework grant), so deleting Forge keeps them. Without a chosen folder, or when it cannot be
-  reached, they go to app storage (`Paths.document/forge-backups/`). On iPhone, when
+- Snapshots are written to the phone first. On iPhone the default is Forge's Documents folder,
+  shown in Files as On My iPhone › Forge (`UIFileSharingEnabled` with in-place document opening),
+  so backups are visible and easy to copy; iOS deletes it with the app. A backup folder the person
+  picks outside the app sandbox (iOS Files via a security-scoped bookmark; Android via a
+  persisted Storage Access Framework grant) survives deleting Forge; when it cannot be reached,
+  backups fall back to `Documents/Backups`. The live database moves to Library/Application
+  Support so it never appears in Files. When the iCloud copy is on (off by default), and
   iCloud Drive is available, the missing objects and the manifest are then copied to the app's
   ubiquity container under `ForgeBackups/`, outside its Documents scope, so the folder is hidden
   from the Files app. iCloud failure or a full iCloud never fails the backup; it is recorded and

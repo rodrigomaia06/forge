@@ -54,12 +54,13 @@ function withForgeDocumentTypeIOS(config) {
       },
     ];
 
-    // Opt out of in-place opening so iOS COPIES an opened/shared `.forge` into the
-    // app's Documents/Inbox and hands a sandbox-local file:// URL. In place, iOS
-    // delivers a security-scoped URL that a plain read (expo-file-system File.text)
-    // cannot open without startAccessingSecurityScopedResource — the "you don't have
-    // permission to view it" failure. Copying sidesteps the scope entirely.
-    infoPlist.LSSupportsOpeningDocumentsInPlace = false;
+    // Files only lists an app's Documents folder (On My iPhone › Forge, where
+    // backups live) when the app supports in-place opening along with
+    // UIFileSharingEnabled. An opened `.forge` therefore arrives as a
+    // security-scoped URL to the original file; readUriText
+    // (src/data/readForgeTransferFile.ts) reads it with scoped access.
+    infoPlist.LSSupportsOpeningDocumentsInPlace = true;
+    infoPlist.UIFileSharingEnabled = true;
     infoPlist.UISupportsDocumentBrowser = false;
 
     return config;

@@ -7,6 +7,7 @@ import { uniqueById } from './uniqueById';
 import { canonicalizeExerciseRecord } from './exerciseCanonicalization';
 
 import { migrateAppState } from './appStateMigration';
+import { forgeDatabaseDirectory } from './databaseLocation';
 
 const DATABASE = 'forge.db';
 export const BUNDLED_CATALOG_VERSION = bundledCatalogVersion;
@@ -51,7 +52,7 @@ export function withDatabaseMaintenance<T>(work: (db: ForgeDatabase) => Promise<
 
 export function openForgeDatabase(): Promise<ForgeDatabase> {
   if (opening) return opening;
-  opening = SQLite.openDatabaseAsync(DATABASE).then(async (db) => {
+  opening = SQLite.openDatabaseAsync(DATABASE, undefined, forgeDatabaseDirectory()).then(async (db) => {
     await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
     await db.execAsync(FORGE_SCHEMA_SQL);
     await migrateBundledCatalog(db);

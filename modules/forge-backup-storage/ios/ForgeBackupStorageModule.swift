@@ -312,6 +312,21 @@ public final class ForgeBackupStorageModule: Module {
       try ForgeBackupStorage.shared.uploadState(root, path)
     }
 
+    /// Reads a document another app handed over in place (security-scoped URL),
+    /// for example a `.forge` file opened from Files or Mail.
+    AsyncFunction("readExternalTextAsync") { (uri: String) -> String in
+      guard let url = URL(string: uri) else { throw storageError("unknown", "Invalid file link.") }
+      let accessing = url.startAccessingSecurityScopedResource()
+      defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+      var result: Result<String, Error> = .failure(storageError("unknown", "Read did not run."))
+      var coordinationError: NSError?
+      NSFileCoordinator(filePresenter: nil).coordinate(readingItemAt: url, options: [], error: &coordinationError) { readURL in
+        result = Result { try String(contentsOf: readURL, encoding: .utf8) }
+      }
+      if let coordinationError { throw storageError("unavailable", coordinationError.localizedDescription) }
+      return try result.get()
+    }
+
     AsyncFunction("removeAsync") { (root: String, path: String) in
       try ForgeBackupStorage.shared.remove(root, path)
     }

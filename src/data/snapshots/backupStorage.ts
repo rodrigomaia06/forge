@@ -13,6 +13,7 @@ type ForgeBackupStorageModule = {
   readAsync(root: Root, path: string): Promise<string>;
   writeAsync(root: Root, path: string, text: string): Promise<void>;
   removeAsync(root: Root, path: string): Promise<void>;
+  readExternalTextAsync(uri: string): Promise<string>;
   uploadStateAsync(root: Root, path: string): Promise<'uploaded' | 'pending' | 'no-space' | 'error'>;
 };
 
@@ -164,4 +165,10 @@ export async function iCloudUploadState(path: string): Promise<'uploaded' | 'pen
   } catch {
     return 'error';
   }
+}
+
+/** Reads a file another app opened in place in Forge (iOS); null when the module is missing. */
+export async function readExternalText(uri: string): Promise<string | null> {
+  const module = native();
+  return module ? module.readExternalTextAsync(uri) : null;
 }

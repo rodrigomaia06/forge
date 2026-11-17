@@ -1,8 +1,8 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import type { SnapshotFiles } from './snapshotCore';
 
-/** Snapshots on the phone live in the app's documents folder, which iOS also includes in device backups. */
-const ROOT = 'forge-backups';
+/** On iPhone the app's Documents folder shows in Files as On My iPhone › Forge, so backups appear there as Forge › Backups. */
+const ROOT = 'Backups';
 
 function parts(path: string): string[] {
   return [ROOT, ...path.split('/').filter(Boolean)];
