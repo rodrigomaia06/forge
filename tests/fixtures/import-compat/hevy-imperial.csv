@@ -1,0 +1,12 @@
+"title","start_time","end_time","description","exercise_title","superset_id","exercise_notes","set_index","set_type","weight_kg","weight_lbs","reps","distance_km","distance_miles","duration_seconds","rpe"
+"Upper A","30 Jun 2025, 19:56","30 Jun 2025, 20:58","Felt strong
+second line","Bench Press (Barbell)",,"Pause reps",0,"warmup",,95,10,,,0,
+"Upper A","30 Jun 2025, 19:56","30 Jun 2025, 20:58","Felt strong
+second line","Bench Press (Barbell)",,"Pause reps",1,"normal",,185,6,,,0,8.5
+"Upper A","30 Jun 2025, 19:56","30 Jun 2025, 20:58","Felt strong
+second line","Seated Cable Row - V Grip (Cable)",0,,0,"normal",,120,12,,,0,
+"Upper A","30 Jun 2025, 19:56","30 Jun 2025, 20:58","Felt strong
+second line","Face Pull Rope Thing",0,,0,"failure",,40,15,,,0,10
+"Upper A","30 Jun 2025, 19:56","30 Jun 2025, 20:58","Felt strong
+second line","Seated Cable Row - V Grip (Cable)",0,,1,"dropset",,100,10,,,0,
+"Easy run","2 Jul 2025, 07:05","2 Jul 2025, 07:40",,"Running",,,0,"normal",,,,,3.1,1980,
