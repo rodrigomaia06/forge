@@ -15,6 +15,7 @@ import { GeneralSettingsScreen } from '../screens/settings/GeneralSettingsScreen
 import { DailyMeasurementsScreen } from '../screens/settings/DailyMeasurementsScreen';
 import { SettingsDestinationScreen } from '../screens/settings/SettingsDestinationScreen';
 import { ImportSelectionScreen } from '../screens/settings/ImportSelectionScreen';
+import { ManageBackupsScreen } from '../screens/settings/ManageBackupsScreen';
 import { CsvImportScreen } from '../screens/settings/csvImport/CsvImportScreen';
 import { ImportConflictScreen } from '../screens/settings/ImportConflictScreen';
 import { WorkoutTypesScreen } from '../screens/settings/WorkoutTypesScreen';
@@ -146,6 +147,11 @@ export function AppNavigator() {
         <Stack.Screen
           name="BackupExport"
           component={SettingsDestinationScreen}
+          options={{ gestureEnabled: true }}
+        />
+        <Stack.Screen
+          name="ManageBackups"
+          component={ManageBackupsScreen}
           options={{ gestureEnabled: true }}
         />
         <Stack.Screen

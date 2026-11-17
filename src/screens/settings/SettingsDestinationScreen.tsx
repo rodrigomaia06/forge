@@ -1,5 +1,5 @@
 import appConfig from '../../../app.json';
-import { notifyPersistenceReset, subscribePersistenceReset } from '../../data/persistenceLifecycle';
+import { subscribePersistenceReset } from '../../data/persistenceLifecycle';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React from 'react';
@@ -9,7 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import { setPendingImport } from '../../state/pendingImport';
 import { setPendingConflict } from '../../state/pendingConflict';
 import * as Clipboard from 'expo-clipboard';
-import { AppScreen, ForgeBackButton, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeCard, ForgeConfirmationDialog, ForgeFloatingCta, ForgeSelectionSheet, ForgeSheetHeader, ForgeText as Text, Icon, pressedFeedback, useAfterSheetClose } from '../../components/ui';
+import { AppScreen, ForgeBackButton, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeCard, ForgeConfirmationDialog, ForgeFloatingCta, ForgeSelectionSheet, ForgeSheetHeader, ForgeSwitch, ForgeText as Text, Icon, pressedFeedback, useAfterSheetClose } from '../../components/ui';
 import type { ForgeSingleSelectOption } from '../../components/ui';
 import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
 import { dashboardTheme } from '../../theme/dashboardTheme';
@@ -18,13 +18,14 @@ import { typeScale } from '../../theme/tokens';
 import type { IconName, RootStackParamList } from '../../types';
 import { SettingsDetailHeader } from './SettingsScreenChrome';
 import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
-import { allDataTransferSelection, createSqliteBackup, databaseStatus, eraseAllForgeData, exportJson, exportText, inspectDataTransfer, mergeDataTransfer, pickJsonTransfer, pickSqliteBackup, restoreSqliteBackup, type DataTransferCategory, type DataTransferInspection, type DataTransferMergeResult, type DataTransferSelection, type ForgeDataTransfer, type ShareDescriptor } from '../../data/backupRepository';
+import { allDataTransferSelection, databaseStatus, eraseAllForgeData, exportJson, exportText, inspectDataTransfer, mergeDataTransfer, pickJsonTransfer, type DataTransferCategory, type DataTransferInspection, type DataTransferMergeResult, type DataTransferSelection, type ForgeDataTransfer, type ShareDescriptor } from '../../data/backupRepository';
 import { clearDiagnostics, exportDiagnostics, loadDiagnostics, recordDiagnostic, type DiagnosticEntry, type DiagnosticKind } from '../../data/diagnosticsRepository';
 import { loadBackupHistory, recordBackupEvent, type BackupHistory } from '../../data/backupHistory';
 import { freshenSharedIds } from '../../data/sharedImport';
 import { readForgeTransferFromUri } from '../../data/readForgeTransferFile';
 import { takePendingFileImport, subscribePendingFileImport } from '../../state/pendingFileImport';
 import { relativeTime } from '../../utils/relativeTime';
+import { backupFolderSupported, chooseBackupFolder, createSnapshot, isBackupFolderReachable, refreshCloudStatus, type BackupState } from '../../data/snapshotRepository';
 import { useSettings } from '../../state/SettingsContext';
 import { usePlans } from '../../state/PlansContext';
 import { useWorkouts } from '../../state/WorkoutContext';
@@ -82,7 +83,6 @@ function BackupExport() {
   const [inspection, setInspection] = React.useState<DataTransferInspection | null>(null);
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = React.useState(false);
   const [deleteCompleteOpen, setDeleteCompleteOpen] = React.useState(false);
-  const [restoreInspection, setRestoreInspection] = React.useState<Awaited<ReturnType<typeof pickSqliteBackup>>>(null);
   const [notice, setNotice] = React.useState<{ title: string; message: string; tone?: 'neutral' | 'success' } | null>(null);
   const [mergeSummary, setMergeSummary] = React.useState<DataTransferMergeResult | null>(null);
   // Present the merge-summary dialog only after the transfer sheet has fully closed.
@@ -91,7 +91,20 @@ function BackupExport() {
   const reloadHistory = React.useCallback(() => { void loadBackupHistory().then(setHistory); }, []);
   React.useEffect(() => { reloadHistory(); return subscribePersistenceReset(reloadHistory); }, [reloadHistory]);
   const theme = useForgeTheme();
-  const { reload: reloadSettings } = useSettings();
+  const { reload: reloadSettings, preferences, updatePreferences } = useSettings();
+  const [backupState, setBackupState] = React.useState<BackupState>({});
+  const [folderReachable, setFolderReachable] = React.useState(true);
+  const reloadBackupState = React.useCallback(() => {
+    void refreshCloudStatus().then(async (state) => {
+      setBackupState(state);
+      setFolderReachable(!state.folder || (await isBackupFolderReachable(state)));
+    });
+  }, []);
+  React.useEffect(() => {
+    reloadBackupState();
+    // Coming back from Manage backups or the reminder may have changed the status.
+    return navigation.addListener('focus', reloadBackupState);
+  }, [navigation, reloadBackupState]);
   const { reload: reloadPlans } = usePlans();
   const { reload: reloadWorkouts } = useWorkouts();
   const { reload: reloadExercises } = useExerciseCatalog();
@@ -206,30 +219,6 @@ function BackupExport() {
       setInspection(null);
     });
   };
-  const restore = (): void => {
-    void run(async () => {
-      const inspection = await pickSqliteBackup();
-      if (!inspection) return;
-      setRestoreInspection(inspection);
-    });
-  };
-  const confirmRestore = (): void => {
-    const inspection = restoreInspection;
-    if (!inspection) return;
-    setRestoreInspection(null);
-    void run(async () => {
-      await restoreSqliteBackup(inspection);
-      await refresh();
-      notifyPersistenceReset();
-      reloadHistory();
-      await recordDiagnostic('backup-restored');
-      setNotice({
-        title: 'Backup restored',
-        message: `Forge reloaded ${inspection.workoutCount} workouts, ${inspection.planCount} plans and ${inspection.customExerciseCount} custom exercises from this backup.`,
-        tone: 'success',
-      });
-    });
-  };
   const erase = (): void => {
     setDeleteConfirmationOpen(true);
   };
@@ -244,27 +233,74 @@ function BackupExport() {
   };
   return (
     <View style={styles.stack}>
+      {Platform.OS === 'web' ? null : <SettingsSection
+        title="Backups"
+        icon="cloud"
+        info="Forge saves each backup on this phone, in the backup folder you choose so it survives deleting the app, and on iPhone with iCloud Drive on also copies it to a hidden iCloud folder only Forge can read. Each backup only stores what changed since the last one. Kept: every backup from the last 7 days, one per week for 8 weeks and one per month for a year."
+        footer={backupFooter(backupState)}
+      >
+        <Action
+          title="Back up now"
+          icon="save"
+          divider
+          disclosure={false}
+          disabled={busy}
+          onPress={() => void run(async () => {
+            const result = await createSnapshot('manual');
+            reloadBackupState();
+            setNotice({
+              title: 'Backup saved',
+              message: result.cloud === 'pending'
+                ? 'Your data is saved on this phone, and iCloud is uploading a copy.'
+                : result.cloud === 'no-space'
+                  ? 'Your data is saved on this phone. iCloud is full, so it was not copied there.'
+                  : result.cloud === 'error'
+                    ? 'Your data is saved on this phone. Forge could not copy it to iCloud this time.'
+                    : 'Your data is saved on this phone.',
+              tone: 'success',
+            });
+          })}
+        />
+        {backupFolderSupported() ? <Action
+          title="Backup folder"
+          // Short enough for one line on narrow phones; the details live in the section info and footer.
+          subtitle={backupState.folder ? (folderReachable ? backupState.folder.name : 'Can’t reach folder') : 'Inside the app'}
+          icon="folder"
+          divider
+          disabled={busy}
+          onPress={() => void run(async () => {
+            const folder = await chooseBackupFolder();
+            if (!folder) return;
+            reloadBackupState();
+            setNotice({
+              title: 'Backup folder chosen',
+              message: `Forge now saves backups in ${folder.name}, which stays on this phone even if Forge is deleted. Backups already there appear in Manage backups.`,
+              tone: 'success',
+            });
+          })}
+        /> : null}
+        <SettingsRow
+          title="Weekly backup"
+          icon="calendar"
+          accessibilityRole="switch"
+          accessibilityState={{ checked: preferences.autoBackupEnabled }}
+          haptic="none"
+          onPress={() => void updatePreferences({ autoBackupEnabled: !preferences.autoBackupEnabled })}
+          trailing={<ForgeSwitch value={preferences.autoBackupEnabled} testID="auto-backup-switch" />}
+          showDivider
+        />
+        <Action title="Manage backups" icon="history" onPress={() => navigation.navigate('ManageBackups')} />
+      </SettingsSection>}
       <SettingsSection
         title="Data transfer"
         icon="database-export"
-        info="Export data writes a portable .forge file that adds to another device without replacing anything. Export summary is a read-only text overview. Import data accepts .forge files; import workout CSVs with Import from another app."
+        info="Export data writes a portable .forge file that adds to another device without replacing anything. Export summary is a read-only text overview. Import data accepts .forge files; import workout CSVs with Import from another app. Delete all app data erases everything on this device after a confirmation."
         footer={history.lastExportAt ? `Last export ${relativeTime(history.lastExportAt)}.` : undefined}
       >
         <Action title="Export data" divider onPress={() => { setSelection(allDataTransferSelection()); setTransferStep('export-json'); }} />
         <Action title="Export summary" divider onPress={() => { setSelection(allDataTransferSelection()); setTransferStep('export-text'); }} />
         <Action title="Import data" divider onPress={importData} />
-        <Action title="Import from another app" onPress={() => navigation.navigate('CsvImport')} />
-      </SettingsSection>
-      <SettingsSection
-        title="Database backup"
-        icon="save"
-        info="A complete Forge .sqlite file includes WAL changes. Restoring it replaces everything on this device after validating the file and keeping an in-app safety copy."
-        footer={Platform.OS === 'web'
-          ? 'Full backup and restore are available in the iOS and Android builds.'
-          : history.lastSqliteBackupAt ? `Last backup ${relativeTime(history.lastSqliteBackupAt)}.` : 'No backup yet.'}
-      >
-        <Action title="Create backup" divider disabled={Platform.OS === 'web'} onPress={() => void run(async () => { await createSqliteBackup(); await recordBackupEvent('sqlite-backup'); await recordDiagnostic('backup-created'); reloadHistory(); })} />
-        <Action title="Restore backup" divider disabled={Platform.OS === 'web'} onPress={restore} />
+        <Action title="Import from another app" divider onPress={() => navigation.navigate('CsvImport')} />
         <Action title="Delete all app data" destructive onPress={erase} />
       </SettingsSection>
       {busy ? <Text style={styles.unavailable}>Working securely with local data…</Text> : null}
@@ -292,17 +328,6 @@ function BackupExport() {
         onCancel={() => setDeleteConfirmationOpen(false)}
         onConfirm={confirmErase}
         testID="delete-all-data-confirmation"
-      />
-      <ForgeConfirmationDialog
-        visible={Boolean(restoreInspection)}
-        title="Replace all Forge data?"
-        message={restoreInspection ? `This backup has ${restoreInspection.workoutCount} completed workouts, ${restoreInspection.planCount} plans and ${restoreInspection.customExerciseCount} custom exercises. Current device data will be replaced after a safety copy is made.` : ''}
-        cancelLabel="Keep current data"
-        confirmLabel="Replace data"
-        confirmTone="destructive"
-        onCancel={() => setRestoreInspection(null)}
-        onConfirm={confirmRestore}
-        testID="restore-sqlite-confirmation"
       />
       <ForgeConfirmationDialog
         visible={Boolean(notice)}
@@ -344,7 +369,22 @@ function BackupExport() {
   );
 }
 
-function localDataErrorMessage(error: unknown): string {
+function backupFooter(state: BackupState): string {
+  if (state.lastError) return 'The last backup did not finish. Back up now to try again.';
+  if (!state.lastSuccessAt) return 'No backup yet.';
+  const keepHint = state.folder ? '' : ' Choose a backup folder so backups survive deleting Forge.';
+  const when = `Last backup ${relativeTime(Date.parse(state.lastSuccessAt))}`;
+  const phone = state.folderUnavailable
+    ? 'in app storage because the backup folder could not be reached'
+    : state.folder ? `in ${state.folder.name}` : 'inside the app';
+  if (state.cloud === 'synced') return `${when}, ${phone} and in iCloud.${keepHint}`;
+  if (state.cloud === 'pending') return `${when}, ${phone}. Waiting for iCloud to upload it.${keepHint}`;
+  if (state.cloud === 'no-space') return `${when}, ${phone}. iCloud is full.${keepHint}`;
+  if (state.cloud === 'error') return `${when}, ${phone}. The iCloud copy failed.${keepHint}`;
+  return `${when}, ${phone}.${keepHint}`;
+}
+
+export function localDataErrorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : '';
   if (/\.forge/i.test(message)) return message;
   if (/unable to open database|prepareAsync|SQLiteError/i.test(message))
@@ -662,7 +702,8 @@ function kindIcon(kind: DiagnosticKind): IconName {
   } as Record<DiagnosticKind, IconName>)[kind];
 }
 function diagnosticLabel(entry: DiagnosticEntry): string {
-  return ({ 'app-opened': 'App opened', 'data-exported': 'Data exported', 'data-imported': 'Data imported', 'backup-created': 'SQLite backup created', 'backup-restored': 'SQLite backup restored', 'operation-failed': 'Operation could not complete' } as Record<DiagnosticEntry['kind'], string>)[entry.kind];
+  const label = ({ 'app-opened': 'App opened', 'data-exported': 'Data exported', 'data-imported': 'Data imported', 'backup-created': 'Backup created', 'backup-restored': 'Backup restored', 'operation-failed': 'Operation could not complete' } as Record<DiagnosticEntry['kind'], string>)[entry.kind];
+  return entry.detail === 'icloud-no-space' ? `${label}, iCloud full` : label;
 }
 function logEntryLine(entry: DiagnosticEntry): string {
   return `${new Date(entry.at).toISOString()} ${entry.kind}${entry.detail ? ` (${entry.detail})` : ''}`;

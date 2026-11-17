@@ -20,6 +20,7 @@ import { ForgeThemeProvider, useForgeTheme } from './src/theme/ThemeProvider';
 import { ExerciseCatalogProvider } from './src/state/ExerciseCatalogContext';
 import { ForgeLoadingScreen } from './src/components/ForgeLoadingScreen';
 import { RestTimerProvider } from './src/state/RestTimerContext';
+import { BackupScheduler } from './src/state/BackupScheduler';
 
 export default function App() {
   const [fontsLoaded] = useFonts(
@@ -71,6 +72,7 @@ function ThemedApp() {
             <WorkoutProvider>
               <RestTimerProvider>
                 <AppNavigator />
+                <BackupScheduler />
               </RestTimerProvider>
             </WorkoutProvider>
           </PlansProvider>

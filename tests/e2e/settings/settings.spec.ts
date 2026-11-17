@@ -289,7 +289,7 @@ test.describe('Settings', () => {
     await page.getByRole('button', { name: 'Back to Settings' }).click();
     await page.getByRole('button', { name: 'Backup & Export' }).click();
     await expectRowHeight(page.getByRole('button', { name: 'Export data' }), 56);
-    await expectRowHeight(page.getByRole('button', { name: 'Create backup' }), 56);
+    await expectRowHeight(page.getByRole('button', { name: 'Import data' }), 56);
     await expect(page.getByRole('button', { name: 'Delete all app data' })).toBeVisible();
     await expectFontSize(page.getByText('Export data', { exact: true }), 16);
 
