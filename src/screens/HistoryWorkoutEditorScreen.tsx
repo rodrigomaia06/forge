@@ -51,7 +51,7 @@ import { useForgeTheme } from '../theme/ThemeProvider';
 import { useForgeReducedMotion } from '../theme/motion';
 import { animateLayout } from './activeWorkout/activeWorkoutFeedback';
 import { useThemedStyles } from '../theme/useThemedStyles';
-import { typeScale } from '../theme/tokens';
+import { radii, typeScale } from '../theme/tokens';
 import { useActiveWorkout, useWorkouts } from '../state/WorkoutContext';
 import { describeImplausibleSetValue, implausibleSetValues, type ImplausibleSetValue } from '../domain/workouts/setPlausibility';
 import { useSettings } from '../state/SettingsContext';
@@ -429,6 +429,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
         accessibilityRole="switch"
         accessibilityState={{ checked: Boolean(draft.excludeFromTargets) }}
         accessibilityLabel="Don't count this workout toward next-session targets"
+        pressScale={false}
         onPress={() => {
           lightHaptic();
           updateDraft((current) => ({ ...current, excludeFromTargets: !current.excludeFromTargets }));
@@ -1126,7 +1127,17 @@ const createStyles = (theme: import('../types').ForgeTheme) => StyleSheet.create
   formRow: { flexDirection: 'row', gap: 10 },
   field: { gap: 4 },
   halfField: { flex: 1 },
-  targetToggleRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  // The bare row reaches past the card padding so its rounded press tint keeps
+  // space around the label and switch instead of ending flush against them.
+  targetToggleRow: {
+    minHeight: 48,
+    marginHorizontal: -8,
+    paddingHorizontal: 8,
+    borderRadius: radii.control,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   targetToggleCopy: { flex: 1, gap: 3 },
   targetToggleHint: { color: theme.slate, ...typeScale.caption },
   fieldLabel: { color: theme.slate, ...typeScale.label },

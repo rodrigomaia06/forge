@@ -338,4 +338,37 @@ for (const appearance of ['light', 'dark'] as const) {
     }
     await expect(page.getByRole('button', { name: 'Edit dashboard', exact: true })).toBeVisible();
   });
+
+  test(`${appearance} wheel rows keep one rounded local tint`, async ({
+    page,
+  }, info) => {
+    await seed(page, appearance, true, undefined, true);
+    await page.getByRole('button', { name: 'Start rest timer', exact: true }).click();
+    const row = page.getByRole('button', { name: 'Rest duration 01:05', exact: true });
+    const wheel = await heldTint(page, row, info, 'rest-wheel-row');
+    // One rounded tint over the row, with no extra square fill painted beneath it.
+    expect(wheel.radius).toBe('12px');
+    expect(wheel.background).toBe('rgba(0, 0, 0, 0)');
+    expect(Math.abs(wheel.tint.width - wheel.bounds.width)).toBeLessThanOrEqual(1);
+    // The cancelled hold neither selected the row nor started the timer.
+    await expect(page.getByRole('button', { name: 'Start rest timer', exact: true }).last()).toBeVisible();
+  });
+
+  test(`${appearance} the editor's off-plan row keeps a rounded tint with space around it`, async ({
+    page,
+  }, info) => {
+    await seed(page, appearance, true);
+    await page.getByRole('button', { name: 'Edit live workout', exact: true }).click();
+    const offPlan = page.getByRole('switch', {
+      name: "Don't count this workout toward next-session targets",
+      exact: true,
+    });
+    const label = await offPlan.getByText('Off-plan session', { exact: true }).boundingBox();
+    const held = await heldTint(page, offPlan, info, 'off-plan-row');
+    expect(held.radius).toBe('12px');
+    // The rounded tint leaves space around the label instead of ending flush against it.
+    expect(label!.x - held.tint.x).toBeGreaterThanOrEqual(6);
+    await expect(offPlan).not.toHaveAttribute('aria-checked', 'true');
+  });
+
 }

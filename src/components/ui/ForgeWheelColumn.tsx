@@ -18,7 +18,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useThemedStyles } from '../../theme/useThemedStyles';
-import { typeScale } from '../../theme/tokens';
+import { radii, typeScale } from '../../theme/tokens';
 import type { ForgeTheme } from '../../types';
 import { ForgeText as Text } from './ForgeText';
 import { selectionHaptic } from './haptics';
@@ -168,8 +168,11 @@ export function ForgeWheelColumn({
               accessibilityLabel={accessibilityLabel(item)}
               accessibilityState={accessibilityRole === 'radio' ? { checked: index === selectedIndex } : undefined}
               unstable_pressDelay={110}
+              // The shared tint is the row's only pressed state; it follows the
+              // rounded row instead of stacking a square layer on a rounded fill.
+              pressScale={false}
               onPress={() => handleTap(index)}
-              style={({ pressed }) => [styles.row, { height: rowHeight }, pressed && styles.rowPressed]}
+              style={[styles.row, { height: rowHeight }]}
             >
               <WheelValue
                 rowHeight={rowHeight}
@@ -232,8 +235,7 @@ const createStyles = (theme: ForgeTheme) =>
     column: { flex: 1, minWidth: 0 },
     columnLabel: { textAlign: 'center', marginBottom: 8, color: theme.textSecondary, ...typeScale.label },
     wheel: { position: 'relative', overflow: 'hidden' },
-    row: { height: WHEEL_ROW_HEIGHT, alignItems: 'center', justifyContent: 'center' },
-    rowPressed: { backgroundColor: theme.surfaceMuted, borderRadius: 12 },
+    row: { height: WHEEL_ROW_HEIGHT, alignItems: 'center', justifyContent: 'center', borderRadius: radii.control },
     selection: {
       position: 'absolute',
       left: 0,
