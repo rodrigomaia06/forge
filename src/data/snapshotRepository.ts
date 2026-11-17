@@ -1,40 +1,43 @@
 import * as Crypto from 'expo-crypto';
 import * as SQLite from 'expo-sqlite';
+import type { File } from 'expo-file-system';
 import appConfig from '../../app.json';
-import { appStateKeys } from './appStateMigration';
+import { appStateKeys, prepareRestoredAppState } from './appStateMigration';
 import { loadAppState, updateAppState } from './appStateRepository';
-import { prepareRestoredAppState } from './appStateMigration';
-import { cacheFile, shareFile, withTemporaryBackupDatabase } from './backupRepository';
+import { cacheFile, inspectBytes, shareFile, withTemporaryBackupDatabase, type BackupInspection } from './backupRepository';
 import { withDatabaseMaintenance, type ForgeDatabase } from './database';
 import { recordDiagnostic } from './diagnosticsRepository';
 import { flushPersistence } from './persistenceLifecycle';
 import { loadSettingsPreferences } from './settingsRepository';
 import {
-  backupFolderFiles,
+  appBackupFiles,
   backupFolderReachable,
   backupFolderSupported,
+  folderBackupFiles,
   forgetBackupFolder,
   iCloudFiles,
   iCloudUploadState,
   isICloudAvailable,
   pickBackupFolder,
+  type BackupFileStore,
   type BackupFolder,
 } from './snapshots/backupStorage';
-import { clearAppBackups, localBackupSize, localFiles } from './snapshots/localFiles';
 import {
   SNAPSHOT_TABLES,
+  backupFileName,
+  backupFilesToRemove,
   cloudStatusAfterUpload,
   cloudStatusFromError,
   filesSnapshotStore,
   isAutoBackupDue,
-  mergeListings,
-  mirrorSnapshot,
+  mergeBackupEntries,
+  parseBackupFileName,
   pruneStore,
   readSnapshotRows,
   writeSnapshot,
+  type BackupEntry,
   type BackupState,
   type CloudStatus,
-  type SnapshotListing,
   type SnapshotManifest,
   type SnapshotRow,
   type SnapshotStore,
@@ -42,10 +45,11 @@ import {
   type SnapshotTrigger,
 } from './snapshots/snapshotCore';
 
-export type { BackupState, SnapshotListing };
+export type { BackupEntry, BackupState };
+export { backupFolderSupported, isICloudAvailable };
 export { shouldWarnAboutBackup } from './snapshots/snapshotCore';
 
-/** Rows that describe this install, not the user's data, stay out of snapshots and survive a restore. */
+/** Rows that describe this install, not the user's data, stay out of restores (and iCloud snapshots). */
 const DEVICE_META_KEYS = ['bundled-catalog-version'];
 const DEVICE_APP_STATE_KEYS: string[] = [
   appStateKeys.timer,
@@ -54,18 +58,17 @@ const DEVICE_APP_STATE_KEYS: string[] = [
   appStateKeys.backupState,
 ];
 const COLUMN = /^[a-z_]+$/;
+const SQLITE_MIME = 'application/vnd.sqlite3';
+
+type Rows = Record<SnapshotTable, SnapshotRow[]>;
 
 const hash = (text: string) => Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, text);
-/** In-app storage: the fallback when no backup folder is chosen. It is deleted with the app. */
-const appStore = (): SnapshotStore => filesSnapshotStore(localFiles());
-function folderStore(folder: BackupFolder | undefined): SnapshotStore | null {
-  const files = backupFolderFiles(folder);
-  return files ? filesSnapshotStore(files) : null;
-}
 function cloudStore(): SnapshotStore | null {
   const files = iCloudFiles();
   return files ? filesSnapshotStore(files) : null;
 }
+
+// Backup bookkeeping (a device row: never backed up, kept across restores).
 
 export async function loadBackupState(): Promise<BackupState> {
   try {
@@ -94,10 +97,14 @@ export function recordBackupWarningShown(): Promise<void> {
   return saveBackupState({ lastWarningAt: new Date().toISOString() });
 }
 
-async function captureRows(db: ForgeDatabase): Promise<Record<SnapshotTable, SnapshotRow[]>> {
-  const rows = {} as Record<SnapshotTable, SnapshotRow[]>;
+/** User rows of a database; tables an older backup lacks read as empty. */
+async function captureRows(db: SQLite.SQLiteDatabase): Promise<Rows> {
+  const present = new Set(
+    (await db.getAllAsync<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'table'")).map((row) => row.name),
+  );
+  const rows = {} as Rows;
   for (const table of SNAPSHOT_TABLES) {
-    const all = await db.getAllAsync<SnapshotRow>(`SELECT * FROM ${table} ORDER BY rowid`);
+    const all = present.has(table) ? await db.getAllAsync<SnapshotRow>(`SELECT * FROM ${table} ORDER BY rowid`) : [];
     rows[table] = all.filter((row) => {
       if (table === 'forge_meta') return !DEVICE_META_KEYS.includes(String(row.key));
       if (table === 'app_state') return !DEVICE_APP_STATE_KEYS.includes(String(row.key));
@@ -107,53 +114,82 @@ async function captureRows(db: ForgeDatabase): Promise<Record<SnapshotTable, Sna
   return rows;
 }
 
+// Where phone backups go.
+
+/** The chosen folder when one is set, then Forge's own folder. */
+async function phoneStores(): Promise<{ folder: BackupFileStore | null; app: BackupFileStore }> {
+  const { folder } = await loadBackupState();
+  return { folder: folderBackupFiles(folder), app: appBackupFiles() };
+}
+
+/** Keeps what the retention policy keeps; files Forge did not name are left alone. */
+async function pruneFiles(store: BackupFileStore, now: Date): Promise<void> {
+  for (const name of backupFilesToRemove(await store.list(), now)) await store.remove(name);
+}
+
+/** Moves Forge-named backups from Forge's own folder into the chosen folder. */
+async function moveAppBackupsTo(target: BackupFileStore): Promise<void> {
+  const app = appBackupFiles();
+  for (const name of await app.list()) {
+    if (!parseBackupFileName(name)) continue;
+    await target.save(name, await app.fetch(name));
+    await app.remove(name);
+  }
+}
+
+// Creating backups.
+
 let running: Promise<SnapshotRunResult> | null = null;
 
-export type SnapshotRunResult = { manifest: SnapshotManifest; cloud: CloudStatus | 'off' };
+export type SnapshotRunResult = { createdAt: string; file: string; cloud: CloudStatus | 'off' };
 
 /**
- * Saves a snapshot on the phone (in the backup folder when one is chosen,
- * otherwise in app storage), then mirrors it to iCloud when available. An
- * unreachable folder falls back to app storage, and a failed or full iCloud
- * never fails the backup; both are reported in the state.
+ * Saves a complete `.sqlite` copy of the data on the phone (in the chosen
+ * folder, or Forge's own folder), then, with iCloud copy on, an incremental
+ * snapshot to iCloud. An unreachable folder falls back to Forge's folder, and a
+ * failed or full iCloud never fails the backup; both are recorded in the state.
  */
 export function createSnapshot(trigger: SnapshotTrigger): Promise<SnapshotRunResult> {
   if (running) return running;
   running = (async () => {
     const attemptAt = new Date();
+    let temporary: File | null = null;
     try {
+      const { iCloudBackupEnabled } = await loadSettingsPreferences();
       await flushPersistence();
-      const rows = await withDatabaseMaintenance(captureRows);
-      const { folder } = await loadBackupState();
-      const options = { hash, now: attemptAt, appVersion: appConfig.expo.version, trigger };
-      let local: SnapshotStore = appStore();
-      let manifest: SnapshotManifest | null = null;
+      const { bytes, rows } = await withDatabaseMaintenance(async (db) => ({
+        bytes: await db.serializeAsync(),
+        rows: iCloudBackupEnabled ? await captureRows(db) : null,
+      }));
+      const name = backupFileName(attemptAt, trigger);
+      temporary = cacheFile(name, bytes);
+      const { folder, app } = await phoneStores();
+      let saved: BackupFileStore = app;
       let folderUnavailable: true | undefined;
-      const chosen = folderStore(folder);
-      if (chosen) {
+      if (folder) {
         try {
-          manifest = await writeSnapshot(chosen, rows, options);
-          local = chosen;
-          // Backups saved in app storage while the folder was unreachable move over now.
-          await moveAppBackupsTo(chosen);
+          await folder.save(name, temporary);
+          saved = folder;
+          await moveAppBackupsTo(folder);
         } catch {
           folderUnavailable = true;
         }
       }
-      if (!manifest) manifest = await writeSnapshot(local, rows, options);
-      await pruneStore(local, attemptAt);
-      const { iCloudBackupEnabled } = await loadSettingsPreferences();
-      const cloud = iCloudBackupEnabled ? await mirrorToCloud(local, manifest, attemptAt) : undefined;
+      if (saved === app) await app.save(name, temporary);
+      await pruneFiles(saved, attemptAt);
+      let cloud: CloudStatus | undefined;
+      let cloudManifestId: string | undefined;
+      if (rows) ({ cloud, cloudManifestId } = await saveToCloud(rows, attemptAt, trigger));
       await saveBackupState({
         lastAttemptAt: attemptAt.toISOString(),
         lastSuccessAt: attemptAt.toISOString(),
         lastError: undefined,
         folderUnavailable,
         cloud,
-        cloudManifestId: cloud === 'pending' ? manifest.id : undefined,
+        cloudManifestId,
       });
       await recordDiagnostic('backup-created', cloud === 'no-space' ? 'icloud-no-space' : cloud === 'error' ? 'unknown' : undefined);
-      return { manifest, cloud: cloud ?? 'off' };
+      return { createdAt: attemptAt.toISOString(), file: name, cloud: cloud ?? 'off' };
     } catch (error) {
       await saveBackupState({
         lastAttemptAt: attemptAt.toISOString(),
@@ -162,27 +198,32 @@ export function createSnapshot(trigger: SnapshotTrigger): Promise<SnapshotRunRes
       await recordDiagnostic('operation-failed', 'unknown').catch(() => undefined);
       throw error;
     } finally {
+      try {
+        if (temporary?.exists) temporary.delete();
+      } catch {
+        /* The cache is cleared by the system eventually. */
+      }
       running = null;
     }
   })();
   return running;
 }
 
-async function mirrorToCloud(local: SnapshotStore, manifest: SnapshotManifest, now: Date): Promise<CloudStatus> {
+async function saveToCloud(rows: Rows, now: Date, trigger: SnapshotTrigger): Promise<{ cloud: CloudStatus; cloudManifestId?: string }> {
   const cloud = cloudStore();
-  if (!cloud || !(await isICloudAvailable())) return 'unavailable';
+  if (!cloud || !(await isICloudAvailable())) return { cloud: 'unavailable' };
   try {
-    await mirrorSnapshot(local, cloud, manifest);
+    const manifest = await writeSnapshot(cloud, rows, { hash, now, appVersion: appConfig.expo.version, trigger });
     await pruneStore(cloud, now);
     // Written into the iCloud folder; iOS uploads it later (see refreshCloudStatus).
-    return 'pending';
+    return { cloud: 'pending', cloudManifestId: manifest.id };
   } catch (error) {
-    return cloudStatusFromError(error);
+    return { cloud: cloudStatusFromError(error) };
   }
 }
 
 /**
- * Checks whether iOS has uploaded the last mirrored backup. A full iCloud only
+ * Checks whether iOS has uploaded the last iCloud snapshot. A full iCloud only
  * shows here: the write into the iCloud folder itself always succeeds.
  */
 export async function refreshCloudStatus(): Promise<BackupState> {
@@ -194,8 +235,6 @@ export async function refreshCloudStatus(): Promise<BackupState> {
   if (next === 'no-space') await recordDiagnostic('operation-failed', 'icloud-no-space').catch(() => undefined);
   return { ...state, cloud: next };
 }
-
-export { isICloudAvailable };
 
 /**
  * Turning the iCloud copy off clears its status, so a full iCloud stops
@@ -217,6 +256,35 @@ export async function runAutomaticBackupIfDue(enabled: boolean): Promise<void> {
   }
 }
 
+// The backup folder.
+
+/**
+ * Lets the person choose a folder outside the app (iOS Files, Android storage).
+ * Backups in Forge's own folder move there, and backups already in that folder
+ * (for example from before reinstalling Forge) appear in Manage backups.
+ */
+export async function chooseBackupFolder(): Promise<BackupFolder | null> {
+  const folder = await pickBackupFolder();
+  if (!folder) return null;
+  const store = folderBackupFiles(folder);
+  if (!store) throw new Error('Backup folders are not available in this build.');
+  await moveAppBackupsTo(store);
+  await saveBackupState({ folder, folderUnavailable: undefined });
+  return folder;
+}
+
+/** Goes back to Forge's own folder. Backups already in the chosen folder stay there. */
+export async function stopUsingBackupFolder(): Promise<void> {
+  await forgetBackupFolder();
+  await saveBackupState({ folder: undefined, folderUnavailable: undefined });
+}
+
+export async function isBackupFolderReachable(state: BackupState): Promise<boolean> {
+  return backupFolderReachable(state.folder);
+}
+
+// Listing, restoring and downloading.
+
 async function readManifests(store: SnapshotStore | null): Promise<SnapshotManifest[]> {
   if (!store) return [];
   const manifests: SnapshotManifest[] = [];
@@ -230,83 +298,49 @@ async function readManifests(store: SnapshotStore | null): Promise<SnapshotManif
   return manifests;
 }
 
-/** Moves every snapshot kept in app storage into the folder, then clears app storage. */
-async function moveAppBackupsTo(target: SnapshotStore): Promise<void> {
-  const source = appStore();
-  const manifests = await readManifests(source);
-  if (manifests.length === 0) return;
-  for (const manifest of manifests) await mirrorSnapshot(source, target, manifest);
-  clearAppBackups();
-}
-
-export { backupFolderSupported };
-
-/**
- * Lets the person choose a folder outside the app (iOS Files, Android storage).
- * Backups already in app storage move there, and backups already in that folder
- * (for example from before reinstalling Forge) appear in Manage backups.
- */
-export async function chooseBackupFolder(): Promise<BackupFolder | null> {
-  const folder = await pickBackupFolder();
-  if (!folder) return null;
-  const store = folderStore(folder);
-  if (!store) throw new Error('Backup folders are not available in this build.');
-  await moveAppBackupsTo(store);
-  await saveBackupState({ folder, folderUnavailable: undefined });
-  return folder;
-}
-
-/** Goes back to app storage. Backups already in the folder stay there. */
-export async function stopUsingBackupFolder(): Promise<void> {
-  await forgetBackupFolder();
-  await saveBackupState({ folder: undefined, folderUnavailable: undefined });
-}
-
-export async function isBackupFolderReachable(state: BackupState): Promise<boolean> {
-  return backupFolderReachable(state.folder);
-}
-
-/** Stores to look in, phone first. */
-async function readableStores(): Promise<SnapshotStore[]> {
-  const { folder } = await loadBackupState();
-  const cloud = (await isICloudAvailable()) ? cloudStore() : null;
-  return [folderStore(folder), appStore(), cloud].filter((store): store is SnapshotStore => store !== null);
-}
-
-/** Every kept snapshot in the backup folder, app storage and iCloud, newest first. */
-export async function listSnapshots(): Promise<SnapshotListing[]> {
-  const { folder } = await loadBackupState();
+/** Every kept backup on the phone and in iCloud, newest first. */
+export async function listBackups(): Promise<BackupEntry[]> {
+  const { folder, app } = await phoneStores();
   const cloud = (await isICloudAvailable()) ? cloudStore() : null;
   const [inFolder, inApp, remote] = await Promise.all([
-    readManifests(folderStore(folder)).catch(() => []),
-    readManifests(appStore()).catch(() => []),
+    folder ? folder.list().catch(() => []) : Promise.resolve([]),
+    app.list().catch(() => []),
     readManifests(cloud).catch(() => []),
   ]);
-  return mergeListings([...inFolder, ...inApp], remote);
+  return mergeBackupEntries([...inFolder, ...inApp], remote);
 }
 
-export function localBackupBytes(): number {
-  try {
-    return localBackupSize();
-  } catch {
-    return 0;
-  }
-}
-
-async function snapshotRows(listing: SnapshotListing): Promise<Record<SnapshotTable, SnapshotRow[]>> {
-  let lastError: unknown = new Error('This backup is no longer available.');
-  for (const store of await readableStores()) {
+/** A readable local copy of a phone backup, from the chosen folder or Forge's own. */
+async function fetchBackupFile(name: string): Promise<File> {
+  const { folder, app } = await phoneStores();
+  if (folder) {
     try {
-      return await readSnapshotRows(store, await store.readManifest(listing.id));
-    } catch (error) {
-      lastError = error;
+      const file = await folder.fetch(name);
+      if (file.exists) return file;
+    } catch {
+      /* Try Forge's own folder. */
     }
   }
-  throw lastError;
+  const file = await app.fetch(name);
+  if (!file.exists) throw new Error('This backup is no longer on this phone.');
+  return file;
+}
+
+/** Reads the user rows of a Forge `.sqlite` file after validating it. */
+async function rowsFromSqlite(bytes: Uint8Array): Promise<Rows> {
+  await inspectBytes(bytes);
+  return withTemporaryBackupDatabase(bytes, captureRows);
+}
+
+async function entryRows(entry: BackupEntry): Promise<Rows> {
+  if (entry.file) return rowsFromSqlite(await (await fetchBackupFile(entry.file)).bytes());
+  const cloud = cloudStore();
+  if (!entry.cloudId || !cloud) throw new Error('iCloud is not available on this device.');
+  return readSnapshotRows(cloud, await cloud.readManifest(entry.cloudId));
 }
 
 /** Replaces user rows in a candidate copy of the live database, keeping the catalogue and device rows. */
-async function applySnapshotRows(candidate: SQLite.SQLiteDatabase, rows: Record<SnapshotTable, SnapshotRow[]>): Promise<void> {
+async function applyRows(candidate: SQLite.SQLiteDatabase, rows: Rows): Promise<void> {
   await candidate.withTransactionAsync(async () => {
     for (const table of [...SNAPSHOT_TABLES].reverse()) {
       if (table === 'forge_meta')
@@ -320,7 +354,7 @@ async function applySnapshotRows(candidate: SQLite.SQLiteDatabase, rows: Record<
     for (const table of SNAPSHOT_TABLES) {
       for (const row of rows[table]) {
         const columns = Object.keys(row);
-        if (columns.some((column) => !COLUMN.test(column))) throw new Error('A backup object is damaged.');
+        if (columns.some((column) => !COLUMN.test(column))) throw new Error('This backup is damaged.');
         await candidate.runAsync(
           `INSERT OR REPLACE INTO ${table} (${columns.join(',')}) VALUES (${columns.map(() => '?').join(',')})`,
           ...columns.map((column) => row[column]),
@@ -331,15 +365,11 @@ async function applySnapshotRows(candidate: SQLite.SQLiteDatabase, rows: Record<
   await prepareRestoredAppState(candidate);
 }
 
-async function withMaterializedSnapshot<T>(
-  listing: SnapshotListing,
-  work: (candidate: SQLite.SQLiteDatabase, live: ForgeDatabase) => Promise<T>,
-): Promise<T> {
-  // Read (and, from iCloud, download) every object before touching the database queue.
-  const rows = await snapshotRows(listing);
+/** Builds a validated copy of the live database holding `rows` as its user data. */
+function withRestoredCopy<T>(rows: Rows, work: (candidate: SQLite.SQLiteDatabase, live: ForgeDatabase) => Promise<T>): Promise<T> {
   return withDatabaseMaintenance(async (live) =>
     withTemporaryBackupDatabase(await live.serializeAsync(), async (candidate) => {
-      await applySnapshotRows(candidate, rows);
+      await applyRows(candidate, rows);
       const integrity = await candidate.getFirstAsync<{ integrity_check: string }>('PRAGMA integrity_check');
       if (integrity?.integrity_check !== 'ok') throw new Error('The restored backup failed SQLite integrity validation.');
       return work(candidate, live);
@@ -348,21 +378,34 @@ async function withMaterializedSnapshot<T>(
 }
 
 /**
- * Restores a snapshot over all current data. A "Before restore" snapshot of the
- * current data is saved first, so a restore can always be undone.
+ * Replaces all user data with `rows`. A Before restore backup of the current
+ * data is saved first, so a restore can always be undone. Device settings
+ * (backup folder, logs, timer) stay as they are.
  */
-export async function restoreSnapshot(listing: SnapshotListing): Promise<void> {
+async function restoreRows(rows: Rows): Promise<void> {
   await createSnapshot('pre-restore');
   await flushPersistence();
-  await withMaterializedSnapshot(listing, async (candidate, live) => {
-    await SQLite.backupDatabaseAsync({ sourceDatabase: candidate, destDatabase: live });
-  });
+  await withRestoredCopy(rows, (candidate, live) => SQLite.backupDatabaseAsync({ sourceDatabase: candidate, destDatabase: live }));
   await recordDiagnostic('backup-restored');
 }
 
-/** Shares a snapshot as one .sqlite file, which "Restore backup" accepts on any device. */
-export async function downloadSnapshot(listing: SnapshotListing): Promise<void> {
-  const bytes = await withMaterializedSnapshot(listing, (candidate) => candidate.serializeAsync());
-  const name = `forge-backup-${listing.createdAt.slice(0, 10)}.sqlite`;
-  await shareFile(cacheFile(name, bytes), 'application/vnd.sqlite3');
+export async function restoreBackup(entry: BackupEntry): Promise<void> {
+  // Read (and, from iCloud, download) everything before touching the database.
+  await restoreRows(await entryRows(entry));
+}
+
+/** Restores a Forge `.sqlite` file picked with Restore from file. */
+export async function restoreBackupFile(inspection: BackupInspection): Promise<void> {
+  await restoreRows(await rowsFromSqlite(inspection.bytes));
+}
+
+/** Shares a backup as one `.sqlite` file, which Restore from file accepts on any device. */
+export async function downloadBackup(entry: BackupEntry): Promise<void> {
+  if (entry.file) {
+    await shareFile(await fetchBackupFile(entry.file), SQLITE_MIME);
+    return;
+  }
+  const bytes = await withRestoredCopy(await entryRows(entry), (candidate) => candidate.serializeAsync());
+  const name = backupFileName(new Date(entry.createdAt), entry.trigger);
+  await shareFile(cacheFile(name, bytes), SQLITE_MIME);
 }

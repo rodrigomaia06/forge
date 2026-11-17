@@ -13,11 +13,14 @@ Developer account) and as a free-signed build that cannot carry iCloud entitleme
 
 ## Decision
 
-- A backup is a content-addressed snapshot (`src/data/snapshots/`). Every user-owned SQLite row
+- An iCloud backup is a content-addressed snapshot (`src/data/snapshots/`). Every user-owned SQLite row
   becomes one object named by the SHA-256 of its canonical JSON (`objects/<aa>/<hash>.json`);
   a manifest (`snapshots/<id>.json`) lists the object hashes per table. Unchanged rows reuse
   their object, so a new snapshot stores only what changed, like git.
-- Snapshots are written to the phone first. On iPhone the default is Forge's Documents folder,
+- On the phone, each backup is one complete `.sqlite` file named by its time and trigger, so it is
+  readable outside Forge; retention deletes old files by name. The incremental store is used for
+  iCloud only, where space matters and the files are never browsed. Phone backups are written first.
+  On iPhone the default is Forge's Documents folder,
   shown in Files as On My iPhone › Forge (`UIFileSharingEnabled` with in-place document opening),
   so backups are visible and easy to copy; iOS deletes it with the app. A backup folder the person
   picks outside the app sandbox (iOS Files via a security-scoped bookmark; Android via a

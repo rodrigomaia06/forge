@@ -170,6 +170,36 @@ final class ForgeBackupStorage {
     }
   }
 
+  /// Copies a local file (a `.sqlite` backup in the app cache) into the root.
+  func importFile(_ root: String, _ path: String, from source: URL) throws {
+    try withRoot(root) { base in
+      let url = try resolve(base, path)
+      try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+      var copyError: Error?
+      var coordinationError: NSError?
+      NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: url, options: .forReplacing, error: &coordinationError) { writeURL in
+        do { try Data(contentsOf: source).write(to: writeURL, options: .atomic) } catch { copyError = error }
+      }
+      if let coordinationError { throw mapped(coordinationError) }
+      if let copyError { throw mapped(copyError as NSError) }
+    }
+  }
+
+  /// Copies a file from the root to a local destination (the app cache), downloading it first if needed.
+  func exportFile(_ root: String, _ path: String, to destination: URL) throws {
+    try withRoot(root) { base in
+      let url = try resolve(base, path)
+      try ensureDownloaded(url)
+      var copyError: Error?
+      var coordinationError: NSError?
+      NSFileCoordinator(filePresenter: nil).coordinate(readingItemAt: url, options: [], error: &coordinationError) { readURL in
+        do { try Data(contentsOf: readURL).write(to: destination, options: .atomic) } catch { copyError = error }
+      }
+      if let coordinationError { throw mapped(coordinationError) }
+      if let copyError { throw mapped(copyError as NSError) }
+    }
+  }
+
   /// Writes into the iCloud container succeed locally even when the account is
   /// full; the quota error appears later, on upload. Report what iCloud did with
   /// one file: uploaded, pending, no-space or error.
@@ -306,6 +336,16 @@ public final class ForgeBackupStorageModule: Module {
 
     AsyncFunction("writeAsync") { (root: String, path: String, text: String) in
       try ForgeBackupStorage.shared.write(root, path, text)
+    }
+
+    AsyncFunction("importFileAsync") { (root: String, path: String, sourceUri: String) in
+      guard let source = URL(string: sourceUri) else { throw storageError("unknown", "Invalid file link.") }
+      try ForgeBackupStorage.shared.importFile(root, path, from: source)
+    }
+
+    AsyncFunction("exportFileAsync") { (root: String, path: String, destinationUri: String) in
+      guard let destination = URL(string: destinationUri) else { throw storageError("unknown", "Invalid file link.") }
+      try ForgeBackupStorage.shared.exportFile(root, path, to: destination)
     }
 
     AsyncFunction("uploadStateAsync") { (root: String, path: String) -> String in

@@ -561,7 +561,7 @@ function hasSqliteHeader(bytes: Uint8Array): boolean {
   );
 }
 
-async function inspectBytes(bytes: Uint8Array): Promise<BackupInspection> {
+export async function inspectBytes(bytes: Uint8Array): Promise<BackupInspection> {
   if (!hasSqliteHeader(bytes))
     throw new Error('Choose a Forge .sqlite backup, not a data transfer or another app database.');
   return withTemporaryBackupDatabase(bytes, async (candidate) => {

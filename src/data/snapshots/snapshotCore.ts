@@ -344,17 +344,75 @@ export function cloudStatusFromError(error: unknown): CloudStatus {
   return 'error';
 }
 
-export type SnapshotListing = SnapshotManifest & { local: boolean; cloud: boolean };
+/**
+ * One backup as Manage backups shows it. Backups on the phone are complete
+ * `.sqlite` files (`file`); the iCloud copy is incremental (`cloudId`, a
+ * manifest id). A backup made in one run usually has both.
+ */
+export type BackupEntry = {
+  id: string;
+  createdAt: string;
+  trigger: SnapshotTrigger;
+  file?: string;
+  cloudId?: string;
+  counts?: SnapshotCounts;
+};
 
-/** One list for the manager: snapshots from both stores, newest first. */
-export function mergeListings(local: SnapshotManifest[], cloud: SnapshotManifest[]): SnapshotListing[] {
-  const byId = new Map<string, SnapshotListing>();
-  for (const manifest of local) if (!byId.has(manifest.id)) byId.set(manifest.id, { ...manifest, local: true, cloud: false });
-  for (const manifest of cloud) {
-    const existing = byId.get(manifest.id);
-    byId.set(manifest.id, existing ? { ...existing, cloud: true } : { ...manifest, local: false, cloud: true });
+const TRIGGER_FILE_LABEL: Record<SnapshotTrigger, string> = {
+  auto: 'Weekly',
+  manual: 'Manual',
+  'pre-restore': 'Before restore',
+};
+
+const pad = (value: number) => String(value).padStart(2, '0');
+
+/** A readable backup file name in local time, for example `Forge 2026-11-17 18-16-05 Weekly.sqlite`. */
+export function backupFileName(createdAt: Date, trigger: SnapshotTrigger): string {
+  const date = `${createdAt.getFullYear()}-${pad(createdAt.getMonth() + 1)}-${pad(createdAt.getDate())}`;
+  const time = `${pad(createdAt.getHours())}-${pad(createdAt.getMinutes())}-${pad(createdAt.getSeconds())}`;
+  return `Forge ${date} ${time} ${TRIGGER_FILE_LABEL[trigger]}.sqlite`;
+}
+
+/** Reads a name made by `backupFileName`; other files in the folder are not Forge's and are ignored. */
+export function parseBackupFileName(name: string): { createdAt: string; trigger: SnapshotTrigger } | null {
+  const match = /^Forge (\d{4})-(\d{2})-(\d{2}) (\d{2})-(\d{2})-(\d{2}) (Weekly|Manual|Before restore)\.sqlite$/.exec(name);
+  if (!match) return null;
+  const [, year, month, day, hours, minutes, seconds, label] = match;
+  const created = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes), Number(seconds));
+  if (Number.isNaN(created.getTime())) return null;
+  const trigger = (Object.keys(TRIGGER_FILE_LABEL) as SnapshotTrigger[]).find((key) => TRIGGER_FILE_LABEL[key] === label)!;
+  return { createdAt: created.toISOString(), trigger };
+}
+
+/** Backup files the retention policy no longer keeps. Files Forge did not name are never touched. */
+export function backupFilesToRemove(names: readonly string[], now: Date): string[] {
+  const parsed = names.flatMap((name) => {
+    const info = parseBackupFileName(name);
+    return info ? [{ id: name, createdAt: info.createdAt }] : [];
+  });
+  const keep = selectSnapshotsToKeep(parsed, now);
+  return parsed.filter((entry) => !keep.has(entry.id)).map((entry) => entry.id);
+}
+
+/**
+ * One list for the manager, newest first. A phone file and an iCloud manifest
+ * from the same run share their time (to the second) and become one entry.
+ */
+export function mergeBackupEntries(files: readonly string[], cloud: readonly SnapshotManifest[]): BackupEntry[] {
+  const bySecond = new Map<string, BackupEntry>();
+  const second = (iso: string) => iso.slice(0, 19);
+  for (const file of files) {
+    const info = parseBackupFileName(file);
+    if (!info || bySecond.has(second(info.createdAt))) continue;
+    bySecond.set(second(info.createdAt), { id: `file:${file}`, createdAt: info.createdAt, trigger: info.trigger, file });
   }
-  return [...byId.values()].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  for (const manifest of cloud) {
+    const key = second(manifest.createdAt);
+    const existing = bySecond.get(key);
+    if (existing) bySecond.set(key, { ...existing, cloudId: manifest.id, counts: manifest.counts });
+    else bySecond.set(key, { id: `cloud:${manifest.id}`, createdAt: manifest.createdAt, trigger: manifest.trigger, cloudId: manifest.id, counts: manifest.counts });
+  }
+  return [...bySecond.values()].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
 }
 
 /**

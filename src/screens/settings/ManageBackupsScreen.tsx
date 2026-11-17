@@ -6,10 +6,9 @@ import { AppScreen, ForgeConfirmationDialog, ForgeText as Text, Icon, lightHapti
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import type { ForgeTheme } from '../../types';
-import { createSnapshot, downloadSnapshot, listSnapshots, restoreSnapshot, type SnapshotListing } from '../../data/snapshotRepository';
+import { downloadBackup, listBackups, restoreBackup, restoreBackupFile, type BackupEntry as Backup } from '../../data/snapshotRepository';
 import { notifyPersistenceReset } from '../../data/persistenceLifecycle';
-import { pickSqliteBackup, restoreSqliteBackup, type BackupInspection } from '../../data/backupRepository';
-import { recordDiagnostic } from '../../data/diagnosticsRepository';
+import { pickSqliteBackup, type BackupInspection } from '../../data/backupRepository';
 import { localDataErrorMessage } from './SettingsDestinationScreen';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { typeScale } from '../../theme/tokens';
@@ -24,22 +23,27 @@ import { SettingsRow, SettingsSection, settingsLayout } from './SettingsRow';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ManageBackups'>;
 
-const TRIGGER_LABEL: Record<SnapshotListing['trigger'], string> = {
+const TRIGGER_LABEL: Record<Backup['trigger'], string> = {
   auto: 'Weekly backup',
   manual: 'Manual backup',
   'pre-restore': 'Before restore',
 };
 
-function snapshotTitle(listing: SnapshotListing): string {
+function snapshotTitle(listing: Backup): string {
   return new Date(listing.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 }
 
-function snapshotDate(listing: SnapshotListing): string {
+function snapshotDate(listing: Backup): string {
   return new Date(listing.createdAt).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
-function snapshotWhere(listing: SnapshotListing): string {
-  return listing.local && listing.cloud ? 'Phone and iCloud' : listing.cloud ? 'iCloud' : 'This phone';
+function snapshotWhere(listing: Backup): string {
+  return listing.file && listing.cloudId ? 'Phone and iCloud' : listing.cloudId ? 'iCloud' : 'This phone';
+}
+
+/** Counts are known for iCloud backups; phone files are checked when restored. */
+function snapshotCounts(listing: Backup): string {
+  return listing.counts ? ` (${listing.counts.workouts} workouts, ${listing.counts.plans} plans)` : '';
 }
 
 /** One backup, like a file list entry: where it lives, type, date and size of the data, then its actions. */
@@ -51,7 +55,7 @@ function BackupEntry({
   onRestore,
   index,
 }: {
-  listing: SnapshotListing;
+  listing: Backup;
   last: boolean;
   disabled: boolean;
   onDownload: () => void;
@@ -62,9 +66,9 @@ function BackupEntry({
   const styles = useThemedStyles(createEntryStyles);
   const label = `${TRIGGER_LABEL[listing.trigger]}, ${snapshotTitle(listing)}`;
   return (
-    <View style={styles.entry} testID={`backup-snapshot-${index}`} accessibilityLabel={`${label}, ${listing.counts.workouts} workouts, ${snapshotWhere(listing)}`}>
+    <View style={styles.entry} testID={`backup-snapshot-${index}`} accessibilityLabel={`${label}, ${snapshotWhere(listing)}`}>
       <View style={styles.tile}>
-        <Icon name={listing.cloud ? 'cloud' : 'device-mobile'} size={20} color={theme.textPrimary} />
+        <Icon name={listing.file ? 'device-mobile' : 'cloud'} size={20} color={theme.textPrimary} />
       </View>
       <View style={styles.copy}>
         <Text style={styles.title} numberOfLines={1}>{TRIGGER_LABEL[listing.trigger]}</Text>
@@ -113,8 +117,8 @@ export function ManageBackupsScreen({ navigation }: Props) {
   const theme = useForgeTheme();
   const { bottom: bottomInset } = useSafeAreaInsets();
   const [headerElevated, setHeaderElevated] = React.useState(false);
-  const [listings, setListings] = React.useState<SnapshotListing[] | null>(null);
-  const [confirmRestore, setConfirmRestore] = React.useState<SnapshotListing | null>(null);
+  const [listings, setListings] = React.useState<Backup[] | null>(null);
+  const [confirmRestore, setConfirmRestore] = React.useState<Backup | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [fileRestore, setFileRestore] = React.useState<BackupInspection | null>(null);
   const [notice, setNotice] = React.useState<{ title: string; message: string; tone?: 'neutral' | 'success' } | null>(null);
@@ -125,7 +129,7 @@ export function ManageBackupsScreen({ navigation }: Props) {
   const { stop: stopRestTimer } = useRestTimer();
 
   const load = React.useCallback(() => {
-    void listSnapshots()
+    void listBackups()
       .then(setListings)
       .catch(() => setListings([]));
   }, []);
@@ -143,17 +147,16 @@ export function ManageBackupsScreen({ navigation }: Props) {
     }
   };
 
-  const restore = (listing: SnapshotListing): void => {
+  const restore = (listing: Backup): void => {
     setConfirmRestore(null);
     void run(async () => {
       stopRestTimer();
-      await restoreSnapshot(listing);
-      await Promise.all([reloadSettings(), reloadPlans(), reloadWorkouts(), reloadExercises()]);
-      notifyPersistenceReset();
+      await restoreBackup(listing);
+      await reloadAll();
       load();
       setNotice({
         title: 'Backup restored',
-        message: `Forge restored ${listing.counts.workouts} workouts and ${listing.counts.plans} plans from ${snapshotTitle(listing)}. Your previous data was saved as a "Before restore" backup.`,
+        message: `Forge restored the backup from ${snapshotTitle(listing)}. Your previous data was saved as a "Before restore" backup.`,
         tone: 'success',
       });
     });
@@ -177,11 +180,9 @@ export function ManageBackupsScreen({ navigation }: Props) {
     setFileRestore(null);
     void run(async () => {
       stopRestTimer();
-      // Same safety net as restoring a listed backup: current data stays restorable.
-      await createSnapshot('pre-restore');
-      await restoreSqliteBackup(inspection);
+      await restoreBackupFile(inspection);
       await reloadAll();
-      await recordDiagnostic('backup-restored');
+      load();
       setNotice({
         title: 'Backup restored',
         message: `Forge restored ${inspection.workoutCount} workouts, ${inspection.planCount} plans and ${inspection.customExerciseCount} custom exercises from this file. Your previous data was saved as a "Before restore" backup.`,
@@ -219,7 +220,7 @@ export function ManageBackupsScreen({ navigation }: Props) {
             <SettingsSection
               title="Kept backups"
               icon="history"
-              info="Forge keeps every backup from the last 7 days, one per week for 8 weeks and one per month for a year. Backups share unchanged data, so each new one only adds what changed."
+              info={['All backups from the last 7 days', 'One a week for 8 weeks', 'One a month for a year', 'Download any as a .sqlite file']}
             >
               {listings.map((listing, index) => (
                 <BackupEntry
@@ -228,7 +229,7 @@ export function ManageBackupsScreen({ navigation }: Props) {
                   index={index}
                   last={index === listings.length - 1}
                   disabled={busy}
-                  onDownload={() => void run(() => downloadSnapshot(listing))}
+                  onDownload={() => void run(() => downloadBackup(listing))}
                   onRestore={() => setConfirmRestore(listing)}
                 />
               ))}
@@ -240,7 +241,7 @@ export function ManageBackupsScreen({ navigation }: Props) {
       <ForgeConfirmationDialog
         visible={Boolean(confirmRestore)}
         title="Replace all Forge data?"
-        message={confirmRestore ? `Restore the backup from ${snapshotTitle(confirmRestore)} (${confirmRestore.counts.workouts} workouts, ${confirmRestore.counts.plans} plans). Your current data is saved as a backup first.` : ''}
+        message={confirmRestore ? `Restore the backup from ${snapshotTitle(confirmRestore)}${snapshotCounts(confirmRestore)}. Your current data is saved as a backup first.` : ''}
         cancelLabel="Keep current data"
         confirmLabel="Restore"
         confirmTone="destructive"
@@ -251,7 +252,7 @@ export function ManageBackupsScreen({ navigation }: Props) {
       <ForgeConfirmationDialog
         visible={Boolean(fileRestore)}
         title="Replace all Forge data?"
-        message={fileRestore ? `This file has ${fileRestore.workoutCount} completed workouts, ${fileRestore.planCount} plans and ${fileRestore.customExerciseCount} custom exercises. Current data will be replaced after a safety copy is made.` : ''}
+        message={fileRestore ? `This file has ${fileRestore.workoutCount} completed workouts, ${fileRestore.planCount} plans and ${fileRestore.customExerciseCount} custom exercises. Your current data is saved as a backup first.` : ''}
         cancelLabel="Keep current data"
         confirmLabel="Restore"
         confirmTone="destructive"

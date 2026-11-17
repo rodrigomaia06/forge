@@ -7,7 +7,10 @@ import {
   cloudStatusFromError,
   filesSnapshotStore,
   isAutoBackupDue,
-  mergeListings,
+  backupFileName,
+  backupFilesToRemove,
+  mergeBackupEntries,
+  parseBackupFileName,
   mirrorSnapshot,
   pruneStore,
   safName,
@@ -139,10 +142,6 @@ test('mirroring sends only the missing objects; a full iCloud leaves the phone c
   const error = await mirrorSnapshot(local, full, more).catch((caught: unknown) => caught);
   expect(cloudStatusFromError(error)).toBe('no-space');
   expect(await readSnapshotRows(local, more)).toEqual(data(4));
-  expect(mergeListings([first, more], [first]).map((listing) => [listing.id, listing.local, listing.cloud])).toEqual([
-    [more.id, true, false],
-    [first.id, true, true],
-  ]);
 });
 
 test('weekly schedule and the two-week reminder', () => {
@@ -172,12 +171,42 @@ test('Android folder names come from the decoded document path', () => {
   expect(safName('content://com.android.externalstorage.documents/tree/primary%3ADownload')).toBe('Download');
 });
 
-test('a snapshot found in both the backup folder and app storage is listed once', async () => {
-  const folder = filesSnapshotStore(memoryFiles());
-  const app = filesSnapshotStore(memoryFiles());
-  const manifest = await writeSnapshot(folder, data(), options(new Date('2026-11-01T10:00:00Z')));
-  await mirrorSnapshot(folder, app, manifest);
-  expect(mergeListings([manifest, await app.readManifest(manifest.id)], []).length).toBe(1);
+test('phone backups are readable .sqlite file names that round-trip', () => {
+  const created = new Date(2026, 10, 17, 18, 16, 5);
+  const name = backupFileName(created, 'auto');
+  expect(name).toBe('Forge 2026-11-17 18-16-05 Weekly.sqlite');
+  expect(parseBackupFileName(name)).toEqual({ createdAt: created.toISOString(), trigger: 'auto' });
+  expect(parseBackupFileName(backupFileName(created, 'pre-restore'))?.trigger).toBe('pre-restore');
+  // Files the person put in the folder are not Forge's.
+  expect(parseBackupFileName('notes.sqlite')).toBeNull();
+  expect(parseBackupFileName('Forge 2026-11-17 18-16-05 Weekly.sqlite.bak')).toBeNull();
+});
+
+test('retention removes old backup files and never touches other files', () => {
+  const now = new Date(2026, 10, 17, 12, 0, 0);
+  const names = Array.from({ length: 60 }, (_, day) => backupFileName(new Date(now.getTime() - day * DAY), 'auto'));
+  const removed = backupFilesToRemove([...names, 'my notes.txt'], now);
+  expect(removed).not.toContain('my notes.txt');
+  for (let day = 0; day <= 7; day += 1) expect(removed).not.toContain(names[day]);
+  expect(removed.length).toBeGreaterThan(40);
+});
+
+test('a phone file and its iCloud snapshot from the same run are one entry', async () => {
+  const cloud = filesSnapshotStore(memoryFiles());
+  const created = new Date(2026, 10, 17, 18, 16, 5, 123);
+  const manifest = await writeSnapshot(cloud, data(), options(created));
+  const file = backupFileName(created, 'manual');
+  const older = backupFileName(new Date(2026, 10, 10, 9, 0, 0), 'auto');
+  const entries = mergeBackupEntries([file, older, 'other.sqlite'], [manifest]);
+  expect(entries.map((entry) => [entry.file, entry.cloudId, entry.trigger])).toEqual([
+    [file, manifest.id, 'manual'],
+    [older, undefined, 'auto'],
+  ]);
+  expect(entries[0].counts?.workouts).toBe(3);
+  // An iCloud-only snapshot (for example on a new phone) is listed on its own.
+  const cloudOnly = mergeBackupEntries([], [manifest])[0];
+  expect(cloudOnly.cloudId).toBe(manifest.id);
+  expect(cloudOnly.file).toBeUndefined();
 });
 
 test('an unreachable backup folder triggers the reminder', () => {
