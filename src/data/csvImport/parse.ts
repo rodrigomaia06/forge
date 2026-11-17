@@ -27,9 +27,21 @@ class NeedsChoice extends Error {
     super(`Choose ${requirement} before review.`);
   }
 }
+const unitAliases: Record<string, string> = {
+  kgs: 'kg', kilogram: 'kg', kilograms: 'kg', kilo: 'kg', kilos: 'kg',
+  lbs: 'lb', pound: 'lb', pounds: 'lb',
+  meter: 'm', meters: 'm', metre: 'm', metres: 'm',
+  kms: 'km', kilometer: 'km', kilometers: 'km', kilometre: 'km', kilometres: 'km',
+  mile: 'mi', miles: 'mi', foot: 'ft', feet: 'ft', yard: 'yd', yards: 'yd', yds: 'yd',
+  inch: 'in', inches: 'in',
+};
+/** Source apps spell units as kgs, lbs., mi. or full words; Forge compares one canonical code. */
+export function canonicalUnit(text: string): string {
+  const unit = text.trim().toLowerCase().replace(/\.$/, '');
+  return Object.hasOwn(unitAliases, unit) ? unitAliases[unit] : unit;
+}
 const distanceKilometres: Record<string, number> = {
-  km: 1, m: 0.001, cm: 0.00001, in: 0.0000254, ft: 0.0003048, yd: 0.0009144,
-  mi: 1.609344, mile: 1.609344, miles: 1.609344,
+  km: 1, m: 0.001, cm: 0.00001, in: 0.0000254, ft: 0.0003048, yd: 0.0009144, mi: 1.609344,
 };
 const months: Record<string, number> = {
   jan: 1,
@@ -235,6 +247,7 @@ function* parseChunks(
     issues: [],
     excluded: 0,
     requirements: [],
+    skipped: [],
     limitations: [
       'Dates without a timezone use this device’s local timezone. Source-only fields are retained as import metadata.',
       'Imported sessions use the Strength workout type. You can change it in History after importing.',
@@ -255,8 +268,14 @@ function* parseChunks(
       name: string;
       date?: number;
       uncertainIdentity?: boolean;
+      /** Block identity uses the source exercise note, not notes attached from Strong note rows. */
+      blockNotes: Map<WorkoutExercise, string>;
+      pendingNotes: Map<string, string[]>;
+      firstRow: number;
     }
   >();
+  let restRows = 0,
+    orphanNotes = 0;
   let processed = 0;
   for (const row of rows) {
     if (++processed % 400 === 0) yield;
@@ -281,6 +300,9 @@ function* parseChunks(
       records: [],
       blocks: new Map<string, WorkoutExercise>(),
       name: adapted.name,
+      blockNotes: new Map<WorkoutExercise, string>(),
+      pendingNotes: new Map<string, string[]>(),
+      firstRow: row.row,
     };
     groups.set(rawKey, group);
     group.records.push(record);
@@ -300,7 +322,9 @@ function* parseChunks(
       );
       const id = csvId(sessionKey);
       field = 'Duration';
-      const duration = seconds(adapted.duration);
+      let duration = seconds(adapted.duration);
+      if (duration !== undefined && adapted.durationUnit === 'min' && /^\d+(?:[.,]\d+)?$/.test(adapted.duration.trim()))
+        duration *= 60;
       field = 'End time';
       const end = adapted.end
         ? dateValue(adapted.end, options)
@@ -332,6 +356,20 @@ function* parseChunks(
         workout.note !== adapted.note
       )
         throw new Error('Conflicting session details across rows.');
+      const blockKey = exerciseKey(source, adapted.exercise);
+      if (adapted.kind === 'rest') {
+        restRows++;
+        continue;
+      }
+      if (adapted.kind === 'note') {
+        const text = adapted.comment;
+        if (text.trim()) {
+          const target = [...workout.exercises].reverse().find((entry) => entry.importKey === blockKey);
+          if (target) target.note = target.note ? `${target.note}\n\n${text}` : text;
+          else group.pendingNotes.set(blockKey, [...(group.pendingNotes.get(blockKey) ?? []), text]);
+        }
+        continue;
+      }
       const measurements: SetMeasurement[] = [];
       const setId = `${id}-set-${group.records.length}`;
       const add = (kind: SetMeasurement['kind'], unit: SetMeasurement['unit'], value?: number) => {
@@ -340,10 +378,10 @@ function* parseChunks(
       field = 'Weight';
       let weight = numeric(adapted.weight, field);
       if (weight !== undefined) {
-        const unit = adapted.weightUnit.toLowerCase() || options.weightUnit;
+        const unit = canonicalUnit(adapted.weightUnit) || options.weightUnit;
         if (!unit) throw new NeedsChoice('weightUnit');
-        if (!['kg', 'kgs', 'lb', 'lbs'].includes(unit)) throw new Error('Unsupported weight unit.');
-        if (unit.startsWith('lb')) weight *= 0.45359237;
+        if (unit !== 'kg' && unit !== 'lb') throw new Error('Unsupported weight unit.');
+        if (unit === 'lb') weight *= 0.45359237;
       }
       add('weight', 'kg', weight);
       field = 'Reps';
@@ -354,7 +392,7 @@ function* parseChunks(
       field = 'Distance';
       let distance = numeric(adapted.distance, field);
       if (distance !== undefined && distance !== 0) {
-        const unit = adapted.distanceUnit.toLowerCase() || options.distanceUnit;
+        const unit = canonicalUnit(adapted.distanceUnit) || options.distanceUnit;
         if (!unit) throw new NeedsChoice('distanceUnit');
         if (!Object.hasOwn(distanceKilometres, unit))
           throw new Error('Unsupported distance unit.');
@@ -370,13 +408,12 @@ function* parseChunks(
       if (!measurements.some((entry) => entry.kind !== 'rpe'))
         throw new Error('Set has no measurements.');
       const previous = workout.exercises[workout.exercises.length - 1];
-      const blockKey = exerciseKey(source, adapted.exercise);
       const groupedKey = JSON.stringify([blockKey, adapted.superset, adapted.exerciseNote]);
       const grouped = adapted.superset ? group.blocks.get(groupedKey) : previous;
       const exercise =
         grouped?.importKey === blockKey &&
         grouped.supersetId === (adapted.superset || undefined) &&
-        grouped.note === adapted.exerciseNote
+        group.blockNotes.get(grouped) === adapted.exerciseNote
           ? grouped
           : {
               id: `${id}-exercise-${workout.exercises.length}`,
@@ -386,7 +423,15 @@ function* parseChunks(
               supersetId: adapted.superset || undefined,
               sets: [] as WorkoutSet[],
             };
-      if (exercise !== grouped) workout.exercises.push(exercise);
+      if (exercise !== grouped) {
+        group.blockNotes.set(exercise, adapted.exerciseNote);
+        const pending = group.pendingNotes.get(blockKey);
+        if (pending) {
+          exercise.note = [exercise.note, ...pending].filter(Boolean).join('\n\n');
+          group.pendingNotes.delete(blockKey);
+        }
+        workout.exercises.push(exercise);
+      }
       if (adapted.superset) group.blocks.set(groupedKey, exercise);
       const warmup = /^(w|warm.?up)$/i.test(adapted.tag);
       exercise.sets.push({
@@ -440,15 +485,39 @@ function* parseChunks(
       (candidate.date !== undefined && uncertainDates.has(candidate.date))
     )
       candidate.invalid = true;
-  for (const group of groups.values()) {
+  for (const [rawKey, group] of groups) {
+    if (!group.invalid && group.workout && !group.workout.exercises.length) {
+      group.invalid = true;
+      draft.issues.push({
+        row: group.firstRow,
+        field: 'Workout',
+        message: 'Workout has no recorded sets.',
+        sessionKey: rawKey,
+      });
+    }
     if (group.invalid || !group.workout) {
       draft.excluded++;
       continue;
     }
+    for (const notes of group.pendingNotes.values()) orphanNotes += notes.length;
     group.workout.importSource!.fingerprint = csvId(JSON.stringify(group.records));
     for (const exercise of group.workout.exercises)
       exercise.trackingType = inferTracking(exercise.sets);
     draft.workouts.push(group.workout);
   }
+  if (restRows)
+    draft.skipped!.push({
+      key: 'rest-timer',
+      count: restRows,
+      title: `${restRows} rest timer row${restRows === 1 ? '' : 's'} not imported`,
+      detail: 'Strong stores rest periods as separate rows. They are not sets, so Forge skips them.',
+    });
+  if (orphanNotes)
+    draft.skipped!.push({
+      key: 'orphan-note',
+      count: orphanNotes,
+      title: `${orphanNotes} exercise note${orphanNotes === 1 ? '' : 's'} not imported`,
+      detail: 'These Strong notes belong to exercises with no recorded sets in their workout.',
+    });
   return draft;
 }

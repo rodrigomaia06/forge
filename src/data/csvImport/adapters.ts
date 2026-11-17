@@ -14,6 +14,10 @@ export interface AdaptedRow {
   distanceUnit: string;
   seconds: string;
   duration: string;
+  /** Unit of the session duration when the header states it. */
+  durationUnit: '' | 'sec' | 'min';
+  /** Strong writes rest periods and exercise notes as pseudo-set rows. */
+  kind: 'set' | 'rest' | 'note';
   note: string;
   exerciseNote: string;
   comment: string;
@@ -29,7 +33,14 @@ export function detectCsvSource(headers: string[]): CsvSource {
     requireHeaders(headers, ['end_time']);
     if (
       !headers.some((field) =>
-        ['weight_kg', 'reps', 'duration_seconds', 'distance_km'].includes(field),
+        [
+          'weight_kg',
+          'weight_lbs',
+          'reps',
+          'duration_seconds',
+          'distance_km',
+          'distance_miles',
+        ].includes(field),
       )
     )
       throw new Error('Hevy CSV is missing its measurement columns.');
@@ -42,16 +53,34 @@ export function detectCsvSource(headers: string[]): CsvSource {
     return 'strong';
   }
   if (has(headers, ['date', 'exercise', 'category', 'reps'])) {
-    if (['weight (kg)', 'weight (lbs)', 'weight(kg)', 'weight(lbs)'].some((header) => headers.includes(header))) {
+    if (
+      ['weight (kg)', 'weight (lbs)', 'weight(kg)', 'weight(lbs)'].some((header) =>
+        headers.includes(header),
+      )
+    ) {
       return 'fitnotes-ios';
     }
     requireHeaders(headers, ['weight']);
     return 'fitnotes';
   }
   throw new Error(
-    'Unsupported CSV headers. Choose a workout-history export from Hevy, Strong, or FitNotes.',
+    'Unsupported CSV headers. Choose an unedited workout-history export from Hevy, Strong, or FitNotes. If the app exports in another language, switch it to English and export again.',
   );
 }
+const firstPresent = (record: CsvRecord, fields: string[]) => {
+  const field = fields.find((name) => record[name] !== undefined);
+  return field === undefined ? undefined : { field, value: record[field] };
+};
+const strongDistance: Array<[string, string]> = [
+  ['distance (meters)', 'm'],
+  ['distance (metres)', 'm'],
+  ['distance (m)', 'm'],
+  ['distance (km)', 'km'],
+  ['distance (miles)', 'mi'],
+  ['distance (mi)', 'mi'],
+  ['distance (feet)', 'ft'],
+  ['distance (ft)', 'ft'],
+];
 function requireHeaders(headers: string[], fields: string[]) {
   const missing = fields.filter((field) => !headers.includes(field));
   if (missing.length) throw new Error(`CSV is missing required columns: ${missing.join(', ')}.`);
@@ -75,9 +104,15 @@ export function adaptRow(source: CsvSource, record: CsvRecord): AdaptedRow {
     tag: '',
     superset: '',
     rpe: '',
+    durationUnit: '',
+    kind: 'set',
     metadata: record,
   };
-  if (source === 'hevy')
+  if (source === 'hevy') {
+    // Imperial accounts export weight_lbs/distance_miles; prefer the metric column when it has a value.
+    const metricWeight = Boolean(record.weight_kg?.trim()) || record.weight_lbs === undefined;
+    const metricDistance =
+      Boolean(record.distance_km?.trim()) || record.distance_miles === undefined;
     return {
       ...base,
       date: record.start_time,
@@ -85,11 +120,11 @@ export function adaptRow(source: CsvSource, record: CsvRecord): AdaptedRow {
       session: record.workout_id ?? '',
       name: record.title,
       exercise: record.exercise_title,
-      weight: record.weight_kg,
-      weightUnit: 'kg',
+      weight: (metricWeight ? record.weight_kg : record.weight_lbs) ?? '',
+      weightUnit: metricWeight ? 'kg' : 'lb',
       reps: record.reps,
-      distance: record.distance_km,
-      distanceUnit: 'km',
+      distance: (metricDistance ? record.distance_km : record.distance_miles) ?? '',
+      distanceUnit: metricDistance ? 'km' : 'mi',
       seconds: record.duration_seconds,
       note: record.description ?? '',
       exerciseNote: record.exercise_notes ?? '',
@@ -97,7 +132,16 @@ export function adaptRow(source: CsvSource, record: CsvRecord): AdaptedRow {
       superset: record.superset_id ?? '',
       rpe: record.rpe ?? '',
     };
-  if (source === 'strong')
+  }
+  if (source === 'strong') {
+    const distance = strongDistance.find(([field]) => record[field] !== undefined);
+    const duration = firstPresent(record, [
+      'duration (sec)',
+      'durationsec',
+      'duration (min)',
+      'duration',
+    ]);
+    const order = (record['set order'] ?? '').trim().toLowerCase();
     return {
       ...base,
       date: record.date,
@@ -113,15 +157,19 @@ export function adaptRow(source: CsvSource, record: CsvRecord): AdaptedRow {
             ? 'lb'
             : (record['weight unit'] ?? ''),
       reps: record.reps,
-      distance: record['distance (meters)'] ?? record.distance ?? '',
-      distanceUnit: record['distance (meters)'] !== undefined ? 'm' : record['distance unit'] ?? '',
+      distance: (distance ? record[distance[0]] : record.distance) ?? '',
+      distanceUnit: distance ? distance[1] : (record['distance unit'] ?? ''),
       seconds: record.seconds ?? '',
-      duration: record['duration (sec)'] ?? record.durationsec ?? record.duration ?? '',
+      duration: duration?.value ?? '',
+      durationUnit:
+        duration?.field === 'duration (min)' ? 'min' : duration?.field === 'duration' ? '' : 'sec',
+      kind: order === 'rest timer' ? 'rest' : order === 'note' ? 'note' : 'set',
       note: record['workout notes'] ?? '',
       comment: record.notes ?? '',
       rpe: record.rpe ?? '',
       tag: record['set type'] ?? record['set order'] ?? '',
     };
+  }
   const ios = source === 'fitnotes-ios';
   const kg = record['weight (kg)'] ?? record['weight(kg)'],
     lb = record['weight (lbs)'] ?? record['weight(lbs)'];

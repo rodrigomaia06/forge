@@ -72,10 +72,20 @@ async function tokenizeAsync(text: string, separator: string): Promise<CsvRow[]>
   return next.value;
 }
 
-export function readCsv(text: string): { headers: string[]; rows: CsvRow[] } {
+function checkedText(text: string): string {
   text = text.replace(/^\uFEFF/, '');
   if (!text.trim())
     throw new Error('This CSV is empty. Export your workout history and try again.');
+  if (text.startsWith('SQLite format 3'))
+    throw new Error(
+      'This is a database backup, not a CSV export. To import a Strive backup, choose Strive.',
+    );
+  if (text.startsWith('PK\u0003\u0004'))
+    throw new Error('This is a compressed archive. Extract the CSV export and choose that file.');
+  return text;
+}
+export function readCsv(text: string): { headers: string[]; rows: CsvRow[] } {
+  text = checkedText(text);
   const candidates = [',', ';'].flatMap((separator) => {
     try {
       const rows = tokenizeCsv(text, separator);
@@ -104,9 +114,7 @@ function chooseCsv(candidates: { rows: CsvRow[] }[]): { headers: string[]; rows:
   return { headers, rows };
 }
 export async function readCsvAsync(text: string): Promise<{ headers: string[]; rows: CsvRow[] }> {
-  text = text.replace(/^\uFEFF/, '');
-  if (!text.trim())
-    throw new Error('This CSV is empty. Export your workout history and try again.');
+  text = checkedText(text);
   const candidates: { rows: CsvRow[] }[] = [];
   for (const separator of [',', ';']) {
     try {

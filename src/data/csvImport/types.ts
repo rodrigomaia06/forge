@@ -29,6 +29,14 @@ export interface CsvDraft {
   excluded: number;
   requirements: Array<'dateOrder' | 'weightUnit' | 'distanceUnit' | 'durationUnit'>;
   limitations: string[];
+  /** Source rows that are deliberately not sets, reported instead of silently dropped. */
+  skipped?: CsvSkipped[];
+}
+export interface CsvSkipped {
+  key: 'rest-timer' | 'orphan-note';
+  count: number;
+  title: string;
+  detail: string;
 }
 export interface ExerciseResolution {
   key: string;
