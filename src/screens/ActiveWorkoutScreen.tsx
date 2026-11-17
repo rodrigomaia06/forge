@@ -2,6 +2,7 @@ import { ForgeRollingNumber, useForgeDetailHeading } from '../components/ui';
 import { ForgePressable as Pressable } from '../components/ui/ForgePressable';
 import { FinishWorkoutSheet } from './activeWorkout/FinishWorkoutSheet';
 import { workoutNeedsFinishReview } from '../domain/workouts/finishWorkout';
+import { describeImplausibleSetValue, implausibleSetValues, type ImplausibleSetValue } from '../domain/workouts/setPlausibility';
 import { scheduleOnRN } from 'react-native-worklets';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Keyboard, KeyboardAvoidingView, Platform, View } from 'react-native';
@@ -87,6 +88,7 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
   const [finishOpen, setFinishOpen] = useState(false);
   const [finishingDirect, setFinishingDirect] = useState(false);
   const [finishError, setFinishError] = useState('');
+  const [implausibleValues, setImplausibleValues] = useState<ImplausibleSetValue[]>([]);
   const directFinishLocked = useRef(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [replacingExerciseId, setReplacingExerciseId] = useState<string | null>(null);
@@ -317,9 +319,17 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
     void reloadPlans().catch(() => undefined);
     return true;
   };
-  const handleFinish = async (): Promise<void> => {
+  const handleFinish = async (checkPlausibility = true): Promise<void> => {
     if (directFinishLocked.current || finishSnapshot) return;
     setFinishError('');
+    if (checkPlausibility) {
+      // Catch a mistyped value (e.g. 5000 kg) before it lands in history and stats.
+      const suspicious = implausibleSetValues(activeWorkout, completedWorkouts);
+      if (suspicious.length) {
+        setImplausibleValues(suspicious);
+        return;
+      }
+    }
     const source = activeWorkout.routineId ? findRoutine(activeWorkout.routineId) : undefined;
     if (workoutNeedsFinishReview(activeWorkout, source)) {
       setFinishOpen(true);
@@ -496,6 +506,20 @@ export function ActiveWorkoutScreen({ navigation, route }: ActiveWorkoutScreenPr
         plans={plans}
         onClose={() => setFinishOpen(false)}
         onFinish={completeWorkout}
+      />
+      <ForgeConfirmationDialog
+        visible={implausibleValues.length > 0}
+        title="Check these values"
+        message={`${implausibleValues.length === 1 ? 'This value looks' : 'These values look'} unusually high:\n${implausibleValues.map(describeImplausibleSetValue).join('\n')}`}
+        cancelLabel="Edit"
+        confirmLabel="Finish anyway"
+        confirmTone="success"
+        onCancel={() => setImplausibleValues([])}
+        onConfirm={() => {
+          setImplausibleValues([]);
+          void handleFinish(false);
+        }}
+        testID="finish-implausible-values-confirmation"
       />
       <ForgeConfirmationDialog
         visible={discardConfirmationOpen}

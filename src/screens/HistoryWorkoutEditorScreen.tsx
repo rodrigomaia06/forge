@@ -53,6 +53,7 @@ import { animateLayout } from './activeWorkout/activeWorkoutFeedback';
 import { useThemedStyles } from '../theme/useThemedStyles';
 import { typeScale } from '../theme/tokens';
 import { useActiveWorkout, useWorkouts } from '../state/WorkoutContext';
+import { describeImplausibleSetValue, implausibleSetValues, type ImplausibleSetValue } from '../domain/workouts/setPlausibility';
 import { useSettings } from '../state/SettingsContext';
 import { usePlans } from '../state/PlansContext';
 import { parseCalendarDate } from '../domain/workouts/calendarDate';
@@ -119,6 +120,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [headerElevated, setHeaderElevated] = useState(false);
   const [discardConfirmationOpen, setDiscardConfirmationOpen] = useState(false);
+  const [implausibleValues, setImplausibleValues] = useState<ImplausibleSetValue[]>([]);
   const [typeSheetOpen, setTypeSheetOpen] = useState(false);
   const [attributeDraft, setAttributeDraft] = useState<import('../components/ui').ForgeAttributeDraft | null>(null);
   const [reorderingExercises, setReorderingExercises] = useState(false);
@@ -182,7 +184,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
     pendingNavigationActionRef.current = () => navigation.dispatch(data.action);
     setDiscardConfirmationOpen(true);
   });
-  const save = async (): Promise<void> => {
+  const save = async (checkPlausibility = true): Promise<void> => {
     const currentDraft = draftRef.current;
     if (!currentDraft) return;
     if (!currentDraft.name.trim() || !currentDraft.type.trim())
@@ -198,6 +200,13 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
       ? currentDraft.durationSeconds
       : Math.round((completedAt - currentDraft.startedAt) / 1000);
     if (!isActive && (durationSeconds ?? 0) < 1) return setError('End time must be after the start time.');
+    // Saving a past workout commits it to history like finishing one, so it
+    // gets the same check for a mistyped value. The live workout's editor
+    // defers to the check on Finish.
+    if (checkPlausibility && !isActive) {
+      const suspicious = implausibleSetValues(currentDraft, completedWorkouts);
+      if (suspicious.length) return setImplausibleValues(suspicious);
+    }
     const { location: _location, mood: _mood, ...withoutLegacyMetadata } = currentDraft as Workout & { location?: string; mood?: string };
     const { attributes, attributeIcons } = normalizeAttributes(currentDraft.attributes, currentDraft.attributeIcons);
     const saved: Workout = {
@@ -502,7 +511,7 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
             iconOnly
             variant="outline"
             tone="success"
-            onPress={save}
+            onPress={() => void save()}
             haptic="none"
             disabled={saveDisabled}
           />
@@ -748,6 +757,20 @@ export function HistoryWorkoutEditorScreen({ navigation, route }: Props) {
             onSelectRoutine={selectRoutine}
           />
         ) : null}
+      />
+      <ForgeConfirmationDialog
+        visible={implausibleValues.length > 0}
+        title="Check these values"
+        message={`${implausibleValues.length === 1 ? 'This value looks' : 'These values look'} unusually high:\n${implausibleValues.map(describeImplausibleSetValue).join('\n')}`}
+        cancelLabel="Edit"
+        confirmLabel="Save anyway"
+        confirmTone="success"
+        onCancel={() => setImplausibleValues([])}
+        onConfirm={() => {
+          setImplausibleValues([]);
+          void save(false);
+        }}
+        testID="save-implausible-values-confirmation"
       />
       <ForgeConfirmationDialog
         visible={discardConfirmationOpen}
