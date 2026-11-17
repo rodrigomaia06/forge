@@ -371,4 +371,19 @@ for (const appearance of ['light', 'dark'] as const) {
     await expect(offPlan).not.toHaveAttribute('aria-checked', 'true');
   });
 
+  test(`${appearance} lone heatmap Edit view uses the centred circular tint`, async ({
+    page,
+  }, info) => {
+    await seed(page, appearance);
+    await page.getByRole('tab', { name: 'Settings', exact: true }).click();
+    await page.getByRole('button', { name: 'Muscle heatmap', exact: true }).click();
+    await pressShape(
+      page,
+      page.getByRole('button', { name: 'Edit view', exact: true }),
+      info,
+      'heatmap-edit-view',
+      40,
+      20,
+    );
+  });
 }

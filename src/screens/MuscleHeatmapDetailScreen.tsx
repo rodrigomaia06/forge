@@ -6,7 +6,7 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { AppScreen, ForgeCard, ForgeText as Text, HeaderAction, HeaderActionGroup, Icon, joinedHeaderAction, selectionHaptic } from '../components/ui';
+import { AppScreen, ForgeCard, ForgeText as Text, HeaderAction, Icon, selectionHaptic } from '../components/ui';
 import { SettingsDetailHeader } from './settings/SettingsScreenChrome';
 import { MuscleMap, muscleHeatColors } from '../components/anatomy/MuscleMap';
 import { HEATMAP_ACCENT, MUSCLE_GROUP_COLORS } from './dashboard/DashboardWidgetTiles';
@@ -84,17 +84,15 @@ export function MuscleHeatmapDetailScreen({ navigation }: Props) {
                 <Icon name="check" size={22} color={theme.textPrimary} weight="bold" />
               </Pressable>
             ) : (
-              <HeaderActionGroup>
-                <HeaderAction
-                  accessibilityLabel="Edit view"
-                  icon="note"
-                  iconSize={20}
-                  iconOnly
-                  variant="ghost"
-                  style={joinedHeaderAction}
-                  onPress={() => toggleEditing(true)}
-                />
-              </HeaderActionGroup>
+              // A lone action is a standard frosted circle, so its tint is the
+              // centred circle rather than a joined segment filling the pill.
+              <HeaderAction
+                accessibilityLabel="Edit view"
+                icon="note"
+                iconSize={20}
+                iconOnly
+                onPress={() => toggleEditing(true)}
+              />
             )
           }
         />
