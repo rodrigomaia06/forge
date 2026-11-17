@@ -1,0 +1,6 @@
+{
+  "name": "forge-backup-storage",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Forge's iOS bridge to the backup folder and hidden iCloud Drive container"
+}

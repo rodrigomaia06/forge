@@ -8,6 +8,9 @@ permissions:
 
 env:
   EXPO_PUBLIC_BUILD_COMMIT: ${{ github.sha }}
+  # Signed builds carry the hidden iCloud container that mirrors backups
+  # (modules/forge-backup-storage/app.plugin.js and scripts/ios-signing.cjs).
+  FORGE_ICLOUD: '1'
 
 concurrency:
   group: ios-ipa-signed-${{ github.repository }}
@@ -119,7 +122,7 @@ jobs:
           test "$(grep -F -c 'let argumentsPtr = NonisolatedUnsafeVar(argumentsPtr)' "$RUNTIME")" -eq 2
       - name: Generate the iOS project
         # Prebuild also runs Forge's local plugin, which adds the direct
-        # ActivityKit extension and the app-local numeric range keyboard.
+        # ActivityKit extension.
         run: npx expo prebuild --no-install --platform ios
       - name: Install CocoaPods
         working-directory: ios

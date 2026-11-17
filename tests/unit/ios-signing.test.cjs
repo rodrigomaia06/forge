@@ -67,6 +67,23 @@ test('rejects missing certificate, disjoint devices and absent notification capa
   assert.throws(() => validate(app), /Time Sensitive/);
 });
 
+test('signed iCloud builds require the hidden backup container on the app profile', () => {
+  const options = { requireICloud: true };
+  const container = `iCloud.${bundleId}`;
+  const app = profile();
+  assert.throws(() => validateProfiles(app, profile(true), bundleId, certificate, now, options), /iCloud/);
+  Object.assign(app.Entitlements, {
+    'com.apple.developer.icloud-container-identifiers': [container],
+    'com.apple.developer.ubiquity-container-identifiers': [container],
+    'com.apple.developer.icloud-services': ['CloudKit'],
+  });
+  assert.throws(() => validateProfiles(app, profile(true), bundleId, certificate, now, options), /iCloud Documents/);
+  app.Entitlements['com.apple.developer.icloud-services'] = '*';
+  assert.ok(validateProfiles(app, profile(true), bundleId, certificate, now, options));
+  // Unsigned-iCloud runs (FORGE_ICLOUD unset) keep accepting the existing profile.
+  assert.ok(validate());
+});
+
 test('manual signing configures only the correct Release targets and preserves Debug', () => {
   const project = xcode.project('fixture.pbxproj');
   const settings = id => ({ PRODUCT_BUNDLE_IDENTIFIER: `"${id}"`, CODE_SIGN_STYLE: 'Automatic' });

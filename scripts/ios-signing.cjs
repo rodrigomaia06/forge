@@ -8,7 +8,7 @@ function requireValue(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-function validateProfiles(app, widget, bundleId, certificateDER, now = new Date()) {
+function validateProfiles(app, widget, bundleId, certificateDER, now = new Date(), { requireICloud = false } = {}) {
   const certificate = crypto.createHash('sha1').update(certificateDER).digest('hex').toUpperCase();
   const profiles = [app, widget];
   const bundleIds = [bundleId, `${bundleId}.resttimer`];
@@ -26,6 +26,17 @@ function validateProfiles(app, widget, bundleId, certificateDER, now = new Date(
   requireValue(app.ProvisionedDevices.some(device => widget.ProvisionedDevices.includes(device)), 'App and extension profiles must include a common device.');
   requireValue(app.Entitlements['com.apple.developer.usernotifications.time-sensitive'] === true, 'Enable Time Sensitive Notifications on the app profile.');
   requireValue(app.Entitlements['aps-environment'] === 'production', 'Enable Push Notifications on the Ad Hoc app profile.');
+  if (requireICloud) {
+    // Backups mirror to a hidden iCloud Drive container (modules/forge-backup-storage).
+    const container = `iCloud.${bundleId}`;
+    const services = app.Entitlements['com.apple.developer.icloud-services'];
+    requireValue(
+      app.Entitlements['com.apple.developer.icloud-container-identifiers']?.includes(container) &&
+        app.Entitlements['com.apple.developer.ubiquity-container-identifiers']?.includes(container) &&
+        (services === '*' || services?.includes('CloudDocuments')),
+      `Enable iCloud (iCloud Documents) with container ${container} on the app profile.`,
+    );
+  }
   return {
     team,
     certificate,
@@ -84,7 +95,9 @@ function main() {
   const bundleId = require('../app.json').expo.ios.bundleIdentifier;
   console.log(`App Bundle ID: ${bundleId}`);
   console.log(`Extension Bundle ID: ${bundleId}.resttimer`);
-  const signing = validateProfiles(readProfile('app'), readProfile('widget'), bundleId, certificate.raw);
+  const signing = validateProfiles(readProfile('app'), readProfile('widget'), bundleId, certificate.raw, new Date(), {
+    requireICloud: process.env.FORGE_ICLOUD === '1',
+  });
   const projectPath = 'ios/Forge.xcodeproj/project.pbxproj';
   const project = xcode.project(projectPath);
   project.parseSync();
