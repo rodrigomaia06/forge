@@ -780,6 +780,14 @@ export function CsvImportScreen({ navigation }: Props) {
                             ? 'alert-triangle'
                             : 'check',
                       },
+                      ...(!draft.requirements.length
+                        ? (draft.skipped ?? []).map((skipped) => ({
+                            key: `skipped-${skipped.key}`,
+                            title: skipped.title,
+                            detail: skipped.detail,
+                            icon: 'info' as const,
+                          }))
+                        : []),
                       ...(draft.source.startsWith('fitnotes')
                         ? [
                             {

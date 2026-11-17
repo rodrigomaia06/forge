@@ -321,6 +321,45 @@ for (const appearance of ['light', 'dark'] as const) {
       ),
     ).toEqual([]);
   });
+  test(`${appearance} reviews published-format compatibility fixtures and skipped rows`, async ({
+    page,
+  }, info) => {
+    await open(page, appearance);
+    const compat = (name: string) =>
+      readFileSync(resolve('tests/fixtures/import-compat', name), 'utf8');
+    for (const [file, source, count] of [
+      ['hevy-imperial.csv', 'Hevy', 2],
+      ['strong-rest-timer-semicolon.csv', 'Strong', 3],
+      ['strong-unit-columns.csv', 'Strong', 1],
+      ['fitnotes-android-units.csv', 'FitNotes Android', 2],
+    ] as const) {
+      await pick(page, compat(file));
+      await expect(page.getByText(`${source} CSV detected`, { exact: true })).toBeVisible();
+      await expect(
+        page.getByText(`${count} valid workout${count === 1 ? '' : 's'}`, { exact: true }),
+      ).toBeVisible();
+      await expect(page.getByText('No validation problems', { exact: true })).toBeVisible();
+      if (file.startsWith('strong-rest-timer')) {
+        await expect(page.getByText('2 rest timer rows not imported', { exact: true })).toBeVisible();
+        await expect(page.getByText('1 exercise note not imported', { exact: true })).toBeVisible();
+      }
+      await capture(page, info, `compat-${file.replace('.csv', '')}-detected`);
+      await page.getByRole('button', { name: 'Back in CSV import', exact: true }).click();
+    }
+    await pick(page, compat('strong-malformed-rows.csv'));
+    await expect(page.getByText('3 workouts excluded', { exact: true })).toBeVisible();
+    await expect(page.getByText('Workout has no recorded sets.', { exact: true })).toBeVisible();
+    await capture(page, info, 'compat-strong-malformed-detected');
+    await page.getByRole('button', { name: 'Back in CSV import', exact: true }).click();
+    await pick(page, compat('strong-localized-headers.csv'));
+    await expect(page.getByRole('alert')).toContainText('switch it to English');
+    await capture(page, info, 'compat-localized-headers');
+    expect(
+      await page.evaluate(() =>
+        JSON.parse(localStorage.getItem('@forge/completed-workouts') ?? '[]'),
+      ),
+    ).toEqual([]);
+  });
   test(`${appearance} mixed imports preserve the existing History and set details presentation`, async ({
     page,
   }, info) => {
