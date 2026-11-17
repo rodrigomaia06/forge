@@ -15,6 +15,9 @@ import { ForgeControlSurface } from './ForgeControlSurface';
  */
 export type ForgeCardVariant = 'base' | 'nested';
 
+/** Corner radius of a standard card, for press feedback that must follow its outline. */
+export const forgeCardRadius = scaleUI(24);
+
 export function ForgeCard({
   children,
   style,
@@ -72,7 +75,7 @@ export function ForgeCard({
 const styles = StyleSheet.create({
   card: {
     overflow: 'hidden',
-    borderRadius: scaleUI(24),
+    borderRadius: forgeCardRadius,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,

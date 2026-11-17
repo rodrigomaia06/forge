@@ -49,7 +49,7 @@ import {
   volumeSeries,
 } from '../domain/dashboard/widgetMetrics';
 import { useWorkoutStarter } from './dashboard/workoutStarter';
-import { TileChromeContext } from './dashboard/tileChrome';
+import { TILE_DRAG_RAIL_WIDTH, TILE_PADDING, TileChromeContext } from './dashboard/tileChrome';
 import {
   lastCompletedWorkout,
   trainingTimeThisWeek,
@@ -559,7 +559,7 @@ function DashboardTileFrame({
         >
           <Icon name="drag" size={18} color={theme.muted} />
         </Pressable>
-        <View style={[styles.tileBody, { paddingLeft: editing ? DRAG_RAIL_WIDTH : 16 }]}>
+        <View style={[styles.tileBody, { paddingLeft: editing ? DRAG_RAIL_WIDTH : TILE_PADDING }]}>
           <TileChromeContext.Provider value={chrome}>{children}</TileChromeContext.Provider>
         </View>
         {/* Rendered only while editing; a sibling of the body, so toggling it
@@ -593,7 +593,7 @@ function DashboardTileFrame({
   );
 }
 
-const DRAG_RAIL_WIDTH = 40;
+const DRAG_RAIL_WIDTH = TILE_DRAG_RAIL_WIDTH;
 
 const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   appShell: { flex: 1, minHeight: 0 },
@@ -618,8 +618,8 @@ const createStyles = (theme: ForgeTheme) => StyleSheet.create({
   // Content is inset past the rail on the left and clear of the X on the right.
   tileBody: {
     paddingLeft: DRAG_RAIL_WIDTH,
-    paddingRight: 16,
-    paddingVertical: 16,
+    paddingRight: TILE_PADDING,
+    paddingVertical: TILE_PADDING,
     minHeight: 44,
   },
   // Edit-mode controls in the top-right corner: settings (when the tile has

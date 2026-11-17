@@ -15,7 +15,7 @@ import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
 import { formatTrainingTime, formatVolume } from './dashboardSummary';
-import { useTileChrome, tileHeaderRightInset } from './tileChrome';
+import { useTileChrome, tileBodyPressFeedback, tileHeaderRightInset } from './tileChrome';
 import { DASHBOARD_TILE_DEFAULT_TITLE } from '../../state/dashboardLayout';
 import type { ForgeTheme, Workout, WorkoutTypePreference } from '../../types';
 import type { WorkoutSuggestion } from '../../domain/workouts/suggestNextWorkout';
@@ -229,6 +229,7 @@ export function DashboardLastWorkoutTile({
         day: 'numeric',
       })
     : null;
+  const pressFeedback = tileBodyPressFeedback(useTileChrome());
   return (
     <Pressable
       accessibilityRole={lastWorkout ? 'button' : undefined}
@@ -239,6 +240,7 @@ export function DashboardLastWorkoutTile({
         lightHaptic();
         onOpen(lastWorkout.id);
       } : undefined}
+      pressFeedbackStyle={pressFeedback}
       style={({ pressed }) => [styles.wideInner, pressed && lastWorkout ? pressedFeedbackSubtle : null]}
     >
       <View style={[styles.tileIcon, { backgroundColor: presentation?.background ?? theme.surfaceMuted }]}>

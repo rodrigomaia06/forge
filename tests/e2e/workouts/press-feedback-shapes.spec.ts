@@ -26,20 +26,23 @@ const saved: Workout = {
   exercises,
 };
 
-async function seed(page: Page, appearance: 'light' | 'dark', live = false) {
+async function seed(
+  page: Page,
+  appearance: 'light' | 'dark',
+  live = false,
+  tiles = ['week', 'calendar'],
+  showRestTimer = false,
+) {
   await page.addInitScript(
-    ({ appearance, saved, live }) => {
+    ({ appearance, saved, live, tiles, showRestTimer }) => {
       localStorage.setItem(
         '@forge/settings-preferences',
-        JSON.stringify({ appearance, showRestTimer: false }),
+        JSON.stringify({ appearance, showRestTimer }),
       );
       localStorage.setItem('@forge/completed-workouts', JSON.stringify([saved]));
       localStorage.setItem(
         '@forge/dashboard-layout-v1',
-        JSON.stringify([
-          { id: 'week', kind: 'week', visible: true },
-          { id: 'calendar', kind: 'calendar', visible: true },
-        ]),
+        JSON.stringify(tiles.map((kind) => ({ id: kind, kind, visible: true }))),
       );
       if (live)
         localStorage.setItem(
@@ -47,7 +50,7 @@ async function seed(page: Page, appearance: 'light' | 'dark', live = false) {
           JSON.stringify({ ...saved, id: 'live-shapes', completedAt: null }),
         );
     },
-    { appearance, saved, live },
+    { appearance, saved, live, tiles, showRestTimer },
   );
   await page.goto('/');
 }
@@ -270,5 +273,69 @@ for (const appearance of ['light', 'dark'] as const) {
         )
         .toBe(side);
     }
+  });
+}
+
+/** Holds a control, returns its tint's box and radius, captures the held state, then cancels. */
+async function heldTint(page: Page, control: Locator, info: TestInfo, name: string) {
+  await control.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(400);
+  const bounds = await control.boundingBox();
+  if (!bounds) throw new Error('Expected a visible control');
+  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await page.mouse.down();
+  const layer = control.getByTestId('forge-press-state-layer');
+  await expect(layer).toBeVisible();
+  await page.waitForTimeout(200);
+  const tint = (await layer.boundingBox())!;
+  const radius = await layer.evaluate((node) => getComputedStyle(node).borderTopLeftRadius);
+  const background = await control.evaluate((node) => getComputedStyle(node).backgroundColor);
+  await page.screenshot({ path: info.outputPath(`${name}-held.png`) });
+  // Swallow the release's click: a cancelled hold must not activate, and react-native-web
+  // otherwise delivers it to a pointer captured by a surrounding gesture handler.
+  await page.evaluate(() => {
+    const swallow = (event: Event) => {
+      event.stopPropagation();
+      event.preventDefault();
+    };
+    window.addEventListener('click', swallow, { capture: true });
+    setTimeout(() => window.removeEventListener('click', swallow, { capture: true }), 150);
+  });
+  await page.mouse.move(1, 1, { steps: 3 });
+  await page.mouse.up();
+  await expect(layer).toHaveCount(0);
+  await page.screenshot({ path: info.outputPath(`${name}-released.png`) });
+  return { bounds, tint, radius, background };
+}
+
+for (const appearance of ['light', 'dark'] as const) {
+  test(`${appearance} dashboard tiles that open a screen tint the whole card`, async ({
+    page,
+  }, info) => {
+    await seed(page, appearance, false, ['last-workout', 'muscle-heatmap', 'calendar']);
+    for (const [testID, name] of [
+      ['dashboard-last-workout', 'Open Shape check'],
+      ['dashboard-muscle-heatmap', 'Open muscle heatmap'],
+      ['dashboard-calendar', 'Open calendar'],
+    ] as const) {
+      const card = page.getByTestId(testID);
+      const control = card.getByRole('button', { name, exact: true });
+      const held = await heldTint(page, control, info, testID);
+      const cardBounds = (await card.boundingBox())!;
+      // The card clips the tint to its own outline: it covers the card, not an inset square.
+      const visible = {
+        left: Math.max(held.tint.x, cardBounds.x),
+        top: Math.max(held.tint.y, cardBounds.y),
+        right: Math.min(held.tint.x + held.tint.width, cardBounds.x + cardBounds.width),
+        bottom: Math.min(held.tint.y + held.tint.height, cardBounds.y + cardBounds.height),
+      };
+      expect(visible.left - cardBounds.x).toBeLessThanOrEqual(1);
+      expect(visible.top - cardBounds.y).toBeLessThanOrEqual(1);
+      expect(cardBounds.x + cardBounds.width - visible.right).toBeLessThanOrEqual(1);
+      expect(cardBounds.y + cardBounds.height - visible.bottom).toBeLessThanOrEqual(1);
+      expect(held.radius).toBe(await card.evaluate((node) => getComputedStyle(node).borderTopLeftRadius));
+      await expect(card).toHaveCSS('overflow', 'hidden');
+    }
+    await expect(page.getByRole('button', { name: 'Edit dashboard', exact: true })).toBeVisible();
   });
 }

@@ -12,7 +12,7 @@ import { computeWorkoutVolume, formatVolume } from './dashboardSummary';
 import { getWorkoutTypePresentation } from '../../domain/workouts/presentation';
 import { calendarDateKey } from '../../domain/workouts/calendarDate';
 import { trendDayLabel } from '../../domain/trends';
-import { useTileChrome, tileHeaderRightInset } from './tileChrome';
+import { useTileChrome, tileBodyPressFeedback, tileHeaderRightInset } from './tileChrome';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
@@ -279,6 +279,7 @@ export function DashboardMuscleHeatmapTile({ heat, windowDays, gender = 'male', 
   const theme = useForgeTheme();
   const styles = useThemedStyles(createStyles);
   const color = HEATMAP_ACCENT;
+  const pressFeedback = tileBodyPressFeedback(useTileChrome());
   const any = Object.values(heat).some((v) => v > 0);
   const body = (
     <View style={styles.block}>
@@ -313,7 +314,7 @@ export function DashboardMuscleHeatmapTile({ heat, windowDays, gender = 'male', 
   );
   if (!onOpen) return body;
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel="Open muscle heatmap" unstable_pressDelay={80} onPress={onOpen} style={({ pressed }) => pressed && pressedFeedback}>
+    <Pressable accessibilityRole="button" accessibilityLabel="Open muscle heatmap" unstable_pressDelay={80} onPress={onOpen} pressFeedbackStyle={pressFeedback} style={({ pressed }) => pressed && pressedFeedback}>
       {body}
     </Pressable>
   );
@@ -629,6 +630,7 @@ export function DashboardCalendarTile({
     return { colorByDay, count, seconds, volume };
   }, [workouts, workoutTypes, year, month, theme]);
 
+  const pressFeedback = tileBodyPressFeedback(useTileChrome());
   const weeks = calMonthWeeks(year, month, weekStart);
   const letters = Array.from({ length: 7 }, (_, i) => CAL_WEEK[(weekStart + i) % 7]);
 
@@ -639,6 +641,7 @@ export function DashboardCalendarTile({
       disabled={!onOpen}
       unstable_pressDelay={80}
       onPress={onOpen}
+      pressFeedbackStyle={pressFeedback}
       style={({ pressed }) => [styles.calRow, pressed && onOpen ? pressedFeedback : null]}
     >
       <View style={styles.calLeft}>
