@@ -320,7 +320,7 @@ export const ExerciseSection = React.memo(function ExerciseSection({
                   <Text style={[styles.setHeaderText, styles.setColumn]}>Set</Text>
                   <Text style={[styles.setHeaderText, styles.previousColumn]}>Previous</Text>
                   {trackingFields[trackingType].map((kind) => (
-                    <Text key={kind} style={[styles.setHeaderText, styles.inputColumn, styles.inputHeader]}>{kind === 'duration' && setTargetMode === 'routine' ? 'Sec' : trackingFieldLabel(trackingType, kind)}</Text>
+                    <Text key={kind} style={[styles.setHeaderText, styles.inputColumn, setTargetMode === 'routine' && kind === 'duration' && styles.timeIntervalColumn, styles.inputHeader]}>{trackingFieldLabel(trackingType, kind)}</Text>
                   ))}
                   <View style={styles.checkColumn} />
                 </View> : null}</View>
@@ -679,10 +679,12 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     exerciseHeaderWithMetadata: { minHeight: scaleUI(48), paddingVertical: scaleUI(4) },
     // Vertical padding keeps a wrapped (two-line) name off the card edges; a
     // single-line row still resolves to the 64 minimum.
+    // Same compact height as the read-only exercise rows; the row still grows with
+    // wrapped names or larger text.
     collapsibleExerciseHeader: {
-      minHeight: scaleUI(64),
+      minHeight: scaleUI(56),
       paddingHorizontal: scaleUI(12),
-      paddingVertical: scaleUI(10),
+      paddingVertical: scaleUI(8),
     },
     collapsibleExerciseCopy: { flex: 1, minWidth: 0, justifyContent: 'center', gap: scaleUI(2) },
     // `flex: 0` resolves to `flex-basis: 0` on react-native-web, collapsing the
@@ -730,6 +732,7 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     setColumn: { width: 46 },
     previousColumn: { flex: 1 },
     inputColumn: { width: scaleUI(60) },
+    timeIntervalColumn: { width: scaleUI(92) },
     firstInputWithoutPrevious: { marginLeft: 'auto' },
     inputHeader: { textAlign: 'center' },
     checkColumn: { width: 44 },

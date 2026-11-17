@@ -18,6 +18,8 @@ import {
   measurementText, measurementUnit, trackingFieldLabel, trackingFields, updateMeasurement,
 } from '../../domain/exercises/tracking';
 import { SetNumberBadge, useSetNumberBadgeLayout } from './SetNumberBadge';
+import { PreviousValueText } from './PreviousValueText';
+import { formatRangeEntry, rangeEntryText, rangeEntryValues, recordedIntervalText, withoutRecordedInterval } from '../../domain/workouts/rangeEntry';
 
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
@@ -174,13 +176,16 @@ export function SetRow({
         <SetNumberBadge set={set} index={index} testID={`live-set-number-chip-${index + 1}`} />
       </Pressable>
       {showPrevious ? (
-        <Text style={[styles.previous, stacked && styles.stackedPrevious]}>
+        <PreviousValueText
+          style={[styles.previousColumn, stacked && styles.stackedPrevious]}
+          textStyle={[styles.previous, stacked && styles.stackedPreviousText]}
+        >
           {stacked ? `Previous: ${previous}` : previous}
-        </Text>
+        </PreviousValueText>
       ) : null}
       {trackingFields[trackingType].map((kind) => {
-        const planned = plannedIntervalText(set, kind);
         const allowsRange = setTargetMode === 'routine' && (kind === 'reps' || kind === 'duration' || kind === 'distance');
+        const planned = plannedIntervalText(set, kind) || (allowsRange ? recordedIntervalText(set, kind) : '');
         // Prefer the raw legacy string so a decimal being typed ("9.5", "9,5")
         // is preserved as-is; formatting through the parsed number would drop a
         // trailing separator mid-entry. Fall back to the structured value only
@@ -200,9 +205,12 @@ export function SetRow({
         const inputTextColor = quietValue ? theme.textSecondary : theme.ink;
         const writeMeasurement = (text: string): void => {
           if (allowsRange) {
-            const draft = numericRangeText(text);
+            const draft = rangeEntryText(text, kind);
             setRoutineRangeDrafts((current) => ({ ...current, [kind]: draft }));
-            onChange({ plannedTargets: updateRoutineRangeTargets(set.plannedTargets, set.id, kind, draft) });
+            onChange({
+              plannedTargets: updateRoutineRangeTargets(set.plannedTargets, set.id, kind, draft),
+              ...withoutRecordedInterval(set, kind),
+            });
             return;
           }
           if (kind === 'duration') {
@@ -227,7 +235,7 @@ export function SetRow({
             {stacked ? <Text style={styles.fieldLabel}>{trackingFieldLabel(trackingType, kind)}</Text> : null}
             {allowsRange ? (
               <ForgeNumericRangeInput
-                accessibilityLabel={`${kind === 'duration' ? 'Sec' : trackingFieldLabel(trackingType, kind)} for set ${index + 1}${planned ? `, routine interval ${planned}` : ''}`}
+                accessibilityLabel={`${trackingFieldLabel(trackingType, kind)} for set ${index + 1}${planned ? `, routine interval ${planned}` : ''}`}
                 value={value}
                 onChangeText={writeMeasurement}
                 onTouchStart={onInputTouchStart}
@@ -249,10 +257,13 @@ export function SetRow({
                 placeholderTextColor={theme.textDisabled}
                 textAlign="center"
                 textColor={inputTextColor}
-                fontSize={typeScale.body.fontSize}
+                // An mm:ss range (`25:00–30:00`) steps down to the label role
+                // so it stays whole inside the wider time-interval column.
+                fontSize={value.length > 7 ? typeScale.label.fontSize : typeScale.body.fontSize}
                 style={[
                   styles.input,
                   styles.inputColumn,
+                  kind === 'duration' && styles.timeIntervalColumn,
                   stacked && styles.stackedInput,
                   styles.inputFilled,
                   inputFocused && styles.inputFocused,
@@ -329,17 +340,6 @@ export function SetRow({
   );
 }
 
-function numericRangeText(value: string): string {
-  let separatorFound = false;
-  return Array.from(value).reduce((result, character) => {
-    if (/\d/.test(character)) return `${result}${character}`;
-    if ((character === ',' || character === '-' || character === '–' || character === '—') && !separatorFound) {
-      separatorFound = true;
-      return `${result}-`;
-    }
-    return result;
-  }, '');
-}
 
 function updateRoutineRangeTargets(
   targets: import('../../types').WorkoutSet['plannedTargets'],
@@ -347,7 +347,7 @@ function updateRoutineRangeTargets(
   kind: import('../../types').SetMeasurementKind,
   text: string,
 ): NonNullable<import('../../types').WorkoutSet['plannedTargets']> {
-  const values = numericRangeValues(text);
+  const values = rangeEntryValues(text, kind);
   const retained = (targets ?? []).filter((target) => target.kind !== kind);
   if (!values.length) return retained;
   return [
@@ -362,22 +362,11 @@ function updateRoutineRangeTargets(
   ];
 }
 
-function numericRangeValues(value: string): number[] {
-  return value
-    .split('-')
-    // `Number('')` is zero. Ignore empty sides so clearing a routine range
-    // removes its planned target instead of silently replacing it with `0`.
-    .filter((part) => part.trim().length > 0)
-    .map((part) => Number(part.trim()))
-    .filter(Number.isFinite);
-}
 
 function plannedIntervalText(set: import('../../types').WorkoutSet, kind: import('../../types').SetMeasurementKind): string {
   const target = set.plannedTargets?.find((item) => item.kind === kind);
   if (target?.minValue === undefined) return '';
-  return target.maxValue !== undefined && target.maxValue !== target.minValue
-    ? `${target.minValue}–${target.maxValue}`
-    : String(target.minValue);
+  return formatRangeEntry(kind, target.minValue, target.maxValue);
 }
 
 const createStyles = (theme: import('../../types').ForgeTheme) => {
@@ -392,15 +381,16 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
   },
   stackedRow: { flexWrap: 'wrap', alignItems: 'flex-start', paddingVertical: scaleUI(8) },
   stackedField: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: scaleUI(12) },
-  stackedPrevious: { flexBasis: '70%', textAlign: 'left' },
+  stackedPrevious: { flexBasis: '70%' },
+  stackedPreviousText: { textAlign: 'left' },
   fieldLabel: { flex: 1, ...typeScale.body, color: theme.textSecondary },
   stackedInput: { flex: 1, minWidth: 0, width: undefined, minHeight: 44, paddingVertical: scaleUI(8) },
   setCompleted: {},
   // Keep the touch target accessible while the badge grows with text scaling.
   setNumberWrap: { position: 'relative', minWidth: 46, flexShrink: 0, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   checkFeedback: centeredPressFeedback(scaleUI(30), scaleUI(15)),
+  previousColumn: { flex: 1 },
   previous: {
-    flex: 1,
     color: dashboardTheme.ink,
     // Previous performance is a primary scanning value, not compact metadata,
     // so it reads a step larger than the body text elsewhere.
@@ -410,6 +400,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) => {
     textAlign: 'center',
   },
   inputColumn: { width: scaleUI(60) },
+  /** Routine time intervals hold an mm:ss range, so their column is wider. */
+  timeIntervalColumn: { width: scaleUI(92) },
   firstInputWithoutPrevious: { marginLeft: 'auto' },
   input: {
     minHeight: scaleUI(36),

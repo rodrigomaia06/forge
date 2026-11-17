@@ -24,6 +24,10 @@ function renderRow(props: Record<string, unknown>) {
       trackingFieldLabel: (_tracking: string, kind: string) => kind,
       trackingFields: { 'weight-reps': ['weight', 'reps'], reps: ['reps'] },
     },
+    '../../domain/workouts/rangeEntry': {
+      formatRangeEntry: (_kind: string, min: number, max?: number) =>
+        max !== undefined && max !== min ? `${min}–${max}` : String(min),
+    },
     './SetNumberBadge': {
       SetNumberBadge: 'Badge',
       useSetNumberBadgeLayout: (effort: boolean) => ({ height: effort ? 48 : 32, feedback: {} }),
@@ -33,6 +37,8 @@ function renderRow(props: Record<string, unknown>) {
     '../../theme/tokens': { typeScale: {} },
     '../../theme/scale': { scaleUI: (value: number) => value },
     './CompletionCheck': { CompletionCheck: 'Completion' },
+    './PreviousValueText': { PreviousValueText: 'Text' },
+    './useSetRowLayout': { useSetRowLayout: () => ({ stacked: false, onLayout: undefined, probe: null }) },
     './activeWorkoutFeedback': { selectionHaptic: () => undefined },
   };
   const exports: any = {};

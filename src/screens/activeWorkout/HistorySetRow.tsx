@@ -4,6 +4,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { ForgeText as Text } from '../../components/ui';
+import { formatRangeEntry } from '../../domain/workouts/rangeEntry';
 import {
   measurementDisplay,
   measurementText,
@@ -11,6 +12,7 @@ import {
   trackingFields,
 } from '../../domain/exercises/tracking';
 import { SetNumberBadge, useSetNumberBadgeLayout } from './SetNumberBadge';
+import { PreviousValueText } from './PreviousValueText';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
 import { typeScale } from '../../theme/tokens';
@@ -45,10 +47,10 @@ export function HistorySetRow({
   const styles = useThemedStyles(createStyles);
   const { stacked, onLayout, probe } = useSetRowLayout(trackingFields[trackingType].length, showPrevious);
   const badgeLayout = useSetNumberBadgeLayout();
-  const formatTarget = (item: NonNullable<WorkoutSet['plannedTargets']>[number]): string =>
-    item.maxValue !== undefined && item.maxValue !== item.minValue
-      ? `${item.minValue}–${item.maxValue}`
-      : String(item.minValue ?? item.maxValue ?? '');
+  const formatTarget = (item: NonNullable<WorkoutSet['plannedTargets']>[number]): string => {
+    const lower = item.minValue ?? item.maxValue;
+    return lower === undefined ? '' : formatRangeEntry(item.kind, lower, item.maxValue);
+  };
   // A recorded value wins; otherwise show the set's planned target (routines
   // have targets, not recordings) and fall back to a clean dash rather than a
   // wrapping "Not recorded" inside the narrow value box.
@@ -88,7 +90,12 @@ export function HistorySetRow({
         <SetNumberBadge set={set} index={index} testID={`history-set-number-chip-${index + 1}`} />
       </Pressable>
       {showPrevious ? (
-        <Text style={[styles.previous, stacked && styles.stackedPrevious]}>{stacked ? 'Previous: ' : ''}{set.previous?.trim() || 'Not recorded'}</Text>
+        <PreviousValueText
+          style={[styles.previousColumn, stacked && styles.stackedPrevious]}
+          textStyle={[styles.previous, stacked && styles.stackedPreviousText]}
+        >
+          {`${stacked ? 'Previous: ' : ''}${set.previous?.trim() || 'Not recorded'}`}
+        </PreviousValueText>
       ) : null}
       {trackingFields[trackingType].map((kind) => (
         <View
@@ -123,7 +130,8 @@ export function HistorySetRow({
 const createStyles = (theme: import('../../types').ForgeTheme) =>
   StyleSheet.create({
     stackedRow: { flexWrap: 'wrap' },
-    stackedPrevious: { flexBasis: '70%', textAlign: 'left' },
+    stackedPrevious: { flexBasis: '70%' },
+    stackedPreviousText: { textAlign: 'left' },
     stackedField: { flexBasis: '100%', width: '100%', flexDirection: 'row', justifyContent: 'space-between', padding: scaleUI(8) },
     fullRow: {
       minHeight: Math.max(44, scaleUI(48)),
@@ -142,7 +150,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
       justifyContent: 'center',
     },
     valueText: { flexShrink: 1, minWidth: 0, color: theme.ink, ...typeScale.body },
-    previous: { flex: 1, minWidth: 0, color: theme.ink, ...typeScale.body, textAlign: 'center' },
+    previousColumn: { flex: 1 },
+    previous: { color: theme.ink, ...typeScale.body, textAlign: 'center' },
     check: { width: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
     // Compact history cards drop the row's vertical padding; the 44 pt set
     // chip still sets the floor, so the tap target is unchanged.

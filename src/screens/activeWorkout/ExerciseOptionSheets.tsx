@@ -23,7 +23,8 @@ import {
 import { ExerciseDetailBody, UnilateralDetailSection } from '../../components/ExerciseDetailBody';
 import { useSettings } from '../../state/SettingsContext';
 import { exerciseCatalog, taxonomyLabel, type ExerciseCatalogItem } from '../../data/exerciseCatalog';
-import { measurementDisplay, measurementText, trackingFieldLabel, trackingFields } from '../../domain/exercises/tracking';
+import { formatRangeEntry } from '../../domain/workouts/rangeEntry';
+import { measurementSummary, measurementText, trackingFieldLabel, trackingFields } from '../../domain/exercises/tracking';
 import { buildWarmupPlan } from '../../domain/workouts/warmup';
 import { useForgeTheme } from '../../theme/ThemeProvider';
 import { useThemedStyles } from '../../theme/useThemedStyles';
@@ -297,9 +298,12 @@ function normalizeName(value: string): string {
 
 function formatRecordedSet(set: WorkoutSet, exercise: WorkoutExercise): string {
   const tracking = effectiveTracking(exercise);
-  const values = trackingFields[tracking].map((kind) => measurementDisplay(set, kind)).filter(Boolean);
+  const values = trackingFields[tracking].map((kind) => measurementSummary(set, kind)).filter(Boolean);
   const recorded = values.length ? values.join(' × ') : 'Not recorded';
-  const range = (set.plannedTargets ?? []).map((target) => target.maxValue !== undefined && target.maxValue !== target.minValue ? `${target.minValue}–${target.maxValue}` : String(target.minValue ?? target.maxValue ?? '')).filter(Boolean).join(' · ');
+  const range = (set.plannedTargets ?? []).map((target) => {
+    const lower = target.minValue ?? target.maxValue;
+    return lower === undefined ? '' : formatRangeEntry(target.kind, lower, target.maxValue);
+  }).filter(Boolean).join(' · ');
   return range ? `${recorded}   ${range}` : recorded;
 }
 

@@ -67,6 +67,15 @@ export function measurementDisplay(set: WorkoutSet, kind: SetMeasurementKind): s
   const text = measurementText(set, kind);
   return kind === 'duration' && text ? formatDuration(Number(text)) : text;
 }
+/**
+ * A recorded value for compact summaries (the Previous column, previous
+ * sessions): distance carries its unit so `5 km × 30:00` never reads as
+ * weight × reps; time is already unmistakable as mm:ss.
+ */
+export function measurementSummary(set: WorkoutSet, kind: SetMeasurementKind): string {
+  const text = measurementDisplay(set, kind);
+  return kind === 'distance' && text ? `${text} km` : text;
+}
 export function trackingModeLabel(mode: TrackingType): string {
   const labels: Record<TrackingType, string> = {
     'weight-reps': 'Weight + reps',
@@ -106,9 +115,16 @@ export function trackingChoices(
   return [base === 'reps-only' ? 'reps-only' : 'bodyweight-reps', 'duration'];
 }
 
+/**
+ * Fields still needed before a set can be completed. Every field of the mode is
+ * required, except Distance + time, which completes with either value (a run
+ * may only have its distance or only its time); with neither, both are missing.
+ */
 export function missingTrackingFields(mode: TrackingType, set: WorkoutSet): SetMeasurementKind[] {
-  return trackingFields[mode].filter((kind) => {
+  const missing = trackingFields[mode].filter((kind) => {
     const value = measurementText(set, kind);
     return !value.trim() || !Number.isFinite(Number(value.replace(',', '.')));
   });
+  if (mode === 'distance-duration' && missing.length < trackingFields[mode].length) return [];
+  return missing;
 }

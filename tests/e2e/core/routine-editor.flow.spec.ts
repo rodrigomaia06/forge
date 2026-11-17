@@ -34,7 +34,7 @@ test.describe('Core flow: routine editor', () => {
 
     const exercise = page.getByTestId(/^routine-exercise-/);
     await exercise.getByRole('button', { name: 'Expand Elliptical' }).click();
-    const duration = exercise.getByRole('textbox', { name: 'Sec for set 1' });
+    const duration = exercise.getByRole('textbox', { name: 'Time for set 1' });
     await expect(duration).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     if (testInfo.project.use.isMobile === true) {
       await exercise.screenshot({ path: testInfo.outputPath('routine-empty-range-box-iphone.png') });
@@ -42,7 +42,7 @@ test.describe('Core flow: routine editor', () => {
 
     await duration.fill('30-60');
     await duration.blur();
-    await expect(duration).toHaveValue('30–60');
+    await expect(duration).toHaveValue('00:30–01:00');
     await expect(duration).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     await duration.fill('');
     await duration.blur();
@@ -50,7 +50,7 @@ test.describe('Core flow: routine editor', () => {
     await duration.focus();
     await duration.fill('45-75');
     await duration.blur();
-    await expect(duration).toHaveValue('45–75');
+    await expect(duration).toHaveValue('00:45–01:15');
 
     await page.getByRole('button', { name: 'Save routine' }).click();
     // The static Playwright server has no history fallback for nested native
@@ -59,6 +59,6 @@ test.describe('Core flow: routine editor', () => {
     await page.getByRole('tab', { name: 'Plans' }).click();
     await expect(page.getByText('Core intervals', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Start Core intervals' }).click();
-    await expect(page.getByLabel('Time for set 1, routine interval 45–75')).toBeVisible();
+    await expect(page.getByLabel('Time for set 1, routine interval 00:45–01:15')).toBeVisible();
   });
 });

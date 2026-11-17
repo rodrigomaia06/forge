@@ -139,7 +139,18 @@ test('duration parsing and all selected fields determine validation', () => {
     measurements: [{ id: 'd', kind: 'distance' as const, unit: 'km' as const, value: 2 }],
   };
   expect(missingTrackingFields('distance', set)).toEqual([]);
-  expect(missingTrackingFields('distance-duration', set)).toEqual(['duration']);
+  // Distance + time completes with either value; every other mode needs all of its fields.
+  expect(missingTrackingFields('distance-duration', set)).toEqual([]);
+  expect(
+    missingTrackingFields('distance-duration', {
+      ...set,
+      measurements: [{ id: 't', kind: 'duration' as const, unit: 'sec' as const, value: 1800 }],
+    }),
+  ).toEqual([]);
+  expect(missingTrackingFields('distance-duration', { ...set, measurements: [] })).toEqual([
+    'distance',
+    'duration',
+  ]);
   expect(missingTrackingFields('duration-weight', set)).toEqual(['duration']);
 });
 test('in-place switching clears incompatible drafts and keeps compatible loads', () => {

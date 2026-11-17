@@ -507,9 +507,9 @@ test('routine tracking is persisted and starts future sessions with the same mod
   await page.getByRole('button', { name: `Expand ${original.name}`, exact: true }).click();
   await tracking(page, original.name);
   await page.getByRole('radio', { name: 'Weight + time', exact: true }).click();
-  await expect(page.getByLabel('Sec for set 1')).toBeVisible();
-  await page.getByLabel('Sec for set 1').fill('30-60');
-  await page.getByLabel('Sec for set 1').blur();
+  await expect(page.getByLabel('Time for set 1')).toBeVisible();
+  await page.getByLabel('Time for set 1').fill('30-60');
+  await page.getByLabel('Time for set 1').blur();
   await page.waitForTimeout(220);
   await page.screenshot({ path: info.outputPath('routine-tracking.png') });
   await page.getByRole('button', { name: 'Save routine', exact: true }).click();
@@ -655,7 +655,7 @@ test('legacy routine without exercise IDs can confirm timed weighted pull-up cha
   await page.screenshot({ path: info.outputPath('routine-tracking-confirmation.png') });
   await page.getByRole('button', { name: /^(Change tracking|Discard sets)$/ }).tap();
   await expect(page.getByLabel('Reps for set 1')).toBeVisible();
-  await expect(page.getByLabel('Sec for set 1')).toHaveCount(0);
+  await expect(page.getByLabel('Time for set 1')).toHaveCount(0);
 });
 
 test('history tracking confirms removing duration and saves the selected mode', async ({
@@ -913,3 +913,59 @@ for (const appearance of ['light', 'dark'] as const) {
     });
   }
 }
+
+test('cardio Previous values stay on one line in the narrow Previous column', async ({ page }, info) => {
+  const exercise: WorkoutExercise = {
+    ...movement(true),
+    trackingOverride: 'distance-duration',
+    sets: [
+      { id: 's1', weight: '', reps: '', completed: false, previous: '5 km × 30:00' },
+      { id: 's2', weight: '', reps: '', completed: false, previous: '12.5 km × 1:05:30' },
+    ],
+  };
+  await seed(page, session([exercise]), undefined, 'light');
+  for (const [row, text] of [['set-row-1', '5 km × 30:00'], ['set-row-2', '12.5 km × 1:05:30']] as const) {
+    const previous = page.getByTestId(row).first().getByText(text, { exact: true }).first();
+    await expect(previous).toBeVisible();
+    const box = (await previous.boundingBox())!;
+    const lineHeight = await previous.evaluate((node) => parseFloat(getComputedStyle(node).lineHeight));
+    // One line: the text box never grows past a single line of its own role.
+    expect(box.height).toBeLessThan(lineHeight * 1.5);
+  }
+  await page.getByTestId('set-row-1').first().screenshot({ path: info.outputPath('cardio-previous-row.png') });
+  await page.screenshot({ path: info.outputPath('cardio-previous-column.png') });
+});
+
+test('routine editor shows recorded distance and time from an imported routine', async ({ page }, info) => {
+  const exercise: WorkoutExercise = {
+    ...movement(true),
+    trackingOverride: 'distance-duration',
+    sets: [{
+      id: 's',
+      weight: '',
+      reps: '',
+      completed: false,
+      measurements: [
+        { id: 's-distance', kind: 'distance', unit: 'km', value: 5 },
+        { id: 's-duration', kind: 'duration', unit: 'sec', value: 1800 },
+      ],
+    }],
+  };
+  await seed(page, session([]), sourceState(exercise), 'light');
+  await page.getByRole('tab', { name: 'Plans', exact: true }).click();
+  await page.getByRole('button', { name: 'Routine actions for Push', exact: true }).click();
+  await page.getByTestId('plans-options-sheet').getByRole('button', { name: 'Edit', exact: true }).click();
+  await page.getByRole('button', { name: `Expand ${exercise.name}`, exact: true }).click();
+  const distance = page.getByRole('textbox', { name: 'KM for set 1' });
+  const time = page.getByRole('textbox', { name: 'Time for set 1' });
+  await expect(distance).toHaveValue('5');
+  await expect(time).toHaveValue('30:00');
+  await page.getByTestId(/^routine-exercise-/).screenshot({ path: info.outputPath('imported-routine-values.png') });
+  // Clearing an imported value leaves the box empty instead of resurfacing it.
+  await time.fill('');
+  await time.blur();
+  await expect(time).toHaveValue('');
+  await time.fill('25-30');
+  await time.blur();
+  await expect(time).toHaveValue('00:25–00:30');
+});

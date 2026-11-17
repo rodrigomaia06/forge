@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { exercisesWithAddedPrevious, routineExercisesWithNextSessionTargets, withPreviousForAppended, withPreviousRefreshed } from '../../src/domain/workouts/nextSessionTargets';
+import { exercisesWithAddedPrevious, exercisesWithHistoricalPrevious, routineExercisesWithNextSessionTargets, withPreviousForAppended, withPreviousRefreshed } from '../../src/domain/workouts/nextSessionTargets';
 import type { WorkoutRoutine } from '../../src/types';
 import type { Workout, WorkoutExercise } from '../../src/types';
 
@@ -78,4 +78,18 @@ test('replacing an exercise drops the old movement previous and refills from the
   expect(result[1].sets[0].previous).toBe('70 × 8');
   expect(result[1].sets[1].previous).toBeUndefined();
   expect(withPreviousRefreshed([replaced], 'x', [])[0].sets[0].previous).toBeUndefined();
+});
+
+test('an off-session workout never seeds previous, for added exercises or history', () => {
+  const bench = (weight: string) => ({
+    id: `e${weight}`, exerciseId: 'bench', name: 'Bench Press', trackingType: 'weight-reps',
+    sets: [set({ weight, reps: '5', completed: true })],
+  });
+  const normal = logged([bench('100')], 2000);
+  const offSession = { ...logged([bench('60')], 3000), excludeFromTargets: true } as Workout;
+  const added = [{ id: 'new', exerciseId: 'bench', name: 'Bench Press', trackingType: 'weight-reps', sets: [set()] } as unknown as WorkoutExercise];
+  expect(exercisesWithAddedPrevious(added, [normal, offSession])[0].sets[0].previous).toBe('100 × 5');
+
+  const viewed = logged([bench('105')], 4000);
+  expect(exercisesWithHistoricalPrevious(viewed, [normal, offSession, viewed])[0].sets[0].previous).toBe('100 × 5');
 });
