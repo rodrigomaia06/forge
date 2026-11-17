@@ -13,7 +13,7 @@ async function apply(platform: 'ios' | 'android', modResults: any) {
   return (await config.mods[platform][mod]({ ...config, modResults, modRequest: {} })).modResults;
 }
 
-test('iOS registers a distinct owned document type and keeps copied-file access', async () => {
+test('iOS registers a distinct owned document type and keeps in-place Files access', async () => {
   const plist = await apply('ios', {});
   expect(plist.UTExportedTypeDeclarations).toEqual([
     {
@@ -37,6 +37,43 @@ test('iOS registers a distinct owned document type and keeps copied-file access'
   expect(plist.LSSupportsOpeningDocumentsInPlace).toBe(true);
   expect(plist.UIFileSharingEnabled).toBe(true);
   expect(plist.UISupportsDocumentBrowser).toBe(false);
+});
+
+test('iOS declares the type under the bundle id without text conformance', async () => {
+  const app = JSON.parse(readFileSync('app.json', 'utf8')).expo;
+  expect(fileType.uti.startsWith(`${app.ios.bundleIdentifier}.`)).toBe(true);
+  const plist = await apply('ios', {});
+  const declaration = plist.UTExportedTypeDeclarations[0];
+  // public.json and public.text make text editors and text Quick Look eligible.
+  for (const textType of ['public.json', 'public.text', 'public.plain-text', 'public.source-code'])
+    expect(declaration.UTTypeConformsTo).not.toContain(textType);
+  expect(declaration.UTTypeTagSpecification['public.mime-type']).not.toContain('application/json');
+  expect(plist.UTImportedTypeDeclarations).toBeUndefined();
+});
+
+test('iOS prebuild drops the legacy identifier from every declaration and document type', async () => {
+  const legacy = 'com.forge.training.data';
+  const importedOther = { UTTypeIdentifier: 'com.example.imported' };
+  const plist = await apply('ios', {
+    UTExportedTypeDeclarations: [
+      {
+        UTTypeIdentifier: legacy,
+        UTTypeConformsTo: ['public.json', 'public.data'],
+        UTTypeTagSpecification: { 'public.filename-extension': ['forge'] },
+      },
+    ],
+    UTImportedTypeDeclarations: [{ UTTypeIdentifier: legacy }, importedOther],
+    CFBundleDocumentTypes: [
+      { CFBundleTypeRole: 'Editor', LSHandlerRank: 'Owner', LSItemContentTypes: [legacy] },
+    ],
+  });
+  expect(JSON.stringify(plist)).not.toContain(legacy);
+  expect(plist.UTImportedTypeDeclarations).toEqual([importedOther]);
+  expect(plist.UTExportedTypeDeclarations.map((entry: any) => entry.UTTypeIdentifier)).toEqual([
+    fileType.uti,
+  ]);
+  expect(plist.CFBundleDocumentTypes).toHaveLength(1);
+  expect(plist.CFBundleDocumentTypes[0].LSItemContentTypes).toEqual([fileType.uti]);
 });
 
 test('repeated iOS prebuild replaces stale JSON associations without losing other declarations', async () => {

@@ -7,24 +7,47 @@ const {
 
 // Lets a shared `.forge` file open straight into Forge (AirDrop, Files, Mail,
 // Drive, etc.) instead of forcing Settings -> Backup & Export -> Import.
-// `.forge` files contain JSON, but are application documents rather than generic
-// text. Advertising them as public.json lets text editors claim their opens.
+//
+// How iOS picks the app a tapped `.forge` opens in:
+// - The extension resolves to the exported UTI below. It conforms only to
+//   public.data (physical: Files can store it) and public.content (functional:
+//   AirDrop can send it). `.forge` files contain JSON, but conforming to
+//   public.json would make it public.text, which every text editor (and the
+//   text Quick Look) claims.
+// - Among the apps claiming that UTI, Launch Services prefers LSHandlerRank
+//   Owner, then Default, then Alternate.
+// - Files opens a tapped document directly only in an app that opens
+//   documents in place (LSSupportsOpeningDocumentsInPlace); other apps get a
+//   copy through Share. The person's Always Open With choice overrides all of
+//   this for the type.
 //
 // This is a managed Expo project with no committed `ios/` or `android/`, so the
 // document-type and intent-filter registrations are patched into the prebuilt
 // Info.plist and AndroidManifest here rather than hand-edited native files.
 
 const LEGACY_MIME = 'application/json';
+// Earlier builds exported this identifier, outside the bundle id's namespace,
+// conforming to public.json and without in-place opening, so text editors were
+// the handlers Files could use. The current identifier is namespaced under the
+// bundle id (Apple's uniqueness guidance), which also leaves behind any
+// handler binding iOS recorded for the old type. Stale entries are removed.
+const LEGACY_UTIS = ['com.forge.training.data'];
+const OWN_UTIS = [FORGE_UTI, ...LEGACY_UTIS];
 const TYPE_DESCRIPTION = 'Forge data';
 
 function withForgeDocumentTypeIOS(config) {
   return withInfoPlist(config, (config) => {
     const infoPlist = config.modResults;
 
-    // Replace our old declaration on repeated prebuilds, preserving other types.
+    // Replace our old declarations on repeated prebuilds, preserving other
+    // types. Never import our own type: one UTI per `.forge` extension.
+    const isOwn = (entry) => OWN_UTIS.includes(entry?.UTTypeIdentifier);
+    const imported = (infoPlist.UTImportedTypeDeclarations ?? []).filter((entry) => !isOwn(entry));
+    if (imported.length) infoPlist.UTImportedTypeDeclarations = imported;
+    else delete infoPlist.UTImportedTypeDeclarations;
     const exported = infoPlist.UTExportedTypeDeclarations ?? [];
     infoPlist.UTExportedTypeDeclarations = [
-      ...exported.filter((entry) => entry?.UTTypeIdentifier !== FORGE_UTI),
+      ...exported.filter((entry) => !isOwn(entry)),
       {
         UTTypeIdentifier: FORGE_UTI,
         UTTypeDescription: TYPE_DESCRIPTION,
@@ -41,13 +64,15 @@ function withForgeDocumentTypeIOS(config) {
     const documentTypes = infoPlist.CFBundleDocumentTypes ?? [];
     infoPlist.CFBundleDocumentTypes = [
       ...documentTypes.flatMap((entry) => {
-        if (!(entry?.LSItemContentTypes ?? []).includes(FORGE_UTI)) return [entry];
-        const otherTypes = entry.LSItemContentTypes.filter((type) => type !== FORGE_UTI);
+        const types = entry?.LSItemContentTypes ?? [];
+        if (!types.some((type) => OWN_UTIS.includes(type))) return [entry];
+        const otherTypes = types.filter((type) => !OWN_UTIS.includes(type));
         return otherTypes.length ? [{ ...entry, LSItemContentTypes: otherTypes }] : [];
       }),
       {
         CFBundleTypeName: TYPE_DESCRIPTION,
         // Editor: Forge reads the file and imports/merges its contents.
+        // Owner: Forge creates this type, so it outranks generic openers.
         CFBundleTypeRole: 'Editor',
         LSHandlerRank: 'Owner',
         LSItemContentTypes: [FORGE_UTI],
