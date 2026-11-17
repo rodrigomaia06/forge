@@ -9,7 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import { setPendingImport } from '../../state/pendingImport';
 import { setPendingConflict } from '../../state/pendingConflict';
 import * as Clipboard from 'expo-clipboard';
-import { AppScreen, ForgeBackButton, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeCard, ForgeConfirmationDialog, ForgeFloatingCta, ForgeSelectionSheet, ForgeSheetHeader, ForgeSwitch, ForgeText as Text, Icon, pressedFeedback, useAfterSheetClose } from '../../components/ui';
+import { AppScreen, ForgeBackButton, ForgeBottomSheet, ForgeBottomSheetHandle, ForgeCard, ForgeConfirmationDialog, ForgeFloatingCta, ForgeSelectionSheet, ForgeSheetHeader, ForgeSwitch, ForgeText as Text, Icon, errorHaptic, pressedFeedback, successHaptic, useAfterSheetClose } from '../../components/ui';
 import type { ForgeSingleSelectOption } from '../../components/ui';
 import { useForgeFloatingCtaClearance } from '../../components/ui/ForgeFloatingCta';
 import { dashboardTheme } from '../../theme/dashboardTheme';
@@ -25,7 +25,7 @@ import { freshenSharedIds } from '../../data/sharedImport';
 import { readForgeTransferFromUri } from '../../data/readForgeTransferFile';
 import { takePendingFileImport, subscribePendingFileImport } from '../../state/pendingFileImport';
 import { relativeTime } from '../../utils/relativeTime';
-import { backupFolderSupported, chooseBackupFolder, clearCloudStatus, createSnapshot, isBackupFolderReachable, isICloudAvailable, refreshCloudStatus, type BackupState } from '../../data/snapshotRepository';
+import { backupFolderSupported, chooseBackupFolder, clearCloudStatus, createSnapshot, isBackupFolderReachable, isICloudAvailable, refreshCloudStatus, type BackupState, type SnapshotRunResult } from '../../data/snapshotRepository';
 import { useSettings } from '../../state/SettingsContext';
 import { usePlans } from '../../state/PlansContext';
 import { useWorkouts } from '../../state/WorkoutContext';
@@ -222,6 +222,28 @@ function BackupExport() {
   const erase = (): void => {
     setDeleteConfirmationOpen(true);
   };
+  // Back up now shows its own decision card: working, then saved or failed, with haptics.
+  const [backupDialog, setBackupDialog] = React.useState<{ phase: 'working' | 'saved' | 'failed'; message: string } | null>(null);
+  const backUpNow = (): void => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
+    setBackupDialog({ phase: 'working', message: 'Saving a copy of your data on this phone.' });
+    void createSnapshot('manual')
+      .then((result) => {
+        successHaptic();
+        setBackupDialog({ phase: 'saved', message: backupSavedMessage(result.cloud) });
+      })
+      .catch((error: unknown) => {
+        errorHaptic();
+        setBackupDialog({ phase: 'failed', message: localDataErrorMessage(error) });
+      })
+      .finally(() => {
+        busyRef.current = false;
+        setBusy(false);
+        reloadBackupState();
+      });
+  };
   const confirmErase = (): void => {
     setDeleteConfirmationOpen(false);
     void run(async () => {
@@ -236,30 +258,16 @@ function BackupExport() {
       {Platform.OS === 'web' ? null : <SettingsSection
         title="Backups"
         icon="cloud"
-        info="Forge saves each backup on this phone: on iPhone in On My iPhone › Forge in the Files app, or in another backup folder you choose so it survives deleting the app. With iCloud copy on, it also copies each backup to a hidden iCloud folder only Forge can read. Each backup only stores what changed since the last one. Kept: every backup from the last 7 days, one per week for 8 weeks and one per month for a year."
-        footer={backupFooter(backupState)}
+        info={BACKUP_INFO}
       >
         <Action
           title="Back up now"
+          subtitle={backUpSubtitle(backupState)}
           icon="save"
           divider
           disclosure={false}
           disabled={busy}
-          onPress={() => void run(async () => {
-            const result = await createSnapshot('manual');
-            reloadBackupState();
-            setNotice({
-              title: 'Backup saved',
-              message: result.cloud === 'pending'
-                ? 'Your data is saved on this phone, and iCloud is uploading a copy.'
-                : result.cloud === 'no-space'
-                  ? 'Your data is saved on this phone. iCloud is full, so it was not copied there.'
-                  : result.cloud === 'error'
-                    ? 'Your data is saved on this phone. Forge could not copy it to iCloud this time.'
-                    : 'Your data is saved on this phone.',
-              tone: 'success',
-            });
-          })}
+          onPress={backUpNow}
         />
         {backupFolderSupported() ? <Action
           title="Backup folder"
@@ -317,6 +325,7 @@ function BackupExport() {
               tone: 'success',
             });
           })}
+          subtitle={preferences.iCloudBackupEnabled ? cloudSubtitle(backupState) : undefined}
           trailing={<ForgeSwitch value={preferences.iCloudBackupEnabled} testID="icloud-backup-switch" />}
           showDivider
         /> : null}
@@ -325,7 +334,7 @@ function BackupExport() {
       <SettingsSection
         title="Data transfer"
         icon="database-export"
-        info="Export data writes a portable .forge file that adds to another device without replacing anything. Export summary is a read-only text overview. Import data accepts .forge files; import workout CSVs with Import from another app. Delete all app data erases everything on this device after a confirmation."
+        info={DATA_TRANSFER_INFO}
         footer={history.lastExportAt ? `Last export ${relativeTime(history.lastExportAt)}.` : undefined}
       >
         <Action title="Export data" divider onPress={() => { setSelection(allDataTransferSelection()); setTransferStep('export-json'); }} />
@@ -359,6 +368,19 @@ function BackupExport() {
         onCancel={() => setDeleteConfirmationOpen(false)}
         onConfirm={confirmErase}
         testID="delete-all-data-confirmation"
+      />
+      <ForgeConfirmationDialog
+        visible={Boolean(backupDialog)}
+        busy={backupDialog?.phase === 'working'}
+        title={backupDialog?.phase === 'working' ? 'Backing up…' : backupDialog?.phase === 'failed' ? 'Backup failed' : 'Backup saved'}
+        message={backupDialog?.message ?? ''}
+        cancelLabel="Done"
+        confirmLabel="Done"
+        confirmTone={backupDialog?.phase === 'failed' ? 'neutral' : 'success'}
+        showCancel={false}
+        onCancel={() => setBackupDialog(null)}
+        onConfirm={() => setBackupDialog(null)}
+        testID="backup-now-dialog"
       />
       <ForgeConfirmationDialog
         visible={Boolean(notice)}
@@ -403,22 +425,50 @@ function BackupExport() {
 /** On iPhone, backups without a chosen folder sit in Forge's own folder in Files (On My iPhone › Forge). */
 const DEFAULT_FOLDER_NAME = Platform.OS === 'ios' ? 'Forge' : 'Not chosen';
 
-function backupFooter(state: BackupState): string {
-  if (state.lastError) return 'The last backup did not finish. Back up now to try again.';
-  if (!state.lastSuccessAt) return 'No backup yet.';
-  // Without iCloud or a folder outside the app, deleting Forge deletes the backups too.
-  const keepHint = state.folder || state.cloud === 'synced' || state.cloud === 'pending' ? ''
-    : Platform.OS === 'ios' ? ' Turn on iCloud copy to keep them if Forge is deleted.'
-    : ' Choose a backup folder so backups survive deleting Forge.';
-  const when = `Last backup ${relativeTime(Date.parse(state.lastSuccessAt))}`;
-  const phone = state.folderUnavailable
-    ? 'in app storage because the backup folder could not be reached'
-    : state.folder ? `in ${state.folder.name}` : Platform.OS === 'ios' ? 'in On My iPhone › Forge' : 'inside the app';
-  if (state.cloud === 'synced') return `${when}, ${phone} and in iCloud.${keepHint}`;
-  if (state.cloud === 'pending') return `${when}, ${phone}. Waiting for iCloud to upload it.${keepHint}`;
-  if (state.cloud === 'no-space') return `${when}, ${phone}. iCloud is full.${keepHint}`;
-  if (state.cloud === 'error') return `${when}, ${phone}. The iCloud copy failed.${keepHint}`;
-  return `${when}, ${phone}.${keepHint}`;
+const BACKUP_INFO = Platform.OS === 'ios'
+  ? [
+      'Saved in Files › On My iPhone › Forge',
+      'That folder is deleted with the app',
+      'Backup folder: keep backups outside Forge',
+      'iCloud copy: also save to iCloud',
+      'Kept: 7 days, then weekly, then monthly',
+    ]
+  : [
+      'Saved inside Forge until you choose a folder',
+      'Backup folder: keep backups outside Forge',
+      'Kept: 7 days, then weekly, then monthly',
+    ];
+
+const DATA_TRANSFER_INFO = [
+  'Export data: a .forge file for another device',
+  'Export summary: a read-only text overview',
+  'Import data: adds a .forge file',
+  'Import from another app: Hevy, Strong and more',
+  'Delete all app data: erases this device',
+];
+
+/** One short line under Back up now: when the last backup ran, or what went wrong. */
+function backUpSubtitle(state: BackupState): string {
+  if (state.lastError) return 'Last backup failed';
+  if (state.folderUnavailable) return 'Backup folder unreachable';
+  return state.lastSuccessAt ? `Last backup ${relativeTime(Date.parse(state.lastSuccessAt))}` : 'No backup yet';
+}
+
+/** One short line under iCloud copy while it is on. */
+function cloudSubtitle(state: BackupState): string {
+  if (state.cloud === 'synced') return 'Up to date';
+  if (state.cloud === 'pending') return 'Uploading';
+  if (state.cloud === 'no-space') return 'iCloud full';
+  if (state.cloud === 'error') return 'Last copy failed';
+  if (state.cloud === 'unavailable') return 'iCloud unavailable';
+  return 'Copies the next backup';
+}
+
+function backupSavedMessage(cloud: SnapshotRunResult['cloud']): string {
+  if (cloud === 'pending') return 'Your data is saved on this phone, and iCloud is uploading a copy.';
+  if (cloud === 'no-space') return 'Your data is saved on this phone. iCloud is full, so it was not copied there.';
+  if (cloud === 'error' || cloud === 'unavailable') return 'Your data is saved on this phone. Forge could not copy it to iCloud this time.';
+  return 'Your data is saved on this phone.';
 }
 
 export function localDataErrorMessage(error: unknown): string {

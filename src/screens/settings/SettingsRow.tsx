@@ -175,7 +175,7 @@ export function SettingsSection({
   footer?: string;
   /** Longer, non-essential explanation shown behind an (i) button instead of an
    * always-on footer, so the screen stays uncluttered. */
-  info?: string;
+  info?: string | readonly string[];
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   cardStyle?: StyleProp<ViewStyle>;
@@ -214,14 +214,25 @@ export function SettingsSection({
         <ForgeConfirmationDialog
           visible={infoOpen}
           title={title ?? 'Details'}
-          message={info}
+          message={typeof info === 'string' ? info : undefined}
           cancelLabel="Got it"
           confirmLabel="Got it"
           confirmTone="neutral"
           showCancel={false}
           onCancel={() => setInfoOpen(false)}
           onConfirm={() => setInfoOpen(false)}
-        />
+        >
+          {typeof info === 'string' ? null : (
+            <View style={styles.infoList}>
+              {info.map((point) => (
+                <View key={point} style={styles.infoPoint}>
+                  <Text style={[styles.infoBullet, { color: theme.textSecondary }]}>•</Text>
+                  <Text style={[styles.infoText, { color: theme.slate }]}>{point}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </ForgeConfirmationDialog>
       ) : null}
     </View>
   );
@@ -275,4 +286,8 @@ const createStyles = (theme: import('../../types').ForgeTheme) =>
     },
     sectionTitle: { ...typeScale.sectionTitle },
     footer: { ...typeScale.caption, paddingHorizontal: 6 },
+    infoList: { marginTop: 10, gap: 6, alignSelf: 'stretch' },
+    infoPoint: { flexDirection: 'row', gap: 8 },
+    infoBullet: { ...typeScale.body },
+    infoText: { ...typeScale.body, flex: 1 },
   });
