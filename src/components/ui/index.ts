@@ -5,7 +5,7 @@ export { Divider } from './Divider';
 export { ForgeText, ForgeTextInput } from './ForgeText';
 export { ForgeRollingNumber } from './ForgeRollingNumber';
 export { ForgeExerciseName } from './ForgeExerciseName';
-export { ForgeNumericRangeInput } from './ForgeNumericRangeInput';
+export { ForgeNumericRangeInput, rangeKeyboardType } from './ForgeNumericRangeInput';
 export { ForgeSearchField } from './ForgeSearchField';
 export { ForgeBackButton, HeaderAction } from './HeaderAction';
 export { ForgeWorkoutFinishAction } from './ForgeWorkoutFinishAction';

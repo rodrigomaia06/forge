@@ -107,7 +107,7 @@ For iOS sideloading, I recommend [iLoader](https://github.com/nab138/iloader). D
 | `src/domain/`                                   | Training and exercise logic independent of UI and storage        |
 | `src/data/`, `src/state/`                       | Repositories, transfer/import logic and React providers          |
 | `src/navigation/`                               | React Navigation stacks, tabs and opened-file routing            |
-| `modules/forge-rest-timer/`, `plugins/`         | Native rest timers, iOS numeric keyboard and Expo config plugins |
+| `modules/forge-rest-timer/`, `plugins/`         | Native rest timers and Expo config plugins                       |
 | `tests/`                                        | Automated checks, fixtures and visual baselines                  |
 | `data/catalog/`, `scripts/`                     | Exercise source data and catalogue tooling                       |
 

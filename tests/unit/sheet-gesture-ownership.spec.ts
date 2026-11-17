@@ -85,7 +85,6 @@ function loadSheet() {
     './haptics': { lightHaptic: () => undefined },
     './forgeKeyboard': {
       dismissForgeKeyboard: () => undefined,
-      isRangeKeyboardVisible: () => false,
     },
     './ForgeControlSurface': { ForgeControlSurface: { Provider: 'SurfaceProvider' } },
     'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) },

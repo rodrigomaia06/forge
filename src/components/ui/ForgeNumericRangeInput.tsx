@@ -1,10 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Platform, StyleSheet, processColor, type ColorValue, type KeyboardTypeOptions, type StyleProp, type TextInput as NativeTextInput, type TextStyle, type TextInputProps } from 'react-native';
-import { NativeRangeInput } from '../../../modules/forge-range-keyboard';
-import { useForgeTheme } from '../../theme/ThemeProvider';
-import { typeScale } from '../../theme/tokens';
+import React, { useEffect, useRef } from 'react';
+import { Platform, type ColorValue, type KeyboardTypeOptions, type StyleProp, type TextInput as NativeTextInput, type TextStyle, type TextInputProps } from 'react-native';
 
 import { ForgeTextInput } from './ForgeText';
+
+/**
+ * The system keyboard for a field that accepts a `min-max` range (and a
+ * decimal): iOS numbers-and-punctuation has `-`, `.` and `:`; Android's
+ * signed decimal number keyboard has `-` and `.` (React Native does not
+ * filter where they are typed). Single decimal values use `decimal-pad`.
+ */
+export const rangeKeyboardType: KeyboardTypeOptions =
+  Platform.OS === 'android' ? 'numeric' : 'numbers-and-punctuation';
 
 export interface ForgeNumericRangeInputProps {
   value: string;
@@ -22,17 +28,14 @@ export interface ForgeNumericRangeInputProps {
   style?: StyleProp<TextStyle>;
   fontSize?: number;
   textAlign?: 'left' | 'center' | 'right';
-  /**
-   * `numbers-and-punctuation` selects the native range keypad when available.
-   * Single decimal fields retain `decimal-pad` and the system keyboard.
-   */
+  /** Defaults to `rangeKeyboardType`; single decimal values pass `decimal-pad`. */
   keyboardType?: KeyboardTypeOptions;
   /** Increment to focus the input from a grouped row tap. */
   focusRequest?: number;
   testID?: string;
 }
 
-/** Native range entry with a platform TextInput fallback; parsing stays with the consumer. */
+/** Numeric range entry on the platform's own keyboard; parsing stays with the consumer. */
 export function ForgeNumericRangeInput({
   value,
   onChangeText,
@@ -49,56 +52,26 @@ export function ForgeNumericRangeInput({
   style,
   fontSize = 16,
   textAlign = 'center',
-  keyboardType = 'numbers-and-punctuation',
+  keyboardType = rangeKeyboardType,
   focusRequest = 0,
   testID,
 }: ForgeNumericRangeInputProps) {
-  const fallbackRef = useRef<NativeTextInput>(null);
-  const theme = useForgeTheme();
-  const [eventCount, setEventCount] = useState(0);
-
-  useEffect(() => { if (focusRequest > 0) fallbackRef.current?.focus(); }, [focusRequest]);
-
-  if (NativeRangeInput && keyboardType === 'numbers-and-punctuation') {
-    const flattened = StyleSheet.flatten(style);
-    const foreground = processColor(textColor ?? theme.textPrimary);
-    const placeholderColor = processColor(placeholderTextColor ?? theme.textSecondary);
-    return <NativeRangeInput
-      value={value}
-      mostRecentEventCount={eventCount}
-      editable={editable}
-      placeholder={placeholder ?? ''}
-      accessibilityLabel={accessibilityLabel}
-      textColor={typeof foreground === 'number' ? foreground : undefined}
-      placeholderTextColor={typeof placeholderColor === 'number' ? placeholderColor : undefined}
-      fontSize={fontSize}
-      fontFamily={flattened?.fontFamily ?? typeScale.body.fontFamily ?? ''}
-      textAlign={textAlign}
-      appearance={theme.colorScheme}
-      focusRequest={focusRequest}
-      testID={testID}
-      onChange={({ nativeEvent }) => {
-        setEventCount(nativeEvent.eventCount);
-        onChangeText(nativeEvent.value);
-      }}
-      onFocus={() => onFocus?.()}
-      onBlur={() => onBlur?.()}
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-      style={[{ minHeight: typeScale.body.lineHeight }, style]}
-    />;
-  }
+  const inputRef = useRef<NativeTextInput>(null);
+  useEffect(() => { if (focusRequest > 0) inputRef.current?.focus(); }, [focusRequest]);
+  // `numbers-and-punctuation` is iOS-only; Android shows its text keyboard for it.
+  const resolvedKeyboard = Platform.OS === 'android' && keyboardType === 'numbers-and-punctuation'
+    ? 'numeric'
+    : keyboardType;
 
   return (
     <ForgeTextInput
-      ref={fallbackRef}
+      ref={inputRef}
       lockCursorToEnd
       accessibilityLabel={accessibilityLabel}
       editable={editable}
       // Web needs inputMode because its numbers-and-punctuation mapping is text.
-      inputMode={Platform.OS === 'web' ? keyboardType === 'number-pad' ? 'numeric' : 'decimal' : undefined}
-      keyboardType={keyboardType}
+      inputMode={Platform.OS === 'web' ? resolvedKeyboard === 'number-pad' ? 'numeric' : 'decimal' : undefined}
+      keyboardType={resolvedKeyboard}
       onBlur={onBlur}
       onChangeText={onChangeText}
       onFocus={onFocus}

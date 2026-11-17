@@ -908,7 +908,7 @@ test.describe('Active workout flow', () => {
     const repsOnlyTarget = page.getByRole('textbox', { name: 'Next-time reps target for set 1' });
     await expect(repsOnlyTarget).toBeVisible();
     await expect(page.locator('input[aria-label^="Next-time"]')).toHaveCount(1);
-    // Next-session targets use the live range keypad (web maps it to decimal).
+    // Next-session targets use the system range keyboard (web maps it to decimal).
     await expect(repsOnlyTarget).toHaveAttribute('inputmode', 'decimal');
     await repsOnlyTarget.fill('8-10');
     await repsOnlyTarget.blur();

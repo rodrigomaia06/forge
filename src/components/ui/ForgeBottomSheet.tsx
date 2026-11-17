@@ -24,7 +24,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useForgeTheme } from '../../theme/ThemeProvider';
-import { addForgeKeyboardListener, dismissForgeKeyboard, isRangeKeyboardVisible } from './forgeKeyboard';
+import { addForgeKeyboardListener, dismissForgeKeyboard } from './forgeKeyboard';
 import { ForgeControlSurface } from './ForgeControlSurface';
 import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 import { scaleUI } from '../../theme/scale';
@@ -383,10 +383,6 @@ export function ForgeBottomSheet({
       statusBarTranslucent={Platform.OS === 'android'}
       navigationBarTranslucent={Platform.OS === 'android'}
       onRequestClose={() => {
-        if (isRangeKeyboardVisible()) {
-          dismissForgeKeyboard();
-          return;
-        }
         if (!onBackRequest?.()) close(true);
       }}
     >

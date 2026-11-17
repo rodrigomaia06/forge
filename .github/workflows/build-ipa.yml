@@ -75,7 +75,7 @@ jobs:
           test "$(grep -F -c 'let argumentsPtr = NonisolatedUnsafeVar(argumentsPtr)' "$RUNTIME")" -eq 2
       - name: Generate the iOS project
         # Prebuild also runs Forge's local plugin, which adds the direct
-        # ActivityKit extension and the app-local numeric range keyboard.
+        # ActivityKit extension.
         run: npx expo prebuild --no-install --platform ios
       - name: Install CocoaPods
         working-directory: ios

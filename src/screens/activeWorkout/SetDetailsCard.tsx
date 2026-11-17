@@ -2,7 +2,9 @@ import { setRirText, updateSetRir } from '../../domain/workouts/setEffort';
 import { ForgePressable as Pressable } from '../../components/ui/ForgePressable';
 import { ForgeSheetScrollView } from '../../components/ui/ForgeSheetScrollView';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View, type KeyboardTypeOptions } from 'react-native';
+import { Pressable as NativePressable, ScrollView, StyleSheet, View, type KeyboardTypeOptions } from 'react-native';
+import { rangeKeyboardType } from '../../components/ui/ForgeNumericRangeInput';
+import { formatRangeEntry, rangeEntryText, rangeEntryValues, recordedIntervalText, withoutRecordedInterval } from '../../domain/workouts/rangeEntry';
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { forgeMotion, useForgeReducedMotion } from '../../theme/motion';
 
@@ -522,7 +524,7 @@ function TargetsSection({
     : trackingFields[trackingType];
   const targetList = isRoutineInterval ? set.plannedTargets : set.targets;
   // Next-session targets are single values (allow a decimal via comma/period);
-  // routine intervals are ranges that keep the dash-based keypad.
+  // routine intervals are dash-separated ranges.
   const commaAsDecimal = !isRoutineInterval;
   return (
     <View testID="set-next-session-section" style={[styles.section, styles.targetSection]}>
@@ -540,24 +542,26 @@ function TargetsSection({
             showDivider={isRoutineInterval && index > 0}
             label={
               isRoutineInterval
-                ? `${kind === 'duration' ? 'Sec' : trackingFieldLabel(trackingType, kind)} interval`
+                ? `${trackingFieldLabel(trackingType, kind)} interval`
                 : trackingFieldLabel(trackingType, kind)
             }
             value={targetText(targetList, set, kind, isRoutineInterval)}
-            placeholder={isRoutineInterval ? 'e.g. 8–12' : '—'}
-            unit={!isRoutineInterval && kind === 'duration' ? 'mm:ss' : targetUnitLabel(kind)}
+            placeholder={isRoutineInterval ? (kind === 'duration' ? 'e.g. 0:30–1:00' : 'e.g. 8–12') : '—'}
+            unit={kind === 'duration' ? 'mm:ss' : targetUnitLabel(kind)}
             editable={editable}
             commaAsDecimal={commaAsDecimal}
-            timeValue={!isRoutineInterval && kind === 'duration'}
-            // Weight and reps targets use the same range keypad as the live set
-            // inputs (with `,` and `-`), so `82,5` or `8-10` can be entered;
-            // next-session durations keep the mm:ss decimal pad.
+            timeValue={kind === 'duration'}
+            rangeKind={isRoutineInterval ? kind : undefined}
+            // System keyboards chosen by what the field accepts: a single
+            // decimal (kg) or clock value uses the decimal pad, whose `.` is
+            // also the clock separator; a field that takes a `8-10` range
+            // (reps, km, every routine interval) uses the keyboard with `-`.
             keyboardType={
-              isRoutineInterval || kind !== 'duration'
-                ? 'numbers-and-punctuation'
-                : 'decimal-pad'
+              !isRoutineInterval && (kind === 'weight' || kind === 'addedWeight' || kind === 'duration')
+                ? 'decimal-pad'
+                : rangeKeyboardType
             }
-            accessibilityLabel={`${isRoutineInterval ? 'Routine' : 'Next-time'} ${(isRoutineInterval && kind === 'duration' ? 'Sec' : trackingFieldLabel(trackingType, kind)).toLowerCase()} ${isRoutineInterval ? 'interval' : 'target'} for ${setLabel.toLowerCase()}`}
+            accessibilityLabel={`${isRoutineInterval ? 'Routine' : 'Next-time'} ${trackingFieldLabel(trackingType, kind).toLowerCase()} ${isRoutineInterval ? 'interval' : 'target'} for ${setLabel.toLowerCase()}`}
             onChangeText={(value) =>
               onChange({
                 ...(isRoutineInterval
@@ -568,7 +572,9 @@ function TargetsSection({
                         kind,
                         value,
                         commaAsDecimal,
+                        true,
                       ),
+                      ...withoutRecordedInterval(set, kind),
                     }
                   : {
                       ...(kind === 'reps'
@@ -605,7 +611,8 @@ function targetText(
         ? set.targetWeight
         : undefined;
   if (target?.minValue !== undefined) {
-    if (!isRoutineInterval && kind === 'duration')
+    if (isRoutineInterval) return formatRangeEntry(kind, target.minValue, target.maxValue);
+    if (kind === 'duration')
       return formatTargetValues(target.minValue, target.maxValue, '.', true);
     return formatTargetValues(
       target.minValue,
@@ -613,7 +620,7 @@ function targetText(
       isRoutineInterval ? '.' : decimalSeparatorOf(legacyRaw),
     );
   }
-  if (isRoutineInterval) return '';
+  if (isRoutineInterval) return recordedIntervalText(set, kind);
   return legacyRaw ?? '';
 }
 function targetUnitLabel(kind: SetMeasurementKind): string {
@@ -625,8 +632,11 @@ function updateTargets(
   kind: SetMeasurementKind,
   text: string,
   commaAsDecimal: boolean,
+  routineInterval = false,
 ): NonNullable<WorkoutSet['targets']> {
-  const values = targetValues(text, commaAsDecimal, commaAsDecimal && kind === 'duration');
+  const values = routineInterval
+    ? rangeEntryValues(text, kind)
+    : targetValues(text, commaAsDecimal, commaAsDecimal && kind === 'duration');
   const retained = (targets ?? []).filter((target) => target.kind !== kind);
   if (!values.length) return retained;
   return [
@@ -712,6 +722,7 @@ function TargetRow({
   editable,
   commaAsDecimal,
   timeValue = false,
+  rangeKind,
   keyboardType,
   accessibilityLabel,
   onChangeText,
@@ -726,6 +737,8 @@ function TargetRow({
   editable: boolean;
   commaAsDecimal: boolean;
   timeValue?: boolean;
+  /** Set for routine intervals, which parse and display through the shared range entry. */
+  rangeKind?: SetMeasurementKind;
   keyboardType: KeyboardTypeOptions;
   accessibilityLabel: string;
   onChangeText: (value: string) => void;
@@ -757,16 +770,18 @@ function TargetRow({
   const inputFit = targetInputFit(draftValue);
 
   return (
-    <Pressable
-      accessibilityRole={editable ? 'button' : undefined}
-      accessibilityLabel={editable ? accessibilityLabel : undefined}
+    // The row only forwards a tap on its label to the field. It paints no press
+    // state: a row-wide tint over the label and field read as a misplaced text
+    // selection while the field's own caret and loupe were active. The field
+    // is the accessible control, so the row stays out of the accessibility tree.
+    <NativePressable
+      accessible={false}
       onPress={editable ? focusInput : undefined}
       disabled={!editable}
-      style={({ pressed }) => [
+      style={[
         styles.targetRow,
         paired && styles.pairedTarget,
         showDivider && styles.targetRowDivider,
-        pressed && pressedFeedbackSubtle,
       ]}
     >
       <Text style={styles.targetLabel}>{label}</Text>
@@ -779,9 +794,11 @@ function TargetRow({
               // The number keypad is the primary input path; keep pasted or
               // hardware-keyboard text equally numeric so targets never
               // retain alphabetic characters.
-              const numericValue = timeValue
-                ? nextValue.replace(/[,.]/g, ':').replace(/[^0-9:]/g, '')
-                : nextValue.replace(/[^0-9.,\-–—]/g, '');
+              const numericValue = rangeKind
+                ? rangeEntryText(nextValue, rangeKind)
+                : timeValue
+                  ? nextValue.replace(/[,.]/g, ':').replace(/[^0-9:]/g, '')
+                  : nextValue.replace(/[^0-9.,\-–—]/g, '');
               draftValueRef.current = numericValue;
               setDraftValue(numericValue);
               onChangeText(numericValue);
@@ -793,7 +810,10 @@ function TargetRow({
             onBlur={() => {
               editingRef.current = false;
               const rawValue = draftValueRef.current;
-              const canonicalValue = normalizedTargetText(rawValue, commaAsDecimal, timeValue);
+              const [minValue, maxValue] = rangeKind ? rangeEntryValues(rawValue, rangeKind) : [];
+              const canonicalValue = rangeKind
+                ? minValue === undefined ? '' : formatRangeEntry(rangeKind, minValue, maxValue)
+                : normalizedTargetText(rawValue, commaAsDecimal, timeValue);
               // Preserve natural entry while focused, then use one canonical
               // format after leaving the field (for example `8–12`).
               draftValueRef.current = canonicalValue;
@@ -814,7 +834,7 @@ function TargetRow({
         )}
         <Text style={styles.targetUnit}>{unit}</Text>
       </View>
-    </Pressable>
+    </NativePressable>
   );
 }
 

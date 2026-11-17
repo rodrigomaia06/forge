@@ -29,7 +29,7 @@ Directory-level only; list contents with the file tools.
   - `domain/` — pure logic; no React or storage.
   - `theme/` — tokens, typography, motion, scale and the theme provider.
   - `types/`, `utils/`, `debug/` — shared types, small helpers, development probes.
-- `modules/` — native Expo modules (rest-timer Live Activity, range keypad), each wired by its config plugin.
+- `modules/` — native Expo modules (for example the rest-timer Live Activity), each wired by its config plugin.
 - `plugins/` — app-level Expo config plugins.
 - `tests/` — `unit/`, Playwright `e2e/` and `fixtures/`.
 - `scripts/` — verification guard and catalogue/signing tooling.

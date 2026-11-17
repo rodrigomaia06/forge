@@ -1,9 +1,9 @@
 import { useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, type KeyboardEvent } from 'react-native';
+import { Keyboard, Platform, type KeyboardEvent } from 'react-native';
 
 import type { MeasureSetInput } from './activeWorkoutTypes';
-import { addForgeKeyboardListener, forgeKeyboardMetrics } from '../../components/ui/forgeKeyboard';
+import { addForgeKeyboardListener } from '../../components/ui/forgeKeyboard';
 
 type OffsetScrollable = {
   scrollToOffset: (params: { offset: number; animated?: boolean }) => void;
@@ -43,7 +43,7 @@ export function useFocusedSetKeyboardLift(
 
   const liftFocusedSetInput = useCallback((): void => {
     const measure = focusedSetMeasureRef.current;
-    const keyboard = keyboardFrameRef.current ?? forgeKeyboardMetrics();
+    const keyboard = keyboardFrameRef.current ?? Keyboard.metrics();
     if (!measure || !keyboard) return;
     const generation = focusGeneration.current;
     measure(({ y, height }) => {
