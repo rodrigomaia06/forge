@@ -30,7 +30,7 @@ function fixture() {
       catch (error) { connection.exec('ROLLBACK'); throw error; }
     },
   };
-  const values = Object.fromEntries(Object.values(appStateKeys).map((key, index) => [key, JSON.stringify({ saved: index })]));
+  const values = Object.fromEntries([appStateKeys.dashboard, appStateKeys.timer, appStateKeys.diagnostics, appStateKeys.backupHistory].map((key, index) => [key, JSON.stringify({ saved: index })]));
   const storage = {
     multiGet: async keys => keys.map(key => [key, values[key] ?? null]),
     multiRemove: async keys => keys.forEach(key => delete values[key]),

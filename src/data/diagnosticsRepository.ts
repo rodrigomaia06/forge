@@ -15,7 +15,7 @@ export type DiagnosticEntry = {
   id: string;
   at: number;
   kind: DiagnosticKind;
-  detail?: 'invalid-file' | 'unavailable' | 'unknown';
+  detail?: 'invalid-file' | 'unavailable' | 'icloud-no-space' | 'unknown';
 };
 
 const diagnosticKinds = new Set<DiagnosticKind>([
@@ -29,6 +29,7 @@ const diagnosticKinds = new Set<DiagnosticKind>([
 const diagnosticDetails = new Set<NonNullable<DiagnosticEntry['detail']>>([
   'invalid-file',
   'unavailable',
+  'icloud-no-space',
   'unknown',
 ]);
 

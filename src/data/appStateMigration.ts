@@ -3,11 +3,14 @@ export const appStateKeys = {
   timer: '@forge/rest-timer-v1',
   diagnostics: '@forge/diagnostics-v1',
   backupHistory: '@forge/backup-history-v1',
+  backupState: '@forge/backup-state-v1',
 } as const;
 export type AppStateKey = (typeof appStateKeys)[keyof typeof appStateKeys];
 export const appStateSchema =
   'CREATE TABLE IF NOT EXISTS app_state (key TEXT PRIMARY KEY NOT NULL, value_json TEXT NOT NULL)';
 const marker = 'app-state-v1-migrated';
+/** Keys that once lived in AsyncStorage; newer keys were never stored there. */
+const legacyKeys: AppStateKey[] = [appStateKeys.dashboard, appStateKeys.timer, appStateKeys.diagnostics, appStateKeys.backupHistory];
 
 type MigrationDatabase = {
   execAsync(sql: string): Promise<void>;
@@ -25,7 +28,7 @@ export async function migrateAppState(
   storage: LegacyStorage,
 ): Promise<void> {
   await db.execAsync(appStateSchema);
-  const keys = Object.values(appStateKeys);
+  const keys = legacyKeys;
   const migrated = await db.getFirstAsync('SELECT value FROM forge_meta WHERE key = ?', marker);
   if (!migrated) {
     const entries = await storage.multiGet(keys);

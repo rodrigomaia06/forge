@@ -24,7 +24,9 @@ the storage technology can change. All persistent native state, including prefer
 auxiliary state, lives in the shared SQLite database. Forge serializes all SQLite transactions
 through the repository boundary because providers share one connection. Full backups drain
 pending provider writes before snapshotting and restore all persistent state; selective transfers
-stay independent. Browser adapters preserve behavior without browser SQLite.
+stay independent. Automatic backups are incremental snapshots of every user-owned row, stored on
+the device first and mirrored to iCloud when available (ADR 0006); device-only rows (catalogue,
+diagnostics, timer, backup bookkeeping) stay out of them. Browser adapters preserve behavior without browser SQLite.
 
 Bundled exercise catalogues are immutable versioned snapshots seeded as Forge-owned baseline
 rows; seeding upgrades only those rows and never overwrites custom exercises, preferences,

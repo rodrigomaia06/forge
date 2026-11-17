@@ -5,6 +5,7 @@ import { builtInWorkoutTypeColors } from '../domain/workouts/workoutTypeDefaults
 export const defaultSettingsPreferences: SettingsPreferences = {
   appearance: 'system',
   logsEnabled: false,
+  autoBackupEnabled: true,
   units: 'metric',
   bodyweightKg: 0,
   weekStartsOn: 1,

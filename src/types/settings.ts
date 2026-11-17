@@ -36,6 +36,8 @@ export interface DailyMeasurementEntry {
 export interface SettingsPreferences {
   appearance: AppearancePreference;
   logsEnabled: boolean;
+  /** Weekly snapshot backup (local, mirrored to iCloud when available). On by default. */
+  autoBackupEnabled: boolean;
   units: UnitsPreference;
   bodyweightKg: number;
   weekStartsOn: WeekStartsOn;

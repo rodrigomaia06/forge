@@ -71,6 +71,7 @@ export function parseSettingsPreferences(value: string | null): SettingsPreferen
     : defaultSettingsPreferences.workoutTypes);
   return {
     logsEnabled: parsed.logsEnabled === true,
+    autoBackupEnabled: parsed.autoBackupEnabled !== false,
     appearance: parsed.appearance === 'light' || parsed.appearance === 'dark' || parsed.appearance === 'system' ? parsed.appearance : 'system',
     units: parsed.units === 'imperial' ? parsed.units : 'metric',
     bodyweightKg: typeof parsed.bodyweightKg === 'number' && parsed.bodyweightKg >= 0 ? parsed.bodyweightKg : 0,
